@@ -117,7 +117,9 @@ and competing downloads on shared or independent cache roots, without sockets or
 `dictation-volume-test` uses private files and injected audio controls to verify crash recovery
 before and after fade steps, user volume changes, output switching, failed writes and rapid cancellation,
 without changing the system volume or downloading a model. `voice-ai-test` covers the cloud engine's
-speech gate, WAV encoding, prompt and request body, without a network or a microphone.
+speech gate, WAV encoding, prompt and request body, without a network or a microphone;
+`dictation-field-test` checks that only the final pass reaches it, live insertion stays off, no model
+is needed, and a cancelled call types nothing.
 
 Also exercise all four real models, short and long recordings, downloads/removal, initial microphone
 grant and denial, hold/toggle shortcuts, Return/Escape, output destinations, live insertion on and off, surrounding text with
