@@ -1,17 +1,34 @@
 # Notes and AI
 
-An [agent](agents.md) given the **Notes** tools can search and read your Tinycast [Notes](notes.md),
-and add reports and summaries to them. This is the fork's, kept to `Features/NotesAI/` plus the few
-lines that wire it in: one lazy coordinator on `AppCore`, `NotesStore.amendDraft`, and one line in
-the agent registry.
+Tinycast's [Notes](notes.md) reach AI Chat in two ways. **Attach Note…** in the composer's **+** menu,
+or `@note` typed into the draft, opens a searchable picker, and the note you pick rides the next
+message as a text file. And an [agent](agents.md) given the **Notes** tools can search and read your
+notes, and add reports and summaries to them. Both are this fork's, kept to `Features/NotesAI/` plus
+the few lines that wire it in: one lazy coordinator on `AppCore`, one accessor on `AIChatCoordinator`,
+the menu item and modifier in `AIChatDetailView`, `NotesStore.amendDraft`, and the agent registry.
 
 ## Invariants
 
-- **Off with Notes.** With `notesEnabled` off the agent registry offers no Notes provider, and a call
-  already offered answers that Notes is turned off. Nothing lists or creates the Notes folder until a
-  Notes tool runs with Notes on.
-- **Nothing resident.** `NotesAICoordinator` holds a few references and does no IO; the provider is
-  built per agent turn. No timer, no watcher, no setting, no settings-file key, no backup field.
+- **Off with Notes.** With `notesEnabled` off there is no menu item, `@note` is plain text, the agent
+  registry offers no Notes provider and a call already offered answers that Notes is turned off.
+  Nothing lists or creates the Notes folder until one of these is used with Notes on.
+- **Nothing resident.** `NotesAICoordinator` holds a few references and does no IO until the picker
+  opens. The picker's `NotePickerModel` exists only while it is shown, lists the folder once and
+  reads bodies only while a query is typed, off-main, a superseded query cancelling its reads. The
+  provider is built per agent turn. No timer, no watcher, no setting, no settings-file key, no backup
+  field.
+- **Attaching is a pick, refused over 32 KB.** A note is staged through `AIChatCoordinator.stage` as
+  `<title>.md`, so the chip, removal, the attachment budget, chat history and an ACP agent's embedded
+  resource behave as for any text file. A note over `AIAttachmentBudget.maxInlinedTextBytes` is
+  refused with the text-file message, never cut. A chat cleared while the note loads drops it with the
+  "still loading" message.
+- **The picker never touches the Notes switcher.** It searches through its own `NotesRepository`
+  value, so an open switcher's query and results are unaffected. It flushes the open draft first, and
+  the open note attaches as the editor shows it.
+- **`@note` is a trigger, not syntax.** Exactly one typed space after `@note` at the end of the draft,
+  at a word boundary, removes the token and opens the picker; a paste or any other edit never does,
+  and Esc or a click away puts `@note ` back. At the draft's start an MCP server slugged `note` keeps
+  the token as its address.
 - **The tools are off per agent until ticked.** `AgentToolKind.notes` is not in
   `AgentToolKind.defaults`, so no agent has it until its editor's Notes box is ticked, and only an
   agent on the chat's model (`runtime == nil`) runs Tinycast's tools at all. `agents.json` carries
@@ -35,9 +52,13 @@ the agent registry.
 | --- | --- |
 | `Model/NoteTools.swift` | Tool names, limits and the definitions the model sees |
 | `Model/NoteToolFormat.swift` | Which note a name means, joining appended text, snippets, rows, the output cap |
+| `Model/NoteMention.swift` | The `@note ` trigger in a draft edit |
+| `Model/NoteAttachmentPolicy.swift` | A note as a staged text document, or too long |
 | `Service/NoteToolRunner.swift` | One call against the folder; `NoteToolConsent`; `NoteToolWriter` and its store route |
 | `Service/NoteAgentTools.swift` | The `AgentToolProvider`: specs per turn, the consent dialog's wording |
-| `UI/NotesAICoordinator.swift` | The provider for `AgentCoordinator.providers(for:)` |
+| `UI/NotesAICoordinator.swift` | The picker's chat, attaching, and the provider for `AgentCoordinator.providers(for:)` |
+| `UI/NotePickerModel.swift` | The picker's rows, debounced search and selection, alive while shown |
+| `UI/NotePickerCard.swift` | The card over the transcript, its keys, and the `.notePicker` modifier with `@note` |
 
 ## Tools
 
@@ -62,8 +83,15 @@ the agent registry.
 
 ## Manual sweep
 
-- Notes off: an agent with the Notes box ticked is offered no Notes tool; the editor's Notes box is
-  disabled.
+- Notes off: the + menu has no Attach Note…, `@note ` stays text, and an agent with the Notes box
+  ticked is offered no Notes tool; the editor's Notes box is disabled.
+- Notes on, in AI Chat: Attach Note… lists notes newest first with relative dates; typing a word from
+  a note's body finds it; ↑/↓ move, ↩ stages a chip, and the sent request carries the note inline.
+- A 40 KB note is refused with the text-file message. Switching chats with the card open closes it.
+  Clicking into the composer closes it.
+- Type `hi @note `: the token vanishes and the picker opens; Esc puts `@note ` back. Paste
+  `x @note y`: nothing opens. With an MCP server slugged `note`, `@note x` at the start stays its
+  address, and mid-draft `@note ` still opens the picker.
 - Edit an agent: Notes is unticked; tick it. Ask it to find and summarise a note: the transcript shows
   `Notes · notes_search` and `notes_read`, and no dialog.
 - Ask for a report in Notes: the dialog reads "wants to add to a note" with the text. Don't Allow
@@ -71,6 +99,6 @@ the agent registry.
   in the editor, survives the next keystroke and is saved.
 - Set Changes to Always Allow: the append runs without a dialog. A read-only agent is never offered
   `notes_append`.
-- Harness: `notes-ai-test` (definitions and specs, the toolset's offer and consent, joining,
+- Harness: `notes-ai-test` (definitions and specs, the toolset's offer and consent, `@note`, joining,
   resolution, search, paging and the 28 KB cut, append with consent, refusal, creation and limits, the
-  open-draft route, and `NotesStore.amendDraft` end to end).
+  open-draft route, the attachment budget, and `NotesStore.amendDraft` end to end).

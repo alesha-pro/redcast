@@ -18,12 +18,14 @@ struct NotesAITests {
     static func main() async {
         definitionsAndSpecs()
         await throughTheToolset()
+        mentions()
         appending()
         resolution()
         await searching()
         await reading()
         await appendingThroughTheRunner()
         await openDraftRouting()
+        attachments()
         await theStoreTakesAnAppend()
 
         print("\(passes) passed, \(failures) failed")
@@ -183,6 +185,35 @@ struct NotesAITests {
         expect(
             unattended.isError && text("Plan.md", in: root) == "first\n\nsecond\n",
             "with nobody to ask, an append is refused and the note stays")
+    }
+
+    // MARK: - 2. @note
+
+    static func mentions() {
+        expect(
+            NoteMention.consume(old: "hi @note", new: "hi @note ", reservedAtStart: false) == "hi ",
+            "a typed space after @note removes the token")
+        expect(
+            NoteMention.consume(old: "@note", new: "@note ", reservedAtStart: false) == "",
+            "at the start of an empty draft too")
+        expect(
+            NoteMention.consume(old: "mail@note", new: "mail@note ", reservedAtStart: false) == nil,
+            "not inside a word")
+        expect(
+            NoteMention.consume(old: "x ", new: "x @note y", reservedAtStart: false) == nil,
+            "a paste never triggers")
+        expect(
+            NoteMention.consume(old: "x @note ", new: "x @note", reservedAtStart: false) == nil,
+            "deleting never triggers")
+        expect(
+            NoteMention.consume(old: "x", new: "x @note ", reservedAtStart: false) == nil,
+            "putting the token back never triggers again")
+        expect(
+            NoteMention.consume(old: " @note", new: " @note ", reservedAtStart: true) == nil,
+            "an MCP server slugged note keeps the start of the draft")
+        expect(
+            NoteMention.consume(old: "ask @note", new: "ask @note ", reservedAtStart: true) == "ask ",
+            "but not the middle")
     }
 
     // MARK: - 3. Appending
@@ -416,6 +447,30 @@ struct NotesAITests {
         expect(
             after == [NoteID(rawValue: "Open.md"), NoteID(rawValue: "New.md")],
             "each file write is reported exactly once")
+    }
+
+    // MARK: - 9. Attaching
+
+    static func attachments() {
+        let limit = AIAttachmentBudget.maxInlinedTextBytes
+        guard case .document(let document) = NoteAttachmentPolicy.document(title: "Plan", source: "café")
+        else { return expect(false, "a short note attaches") }
+        expect(
+            document.name == "Plan.md" && document.mimeType == "text/plain"
+                && document.data == Data("café".utf8),
+            "as a Markdown text file of its UTF-8 bytes")
+        expect(
+            NoteAttachmentPolicy.document(title: "A", source: String(repeating: "x", count: limit))
+                != .tooLong,
+            "exactly 32 KB fits")
+        expect(
+            NoteAttachmentPolicy.document(title: "A", source: String(repeating: "x", count: limit + 1))
+                == .tooLong,
+            "a byte more is refused, not cut")
+        expect(
+            NoteAttachmentPolicy.document(title: "A", source: String(repeating: "é", count: limit / 2 + 1))
+                == .tooLong,
+            "measured in bytes, not characters")
     }
 
     // MARK: - 10. The store
