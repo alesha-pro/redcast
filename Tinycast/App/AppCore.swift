@@ -228,6 +228,10 @@ final class AppCore {
         paletteCoordinator: paletteCoordinator,
         clipboardHistory: { [unowned self] in self.snippetCoordinator.clipboardHistoryForExpansion() },
         core: self)
+    @ObservationIgnored private(set) lazy var screenAwarenessCoordinator =
+        ScreenAwarenessCoordinator(
+            settings: settings, appIndex: appIndex, paletteCoordinator: paletteCoordinator,
+            core: self)
     @ObservationIgnored private(set) lazy var mcpCoordinator = MCPCoordinator(
         settings: settings, store: mcpSettings, manager: mcp, core: self)
     /// Its own window and lifecycle, like Settings; Quick AI is the palette's half of the feature.
@@ -304,6 +308,7 @@ final class AppCore {
             installedAI.launchSettings = { [aiSettings] in aiSettings.launch(for: $0) }
             chatGPTSubscription.launchSettings = { [aiSettings] in aiSettings.launch(for: .codex) }
             aiChatCoordinator.applyEnabled()
+            screenAwarenessCoordinator.applyEnabled()
             mcpCoordinator.applyEnabled()
             customQuickActions.onChange = { [weak self] _ in
                 self?.quickActionCoordinator.applyCustomQuickActionsPresence()
@@ -717,6 +722,11 @@ final class AppCore {
         track(
             { _ = $0.quickActionsEnabled },
             reproject: { $0.quickActionCoordinator.applyEnabled() })
+        track(
+            {
+                _ = $0.aiEnabled
+                _ = $0.screenAwarenessEnabled
+            }, reproject: { $0.screenAwarenessCoordinator.applyEnabled() })
         track({ _ = $0.calendarEnabled }, reproject: { $0.calendarCoordinator.applyEnabled() })
         track(
             {

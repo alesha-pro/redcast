@@ -291,6 +291,12 @@ enum SettingsSearchCatalog {
         .init(.aiChat, "Suggested replies", keywords: ["choices", "chips", "follow-up", "buttons"]),
         .init(.aiChat, "Tool call rounds", keywords: ["mcp", "tools", "limit", "loop", "agent", "unlimited"]),
         .init(
+            .aiScreenAwareness, "Enable Screen Awareness",
+            keywords: ["screen", "window", "context", "ask about screen", "focused window"]),
+        .init(
+            .aiScreenAwareness, "Include a screenshot",
+            keywords: ["screen recording", "image", "capture", "picture"]),
+        .init(
             .aiConversations, "Opens to",
             keywords: ["new chat", "last", "summon", "resume", "window", "quick ai"]),
         .init(

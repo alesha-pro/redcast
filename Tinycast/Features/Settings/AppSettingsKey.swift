@@ -98,6 +98,8 @@ enum AppSettingsKey: String, CaseIterable {
     case mcpEnabled = "mcpEnabled"
     case mcpServers = "mcpServers"
     case quickActionsEnabled = "quickActionsEnabled"
+    case screenAwarenessEnabled = "screenAwarenessEnabled"
+    case screenAwarenessScreenshot = "screenAwarenessScreenshot"
     case quickActionModel = "quickActionModel"
     case quickActionModelOverrides = "quickActionModelOverrides"
     case quickActionPreviews = "quickActionPreviews"

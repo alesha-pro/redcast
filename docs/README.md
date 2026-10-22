@@ -26,6 +26,7 @@ open with an `## Invariants` section; read it before changing anything in that a
 [launcher](features/launcher.md) ·
 [AI providers and chat](features/ai.md) ·
 [quick actions](features/quick-actions.md) ·
+[screen awareness](features/screen-awareness.md) ·
 [clipboard](features/clipboard.md) ·
 [calculator](features/calculator.md) ·
 [calendar](features/calendar.md) ·
