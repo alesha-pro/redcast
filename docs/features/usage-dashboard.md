@@ -3,9 +3,10 @@
 Settings → AI → **Usage** sums the tokens and cost each reply reported — per model, or per ACP
 agent, for a day, a week or a month — from the chat history kept on this Mac and from a small log of
 the replies no chat keeps (Quick Actions, Ask by Voice and cloud dictation, extension AI, chat
-titles). On a press of **Check Balance** it asks OpenRouter what a key has spent. It is the fork's
-(roadmap item 14 in [FORK.md](../../FORK.md)), kept to `Features/UsageDashboard/` plus one line each
-in `AISettingsView`, `SettingsAnchor` and `SettingsSearchCatalog`, the `databaseURL` that
+titles). A strip of bars shows the period's tokens per hour of a day or per day of a week or month.
+On a press of **Check Balance** it asks OpenRouter what a key has spent. It is the fork's (roadmap
+item 14 in [FORK.md](../../FORK.md)), kept to `Features/UsageDashboard/` plus one line each in
+`AISettingsView`, `SettingsAnchor` and `SettingsSearchCatalog`, the `databaseURL` that
 `ChatHistoryStore` exposes, the two accuracy fixes below, and the `Fork:`-marked lines listed under
 [Upstream touches](#upstream-touches).
 
@@ -60,6 +61,13 @@ in `AISettingsView`, `SettingsAnchor` and `SettingsSearchCatalog`, the `database
 - **The log stays readable both ways.** A reader ignores fields past the ninth and reads missing
   trailing ones as unreported, so a later build can add columns; an origin it does not know is
   kept as none, and a route it cannot parse is **Unknown model**.
+- **The trend is the same statement, sliced in Swift.** The aggregate groups by conversation and
+  slice — the last slice start at or before `sent_at`, the starts bound as one JSON array — and
+  `UsagePeriod.slices` computes those starts with the injected `Calendar`, so a 23- or 25-hour day
+  and a local midnight are Foundation's. Day has a bar per hour, Week and Month one per day. Log
+  entries land in their slice in Swift. A bar is the slice's tokens (every route reports tokens, not
+  every route a cost); its tooltip names the slice with its tokens and cost. Plain
+  `RoundedRectangle`s, no chart framework, nothing kept once the section goes.
 - **No settings surface, and nothing in a backup.** No `AppSettings` key, no `SettingsFileKey`,
   nothing in `SettingsBackupCoverage`: the period is view state and a balance is transient. The
   usage log is AI usage data like chat history, so no backup category carries it. The section dims
@@ -103,30 +111,31 @@ in `AISettingsView`, `SettingsAnchor` and `SettingsSearchCatalog`, the `database
 
 | File | Holds |
 | --- | --- |
-| `Model/UsagePeriod.swift` | Day, week and month intervals from an injected `Calendar`, stepping, titles |
-| `Model/UsageReport.swift` | `UsageTotals`, `UsageRow`, `UsageSubject`, the merged and sorted `UsageReport`, `UsageFormat` |
+| `Model/UsagePeriod.swift` | Day, week and month intervals from an injected `Calendar`, stepping, titles, the trend's slices |
+| `Model/UsageReport.swift` | `UsageTotals`, `UsageRow`, `UsageSubject`, the merged and sorted `UsageReport` with its slices, `UsageFormat` |
 | `Model/UsageLedgerEntry.swift` | One logged reply, its line format both ways, and reading and trimming a log's bytes |
 | `Model/OpenRouterAccount.swift` | `/key` and `/credits` requests and decoding, what a status means, the binding limit |
-| `Service/UsageQuery.swift` | The read-only aggregate, ACP running totals turned into rises, and the report built with the log off-main |
+| `Service/UsageQuery.swift` | The read-only aggregate by conversation and slice, ACP running totals turned into rises, and the report built with the log off-main |
 | `Service/UsageLedger.swift` | `ai-usage.tsv`: the locked append, the age trim and the read |
 | `Service/UsageRecordingProvider.swift` | The pass-through provider that logs a reply's usage when its stream ends |
 | `Service/OpenRouterAccountClient.swift` | The Keychain read and the per-call fetch |
-| `Settings/UsageSection.swift` | The section, a row per model or agent, a balance row per OpenRouter connection |
+| `Settings/UsageSection.swift` | The section, the trend strip, a row per model or agent, a balance row per OpenRouter connection |
 
 The aggregate scans `message_details` (replies with usage) first: `CROSS JOIN` pins that order, so
 `messages` is searched by its primary key rather than scanned whole, and the result is one row per
-conversation active in the period. The ACP chats' running totals come from a `running` CTE that
-looks those chats up through `messages_by_conversation`, their ids bound as one JSON array
-(`json_each`), so a Mac with no ACP agent pays nothing for it. Period bounds are computed in Swift
-with the injected `Calendar`, so day, week and month boundaries and DST are Foundation's, not
-SQLite's `localtime`.
+conversation and slice active in the period — at most a few dozen slices each. The slice is a
+subquery over the bound starts (`json_each(?4)`, at most 32 of them) per reply in the period. The
+ACP chats' running totals come from a `running` CTE that looks those chats up through
+`messages_by_conversation`, their ids bound as one JSON array (`json_each`), so a Mac with no ACP
+agent pays nothing for it. Period bounds and slice starts are computed in Swift with the injected
+`Calendar`, so day, week and month boundaries and DST are Foundation's, not SQLite's `localtime`.
 The log is read in the same off-main call, memory-mapped, and only the lines whose leading date
 falls in the period are decoded.
 
 ## Upstream touches
 
 Each marked with a one-line `Fork:` comment: the log's wrap in `AppCore.quickActionProvider` and in
-`AIChatCoordinator`'s title request.
+`AIChatCoordinator`'s title request, and the `usageTrendHeight` token in `Theme`.
 
 ## Manual sweep
 
@@ -151,6 +160,9 @@ Each marked with a one-line `Fork:` comment: the log's wrap in `AppCore.quickAct
   no text of the selection or the answer. Do the same with Ask by Voice, a cloud dictation, an
   extension's `AI.ask` and a new chat's title. A Quick Action on Apple Intelligence adds nothing.
 - Stop a streaming Quick Action after its first words: no line, unless usage had already arrived.
+- The trend: Day shows a bar per hour, Week seven and Month one per day; the current one is tinted
+  and later ones are a hairline; hovering a bar names it with its tokens and cost. A 25-hour day
+  (the last Sunday of October in Europe) shows 25 bars.
 
 ## Harness
 
@@ -168,12 +180,13 @@ without a network. It also holds the two accuracy fixes: a two-round tool turn's
 OpenAI's own endpoint is sent `stream_options` — an OpenAI preset on a gateway and an unknown server
 are not. `agent-loop-test` holds the agents' loop to the same sum.
 
-The log: a line reads back
+The trend: hourly, daily and DST-day slices, the slice each reply lands in from the same statement,
+an ACP rise counted in its own slice, and bars that add up to the total. The log: a line reads back
 as written, a tab or newline in a model id cannot break it, a later build's fields and origin are
 ignored, unreadable lines are none; a scratch file appends, reads only a period's lines, skips a
 half-written last line and never lets it swallow the next one, is rewritten past 430 days without
 what is older than 400 (not inside the slack), and drops an unreadable head; its entries join their
-model's line, and count on a Mac with no chat history. The recorder passes a scripted
+model's line and their slice, and count on a Mac with no chat history. The recorder passes a scripted
 reply through unchanged and logs once with the last usage, logs nothing for a reply without usage,
 logs a reply its reader stopped early or that failed after usage, and hands Apple Intelligence back
 unwrapped.

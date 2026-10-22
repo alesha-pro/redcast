@@ -30,6 +30,8 @@ struct UsageDashboardTests {
         openRouterRequestsAndStatuses()
         await aToolLoopTurnCostsEveryRound()
         onlyOpenAIsOwnAPIIsAskedForStreamUsage()
+        periodsSliceIntoHoursAndDays()
+        await theTrendSumsEachSliceOfThePeriod()
         ledgerLinesRoundTrip()
         ledgerFilesAppendReadAndTrim()
         await ledgerEntriesJoinTheirModelsLine()
@@ -521,6 +523,94 @@ struct UsageDashboardTests {
     }
 }
 
+// MARK: - Trend
+
+extension UsageDashboardTests {
+    static func periodsSliceIntoHoursAndDays() {
+        let thursday = date(2026, 10, 22, 15)
+        let day = UsagePeriod.day.interval(containing: thursday, calendar: berlin)
+        let hours = UsagePeriod.day.slices(of: day, calendar: berlin)
+        expect(hours.count == 24 && hours.first == day.start, "a day is sliced into its hours")
+        expect(hours[14] == date(2026, 10, 22, 14), "each slice starts on the hour")
+        let spring = UsagePeriod.day.interval(containing: date(2026, 3, 29), calendar: berlin)
+        expect(UsagePeriod.day.slices(of: spring, calendar: berlin).count == 23, "a 23-hour day has 23 bars")
+        let autumn = UsagePeriod.day.interval(containing: date(2026, 10, 25), calendar: berlin)
+        expect(UsagePeriod.day.slices(of: autumn, calendar: berlin).count == 25, "and a 25-hour day 25")
+
+        let week = UsagePeriod.week.interval(containing: thursday, calendar: berlin)
+        let days = UsagePeriod.week.slices(of: week, calendar: berlin)
+        expect(days.count == 7, "a week is sliced into its days")
+        expect(days.last == date(2026, 10, 25, 0), "each at local midnight, across the clock change")
+        let october = UsagePeriod.month.interval(containing: thursday, calendar: berlin)
+        expect(UsagePeriod.month.slices(of: october, calendar: berlin).count == 31, "October has 31 bars")
+        let february = UsagePeriod.month.interval(containing: date(2026, 2, 10), calendar: berlin)
+        expect(UsagePeriod.month.slices(of: february, calendar: berlin).count == 28, "February 28")
+
+        let locale = Locale(identifier: "en_US")
+        let hour = UsagePeriod.day.sliceTitle(of: hours[14], calendar: berlin, locale: locale)
+        expect(hour.hasPrefix("2") && hour.hasSuffix("PM"), "an hour's bar is named by its hour: \(hour)")
+        expect(
+            UsagePeriod.month.sliceTitle(of: days[2], calendar: berlin, locale: locale) == "Oct 21",
+            "a day's bar by its date")
+    }
+
+    static func theTrendSumsEachSliceOfThePeriod() async {
+        let directory = scratch("trend")
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let store = ChatHistoryStore(directory: directory)
+        let early = session(
+            [
+                question(at: 5), reply(at: 10, AIUsage(inputTokens: 1, outputTokens: 1, costUSD: 0.1)),
+                question(at: 3_650), reply(at: 3_700, AIUsage(inputTokens: 2, outputTokens: 2)),
+                question(at: 3_750), reply(at: 3_800, AIUsage(inputTokens: 3, outputTokens: 3))
+            ],
+            model: .api(connection: connection, model: "m", effort: nil))
+        let late = session(
+            [question(at: 86_000), reply(at: 86_399, AIUsage(inputTokens: 4, outputTokens: 4))],
+            model: .codex(model: "c", effort: nil))
+        let running = session(
+            [
+                question(at: 20), reply(at: 30, AIUsage(inputTokens: 1, costUSD: 0.1)),
+                question(at: 3_690), reply(at: 3_700, AIUsage(inputTokens: 1, costUSD: 0.3))
+            ],
+            model: .claude(model: "sonnet", effort: nil))
+        for chat in [early, late, running] { store.save(chat) }
+        let slices = (0..<24).map { periodStart.addingTimeInterval(TimeInterval($0) * 3_600) }
+
+        let rows = (try? UsageQuery.rows(databaseURL: store.databaseURL, in: period, slices: slices)) ?? []
+        let earlyRows = rows.filter { $0.conversationID == early.id }
+        expect(earlyRows.count == 2, "a chat active in two slices returns a row for each")
+        expect(
+            earlyRows.first { $0.slice == 1 }?.totals.replies == 2,
+            "the slice is the last one starting at or before the reply")
+        expect(rows.first { $0.conversationID == late.id }?.slice == 23, "the period's last second is its last slice")
+
+        let agent = UUID()
+        guard
+            let report = try? await UsageQuery.report(
+                databaseURL: store.databaseURL, in: period, slices: slices, agents: [running.id: agent])
+        else {
+            expect(false, "the trend fixture reads")
+            return
+        }
+        expect(report.slices.map(\.start) == slices, "one bar per slice, in order")
+        expect(
+            report.slices[0].totals.replies == 2 && report.slices[1].totals.replies == 3,
+            "replies land in their hour")
+        expect(report.slices[23].totals.tokens == 8, "and so do their tokens")
+        expect(
+            abs((report.slices[1].totals.cost ?? 0) - 0.2) < 1e-9,
+            "an ACP session's rise is counted in the slice it rose in")
+        var summed = UsageTotals()
+        for slice in report.slices { summed.add(slice.totals) }
+        expect(
+            summed.tokens == report.total.tokens && summed.replies == report.total.replies,
+            "bars add up to the total")
+        let model = report.lines.first { $0.subject == .model(source: .api(connection), model: "m") }
+        expect(model?.totals.replies == 3, "slicing never splits a line")
+    }
+}
+
 // MARK: - Ledger
 
 extension UsageDashboardTests {
@@ -639,9 +729,10 @@ extension UsageDashboardTests {
             usage: AIUsage(inputTokens: 99, costUSD: 9))
         for entry in [quick, stray, outside] { UsageLedger.append(entry, to: ledger) }
 
+        let slices = [periodStart, periodStart.addingTimeInterval(3_600), periodStart.addingTimeInterval(7_200)]
         guard
             let report = try? await UsageQuery.report(
-                databaseURL: store.databaseURL, ledgerURL: ledger, in: period, agents: [:])
+                databaseURL: store.databaseURL, ledgerURL: ledger, in: period, slices: slices, agents: [:])
         else {
             expect(false, "the ledger fixture reads")
             return
@@ -650,6 +741,9 @@ extension UsageDashboardTests {
         expect(model?.totals.replies == 2 && model?.totals.cost == 0.75, "a Quick Action adds to its model's line")
         expect(report.lines.contains { $0.subject == .unknown && $0.totals.input == 1 }, "an unknown route is unknown")
         expect(report.total.replies == 3, "an entry outside the period is left out")
+        expect(
+            report.slices[2].totals.replies == 1 && report.slices[0].totals.replies == 2,
+            "entries land in their slice")
 
         let noHistory = directory.appending(path: "never.sqlite3")
         let onlyLog = try? await UsageQuery.report(
