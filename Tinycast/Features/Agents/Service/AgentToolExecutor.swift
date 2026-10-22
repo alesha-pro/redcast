@@ -1,15 +1,18 @@
 import Foundation
 
-/// What a change or command looks like to the person asked to allow it.
-struct AgentConsentRequest: Sendable {
-    enum Kind: Hashable, Sendable {
-        case write
-        case command
+/// The built-in families as one provider; each call gets an executor bound to its turn.
+struct AgentBuiltInTools: AgentToolProvider {
+    func specs(for turn: AgentTurn) -> [AgentToolSpec] {
+        AgentToolbox.tools(for: turn.profile, hasSkills: !turn.skills.isEmpty)
+            .map { AgentToolbox.spec(for: $0) }
     }
 
-    let kind: Kind
-    let summary: String
-    let detail: String
+    func run(_ call: AIToolCall, in context: AgentToolContext) async -> AIToolResult {
+        await AgentToolExecutor(
+            profile: context.turn.profile, skills: context.turn.skills,
+            memoryURL: context.turn.memoryURL, consent: context.consent
+        ).run(call)
+    }
 }
 
 /// Runs one built-in call off-main; a refusal or failure comes back as text the model can read.

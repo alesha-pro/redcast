@@ -21,6 +21,14 @@ struct AgentTests {
         pathsStayWhereTheAgentLives()
         writesFollowTheAccessLevel()
         toolsFollowTheProfile()
+        builtInToolsDeclareWhatTheyReach()
+        riskDecidesExposure()
+        consentPolicyTable()
+        toolsetOffersInProviderOrder()
+        toolsetAppliesTheProfile()
+        batchesKeepCallOrder()
+        budgetCutsLikeUpstream()
+        newFamiliesStartOff()
         thePromptCarriesTheFoldersContext()
         agentsAndTheirChatsSurviveARelaunch()
 
@@ -33,6 +41,20 @@ struct AgentTests {
 
     static func profile(_ access: AgentAccess = .workspaceWrite) -> AgentProfile {
         AgentProfile(name: "Builder", directory: folder, access: access)
+    }
+
+    static func tool(_ name: String, _ description: String = "") -> AITool {
+        AITool(name: name, description: description, parameters: .object([:]), origin: "Test")
+    }
+
+    static func spec(_ name: String, _ family: AgentToolKind?, _ risk: AgentToolRisk) -> AgentToolSpec {
+        AgentToolSpec(tool: tool(name), family: family, risk: risk, concurrent: false)
+    }
+
+    static func turn(_ agent: AgentProfile) -> AgentTurn {
+        AgentTurn(
+            profile: agent, skills: [], memoryURL: URL(fileURLWithPath: "/tmp/memory.md"),
+            mode: .chat(UUID()))
     }
 
     static func skillsReadTheirFrontMatter() {
@@ -158,6 +180,167 @@ struct AgentTests {
             "no built-in name can be mistaken for an MCP server's tool")
     }
 
+    static func builtInToolsDeclareWhatTheyReach() {
+        let tools = AgentToolbox.tools(for: profile(.fullAccess), hasSkills: true)
+        let table: [String: (family: AgentToolKind?, risk: AgentToolRisk, concurrent: Bool)] = [
+            AgentToolbox.listDirectory: (.files, .read, true),
+            AgentToolbox.readFile: (.files, .read, true),
+            AgentToolbox.searchFiles: (.files, .read, true),
+            AgentToolbox.writeFile: (.files, .change, false),
+            AgentToolbox.editFile: (.files, .change, false),
+            AgentToolbox.runCommand: (.terminal, .execute, false),
+            AgentToolbox.webFetch: (.web, .network, true),
+            AgentToolbox.readMemory: (.memory, .read, true),
+            AgentToolbox.writeMemory: (.memory, .own, false),
+            AgentToolbox.loadSkill: (nil, .read, true)
+        ]
+        expect(tools.count == 10, "a full-access agent with skills is offered all ten built-ins")
+        expect(Set(tools.map(\.name)) == Set(table.keys), "and each of them has a row in the table")
+        for tool in tools {
+            let spec = AgentToolbox.spec(for: tool)
+            let row = table[tool.name]
+            expect(
+                spec.family == row?.family && spec.risk == row?.risk && spec.concurrent == row?.concurrent,
+                "\(tool.name) declares its family, risk and whether it may share a round")
+        }
+        let unknown = AgentToolbox.spec(for: Self.tool("mystery"))
+        expect(
+            unknown.family == nil && unknown.risk == .execute && !unknown.concurrent,
+            "a name the table misses is treated as the riskiest kind")
+        expect(
+            tools.allSatisfy { !$0.name.contains("__") },
+            "no built-in name can be mistaken for an MCP server's tool")
+    }
+
+    static func riskDecidesExposure() {
+        let readOnly: [AgentToolRisk: Bool] = [
+            .read: true, .own: true, .network: true, .personal: true, .change: false, .execute: false
+        ]
+        for risk in AgentToolRisk.allCases {
+            expect(
+                risk.isOffered(to: .readOnly) == readOnly[risk],
+                "a read-only agent \(readOnly[risk] == true ? "is" : "is not") offered \(risk)")
+            for access in [AgentAccess.workspaceWrite, .fullAccess] {
+                expect(risk.isOffered(to: access), "\(access) is offered \(risk)")
+            }
+        }
+    }
+
+    static func consentPolicyTable() {
+        expect(
+            AgentToolRisk.allCases.map(AgentConsentPolicy.defaultRule(for:))
+                == [.always, .always, .always, .always, .ask, .ask],
+            "by default only changes and commands stop to ask")
+        let chat = AgentRunMode.chat(UUID())
+        let alone = AgentRunMode.unattended(UUID())
+        expect(AgentConsentPolicy.decide(.ask, mode: chat) == .ask, "in a chat, ask asks")
+        expect(AgentConsentPolicy.decide(.ask, mode: alone) == .refuse, "with nobody there, ask refuses")
+        for mode in [chat, alone] {
+            expect(AgentConsentPolicy.decide(.always, mode: mode) == .allow, "always allows, watched or not")
+            expect(AgentConsentPolicy.decide(.never, mode: mode) == .refuse, "never refuses, watched or not")
+        }
+        for risk in [AgentToolRisk.read, .own] {
+            expect(
+                AgentConsentPolicy.rule(for: spec("x", nil, risk)) == .always,
+                "reading and the agent's own notes never ask")
+        }
+    }
+
+    static func toolsetOffersInProviderOrder() {
+        let first = FakeProvider(offered: [spec("a_one", .files, .read), spec("a_two", nil, .own)])
+        let second = FakeProvider(offered: [spec("b_one", .web, .network)])
+        let build = {
+            AgentToolset(
+                turn: turn(profile()), providers: [first, second],
+                mcpTools: [tool("srv__one"), tool("srv__two")],
+                mcp: { .failure($0.id, "mcp") }, ask: { _, _ in false })
+        }
+        expect(
+            build().tools.map(\.name) == ["a_one", "a_two", "b_one", "srv__one", "srv__two"],
+            "providers in order, each in its own order, then MCP")
+        expect(build().tools == build().tools, "the same inputs offer the same bytes, for prompt caching")
+    }
+
+    static func toolsetAppliesTheProfile() {
+        var agent = profile(.readOnly)
+        agent.tools = [.files]
+        let first = FakeProvider(offered: [
+            spec("off", .web, .network), spec("write", .files, .change), spec("look", .files, .read),
+            AgentToolSpec(tool: tool("dup", "first"), family: nil, risk: .read, concurrent: true)
+        ])
+        let second = FakeProvider(offered: [
+            AgentToolSpec(tool: tool("dup", "second"), family: nil, risk: .read, concurrent: true)
+        ])
+        let toolset = AgentToolset(
+            turn: turn(agent), providers: [first, second], mcpTools: [tool("look", "mcp"), tool("srv__x")],
+            mcp: { .failure($0.id, "mcp") }, ask: { _, _ in false })
+        let names = toolset.tools.map(\.name)
+        expect(!names.contains("off"), "a family switched off is not offered")
+        expect(!names.contains("write"), "nor a change to a read-only agent")
+        expect(
+            toolset.tools.filter { $0.name == "dup" }.map(\.description) == ["first"],
+            "a duplicate name goes to the first provider that offers it")
+        expect(
+            toolset.tools.filter { $0.name == "look" }.map(\.description) == [""],
+            "and an MCP tool named like an agent tool loses to it")
+        expect(toolset.isConcurrent("dup"), "a concurrent spec that never asks may share a round")
+        expect(!toolset.isConcurrent("srv__x"), "MCP never does")
+        expect(!toolset.isConcurrent("nope"), "nor a name nobody offered")
+        let writer = AgentToolset(
+            turn: turn(profile()),
+            providers: [FakeProvider(offered: [
+                AgentToolSpec(tool: tool("write"), family: .files, risk: .change, concurrent: true)
+            ])],
+            mcpTools: [], mcp: { .failure($0.id, "mcp") }, ask: { _, _ in false })
+        expect(!writer.isConcurrent("write"), "a call whose rule can ask always runs alone")
+    }
+
+    static func batchesKeepCallOrder() {
+        let (yes, no) = (true, false)
+        expect(
+            AgentBatchPolicy.batches([yes, yes, yes, no, yes], width: 4) == [0..<3, 3..<4, 4..<5],
+            "neighbours that may share a round do, and a call that may not runs alone in its place")
+        expect(
+            AgentBatchPolicy.batches(Array(repeating: yes, count: 6), width: 4) == [0..<4, 4..<6],
+            "a batch is never wider than its width")
+        expect(
+            AgentBatchPolicy.batches([yes, yes, no, yes], width: 1) == [0..<1, 1..<2, 2..<3, 3..<4],
+            "width one runs every call alone")
+        expect(AgentBatchPolicy.batches([], width: 4).isEmpty, "no calls, no batches")
+        expect(AgentBatchPolicy.batches([no], width: 4) == [0..<1], "one call is one batch")
+    }
+
+    static func budgetCutsLikeUpstream() {
+        var budget = AgentTurnBudget()
+        let forty = String(repeating: "x", count: 40 * 1_024)
+        let cut = budget.admit(AIToolResult(callID: "a", content: forty, isError: false))
+        expect(
+            cut.content == String(repeating: "x", count: AgentTurnBudget.resultBytes) + "\n…truncated.",
+            "a result past 32 KB is cut there and says so")
+        expect(budget.carried == cut.content.utf8.count, "what the turn carries is what was kept")
+        for index in 0..<3 {
+            _ = budget.admit(AIToolResult(callID: "\(index)", content: forty, isError: false))
+        }
+        let over = budget.admit(AIToolResult(callID: "z", content: "hi", isError: false))
+        expect(
+            over.isError && over.content == "This turn's tool output budget is used up.",
+            "past 128 KB in a turn, results are refused")
+        var fresh = AgentTurnBudget()
+        let split = fresh.admit(
+            AIToolResult(
+                callID: "m", content: String(repeating: "x", count: AgentTurnBudget.resultBytes - 1) + "йй",
+                isError: false))
+        expect(
+            split.content == String(repeating: "x", count: AgentTurnBudget.resultBytes - 1) + "\n…truncated.",
+            "a cut that lands inside a character keeps only whole ones")
+    }
+
+    static func newFamiliesStartOff() {
+        expect(
+            AgentProfile(name: "New", directory: folder).tools == AgentToolKind.defaults,
+            "a new agent starts with the default families only")
+    }
+
     static func thePromptCarriesTheFoldersContext() {
         var agent = profile()
         agent.instructions = "Answer in Russian."
@@ -209,5 +392,16 @@ struct AgentTests {
         expect(
             reloaded.memoryURL(for: agent.id).path.contains(agent.id.uuidString.lowercased()),
             "each agent's notes live under its own id")
+    }
+}
+
+/// Offers what it is given; its calls are never run here.
+struct FakeProvider: AgentToolProvider {
+    let offered: [AgentToolSpec]
+
+    func specs(for turn: AgentTurn) -> [AgentToolSpec] { offered }
+
+    func run(_ call: AIToolCall, in context: AgentToolContext) async -> AIToolResult {
+        .failure(call.id, "fake")
     }
 }

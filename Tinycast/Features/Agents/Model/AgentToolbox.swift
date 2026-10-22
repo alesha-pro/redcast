@@ -146,6 +146,22 @@ enum AgentToolbox {
         return tools
     }
 
+    /// What each built-in tool reaches; a name missing here is treated as the riskiest kind.
+    static func spec(for tool: AITool) -> AgentToolSpec {
+        switch tool.name {
+        case listDirectory, readFile, searchFiles:
+            AgentToolSpec(tool: tool, family: .files, risk: .read, concurrent: true)
+        case writeFile, editFile: AgentToolSpec(tool: tool, family: .files, risk: .change, concurrent: false)
+        case runCommand: AgentToolSpec(tool: tool, family: .terminal, risk: .execute, concurrent: false)
+        case webFetch: AgentToolSpec(tool: tool, family: .web, risk: .network, concurrent: true)
+        case readMemory: AgentToolSpec(tool: tool, family: .memory, risk: .read, concurrent: true)
+        // Two appends in one batch would race on memory.md.
+        case writeMemory: AgentToolSpec(tool: tool, family: .memory, risk: .own, concurrent: false)
+        case loadSkill: AgentToolSpec(tool: tool, family: nil, risk: .read, concurrent: true)
+        default: AgentToolSpec(tool: tool, family: nil, risk: .execute, concurrent: false)
+        }
+    }
+
     private static func string(_ description: String) -> JSONValue {
         .object(["type": .string("string"), "description": .string(description)])
     }
