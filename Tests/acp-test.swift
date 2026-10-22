@@ -23,6 +23,7 @@ struct ACPTests {
         eventsSettleEachCallOnce()
         runtimesParseTheirArguments()
         await aRealProcessStreamsATurn()
+        await stoppingLeavesNoProcessBehind()
 
         print("\(passes) passed, \(failures) failed")
         if failures > 0 { exit(1) }
@@ -339,6 +340,31 @@ struct ACPTests {
         expect(
             failure?.localizedDescription.contains("definitely-not-an-agent-cli") == true,
             "a missing command names itself, got \(String(describing: failure?.localizedDescription))")
+    }
+}
+
+extension ACPTests {
+    static func stoppingLeavesNoProcessBehind() async {
+        guard let node = await ExecutableLocator.locate("node") else { return }
+        let fixture = FileManager.default.currentDirectoryPath + "/Tests/acp-fixtures/fake-agent.mjs"
+        let connection = ACPConnection(
+            runtime: AgentRuntime(kind: .custom, command: node.path, arguments: [fixture]),
+            directory: FileManager.default.temporaryDirectory.path)
+        do {
+            try await connection.start()
+            let spawned = try await connection.request("_fake/spawn", params: [:])
+            guard let pid = spawned.objectValue?["pid"]?.intValue.map(pid_t.init) else {
+                return expect(false, "the agent reports its stubborn child")
+            }
+            let tree = ProcessTree.members(under: getpid())
+            expect(tree.contains { $0.pid == pid }, "the tree walk finds a grandchild")
+            connection.stop()
+            try? await Task.sleep(for: .milliseconds(3_600))
+            expect(kill(pid, 0) != 0, "a child that ignores SIGTERM is gone after stop")
+            expect(!connection.isRunning, "and so is the agent")
+        } catch {
+            expect(false, "the teardown check runs, got \(error)")
+        }
     }
 }
 

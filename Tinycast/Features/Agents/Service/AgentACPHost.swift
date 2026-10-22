@@ -19,7 +19,7 @@ final class AgentACPHost {
     private var idleStops: [UUID: Task<Void, Never>] = [:]
 
     /// An agent left alone this long is stopped; its sessions reload on the next turn.
-    private static let idleLifetime: Duration = .seconds(15 * 60)
+    private static let idleLifetime: Duration = .seconds(2 * 60)
 
     private final class Turn {
         let continuation: AIProviderStream.Continuation
@@ -69,6 +69,7 @@ final class AgentACPHost {
             defer { turns[session.id] = nil }
             let result = try await connection.request(
                 "session/prompt", params: ["sessionId": session.id, "prompt": blocks], timeout: nil)
+            connection.rememberTree()
             for event in turn.mapper.closing(result: result) { continuation.yield(event) }
             if result.objectValue?["stopReason"]?.stringValue == "refusal" {
                 continuation.finish(
@@ -90,6 +91,19 @@ final class AgentACPHost {
     func forget(chatID: UUID) {
         sessions[chatID] = nil
         store.setACPSession(nil, forChat: chatID)
+    }
+
+    /// For a run nobody is watching: the agent goes as soon as no turn of its is left.
+    func release(agentID: UUID) {
+        guard let connection = connections[agentID] else { return }
+        let busy = turns.keys.contains { session in
+            sessions.values.contains { $0.agentID == agentID && $0.sessionID == session }
+        }
+        guard !busy else { return }
+        idleStops.removeValue(forKey: agentID)?.cancel()
+        connections[agentID] = nil
+        sessions = sessions.filter { $0.value.agentID != agentID }
+        connection.stop()
     }
 
     func stopAll() {
