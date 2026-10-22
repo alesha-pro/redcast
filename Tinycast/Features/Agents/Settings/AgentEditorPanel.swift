@@ -213,8 +213,17 @@ struct AgentEditorPanel: View {
                 Toggle("Terminal", isOn: tool(.terminal)).disabled(!draft.access.writes)
                 Toggle("Web", isOn: tool(.web))
                 Toggle("Memory", isOn: tool(.memory))
+                Toggle("Notes", isOn: tool(.notes)).disabled(!core.settings.notesEnabled)
             }
             .toggleStyle(.checkbox)
+            Text(
+                """
+                Notes searches and reads your Tinycast Notes, and adds to them under Changes. \
+                Notes must be on.
+                """
+            )
+            .font(.caption)
+            .foregroundStyle(.secondary)
         }
     }
 
@@ -223,7 +232,7 @@ struct AgentEditorPanel: View {
     private var permissionsField: some View {
         let writes = draft.access.writes
         let risks: [(LocalizedStringKey, AgentToolRisk)] =
-            (writes && draft.tools.contains(.files) ? [("Changes", .change)] : [])
+            (writes && !draft.tools.isDisjoint(with: [.files, .notes]) ? [("Changes", .change)] : [])
             + (writes && draft.tools.contains(.terminal) ? [("Commands", .execute)] : [])
             + (draft.tools.contains(.web) ? [("Web", .network)] : [])
         if !risks.isEmpty {

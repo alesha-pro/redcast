@@ -36,13 +36,13 @@ stays in `Features/Agents/` plus the few lines in `AIChatCoordinator`, `AIChatDe
   beyond reading; the toolset binds it to the call's rule from `AgentConsentPolicy`. A rule of always
   answers at once, never refuses (and the tool is not even offered), and ask raises
   `AgentCoordinator.ask`, a `DialogController` choice of Allow, Allow for This Chat, or Don't Allow.
-  By default only changes (`write_file`, `edit_file`) and commands (`run_command`) ask; reading, the
-  agent's own notes and `web_fetch` do not. Allow for This Chat records an `AgentGrant` — one
-  family's one risk, so a grant never spreads to another family — in memory, cleared when the
-  chat's agent changes. A run with nobody to ask (`AgentRunMode.unattended`) refuses whatever would
-  ask. A declined call returns a result telling the model to ask what the user wants instead. Stop
-  voids an answer given after it and stops a running command, so neither a late Allow nor the
-  command's next step acts once the turn is gone.
+  By default only changes (`write_file`, `edit_file`, `notes_append`) and commands (`run_command`)
+  ask; reading files or the user's Notes, the agent's own notes and `web_fetch` do not. Allow for
+  This Chat records an `AgentGrant` — one family's one risk, so a grant never spreads to another
+  family — in memory, cleared when the chat's agent changes. A run with nobody to ask
+  (`AgentRunMode.unattended`) refuses whatever would ask. A declined call returns a result telling the
+  model to ask what the user wants instead. Stop voids an answer given after it and stops a running
+  command, so neither a late Allow nor the command's next step acts once the turn is gone.
 - **Each agent may set its own rules.** The editor's Permissions rows — Changes, Commands and Web,
   each shown while the agent can reach that risk — pick Ask Each Chat, Always Allow or Never Allow
   for it, stored as `AgentProfile.consent` in `agents.json` and only where they differ from the
@@ -162,6 +162,11 @@ because the composer's label and menu styles are private to that file.
 | `memory_read` | memory | read | any | always | — |
 | `memory_write` | memory | own | any | always | — |
 | `load_skill` | — (when skills exist) | read | any | always | — |
+| `notes_search`, `notes_read` | notes | personal | any | always | — |
+| `notes_append` | notes | change | workspace, full | ask | Changes |
+
+The notes family is off for every agent until ticked, and offered only while Notes is on; see
+[notes and AI](notes-ai.md).
 
 `run_command` runs through `ShellCommandRunner.stream` with the login shell's environment in the
 agent's folder, stopped after its timeout (120 s by default, 600 s at most); escape sequences are
@@ -179,8 +184,9 @@ complete together, since `AIChatState` closes every open search row on `.searche
 
 ## Adding a tool family
 
-Web search, notes, screen context, a plan and sub-agents each arrive as one provider. Nothing else
-changes: no router edit, no upstream line, no prompt edit.
+Notes arrived this way ([notes and AI](notes-ai.md)); web search, screen context, a plan and
+sub-agents each arrive as one provider too. Nothing else changes: no router edit, no upstream line, no
+prompt edit.
 
 1. Write a `struct` conforming to `AgentToolProvider`. `specs(for:)` lists everything it can offer
    now, with `family` set when a profile switch governs the tool, an honest `risk`, and `concurrent`
@@ -190,7 +196,7 @@ changes: no router edit, no upstream line, no prompt edit.
 2. Put it in `Features/Agents/Service/` when it needs only Foundation, and in the other feature's
    `Service/` when it needs that feature's types (`NotesStore`, `ScreenContextReader`, a search
    runner). Main-actor state reaches it as closures, or a `@MainActor` class reference, passed in by
-   `providers(for:)`.
+   `providers(for:)`; `NoteAgentTools` in `NotesAI/Service/` is the example.
 3. Add one line to `AgentCoordinator.providers(for:)`, gated there on host facts such as a feature's
    setting. That function is the registry, and it is built per turn.
 4. A new family gets an `AgentToolKind` case — **not** added to `AgentToolKind.defaults`, so it is
@@ -220,6 +226,7 @@ changes: no router edit, no upstream line, no prompt edit.
   cannot rather than calling a tool. Set Web to Never Allow: the transcript shows no `web_fetch`, and
   asking it to fetch a page gets no tool row. Set Web to Ask Each Chat: a fetch raises "wants to use
   web_fetch". Reopen the editor: the choices stuck.
+- Tick Notes in the editor and run [notes and AI](notes-ai.md#manual-sweep)'s agent half.
 - Delete the agent: its chats remain as plain chats and the composer shows No Agent.
 - ACP: make an agent on Claude Code in a project folder; ask it to read and change a file. The first
   turn may wait while npx fetches the adapter; then the dialog lists Claude's own options, the

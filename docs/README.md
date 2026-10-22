@@ -28,6 +28,7 @@ open with an `## Invariants` section; read it before changing anything in that a
 [quick actions](features/quick-actions.md) ·
 [screen awareness](features/screen-awareness.md) ·
 [agents](features/agents.md) ·
+[notes and AI](features/notes-ai.md) ·
 [clipboard](features/clipboard.md) ·
 [calculator](features/calculator.md) ·
 [calendar](features/calendar.md) ·
