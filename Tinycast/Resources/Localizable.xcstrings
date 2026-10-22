@@ -106766,6 +106766,58 @@
         }
       }
     },
+    "Search the web for “%@”" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Im Web nach „%@“ suchen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Buscar «%@» en la web"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rechercher « %@ » sur le web"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Webで「%@」を検索"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "웹에서 ‘%@’ 검색"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Buscar “%@” na web"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Искать в интернете «%@»"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在网页上搜索“%@”"
+          }
+        }
+      }
+    },
     "Search windows, or type an app to add…" : {
       "localizations" : {
         "de" : {
@@ -136282,6 +136334,58 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "网页搜索"
+          }
+        }
+      }
+    },
+    "Web reads pages and searches with the engines in Settings → AI → Chat." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Web liest Seiten und sucht mit den Suchmaschinen unter „Einstellungen → KI → Chat“."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Web lee páginas y busca con los motores de Ajustes → IA → Chat."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Web lit des pages et cherche avec les moteurs de Réglages → IA → Conversation."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Webはページを読み、設定 → AI → チャットのエンジンで検索します。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "웹은 페이지를 읽고 설정 → AI → 채팅의 엔진으로 검색합니다."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Web lê páginas e busca com os mecanismos em Ajustes → IA → Chat."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "«Веб» читает страницы и ищет с помощью систем из раздела «Настройки» → «ИИ» → «Чат»."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "“网页”可读取页面，并使用“设置”→“AI”→“聊天”中的引擎进行搜索。"
           }
         }
       }

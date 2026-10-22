@@ -143,7 +143,11 @@ final class AgentCoordinator {
 
     /// The registry: one line per family, built per turn so nothing stays resident between turns.
     private func providers(for agent: AgentProfile) -> [any AgentToolProvider] {
-        [AgentBuiltInTools()]
+        var providers: [any AgentToolProvider] = [AgentBuiltInTools()]
+        if agent.tools.contains(.web) {
+            providers.append(WebSearchAgentTools(runner: core.webSearch.runner(canFetch: true)))
+        }
+        return providers
     }
 
     /// The cached reading when there is one; the first ever is read in place, the rest refresh.
