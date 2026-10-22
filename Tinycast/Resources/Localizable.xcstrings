@@ -24844,6 +24844,58 @@
         }
       }
     },
+    "An extension that names another provider's model, such as Claude or Gemini, gets the closest one among your API connections. Otherwise the model above answers." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nennt eine Erweiterung das Modell eines anderen Anbieters, etwa Claude oder Gemini, antwortet das ähnlichste Modell deiner API-Verbindungen. Sonst antwortet das Modell oben."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Si una extensión pide el modelo de otro proveedor, como Claude o Gemini, responde el más parecido de tus conexiones de API. Si no, responde el modelo de arriba."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Si une extension demande le modèle d’un autre fournisseur, comme Claude ou Gemini, le plus proche parmi vos connexions API répond. Sinon, le modèle ci-dessus répond."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "拡張機能がClaudeやGeminiなど別のプロバイダのモデルを指定すると、API接続の中で最も近いモデルが回答します。それ以外は上のモデルが回答します。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "확장 프로그램이 Claude나 Gemini처럼 다른 제공자의 모델을 지정하면 API 연결 중 가장 가까운 모델이 응답합니다. 그렇지 않으면 위의 모델이 응답합니다."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Se uma extensão pedir o modelo de outro provedor, como Claude ou Gemini, responde o mais próximo entre suas conexões de API. Caso contrário, responde o modelo acima."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Если расширение называет модель другого провайдера, например Claude или Gemini, отвечает самая близкая модель из ваших API-подключений. Иначе отвечает модель выше."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "当扩展指定其他提供商的模型（例如 Claude 或 Gemini）时，由你的 API 连接中最接近的模型回答。否则由上方的模型回答。"
+          }
+        }
+      }
+    },
     "Angle" : {
       "localizations" : {
         "de" : {
@@ -73300,6 +73352,58 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "它的提示词会发送到 %@，并可能包含扩展读取的文本，例如你选中的内容或剪贴板。你可以在“设置”→“扩展”中更改。"
+          }
+        }
+      }
+    },
+    "Its prompts go to %@, or to the closest model among your API connections when it names another provider's, and can include text the extension reads, such as your selection or clipboard. You can change this in Settings → Extensions." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Prompts der Erweiterung gehen an %@ oder, wenn sie das Modell eines anderen Anbieters nennt, an das ähnlichste Modell deiner API-Verbindungen, und können Text enthalten, den sie liest, etwa deine Auswahl oder die Zwischenablage. Du kannst das in „Einstellungen → Erweiterungen“ ändern."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sus prompts se envían a %@, o al modelo más parecido de tus conexiones de API cuando pide el de otro proveedor, y pueden incluir texto que lee la extensión, como tu selección o el portapapeles. Puedes cambiarlo en Ajustes → Extensiones."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ses requêtes sont envoyées à %@, ou au modèle le plus proche parmi vos connexions API lorsqu’elle demande celui d’un autre fournisseur, et peuvent contenir du texte lu par l’extension, comme votre sélection ou le presse-papiers. Vous pouvez modifier ce choix dans Réglages → Extensions."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この拡張機能のプロンプトは%@に送信されます。別のプロバイダのモデルを指定した場合は、API接続の中で最も近いモデルに送信されます。選択範囲やクリップボードなど、拡張機能が読み取ったテキストが含まれることがあります。設定 → 拡張機能で変更できます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "이 확장 프로그램의 프롬프트는 %@(으)로 전송되며, 다른 제공자의 모델을 지정하면 API 연결 중 가장 가까운 모델로 전송됩니다. 선택한 텍스트나 클립보드처럼 확장 프로그램이 읽은 텍스트가 포함될 수 있습니다. 설정 → 확장 프로그램에서 변경할 수 있습니다."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Os prompts dela vão para %@, ou para o modelo mais próximo entre suas conexões de API quando ela pede o de outro provedor, e podem incluir texto que a extensão lê, como sua seleção ou a área de transferência. Você pode mudar isso em Ajustes → Extensões."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Её запросы отправляются в %@ или, если расширение называет модель другого провайдера, в самую близкую модель из ваших API-подключений, и могут содержать текст, который читает расширение, например выделенный текст или буфер обмена. Это можно изменить в разделе «Настройки» → «Расширения»."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "它的提示词会发送到 %@；如果它指定了其他提供商的模型，则发送到你的 API 连接中最接近的模型。提示词可能包含扩展读取的文本，例如你选中的内容或剪贴板。你可以在“设置”→“扩展”中更改。"
           }
         }
       }
@@ -146621,6 +146725,58 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "使用偏好间距"
+          }
+        }
+      }
+    },
+    "Use the model an extension asks for" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Das von einer Erweiterung angefragte Modell verwenden"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usar el modelo que pida una extensión"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Utiliser le modèle demandé par une extension"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "拡張機能が指定するモデルを使用"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "확장 프로그램이 요청한 모델 사용"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usar o modelo que uma extensão pedir"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Использовать модель, которую запрашивает расширение"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "使用扩展请求的模型"
           }
         }
       }

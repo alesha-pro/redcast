@@ -111,6 +111,10 @@ enum SettingsBackupCoverage {
         AppSettingsKey.extensionsAIGrants.rawValue:
             "Says which installed extensions may reach a model on this Mac; an import must never "
             + "grant one.",
+        // Fork: a capability like the switch above it, so it is named here rather than mirrored.
+        AppSettingsKey.extensionsAIHonorsModels.rawValue:
+            "Lets third-party extension code choose which of this Mac's AI connections its prompts "
+            + "reach; an import must not widen that.",
         AppSettingsKey.palettePosition.rawValue:
             "Machine-local geometry: every entry names a display this Mac has, and no other one.",
         AppSettingsKey.paletteExpandedCenterDisplays.rawValue:

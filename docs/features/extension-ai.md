@@ -2,21 +2,28 @@
 
 Raycast extensions call `AI.ask`, `useAI` from `@raycast/utils`, and `environment.canAccess(AI)` to
 reach Raycast's models. This fork answers them with the model you chose for extensions, through the
-same provider layer as AI Chat (`AIProviderFactory`), once you allow each extension. The feature lives
-in `Features/ExtensionAI/` and `Scripts/raycast-runtime/src/api/ai.js`; upstream code only routes `ai`
-host calls to it.
+same provider layer as AI Chat (`AIProviderFactory`), once you allow each extension. The feature lives in `Features/ExtensionAI/` and `Scripts/raycast-runtime/src/api/ai.js`;
+upstream code only routes `ai` host calls to it and carries a temperature.
 
 ## Invariants
 
 - **Off until asked, three times over.** Settings → Extensions → AI → **Allow extensions to use AI**
   (`extensionsAIEnabled`, off by default), AI itself (`AppSettings.aiEnabled`), and each extension's
   own answer to a one-time dialog on its first `AI.ask`. Only a chosen Allow or Don't Allow is kept:
-  a dialog dismissed, or one that could not be shown, records nothing. The switch, the model and the
+  a dialog dismissed, or one that could not be shown, records nothing. The switches, the model and the
   answers never ride a backup and have no `settings.json` key.
-- **One route answers every model.** The requested `AI.Model` value, a `{ id }` model and `creativity`
-  are ignored. The answer comes from the model chosen for extensions, or from AI Chat's default when
-  that is "Same as AI Chat". A pick whose API connection was deleted counts as unset; a route merely
-  switched off is reported by the factory, never moved to another one.
+- **The extension model answers unless you let an extension name another.** With **Use the model an
+  extension asks for** (`extensionsAIHonorsModels`) off, as it starts, every `AI.Model` value is
+  answered by the model chosen for extensions, or by AI Chat's default when that is "Same as AI Chat".
+  On, a name whose vendor differs from that model's goes to the vendor's closest model among the
+  enabled API connections and the models their pickers show. The extension model is never swapped for
+  another of its own vendor, and a CLI route is never chosen. No match, or a route that can't be built,
+  answers with the extension model, silently. A `{ id }` model, the extension's own provider, is never
+  surfaced. A pick whose API connection was deleted counts as unset; a route merely switched off is
+  reported by the factory, never moved to another one.
+- **Creativity is a temperature only when the extension asks.** No `creativity`, no temperature: every
+  route keeps its default, and a Gemini model always does. A route that refuses one before any text
+  arrives is asked once more without it.
 - **Only what the user did may ask.** Each host context reports `isActingForUser`, and the bridge
   stamps every `ai.*` call with it. A command the user opened acts for them throughout. A background
   refresh does not, and neither does anything it launches, through `launchCommand` (`UserInitiated`
@@ -36,15 +43,16 @@ host calls to it.
 - **Raycast's rate limit applies per extension**, in memory: 10 requests a minute and 100 an hour,
   counted after consent and routing, so a refused call costs nothing.
 - **The upstream touch is a seam.** `ExtensionHostBridge` routes `ai` to `ExtensionAIHost` with the
-  context's `isActingForUser`, `ExtensionLaunchContext` carries one `aiAccess` flag, a launch carries
-  `openedByUser`, and the menu-bar lane reports its actions in flight; everything else is in the
-  fork's folder.
+  context's `isActingForUser`, the menu-bar lane reports its actions in flight and its launch's
+  `aiAccess`, and `AIRequest` carries a `temperature` that two request bodies and Apple Intelligence
+  read; everything else is in the fork's folder.
 
 ## The request
 
 ```
-JS  AI.ask ──ai.start{prompt}──▶ ExtensionAIGate: prompt → gates → model → consent → route → rate
-                                     └─▶ ExtensionAIBridge.start(request, provider, owner) → id
+JS  AI.ask ──ai.start{prompt, model?, creativity?}──▶ ExtensionAIGate:
+        prompt → gates → model → consent → route (a named vendor?) → rate
+        └─▶ ExtensionAIBridge.start(request + temperature, provider, owner) → id
 JS  ◀──── id
 JS  loop: ai.read(id) ──▶ waits for ≥1 text delta, or the end ──▶ all unread text | null
 JS  emit("data", chunk), accumulate; null → resolve(text)
@@ -55,20 +63,59 @@ bridge.sessionEnded() ──▶ cancelAll(owner)   (leaving the command, shutdow
 - `AI.ask` returns the async function's own `Promise`, with `on`, `once`, `off`, `addListener` and
   `removeListener` attached; each returns that promise, so `await AI.ask(p).on("data", f)` works.
   Chunks are emitted from a settle, always after the caller's synchronous `.on`.
+- A string `model` and a string or number `creativity` cross with the prompt; anything else does not.
+  `AI.Model` is a Proxy that reads any capitalised name back as itself, so the gate reads the vendor
+  from the key (`Anthropic_Claude_Haiku_4.5`) or from a value an extension wrote out
+  (`anthropic-claude-4-5-haiku`), through `AIBrand`, without a table in the runtime.
 - An abort rejects with `signal.reason`: `AbortError`, which `usePromise` ignores, or `TimeoutError`
   for `AbortSignal.timeout`. A chunk that lands after the abort is dropped, and a "data" listener that
   throws rejects the answer and cancels it.
 - Only `AIStreamEvent.text` is forwarded. Reasoning, thinking, search and usage events are dropped. A
   provider error after some text delivers the text first; the next read throws its message.
 - The first `ai.start` of an extension without an answer shows Tinycast's dialog — "Allow “Color
-  Picker” to use AI?", naming the model — after activating the app: **Allow**, **Don't Allow** and
-  **Not Now**. Concurrent asks from one extension share it. Only the first two are kept; Escape, a
-  click elsewhere and Not Now refuse this ask once, and the next one asks again. While another
-  Tinycast dialog is up nothing is shown and the ask is refused the same way, since a second dialog
-  would resolve unseen. A command left while it was up starts nothing.
+  Picker” to use AI?", naming the model, and with the model switch on also the closest model among
+  your API connections — after activating the app: **Allow**, **Don't Allow** and **Not Now**.
+  Concurrent asks from one extension share it. Only the first two are kept; Escape, a click elsewhere
+  and Not Now refuse this ask once, and the next one asks again. While another Tinycast dialog is up
+  nothing is shown and the ask is refused the same way, since a second dialog would resolve unseen. A
+  command left while it was up starts nothing.
 - `environment.canAccess(AI)` is injected per launch: true when the user opened the command or the
   menu, the gates do not refuse (an unanswered extension still counts, since it will be asked), and a
   model resolves. A menu-bar refresh reports false. An answer given mid-run reaches the next launch.
+
+### Which model answers
+
+With the model switch on, `ExtensionAIModelRoute` maps a name to a pick:
+
+1. The name's brand, `AIBrand.resolve(model:)`: `Anthropic_…`/`anthropic-…` is Claude, `OpenAI_…` is
+   OpenAI, `Google_…` is Gemini, `xAI_…` is X, and so on through Mistral, Perplexity, DeepSeek, Llama
+   and the rest. Groq's and Vercel's own names, `tinycast` and anything else without one stop here.
+2. If the extension model already is that brand — an API pick, Claude's or Codex's CLI, a router's
+   model — it answers.
+3. Otherwise, among the enabled API connections and their shown models of that brand: a vendor's own
+   preset (OpenAI, Anthropic, Gemini) before a router or an OpenAI-compatible gateway; then the most
+   shared name tokens (runs of letters or digits; a word counts twice a digit); then the fewest extra
+   tokens; then the first listed. The effort is the route's default.
+4. A pick whose route can't be built (no key, a bad URL) falls back to the extension model.
+
+### Creativity
+
+| `creativity` | temperature |
+| --- | --- |
+| `"none"` | 0 |
+| `"low"` | 0.4 |
+| `"medium"` | 0.7 |
+| `"high"` | 1 |
+| `"maximum"` | 1.5 |
+| a number | clamped to 0–2 |
+| absent or anything else | none sent |
+
+The scale is OpenAI's, which OpenAI-compatible routes and OpenRouter take as is. Anthropic and Apple
+Intelligence hold it to 1, the top of their range. A Gemini model, on its own connection or through a
+router, is sent none: Gemini 3 loops below its default (the same reason Voice AI never sends one).
+Claude's, Codex's and the other CLIs take no temperature. OpenAI's reasoning models accept only their
+default, so a failure that names `temperature` before any text is asked again once without it; a 400
+costs nothing.
 
 ## Errors
 
@@ -93,26 +140,32 @@ already redacted by the route.
 
 | Raycast | Tinycast |
 | --- | --- |
-| `AI.ask(prompt, { model, creativity, signal })` | the extension model answers; `model` and `creativity` are ignored; `signal` cancels |
+| `AI.ask(prompt, { model, creativity, signal })` | the extension model answers, or a named vendor's closest model with the switch on; `creativity` is a temperature; `signal` cancels |
 | `useAI` | works unchanged on top of `AI.ask` |
+| `AI.experimental_decide` | rejects as not supported: no route returns calibrated probabilities |
 | `environment.canAccess(AI)` | the `aiAccess` launch flag |
 | `AI.Model` | a Proxy: any capitalised name reads back as itself; `Object.entries` lists one `Tinycast` entry |
-| `AI.refreshModels()` | resolves and does nothing: extension model providers are not surfaced |
-| `AI.experimental_decide` | rejects as not supported: no route returns calibrated probabilities |
+| a `{ id }` model and `AI.refreshModels()` | the extension model; resolves and does nothing: extension model providers are not surfaced |
 | Raycast's per-extension limit | `ExtensionAIRateLimit`, in memory |
 | the "get access" prompt | the per-extension dialog, remembered and editable in Settings |
+
+**Extension model providers** (`ai.modelProvider` in the manifest, `getModels`, `streamCompletion`) are
+left out on purpose. Surfacing them means a JS-backed route in AI Chat's pickers that keeps an extension
+runtime alive across chats, with the AI SDK's message, tool and stream parts — a second provider layer,
+not a small step, and a resident runtime the rest of Tinycast avoids.
 
 ## Layout
 
 | File | Holds |
 | --- | --- |
-| `Model/ExtensionAIPolicy.swift` | `ExtensionAIAccess` and the pure decisions: gate order, prompt bounds, the request, a dangling pick |
+| `Model/ExtensionAIPolicy.swift` | `ExtensionAIAccess` and the pure decisions: gate order, prompt bounds, the request, creativity as temperature and the retry without it, a dangling pick |
+| `Model/ExtensionAIModelRoute.swift` | A named model's vendor and the closest model among the offered connections |
 | `Model/ExtensionAIRefusal.swift` | The refusals and their messages |
 | `Model/ExtensionAIRateLimit.swift` | The sliding per-extension window |
 | `Service/ExtensionAIHost.swift` | The protocol `ExtensionHostBridge` calls |
-| `Service/ExtensionAIGate.swift` | The host: gates, the shared question, routing, rate limit; the dialog, AI's switch and the route factory are injected |
-| `Service/ExtensionAIBridge.swift` | Answers in flight: coalescing, one reader, owners, cancellation |
-| `Settings/ExtensionAISettingsStore.swift` | The switch, the model and the answers in `UserDefaults` |
+| `Service/ExtensionAIGate.swift` | The host: gates, the shared question, routing a named model, rate limit; the dialog, AI's switch and the route factory are injected |
+| `Service/ExtensionAIBridge.swift` | Answers in flight: coalescing, one reader, owners, cancellation, the retry without temperature |
+| `Settings/ExtensionAISettingsStore.swift` | The two switches, the model and the answers in `UserDefaults` |
 | `Settings/ExtensionAISettingsSection.swift` | Settings → Extensions → AI |
 | `UI/ExtensionAICoordinator.swift` | The gate's wiring, the consent dialog and the Settings actions |
 | `Scripts/raycast-runtime/src/api/ai.js` | The `AI` namespace: `ask`, the pull loop, `Model`, `refreshModels` |
@@ -123,19 +176,22 @@ its two `launch` calls), `ExtensionManager` (`ai`, the running session's origin,
 `makeLaunchContext`, the menu-bar lane's `.background` for a launch nobody opened, and its executions'
 AI host, `setActing` and `aiAccess`), `ExtensionMenuBarManager` (`Execution.setActing` and `aiAccess`,
 `pendingActions` reporting, the launch's `aiAccess`), `ExtensionMenuBarHost` (`isRunningAction`) and
-`ExtensionCoordinator` (passing `openedByUser` on), `ExtensionLaunchContext.aiAccess`, `AppCore` (the
-coordinator and two wiring lines), three `AppSettingsKey` cases with their backup exclusions, the
-anchor, the search entry, the section in `ExtensionsSettingsView`, and `system.js`'s `registerAccess`.
+`ExtensionCoordinator` (passing `openedByUser` on), `ExtensionLaunchContext.aiAccess`, `AIRequest`'s
+`temperature`, `AIRequestBody` and `AppleIntelligenceProvider` (reading it), `AppCore` (the
+coordinator and two wiring lines), four `AppSettingsKey` cases with their backup exclusions, the
+anchor, two search entries, the section in `ExtensionsSettingsView`, and `system.js`'s
+`registerAccess`.
 
 ## Weight
 
-No task, timer, observer, file or process exists until an extension calls `AI.ask`. The coordinator and
-its gate are a few references and closures; the settings store is created on first use. An answer in
-flight is one `Task`, the route's own stream and the unread text, all released on finish, cancel or
-session end. The menu-bar lane holds one flag and one closure per running command, and a refresh never
-touches the AI settings. The rate limiter holds at most 100 dates per extension that asked. The runtime
-grew by under 1 KB. CLI routes spawn a process per answer only when you pick a CLI model, as Quick
-Actions do.
+No task, timer, observer, file or process exists until an extension calls `AI.ask`. The coordinator
+and its gate are a few references and closures; the settings store is created on first use. An answer
+in flight is one `Task`, the route's own stream and the unread text, all released on finish, cancel or
+session end; a refused temperature costs one more request, once. Routing a named model is a pure pass
+over the connections already in memory, per ask. The menu-bar lane holds one flag and one closure per
+running command, and a refresh never touches the AI settings. The rate limiter holds at most 100 dates
+per extension that asked. The runtime grew by about 1 KB in all. CLI routes spawn a process per answer
+only when you pick a CLI model, as Quick Actions do; a named model never reaches one.
 
 ## Manual sweep
 
@@ -166,22 +222,36 @@ Install from the store and turn on Settings → Extensions → AI.
    in the menu's render fails with the same error as item 7, whether the menu was opened or refreshed,
    and the item still works afterwards. An answer longer than a minute ends with the lane's timeout.
 9. Uninstall an allowed extension and reinstall it: it asks again.
-10. Export a settings backup: none of `extensionsAIEnabled`, `extensionsAIModel`, `extensionsAIGrants`
-   appear. `settings.json` has no `extensions.ai*` key.
+10. Export a settings backup: none of `extensionsAIEnabled`, `extensionsAIModel`, `extensionsAIGrants`,
+    `extensionsAIHonorsModels` appear. `settings.json` has no `extensions.ai*` key.
 11. Delete the API connection the extension model used, then open Settings → Extensions: the picker
     falls back to "Same as AI Chat".
+12. With an OpenAI connection on a reasoning model (`gpt-5`, say) as the extension model, run an
+    extension that passes `creativity: "low"`: it answers. A proxy shows a first request with
+    `temperature` refused with 400 and a second without it. On an Anthropic model the one request
+    carries the temperature, at most 1; on a Gemini model it carries none.
+13. Turn on **Use the model an extension asks for** with an OpenAI extension model and an Anthropic
+    connection. An extension asking `AI.Model["Anthropic_Claude_Haiku_4.5"]` is answered through the
+    Anthropic connection (its usage page, or a proxy); the dialog for a new extension mentions the
+    closest model among your API connections. Switch the Anthropic connection off: the OpenAI model
+    answers, silently. With an Anthropic extension model the same ask stays on it.
 
 ## Harnesses
 
 - `ext-ai-test`: every gate row and its precedence, prompt bounds in UTF-8 bytes, the request's
-  shape, dangling picks, refusal messages, the rate limit's windows, and the bridge against a scripted
-  provider (coalescing, waiting reads, dropped events, text before an error, cancel, owners, a
-  cancelled reader), plus the store's round trip. The gate itself, with a scripted dialog: a run
-  nobody opened is refused before any question; no model is reported before asking; concurrent asks
-  share one question; a dismissed or busy dialog keeps nothing; Don't Allow is kept; the gates are
-  checked again after the answer; a command left during the question starts nothing; a read checks
-  the gates again; the switch ends every answer; a session's end ends only its own; the limit counts
-  only routed asks; a dangling pick falls back to AI Chat's model.
+  shape, creativity as temperature and the retry policy, a named model's vendor, tier and closest name
+  against connections of every kind, dangling picks, refusal messages, the rate limit's windows, and the
+  bridge against a scripted provider (coalescing, waiting reads, dropped events, text before an error,
+  cancel, owners, a cancelled reader, one retry without temperature and none after text), plus the
+  store's round trip. The gate itself, with a scripted dialog: a run nobody opened is refused before
+  any question; no model is reported before asking; concurrent asks share one question; a dismissed or
+  busy dialog keeps nothing; Don't Allow is kept; the gates are checked again after the answer; a
+  command left during the question starts nothing; a read checks the gates again; the switch ends every
+  answer; a session's end ends only its own; the limit counts only routed asks; a named model is used
+  only with its switch, never past a hidden model or a switched-off connection, and falls back when its
+  route can't be built; creativity reaches the route; a dangling pick falls back to AI Chat's model.
+- `ai-provider-test`: the temperature in OpenAI-shaped bodies as given, Anthropic's held to 1, none
+  when not asked, and a continued turn keeping it.
 - `ext-test`: `AI.ask` streaming under JavaScriptCore, `canAccess(AI)` from the launch context, and
   the real `ExtensionHostBridge` between them: it names itself as the owner, stamps `ai.*` calls and
   `launchCommand`/`raycast://` launches with the context's origin, so a menu-bar refresh's
@@ -191,7 +261,7 @@ Install from the store and turn on Settings → Extensions → AI.
   the gesture ends with the action, closing the menu ends its answers, and a refresh reports no access.
 - `node Scripts/raycast-runtime/ai-fixtures.mjs` (also run by `fixtures.mjs`): `canAccess`, streaming,
   late listeners, failures, refusals, abort, an abort while `ai.start` waits on the dialog, timeout, a
-  throwing listener, `useAI`'s abort-then-ask pattern, `AI.Model`, `refreshModels` and
-  `experimental_decide`.
+  throwing listener, the named model and creativity that cross (and the `{ id }` and junk that don't),
+  `AI.Model`, `refreshModels`, `experimental_decide` and `useAI`'s abort-then-ask pattern.
 - `node Scripts/raycast-runtime/test.mjs <extension> <command>` with `TEST_AI=1` lets a real
   extension see `canAccess(AI)`; the stub answers each `AI.ask` with `TEST_AI_REPLY` or a fixed line.

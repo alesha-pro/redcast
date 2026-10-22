@@ -652,6 +652,10 @@ enum SettingsSearchCatalog {
         .init(
             .extensionsAI, "Allow extensions to use AI",
             keywords: ["raycast ai", "ai.ask", "useai", "model", "consent"]),
+        // Fork: its own entry, so searching for the requested-model switch lands on the AI section.
+        .init(
+            .extensionsAI, "Use the model an extension asks for",
+            keywords: ["ai.model", "requested model", "provider", "claude", "gemini", "openai"]),
         .init(
             group: .extensionsCompatibility, "Compatibility",
             keywords: ["supported", "unsupported", "raycast api"]),

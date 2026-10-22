@@ -50,8 +50,8 @@ node Scripts/raycast-runtime/ai-fixtures.mjs
 dependencies, cycles, failed-load retries and the extension-root boundary. `oauth-fixtures` signs in
 through a stand-in for the hosted redirect page and confirms that a callback whose `state` is absent,
 repeated, stale or wrong is refused, for each redirect method and for custom `{ url }` requests.
-`ai-fixtures` drives `AI.ask` against a scripted host: streaming, aborts, refusals, `canAccess(AI)` and
-`useAI`'s abort-then-ask pattern. The runtime fixture suite runs all three as well.
+`ai-fixtures` drives `AI.ask` against a scripted host: streaming, aborts, refusals, `canAccess(AI)`, the
+named model and `creativity` it forwards, and `useAI`'s abort-then-ask pattern. The runtime fixture suite runs all three as well.
 
 The suite runs four harnesses at a time by default to reduce CPU usage. `TINYCAST_TEST_JOBS` overrides
 that limit; `TINYCAST_TEST_JOBS=1` runs one at a time. Each result is numbered
@@ -174,7 +174,7 @@ If a change touches anything in the right column, the harness on the left is man
 | `ext-version-test` | `Extensions/Service/ExtensionVersionStore.swift` — what an update check reports, adopts and forgets |
 | `ext-metadata-test` | `Extensions/Service/ExtensionCommandMetadataStore.swift` — round-trip, failure runs, uninstall |
 | `ext-test` | the extension runtime and native menu-bar lifecycle — boots shipped sources in JavaScriptCore; menu tests cover restoration, refresh serialization, actions and teardown; fetch tests cover HTTP connection cleanup, cancellation and request isolation; the host bridge's AI seam covers owners, session ends and the origin it stamps on AI calls and launches, and a menu-bar command that may ask only from an item's action |
-| `ext-ai-test` | `ExtensionAI/Model/`, `ExtensionAIGate`, `ExtensionAIBridge` and `ExtensionAISettingsStore` — gate order, prompt bounds, the request, the rate limit, the shared consent question and what it keeps, gates rechecked after consent and on reads, coalescing, cancellation and owners against a scripted provider |
+| `ext-ai-test` | `ExtensionAI/Model/`, `ExtensionAIGate`, `ExtensionAIBridge` and `ExtensionAISettingsStore` — gate order, prompt bounds, the request, creativity as temperature and the one retry without it, a named model's vendor and closest model, the rate limit, the shared consent question and what it keeps, gates rechecked after consent and on reads, coalescing, cancellation and owners against a scripted provider |
 | `ext-icon-test` | `Extensions/Service/ExtensionIconCache.swift` — artwork sizing and its fallback |
 | `icon-cache-test` | `Platform/Images/IconCache.swift` — row sizing at 1×/2×, warm reuse, stamp and style invalidation, bitmap release, fitted geometry across all 256 alpha values, and that a row icon draws identically to the 96px one |
 | `entry-icon-test` | `EntryIcon` — that each case draws, caches and prints apart from the others, and that a moved `FileIconStamp` retires the bitmap decoded before it |
