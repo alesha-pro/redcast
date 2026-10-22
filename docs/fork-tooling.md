@@ -190,14 +190,19 @@ guarding upstream's files would cost a conflict on every change upstream makes t
 
 Worth adding once the script has done three to five syncs by hand. It is kept here, not in
 `.github/workflows/`, until then. A cheap Ubuntu job checks nightly whether upstream moved; only then
-does a macOS job run the script and refresh one rolling PR (`sync/upstream`), a draft while a gate
-fails. Public repositories run GitHub-hosted macOS jobs for free, and GitHub pauses scheduled
-workflows after 60 days without activity. A failing run emails the token's owner: that is the "needs
-a human" signal (exit 2 or 3).
+does a macOS job run the script, and a Linux job refresh one rolling PR (`sync/upstream`), a draft
+while a gate fails. Public repositories run GitHub-hosted macOS jobs for free, and GitHub pauses
+scheduled workflows after 60 days without activity. A failing run emails the token's owner: that is
+the "needs a human" signal (a failed gate, exit 2 to 4, or a new upstream workflow).
 
 It needs a fine-grained token, `FORK_SYNC_TOKEN`, on this repository only, with Contents, Pull
 requests and **Workflows** read-write and a one-year expiry: `GITHUB_TOKEN` cannot push commits that
-touch `.github/workflows/`, and upstream edits those.
+touch `.github/workflows/`, and upstream edits those. The token never reaches a job that runs
+upstream's code. The macOS job merges and gates with `persist-credentials: false` and no write token,
+and hands the merge to the next job as a `git bundle` artifact. Only the Linux `publish` job sees the
+token, and it runs nothing from the repository: it fetches the bundle, pushes, and edits the PR. It
+also refuses a sync that adds a workflow: once pushed with this token, that workflow would run on
+the branch with the fork's secrets before anyone could disable it.
 
 ```yaml
 name: Fork · upstream sync
@@ -241,16 +246,19 @@ jobs:
           echo "upstream=$UP main=$STATUS pr=$PR_UP go=$GO"
           echo "go=$GO" >> "$GITHUB_OUTPUT"
 
+  # Runs code upstream controls (build phases, harnesses, lint, pnpm), so it holds no write token.
   sync:
     needs: check
     if: needs.check.outputs.go == 'true'
     runs-on: macos-26
     timeout-minutes: 75
+    outputs:
+      status: ${{ steps.sync.outputs.status }}
     steps:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
-          token: ${{ secrets.FORK_SYNC_TOKEN }}
+          persist-credentials: false
 
       - name: Select Xcode 26
         run: |
@@ -267,38 +275,80 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git remote add upstream "$UPSTREAM_URL"
+          mkdir -p "$RUNNER_TEMP/sync"
           set +e
-          Scripts/fork/sync-upstream.sh --ci --branch sync/upstream --summary "$RUNNER_TEMP/summary.md"
+          Scripts/fork/sync-upstream.sh --ci --branch sync/upstream \
+            --summary "$RUNNER_TEMP/sync/summary.md"
           echo "status=$?" >> "$GITHUB_OUTPUT"
-          [ -f "$RUNNER_TEMP/summary.md" ] && cat "$RUNNER_TEMP/summary.md" >> "$GITHUB_STEP_SUMMARY"
+          [ -f "$RUNNER_TEMP/sync/summary.md" ] && cat "$RUNNER_TEMP/sync/summary.md" >> "$GITHUB_STEP_SUMMARY"
           exit 0
 
-      - name: Publish the rolling PR
+      - name: Bundle the merge
         if: steps.sync.outputs.status == '0' || steps.sync.outputs.status == '1'
-        env:
-          GH_TOKEN: ${{ secrets.FORK_SYNC_TOKEN }}
-        run: |
-          git push --force-with-lease origin sync/upstream
-          TITLE=$(head -1 "$RUNNER_TEMP/summary.md" | sed 's/^# //')
-          if gh pr view sync/upstream > /dev/null 2>&1; then
-            gh pr edit sync/upstream --title "$TITLE" --body-file "$RUNNER_TEMP/summary.md"
-          else
-            gh pr create --base main --head sync/upstream --title "$TITLE" \
-              --body-file "$RUNNER_TEMP/summary.md"
-          fi
-          # A failed gate keeps the PR as a draft; green makes it ready.
-          if [ "${{ steps.sync.outputs.status }}" = 1 ]; then gh pr ready --undo sync/upstream || true
-          else gh pr ready sync/upstream || true; fi
+        run: git bundle create "$RUNNER_TEMP/sync/sync.bundle" sync/upstream ^origin/main
+
+      - uses: actions/upload-artifact@v7
+        if: steps.sync.outputs.status == '0' || steps.sync.outputs.status == '1'
+        with:
+          name: sync
+          path: ${{ runner.temp }}/sync/
+          retention-days: 7
 
       - name: Ask for a human
-        if: steps.sync.outputs.status != '0' && steps.sync.outputs.status != '10'
+        if: steps.sync.outputs.status != '0' && steps.sync.outputs.status != '1' && steps.sync.outputs.status != '10'
         run: exit 1
+
+  # Holds the write token and runs nothing from the repository: git, gh and the bundle only.
+  publish:
+    needs: sync
+    if: needs.sync.outputs.status == '0' || needs.sync.outputs.status == '1'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: sync
+          path: ${{ runner.temp }}/sync
+
+      - name: Publish the rolling PR
+        env:
+          GH_TOKEN: ${{ secrets.FORK_SYNC_TOKEN }}
+          STATUS: ${{ needs.sync.outputs.status }}
+        run: |
+          git fetch -q "$RUNNER_TEMP/sync/sync.bundle" "+sync/upstream:refs/heads/sync/upstream"
+          # Pushed with this token, a workflow upstream added would run with the fork's secrets.
+          ADDED=$(git diff --no-renames --name-only --diff-filter=A origin/main sync/upstream \
+            -- .github/workflows)
+          if [ -n "$ADDED" ]; then
+            echo "::error::upstream adds workflows; review them and push the sync by hand: $ADDED"
+            exit 1
+          fi
+          gh auth setup-git
+          git push --force-with-lease origin sync/upstream
+          TITLE=$(head -1 "$RUNNER_TEMP/sync/summary.md" | sed 's/^# //')
+          if gh pr view sync/upstream > /dev/null 2>&1; then
+            gh pr edit sync/upstream --title "$TITLE" --body-file "$RUNNER_TEMP/sync/summary.md"
+          else
+            gh pr create --base main --head sync/upstream --title "$TITLE" \
+              --body-file "$RUNNER_TEMP/sync/summary.md"
+          fi
+          # A failed gate keeps the PR as a draft and fails the run; green makes it ready.
+          if [ "$STATUS" = 1 ]; then
+            gh pr ready --undo sync/upstream || true
+            exit 1
+          fi
+          gh pr ready sync/upstream || true
 ```
 
 Rollout, in this order: disable the five workflows; create `FORK_SYNC_TOKEN` and note its expiry in
 `FORK.md`; enable Actions once from the Actions tab; add the file as
 `.github/workflows/fork-sync.yml` (a file of its own, so it never conflicts); run it with
-`workflow_dispatch` and check the PR. Repository settings should allow "Create a merge commit".
+`workflow_dispatch` and check the PR. Repository settings should allow "Create a merge commit". Keep
+the token out of every other job and step.
 
 ### Manual sweep
 
