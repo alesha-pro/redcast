@@ -114,6 +114,7 @@ enum AppSettingsKey: String, CaseIterable {
     case voiceAskEnabled = "voiceAskEnabled"
     case voiceAskMode = "voiceAskMode"
     case voiceAskModel = "voiceAskModel"
+    case voiceAskAgent = "voiceAskAgent"
     case agentSessionsEnabled = "agentSessionsEnabled"
     case agentSessionsTerminal = "agentSessionsTerminal"
     case agentStatusMenuBar = "agentStatusMenuBar"

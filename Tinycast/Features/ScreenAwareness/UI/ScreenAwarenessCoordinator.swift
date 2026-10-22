@@ -142,11 +142,12 @@ final class ScreenAwarenessCoordinator {
         return Capture(context: reading.context, screenshot: screenshot)
     }
 
-    private func present(_ context: ScreenContext, screenshot: Data?, wantedScreenshot: Bool) {
+    /// The window's text as a document and its picture, as a chat stages them; Ask by Voice's too.
+    func attachments(for capture: Capture) -> [ChatAttachmentReader.Staged] {
         let text = ScreenContextFormatter.markdown(
-            context, maxBytes: AIAttachmentBudget.maxInlinedTextBytes, timeZone: .current,
-            hasScreenshot: screenshot != nil)
-        let name = ScreenContextFormatter.attachmentName(for: context)
+            capture.context, maxBytes: AIAttachmentBudget.maxInlinedTextBytes, timeZone: .current,
+            hasScreenshot: capture.screenshot != nil)
+        let name = ScreenContextFormatter.attachmentName(for: capture.context)
         var items = [
             ChatAttachmentReader.Staged(
                 payload: .document(
@@ -155,9 +156,16 @@ final class ScreenAwarenessCoordinator {
                         mimeType: AIAttachmentPolicy.mimeType(forFileName: name), name: name)),
                 name: name, preview: nil)
         ]
-        if let screenshot, case .staged(let image) = ChatAttachmentReader.image(screenshot) {
+        if let screenshot = capture.screenshot,
+            case .staged(let image) = ChatAttachmentReader.image(screenshot)
+        {
             items.append(image)
         }
+        return items
+    }
+
+    private func present(_ context: ScreenContext, screenshot: Data?, wantedScreenshot: Bool) {
+        let items = attachments(for: Capture(context: context, screenshot: screenshot))
         switch settings.screenAwarenessDestination {
         case .aiChat:
             if paletteCoordinator.isVisible { paletteCoordinator.hidePalette(restoreFocus: false) }

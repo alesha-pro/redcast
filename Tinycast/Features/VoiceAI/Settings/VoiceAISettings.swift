@@ -41,6 +41,10 @@ final class VoiceAISettings {
     var askModel: AIModelSelection? {
         didSet { persist(askModel, forKey: .voiceAskModel) }
     }
+    /// nil answers with `askModel`; an agent hears the request as a background task.
+    var askAgent: UUID? {
+        didSet { defaults.set(askAgent?.uuidString, forKey: Key.voiceAskAgent.rawValue) }
+    }
 
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
@@ -56,6 +60,7 @@ final class VoiceAISettings {
             defaults.string(forKey: Key.voiceAskMode.rawValue).flatMap(DictationMode.init(rawValue:))
             ?? .toggle
         askModel = Self.selection(defaults.data(forKey: Key.voiceAskModel.rawValue))
+        askAgent = defaults.string(forKey: Key.voiceAskAgent.rawValue).flatMap(UUID.init(uuidString:))
     }
 
     private static func selection(_ data: Data?) -> AIModelSelection? {
