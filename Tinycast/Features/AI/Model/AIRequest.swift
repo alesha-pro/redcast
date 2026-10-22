@@ -18,6 +18,13 @@ struct AIDocument: Equatable, Hashable, Sendable {
     var dataURL: String { "data:\(mimeType);base64,\(data.base64EncodedString())" }
 }
 
+/// Recorded speech for a route that hears it; OpenAI-compatible bodies send it as `input_audio`.
+struct AIAudio: Equatable, Hashable, Sendable {
+    let data: Data
+    /// The wire's container name: `wav`, `mp3`, `flac`…
+    let format: String
+}
+
 /// Requests cap near 25 MB and a data URL costs a third more, so the ceiling lives here.
 enum AIAttachmentBudget {
     static let maxCount = 6
@@ -71,6 +78,7 @@ struct AIMessage: Equatable, Sendable {
     let images: [AIImage]
     /// Only a PDF ever lands here: a text-ish file is inlined into `text` before any transport.
     let documents: [AIDocument]
+    let audio: [AIAudio]
     /// Assistant only: the calls this turn asked for, alongside whatever text came with them.
     let toolCalls: [AIToolCall]
     /// Tool only: the answer to one of them.
@@ -78,12 +86,13 @@ struct AIMessage: Equatable, Sendable {
 
     init(
         role: Role, text: String, images: [AIImage] = [], documents: [AIDocument] = [],
-        toolCalls: [AIToolCall] = [], toolResult: AIToolResult? = nil
+        audio: [AIAudio] = [], toolCalls: [AIToolCall] = [], toolResult: AIToolResult? = nil
     ) {
         self.role = role
         self.text = text
         self.images = images
         self.documents = documents
+        self.audio = audio
         self.toolCalls = toolCalls
         self.toolResult = toolResult
     }

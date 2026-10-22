@@ -93,7 +93,8 @@ enum AIRequestBody {
                 "tool_calls": message.toolCalls.map(openAIToolCall)
             ]
         }
-        let hasAttachments = !message.images.isEmpty || !message.documents.isEmpty
+        let hasAttachments =
+            !message.images.isEmpty || !message.documents.isEmpty || !message.audio.isEmpty
         guard text != nil || hasAttachments else { return nil }
         guard hasAttachments else {
             return ["role": message.role.rawValue, "content": text ?? ""]
@@ -103,6 +104,13 @@ enum AIRequestBody {
         parts += message.images.map { ["type": "image_url", "image_url": ["url": $0.dataURL]] }
         parts += message.documents.map {
             ["type": "file", "file": ["filename": $0.name, "file_data": $0.dataURL]]
+        }
+        // Raw base64, not a data URL: the one attachment the wire spells that way.
+        parts += message.audio.map {
+            [
+                "type": "input_audio",
+                "input_audio": ["data": $0.data.base64EncodedString(), "format": $0.format]
+            ]
         }
         return ["role": message.role.rawValue, "content": parts]
     }
