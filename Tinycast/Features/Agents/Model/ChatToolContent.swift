@@ -27,7 +27,7 @@ struct ChatToolContent: Codable, Hashable, Sendable {
     var isEmpty: Bool { diffs.isEmpty && output == nil }
 
     static func lines(of diff: Diff) -> [Line] {
-        diff.lines.split(separator: "\n", omittingEmptySubsequences: false).map { line in
+        diff.lines.split(omittingEmptySubsequences: false, whereSeparator: isLineBreak).map { line in
             guard let lead = line.first else { return .context("") }
             let rest = String(line.dropFirst())
             switch lead {
@@ -40,9 +40,14 @@ struct ChatToolContent: Codable, Hashable, Sendable {
     }
 
     var outputLines: [Line] {
-        (output ?? "").split(separator: "\n", omittingEmptySubsequences: false).map { line in
+        (output ?? "").split(omittingEmptySubsequences: false, whereSeparator: Self.isLineBreak).map { line in
             line.first == Self.cutMarker ? .cut(Int(line.dropFirst()) ?? 0) : .text(String(line))
         }
+    }
+
+    /// `\r\n` is one `Character`, so splitting on `\n` alone would leave CRLF text unsplit.
+    static func isLineBreak(_ character: Character) -> Bool {
+        character == "\n" || character == "\r\n"
     }
 
     /// Stored as JSON beside its row; an unreadable one leaves the row without content.

@@ -219,11 +219,6 @@ extension ChatToolContent {
         return lines
     }
 
-    /// `\r\n` is one `Character`, so splitting on `\n` alone would leave CRLF text unsplit.
-    private static func isLineBreak(_ character: Character) -> Bool {
-        character == "\n" || character == "\r\n"
-    }
-
     private static func capped(_ rows: [Row], at limit: Int) -> [Row] {
         guard rows.count > limit else { return rows }
         return Array(rows.prefix(limit - 1)) + [.cut(rows[(limit - 1)...].reduce(0) { $0 + $1.hidden })]

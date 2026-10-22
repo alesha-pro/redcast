@@ -109,8 +109,9 @@ private struct ACPCommandPickerModifier: ViewModifier {
         content
             // In the transcript's frame, like the note picker, so it can never leave the window.
             .overlay(alignment: .bottom) {
-                if let picker, !picker.matches.isEmpty {
-                    ACPCommandCard(commands: picker.matches, selection: picker.selected) {
+                let matches = picker?.matches ?? []
+                if let picker, !matches.isEmpty {
+                    ACPCommandCard(commands: matches, selection: min(picker.selection, matches.count - 1)) {
                         picker.complete($0)
                     }
                     .frame(maxWidth: Theme.Size.aiChatReadingWidth)
