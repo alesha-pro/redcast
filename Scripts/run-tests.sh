@@ -524,6 +524,22 @@ run notes-test             Tinycast/Platform/Signposts.swift \
                            $L/SearchRelevance.swift \
                            Tinycast/Features/Notes/Model/*.swift \
                            Tinycast/Features/Notes/Service/*.swift
+run notes-ai-test          Tinycast/Platform/Signposts.swift \
+                           $L/SearchRelevance.swift \
+                           Tinycast/Features/Notes/Model/*.swift \
+                           Tinycast/Features/Notes/Service/*.swift \
+                           Tinycast/Features/Agents/Model/*.swift \
+                           Tinycast/Features/AI/Model/AIRequest.swift \
+                           Tinycast/Features/AI/Model/AIAttachmentPolicy.swift \
+                           Tinycast/Features/Settings/AppSettingsKey.swift \
+                           Tinycast/Features/AI/Model/AITool.swift \
+                           Tinycast/Features/AI/Model/JSONValue.swift \
+                           Tinycast/Features/AI/Model/AIConnection.swift \
+                           Tinycast/Features/AI/Model/AppleIntelligence.swift \
+                           Tinycast/Features/AI/Model/ChatGPTSubscription.swift \
+                           Tinycast/Features/AI/Model/InstalledAI.swift \
+                           Tinycast/Features/NotesAI/Model/*.swift \
+                           Tinycast/Features/NotesAI/Service/*.swift
 run notes-editor-test      Tinycast/Platform/Signposts.swift \
                            Tinycast/Platform/Appearance.swift \
                            Tinycast/DesignSystem/Theme.swift \

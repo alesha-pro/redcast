@@ -2872,6 +2872,58 @@
         }
       }
     },
+    "%@ wants to add to a note" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ möchte etwas zu einer Notiz hinzufügen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ quiere añadir algo a una nota"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ veut ajouter du texte à une note"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@がメモに追記しようとしています"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@이(가) 메모에 추가하려고 합니다"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ quer adicionar algo a uma nota"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ хочет дописать в заметку"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 想要向一条笔记添加内容"
+          }
+        }
+      }
+    },
     "%@ wants to change a file" : {
       "localizations" : {
         "de" : {
@@ -25894,6 +25946,58 @@
         }
       }
     },
+    "Attach Note…" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notiz anhängen …"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Adjuntar nota…"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Joindre une note…"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "メモを添付…"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "메모 첨부…"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Anexar nota…"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Прикрепить заметку…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "附加笔记…"
+          }
+        }
+      }
+    },
     "Attach PDFs or text files" : {
       "localizations" : {
         "de" : {
@@ -43751,6 +43855,58 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "创建窗口布局"
+          }
+        }
+      }
+    },
+    "Create the note “%@”" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Notiz „%@“ erstellen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crear la nota “%@”"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Créer la note « %@ »"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "メモ「%@」を作成"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "“%@” 메모 만들기"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Criar a nota “%@”"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Создать заметку «%@»"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "创建笔记“%@”"
           }
         }
       }
@@ -84201,6 +84357,58 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "笔记命令"
+          }
+        }
+      }
+    },
+    "Notes searches and reads your Tinycast Notes, and always asks before adding to them. Notes must be on." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mit „Notizen“ durchsucht und liest der Agent deine Tinycast-Notizen und fragt immer, bevor er etwas hinzufügt. Notizen müssen aktiviert sein."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Con «Notas», el agente busca y lee tus notas de Tinycast, y siempre pregunta antes de añadirles texto. Notas debe estar activado."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Avec « Notes », l’agent recherche et lit vos notes Tinycast, et demande toujours avant d’y ajouter du texte. Notes doit être activé."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "「メモ」では、エージェントがTinycastのメモを検索・閲覧し、追記する前には必ず確認します。メモをオンにする必要があります。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "'메모'를 사용하면 에이전트가 Tinycast 메모를 검색하고 읽으며, 내용을 추가하기 전에는 항상 묻습니다. 메모가 켜져 있어야 합니다."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Com “Notas”, o agente busca e lê suas notas do Tinycast e sempre pergunta antes de acrescentar texto a elas. As Notas precisam estar ativadas."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "С «Заметками» агент ищет и читает ваши заметки Tinycast и всегда спрашивает, прежде чем дописать в них. Заметки должны быть включены."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "启用“笔记”后，代理可以搜索和阅读你的 Tinycast 笔记，并在向其中添加内容前总会先征求你的同意。需要先开启笔记。"
           }
         }
       }

@@ -236,6 +236,8 @@ final class AppCore {
     @ObservationIgnored private(set) lazy var agentCoordinator = AgentCoordinator(
         store: agentStore, core: self)
     @ObservationIgnored private(set) lazy var webSearch = WebSearchSettingsStore()
+    @ObservationIgnored private(set) lazy var notesAI = NotesAICoordinator(
+        store: notesStore, settings: settings, core: self)
     @ObservationIgnored private(set) lazy var mcpCoordinator = MCPCoordinator(
         settings: settings, store: mcpSettings, manager: mcp, core: self)
     /// Its own window and lifecycle, like Settings; Quick AI is the palette's half of the feature.

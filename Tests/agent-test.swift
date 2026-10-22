@@ -519,6 +519,12 @@ struct AgentTests {
         expect(
             AgentConsentPolicy.rule(for: .network, in: nil, of: profile()) == .always,
             "a tool no switch governs follows the risk's rule")
+        var noter = trusted
+        noter.tools.insert(.notes)
+        expect(
+            AgentConsentPolicy.rule(for: .change, in: .files, of: noter) == .always
+                && AgentConsentPolicy.rule(for: .change, in: .notes, of: noter) == .ask,
+            "Always Allow on changes covers files, never an addition to the user's Notes")
     }
 
     static func agentsAndTheirChatsSurviveARelaunch() {

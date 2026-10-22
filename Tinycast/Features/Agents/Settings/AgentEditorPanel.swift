@@ -213,11 +213,20 @@ struct AgentEditorPanel: View {
                 Toggle("Terminal", isOn: tool(.terminal)).disabled(!draft.access.writes)
                 Toggle("Web", isOn: tool(.web))
                 Toggle("Memory", isOn: tool(.memory))
+                Toggle("Notes", isOn: tool(.notes)).disabled(!core.settings.notesEnabled)
             }
             .toggleStyle(.checkbox)
             Text("Web reads pages and searches with the engines in Settings → AI → Chat.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
+            Text(
+                """
+                Notes searches and reads your Tinycast Notes, and always asks before adding to \
+                them. Notes must be on.
+                """
+            )
+            .font(.caption)
+            .foregroundStyle(.secondary)
         }
     }
 
