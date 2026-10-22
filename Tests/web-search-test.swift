@@ -27,6 +27,7 @@ struct WebSearchTests {
         configurationSurvivesOtherBuilds()
         await theChainFallsThrough()
         await theLoopShowsASearchRow()
+        await stopEndsAPlainChatsSearch()
         searchingFollowsTheRoute()
         await agentsSearchThroughTheirWebFamily()
 
@@ -509,6 +510,34 @@ struct WebSearchTests {
             "a search nobody offered is an ordinary failed row")
     }
 
+    static func stopEndsAPlainChatsSearch() async {
+        let slow = SlowTransport()
+        var search = runner([.parallel], transport: FakeTransport([:]))
+        search.transport = { try await slow.answer($0) }
+        let stoppable = search
+        let base = ScriptedProvider(rounds: [
+            [.toolCallRequested(AIToolCall(id: "s1", name: "web_search", arguments: #"{"query":"q"}"#))],
+            [.text("never"), .finished]
+        ])
+        let loop = AIToolLoopProvider(
+            base: base, tools: [WebSearchTool.definition(origin: "Web search")], maxRounds: nil
+        ) { await stoppable.run($0) }
+        let request = AIRequest(instructions: nil, messages: [AIMessage(role: .user, text: "go")])
+        let consumer = Task {
+            do {
+                for try await _ in loop.stream(request) {}
+            } catch {}
+        }
+        while !slow.started { try? await Task.sleep(for: .milliseconds(10)) }
+        let stopped = ContinuousClock.now
+        consumer.cancel()
+        await consumer.value
+        while slow.noticed == nil { try? await Task.sleep(for: .milliseconds(10)) }
+        try? await Task.sleep(for: .milliseconds(200))
+        expect((slow.noticed ?? .now) - stopped < .seconds(1), "Stop reaches a plain chat's running search")
+        expect(base.requests.count == 1, "and never sends the model another round, got \(base.requests.count)")
+    }
+
     static func searchingFollowsTheRoute() {
         let vendor = AIModelCapabilities(images: true, documents: true, webSearch: false, tools: true)
         let chat = vendor.searchingWithTinycast(agentDecides: false)
@@ -635,6 +664,25 @@ final class FakeTransport: @unchecked Sendable {
         lock.withLock { seen.append(request) }
         if let error { throw error }
         return answers[request.url?.host() ?? ""] ?? (Data(), 500)
+    }
+}
+
+/// A search that hangs until Stop reaches it, and records when it did.
+final class SlowTransport: @unchecked Sendable {
+    private let lock = NSLock()
+    private var startedFlag = false
+    private var noticedAt: ContinuousClock.Instant?
+
+    var started: Bool { lock.withLock { startedFlag } }
+    var noticed: ContinuousClock.Instant? { lock.withLock { noticedAt } }
+
+    func answer(_ request: URLRequest) async throws -> (Data, Int) {
+        lock.withLock { startedFlag = true }
+        try? await Task.sleep(for: .seconds(5))
+        let now = ContinuousClock.now
+        lock.withLock { noticedAt = now }
+        try Task.checkCancellation()
+        return (Data(), 500)
     }
 }
 
