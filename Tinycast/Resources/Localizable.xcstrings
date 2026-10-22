@@ -36344,58 +36344,6 @@
         }
       }
     },
-    "Codex and OpenRouter only. Prompts go to a search engine." : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Nur Codex und OpenRouter. Prompts werden an eine Suchmaschine gesendet."
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Solo Codex y OpenRouter. Las instrucciones se envían a un motor de búsqueda."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Codex et OpenRouter uniquement. Les requêtes sont envoyées à un moteur de recherche."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "CodexとOpenRouterのみ。プロンプトは検索エンジンに送信されます。"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Codex와 OpenRouter에서만 사용할 수 있습니다. 프롬프트가 검색 엔진으로 전송됩니다."
-          }
-        },
-        "pt" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Somente Codex e OpenRouter. Os prompts vão para um mecanismo de busca."
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Только Codex и OpenRouter. Запросы отправляются в поисковую систему."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "仅限 Codex 和 OpenRouter。提示词会发送给搜索引擎。"
-          }
-        }
-      }
-    },
     "Codex could not finish the response." : {
       "localizations" : {
         "de" : {
@@ -94014,6 +93962,58 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : ".agents/skills 中的项目技能"
+          }
+        }
+      }
+    },
+    "Prompts go to a search engine: Codex's own, or the engines below on API models." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prompts werden an eine Suchmaschine gesendet: die von Codex oder, bei API-Modellen, die unten gewählten."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Las instrucciones se envían a un motor de búsqueda: el propio de Codex o, en los modelos de API, los de abajo."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Les requêtes sont envoyées à un moteur de recherche : celui de Codex, ou ceux ci-dessous pour les modèles API."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "プロンプトは検索エンジンに送信されます。CodexではCodex自身の検索、APIモデルでは下のエンジンを使います。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "프롬프트가 검색 엔진으로 전송됩니다. Codex는 자체 검색을, API 모델은 아래 엔진을 사용합니다."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Os prompts vão para um mecanismo de busca: o do próprio Codex ou, nos modelos de API, os mecanismos abaixo."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Запросы отправляются в поисковую систему: собственную у Codex или указанные ниже — у моделей API."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "提示词会发送给搜索引擎：Codex 使用自己的搜索，API 模型使用下方的引擎。"
           }
         }
       }
