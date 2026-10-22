@@ -96,6 +96,19 @@ final class NotesStore {
         scheduleSave()
     }
 
+    /// Text added from outside the editor joins the draft, so the next autosave cannot drop it.
+    func amendDraft(of id: NoteID, _ change: (String) -> String) -> Bool {
+        guard isLoaded, id == activeID else { return false }
+        source = change(source)
+        sourceRevision &+= 1
+        // A new epoch reinstalls the editor's string and drops undo steps that no longer fit it.
+        editorEpoch &+= 1
+        isDirty = true
+        saveFailed = false
+        scheduleSave()
+        return true
+    }
+
     @discardableResult
     func retrySave() async -> Bool {
         saveFailed = false

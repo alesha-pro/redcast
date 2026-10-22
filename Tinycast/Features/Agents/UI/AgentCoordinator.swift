@@ -143,7 +143,7 @@ final class AgentCoordinator {
 
     /// The registry: one line per family, built per turn so nothing stays resident between turns.
     private func providers(for agent: AgentProfile) -> [any AgentToolProvider] {
-        [AgentBuiltInTools()]
+        [AgentBuiltInTools()] + (core.settings.notesEnabled ? [core.notesAI.agentTools] : [])
     }
 
     /// The cached reading when there is one; the first ever is read in place, the rest refresh.
@@ -179,6 +179,7 @@ final class AgentCoordinator {
             switch (spec.family, spec.risk) {
             case (_, .execute): String(localized: "\(agent.name) wants to run a command")
             case (.files?, .change): String(localized: "\(agent.name) wants to change a file")
+            case (.notes?, .change): String(localized: "\(agent.name) wants to add to a note")
             default: String(localized: "\(agent.name) wants to use \(spec.tool.title)")
             }
         NSApp.activate(ignoringOtherApps: true)

@@ -20,6 +20,8 @@ enum AgentToolKind: String, Codable, CaseIterable, Identifiable, Sendable {
     case terminal
     case web
     case memory
+    /// The user's Tinycast Notes: search, read and add to them.
+    case notes
 
     var id: String { rawValue }
 
