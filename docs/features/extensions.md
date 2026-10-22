@@ -723,6 +723,10 @@ and removes the listener before invoking it; bundled duplex streams rely on that
 empty value, so google-auth-library sends a client without a secret as `client_secret=`, which Google
 accepts, rather than `client_secret=undefined`, which it answers with `invalid_client`. `buffer`
 hands out the global `Blob` and `File`, as Node's does: undici subclasses them as it loads.
+A bundled undici finds its global dispatcher slot (`Symbol.for("undici.globalDispatcher.1")`) already
+filled, so it never builds a socket `Agent`: the dispatcher replays each request through the `fetch`
+bridge and hands the answer to undici's handler whole, and an abort ends it with one `onError`.
+`stream` answers the `isDisturbed`, `isErrored` and `isReadable` probes undici asks of a body.
 
 **WebAssembly** — `compile`, `instantiate` and their streaming forms run through the synchronous
 `Module` and `Instance` constructors. JavaScriptCore settles the promise forms from a run-loop timer on
