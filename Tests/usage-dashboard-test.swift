@@ -25,6 +25,8 @@ struct UsageDashboardTests {
         periodsFollowTheCalendar()
         periodTitlesNameTheRecentOnes()
         formatsAreCompactAndKeepSmallCosts()
+        openRouterKeyStatusDecodes()
+        openRouterRequestsAndStatuses()
         await aToolLoopTurnCostsEveryRound()
         onlyOpenAIIsAskedForStreamUsage()
 
@@ -317,6 +319,87 @@ struct UsageDashboardTests {
         expect(UsageFormat.cost(0, locale: locale) == "$0.00", "nothing spent reads as zero dollars")
         expect(UsageFormat.tokens(1_234_567, locale: locale) == "1.2M", "tokens are compact")
         expect(UsageFormat.tokens(812, locale: locale) == "812", "small counts stay whole")
+    }
+
+    // MARK: - OpenRouter
+
+    private static let keySample = Data(
+        """
+        {"data":{"label":"sk-or-v1-0a1...f9e","limit":50,"limit_remaining":40.2,
+        "limit_reset":"monthly","include_byok_in_limit":false,"usage":9.8,"usage_daily":0.42,
+        "usage_weekly":3.1,"usage_monthly":9.8,"byok_usage":0,"byok_usage_daily":0,
+        "byok_usage_weekly":0,"byok_usage_monthly":0,"is_free_tier":false,"is_management_key":false,
+        "rate_limit":{"requests":-1,"interval":"10s","note":"deprecated"},
+        "effective_budget":{"limit_usd":50,"spend_usd":9.8,"remaining_usd":40.2,
+        "reset_interval":"monthly","resets_at":"2026-11-01T00:00:00Z"},"budgets":[]}}
+        """.utf8)
+
+    static func openRouterKeyStatusDecodes() {
+        let status = try? OpenRouterAccount.decodeKey(keySample)
+        expect(status?.limit == 50 && status?.limitRemaining == 40.2, "the key's limit and what is left")
+        expect(
+            status?.usageDaily == 0.42 && status?.usageWeekly == 3.1 && status?.usageMonthly == 9.8,
+            "spend per UTC day, week and month")
+        expect(status?.isManagementKey == false, "an inference key says it is not a management key")
+        expect(
+            status?.effectiveBudget?.limitUSD == 50 && status?.effectiveBudget?.remainingUSD == 40.2,
+            "the effective budget keeps its own snake-cased names")
+
+        let unlimited = keyJSON(#""label":"k","limit":null,"limit_remaining":null"#)
+        let open = try? OpenRouterAccount.decodeKey(unlimited)
+        expect(open != nil && open?.limit == nil && open?.effectiveBudget == nil, "a key without a limit decodes")
+        expect(open?.spendingLimit == nil, "and has no spending limit to show")
+        expect(
+            status?.spendingLimit?.remaining == 40.2 && status?.spendingLimit?.limit == 50,
+            "a limited key shows what is left of it")
+        let budgeted = keyJSON(
+            #""limit":50,"limit_remaining":40,"effective_budget":{"limit_usd":20,"remaining_usd":5}"#)
+        let tighter = (try? OpenRouterAccount.decodeKey(budgeted))?.spendingLimit
+        expect(tighter?.remaining == 5 && tighter?.limit == 20, "the effective budget binds before the key's limit")
+        let halfBudget = keyJSON(
+            #""limit":50,"limit_remaining":40,"effective_budget":{"limit_usd":null}"#)
+        let fallback = (try? OpenRouterAccount.decodeKey(halfBudget))?.spendingLimit
+        expect(fallback?.remaining == 40 && fallback?.limit == 50, "an unlimited budget leaves the key's limit")
+
+        let credits = try? OpenRouterAccount.decodeCredits(
+            Data(#"{"data":{"total_credits":50,"total_usage":9.75}}"#.utf8))
+        expect(credits?.remaining == 40.25, "credits left are bought minus used")
+
+        let refusal = Data(#"{"error":{"code":401,"message":"No auth credentials found"}}"#.utf8)
+        var thrown: OpenRouterAccount.Failure?
+        do {
+            _ = try OpenRouterAccount.decodeKey(refusal)
+        } catch {
+            thrown = error
+        }
+        expect(thrown == .malformed, "an error body is not a key status")
+    }
+
+    /// A `/key` body with the four spend figures every answer carries, plus `fields`.
+    private static func keyJSON(_ fields: String) -> Data {
+        let spend = #""usage":0,"usage_daily":0,"usage_weekly":0,"usage_monthly":0"#
+        return Data("{\"data\":{\(spend),\(fields)}}".utf8)
+    }
+
+    static func openRouterRequestsAndStatuses() {
+        let base = URL(string: "https://openrouter.ai/api/v1")!
+        let request = OpenRouterAccount.request("key", baseURL: base, key: "sk-test")
+        expect(request.url?.absoluteString == "https://openrouter.ai/api/v1/key", "the key's own endpoint")
+        expect(request.httpMethod == "GET", "a read, never a write")
+        expect(request.value(forHTTPHeaderField: "Authorization") == "Bearer sk-test", "the chat's key")
+        expect(request.timeoutInterval == 15, "it gives up after 15 seconds")
+        let trailing = OpenRouterAccount.request(
+            "credits", baseURL: URL(string: "https://openrouter.ai/api/v1/")!, key: "k")
+        expect(trailing.url?.absoluteString == "https://openrouter.ai/api/v1/credits", "a trailing slash is fine")
+        let written = OpenRouterAccount.request(
+            "key", baseURL: URL(string: "https://openrouter.ai/api/v1/chat/completions")!, key: "k")
+        expect(
+            written.url?.absoluteString == "https://openrouter.ai/api/v1/key",
+            "a base written down to the chat endpoint still finds the account")
+        expect(OpenRouterAccount.failure(forStatus: 401) == .rejectedKey, "401 is the key")
+        expect(OpenRouterAccount.failure(forStatus: 403) == .rejectedKey, "and so is 403")
+        expect(OpenRouterAccount.failure(forStatus: 502) == .unavailable, "a 5xx is OpenRouter's")
+        expect(OpenRouterAccount.failure(forStatus: 0) == .unavailable, "and so is no answer")
     }
 
     // MARK: - Accuracy fixes
