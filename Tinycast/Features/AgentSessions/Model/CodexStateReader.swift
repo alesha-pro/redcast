@@ -23,9 +23,10 @@ enum CodexStateReader {
             sqlite3_bind_int(statement, 1, includeArchived ? 1 : 0)
             sqlite3_bind_int(statement, 2, Int32(limit))
         }
-        return rows.compactMap(session(from:))
+        return rows.compactMap { session(from: $0, listing: true) }
     }
 
+    /// Any thread, listed or not, so an event can tell a subagent or Tinycast's own thread apart.
     static func thread(database: URL, id: String) throws(Failure) -> AgentSession? {
         let db = try open(database)
         defer { sqlite3_close_v2(db) }
@@ -35,7 +36,7 @@ enum CodexStateReader {
         let rows = try query(sql, in: db) { statement in
             sqlite3_bind_text(statement, 1, id, -1, codexSQLiteTransient)
         }
-        return rows.first.flatMap(session(from:))
+        return rows.first.flatMap { session(from: $0, listing: false) }
     }
 
     /// From thread_history's projected items; empty when the thread has none.
@@ -116,8 +117,14 @@ enum CodexStateReader {
         return Array((events.isEmpty ? responses : events).suffix(limit))
     }
 
+    /// A subagent or a guardian review is the agent's own run, so it reads as automated.
     static func host(source: String, threadSource: String, originator: String) -> AgentSessionHost {
-        if source == "exec" || threadSource == "automation" { return .automated }
+        if originator == tinycastOriginator { return .tinycast }
+        if source == "exec" || source.hasPrefix("{") || threadSource == "automation"
+            || hiddenThreadSources.contains(threadSource)
+        {
+            return .automated
+        }
         if threadSource == "realtime_voice" || threadSource == "voice_chat" { return .codexApp }
         switch source {
         case "cli": return .terminal
@@ -145,14 +152,15 @@ enum CodexStateReader {
     // MARK: - Rows
 
     private static let hiddenThreadSources: Set<String> = ["guardian_review", "subagent"]
+    /// The `clientInfo` name Tinycast's own Codex app-server chats run under.
+    private static let tinycastOriginator = "tinycast"
 
-    private static func session(from row: [String]) -> AgentSession? {
+    private static func session(from row: [String], listing: Bool) -> AgentSession? {
         let (id, cwd, rollout) = (row[0], row[1], row[2])
         let (name, title, first, preview) = (row[5], row[6], row[7], row[8])
         let (source, threadSource, originator, branch) = (row[9], row[10], row[11], row[12])
-        guard !id.isEmpty, !hiddenThreadSources.contains(threadSource), originator != "tinycast" else {
-            return nil
-        }
+        let hidden = hiddenThreadSources.contains(threadSource) || originator == tinycastOriginator
+        guard !id.isEmpty, !(listing && hidden) else { return nil }
         let (display, origin) = self.title(name: name, title: title, firstMessage: first, preview: preview)
         let created = Date(timeIntervalSince1970: (Double(row[3]) ?? 0) / 1_000)
         return AgentSession(

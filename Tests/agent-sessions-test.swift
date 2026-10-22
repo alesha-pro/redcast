@@ -45,6 +45,7 @@ struct AgentSessionsTests {
         hookCommandExecuted()
         deepLinks()
         activityPolicy()
+        await eventResolution()
         liveListing()
         await transcriptSearch()
 
@@ -474,6 +475,13 @@ struct AgentSessionsTests {
         expect(
             (try? CodexStateReader.thread(database: state, id: codexID(8)))??.title == "Release checklist",
             "one thread by id")
+        func byID(_ number: Int) -> AgentSessionHost? {
+            (try? CodexStateReader.thread(database: state, id: codexID(number)))?.host
+        }
+        expect(byID(6) == .tinycast, "by id, Tinycast's own thread is found as Tinycast's")
+        expect(
+            byID(3) == .automated && byID(4) == .automated && byID(10) == .automated,
+            "by id, a subagent or a guardian review reads as automated")
 
         let older = scratch.appending(path: "state-older.sqlite")
         sqlite(
@@ -942,12 +950,10 @@ struct AgentSessionsTests {
         func event(_ kind: AgentHookEvent, _ id: String = s1) -> AgentEvent {
             AgentEvent(agent: .claude, event: kind, sessionID: id, kind: nil, pid: nil)
         }
-        func resolved(_ id: String = s1, at offset: TimeInterval, automated: Bool = false, host: String? = nil)
-            -> AgentActivity
-        {
+        func resolved(_ id: String = s1, at offset: TimeInterval, host: AgentSessionHost = .terminal) -> AgentActivity {
             AgentActivity(
-                agent: .claude, sessionID: id, directory: "/Users/me/dev/app", hostBundleID: host,
-                isAutomated: automated, updatedAt: start.addingTimeInterval(offset))
+                agent: .claude, sessionID: id, directory: "/Users/me/dev/app", host: host,
+                updatedAt: start.addingTimeInterval(offset))
         }
         var items: [AgentActivity] = []
         for (offset, kind) in [(0.0, AgentHookEvent.working), (5, .waiting), (9, .finished)] {
@@ -975,6 +981,33 @@ struct AgentSessionsTests {
         }
         expect(many.count == 32 && many.first?.sessionID == "s39", "capacity 32, oldest out first")
 
+        let early = AgentActivityPolicy.apply(event(.working, "r"), resolved: resolved("r", at: 0), to: [], now: start)
+        let run = AgentActivityPolicy.apply(
+            event(.finished, "r"), resolved: resolved("r", at: 1, host: .automated), to: early,
+            now: start.addingTimeInterval(1))
+        expect(early.count == 1 && run.isEmpty, "an automated run is never kept, nor its entry from before it was known")
+        let own = AgentActivityPolicy.apply(
+            event(.waiting, "t"), resolved: resolved("t", at: 2, host: .tinycast), to: items,
+            now: start.addingTimeInterval(2))
+        expect(own == items, "Tinycast's own session is never kept")
+        let noisy = (0..<40).reduce(items) { kept, index in
+            AgentActivityPolicy.apply(
+                event(.finished, "p\(index)"), resolved: resolved("p\(index)", at: 10 + Double(index), host: .automated),
+                to: kept, now: start.addingTimeInterval(10 + Double(index)))
+        }
+        expect(noisy == items, "a burst of automated runs evicts nothing")
+        expect(
+            AgentActivityPolicy.jumpTarget(run + own).map(\.sessionID) == items.first?.sessionID,
+            "so Jump to Agent and the menu-bar item never see them")
+
+        func owned(_ id: String, host: String?, app: String?) -> Bool {
+            AgentActivityPolicy.isTinycastOwned(sessionID: id, hostBundleID: host, acpSessions: [s2], appBundleID: app)
+        }
+        expect(owned(s2, host: "com.apple.Terminal", app: fork), "an ACP chat's session is Tinycast's")
+        expect(owned(s1, host: fork, app: fork), "so is an agent running under Tinycast")
+        expect(!owned(s1, host: "com.apple.Terminal", app: fork), "one in a terminal is not")
+        expect(!owned(s1, host: nil, app: nil), "an unknown host is never Tinycast's")
+
         let waitingOld = AgentActivity(
             agent: .claude, sessionID: "w1", status: .waiting(reason: nil), updatedAt: start)
         let waitingNew = AgentActivity(
@@ -997,8 +1030,11 @@ struct AgentSessionsTests {
         }
         expect(announce(done) == .init(tone: .success, kind: .finished), "a finished turn is announced")
         var automated = done
-        automated.isAutomated = true
+        automated.host = .automated
         expect(announce(automated) == nil, "not for an automated run")
+        var tinycast = done
+        tinycast.host = .tinycast
+        expect(announce(tinycast) == nil, "not for Tinycast's own session")
         var desktop = done
         desktop.hostBundleID = "com.anthropic.claudefordesktop.helper"
         expect(announce(desktop) == nil, "not for a desktop app's own session")
@@ -1013,7 +1049,31 @@ struct AgentSessionsTests {
         expect(announce(failed)?.tone == .danger, "a failure is red")
     }
 
-    // MARK: - 13. Live listing
+    // MARK: - 13. Event resolution
+
+    static func eventResolution() async {
+        let claudeRoot = scratch.appending(path: "claude", directoryHint: .isDirectory)
+        let codexState = scratch.appending(path: "state_5.sqlite")
+        func resolve(_ agent: AgentSource, _ id: String) async -> AgentActivity {
+            await AgentSessionsScanner.resolve(
+                AgentEvent(agent: agent, event: .finished, sessionID: id, kind: nil, pid: nil),
+                claudeRoot: claudeRoot, codexState: codexState, now: Date(timeIntervalSince1970: 2_000_000))
+        }
+        let person = await resolve(.claude, s1)
+        expect(person.isTracked && person.directory == "/Users/me/dev/app", "a CLI session is tracked")
+        let printRun = await resolve(.claude, s3)
+        expect(printRun.host == .automated && !printRun.isTracked, "a claude -p run is not")
+        let execRun = await resolve(.codex, codexID(5))
+        expect(execRun.host == .automated, "nor is codex exec")
+        let subagent = await resolve(.codex, codexID(4))
+        expect(subagent.host == .automated, "nor a Codex subagent")
+        let own = await resolve(.codex, codexID(6))
+        expect(own.host == .tinycast && !own.isTracked, "nor a Codex thread Tinycast started")
+        let unknown = await resolve(.codex, codexID(99))
+        expect(unknown.isTracked && unknown.title == nil, "a thread not written yet is tracked, untitled")
+    }
+
+    // MARK: - 14. Live listing
 
     static func liveListing() {
         let entries = ClaudeAgentsListing.decode(fixture("claude-agents.json"))

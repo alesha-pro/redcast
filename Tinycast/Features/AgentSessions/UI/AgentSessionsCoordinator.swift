@@ -273,8 +273,11 @@ final class AgentSessionsCoordinator {
             }
             let entries = await AgentProcessHost.resolving(
                 await ClaudeLiveSessionsProbe.run(executable: executable, home: home))
-            let waiting = entries.filter { if case .waiting = $0.status { true } else { false } }
-                .sorted { ($0.startedAt ?? .distantPast) > ($1.startedAt ?? .distantPast) }
+            let waiting = entries.filter { entry in
+                guard case .waiting = entry.status else { return false }
+                return !isTinycastOwned(sessionID: entry.sessionID, hostBundleID: entry.hostBundleID)
+            }
+            .sorted { ($0.startedAt ?? .distantPast) > ($1.startedAt ?? .distantPast) }
             guard let entry = waiting.first(where: { $0.hostBundleID != nil }), let host = entry.hostBundleID else {
                 return core.showMessage(String(localized: "No agent is waiting"), tone: .neutral)
             }
@@ -293,7 +296,7 @@ final class AgentSessionsCoordinator {
         let session = AgentSession(
             source: activity.agent, sessionID: activity.sessionID, title: activity.title ?? "",
             titleOrigin: .named, directory: activity.directory, createdAt: activity.updatedAt,
-            updatedAt: activity.updatedAt, host: .terminal)
+            updatedAt: activity.updatedAt, host: activity.host)
         // Without a host it may still be open somewhere unseen, so only an ended one is reopened.
         guard activity.status == .ended else { return copyResumeCommand(session) }
         resume(session, action: .resume)
@@ -332,17 +335,27 @@ final class AgentSessionsCoordinator {
         var resolved = await AgentSessionsScanner.resolve(
             event, claudeRoot: claudeRoot, codexState: codexState, now: now)
         (resolved.hostBundleID, resolved.tty) = await host
-        guard isActive, let (previous, current) = activity.apply(event, resolved: resolved, now: now) else { return }
-        let frontmost = NSWorkspace.shared.frontmostApplication?.bundleIdentifier
-        if let announcement = AgentActivityPolicy.announcement(
-            for: current, previous: previous, frontmostBundleID: frontmost,
-            lastAnnounced: activity.lastAnnounced(current.id, kind: event.event), now: now)
-        {
-            activity.recordAnnouncement(current.id, kind: announcement.kind, at: now)
-            core.showMessage(Self.message(for: current, kind: announcement.kind), tone: announcement.tone.dialogTone)
+        guard isActive else { return }
+        if isTinycastOwned(sessionID: event.sessionID, hostBundleID: resolved.hostBundleID) { resolved.host = .tinycast }
+        if let (previous, current) = activity.apply(event, resolved: resolved, now: now) {
+            let frontmost = NSWorkspace.shared.frontmostApplication?.bundleIdentifier
+            if let announcement = AgentActivityPolicy.announcement(
+                for: current, previous: previous, frontmostBundleID: frontmost,
+                lastAnnounced: activity.lastAnnounced(current.id, kind: event.event), now: now)
+            {
+                activity.recordAnnouncement(current.id, kind: announcement.kind, at: now)
+                core.showMessage(
+                    Self.message(for: current, kind: announcement.kind), tone: announcement.tone.dialogTone)
+            }
         }
         builtIndex?.applyReported(activity.items)
         updateStatusItem()
+    }
+
+    private func isTinycastOwned(sessionID: String, hostBundleID: String?) -> Bool {
+        AgentActivityPolicy.isTinycastOwned(
+            sessionID: sessionID, hostBundleID: hostBundleID, acpSessions: Set(agentStore.acpSessions.values),
+            appBundleID: Bundle.main.bundleIdentifier)
     }
 
     /// Built from Tinycast's own lookup of the session; nothing from the URL is ever shown.

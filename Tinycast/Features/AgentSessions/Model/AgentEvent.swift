@@ -91,14 +91,15 @@ struct AgentActivity: Identifiable, Equatable, Sendable {
     var directory: String?
     var hostBundleID: String?
     var tty: String?
-    var isAutomated: Bool
+    /// Where the session runs, from this Mac's history; `.terminal` until it is known.
+    var host: AgentSessionHost
     var updatedAt: Date
     var seen: Bool
 
     init(
         agent: AgentSource, sessionID: String, status: AgentLiveStatus = .working, title: String? = nil,
         directory: String? = nil, hostBundleID: String? = nil, tty: String? = nil,
-        isAutomated: Bool = false, updatedAt: Date, seen: Bool = false
+        host: AgentSessionHost = .terminal, updatedAt: Date, seen: Bool = false
     ) {
         self.agent = agent
         self.sessionID = sessionID
@@ -107,10 +108,13 @@ struct AgentActivity: Identifiable, Equatable, Sendable {
         self.directory = directory
         self.hostBundleID = hostBundleID
         self.tty = tty
-        self.isAutomated = isAutomated
+        self.host = host
         self.updatedAt = updatedAt
         self.seen = seen
     }
+
+    /// A person's own session; an automated run or one Tinycast started never asks for attention.
+    var isTracked: Bool { host != .automated && host != .tinycast }
 
     /// Worth a menu-bar row: still going, waiting, or done and not looked at yet.
     var needsAttention: Bool {
@@ -136,10 +140,19 @@ enum AgentActivityPolicy {
         [claudeApp, codexApp].first { host.hasPrefix($0 + ".") } ?? host
     }
 
+    /// An ACP chat's session, or an agent whose process runs under this app, is Tinycast's own.
+    static func isTinycastOwned(
+        sessionID: String, hostBundleID: String?, acpSessions: Set<String>, appBundleID: String?
+    ) -> Bool {
+        acpSessions.contains(sessionID) || (hostBundleID != nil && hostBundleID == appBundleID)
+    }
+
     /// Replaces the session's entry; an event resolved after a newer one changes nothing.
     static func apply(_ event: AgentEvent, resolved: AgentActivity, to items: [AgentActivity], now: Date)
         -> [AgentActivity]
     {
+        // An entry kept before its session was known to be untracked goes too.
+        guard resolved.isTracked else { return prune(items.filter { $0.id != resolved.id }, now: now) }
         var updated = resolved
         updated.status = event.status
         let previous = items.first { $0.id == updated.id }
@@ -187,7 +200,7 @@ enum AgentActivityPolicy {
         case .failed: announcement = Announcement(tone: .danger, kind: .failed)
         case .working, .idle, .ended: return nil
         }
-        guard !activity.isAutomated else { return nil }
+        guard activity.isTracked else { return nil }
         // Both desktop apps announce their own agents' turns.
         if let host = activity.hostBundleID.map(appBundleID) {
             guard host != claudeApp, host != codexApp, host != frontmostBundleID else { return nil }
