@@ -118,7 +118,8 @@ final class AppCore {
         },
         showMessage: { [unowned self] in self.showMessage($0, tone: $1) },
         cloudIsOn: { [unowned self] in self.voiceCloud.isOn },
-        cloudTranscribe: { [unowned self] in try await self.voiceCloud.transcribe($0, language: $1) })
+        cloudTranscribe: { [unowned self] in try await self.voiceCloud.transcribe($0, language: $1) },
+        capsule: { [unowned self] in self.voiceCloud.attach(to: $0) })
     @ObservationIgnored private(set) lazy var quicklinkCoordinator = QuicklinkCoordinator(
         store: quicklinks, settings: settings,
         appIndex: appIndex, injector: textInjector, hotKeys: hotKeys, favorites: favorites,

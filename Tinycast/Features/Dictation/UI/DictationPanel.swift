@@ -77,6 +77,7 @@ private struct DictationPanelView: View {
 private final class DictationPanel: NSPanel {
     var onAccept: (() -> Void)?
     var onCancel: (() -> Void)?
+    var onTab: ((Bool) -> Bool)?
 
     init(content: NSView) {
         super.init(
@@ -101,6 +102,9 @@ private final class DictationPanel: NSPanel {
             switch Int(event.keyCode) {
             case kVK_Return, kVK_ANSI_KeypadEnter: onAccept?(); return
             case kVK_Escape: onCancel?(); return
+            case kVK_Tab:
+                // Fork: Tab switches the dictation mode while one applies; otherwise it passes.
+                if onTab?(event.modifierFlags.contains(.shift)) == true { return }
             default: break
             }
         }
@@ -114,6 +118,10 @@ final class DictationPanelController {
     private var panel: DictationPanel?
     var onAccept: (() -> Void)?
     var onCancel: (() -> Void)?
+    /// Fork: the capsule's frame as it shows and nil as it closes, so a mode can be named above it.
+    var onPlacement: ((NSRect?) -> Void)?
+    /// Fork: Tab (true with Shift) in the capsule; returns whether it switched a mode.
+    var onTab: ((Bool) -> Bool)?
 
     func show() {
         let screen = NSScreen.main ?? NSScreen.screens.first
@@ -122,6 +130,7 @@ final class DictationPanelController {
             panel ?? DictationPanel(content: NSHostingView(rootView: DictationPanelView(state: state)))
         panel.onAccept = onAccept
         panel.onCancel = onCancel
+        panel.onTab = onTab
         self.panel = panel
         let size = Theme.Size.dictationPanel
         panel.setFrameOrigin(
@@ -131,10 +140,12 @@ final class DictationPanelController {
         state.phase = .listening
         state.levels = [Float](repeating: 0, count: DictationSpectrum.barCount)
         panel.makeKeyAndOrderFront(nil)
+        onPlacement?(panel.frame)
     }
 
     func close() {
         panel?.orderOut(nil)
         panel = nil
+        onPlacement?(nil)
     }
 }

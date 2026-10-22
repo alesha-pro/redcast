@@ -4,7 +4,8 @@ Dictation is off by default. A user-selected global shortcut records from the ch
 transcribes locally and sends the result through `TextInjector`. Parakeet Ultra (quality) and Redux
 (lightweight) support 25 languages. Qwen3-ASR 0.6B and 1.7B support 30 languages and 22 Chinese dialects.
 Transcription is on-device by default and no model is bundled: the Settings pane downloads a pinned
-Core ML conversion on request. [Cloud transcription](voice-ai.md) is an optional second engine.
+Core ML conversion on request. [Cloud transcription](voice-ai.md) is an optional second engine, with
+[dictation modes](voice-ai.md#dictation-modes) that rewrite the transcript before it is typed.
 
 Recognition uses Apple's Core ML and Accelerate, with no external library. Each model family has
 its own adapter inside the bundled helper; both variants share that family's implementation.
