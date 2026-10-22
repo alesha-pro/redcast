@@ -35,7 +35,9 @@ struct AppleIntelligenceProvider: AIProvider {
                     let session = LanguageModelSession(
                         model: SystemLanguageModel(guardrails: guardrails),
                         transcript: turn.transcript)
+                    // Fork: an extension's creativity, held to the model's 0–1 range.
                     let options = GenerationOptions(
+                        temperature: request.temperature.map { min($0, 1) },
                         maximumResponseTokens: min(
                             request.maxOutputTokens, AppleIntelligence.maxOutputTokens))
                     var delta = AppleIntelligenceDelta()
