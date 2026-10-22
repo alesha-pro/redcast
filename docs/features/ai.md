@@ -750,7 +750,8 @@ Grok's `models` output is the catalog, but a signed-out CLI still exits 0 and pr
 `ChatGPTSubscriptionManager` retains its historical type name but now owns only the installed Codex
 app-server lifecycle and discovered account metadata. Production never sets `CODEX_HOME`, so the
 server uses the same login and credential store as the user's normal Codex command. Tinycast supplies
-only a private working directory. The server stops after ten idle minutes, when AI is switched off or
+only a private working directory. In this fork the server stops as soon as a check has read the account, models and limits, and two
+idle minutes after a turn (upstream keeps it ten), with its whole process tree reaped; also when AI is switched off or
 when the app terminates, and restarts on demand. Account state, model availability and rate-limit
 windows come from the supported app-server protocol. A custom Codex provider can report no account
 and `requiresOpenaiAuth: false`; Tinycast then loads its models and runs turns without inventing an

@@ -6,7 +6,8 @@ import Observation
 @Observable
 final class ChatGPTSubscriptionManager {
     /// Long enough to span a conversation; a relaunch costs a second, a resident server ~20 MB.
-    private static let idleShutdown: Duration = .seconds(600)
+    /// Fork: two minutes, matching ACP agents; the helper restarts on the next turn.
+    private static let idleShutdown: Duration = .seconds(120)
 
     private let client: CodexAppServerClient
     let turns: CodexTurnRunner
@@ -115,7 +116,8 @@ final class ChatGPTSubscriptionManager {
             try await client.startForCheck()
             executable = client.executable
             guard try await verifyAccess() else { return }
-            scheduleIdleShutdown()
+            // Fork: a check keeps what it read, so the helper only stays up for a turn.
+            if turns.isActive { scheduleIdleShutdown() } else { client.stop() }
         } catch {
             apply(error)
         }
