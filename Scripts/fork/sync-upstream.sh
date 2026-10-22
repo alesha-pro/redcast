@@ -86,8 +86,6 @@ done
 short() { printf '%s' "${1:0:7}"; }
 has_word() { case "$1" in *" $2 "*) return 0 ;; esac; return 1; }
 
-# --- preconditions -----------------------------------------------------------------------------
-
 need() {
     command -v "$1" >/dev/null && return 0
     printf '✗ %s is missing: brew install %s\n' "$1" "$2" >&2
@@ -116,8 +114,6 @@ preconditions() {
     fi
     git remote get-url upstream >/dev/null 2>&1 || git remote add upstream "$UPSTREAM_URL"
 }
-
-# --- steps 1–4: what is new upstream, and whether its history still contains ours --------------
 
 last_synced() {
     local trailer
@@ -157,8 +153,6 @@ detect_rewrite() {
     [[ "$pattern" == *+* ]] || ANCHOR="$UP"
     say "Upstream rewrote its history; re-anchoring on $(short "$ANCHOR")"
 }
-
-# --- steps 5–8: merge, resolve, regenerate, commit ---------------------------------------------
 
 create_branch() {
     if [ -z "$BRANCH" ] && [ "$CI" -eq 1 ]; then BRANCH=sync/upstream; fi
@@ -263,8 +257,6 @@ save_state() {
     done >"$STATE"
 }
 
-# --- step 9: gates -----------------------------------------------------------------------------
-
 GATE_BUILD=skipped GATE_TESTS=skipped GATE_LINT=skipped GATE_PURITY=skipped GATE_SELF=skipped
 FLAKY="" IGNORED="" UPSTREAM_TOO="" REGRESSIONS="" WARNINGS=""
 
@@ -339,8 +331,6 @@ gates_failed() {
     return 1
 }
 
-# --- step 10: summary --------------------------------------------------------------------------
-
 mark() {
     case "$1" in pass) printf '✅' ;; fail) printf '❌' ;; *) printf '—' ;; esac
 }
@@ -406,7 +396,7 @@ attention() {
     [ "$GATE_LINT" != fail ] || printf -- '- Lint failed: %s/lint.log\n' "$WORK"
     if [ -n "$WARNINGS" ]; then
         printf -- '- Warnings in files the merge changed:\n'
-        printf '  - `%s`\n' "$WARNINGS"
+        printf '%s\n' "$WARNINGS" | sed 's/^/  - /'
     fi
     printf '%s' "${NOTES:-}"
 }
@@ -559,8 +549,6 @@ resume() {
     mkdir -p "$WORK"
     finish
 }
-
-# --- self-test ---------------------------------------------------------------------------------
 
 commit_file() {
     mkdir -p "$(dirname "$1/$2")"
