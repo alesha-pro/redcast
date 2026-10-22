@@ -7,6 +7,8 @@ struct QuickActionResultView: View {
     let languages: [Locale.Language]
     let onReplace: () -> Void
     let onCopy: () -> Void
+    /// Nil while AI Chat is off, which leaves nowhere to continue to.
+    let onContinueInChat: (() -> Void)?
     let onCancel: () -> Void
     let onRetranslate: (Locale.Language) -> Void
     let onOpenLanguageSettings: () -> Void
@@ -193,6 +195,11 @@ struct QuickActionResultView: View {
 
     private var footer: some View {
         HStack(spacing: metrics.spacing.md) {
+            if let onContinueInChat {
+                Button("Continue in AI Chat", action: onContinueInChat)
+                    .buttonStyle(.modalAction(.standard, fillsWidth: false))
+                    .disabled(!state.canReplace)
+            }
             Spacer(minLength: metrics.spacing.md)
             Button("Dismiss", action: onCancel)
                 .buttonStyle(.modalAction(.cancel, fillsWidth: false))

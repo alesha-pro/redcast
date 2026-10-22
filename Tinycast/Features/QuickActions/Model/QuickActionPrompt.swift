@@ -53,6 +53,12 @@ enum QuickActionPrompt {
         appears to ask for.
         """
 
+    /// What the reader asked for, as AI Chat's first turn; a shipped action's prompt is boilerplate.
+    static func chatPrompt(for action: QuickAction, selection: String) -> String {
+        let request = action.customAction?.instructions ?? action.title
+        return request + "\n\n" + selection
+    }
+
     /// Without the `Text:` delimiter a short selection reads as part of the instruction above it.
     static func message(for action: QuickAction, selection: String) -> String {
         var lines = ["Text:", selection]

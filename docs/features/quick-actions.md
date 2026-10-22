@@ -217,8 +217,16 @@ It could not have been built on `HUDPresenter`: `HUDPanel` sets `ignoresMouseEve
 which is a closed two-case enum measured once at present time — a growing stream would clip.
 
 Non-activating, so the target app keeps its selection while the panel holds key. Keys go through
-`sendEvent`: `↵` replaces, `⌘C` copies, `esc` dismisses; click-away dismisses like every other
-borderless surface. The panel is anchored by its **top-left** and re-measured as the reply arrives —
+`sendEvent`: `↵` replaces, `⌘C` copies, `⌘J` continues in AI Chat, `esc` dismisses; click-away
+dismisses like every other borderless surface.
+
+**Continue in AI Chat** turns a finished result into a new chat in the AI Chat window, so the next
+message refines it. `AIChatSurfacesState.openSeededInWindow` always makes a fresh chat — never one
+already open — and `AIChatState.seed` saves the opening turn at once. The request is
+`QuickActionPrompt.chatPrompt`: a custom action's resolved instructions, or a shipped action's name,
+above the selection — never `boundary`, whose transform-only rules a conversation would have to
+break. The chat keeps answering on the action's own route. The button is absent while AI is off,
+since there is no window to continue in. The panel is anchored by its **top-left** and re-measured as the reply arrives —
 centring on every measure would walk it up the screen. Summarize and custom actions use chat's
 `ChatMarkdownText` and `MarkdownBlock.parse`, keeping the whole result selectable across paragraphs
 and headings, with the same math as chat; `midStream` is on while it runs, so an equation still
@@ -322,6 +330,9 @@ failure handler, so automatic expansion stays silent as before.
   field focused, choosing a tone and pressing ↵ transforms the selection in the original app.
 - Run a custom action that uses `{clipboard}` with something copied: the reply reflects the
   clipboard, and the selection is still what gets replaced.
+- Summarize something, press ⌘J: the panel closes, AI Chat opens on a new chat holding the request
+  and the summary, and a follow-up such as "shorter" answers on the same model. With AI turned off
+  the button is gone and ⌘J does nothing.
 - Delete a custom action with a shortcut bound: the dialog asks first, the row leaves both Settings
   and ⌘Space, and the chord is free for something else to take.
 - Type "quick actions" in ⌘Space: the section lists the shipped four beside the custom ones.

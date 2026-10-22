@@ -64,6 +64,13 @@ final class AIChatSurfacesState {
         return true
     }
 
+    /// Always a fresh chat, so a Quick Action never lands inside a conversation already open.
+    func openSeededInWindow(prompt: String, reply: String, model: AIModelSelection?) {
+        let seeded = makeState()
+        guard seeded.seed(prompt: prompt, reply: reply, model: model) else { return }
+        show(seeded)
+    }
+
     /// An empty chat is already new; replacing it would only drop what is staged in it.
     func newWindowChat() {
         guard !window.session.messages.isEmpty else { return }

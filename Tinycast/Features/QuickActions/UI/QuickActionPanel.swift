@@ -1,11 +1,12 @@
 import AppKit
 import Carbon.HIToolbox
 
-/// Keys go through `sendEvent`, so ↵, ⌘C and Esc need no focused subview to reach the panel.
+/// Keys go through `sendEvent`, so ↵, ⌘C, ⌘J and Esc need no focused subview to reach the panel.
 final class QuickActionPanel: NSPanel {
     enum Key {
         case replace
         case copy
+        case continueInChat
         case cancel
     }
 
@@ -39,13 +40,13 @@ final class QuickActionPanel: NSPanel {
             super.sendEvent(event)
             return
         }
-        // ⌘C before the plain keys: the modifier is what separates Copy from anything else here.
+        // The command chords first: the modifier is what separates them from the plain keys.
         if event.modifierFlags.contains(.command) {
-            guard Int(event.keyCode) == kVK_ANSI_C else {
-                super.sendEvent(event)
-                return
+            switch Int(event.keyCode) {
+            case kVK_ANSI_C: onKey(.copy)
+            case kVK_ANSI_J: onKey(.continueInChat)
+            default: super.sendEvent(event)
             }
-            onKey(.copy)
             return
         }
         switch Int(event.keyCode) {

@@ -380,7 +380,15 @@ final class QuickActionCoordinator {
             },
             onReplace: { [weak self] text in
                 self?.deliver(text, to: target, action: state.action)
-            })
+            },
+            onContinueInChat: settings.aiEnabled
+                ? { [weak self] text in self?.continueInChat(state, reply: text) } : nil)
+    }
+
+    private func continueInChat(_ state: QuickActionPanelState, reply: String) {
+        core.aiChatCoordinator.continueQuickAction(
+            prompt: QuickActionPrompt.chatPrompt(for: state.action, selection: state.original),
+            reply: reply, model: store.model(for: state.action))
     }
 
     private func rerun(_ state: QuickActionPanelState, target: Target) {

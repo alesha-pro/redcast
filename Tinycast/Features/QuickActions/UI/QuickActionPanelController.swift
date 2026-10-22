@@ -8,6 +8,7 @@ final class QuickActionPanelController: NSObject, NSWindowDelegate {
     private var state: QuickActionPanelState?
     private var onReplace: ((String) -> Void)?
     private var onRetranslate: ((Locale.Language) -> Void)?
+    private var onContinueInChat: ((String) -> Void)?
 
     /// Clear of the pointer, so the panel never opens under the hand that summoned it.
     private static let cursorOffset: CGFloat = 12
@@ -19,12 +20,14 @@ final class QuickActionPanelController: NSObject, NSWindowDelegate {
         metrics: InterfaceMetrics,
         languages: [Locale.Language],
         onRetranslate: @escaping (Locale.Language) -> Void,
-        onReplace: @escaping (String) -> Void
+        onReplace: @escaping (String) -> Void,
+        onContinueInChat: ((String) -> Void)?
     ) {
         dismiss()
         self.state = state
         self.onReplace = onReplace
         self.onRetranslate = onRetranslate
+        self.onContinueInChat = onContinueInChat
 
         let hosting = NSHostingView(
             rootView: QuickActionResultView(
@@ -32,6 +35,8 @@ final class QuickActionPanelController: NSObject, NSWindowDelegate {
                 languages: languages,
                 onReplace: { [weak self] in self?.replace(state.output) },
                 onCopy: { [weak self] in self?.copyOutput() },
+                onContinueInChat: onContinueInChat == nil
+                    ? nil : { [weak self] in self?.continueInChat(state.output) },
                 onCancel: { [weak self] in self?.dismiss() },
                 onRetranslate: { [weak self] in self?.onRetranslate?($0) },
                 onOpenLanguageSettings: { [weak self] in self?.openLanguageSettings() },
@@ -50,6 +55,7 @@ final class QuickActionPanelController: NSObject, NSWindowDelegate {
             switch key {
             case .replace: if state.canReplace { self.replace(state.output) }
             case .copy: if state.canReplace { self.copyOutput() }
+            case .continueInChat: if state.canReplace { self.continueInChat(state.output) }
             case .cancel: self.dismiss()
             }
         }
@@ -66,6 +72,7 @@ final class QuickActionPanelController: NSObject, NSWindowDelegate {
         state = nil
         onReplace = nil
         onRetranslate = nil
+        onContinueInChat = nil
         closing.delegate = nil
         closing.onKey = nil
         closing.orderOut(nil)
@@ -79,6 +86,12 @@ final class QuickActionPanelController: NSObject, NSWindowDelegate {
     private func openLanguageSettings() {
         dismiss()
         AppLauncher.openSettingsPane(bundleID: Self.languageSettingsPane)
+    }
+
+    private func continueInChat(_ text: String) {
+        guard let callback = onContinueInChat else { return }
+        dismiss()
+        callback(text)
     }
 
     private func replace(_ text: String) {

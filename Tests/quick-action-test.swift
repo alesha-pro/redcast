@@ -25,6 +25,7 @@ struct QuickActionTests {
         customActionsCarryTheirOwnIdentity()
         customActionsKeepTheBoundary()
         customActionsResolveTheirPlaceholders()
+        resultsContinueAsTheirOwnRequest()
         customActionsSurviveARelaunch()
         customActionsNeverWriteOverWhatTheyCouldNotRead()
 
@@ -439,6 +440,21 @@ struct QuickActionTests {
             QuickActionPrompt.instructions(for: .custom(ready))
                 .hasPrefix(QuickActionPrompt.boundary),
             "resolving a template never drops the untrusted-input framing")
+    }
+
+    static func resultsContinueAsTheirOwnRequest() {
+        let custom = CustomQuickAction(name: "Formal", instructions: "Make it formal.")
+        expect(
+            QuickActionPrompt.chatPrompt(for: .custom(custom), selection: "hey")
+                == "Make it formal.\n\nhey",
+            "a custom action continues as the reader's own words above the text")
+        let shipped = QuickActionPrompt.chatPrompt(for: .rewrite, selection: "hey")
+        expect(
+            shipped.hasPrefix(QuickAction.rewrite.title) && shipped.hasSuffix("\n\nhey"),
+            "a shipped action continues under its name rather than its boilerplate")
+        expect(
+            !shipped.contains(QuickActionPrompt.boundary),
+            "the chat never inherits the transform-only rules it would then have to break")
     }
 
     static func customActionsSurviveARelaunch() {
