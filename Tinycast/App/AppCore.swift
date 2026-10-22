@@ -408,6 +408,10 @@ final class AppCore {
             hotKeys.onCommandReleased = { [weak self] id in
                 if id == .askByVoice { self?.voiceAskCoordinator.released() }
             }
+            hotKeys.onCommandCancelled = { [weak self] id in
+                if id == .askByVoice { self?.voiceAskCoordinator.cancel() }
+            }
+            voiceAskCoordinator.applyHoldMode()
             hotKeys.onRunCustomCommand = { [weak self] id in
                 self?.customCommandCoordinator.runCustomCommand(id: id)
             }
@@ -777,6 +781,7 @@ final class AppCore {
                 $0.voiceAskCoordinator.applyEnabled()
             })
         track(voiceSettings, { _ = $0.askEnabled }, reproject: { $0.voiceAskCoordinator.applyEnabled() })
+        track(voiceSettings, { _ = $0.askMode }, reproject: { $0.voiceAskCoordinator.applyHoldMode() })
         track(
             {
                 _ = $0.aiEnabled

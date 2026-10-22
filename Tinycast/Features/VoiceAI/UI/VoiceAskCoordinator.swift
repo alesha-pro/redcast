@@ -80,20 +80,33 @@ final class VoiceAskCoordinator {
             voice.askModel, use: .ask, connections: aiSettings.connections, isEnabled: isRouteEnabled)
     }
 
-    /// Carbon reports a release only for a key combination; any other binding acts as a toggle.
+    /// A key combination or a single modifier is held; a double tap acts as a toggle.
     var holdShortcutIssue: String? {
         guard voice.askMode == .pushToTalk,
-            let binding = hotKeys.binding(for: .command(.askByVoice)), binding.shortcut == nil
+            let binding = hotKeys.binding(for: .command(.askByVoice))
         else { return nil }
-        return String(
-            localized: """
-                Hold to talk needs a key combination. Double taps and single modifiers start and stop \
-                instead.
-                """)
+        guard binding.shortcut != nil || binding.holdKey != nil else {
+            return String(
+                localized: """
+                    Hold to talk needs a key combination or a single modifier. A double tap starts and \
+                    stops instead.
+                    """)
+        }
+        guard binding.holdKey != nil,
+            let owner = hotKeys.conflictOwner(of: binding, excluding: .command(.askByVoice))
+        else { return nil }
+        return String(localized: "This shortcut is also used by \(owner). Record another shortcut.")
     }
 
     private var holdsToTalk: Bool {
-        voice.askMode == .pushToTalk && hotKeys.binding(for: .command(.askByVoice))?.shortcut != nil
+        guard voice.askMode == .pushToTalk, let binding = hotKeys.binding(for: .command(.askByVoice))
+        else { return false }
+        return binding.shortcut != nil || binding.holdKey != nil
+    }
+
+    /// Hold to talk takes a single modifier through the shared tap, only while that is the mode.
+    func applyHoldMode() {
+        hotKeys.heldCommands = voice.askMode == .pushToTalk ? [.askByVoice] : []
     }
 
     /// The row leaves the launcher with the switch; the Carbon binding stays, and does nothing.

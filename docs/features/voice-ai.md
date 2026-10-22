@@ -53,6 +53,10 @@ Upstream declined voice control (#1550), so this lives in `Features/VoiceAI/` pl
 - **`minimal` effort is the floor for Gemini 3, and temperature is never sent.** Gemini 3 cannot turn
   reasoning off and loops below its default temperature; `fastestEffort` prefers any real level to
   `none`.
+- **Hold to talk on a single modifier adds no monitor.** The modifier is watched by the shared
+  listen-only tap, which exists only while some modifier-only shortcut is bound; with the binding
+  unset there is no tap, timer or observer. A held modifier is reserved like Dictation's, so a double
+  tap of it bound elsewhere is refused, and a binding that collides holds nothing.
 - **Insert while recording is off with the cloud engine.** Each chunk would be a paid request, so
   `DictationCoordinator` never starts the live loop while `cloudIsOn()`.
 - **Retention is the provider's.** Tinycast keeps no copy. What OpenRouter and Google keep follows the
@@ -106,11 +110,15 @@ microphone together, and shows Dictation's capsule (`DictationCapture` and `Dict
 instances of its own, sharing `AppCore.dictationAudioDucker`). The capture finishes while the reader
 is still speaking.
 
-A recording ends on release of a held key combination, a second press in either mode, Return in the
-capsule, or the five-minute cap. Hold to talk needs a combination, because `HotKeyManager` reports a
-command's release only from Carbon, Secure Input's equivalents included; a double tap or single
-modifier in hold mode acts as a toggle and the settings say so. Every start waits for the previous
-stop, so one recorder never runs two sessions.
+A recording ends on release of a held key combination or single modifier, a second press in either
+mode, Return in the capsule, or the five-minute cap. A combination's release comes from Carbon,
+Secure Input's equivalents included. A single modifier, such as right Option, is held through
+`ModifierTapMonitor`, the listen-only tap Screen Awareness's double right ⌘ already uses: while
+Shortcut behavior is Hold to talk, `HotKeyManager.heldCommands` lends the command its modifier, which
+starts the recording after 250 ms held alone and finishes it on release; any other key, modifier or
+click cancels it, except Return, Escape and Tab, which belong to the capsule. A double tap in hold
+mode acts as a toggle and the settings say so, as they name a modifier another hold already reserves.
+Every start waits for the previous stop, so one recorder never runs two sessions.
 
 The reply's first two lines are a header, read by `VoiceReplyParser` as they stream; a reply without
 one is an answer. `VoiceReplySession` turns the parsed reply into steps for the panel and an outcome,
@@ -217,6 +225,11 @@ ends.
 - **INSERT.** In Mail with the caret in a reply, hold and say "Ответь, что я приду завтра в десять": the
   text is typed into the reply with no panel. Repeat in Terminal: the panel shows the text, and ↵
   types it.
+- **Hold on a single modifier.** Record right Option for Ask by Voice and choose Hold to talk: hold
+  it, speak, let go, and the question is sent. Hold it and press a letter: the recording is cancelled
+  and nothing is sent. A quick tap records nothing. Try to bind a double right Option elsewhere: it is
+  refused while the hold owns the key. Switch to Press to start or stop: a tap of right Option starts
+  and a second tap finishes.
 - **Hold-mode edge cases.** Bind a double tap in hold mode: the settings caption appears, and it acts
   as a toggle. Run it from the launcher row: recording starts over the app behind the palette, and
   Return finishes. Hold a combination briefly: a recording too short is "No speech was recorded".

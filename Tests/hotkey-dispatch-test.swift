@@ -17,6 +17,7 @@ struct HotKeyDispatchTest {
             dispatch(includesShift: includesShift)
             commandRelease(includesShift: includesShift)
         }
+        commandHold()
         print("\(checks) dispatch checks; \(failures) failures")
         if failures > 0 { exit(1) }
     }
@@ -168,5 +169,77 @@ struct HotKeyDispatchTest {
             "under Secure Input a Hyper command still hears its release",
             ran.last == .sample && released == [.sample, .sample])
         manager.setSecureInputEquivalents(includesShift: nil)
+    }
+
+    static func commandHold() {
+        let domain = "tinycast.hotkey-dispatch-test.\(UUID())"
+        let defaults = UserDefaults(suiteName: domain)!
+        defer { defaults.removePersistentDomain(forName: domain) }
+        let manager = HotKeyManager(defaults: defaults)
+        let monitor = manager.modifierTapMonitor
+        var ran: [CommandID] = []
+        var released: [CommandID] = []
+        var cancelled: [CommandID] = []
+        var dictation = (presses: 0, releases: 0, cancels: 0)
+        manager.onRunCommand = { ran.append($0) }
+        manager.onCommandReleased = { released.append($0) }
+        manager.onCommandCancelled = { cancelled.append($0) }
+        manager.onDictationPressed = { dictation.presses += 1 }
+        manager.onDictationReleased = { dictation.releases += 1 }
+        manager.onDictationCancelled = { dictation.cancels += 1 }
+        manager.releasedCommands = [.sample]
+        manager.start(
+            customCommandIDs: [], quicklinkIDs: [], windowLayoutIDs: [], windowRoomIDs: [],
+            customWindowSizeIDs: [], quickActionIDs: [])
+        let rightOption = HotKeyBinding.modifier(.rightOption)
+        manager.setBinding(rightOption, for: .command(.sample))
+        check("a single modifier taps until its command is held", monitor.holdKeys.isEmpty)
+        check("and the tap watches it", monitor.bound == [rightOption])
+        manager.heldCommands = [.sample]
+        check("a held command holds its modifier", monitor.holdKeys == [.rightOption])
+        monitor.onHoldPressed?(.rightOption)
+        check("holding runs the command", ran == [.sample] && released.isEmpty)
+        monitor.onHoldReleased?(.rightOption)
+        check("and letting go is its release", released == [.sample])
+        monitor.onHoldPressed?(.rightOption)
+        monitor.onHoldCancelled?(.rightOption)
+        check("another key cancels the command's hold", cancelled == [.sample] && dictation.cancels == 0)
+        monitor.onHoldPressed?(.leftOption)
+        check("a key nothing holds runs nothing", ran == [.sample, .sample])
+
+        manager.dictationEnabled = true
+        manager.dictationHoldToTalk = true
+        let globe = HotKeyBinding.globe
+        manager.setBinding(globe, for: .dictation)
+        check(
+            "Dictation and a held command hold their own keys",
+            monitor.holdKeys == [.rightOption, .globe] && monitor.bound == [rightOption, globe])
+        monitor.onHoldPressed?(.globe)
+        monitor.onHoldReleased?(.globe)
+        check(
+            "Dictation's hold is still its own",
+            dictation.presses == 1 && dictation.releases == 1 && released == [.sample])
+
+        manager.setBinding(.doubleModifier(.rightOption), for: .command(.other))
+        check(
+            "a double tap of a held modifier is refused",
+            manager.conflictOwner(of: .doubleModifier(.rightOption), excluding: .command(.other)) == "sample")
+        manager.heldCommands = []
+        check(
+            "a command out of hold mode releases its modifier",
+            monitor.holdKeys == [.globe]
+                && manager.conflictOwner(of: .doubleModifier(.rightOption), excluding: .command(.other)) == nil)
+        manager.heldCommands = [.sample]
+        check(
+            "and a conflict keeps a command from holding at all",
+            monitor.holdKeys == [.globe] && !monitor.bound.contains(rightOption))
+        manager.setBinding(nil, for: .command(.other))
+        manager.setBinding(.doubleModifier(.leftOption), for: .command(.sample))
+        check(
+            "a held command bound to a double tap taps as a toggle",
+            monitor.holdKeys == [.globe] && monitor.bound.contains(.doubleModifier(.leftOption)))
+        manager.setBinding(nil, for: .command(.sample))
+        manager.setBinding(nil, for: .dictation)
+        check("with nothing bound the tap watches nothing", monitor.bound.isEmpty && monitor.holdKeys.isEmpty)
     }
 }

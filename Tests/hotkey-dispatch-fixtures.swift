@@ -30,11 +30,16 @@ enum AppLauncher {
 final class ModifierTapMonitor {
     var isPaused = false
     var onTrigger: ((HotKeyBinding) -> Void)?
-    var onHoldPressed: (() -> Void)?
-    var onHoldReleased: (() -> Void)?
-    var onHoldCancelled: (() -> Void)?
+    var onHoldPressed: ((ModifierKey) -> Void)?
+    var onHoldReleased: ((ModifierKey) -> Void)?
+    var onHoldCancelled: ((ModifierKey) -> Void)?
+    var bound: Set<HotKeyBinding> = []
+    var holdKeys: Set<ModifierKey> = []
     func start() {}
-    func update(bound: Set<HotKeyBinding>, holdKey: ModifierKey?) {}
+    func update(bound: Set<HotKeyBinding>, holdKeys: Set<ModifierKey>) {
+        self.bound = bound
+        self.holdKeys = holdKeys
+    }
 }
 @MainActor
 final class ShortcutCaptureSession {
