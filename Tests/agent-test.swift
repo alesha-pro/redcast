@@ -33,6 +33,7 @@ struct AgentTests {
         anAgentsOwnRulesDecide()
         consentRulesSurviveARelaunch()
         thePromptCarriesTheFoldersContext()
+        thePromptStatesTheAgentsOwnRules()
         agentsAndTheirChatsSurviveARelaunch()
 
         print("\(passes) passed, \(failures) failed")
@@ -464,6 +465,60 @@ struct AgentTests {
         let long = AgentContext.capped(String(repeating: "й", count: 20_000), to: 1_000)
         expect(long.utf8.count <= 1_000, "an instructions file is held to its budget")
         expect(long.hasSuffix("[Cut here: the rest did not fit.]"), "and says where it was cut")
+    }
+
+    static func thePromptStatesTheAgentsOwnRules() {
+        func access(_ agent: AgentProfile) -> String {
+            AgentContext(
+                profile: agent, projectInstructions: nil, globalInstructions: nil, skills: [],
+                memory: nil
+            ).prompt(now: Date(), timeZone: .current, hasTools: true)
+        }
+        let asking = access(profile())
+        expect(
+            asking.contains("approves each change first") && asking.contains("approves each one first"),
+            "by default the model is told each change and command is approved first")
+        expect(!asking.contains("without asking"), "and nothing runs unasked")
+
+        var trusted = profile()
+        trusted.consent = AgentConsentRules(risks: [.change: .always, .execute: .never])
+        let writes = access(trusted)
+        expect(
+            writes.contains("change files inside the folder without asking")
+                && writes.contains("does not see a change"),
+            "Always Allow on changes tells the model nobody sees them first")
+        expect(writes.contains("You cannot run commands."), "Never Allow on commands leaves them out")
+        expect(!writes.contains("approves"), "and no approval is promised that will not happen")
+
+        var runner = profile(.fullAccess)
+        runner.consent = AgentConsentRules(risks: [.change: .never, .execute: .always])
+        let runs = access(runner)
+        expect(
+            runs.contains("you cannot change files") && runs.contains("run commands in the folder without asking"),
+            "Always Allow on commands is stated, and a change it may not make is not offered")
+
+        var noTerminal = profile(.fullAccess)
+        noTerminal.tools = [.files]
+        let filesOnly = access(noTerminal)
+        expect(
+            filesOnly.contains("change files anywhere") && filesOnly.contains("You cannot run commands."),
+            "a family switched off is not described as a capability")
+        expect(
+            AgentConsentPolicy.rule(for: .execute, in: .terminal, of: noTerminal) == .never,
+            "the prompt and the toolset read the same rule")
+
+        var reader = profile(.readOnly)
+        reader.consent = trusted.consent
+        let reads = access(reader)
+        expect(
+            reads.contains("read-only") && !reads.contains("without asking"),
+            "a read-only agent's stored rules grant it nothing")
+        expect(
+            AgentConsentPolicy.rule(for: .change, in: .files, of: reader) == .never,
+            "nor does the policy offer it a change")
+        expect(
+            AgentConsentPolicy.rule(for: .network, in: nil, of: profile()) == .always,
+            "a tool no switch governs follows the risk's rule")
     }
 
     static func agentsAndTheirChatsSurviveARelaunch() {

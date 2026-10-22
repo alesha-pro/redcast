@@ -50,6 +50,11 @@ stays in `Features/Agents/` plus the few lines in `AIChatCoordinator`, `AIChatDe
   Allow also covers runs nobody is watching. `agents.json` has no `SettingsFileKey` and is not in
   `SettingsBackupCoverage`, and it must stay out of both while it carries rules, so an import can
   never grant an agent a capability.
+- **The prompt states the rules the toolset runs.** Its Access line reads changes and commands from
+  `AgentConsentPolicy.rule(for:in:of:)`, the call `AgentToolset` filters with: approval is promised
+  only under ask, Always Allow says nobody sees the change or command first, and Never Allow, an
+  unticked family or read-only access says the agent cannot. A model never counts on a check the
+  user switched off.
 - **Paths are checked after links are followed.** `AgentPathPolicy` resolves `~` and relative paths
   against the folder and standardizes `..` away; the executor then resolves symlinks on both the path
   and the folder before asking. Reading reaches the folder and the granted skills' folders; writing
@@ -210,9 +215,11 @@ changes: no router edit, no upstream line, no prompt edit.
 - Ask it to run `sleep 30`, then Stop: `ps` shows no `sleep`. Ask for a change, Stop while the dialog
   is up, then click Allow: the file is untouched.
 - Turn an MCP server on in an agent chat: the server's tool still asks per its trust and runs.
-- In the editor set Changes to Always Allow: the agent writes without a dialog. Set Web to Never
-  Allow: the transcript shows no `web_fetch`, and asking it to fetch a page gets no tool row. Set Web
-  to Ask Each Chat: a fetch raises "wants to use web_fetch". Reopen the editor: the choices stuck.
+- In the editor set Changes to Always Allow: the agent writes without a dialog, and asked whether
+  you review its edits, it says you do not. Set Commands to Never Allow: asked to run `ls`, it says it
+  cannot rather than calling a tool. Set Web to Never Allow: the transcript shows no `web_fetch`, and
+  asking it to fetch a page gets no tool row. Set Web to Ask Each Chat: a fetch raises "wants to use
+  web_fetch". Reopen the editor: the choices stuck.
 - Delete the agent: its chats remain as plain chats and the composer shows No Agent.
 - ACP: make an agent on Claude Code in a project folder; ask it to read and change a file. The first
   turn may wait while npx fetches the adapter; then the dialog lists Claude's own options, the
@@ -223,9 +230,9 @@ changes: no router edit, no upstream line, no prompt edit.
 - Harnesses: `acp-test` (framing, updates, permissions, prompts, modes and a scripted agent process
   in `Tests/acp-fixtures/fake-agent.mjs`: streaming, consent, reuse, refusal, cancel, reload, lost
   sessions, a missing command); `agent-test` (skills, catalog, path policy, tool sets, specs, consent
-  policy and per-agent rules, toolset order and routing, batches, budget, elision, prompt,
-  persistence); `agent-tools-test` (the executor against a real folder: reads, writes with consent,
-  link escapes, commands, timeouts and Stop, memory, skills, HTML; the built-ins through a toolset,
-  with and without an agent's own rules; every refused effect); and `agent-loop-test` (the fork's
-  loop and upstream's on the same scripts under 128 KB; routing, signals, Stop, parallel batches, a
-  long turn that elides).
+  policy and per-agent rules, toolset order and routing, batches, budget, elision, the prompt and the
+  rules it states, persistence); `agent-tools-test` (the executor against a real folder: reads,
+  writes with consent, link escapes, commands, timeouts and Stop, memory, skills, HTML; the built-ins
+  through a toolset, with and without an agent's own rules; every refused effect); and
+  `agent-loop-test` (the fork's loop and upstream's on the same scripts under 128 KB; routing,
+  signals, Stop, parallel batches, a long turn that elides).
