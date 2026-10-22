@@ -34,7 +34,8 @@ final class AIChatCoordinator {
     }
 
     func applyEnabled() {
-        appIndex.setCommandsVisible([.aiChat, .quickAI], settings.aiEnabled)
+        // Fork: AI Usage reads only while AI is on, so its command hides with AI Chat's.
+        appIndex.setCommandsVisible([.aiChat, .quickAI, .aiUsage], settings.aiEnabled)
         guard settings.aiEnabled else {
             for request in naming.values { request.cancel() }
             naming = [:]

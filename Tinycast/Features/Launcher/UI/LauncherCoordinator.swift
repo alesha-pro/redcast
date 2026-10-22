@@ -181,6 +181,9 @@ final class LauncherCoordinator {
         case .jumpToAgent:
             dismissPalette()
             core.agentSessionsCoordinator.jumpToAgent()
+        case .aiUsage:  // Fork: the Usage section, scrolled into view like a Settings search hit
+            dismissPalette()
+            settingsCoordinator.showSettings(tab: .ai, revealing: .section(.aiUsage))
         case .fixGrammar:
             core.quickActionCoordinator.run(.fixGrammar)
         case .rewrite:
