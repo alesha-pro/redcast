@@ -6,7 +6,18 @@ extension View {
     func notePicker(
         chat: AIChatState, chats: AIChatCoordinator, editor: ComposerTextViewHandle
     ) -> some View {
-        modifier(NotePickerModifier(chat: chat, chats: chats, editor: editor))
+        modifier(
+            NotePickerModifier(chat: chat, chats: chats, alignment: .bottom, watchesDraft: true) {
+                guard let textView = editor.textView else { return }
+                textView.window?.makeFirstResponder(textView)
+            })
+    }
+
+    /// Fork: Quick AI's note picker from ⌘K, under the query field that is its composer.
+    func quickNotePicker(
+        chat: AIChatState, chats: AIChatCoordinator, palette: PaletteState
+    ) -> some View {
+        modifier(QuickNotePickerModifier(chat: chat, chats: chats, palette: palette))
     }
 }
 
@@ -14,8 +25,12 @@ extension View {
 private struct NotePickerModifier: ViewModifier {
     let chat: AIChatState
     let chats: AIChatCoordinator
-    let editor: ComposerTextViewHandle
+    let alignment: VerticalAlignment
+    let watchesDraft: Bool
+    let focusComposer: () -> Void
     @State private var model: NotePickerModel?
+    /// The chat this card opened for; another surface taking the picker is not a cancel.
+    @State private var shownFor: UUID?
 
     private var notes: NotesAICoordinator { chats.notes }
     private var isShown: Bool { notes.isAvailable && notes.pickerChatID == chat.session.id }
@@ -23,7 +38,7 @@ private struct NotePickerModifier: ViewModifier {
     func body(content: Content) -> some View {
         content
             // In the transcript's frame, like the context card, so it can never leave the window.
-            .overlay(alignment: .bottom) {
+            .overlay(alignment: Alignment(horizontal: .center, vertical: alignment)) {
                 if let model, isShown {
                     HStack {
                         NotePickerCard(model: model, onPick: pick, onCancel: cancel)
@@ -31,7 +46,7 @@ private struct NotePickerModifier: ViewModifier {
                     }
                     .frame(maxWidth: Theme.Size.aiChatReadingWidth)
                     .padding(.horizontal, Theme.Spacing.xxl)
-                    .padding(.bottom, Theme.Spacing.sm)
+                    .padding(alignment == .top ? .top : .bottom, Theme.Spacing.sm)
                     .transition(.opacity)
                     .task(id: ObjectIdentifier(model)) { await model.load(after: notes.flush) }
                 }
@@ -40,10 +55,11 @@ private struct NotePickerModifier: ViewModifier {
             .onChange(of: isShown, initial: true) { _, shown in
                 model?.cancel()
                 model = shown ? notes.makePickerModel() : nil
-                if !shown, notes.pickerChatID != nil { notes.dismissPicker() }
+                if !shown, let shownFor, notes.pickerChatID == shownFor { notes.dismissPicker() }
+                shownFor = shown ? chat.session.id : nil
             }
             .onChange(of: chat.draft) { old, new in
-                guard notes.isAvailable,
+                guard watchesDraft, notes.isAvailable,
                     let draft = NoteMention.consume(
                         old: old, new: new,
                         reservedAtStart: chats.addressedServer(in: NoteMention.token) != nil)
@@ -67,10 +83,37 @@ private struct NotePickerModifier: ViewModifier {
         if restores { chat.draft += NoteMention.token + " " }
         focusComposer()
     }
+}
 
-    private func focusComposer() {
-        guard let textView = editor.textView else { return }
-        textView.window?.makeFirstResponder(textView)
+/// The palette leaves its arrows, ⎋, ⇥ and ⌫ to the card while it is up, as for a form's list.
+private struct QuickNotePickerModifier: ViewModifier {
+    let chat: AIChatState
+    let chats: AIChatCoordinator
+    let palette: PaletteState
+
+    private var isShown: Bool { chats.notes.isAvailable && chats.notes.pickerChatID == chat.session.id }
+
+    func body(content: Content) -> some View {
+        content
+            .modifier(
+                NotePickerModifier(chat: chat, chats: chats, alignment: .top, watchesDraft: false) {
+                    palette.focusToken = UUID()
+                })
+            .onChange(of: isShown, initial: true) { old, shown in
+                guard shown || old != shown else { return }
+                palette.noteControlListOpen(shown)
+                palette.noteEditingField(shown)
+            }
+            // A hidden palette ends the pick, so a re-summon never finds the card still up.
+            .onChange(of: palette.isVisible) { _, visible in
+                if !visible, isShown { chats.notes.dismissPicker() }
+            }
+            .onDisappear {
+                guard isShown else { return }
+                chats.notes.dismissPicker()
+                palette.noteControlListOpen(false)
+                palette.noteEditingField(false)
+            }
     }
 }
 

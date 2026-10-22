@@ -2,10 +2,12 @@
 
 Tinycast's [Notes](notes.md) reach AI Chat in two ways. **Attach Note…** in the composer's **+** menu,
 or `@note` typed into the draft, opens a searchable picker, and the note you pick rides the next
-message as a text file. And an [agent](agents.md) given the **Notes** tools can search and read your
+message as a text file; in Quick AI the same item sits in the ⌘K menu and the same picker opens under
+the query field. And an [agent](agents.md) given the **Notes** tools can search and read your
 notes, and add reports and summaries to them. Both are this fork's, kept to `Features/NotesAI/` plus
 the few lines that wire it in: one lazy coordinator on `AppCore`, one accessor on `AIChatCoordinator`,
-the menu item and modifier in `AIChatDetailView`, `NotesStore.amendDraft`, and the agent registry.
+the menu item and modifier in `AIChatDetailView` and `AIScreen`, `NotesStore.amendDraft`, and the
+agent registry.
 
 ## Invariants
 
@@ -22,6 +24,16 @@ the menu item and modifier in `AIChatDetailView`, `NotesStore.amendDraft`, and t
   resource behave as for any text file. A note over `AIAttachmentBudget.maxInlinedTextBytes` is
   refused with the text-file message, never cut. A chat cleared while the note loads drops it with the
   "still loading" message.
+- **Quick AI's picker owns the palette's keys while it is up.** ⌘K → Attach Note… shows the card
+  over Quick AI's transcript and stages the pick into Quick AI's own chat, so it rides the next Quick
+  AI request with the header's attachments pill. While the card is up `PaletteState` is told a
+  control's list is open and a field is editing, so the palette's ↑/↓, ⎋, ⇥ and ⌘K stand aside, ↩
+  reaches the card because the palette acts on it only from its own field, and ⌫ never takes the
+  last attachment. Closing the card, a new chat, leaving the screen or hiding the palette ends it,
+  and focus goes back to the query field. `@note` stays a window-composer trigger.
+- **One picker at a time, and only its own surface cancels it.** A card closes for good when its
+  chat switches or Notes goes off, but the window's card giving way to Quick AI's (or back) never
+  dismisses the picker the other surface just opened.
 - **The picker never touches the Notes switcher.** It searches through its own `NotesRepository`
   value, so an open switcher's query and results are unaffected. It flushes the open draft first; a
   draft still unsaved after that attaches as the editor shows it, and any other note is read from
@@ -63,7 +75,7 @@ the menu item and modifier in `AIChatDetailView`, `NotesStore.amendDraft`, and t
 | `Service/NoteAgentTools.swift` | The `AgentToolProvider`: specs per turn, the consent dialog's wording |
 | `UI/NotesAICoordinator.swift` | The picker's chat, attaching, and the provider for `AgentCoordinator.providers(for:)` |
 | `UI/NotePickerModel.swift` | The picker's rows, debounced search and selection, alive while shown |
-| `UI/NotePickerCard.swift` | The card over the transcript, its keys, and the `.notePicker` modifier with `@note` |
+| `UI/NotePickerCard.swift` | The card over the transcript, its keys, the `.notePicker` modifier with `@note`, and Quick AI's `.quickNotePicker` |
 
 ## Tools
 
@@ -96,6 +108,13 @@ the menu item and modifier in `AIChatDetailView`, `NotesStore.amendDraft`, and t
   a note's body finds it; ↑/↓ move, ↩ stages a chip, and the sent request carries the note inline.
 - A 40 KB note is refused with the text-file message. Switching chats with the card open closes it.
   Clicking into the composer closes it.
+- Quick AI with Notes on: ⌘K shows Attach Note… (absent with Notes off); it opens the card under the
+  query field with the field focused. ↑/↓ move without moving the palette's selection, ⌫ in an empty
+  card field leaves the attachments alone, ⎋ closes only the card and the caret is back in the query.
+  ↩ stages the note: the header shows its pill, and the next question sends it inline. While the
+  card is up ⌘K and ⇥ do nothing, and a click on the transcript closes it. Hiding the palette with
+  the card open and summoning it again shows no card.
+- With the window's card open on a chat, open Quick AI's: the Quick AI card stays up.
 - Type `hi @note `: the token vanishes and the picker opens; Esc puts `@note ` back. Paste
   `x @note y`: nothing opens. With an MCP server slugged `note`, `@note x` at the start stays its
   address, and mid-draft `@note ` still opens the picker.

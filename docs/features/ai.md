@@ -438,8 +438,9 @@ the pill's job, so the header never has to fit a third control beside the switch
 
 The second footer control is the palette's normal Actions (`⌘K`) menu. It owns Continue in AI Chat
 (`⌘J`; Open AI Chat while the chat is empty), New Chat (`⌘N`), Chat History (`⌘Y`) and AI Settings
-(`⌥⌘,`), plus Stop Response (`⌘.`), Regenerate Response (`⌘R`), Copy Last Response (`⇧⌘C`) and
-Remove Attachments when those apply. The chords are Raycast's where it has one, and `AIScreen.perform`
+(`⌥⌘,`), plus Stop Response (`⌘.`), Regenerate Response (`⌘R`), Copy Last Response (`⇧⌘C`),
+Remove Attachments and, while Notes is on, Attach Note… ([notes and AI](notes-ai.md)) when those
+apply. The chords are Raycast's where it has one, and `AIScreen.perform`
 maps each `PaletteShortcut` to its action. AI Settings takes ⌥⌘, because ⌘, stays the app's own
 Settings on every screen. Continuing closes the palette and carries the half-typed line into the
 window's composer with the conversation. Chat History is the palette's own browser over the same
