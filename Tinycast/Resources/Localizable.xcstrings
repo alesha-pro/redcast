@@ -1916,6 +1916,58 @@
         }
       }
     },
+    "%@ isn't answering Screen Awareness" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ antwortet der Bildschirmerkennung nicht"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ no responde a Screen Awareness"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ ne répond pas à la reconnaissance de l’écran"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@が画面認識に応答しません"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@이(가) 화면 인식에 응답하지 않습니다"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ não está respondendo ao reconhecimento da tela"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ не отвечает Screen Awareness"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 没有响应屏幕感知"
+          }
+        }
+      }
+    },
     "%@ isn't installed on this Mac." : {
       "localizations" : {
         "de" : {
@@ -2446,6 +2498,58 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%@（默认分支）"
+          }
+        }
+      }
+    },
+    "%@ refused Tinycast's Accessibility requests, usually because it remembers a refusal from before the permission was granted. Quit and reopen %@. If it still refuses, switch Tinycast off and on in Accessibility." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ hat die Bedienungshilfen-Anfragen von Tinycast abgelehnt, meist weil die App sich an eine Ablehnung von vor der Freigabe erinnert. Beende %@ und öffne die App erneut. Lehnt sie weiterhin ab, schalte Tinycast unter Bedienungshilfen aus und wieder ein."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ rechazó las solicitudes de Accesibilidad de Tinycast, normalmente porque recuerda un rechazo de antes de concederse el permiso. Sal de %@ y vuelve a abrirla. Si sigue rechazándolas, desactiva y vuelve a activar Tinycast en Accesibilidad."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ a refusé les requêtes d’accessibilité de Tinycast, en général parce qu’elle se souvient d’un refus antérieur à l’autorisation. Quittez puis rouvrez %@. Si elle refuse toujours, désactivez puis réactivez Tinycast dans Accessibilité."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@がTinycastのアクセシビリティ要求を拒否しました。多くの場合、許可される前の拒否を記憶しているためです。%@を終了して開き直してください。それでも拒否する場合は、アクセシビリティでTinycastを一度オフにしてからオンにしてください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@이(가) Tinycast의 손쉬운 사용 요청을 거부했습니다. 대개 권한이 허용되기 전의 거부를 기억하고 있기 때문입니다. %@을(를) 종료한 다음 다시 여세요. 그래도 거부하면 손쉬운 사용에서 Tinycast를 껐다가 다시 켜세요."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ recusou os pedidos de Acessibilidade do Tinycast, geralmente porque se lembra de uma recusa anterior à concessão da permissão. Encerre e reabra %@. Se continuar recusando, desative e ative o Tinycast em Acessibilidade."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ отклонило запросы Универсального доступа от Tinycast, обычно потому, что помнит отказ, полученный до выдачи разрешения. Закройте и снова откройте %@. Если оно продолжает отказывать, выключите и снова включите Tinycast в Универсальном доступе."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 拒绝了 Tinycast 的辅助功能请求，通常是因为它记住了授予权限之前的拒绝。请退出并重新打开 %@。如果它仍然拒绝，请在辅助功能中将 Tinycast 关闭再打开。"
           }
         }
       }
