@@ -173,6 +173,8 @@ enum SettingsBackupCoverage {
             + "that this Mac's screen leaves it.",
         AppSettingsKey.screenAwarenessDestination.rawValue:
             "Only means something beside screenAwarenessEnabled, which never travels in a backup.",
+        AppSettingsKey.screenAwarenessShortcutOffered.rawValue:
+            "Records that this Mac was offered a gesture; shortcuts never travel, so neither does it.",
         AppSettingsKey.quickActionModel.rawValue:
             "Names an external AI destination for text taken from whatever app is frontmost; an "
             + "import must not choose one.",

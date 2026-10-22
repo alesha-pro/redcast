@@ -58,12 +58,14 @@ final class ScreenAwarenessCoordinator {
             else { return }
             settings.screenAwarenessEnabled = true
             Permissions.ensureAccessibility()
-            bindSuggestedShortcut()
+            offerShortcutIfNeeded()
         }
     }
 
-    /// Raycast's gesture, taken only when the command has none and nothing else holds it.
-    private func bindSuggestedShortcut() {
+    /// Raycast's gesture, offered once. Runs after `hotKeys.start`, before which nothing is bound.
+    func offerShortcutIfNeeded() {
+        guard isActive, !settings.screenAwarenessShortcutOffered else { return }
+        settings.screenAwarenessShortcutOffered = true
         let action = HotKeyAction.command(.askAboutScreen)
         let suggested = HotKeyBinding.doubleModifier(.rightCommand)
         guard hotKeys.binding(for: action) == nil,
