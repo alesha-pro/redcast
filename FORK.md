@@ -20,6 +20,7 @@ OpenCode, Goose, Hermes, local models — on the subscriptions and machines you 
 | Screen Awareness | Double-tap right ⌘: the window in front — title, URL, selection, focused field, readable text, screenshot — attached to AI Chat | [screen-awareness](docs/features/screen-awareness.md) |
 | Agents | A chat that lives in a folder: its `AGENTS.md`, project and global `.agents/skills`, notes, and built-in tools (files, terminal, web, memory) on any tool-calling API model, every change and command asked first unless the agent's permissions say otherwise | [agents](docs/features/agents.md) |
 | Native agent harness | Agent chats on API models run the fork's own tool loop: tool families plug in as providers with a risk each, every change, command and fetch passes one consent policy, read-only calls in a round run in parallel, a long turn elides old results instead of stopping, and Stop ends a running command and voids a late Allow | [agents](docs/features/agents.md#adding-a-tool-family) |
+| Notes ↔ AI | Attach Note… in the composer or `@note` picks a note to send with the next message; agents with the Notes tools search and read your notes and add reports to them, every addition asked first unless the agent's Changes rule says otherwise | [notes-ai](docs/features/notes-ai.md) |
 | ACP agents | An agent can run as its own CLI over the Agent Client Protocol — Claude Code, Codex, Gemini CLI, OpenCode, Goose, Hermes or any command — on your own logins, with its permission requests, tool rows, plans and modes in AI Chat, and sessions that survive a relaunch | [agents](docs/features/agents.md#acp-agents) |
 
 Builds of this fork use the bundle id `com.tinycast.app.fork`: they never update themselves from
@@ -101,7 +102,10 @@ Sizes are focused working days. Waves are ordered by leverage, not by size.
 12. **Developer utilities.** Kill by port, JSON / Base64 / URL / hash / UUID tools, colour picker,
     Caffeinate, timers and Pomodoro (`nikteg`, `Sai1boats` forks), `#` to run a shell line from root
     search.
-13. **Notes ↔ AI.** `@note` as chat context; agents and scheduled jobs write their reports into Notes.
+13. **Notes ↔ AI — shipped** (see above): Attach Note… and `@note` in AI Chat, and the
+    `notes_search` / `notes_read` / `notes_append` tools for agents on the native harness. Next on it:
+    scheduled jobs (item 5) write their reports through `notes_append`, an Attach Note… item in Quick
+    AI's ⌘K menu, and the notes tools in the MCP server (item 4) for ACP agents.
 14. **Usage dashboard.** Tokens and spend per model and per day from chat history and provider APIs.
     An agent turn's cost across its rounds lands with it, in `AgentLoopProvider`.
 15. **App-aware snippets.** Offer the snippets written for the app in front first (`NikAtNight`).
