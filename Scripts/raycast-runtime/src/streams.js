@@ -95,6 +95,7 @@ export class Readable extends Stream {
     }
     const chunk = state.buffer.shift();
     state.length -= sizeOf(chunk, state.objectMode);
+    state.dataEmitted = true;
     this._pull();
     return chunk;
   }
@@ -147,6 +148,7 @@ export class Readable extends Stream {
     const state = this._readableState;
     if (state.destroyed) return this;
     state.destroyed = true;
+    state.errored = error ?? null;
     state.readable = false;
     state.buffer.length = 0;
     state.length = 0;

@@ -1703,6 +1703,13 @@ const streamModule = unsupportedModule(
   Object.assign(streamClasses.Stream, {
     ...streamClasses,
     getDefaultHighWaterMark: (objectMode) => (objectMode ? 16 : 16 * 1024),
+    // Node's state probes, which undici asks of a body before it reads one.
+    isDisturbed: (s) =>
+      !!(s && (s.disturbed || s.readableDidRead || s.readableAborted
+        || s._readableState?.dataEmitted || s._readableState?.endEmitted)),
+    isErrored: (s) => !!(s && (s.errored || s._readableState?.errored || s._writableState?.errored)),
+    isReadable: (s) =>
+      !!(s && s.readable !== false && !s.destroyed && !s._readableState?.endEmitted),
     pipeline,
     finished,
     promises: { pipeline: (...stages) => pipelinePromise(stages), finished: finishedPromise },
