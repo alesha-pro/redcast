@@ -37,6 +37,7 @@ struct AISettingsView: View {
                 defaultModelSection
                 chatSection
                 AgentsSettingsSection()
+                AgentSessionsSettingsSection()
                 ScreenAwarenessSettingsSection()
                 VoiceAskSettingsSection()
                 conversationsSection

@@ -51,6 +51,7 @@ enum SettingsFileKey: String, CaseIterable, Sendable {
     case aiOpensTo = "ai.opensTo"
     case aiNewChatAfter = "ai.newChatAfterMinutes"
     case aiToolRounds = "ai.toolRounds"
+    case agentSessionsEnabled = "ai.agentSessions"
     case aiCommands = "ai.commands"
     case quickActionLanguage = "quickActions.targetLanguage"
     case quickActionCommands = "quickActions.commands"

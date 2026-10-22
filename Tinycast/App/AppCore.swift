@@ -253,6 +253,9 @@ final class AppCore {
         store: notesStore, settings: settings, core: self)
     @ObservationIgnored private(set) lazy var extensionAICoordinator = ExtensionAICoordinator(
         core: self)
+    @ObservationIgnored private(set) lazy var agentSessionsCoordinator = AgentSessionsCoordinator(
+        settings: settings, appIndex: appIndex, paletteCoordinator: paletteCoordinator,
+        chatHistory: chatHistory, agentStore: agentStore, core: self)
     @ObservationIgnored private(set) lazy var mcpCoordinator = MCPCoordinator(
         settings: settings, store: mcpSettings, manager: mcp, core: self)
     /// Its own window and lifecycle, like Settings; Quick AI is the palette's half of the feature.
@@ -334,6 +337,7 @@ final class AppCore {
             agentCoordinator.applyBackground()
             screenAwarenessCoordinator.applyEnabled()
             voiceAskCoordinator.applyEnabled()
+            agentSessionsCoordinator.applyEnabled()
             mcpCoordinator.applyEnabled()
             customQuickActions.onChange = { [weak self] _ in
                 self?.quickActionCoordinator.applyCustomQuickActionsPresence()
@@ -512,6 +516,7 @@ final class AppCore {
     }
 
     func handleOpenURL(_ url: URL) {
+        if agentSessionsCoordinator.handleOpenURL(url) { return }
         guard ExtensionDeepLink.claims(url) else { return }
         guard let route = ExtensionDeepLink.route(url: url) else {
             paletteCoordinator.showPalette(mode: .launcher, restoreAnyMode: true)
@@ -771,6 +776,11 @@ final class AppCore {
                 $0.voiceAskCoordinator.applyEnabled()
             })
         track(voiceSettings, { _ = $0.askEnabled }, reproject: { $0.voiceAskCoordinator.applyEnabled() })
+        track(
+            {
+                _ = $0.aiEnabled
+                _ = $0.agentSessionsEnabled
+            }, reproject: { $0.agentSessionsCoordinator.applyEnabled() })
         track({ _ = $0.calendarEnabled }, reproject: { $0.calendarCoordinator.applyEnabled() })
         track(
             {

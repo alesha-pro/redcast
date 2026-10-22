@@ -203,6 +203,12 @@ enum SettingsBackupCoverage {
             "Only means something beside the Voice AI switches, which never travel in a backup.",
         AppSettingsKey.voiceAskModel.rawValue:
             "Names an external AI destination for recorded speech; an import must not choose one.",
+        AppSettingsKey.agentSessionsEnabled.rawValue:
+            "Belongs to the AI pane, none of whose settings travel; it reads this Mac's own agent histories.",
+        AppSettingsKey.agentSessionsTerminal.rawValue:
+            "Names a terminal installed on this Mac; another Mac may not have it.",
+        AppSettingsKey.agentStatusMenuBar.rawValue:
+            "Only means something beside live status, which is installed per Mac and never travels.",
         AppSettingsKey.quickActionModel.rawValue:
             "Names an external AI destination for text taken from whatever app is frontmost; an "
             + "import must not choose one.",

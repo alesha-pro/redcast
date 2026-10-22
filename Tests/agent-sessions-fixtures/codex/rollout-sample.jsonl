@@ -1,0 +1,10 @@
+{"timestamp":"2026-10-22T08:00:00.000Z","type":"session_meta","payload":{"id":"00000000-0000-4000-8000-00000000c0de","cwd":"/Users/me/dev/api","base_instructions":{"text":"You are a coding agent."}}}
+{"timestamp":"2026-10-22T08:00:01.000Z","type":"response_item","payload":{"type":"message","role":"developer","content":[{"type":"input_text","text":"<permissions instructions>sandboxed</permissions instructions>"}]}}
+{"timestamp":"2026-10-22T08:00:02.000Z","type":"response_item","payload":{"type":"message","role":"user","content":[{"type":"input_text","text":"<environment_context>\n  <cwd>/Users/me/dev/api</cwd>\n</environment_context>"}]}}
+{"timestamp":"2026-10-22T08:00:03.000Z","type":"response_item","payload":{"type":"message","role":"user","content":[{"type":"input_text","text":"add a token bucket rate limiter"}]}}
+{"timestamp":"2026-10-22T08:00:03.100Z","type":"event_msg","payload":{"type":"item_completed","item":{"type":"UserMessage","content":[{"type":"text","text":"add a token bucket rate limiter"}]}}}
+{"timestamp":"2026-10-22T08:01:00.000Z","type":"response_item","payload":{"type":"message","role":"assistant","content":[{"type":"output_text","text":"Added RateLimiter."}]}}
+{"timestamp":"2026-10-22T08:01:00.100Z","type":"event_msg","payload":{"type":"item_completed","item":{"type":"AgentMessage","content":[{"type":"Text","text":"Added RateLimiter."}]}}}
+{"timestamp":"2026-10-22T08:01:30.000Z","type":"event_msg","payload":{"type":"item_completed","item":{"type":"UserMessage","content":[{"type":"text","text":"<environment_context>\n  <shell>zsh</shell>\n</environment_context>"}]}}}
+{"timestamp":"2026-10-22T08:02:00.000Z","type":"event_msg","payload":{"type":"item_completed","item":{"type":"UserMessage","content":[{"type":"text","text":"make the burst configurable"}]}}}
+{"timestamp":"2026-10-22T08:03:00.000Z","type":"event_msg","payload":{"type":"item_completed","item":{"type":"AgentMessage","content":[{"type":"text","text":"Done: burst is a parameter."}]}}}

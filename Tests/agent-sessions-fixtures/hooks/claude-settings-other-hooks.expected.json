@@ -1,0 +1,83 @@
+{
+  "hooks": {
+    "Stop": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "afplay /System/Library/Sounds/Glass.aiff"
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "p=$(/usr/bin/head -c 65536); /bin/cat >/dev/null; [ -n \"$(/usr/bin/lsappinfo find bundleid=com.tinycast.app.fork)\" ] || exit 0; s=$(printf '%s' \"$p\" | /usr/bin/sed -n 's/.*\"session_id\" *: *\"\\([0-9A-Za-z-]\\{1,64\\}\\)\".*/\\1/p' | /usr/bin/head -n 1); n=$(printf '%s' \"$p\" | /usr/bin/sed -n 's/.*\"notification_type\" *: *\"\\([a-z_]\\{1,40\\}\\)\".*/\\1/p' | /usr/bin/head -n 1); /usr/bin/open -g -b com.tinycast.app.fork \"tinycast://agent-sessions/event?v=1&k=0123456789abcdef0123456789abcdef&agent=claude&event=finished&session=$s&kind=$n&pid=$PPID\"; exit 0",
+            "async": true
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo \"checked\" >> /tmp/hook.log",
+            "timeout": 5.0
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "p=$(/usr/bin/head -c 65536); /bin/cat >/dev/null; [ -n \"$(/usr/bin/lsappinfo find bundleid=com.tinycast.app.fork)\" ] || exit 0; s=$(printf '%s' \"$p\" | /usr/bin/sed -n 's/.*\"session_id\" *: *\"\\([0-9A-Za-z-]\\{1,64\\}\\)\".*/\\1/p' | /usr/bin/head -n 1); n=$(printf '%s' \"$p\" | /usr/bin/sed -n 's/.*\"notification_type\" *: *\"\\([a-z_]\\{1,40\\}\\)\".*/\\1/p' | /usr/bin/head -n 1); /usr/bin/open -g -b com.tinycast.app.fork \"tinycast://agent-sessions/event?v=1&k=0123456789abcdef0123456789abcdef&agent=claude&event=working&session=$s&kind=$n&pid=$PPID\"; exit 0",
+            "async": true
+          }
+        ]
+      }
+    ],
+    "Notification": [
+      {
+        "matcher": "permission_prompt|elicitation_dialog|elicitation_url_dialog|agent_needs_input",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "p=$(/usr/bin/head -c 65536); /bin/cat >/dev/null; [ -n \"$(/usr/bin/lsappinfo find bundleid=com.tinycast.app.fork)\" ] || exit 0; s=$(printf '%s' \"$p\" | /usr/bin/sed -n 's/.*\"session_id\" *: *\"\\([0-9A-Za-z-]\\{1,64\\}\\)\".*/\\1/p' | /usr/bin/head -n 1); n=$(printf '%s' \"$p\" | /usr/bin/sed -n 's/.*\"notification_type\" *: *\"\\([a-z_]\\{1,40\\}\\)\".*/\\1/p' | /usr/bin/head -n 1); /usr/bin/open -g -b com.tinycast.app.fork \"tinycast://agent-sessions/event?v=1&k=0123456789abcdef0123456789abcdef&agent=claude&event=waiting&session=$s&kind=$n&pid=$PPID\"; exit 0",
+            "async": true
+          }
+        ]
+      }
+    ],
+    "StopFailure": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "p=$(/usr/bin/head -c 65536); /bin/cat >/dev/null; [ -n \"$(/usr/bin/lsappinfo find bundleid=com.tinycast.app.fork)\" ] || exit 0; s=$(printf '%s' \"$p\" | /usr/bin/sed -n 's/.*\"session_id\" *: *\"\\([0-9A-Za-z-]\\{1,64\\}\\)\".*/\\1/p' | /usr/bin/head -n 1); n=$(printf '%s' \"$p\" | /usr/bin/sed -n 's/.*\"notification_type\" *: *\"\\([a-z_]\\{1,40\\}\\)\".*/\\1/p' | /usr/bin/head -n 1); /usr/bin/open -g -b com.tinycast.app.fork \"tinycast://agent-sessions/event?v=1&k=0123456789abcdef0123456789abcdef&agent=claude&event=failed&session=$s&kind=$n&pid=$PPID\"; exit 0",
+            "async": true
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "p=$(/usr/bin/head -c 65536); /bin/cat >/dev/null; [ -n \"$(/usr/bin/lsappinfo find bundleid=com.tinycast.app.fork)\" ] || exit 0; s=$(printf '%s' \"$p\" | /usr/bin/sed -n 's/.*\"session_id\" *: *\"\\([0-9A-Za-z-]\\{1,64\\}\\)\".*/\\1/p' | /usr/bin/head -n 1); n=$(printf '%s' \"$p\" | /usr/bin/sed -n 's/.*\"notification_type\" *: *\"\\([a-z_]\\{1,40\\}\\)\".*/\\1/p' | /usr/bin/head -n 1); /usr/bin/open -g -b com.tinycast.app.fork \"tinycast://agent-sessions/event?v=1&k=0123456789abcdef0123456789abcdef&agent=claude&event=ended&session=$s&kind=$n&pid=$PPID\"; exit 0",
+            "async": true
+          }
+        ]
+      }
+    ]
+  },
+  "model": "opus",
+  "cleanupPeriodDays": 30.0
+}
