@@ -138,7 +138,9 @@ bottom with the model picker. ⌘J hands a Quick AI conversation to the window.
   prompt and thinking tokens, and the model's window and cost where a route says them — Claude's CLI
   reports all of it, the Anthropic API its cache, OpenAI-shaped routes their reasoning tokens and
   OpenRouter its cost. `ChatMessage.usage` holds it and `message_details` keeps it, so a reopened chat
-  still knows its last turn.
+  still knows its last turn. A tool-loop reply's cost is its whole turn's — `AIToolLoopProvider` adds
+  each round's to the ones before — while its tokens stay the last round's, what the window holds.
+  OpenAI routes ask for usage with `stream_options.include_usage`; no other route is sent the field.
 - **The on-device route is configured by having a Mac.** `.appleIntelligence` takes no key, opens no
   socket and names no endpoint, so the Keychain, HTTPS and ephemeral-session rules below have nothing
   to bind to — the Settings pane must never grow a credential field for it. It is text-only and
