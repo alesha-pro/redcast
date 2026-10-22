@@ -57,7 +57,7 @@ extension SettingsTab {
         case .ai:
             [
                 .quickAI, .aiChat, .askAboutScreen, .runAgentTask, .askByVoice, .searchAgentSessions,
-                .jumpToAgent
+                .jumpToAgent, .aiUsage
             ]
         case .quickActions: [.fixGrammar, .rewrite, .translate, .summarize]
         case .fileSearch: [.searchFiles]

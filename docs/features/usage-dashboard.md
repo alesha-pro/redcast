@@ -5,11 +5,11 @@ agent, for a day, a week or a month — from the chat history kept on this Mac a
 the replies no chat keeps (Quick Actions, Ask by Voice and cloud dictation, extension AI, chat
 titles). A strip of bars shows the period's tokens per hour of a day or per day of a week or month.
 On a press of **Check Balance** it asks OpenRouter what a key has spent, and with an optional
-management key what the account has left. It is the fork's (roadmap item 14 in
-[FORK.md](../../FORK.md)), kept to `Features/UsageDashboard/` plus one line each in
-`AISettingsView`, `SettingsAnchor` and `SettingsSearchCatalog`, the `databaseURL` that
-`ChatHistoryStore` exposes, the two accuracy fixes below, and the `Fork:`-marked lines listed under
-[Upstream touches](#upstream-touches).
+management key what the account has left. The **AI Usage** command opens the section from the
+launcher. It is the fork's (roadmap item 14 in [FORK.md](../../FORK.md)), kept to
+`Features/UsageDashboard/` plus one line each in `AISettingsView`, `SettingsAnchor` and
+`SettingsSearchCatalog`, the `databaseURL` that `ChatHistoryStore` exposes, the two accuracy fixes
+below, and the `Fork:`-marked lines listed under [Upstream touches](#upstream-touches).
 
 ## Invariants
 
@@ -77,6 +77,8 @@ management key what the account has left. It is the fork's (roadmap item 14 in
   off-main with the chat key and sends it to the fixed `https://openrouter.ai/api/v1/credits` —
   never to the connection's base URL, so a proxy never sees an account key. Without one, the chat
   key is asked for credits only when `/key` says it is a management key.
+- **The AI Usage command follows AI.** It is listed in the AI pane's Commands with a shortcut, is
+  visible while AI is on (hidden with AI Chat's), and opens Settings → AI scrolled to Usage.
 - **No settings surface, and nothing in a backup.** No `AppSettings` key, no `SettingsFileKey`,
   nothing in `SettingsBackupCoverage`: the period is view state and a balance is transient. The
   usage log is AI usage data like chat history, so no backup category carries it; the management key
@@ -145,9 +147,12 @@ falls in the period are decoded.
 ## Upstream touches
 
 Each marked with a one-line `Fork:` comment: the log's wrap in `AppCore.quickActionProvider` and in
-`AIChatCoordinator`'s title request; the `openRouterManagementKeys` scope in `KeychainSecretStore`;
-its removal in `AIProvidersPanel.removeConnection`; the `usageTrendHeight` token in `Theme`; and the
-section's search keywords in `SettingsSearchCatalog`.
+`AIChatCoordinator`'s title request; `.aiUsage` beside AI Chat's commands in
+`AIChatCoordinator.applyEnabled`; the `aiUsage` `CommandID` (name, symbol, the AI pane's
+`ownedCommands`) and its case in `LauncherCoordinator.runCommand`; the
+`openRouterManagementKeys` scope in `KeychainSecretStore`; its removal in
+`AIProvidersPanel.removeConnection`; the `usageTrendHeight` token in `Theme`; and the section's
+search keywords in `SettingsSearchCatalog`.
 
 ## Manual sweep
 
@@ -181,6 +186,8 @@ section's search keywords in `SettingsSearchCatalog`.
   connection's base URL is a proxy. A wrong management key reads "OpenRouter rejected the management
   key."; Remove brings back the management-key caption. Deleting the connection in Providers removes
   the key (Keychain Access shows no `openrouter-management-keys` item for it).
+- With AI on, type "AI Usage" in the launcher: it opens Settings → AI scrolled to Usage. With AI off
+  the command is not listed. Bind it a shortcut in the AI pane's Commands and press it.
 
 ## Harness
 
