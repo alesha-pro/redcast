@@ -30,7 +30,9 @@ host calls to it.
   (`ai.cancel`), and a switch turned off ends them at their next read. The route's `onTermination`
   cancels its request or process.
 - **Nothing is kept.** Prompts and answers are never logged, stored or shown in chat history. The
-  request carries the prompt alone: no instructions, system prompt, tools or web search.
+  request carries the prompt alone: no instructions, system prompt, tools or web search. Only the
+  tokens and cost a reply reported reach the usage log, with no extension name (see
+  [usage-dashboard.md](usage-dashboard.md)).
 - **Raycast's rate limit applies per extension**, in memory: 10 requests a minute and 100 an hour,
   counted after consent and routing, so a refused call costs nothing.
 - **The upstream touch is a seam.** `ExtensionHostBridge` routes `ai` to `ExtensionAIHost`,

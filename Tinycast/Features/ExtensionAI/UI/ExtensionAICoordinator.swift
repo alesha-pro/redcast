@@ -10,9 +10,11 @@ final class ExtensionAICoordinator {
         aiEnabled: { [unowned core] in core.settings.aiEnabled },
         ask: { [unowned self] name in await askConsent(for: name) },
         makeProvider: { [unowned core] selection in
-            try AIProviderFactory.make(
-                selection: selection, settings: core.aiSettings,
-                subscription: core.chatGPTSubscription, installedAI: core.installedAI)
+            UsageRecordingProvider.wrapping(
+                try AIProviderFactory.make(
+                    selection: selection, settings: core.aiSettings,
+                    subscription: core.chatGPTSubscription, installedAI: core.installedAI),
+                for: selection, as: .extensionAI)
         })
 
     var settings: ExtensionAISettingsStore { gate.settings }

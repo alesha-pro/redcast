@@ -57,7 +57,8 @@ Upstream declined voice control (#1550), so this lives in `Features/VoiceAI/` pl
   `DictationCoordinator` never starts the live loop while `cloudIsOn()`.
 - **Retention is the provider's.** Tinycast keeps no copy. What OpenRouter and Google keep follows the
   OpenRouter account's privacy settings (data collection and Zero Data Retention); Tinycast adds no
-  body field for them.
+  body field for them. `VoiceAIRoute` wraps both uses in the usage log's recorder, so only the tokens
+  and cost a reply reported are written (see [usage-dashboard.md](usage-dashboard.md)).
 
 ## Layout
 

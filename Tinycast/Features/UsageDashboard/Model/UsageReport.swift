@@ -70,7 +70,7 @@ struct UsageReport: Equatable, Sendable {
     let total: UsageTotals
 
     /// `agents` maps a chat to its ACP agent, whose CLI ran it whatever the model picker held.
-    init(rows: [UsageRow], agents: [UUID: UUID] = [:]) {
+    init(rows: [UsageRow], ledger: [UsageLedgerEntry] = [], agents: [UUID: UUID] = [:]) {
         var sums: [UsageSubject: UsageTotals] = [:]
         var decoded: [String: UsageSubject] = [:]
         for row in rows {
@@ -85,6 +85,7 @@ struct UsageReport: Equatable, Sendable {
             }
             sums[subject, default: UsageTotals()].add(row.totals)
         }
+        for entry in ledger { sums[entry.subject, default: UsageTotals()].add(entry.totals) }
         lines = sums.map { Line(subject: $0.key, totals: $0.value) }.sorted(by: Self.precedes)
         total = lines.reduce(into: UsageTotals()) { $0.add($1.totals) }
     }

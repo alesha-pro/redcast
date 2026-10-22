@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Settings → AI → Usage: what this Mac's chats reported, and an OpenRouter key's spend on a press.
+/// Settings → AI → Usage: what replies on this Mac reported, and an OpenRouter key's spend.
 struct UsageSection: View {
     @Environment(AppCore.self) private var core
     @Environment(AppSettings.self) private var appSettings
@@ -57,8 +57,8 @@ struct UsageSection: View {
             Text(
                 """
                 Counted from the chats kept on this Mac, so a deleted chat takes its usage with it, \
-                and Quick Actions are not counted. Costs are as each route reported them. Balances \
-                are fetched only when you ask.
+                and from a log of the replies no chat keeps, such as Quick Actions. Costs are as each \
+                route reported them. Balances are fetched only when you ask.
                 """
             )
             .font(.caption)
@@ -94,7 +94,8 @@ struct UsageSection: View {
     private func load(_ request: Request) async {
         guard request.isEnabled else { return }
         let report = try? await UsageQuery.report(
-            databaseURL: core.chatHistory.databaseURL, in: request.interval, agents: acpBindings())
+            databaseURL: core.chatHistory.databaseURL, ledgerURL: UsageLedger.url, in: request.interval,
+            agents: acpBindings())
         guard !Task.isCancelled else { return }
         loaded = Loaded(request: request, report: report)
     }

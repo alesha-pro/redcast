@@ -12,12 +12,13 @@ enum UsageQuery {
     /// Every chat in `agents` is ACP-bound, so its replies store their session's running cost.
     @concurrent
     static func report(
-        databaseURL: URL, in interval: DateInterval, agents: [UUID: UUID]
+        databaseURL: URL, ledgerURL: URL? = nil, in interval: DateInterval, agents: [UUID: UUID]
     ) async throws -> UsageReport {
         let chats = Set(agents.keys)
-        return UsageReport(
-            rows: try rows(databaseURL: databaseURL, in: interval, runningCostChats: chats),
-            agents: agents)
+        let rows = try rows(databaseURL: databaseURL, in: interval, runningCostChats: chats)
+        try Task.checkCancellation()
+        let ledger = try ledgerURL.map { try UsageLedger.entries(at: $0, in: interval) } ?? []
+        return UsageReport(rows: rows, ledger: ledger, agents: agents)
     }
 
     /// No `SQLITE_OPEN_CREATE`: a Mac that never chatted gets no rows and no file.

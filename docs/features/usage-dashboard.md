@@ -1,11 +1,13 @@
 # AI usage
 
-Settings → AI → **Usage** sums the tokens and cost each AI Chat reply reported — per model, or per
-ACP agent, for a day, a week or a month — from the chat history kept on this Mac, and on a press of
-**Check Balance** asks OpenRouter what a key has spent. It is the fork's (roadmap item 14 in
-[FORK.md](../../FORK.md)), kept to `Features/UsageDashboard/` plus one line each in
-`AISettingsView`, `SettingsAnchor` and `SettingsSearchCatalog`, the `databaseURL` that
-`ChatHistoryStore` exposes, and the two accuracy fixes below.
+Settings → AI → **Usage** sums the tokens and cost each reply reported — per model, or per ACP
+agent, for a day, a week or a month — from the chat history kept on this Mac and from a small log of
+the replies no chat keeps (Quick Actions, Ask by Voice and cloud dictation, extension AI, chat
+titles). On a press of **Check Balance** it asks OpenRouter what a key has spent. It is the fork's
+(roadmap item 14 in [FORK.md](../../FORK.md)), kept to `Features/UsageDashboard/` plus one line each
+in `AISettingsView`, `SettingsAnchor` and `SettingsSearchCatalog`, the `databaseURL` that
+`ChatHistoryStore` exposes, the two accuracy fixes below, and the `Fork:`-marked lines listed under
+[Upstream touches](#upstream-touches).
 
 ## Invariants
 
@@ -40,8 +42,27 @@ ACP agent, for a day, a week or a month — from the chat history kept on this M
   `GET /key` — then `GET /credits` only when the key says it is a management key — on a per-call
   `.ephemeral` session with no URL cache and no cookie storage, invalidated once the check ends.
   The answer lives in the row's `@State` and goes with it: never persisted, polled or refreshed.
-- **No settings surface.** No `AppSettings` key, no `SettingsFileKey`, nothing in
-  `SettingsBackupCoverage`: the period is view state and a balance is transient. The section dims
+- **Replies no chat keeps are logged, and only their numbers.** `UsageRecordingProvider` wraps the
+  provider at the four places such a reply is asked for — `AppCore.quickActionProvider`,
+  `VoiceAIRoute.provider` (Ask by Voice and cloud dictation), Extension AI's `makeProvider` and
+  `AIChatCoordinator`'s title request — and nowhere a chat's reply is, since history already counts
+  those. It passes every event through untouched and, once the stream ends (finished, failed or
+  stopped after usage arrived), appends one line: the date, the origin, the route
+  (`AIModelSource.storageKey`), the model and the reported tokens and cost. No prompt, answer, app or
+  extension name is written. Apple Intelligence is never wrapped: it reports nothing, and
+  `QuickActionRunner` caps its output by testing the provider's type.
+- **The log is append-only, written off-main and bounded by age.** `ai-usage.tsv` in Application
+  Support, one tab-separated line per reply, the date first. The append runs on the stream's own
+  detached task under one `Mutex`; it ends a line a crash cut short before writing, then reads the
+  file's first 32 bytes, and only when that oldest line is more than 430 days old rewrites the file
+  atomically without the lines older than 400 days (and any it cannot read). So it holds 400–430
+  days and is rewritten about once a month, never on a timer. A failed write never touches the reply.
+- **The log stays readable both ways.** A reader ignores fields past the ninth and reads missing
+  trailing ones as unreported, so a later build can add columns; an origin it does not know is
+  kept as none, and a route it cannot parse is **Unknown model**.
+- **No settings surface, and nothing in a backup.** No `AppSettings` key, no `SettingsFileKey`,
+  nothing in `SettingsBackupCoverage`: the period is view state and a balance is transient. The
+  usage log is AI usage data like chat history, so no backup category carries it. The section dims
   with the rest of the AI pane while AI is off.
 
 ## Accuracy fixes it relies on
@@ -67,10 +88,10 @@ ACP agent, for a day, a week or a month — from the chat history kept on this M
   per-reply costs read as a running total.
 - **A fresh ACP count is seen only as a drop.** When the first total after a reset is already above
   the one before it, only the difference counts, so up to that earlier total goes uncounted.
-- **Quick Actions and chat titles record nothing**, since neither writes to chat history; the
-  footer says Quick Actions are not counted.
 - **Deleted and pruned chats take their usage with them** (`ON DELETE CASCADE`, retention), which is
-  what "counted from the chats kept on this Mac" means.
+  what "counted from the chats kept on this Mac" means. The log keeps its replies for 400 days
+  whatever happens to chats, and has no Clear button.
+- **Claude's own session titles** (`installedAI.claudeTitle`) report no usage and are not logged.
 - **OpenRouter BYOK** reports `cost` 0 with the real figure in
   `cost_details.upstream_inference_cost`, which is not parsed.
 - **The account balance needs a management key.** `GET /credits` refuses the inference key chats
@@ -84,8 +105,11 @@ ACP agent, for a day, a week or a month — from the chat history kept on this M
 | --- | --- |
 | `Model/UsagePeriod.swift` | Day, week and month intervals from an injected `Calendar`, stepping, titles |
 | `Model/UsageReport.swift` | `UsageTotals`, `UsageRow`, `UsageSubject`, the merged and sorted `UsageReport`, `UsageFormat` |
+| `Model/UsageLedgerEntry.swift` | One logged reply, its line format both ways, and reading and trimming a log's bytes |
 | `Model/OpenRouterAccount.swift` | `/key` and `/credits` requests and decoding, what a status means, the binding limit |
-| `Service/UsageQuery.swift` | The read-only aggregate, ACP running totals turned into rises, and the report built from it off-main |
+| `Service/UsageQuery.swift` | The read-only aggregate, ACP running totals turned into rises, and the report built with the log off-main |
+| `Service/UsageLedger.swift` | `ai-usage.tsv`: the locked append, the age trim and the read |
+| `Service/UsageRecordingProvider.swift` | The pass-through provider that logs a reply's usage when its stream ends |
 | `Service/OpenRouterAccountClient.swift` | The Keychain read and the per-call fetch |
 | `Settings/UsageSection.swift` | The section, a row per model or agent, a balance row per OpenRouter connection |
 
@@ -96,6 +120,13 @@ looks those chats up through `messages_by_conversation`, their ids bound as one 
 (`json_each`), so a Mac with no ACP agent pays nothing for it. Period bounds are computed in Swift
 with the injected `Calendar`, so day, week and month boundaries and DST are Foundation's, not
 SQLite's `localtime`.
+The log is read in the same off-main call, memory-mapped, and only the lines whose leading date
+falls in the period are decoded.
+
+## Upstream touches
+
+Each marked with a one-line `Fork:` comment: the log's wrap in `AppCore.quickActionProvider` and in
+`AIChatCoordinator`'s title request.
 
 ## Manual sweep
 
@@ -115,6 +146,11 @@ SQLite's `localtime`.
   "OpenRouter rejected the key."; with the network off, "OpenRouter didn't answer. Try again."
 - Nothing refreshes by itself: watch with Little Snitch or `nettop` while the section is open.
 - Settings search for "usage", "tokens", "cost" or "openrouter" lands on the section.
+- Run a Quick Action on an OpenRouter model, then show the section: its model's line gains a reply
+  and its cost, and `ai-usage.tsv` in `~/Library/Application Support/<bundle id>/` has one line with
+  no text of the selection or the answer. Do the same with Ask by Voice, a cloud dictation, an
+  extension's `AI.ask` and a new chat's title. A Quick Action on Apple Intelligence adds nothing.
+- Stop a streaming Quick Action after its first words: no line, unless usage had already arrived.
 
 ## Harness
 
@@ -128,6 +164,16 @@ only the rise inside it, a drop starts counting afresh, an unpriced reply keeps 
 chat no ACP agent ran sums as stored. Periods use a Berlin Gregorian calendar with Monday weeks (a
 23-hour DST day, a week across the clock change, stepping back across a year); formats use `en_US`.
 OpenRouter's documented `/key` and `/credits` bodies, an error body and status mapping are decoded
-without a network. It also holds the two accuracy fixes: a two-round tool turn's cost is both
-rounds', and only OpenAI's own endpoint is sent `stream_options` — an OpenAI preset on a gateway and
-an unknown server are not. `agent-loop-test` holds the agents' loop to the same sum.
+without a network. It also holds the two accuracy fixes: a two-round tool turn's cost is both rounds', and only
+OpenAI's own endpoint is sent `stream_options` — an OpenAI preset on a gateway and an unknown server
+are not. `agent-loop-test` holds the agents' loop to the same sum.
+
+The log: a line reads back
+as written, a tab or newline in a model id cannot break it, a later build's fields and origin are
+ignored, unreadable lines are none; a scratch file appends, reads only a period's lines, skips a
+half-written last line and never lets it swallow the next one, is rewritten past 430 days without
+what is older than 400 (not inside the slack), and drops an unreadable head; its entries join their
+model's line, and count on a Mac with no chat history. The recorder passes a scripted
+reply through unchanged and logs once with the last usage, logs nothing for a reply without usage,
+logs a reply its reader stopped early or that failed after usage, and hands Apple Intelligence back
+unwrapped.
