@@ -32,7 +32,7 @@ Independently of the folder tree, every mature subsystem has converged on the sa
 │ MeetingLink · MeetingEvent · UpcomingWindow · MeetingDay · MenuBarSummary  │
 │ AutoJoinPolicy · EventDraft · SupportReminderSchedule ·                    │
 │ MenuSearch{Item,Shortcut,Query,TreeNode,SnapshotPolicy,Target} ·           │
-│ WindowSwitch{Entry,Order,Query}                                            │
+│ WindowSwitch{Entry,Order,Query} · AgentSessions/Model/*                    │
 └──────────────────────────────────┬─────────────────────────────────────────┘
                                    │ consumed by
 ┌─ EFFECT ─────────────────────────▼─────────────────────────────────────────┐
@@ -48,11 +48,12 @@ Independently of the folder tree, every mature subsystem has converged on the sa
 │ CalendarStore · MeetingLauncher · MeetingClock · CameraSession ·           │
 │ SupportReminderStore · AXMenuAccess · WindowZOrder · WindowSwitchSweep ·   │
 │ AppleShortcutRunner · SettingsFileRepository · SettingsFileMonitor ·       │
-│ WindowManagementSettingsFile                                               │
+│ WindowManagementSettingsFile · AgentSessionsScanner ·                      │
+│ AgentTerminalRunner · AgentHookRepository · AgentProcessHost               │
 └──────────────────────────────────┬─────────────────────────────────────────┘
                                    │ published through
 ┌─ OBSERVABLE STATE ───────────────▼─────────────────────────────────────────┐
-│ 39 @MainActor @Observable stores, sessions, indices and State types        │
+│ 41 @MainActor @Observable stores, sessions, indices and State types        │
 └──────────────────────────────────┬─────────────────────────────────────────┘
                                    │ rendered by
 ┌─ VIEW ───────────────────────────▼─────────────────────────────────────────┐
@@ -96,7 +97,7 @@ app: the stores (`AppIndex`, `ClipboardStore`, `SnippetsStore`, `QuicklinkStore`
 `HotKeyManager`, `HyperKeyManager`, `DictationKeyManager`, `RunningAppsMonitor`,
 `SnippetKeywordListener`), the shared state
 (`AppSettings`, `PaletteState`, `FileSearchSession`, `MenuSearchSession`, `UninstallSession`,
-`MeetingClock`), `NotesStore`, the twenty-one feature coordinators, and the
+`MeetingClock`), `NotesStore`, the twenty-two feature coordinators, and the
 window controllers.
 
 `AppDelegate.applicationDidFinishLaunching` calls `AppCore.shared.start()` and nothing else. That is the
@@ -133,6 +134,7 @@ calendar's, each inserted by one preference and independent of the other; everyt
 driven imperatively from AppKit. Extension menu extras are dynamic `NSStatusItem`s owned entirely by
 `Features/Extensions/`, through `ExtensionManager`, with no scene or lifecycle wiring in the core, and
 the agents' run indicator is a transient `NSStatusItem` owned by `Features/Agents/` in the same way.
+Agent Sessions' opt-in `AgentStatusItem` follows the same pattern from `Features/AgentSessions/`.
 
 - **Command palette** — a borderless floating `NSPanel` (`Palette/PalettePanel.swift`) hosting SwiftUI
   via `NSHostingView`, managed by `PaletteWindowController`. It toggles between a compact bar and the
@@ -182,7 +184,7 @@ macOS by itself. Nothing else in the app sets an appearance.
 
 ## Observation
 
-39 types are `@MainActor @Observable`. Nothing uses `ObservableObject` or `@Published`, and views read
+41 types are `@MainActor @Observable`. Nothing uses `ObservableObject` or `@Published`, and views read
 state through `@Environment` rather than `@EnvironmentObject`.
 
 Three things about this model are easy to get wrong:

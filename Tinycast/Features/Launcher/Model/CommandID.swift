@@ -7,6 +7,8 @@ enum CommandID: String, CaseIterable, Sendable {
     case askAboutScreen = "command:ask-about-screen"
     case runAgentTask = "command:run-agent-task"
     case askByVoice = "command:ask-by-voice"
+    case searchAgentSessions = "command:search-agent-sessions"
+    case jumpToAgent = "command:jump-to-agent"
     case fixGrammar = "command:fix-grammar"
     case rewrite = "command:rewrite"
     case translate = "command:translate"
@@ -63,6 +65,8 @@ enum CommandID: String, CaseIterable, Sendable {
         case .askAboutScreen: return "Ask About Screen"
         case .runAgentTask: return "Run Agent Task"
         case .askByVoice: return "Ask by Voice"
+        case .searchAgentSessions: return "Search Agent Sessions"
+        case .jumpToAgent: return "Jump to Agent"
         case .fixGrammar: return BuiltInQuickAction.fixGrammar.titleResource
         case .rewrite: return BuiltInQuickAction.rewrite.titleResource
         case .translate: return BuiltInQuickAction.translate.titleResource
@@ -117,6 +121,8 @@ enum CommandID: String, CaseIterable, Sendable {
         case .askAboutScreen: return "macwindow.and.cursorarrow"
         case .runAgentTask: return "person.crop.circle.badge.clock"
         case .askByVoice: return "waveform.and.mic"
+        case .searchAgentSessions: return "clock.arrow.2.circlepath"
+        case .jumpToAgent: return "arrow.up.forward.app"
         case .fixGrammar: return BuiltInQuickAction.fixGrammar.symbol
         case .rewrite: return BuiltInQuickAction.rewrite.symbol
         case .translate: return BuiltInQuickAction.translate.symbol
@@ -191,6 +197,7 @@ enum CommandID: String, CaseIterable, Sendable {
         case .askAboutScreen: ["screen"]
         case .runAgentTask: ["agent"]
         case .askByVoice: ["voice"]
+        case .searchAgentSessions: ["sessions"]
         default: []
         }
     }

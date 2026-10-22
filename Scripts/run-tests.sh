@@ -933,6 +933,13 @@ run usage-dashboard-test   Tinycast/Features/AI/Model/AIRequest.swift \
                            Tinycast/Features/WebSearch/Model/*.swift \
                            Tinycast/Features/UsageDashboard/Model/*.swift \
                            Tinycast/Features/UsageDashboard/Service/UsageQuery.swift
+AS=Tinycast/Features/AgentSessions
+run slow agent-sessions-test $L/SearchRelevance.swift $AS/Model/*.swift \
+                           $AS/Service/AgentSessionsScanner.swift $AS/Service/AgentTranscriptSearch.swift \
+                           $AS/Service/AgentHookRepository.swift $AS/Service/ClaudeLiveSessionsProbe.swift \
+                           Tinycast/Features/Agents/Service/ProcessTree.swift \
+                           Tinycast/Platform/ExecutableLocator.swift Tinycast/Platform/ProcessExit.swift
+run index agent-sessions-performance $L/SearchRelevance.swift $AS/Model/*.swift
 run quick-action-test      Tinycast/Features/Settings/AppSettingsKey.swift \
                            Tinycast/Features/AI/Model/AIConnection.swift \
                            Tinycast/Features/AI/Model/AppleIntelligence.swift \

@@ -104,6 +104,7 @@ every screen but two: the clipboard lands past its pins
 | `.snippets`          | `SnippetsScreen`          | `SnippetsList` + preview (see [snippets.md](snippets.md#search-snippets))        |
 | `.snippetEditor`     | `SnippetEditorScreen`     | `SnippetEditorView` (see [snippets.md](snippets.md#launcher-editor)) |
 | `.dictionary`        | `DictionaryScreen`        | `DictionaryEntryView` (see [dictionary.md](dictionary.md))                       |
+| `.agentSessions`     | `AgentSessionsScreen`     | `AgentSessionsList` + preview (see [agent-sessions.md](agent-sessions.md))      |
 | `.extensionCommand`  | `ExtensionCommandScreen`  | `ExtensionCommandView` (see [extensions.md](extensions.md))                      |
 
 **Tab rings the three surfaces a reader opens directly — launcher → AI chat → clipboard → launcher**

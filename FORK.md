@@ -28,6 +28,7 @@ OpenCode, Goose, Hermes, local models — on the subscriptions and machines you 
 | Raycast AI for extensions | `AI.ask`, `useAI` and `canAccess(AI)` answered by your own model, off until you allow it and asked once per extension (a dismissed question asks again); only in a command you open, never in a menu-bar command, a background refresh or anything one launches | [extension-ai](docs/features/extension-ai.md) |
 | Extension runtime fixes | Google sign-in without a client secret (`querystring` coerces like Node), and extensions that bundle undici (`buffer.Blob`/`File`, undici's requests sent through the `fetch` bridge); ported from sermelipharo/tinycast-space | [extensions](docs/features/extensions.md) |
 | AI usage | Settings → AI → Usage: tokens and cost per model or ACP agent for a day, week or month, read from the chats on this Mac; an OpenRouter key's UTC spend and limit on Check Balance. An ACP reply counts what its session's running total rose; a tool-loop reply now costs its whole turn, and OpenAI's own API records tokens | [usage-dashboard](docs/features/usage-dashboard.md) |
+| Agent Sessions | Search every past Claude Code, Codex and Tinycast session from the launcher — titles, prompts, folder and branch, a preview, and text inside transcripts on request — and resume it in its folder and terminal with one key; live sessions show their status and Jump to Agent brings a waiting one forward. Opt-in live status adds reviewed hooks to Claude Code and Codex for a HUD and a menu-bar item when an agent finishes or waits | [agent-sessions](docs/features/agent-sessions.md) |
 
 Builds of this fork use the bundle id `com.tinycast.app.fork`: they never update themselves from
 upstream's feed, and they keep their settings apart from an installed upstream Tinycast.
@@ -69,11 +70,10 @@ Sizes are focused working days. Waves are ordered by leverage, not by size.
 1. **ACP agents — shipped** (see above). Next on it: render diffs and command output inside tool
    rows, expose the agent's slash commands (`available_commands_update`) in the composer, a launcher
    row and hotkey per agent, and Tinycast's own `fs/*` / `terminal/*` so edits can show in an editor.
-2. **Agent Sessions hub.** Search every past Codex, Claude Code and Tinycast session from the launcher
-   (titles, first prompts, full text), preview it, and resume it in its folder and terminal. A live
-   list of running agents fed by Claude Code hooks and Codex `notify`: a HUD and menu-bar badge when an
-   agent finishes or waits for approval, one key to jump to it. *3–4 days.* The menu-bar badge
-   reuses the background agents' `AgentRunsStatusItem`.
+2. **Agent Sessions hub — shipped** (see above). Live status uses Codex hooks rather than `notify`,
+   which Computer Use already holds. Next on it: Gemini CLI and OpenCode histories as sources, one
+   merged "Agents" menu-bar item with background agents (item 5), `claude://code/continue` for Claude
+   app sessions once the route is confirmed, and `CLAUDE_CONFIG_DIR` / `CODEX_HOME` overrides.
 3. **Voice to AI — partly shipped** (see Voice AI above): cloud dictation, and hold-to-talk with the
    screen attached as Ask by Voice. Next on it: dictation *modes* that pass the transcript through a
    prompt before it is typed (speak Russian, get an English post; per-app tone), a *voice command*

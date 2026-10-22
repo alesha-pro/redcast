@@ -33,6 +33,7 @@ open with an `## Invariants` section; read it before changing anything in that a
 [notes and AI](features/notes-ai.md) ·
 [background agents](features/background-agents.md) ·
 [AI usage](features/usage-dashboard.md) ·
+[agent sessions](features/agent-sessions.md) ·
 [clipboard](features/clipboard.md) ·
 [calculator](features/calculator.md) ·
 [calendar](features/calendar.md) ·

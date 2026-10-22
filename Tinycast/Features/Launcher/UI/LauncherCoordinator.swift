@@ -176,6 +176,11 @@ final class LauncherCoordinator {
             core.agentCoordinator.showTaskPrompt()
         case .askByVoice:
             core.voiceAskCoordinator.pressed()
+        case .searchAgentSessions:
+            core.agentSessionsCoordinator.show()
+        case .jumpToAgent:
+            dismissPalette()
+            core.agentSessionsCoordinator.jumpToAgent()
         case .fixGrammar:
             core.quickActionCoordinator.run(.fixGrammar)
         case .rewrite:

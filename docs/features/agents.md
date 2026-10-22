@@ -102,12 +102,15 @@ They run on the user's own logins and subscriptions; Tinycast never sees a key.
   listening, and starts a fresh session when the agent has lost it. A session id is the agent's
   own, and two agents may both say `sess_1`, so turns, updates and permission requests are routed
   by agent and session together.
+- **Its sessions show once in Agent Sessions.** A Claude or Codex session whose id is in
+  `acpSessions` is listed only as its Tinycast chat (see [agent-sessions.md](agent-sessions.md)).
 - **Nothing outlives the agent.** An ACP agent is a tree — `npx`, the adapter, the vendor CLI it
   spawns (Claude Code's is about 380 MB together) — and closing stdin lets the top go while a
   grandchild lingers, orphaned to launchd. `ProcessTree` reads the descendants by `proc_listchildpids`
   before a stop and after every turn, keyed by pid and start time so a reused pid is never
   signalled; a stop closes stdin, sends SIGTERM to every survivor a second later and SIGKILL two
   seconds after that, and an agent that exits on its own has its last-known tree reaped the same way.
+  `Process.terminate` alone reaches only the child's process group, which a detached child has left.
   An idle agent is stopped after two minutes; `AgentACPHost.release` stops it as soon as a run that
   nobody is watching ends.
 - **Context goes once, to a fresh session.** `AgentContext.briefing` — global and project
@@ -154,6 +157,7 @@ They run on the user's own logins and subscriptions; Tinycast never sees a key.
 | `Model/AgentRuntime.swift` | ACP presets and the command/arguments an agent runs |
 | `Model/ACPProtocol.swift` | Framing, `session/update` decoding, permissions, prompt blocks, modes, `ACPEventMapper` |
 | `Service/ACPConnection.swift` | One agent process: launch, `initialize`, requests, permission routing, exit |
+| `Service/ProcessTree.swift` | Descendants by pid and start time, and their SIGTERM then SIGKILL |
 | `Service/AgentACPHost.swift` | Processes per agent, sessions per chat, load/new, modes; `ACPAgentProvider` |
 | `Settings/AgentsSettingsSection.swift`, `AgentEditorPanel.swift` | The AI pane's list, its schedules and the editor |
 

@@ -303,6 +303,13 @@ enum SettingsSearchCatalog {
                 "run agent task"
             ]),
         .init(
+            .aiAgentSessions, "Search agent sessions",
+            keywords: ["claude code", "codex", "resume", "history", "sessions", "transcripts"]),
+        .init(.aiAgentSessions, "Resume in", keywords: ["terminal", "iterm", "ghostty", "warp", "zap"]),
+        .init(
+            .aiAgentSessions, "Live status",
+            keywords: ["hooks", "notify", "finished", "waiting", "menu bar"]),
+        .init(
             .aiScreenAwareness, "Enable Screen Awareness",
             keywords: ["screen", "window", "context", "ask about screen", "focused window"]),
         .init(

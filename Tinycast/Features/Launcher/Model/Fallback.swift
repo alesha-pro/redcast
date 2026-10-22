@@ -8,6 +8,7 @@ enum Fallback: Hashable, Sendable {
         case searchFiles
         case runShellCommand
         case define
+        case agentSessions
 
         /// Where its name and glyph come from, so a fallback row reads like the command it runs.
         var command: CommandID {
@@ -16,6 +17,7 @@ enum Fallback: Hashable, Sendable {
             case .searchFiles: return .searchFiles
             case .runShellCommand: return .runShellCommand
             case .define: return .define
+            case .agentSessions: return .searchAgentSessions
             }
         }
     }
@@ -65,6 +67,7 @@ enum Fallback: Hashable, Sendable {
         case .builtin(.searchFiles): return String(localized: "Search Files")
         case .builtin(.runShellCommand): return String(localized: "Run Shell Command")
         case .builtin(.define): return String(localized: "Define Word")
+        case .builtin(.agentSessions): return String(localized: "Search Agent Sessions")
         case .quicklink: return String(localized: "Open Quicklink")
         case .agent: return String(localized: "Run in Background")
         case .agentPick: return String(localized: "Choose Agent")
