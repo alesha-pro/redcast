@@ -129,7 +129,12 @@ struct AISettingsView: View {
         return Section {
             Toggle(isOn: $settings.webSearchEnabled) {
                 SettingsRowTitle(.aiChat, "Web search")
-                Text("Prompts go to a search engine: Codex's own, or the engines below on API models.")
+                // Fork: on API models the toggle also lets the model read a page, so it says so.
+                Text(
+                    """
+                    Prompts go to a search engine: Codex's own, or the engines below on API models, \
+                    where the model may also read a page you linked or a search found.
+                    """)
             }
             WebSearchEnginesRow()
             Toggle(isOn: $settings.choicesEnabled) {

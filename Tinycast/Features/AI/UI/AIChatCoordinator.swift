@@ -376,24 +376,26 @@ final class AIChatCoordinator {
         if capabilities(for: chat).tools,
             let agent = core.agentCoordinator.loop(over: provider, mcpTools: tools, in: chat)
         { return agent }
-        let search = searchTool(for: chat)
+        let search = webTools(for: chat)
         guard capabilities(for: chat).tools, !(search + tools).isEmpty else { return provider }
         let chatID = chat.session.id
-        let runner = search.isEmpty ? nil : core.webSearch.runner(canFetch: false)
+        let web = search.isEmpty ? nil : core.webSearch.chatTools()
+        // Fork: read_page opens only pages the turn was given, so the tools watch each round.
         return AIToolLoopProvider(
-            base: provider, tools: search + tools, maxRounds: core.aiSettings.toolRounds.limit
+            base: web?.watching(provider) ?? provider, tools: search + tools,
+            maxRounds: core.aiSettings.toolRounds.limit
         ) { [mcp = core.mcpCoordinator] call in
-            if let runner, call.name == WebSearchTool.name { return await runner.run(call) }
+            if let result = await web?.run(call) { return result }
             return await mcp.invoke(call, in: chatID)
         }
     }
 
-    /// A chat without an agent searches through Tinycast while Web search is on.
-    private func searchTool(for chat: AIChatState) -> [AITool] {
+    /// A chat without an agent searches and reads pages through Tinycast while Web search is on.
+    private func webTools(for chat: AIChatState) -> [AITool] {
         guard case .api? = model(for: chat), core.aiSettings.webSearchEnabled,
             capabilities(for: chat).webSearch
         else { return [] }
-        return [WebSearchTool.definition(origin: String(localized: "Web search"))]
+        return WebChatTools.definitions(origin: String(localized: "Web search"))
     }
 
     /// An agent's Web family on a route Tinycast's loop runs: it searches, and it can fetch.

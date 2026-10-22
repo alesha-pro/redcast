@@ -856,8 +856,9 @@ model added by hand is assumed text-only. A vendor API is assumed to take images
 doesn't simply returns the provider's error.
 
 Web search is a Settings → AI toggle, `aiWebSearch`, off by default: a prompt reaches a search engine
-only once the user has opted in. On API routes it attaches Tinycast's `web_search` tool; the engines
-are chosen under Search engines.
+only once the user has opted in. On API routes it attaches Tinycast's `web_search` tool, and
+`read_page` for a page the user linked or a search returned; the engines are chosen under Search
+engines.
 It's still excluded from backups — which Mac may send prompts to a search engine is that Mac's call.
 Nothing *guesses* at a capability: images ride on what the model's own catalog said, and a vendor
 API that does not take one simply returns its error. What is gated is only what a route provably

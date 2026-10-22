@@ -6,8 +6,8 @@ nonisolated struct WebSearchRunner: Sendable {
 
     let chain: [WebSearchSource]
     let searxng: URL?
-    /// Whether the turn also offers `web_fetch`, so the answer may point the model at it.
-    let canFetch: Bool
+    /// The tool this turn reads a page with, `web_fetch` or `read_page`, so the answer can name it.
+    let reader: String?
     /// Read at most once per call, and only when a keyed engine's turn comes.
     let keys: @Sendable () -> [String: String]
     var transport: Transport = WebSearchRunner.fetch
@@ -28,7 +28,7 @@ nonisolated struct WebSearchRunner: Sendable {
         case .found(let source, let results):
             return AIToolResult(
                 callID: callID,
-                content: WebSearchTool.answer(results, for: query, from: source, canFetch: canFetch),
+                content: WebSearchTool.answer(results, for: query, from: source, reader: reader),
                 isError: false)
         case .failed(let attempts) where Self.foundNothing(attempts):
             return AIToolResult(callID: callID, content: WebSearchTool.noResults(for: query), isError: false)
