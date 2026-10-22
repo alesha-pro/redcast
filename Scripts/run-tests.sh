@@ -530,6 +530,7 @@ run notes-ai-test          Tinycast/Platform/Signposts.swift \
                            Tinycast/Features/Notes/Service/*.swift \
                            Tinycast/Features/Agents/Model/*.swift \
                            Tinycast/Features/AI/Model/AIRequest.swift \
+                           Tinycast/Features/AI/Model/AIAttachmentPolicy.swift \
                            Tinycast/Features/Settings/AppSettingsKey.swift \
                            Tinycast/Features/AI/Model/AITool.swift \
                            Tinycast/Features/AI/Model/JSONValue.swift \

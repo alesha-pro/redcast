@@ -163,7 +163,7 @@ If a change touches anything in the right column, the harness on the left is man
 | `apple-shortcut-test` | all of `AppleShortcuts/Model/` — the `shortcuts list` parser and entry ids |
 | `snippets-test` | all of `Snippets/Model/` and `Snippets/Service/`, plus editor drafts, placeholder selection and `Platform/HealthTicker.swift` |
 | `notes-test` | all of `Notes/Model/` and `Notes/Service/`, including the Markdown parser, edit plans and reveal policy, plus the real fuzzy matcher and signposts |
-| `notes-ai-test` | all of `NotesAI/Model/` and `NotesAI/Service/` against real `Notes/` and `Agents/Model/` — tool definitions and specs, the toolset's offer and consent, note resolution, search, paging, appends and their refusals, the open-draft route through `NotesStore.amendDraft` |
+| `notes-ai-test` | all of `NotesAI/Model/` and `NotesAI/Service/` against real `Notes/` and `Agents/Model/` — tool definitions and specs, the toolset's offer and consent, `@note`, note resolution, search, paging, appends and their refusals, the open-draft route through `NotesStore.amendDraft`, the attachment budget |
 | `notes-editor-test` | the Notes editor, rendered and literal, with real TextKit 2 and AppKit editing objects: styling, reveal, layout fragments, keys, chords, checkboxes and links |
 | `raycast-test` | `Backup/Service/RaycastDecoder.swift`, `Scrypt.swift`, `Platform/Compression/Zlib.swift`, `Clipboard/Model/RaycastClipboardImport.swift` and import-time clipboard retention |
 | `symbols-test` | `Extensions/Service/SymbolCatalog.swift`, against this machine's CoreGlyphs |
