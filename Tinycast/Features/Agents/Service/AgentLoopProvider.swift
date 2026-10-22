@@ -2,8 +2,8 @@ import Foundation
 
 /// An agent's turn: re-streams it until the model stops calling tools or a cap ends it.
 struct AgentLoopProvider: AIProvider {
-    /// Calls of one round that may run at once; one until parallel rounds land.
-    static let width = 1
+    /// Calls of one round that may run at once, so at most four fetches or four ripgreps.
+    static let width = 4
 
     private let base: any AIProvider
     private let toolset: AgentToolset
@@ -73,14 +73,19 @@ struct AgentLoopProvider: AIProvider {
         _ calls: [AIToolCall], signal: @escaping @Sendable (AgentToolSignal) -> Void,
         budget: inout AgentTurnBudget, into continuation: AIProviderStream.Continuation
     ) async -> [AIToolResult] {
-        var results: [AIToolResult] = []
-        for call in calls {
-            let raw = await toolset.run(call, signal: signal)
-            let result = budget.admit(raw)
-            continuation.yield(.toolResult(id: call.id, isError: result.isError))
-            results.append(result)
+        let toolset = toolset
+        return await withTaskGroup(of: (Int, AIToolResult).self) { group in
+            for (index, call) in calls.enumerated() {
+                group.addTask { (index, await toolset.run(call, signal: signal)) }
+            }
+            var results = [AIToolResult?](repeating: nil, count: calls.count)
+            for await (index, raw) in group {
+                let result = budget.admit(raw)
+                continuation.yield(.toolResult(id: calls[index].id, isError: result.isError))
+                results[index] = result
+            }
+            return results.compactMap { $0 }
         }
-        return results
     }
 
     /// One pass over the base route: text flows straight to the transcript, calls are collected.

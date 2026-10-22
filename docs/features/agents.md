@@ -151,8 +151,13 @@ stripped and only the output's tail is kept. `search_files` prefers ripgrep and 
 `grep -rnIE`, run without a shell so a pattern is never interpreted. `web_fetch` uses a private
 `.ephemeral` session with no cache, reads at most 2 MB, and turns HTML into text.
 
-Reads, `web_fetch` and `load_skill` may share a round (`AgentToolSpec.concurrent`); `memory_write`
-may not, since two appends in one batch would race on `memory.md`, and nothing that can ask ever does.
+Neighbouring calls that may share a round run together, four at most (`AgentLoopProvider.width`),
+which bounds memory to four 2 MB fetch buffers and processes to four ripgreps: reads, `web_fetch` and
+`load_skill` (`AgentToolSpec.concurrent`). Every row of a batch opens first, each closes as its call
+ends, and the model reads the results in the order it asked. A call whose rule can ask, an MCP call
+(a second dialog would be refused while the first is up), `memory_write` (two appends would race on
+`memory.md`) and any change or command run alone, in their place. Two concurrent searches' rows
+complete together, since `AIChatState` closes every open search row on `.searched`.
 
 ## Adding a tool family
 
@@ -205,4 +210,5 @@ changes: no router edit, no upstream line, no prompt edit.
   policy, toolset order and routing, batches, budget, prompt, persistence), `agent-tools-test` (the
   executor against a real folder: reads, writes with consent, link escapes, commands, timeouts and
   Stop, memory, skills, HTML; the built-ins through a toolset; every refused effect) and
-  `agent-loop-test` (the fork's loop and upstream's on the same scripts; routing, signals, Stop).
+  `agent-loop-test` (the fork's loop and upstream's on the same scripts; routing, signals, Stop,
+  parallel batches).

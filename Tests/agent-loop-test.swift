@@ -23,6 +23,9 @@ struct AgentLoopTests {
         await signalsLandBetweenACallsRows()
         await stopReachesTheRunningCall()
         await aTurnWithoutCallsPassesThrough()
+        await callsThatMayShareARoundDo()
+        await aCallThatMayNotRunsAlone()
+        await aRoundIsNeverWiderThanFour()
 
         print("\(passes) passed, \(failures) failed")
         if failures > 0 { exit(1) }
@@ -189,6 +192,114 @@ struct AgentLoopTests {
         expect(base.requests.count == 1, "a turn that calls nothing is one request")
         expect(base.requests.first?.tools == tools.tools, "armed with the turn's tools")
         expect(events == script, "and its events pass through unchanged")
+    }
+}
+
+// MARK: - Parallel rounds
+
+extension AgentLoopTests {
+    static func callsThatMayShareARoundDo() async {
+        let gauge = Gauge()
+        let reader = FakeTools(names: ["fs_read"], concurrent: true) { call, _ in
+            await gauge.hold(.milliseconds(200))
+            return call.id
+        }
+        let base = ScriptedProvider(rounds: [[call("r1"), call("r2"), call("r3")], [.text("ok"), .finished]])
+        let started = ContinuousClock.now
+        let events = await collect(AgentLoopProvider(base: base, toolset: toolset([reader]), maxRounds: 25))
+            .events
+        expect(ContinuousClock.now - started < .milliseconds(400), "three 200 ms reads share one round")
+        let rows = events.filter {
+            switch $0 {
+            case .toolCall, .toolResult: true
+            default: false
+            }
+        }
+        expect(
+            Array(rows.prefix(3)) == ["r1", "r2", "r3"].map {
+                .toolCall(id: $0, origin: "Files", title: "FS_READ")
+            },
+            "every row of a batch opens before any closes")
+        expect(
+            base.requests[1].messages.compactMap(\.toolResult?.content) == ["r1", "r2", "r3"],
+            "and the model reads the results in the order it asked")
+    }
+
+    static func aCallThatMayNotRunsAlone() async {
+        let gauge = Gauge()
+        let seenAlone = Flag()
+        let reader = FakeTools(names: ["fs_read"], concurrent: true) { call, _ in
+            await gauge.hold(.milliseconds(100))
+            return call.id
+        }
+        let writer = FakeTools(names: ["fs_write"], risk: .change) { call, _ in
+            if await gauge.hold(.milliseconds(50)) == 1 { seenAlone.set() }
+            return call.id
+        }
+        let base = ScriptedProvider(rounds: [
+            [call("r1"), call("r2"), call("w1", "fs_write"), call("r3"), call("r4")], [.text("ok"), .finished]
+        ])
+        let events = await collect(
+            AgentLoopProvider(base: base, toolset: toolset([reader, writer]), maxRounds: 25)
+        ).events
+        let order: [String] = events.compactMap {
+            switch $0 {
+            case .toolCall(let id, _, _): "+" + id
+            case .toolResult(let id, _): "-" + id
+            default: nil
+            }
+        }
+        let write = order.firstIndex(of: "+w1") ?? 0
+        expect(
+            Set(order[..<write]) == ["+r1", "+r2", "-r1", "-r2"] && order[write + 1] == "-w1",
+            "a change runs alone, after its neighbours finish and before the next start, got \(order)")
+        expect(seenAlone.isSet, "with nothing else running")
+        expect(
+            base.requests[1].messages.compactMap(\.toolResult?.content) == ["r1", "r2", "w1", "r3", "r4"],
+            "in its place among the results")
+    }
+
+    static func aRoundIsNeverWiderThanFour() async {
+        let gauge = Gauge()
+        let reader = FakeTools(names: ["fs_read"], concurrent: true) { call, _ in
+            await gauge.hold(.milliseconds(50))
+            return call.id
+        }
+        let base = ScriptedProvider(rounds: [(1...6).map { call("r\($0)") }, [.text("ok"), .finished]])
+        _ = await collect(AgentLoopProvider(base: base, toolset: toolset([reader]), maxRounds: 25))
+        expect(gauge.peak == AgentLoopProvider.width, "at most four calls run at once, got \(gauge.peak)")
+    }
+}
+
+/// Counts the calls running at once, and the most there ever were.
+final class Gauge: @unchecked Sendable {
+    private let lock = NSLock()
+    private var current = 0
+    private var highest = 0
+
+    var peak: Int { lock.withLock { highest } }
+
+    /// How many were running, this one included, when it started.
+    func hold(_ duration: Duration) async -> Int {
+        let running = lock.withLock {
+            current += 1
+            highest = max(highest, current)
+            return current
+        }
+        try? await Task.sleep(for: duration)
+        lock.withLock { current -= 1 }
+        return running
+    }
+}
+
+final class Flag: @unchecked Sendable {
+    private let lock = NSLock()
+    private var value = false
+
+    var isSet: Bool { lock.withLock { value } }
+
+    func set() {
+        lock.withLock { value = true }
     }
 }
 
