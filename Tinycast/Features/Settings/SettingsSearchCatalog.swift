@@ -291,6 +291,9 @@ enum SettingsSearchCatalog {
         .init(.aiChat, "Suggested replies", keywords: ["choices", "chips", "follow-up", "buttons"]),
         .init(.aiChat, "Tool call rounds", keywords: ["mcp", "tools", "limit", "loop", "agent", "unlimited"]),
         .init(
+            .aiAgents, "Add Agent",
+            keywords: ["agent", "folder", "skills", "agents.md", "workspace", "tools", "terminal"]),
+        .init(
             .aiScreenAwareness, "Enable Screen Awareness",
             keywords: ["screen", "window", "context", "ask about screen", "focused window"]),
         .init(

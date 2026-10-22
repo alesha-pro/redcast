@@ -288,7 +288,7 @@ final class AIChatCoordinator {
             let sent = chat.send(
                 address.rest, using: try provider(for: chat, scopedTo: address.slug),
                 model: model(for: chat), webSearch: webSearch(for: chat),
-                instructions: instructions, contextBudget: contextBudget(for: chat),
+                instructions: instructions(for: chat), contextBudget: contextBudget(for: chat),
                 toolScope: address.slug)
             // Named while the answer streams, so the sidebar has a title before the reply ends.
             if sent { nameIfNeeded(chat) }
@@ -307,7 +307,7 @@ final class AIChatCoordinator {
             chat.regenerate(
                 using: try provider(for: chat, scopedTo: scope),
                 model: model(for: chat), webSearch: webSearch(for: chat),
-                instructions: instructions, contextBudget: contextBudget(for: chat))
+                instructions: instructions(for: chat), contextBudget: contextBudget(for: chat))
         } catch {
             chat.report(error.localizedDescription)
         }
@@ -322,6 +322,16 @@ final class AIChatCoordinator {
             userPrompt: core.aiSettings.systemPrompt,
             isEnabled: core.aiSettings.systemPromptEnabled,
             offersChoices: core.aiSettings.choicesEnabled)
+    }
+
+    /// An agent's chat adds its own context after the shared prompt, even when that one is off.
+    private func instructions(for chat: AIChatState) -> String? {
+        let attachesTools =
+            capabilities(for: chat).tools && model(for: chat)?.runsItsOwnTools != true
+        guard let agent = core.agentCoordinator.prompt(for: chat, hasTools: attachesTools) else {
+            return instructions
+        }
+        return [instructions, agent].compactMap { $0 }.joined(separator: "\n\n")
     }
 
     /// A turn's route and its tools: a CLI with its own client is handed servers, others the loop.
@@ -352,21 +362,26 @@ final class AIChatCoordinator {
         let tools = tools(for: chat, scopedTo: slug)
         guard capabilities(for: chat).tools, !tools.isEmpty else { return provider }
         let chatID = chat.session.id
+        let agent = core.agentCoordinator.executor(for: chat)
         return AIToolLoopProvider(
             base: provider, tools: tools, maxRounds: core.aiSettings.toolRounds.limit
         ) { [mcp = core.mcpCoordinator] call in
-            await mcp.invoke(call, in: chatID)
+            if let agent, AgentToolbox.allNames.contains(call.name) { return await agent.run(call) }
+            return await mcp.invoke(call, in: chatID)
         }
     }
 
     /// `@server` narrows a turn further, but never past what the chat's tools menu switched off.
+    /// An agent's own tools ride every turn; the tools menu only switches MCP servers.
     private func tools(for chat: AIChatState, scopedTo slug: String?) -> [AITool] {
-        guard chat.toolScope.isEnabled else { return [] }
+        let agentTools = core.agentCoordinator.tools(for: chat)
+        guard chat.toolScope.isEnabled else { return agentTools }
         let excluded = chat.toolScope.excluded
-        return core.mcpCoordinator.tools(scopedTo: slug).filter { tool in
-            guard let route = MCPToolName.parse(tool.name) else { return true }
-            return !excluded.contains(route.slug)
-        }
+        return agentTools
+            + core.mcpCoordinator.tools(scopedTo: slug).filter { tool in
+                guard let route = MCPToolName.parse(tool.name) else { return true }
+                return !excluded.contains(route.slug)
+            }
     }
 
     var mcpServers: [MCPServer] { core.mcpCoordinator.servers }
@@ -609,8 +624,11 @@ final class AIChatCoordinator {
     /// The chat's own model while it is still reachable; otherwise the default a new chat takes.
     func model(for chat: AIChatState) -> AIModelSelection? {
         if let own = chat.session.model, isReachable(own) { return own }
+        if let agent = core.agentCoordinator.agent(for: chat)?.model, isReachable(agent) { return agent }
         return core.aiSettings.defaultModel
     }
+
+    var agents: AgentCoordinator { core.agentCoordinator }
 
     /// A route removed in Settings falls back to the default rather than failing the chat.
     private func isReachable(_ selection: AIModelSelection) -> Bool {
