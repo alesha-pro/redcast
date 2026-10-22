@@ -51,6 +51,10 @@ the launcher's fallback files, `CommandID`, `AISettingsView` and `AppCore`.
   turn in the queue comes, so someone who left during the wait is not asked and a Stop shows nothing.
   An ACP refusal nobody chose picks the agent's refuse-once option, or cancels the request when it
   offers none, so it never leaves an "always" behind.
+- **An unattended turn is told so, on either runtime.** A native agent's instructions and an ACP
+  agent's prompt both carry the briefing while, and only while, the run is active; the ACP one goes
+  on every such turn, not only a fresh session's first, so the agent's own loaded session cannot
+  miss it. It is model-facing text, never localized, and names no tool and no file.
 - **Agent questions queue.** `AgentConsentGate` asks one at a time and only once no dialog is up,
   observed rather than polled, so a foreground and a background ask no longer refuse each other.
 - **Only Always-trusted MCP servers ride an unattended turn.** Servers set to Ask are excluded through
@@ -100,9 +104,13 @@ with no HUD and no banner. A run still going after the agent's limit (15 minutes
 60) is stopped.
 
 A native agent's model is told, while its turn runs unattended, that nobody can answer and that it
-should finish with a short report (`AgentBackgroundBriefing`); a follow-up typed in the window later
-is an ordinary turn. ACP agents get their context once per fresh session, which knows no chat, so
-they do not get the briefing yet.
+should finish with a short report (`AgentBackgroundBriefing.text`); a follow-up typed in the window
+later is an ordinary turn. An ACP agent is told the same in its prompt: `AgentACPHost` asks its
+`briefing` closure with the turn's chat, and an unattended chat's prompt carries
+`AgentBackgroundBriefing.acp` — a `# Running unattended` section saying that nobody may be at the
+Mac, that permission requests are declined unless someone at the Mac answers them, and to finish
+with the result as the final message — after the fresh session's context, on every turn the chat
+runs unattended.
 
 ## Schedules
 
@@ -178,7 +186,8 @@ other is written on disk and re-listed the next time Notes opens. With Notes off
 - **Notify** on: macOS asks once, on the toggle. A finished run posts a banner without the answer;
   clicking it opens the chat. Off: no banner and no `UNUserNotificationCenter` delegate.
 - ACP: a Claude Code agent run from `@cc …` asks with Claude's own options; **Decline** picks its
-  refuse-once option. When the run ends, the `npx`/adapter/CLI tree leaves Activity Monitor at once.
+  refuse-once option. Its transcript (`~/.claude/projects/…`) shows the prompt opening with the
+  context, then `# Running unattended`; a follow-up typed in the window afterwards has neither. When the run ends, the `npx`/adapter/CLI tree leaves Activity Monitor at once.
   Two Claude Code agents asking at once: each dialog names its own agent and run.
 - AI off mid-run: the run ends "Cancelled", and the item and the scheduler go away.
 
@@ -188,4 +197,5 @@ whole ask (in front, quiet with Return on refusal, refused unseen when nobody is
 nothing shown after Stop, what is counted) and a counted unattended refusal, how a run ends and its
 limit, note blocks and the append on disk and through an open note's store, persistence and its
 refusals, the scheduler's arming and its settle after sleep, and the consent gate waiting for a
-dialog in order. `acp-test` covers the refusal option and two agents sharing a session id.
+dialog in order. `acp-test` covers the refusal option, two agents sharing a session id, and the
+briefing: on an unattended chat's every turn, after the context, never on a chat someone started.

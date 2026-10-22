@@ -85,9 +85,10 @@ async function prompt(id, params) {
   update(sessionId, { sessionUpdate: "usage_update", used: 1200, size: 200000, cost: { amount: 0.01, currency: "USD" } });
   const context = text.includes("Context from Tinycast") ? "with context" : "without context";
   const history = text.includes("Earlier in this conversation") ? "with history" : "no history";
+  const briefed = text.includes("# Running unattended") ? "; briefed" : "";
   update(sessionId, {
     sessionUpdate: "agent_message_chunk",
-    content: { type: "text", text: `turn ${session.turns} in ${session.cwd}; ${chosen}; ${context}; ${history}; images ${images}; servers ${session.servers}` },
+    content: { type: "text", text: `turn ${session.turns} in ${session.cwd}; ${chosen}; ${context}; ${history}; images ${images}; servers ${session.servers}${briefed}` },
   });
   send({ id, result: { stopReason: "end_turn" } });
 }
