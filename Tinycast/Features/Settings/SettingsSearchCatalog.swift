@@ -296,6 +296,10 @@ enum SettingsSearchCatalog {
         .init(
             .aiAgents, "Add Agent",
             keywords: ["agent", "folder", "skills", "agents.md", "workspace", "tools", "terminal"]),
+        // Fork: scheduled agent runs' daily spend cap.
+        .init(
+            .aiAgents, "Daily spend cap",
+            keywords: ["budget", "cost", "spend", "limit", "dollars", "usd", "schedule", "money"]),
         .init(
             group: .aiAgents, "Agent schedules",
             keywords: [

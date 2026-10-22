@@ -17,6 +17,8 @@ final class AgentStore {
     private(set) var scheduleBaselines: [UUID: Date] = [:]
     /// The schedules file's own `isAvailable`: authored data, never written over unread.
     private(set) var schedulesAvailable = true
+    /// The daily cap and what scheduled runs spent today; a file that won't read caps at zero.
+    private(set) var scheduleSpend = AgentScheduleSpend()
 
     private let agentsURL: URL
     private let bindingsURL: URL
@@ -24,6 +26,9 @@ final class AgentStore {
     private let schedulesURL: URL
     /// Kept apart from the schedules, so a run never rewrites what the user wrote.
     private let scheduleBaselinesURL: URL
+    private let scheduleSpendURL: URL
+    /// Until the cap is set again, a run's spend is kept in memory over a file that won't read.
+    private var scheduleSpendWritable = true
     let directory: URL
 
     init(directory: URL? = nil) {
@@ -34,6 +39,7 @@ final class AgentStore {
         acpSessionsURL = base.appendingPathComponent("agent-acp-sessions.json")
         schedulesURL = base.appendingPathComponent("agent-schedules.json")
         scheduleBaselinesURL = base.appendingPathComponent("agent-schedule-runs.json")
+        scheduleSpendURL = base.appendingPathComponent("agent-schedule-spend.json")
         try? FileManager.default.createDirectory(at: base, withIntermediateDirectories: true)
     }
 
@@ -92,6 +98,16 @@ final class AgentStore {
         {
             let known = Set(schedules.map(\.id))
             scheduleBaselines = decoded.filter { known.contains($0.key) }
+        }
+        guard FileManager.default.fileExists(atPath: scheduleSpendURL.path) else { return }
+        if let data = try? Data(contentsOf: scheduleSpendURL),
+            let decoded = try? JSONDecoder().decode(AgentScheduleSpend.self, from: data)
+        {
+            scheduleSpend = decoded
+        } else {
+            // Fails closed: a cap that can't be read holds every schedule rather than lifting it.
+            scheduleSpend = AgentScheduleSpend(capUSD: 0)
+            scheduleSpendWritable = false
         }
     }
 
@@ -190,6 +206,27 @@ final class AgentStore {
         guard schedule(id: id) != nil, scheduleBaselines[id] != date else { return }
         scheduleBaselines[id] = date
         writeBaselines()
+    }
+
+    /// The user's own gesture, so it writes even over a file that wouldn't read.
+    func setScheduleCap(_ cap: Double?) throws(AgentScheduleError) {
+        var updated = scheduleSpend
+        updated.capUSD = AgentSpendPolicy.cap(cap)
+        guard let data = try? JSONEncoder().encode(updated) else { throw .storageUnavailable }
+        do {
+            try data.write(to: scheduleSpendURL, options: .atomic)
+        } catch {
+            throw .storageUnavailable
+        }
+        scheduleSpend = updated
+        scheduleSpendWritable = true
+    }
+
+    /// Runtime state like the baselines: a failed write only forgets part of today's spend.
+    func recordScheduledSpend(_ cost: Double, on day: String) {
+        scheduleSpend = AgentSpendPolicy.adding(cost, to: scheduleSpend, on: day)
+        guard scheduleSpendWritable, let data = try? JSONEncoder().encode(scheduleSpend) else { return }
+        try? data.write(to: scheduleSpendURL, options: .atomic)
     }
 
     private func dropBaselines(_ ids: [UUID]) {
