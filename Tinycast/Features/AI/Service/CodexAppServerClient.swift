@@ -312,10 +312,8 @@ final class CodexAppServerClient {
         guard let process else { return }
         process.terminationHandler = nil
         cleanup(error: error)
-        Task.detached {
-            try? await Task.sleep(for: .seconds(1))
-            if process.isRunning { process.terminate() }
-        }
+        // Fork: the whole tree, so an MCP server the helper launched never outlives it.
+        ProcessTree.reap(ProcessTree.members(under: process.processIdentifier), root: process)
     }
 
     private func send(_ data: Data) throws {
