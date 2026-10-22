@@ -39,6 +39,30 @@ enum UsagePeriod: String, CaseIterable, Identifiable, Sendable {
         interval.start <= now && now < interval.end
     }
 
+    /// A 25-hour day and a 31-day month both fit.
+    static let maxSlices = 32
+
+    /// Where each bar of the trend starts: the hours of a day, else the days of a week or month.
+    func slices(of interval: DateInterval, calendar: Calendar) -> [Date] {
+        let unit: Calendar.Component = self == .day ? .hour : .day
+        var starts: [Date] = []
+        var next = interval.start
+        while next < interval.end, starts.count < Self.maxSlices {
+            starts.append(next)
+            // Counted from the start each time, so a short month or a DST day never drifts a bar.
+            guard let following = calendar.date(byAdding: unit, value: starts.count, to: interval.start),
+                following > next
+            else { break }
+            next = following
+        }
+        return starts
+    }
+
+    func sliceTitle(of start: Date, calendar: Calendar, locale: Locale = .current) -> String {
+        let style = Date.FormatStyle(locale: locale, calendar: calendar, timeZone: calendar.timeZone)
+        return start.formatted(self == .day ? style.hour() : style.month(.abbreviated).day())
+    }
+
     func title(
         of interval: DateInterval, now: Date, calendar: Calendar, locale: Locale = .current
     ) -> String {

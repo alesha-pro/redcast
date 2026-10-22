@@ -12,6 +12,7 @@ struct UsageSection: View {
 
     private struct Request: Hashable {
         let interval: DateInterval
+        let slices: [Date]
         let isEnabled: Bool
     }
 
@@ -26,7 +27,9 @@ struct UsageSection: View {
     var body: some View {
         let now = Date()
         let interval = period.interval(containing: anchor, calendar: calendar)
-        let request = Request(interval: interval, isEnabled: appSettings.aiEnabled)
+        let request = Request(
+            interval: interval, slices: period.slices(of: interval, calendar: calendar),
+            isEnabled: appSettings.aiEnabled)
         let openRouter = aiSettings.connections.filter {
             $0.provider == .openRouter && aiSettings.isRouteEnabled(.api($0.id))
         }
@@ -36,8 +39,13 @@ struct UsageSection: View {
                 .task(id: request) { await load(request) }
             if let loaded, loaded.request == request {
                 if let report = loaded.report, !report.lines.isEmpty {
-                    SettingsRow(title: summary(report.total), subtitle: pricedNote(report.total)) {
+                    SettingsRow(title: Self.summary(report.total), subtitle: pricedNote(report.total)) {
                         EmptyView()
+                    }
+                    if report.slices.count > 1 {
+                        UsageTrendStrip(
+                            slices: report.slices, period: period, interval: interval, now: now,
+                            calendar: calendar)
                     }
                     ForEach(report.lines) { line in
                         UsageLineRow(
@@ -95,7 +103,7 @@ struct UsageSection: View {
         guard request.isEnabled else { return }
         let report = try? await UsageQuery.report(
             databaseURL: core.chatHistory.databaseURL, ledgerURL: UsageLedger.url, in: request.interval,
-            agents: acpBindings())
+            slices: request.slices, agents: acpBindings())
         guard !Task.isCancelled else { return }
         loaded = Loaded(request: request, report: report)
     }
@@ -107,7 +115,7 @@ struct UsageSection: View {
         return store.chatAgents.filter { acp.contains($0.value) }
     }
 
-    private func summary(_ total: UsageTotals) -> String {
+    fileprivate static func summary(_ total: UsageTotals) -> String {
         let tokens = UsageFormat.tokens(total.tokens)
         guard let cost = total.cost else { return String(localized: "\(tokens) tokens") }
         return String(localized: "\(tokens) tokens · \(UsageFormat.cost(cost))")
@@ -256,5 +264,48 @@ private struct OpenRouterBalanceRow: View {
             lines.append(String(localized: "The account balance needs an OpenRouter management key."))
         }
         return lines
+    }
+}
+
+/// Tokens per hour of a day, or per day of a week or month, with the slice holding now tinted.
+private struct UsageTrendStrip: View {
+    let slices: [UsageReport.Slice]
+    let period: UsagePeriod
+    let interval: DateInterval
+    let now: Date
+    let calendar: Calendar
+
+    var body: some View {
+        let peak = slices.map(\.totals.tokens).max() ?? 0
+        let current = period.isCurrent(interval, now: now) ? slices.lastIndex { $0.start <= now } : nil
+        HStack(alignment: .bottom, spacing: Theme.Spacing.xxs) {
+            ForEach(Array(slices.enumerated()), id: \.element.id) { index, slice in
+                bar(slice, peak: peak, isCurrent: index == current)
+            }
+        }
+        .frame(height: Theme.Size.usageTrendHeight)
+    }
+
+    private func bar(_ slice: UsageReport.Slice, peak: Int, isCurrent: Bool) -> some View {
+        let tokens = slice.totals.tokens
+        let label = period.sliceTitle(of: slice.start, calendar: calendar) + "\n"
+            + UsageSection.summary(slice.totals)
+        let fill: Color =
+            tokens == 0 ? Theme.Colors.separator : isCurrent ? .accentColor : Theme.Colors.textTertiary
+        let height =
+            tokens == 0
+            ? Theme.Size.hairline
+            : max(Theme.Spacing.xxs, Theme.Size.usageTrendHeight * CGFloat(tokens) / CGFloat(max(peak, 1)))
+        return Color.clear
+            .overlay(alignment: .bottom) {
+                RoundedRectangle(cornerRadius: Theme.Radius.glyph)
+                    .fill(fill)
+                    .frame(height: height)
+            }
+            .frame(maxWidth: .infinity)
+            .contentShape(Rectangle())
+            .help(label)
+            .accessibilityElement()
+            .accessibilityLabel(Text(verbatim: label))
     }
 }
