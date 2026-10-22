@@ -64,7 +64,7 @@ private struct ChatToolContentView: View {
                         .truncationMode(.middle)
                 }
                 if !diff.lines.isEmpty {
-                    Text(Self.styled(ChatToolContent.lines(of: diff)))
+                    Text(Self.styled(ChatToolContent.lines(of: diff), gutter: "  "))
                 }
             }
             if content.omittedDiffs > 0 {
@@ -74,7 +74,7 @@ private struct ChatToolContentView: View {
             }
             if content.output != nil {
                 HStack(alignment: .top, spacing: metrics.spacing.md) {
-                    Text(Self.styled(content.outputLines))
+                    Text(Self.styled(content.outputLines, gutter: ""))
                         .frame(maxWidth: .infinity, alignment: .leading)
                     ChatCopyButton(
                         text: Self.plainText(content.outputLines), label: String(localized: "Copy Output"))
@@ -96,8 +96,8 @@ private struct ChatToolContentView: View {
                 .stroke(Theme.Colors.cardStroke))
     }
 
-    /// One string per block, so the lines wrap and select as text rather than as rows of views.
-    private static func styled(_ lines: [ChatToolContent.Line]) -> AttributedString {
+    /// One string per block, so the lines wrap and select as text; a cut sits in a diff's gutter.
+    private static func styled(_ lines: [ChatToolContent.Line], gutter: String) -> AttributedString {
         var result = AttributedString()
         for (index, line) in lines.enumerated() {
             if index > 0 { result.append(AttributedString("\n")) }
@@ -115,7 +115,7 @@ private struct ChatToolContentView: View {
             case .text(let text):
                 run = AttributedString(text)
             case .cut(let count):
-                run = AttributedString(String(localized: "\(count) lines not shown"))
+                run = AttributedString(gutter + String(localized: "\(count) lines not shown"))
                 run.foregroundColor = Theme.Colors.textTertiary
             }
             result.append(run)
