@@ -63,6 +63,7 @@
 		102448FF76CCCE6B8E3DBAFB /* ColorPreview.swift in Sources */ = {isa = PBXBuildFile; fileRef = C214E40D42F4812F141C16A8 /* ColorPreview.swift */; };
 		106AF34CEAEB08CBCC924118 /* VolumeLevel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 273827EB5CC04F1951C40387 /* VolumeLevel.swift */; };
 		109E27ACDAADDA42FE33E119 /* SettingsNavigationState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 364BEC0805A8F5C39444EAF5 /* SettingsNavigationState.swift */; };
+		11399BB0E0713F8145093CD0 /* AgentLoopProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = C27A83363DD4F02EBA1B6DA9 /* AgentLoopProvider.swift */; };
 		11A0F91815E5DFE1AB08CC20 /* FormFieldChrome.swift in Sources */ = {isa = PBXBuildFile; fileRef = C06BD8A507191F2621FCFFC7 /* FormFieldChrome.swift */; };
 		11C3F9D5C786EF1D11787E0C /* CustomCommandCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE41DC04958D7C2FF8C47F62 /* CustomCommandCoordinator.swift */; };
 		11EF7061ED64616FFB13423F /* SettingsHistory.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C504229760FFFFA9D8A7799 /* SettingsHistory.swift */; };
@@ -1588,6 +1589,7 @@
 		C0599199132DAFBE12C59FBD /* MeetingDay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeetingDay.swift; sourceTree = "<group>"; };
 		C06BD8A507191F2621FCFFC7 /* FormFieldChrome.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FormFieldChrome.swift; sourceTree = "<group>"; };
 		C214E40D42F4812F141C16A8 /* ColorPreview.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ColorPreview.swift; sourceTree = "<group>"; };
+		C27A83363DD4F02EBA1B6DA9 /* AgentLoopProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentLoopProvider.swift; sourceTree = "<group>"; };
 		C2EAA357A9F0317320CFAADF /* TerminalLogView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TerminalLogView.swift; sourceTree = "<group>"; };
 		C3C83D437500107168E12647 /* QuickActionSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuickActionSettings.swift; sourceTree = "<group>"; };
 		C3CAC74EF89303B0B75D5466 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
@@ -2427,6 +2429,7 @@
 				D5B73C2F128A9E05390624E7 /* ACPConnection.swift */,
 				02D3545E346A81BE41C61FFE /* AgentACPHost.swift */,
 				6CC2D0842030BF715C820577 /* AgentContextLoader.swift */,
+				C27A83363DD4F02EBA1B6DA9 /* AgentLoopProvider.swift */,
 				71FAFB9D6EBEF275C5430C15 /* AgentToolExecutor.swift */,
 			);
 			path = Service;
@@ -4183,6 +4186,7 @@
 				43BE7AE29182A713747B48C5 /* AgentContextLoader.swift in Sources */,
 				5C415344C8792615C092556F /* AgentCoordinator.swift in Sources */,
 				5B946A37427401751F3FE3F8 /* AgentEditorPanel.swift in Sources */,
+				11399BB0E0713F8145093CD0 /* AgentLoopProvider.swift in Sources */,
 				85451239A15632062DE97E6F /* AgentProfile.swift in Sources */,
 				E8F17763955231BA46981BC7 /* AgentRuntime.swift in Sources */,
 				A8F6C8D6EC726CFD5F580E07 /* AgentSkill.swift in Sources */,
