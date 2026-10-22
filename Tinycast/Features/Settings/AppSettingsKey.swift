@@ -101,6 +101,7 @@ enum AppSettingsKey: String, CaseIterable {
     case screenAwarenessEnabled = "screenAwarenessEnabled"
     case screenAwarenessScreenshot = "screenAwarenessScreenshot"
     case screenAwarenessDestination = "screenAwarenessDestination"
+    case screenAwarenessShortcutOffered = "screenAwarenessShortcutOffered"
     case quickActionModel = "quickActionModel"
     case quickActionModelOverrides = "quickActionModelOverrides"
     case quickActionPreviews = "quickActionPreviews"

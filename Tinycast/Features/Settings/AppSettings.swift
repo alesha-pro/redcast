@@ -448,6 +448,14 @@ final class AppSettings {
         }
     }
 
+    /// Set once the double tap has been offered, so a binding the reader cleared stays cleared.
+    var screenAwarenessShortcutOffered: Bool {
+        didSet {
+            defaults.set(
+                screenAwarenessShortcutOffered, forKey: Key.screenAwarenessShortcutOffered.rawValue)
+        }
+    }
+
     var snippetsShowInLauncher: Bool {
         didSet { defaults.set(snippetsShowInLauncher, forKey: Key.snippetsShowInLauncher.rawValue) }
     }
@@ -820,6 +828,8 @@ final class AppSettings {
         screenAwarenessDestination =
             defaults.string(forKey: Key.screenAwarenessDestination.rawValue)
             .flatMap(ScreenAwarenessDestination.init(rawValue:)) ?? .aiChat
+        screenAwarenessShortcutOffered = defaults.bool(
+            forKey: Key.screenAwarenessShortcutOffered.rawValue)
         snippetsShowInLauncher =
             defaults.object(forKey: Key.snippetsShowInLauncher.rawValue) == nil
             || defaults.bool(forKey: Key.snippetsShowInLauncher.rawValue)

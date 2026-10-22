@@ -440,6 +440,7 @@ final class AppCore {
                 windowRoomIDs: Set(rooms.rooms.map(\.id)),
                 customWindowSizeIDs: Set(customWindowSizes.sizes.map(\.id)),
                 quickActionIDs: Set(customQuickActions.actions.map(\.id)))
+            screenAwarenessCoordinator.offerShortcutIfNeeded()
             // After `hotKeys.start`: Secure Input equivalents are built from the loaded bindings.
             hyperKey.onProblem = { [weak self] in self?.showMessage($0, tone: .danger) }
             hyperKey.start()

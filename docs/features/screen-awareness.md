@@ -28,10 +28,12 @@ plus the few lines that wire it in.
 - **What was on screen is material, not a request.** The text attachment opens by saying so. A window
   title is forced onto one line, so it cannot forge a header row, and the attachment is named after the
   app alone.
-- **Raycast's gesture, never someone else's.** Enabling binds Ask About Screen to a double tap of the
-  right ⌘ (`HotKeyBinding.doubleModifier(.rightCommand)`) only when the command has no binding and
-  `HotKeyManager.conflictOwner` finds nothing holding that gesture; a binding the reader chose, or
-  cleared, is never replaced.
+- **Raycast's gesture, offered once, never someone else's.** `offerShortcutIfNeeded` binds Ask About
+  Screen to a double tap of the right ⌘ (`HotKeyBinding.doubleModifier(.rightCommand)`) the first time
+  the feature is on — at enable, or at launch for a Mac that enabled it before the offer existed — only
+  when the command has no binding and `HotKeyManager.conflictOwner` finds nothing holding that
+  gesture. At launch it runs after `hotKeys.start`, since before it every stored binding reads as none.
+  `screenAwarenessShortcutOffered` then stays set, so a binding the reader cleared stays cleared.
 - **The capture is taken before anything comes forward.** Both destinations are shown only after the
   window was read, so neither the AI Chat window nor the palette can become the window captured.
 - **A picture the route cannot see stays behind.** `AIChatCoordinator.stage` checks
