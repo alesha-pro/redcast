@@ -29,7 +29,9 @@ stays in `Features/Agents/` plus the few lines in `AIChatCoordinator`, `AIChatDe
   call off-main; `AgentCoordinator.providers(for:)` is the registry, one line per family, built per
   turn so nothing stays resident. A provider that needs another feature's types lives in that
   feature's `Service/`, so the harnesses that compile `Agents/Service` never pull in app types; see
-  [Adding a tool family](#adding-a-tool-family).
+  [Adding a tool family](#adding-a-tool-family). The Web family's `web_search` is the second one,
+  `WebSearchAgentTools`, so a chat with or without an agent searches through the same
+  `WebSearchRunner` ([web search](web-search.md)).
 - **The tools menu switches MCP, never the agent.** An agent's tools ride every turn of its chat;
   `ChatToolScope` still narrows MCP servers as before.
 - **Consent is decided once, by risk.** A provider calls its context's `consent` before any effect
@@ -159,6 +161,7 @@ because the composer's label and menu styles are private to that file.
 | `write_file`, `edit_file` | files | change | workspace, full | ask | Changes |
 | `run_command` | terminal | execute | workspace, full | ask | Commands |
 | `web_fetch` | web | network | any | always | Web |
+| `web_search` | web | network | any | always | Web |
 | `memory_read` | memory | read | any | always | — |
 | `memory_write` | memory | own | any | always | — |
 | `load_skill` | — (when skills exist) | read | any | always | — |
@@ -167,15 +170,18 @@ because the composer's label and menu styles are private to that file.
 agent's folder, stopped after its timeout (120 s by default, 600 s at most); escape sequences are
 stripped and only the output's tail is kept. `search_files` prefers ripgrep and falls back to
 `grep -rnIE`, run without a shell so a pattern is never interpreted. `web_fetch` uses a private
-`.ephemeral` session with no cache, reads at most 2 MB, and turns HTML into text.
+`.ephemeral` session with no cache, reads at most 2 MB, and turns HTML into text. `web_search` runs
+through [web search](web-search.md)'s engine chain, not the executor; it asks under the same Web rule
+and shows a search row between its own row's opening and closing.
 
 Neighbouring calls that may share a round run together, four at most (`AgentLoopProvider.width`),
-which bounds memory to four 2 MB fetch buffers and processes to four ripgreps: reads, `web_fetch` and
-`load_skill` (`AgentToolSpec.concurrent`). Every row of a batch opens first, each closes as its call
-ends, and the model reads the results in the order it asked. A call whose rule can ask, an MCP call
-(a second dialog would be refused while the first is up), `memory_write` (two appends would race on
-`memory.md`) and any change or command run alone, in their place. Two concurrent searches' rows
-complete together, since `AIChatState` closes every open search row on `.searched`.
+which bounds memory to four 2 MB fetch buffers and processes to four ripgreps: reads, `web_fetch`,
+`web_search` and `load_skill` (`AgentToolSpec.concurrent`). Every row of a batch opens first, each
+closes as its call ends, and the model reads the results in the order it asked. A call whose rule
+can ask, an MCP call (a second dialog would be refused while the first is up), `memory_write` (two
+appends would race on `memory.md`) and any change or command run alone, in their place. Two
+concurrent searches' rows complete together, since `AIChatState` closes every open search row on
+`.searched`.
 
 ## Adding a tool family
 
@@ -220,6 +226,8 @@ changes: no router edit, no upstream line, no prompt edit.
   cannot rather than calling a tool. Set Web to Never Allow: the transcript shows no `web_fetch`, and
   asking it to fetch a page gets no tool row. Set Web to Ask Each Chat: a fetch raises "wants to use
   web_fetch". Reopen the editor: the choices stuck.
+- Ask an agent with Web on about today's news: the transcript shows its `web_search` row and a
+  "Searched web" row, then the answer cites sources. With Web off it says it cannot look things up.
 - Delete the agent: its chats remain as plain chats and the composer shows No Agent.
 - ACP: make an agent on Claude Code in a project folder; ask it to read and change a file. The first
   turn may wait while npx fetches the adapter; then the dialog lists Claude's own options, the
@@ -235,4 +243,5 @@ changes: no router edit, no upstream line, no prompt edit.
   writes with consent, link escapes, commands, timeouts and Stop, memory, skills, HTML; the built-ins
   through a toolset, with and without an agent's own rules; every refused effect); and
   `agent-loop-test` (the fork's loop and upstream's on the same scripts under 128 KB; routing,
-  signals, Stop, parallel batches, a long turn that elides).
+  signals, Stop, parallel batches, a long turn that elides); `web-search-test` covers the search
+  provider through a toolset and the loop.

@@ -215,6 +215,9 @@ struct AgentEditorPanel: View {
                 Toggle("Memory", isOn: tool(.memory))
             }
             .toggleStyle(.checkbox)
+            Text("Web reads pages and searches with the engines in Settings → AI → Chat.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
         }
     }
 
