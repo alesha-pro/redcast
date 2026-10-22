@@ -20,6 +20,7 @@
 		02452CD187D25FD9CD3EF2CF /* QuicklinkLauncher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1B865FF16D3C395A8D509B94 /* QuicklinkLauncher.swift */; };
 		026EC0A6376B11C3C0797503 /* AIChatSplitViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA6A158B37AA1336D7FE9C32 /* AIChatSplitViewController.swift */; };
 		0288221BA580DFA8F5B116B7 /* ExtensionIconCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = B9F568F2F6EF857274F1A9D8 /* ExtensionIconCache.swift */; };
+		02E929807BCBEE73087DB965 /* VoiceAskSettingsSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = DB09D2618B27ECE2D925AF8D /* VoiceAskSettingsSection.swift */; };
 		034473B26535154C38E22A28 /* FileIndexSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DE19D3AA2CC13A249DF4C92 /* FileIndexSnapshot.swift */; };
 		03C41F6394089BAEC7E630D6 /* ClipboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FBF6EF3A2C35F45B82D40968 /* ClipboardView.swift */; };
 		0471620D8B0888FCF0F66E68 /* VoiceModelRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12C5D97246BF67AA8AE9F8AA /* VoiceModelRow.swift */; };
@@ -589,6 +590,7 @@
 		A79B7385C6B6E6C67FDFB152 /* RaycastImportError.swift in Sources */ = {isa = PBXBuildFile; fileRef = B675C14B308FA33896A8AE49 /* RaycastImportError.swift */; };
 		A7D7F8F64B0937D20D97F428 /* ExtensionAppearance.swift in Sources */ = {isa = PBXBuildFile; fileRef = D755EEABA1DA9CA4CE2D0B4F /* ExtensionAppearance.swift */; };
 		A7F4CD74AEBEFF9F07103CD7 /* EmojiIndex.swift in Sources */ = {isa = PBXBuildFile; fileRef = 316A544BF6628C0465DE28D8 /* EmojiIndex.swift */; };
+		A8B5C2F7B72DEBE17A1046BC /* VoiceAskCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CEC7FB0A4894835236EFC4A /* VoiceAskCoordinator.swift */; };
 		A8F34B293EDC769BE6C643B9 /* KeyboardRemapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = EC3D5A5B8038C07FEE03F433 /* KeyboardRemapper.swift */; };
 		A8F6C8D6EC726CFD5F580E07 /* AgentSkill.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18F82BE6758E4D08E798FC19 /* AgentSkill.swift */; };
 		A9052A2FB008642EA7222D34 /* AIChatSidebarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DE5F7CBAA5D18713A203BAD /* AIChatSidebarView.swift */; };
@@ -1144,6 +1146,7 @@
 		3BA9F5F7226AD5A91835AF5C /* LaunchAtLogin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchAtLogin.swift; sourceTree = "<group>"; };
 		3C021D578082B4FE98D27CAC /* SpaceSwitcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpaceSwitcher.swift; sourceTree = "<group>"; };
 		3C504229760FFFFA9D8A7799 /* SettingsHistory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsHistory.swift; sourceTree = "<group>"; };
+		3CEC7FB0A4894835236EFC4A /* VoiceAskCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceAskCoordinator.swift; sourceTree = "<group>"; };
 		3E16AEF81320A101E384098E /* KeyShortcut.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyShortcut.swift; sourceTree = "<group>"; };
 		3E4A7E45F7D1CC5FB8868715 /* SearchScopes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchScopes.swift; sourceTree = "<group>"; };
 		3E9A41BB96D90E8390A610A7 /* ScreenContext.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenContext.swift; sourceTree = "<group>"; };
@@ -1691,6 +1694,7 @@
 		DA8CBA97041AAA96C0B7FF2E /* BackupActions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackupActions.swift; sourceTree = "<group>"; };
 		DACBBA4F593D396201257883 /* CalendarMenuBarItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarMenuBarItem.swift; sourceTree = "<group>"; };
 		DB02E0EF46285235AD81C181 /* AIBrand.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIBrand.swift; sourceTree = "<group>"; };
+		DB09D2618B27ECE2D925AF8D /* VoiceAskSettingsSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceAskSettingsSection.swift; sourceTree = "<group>"; };
 		DB1752929BA1ACC0BC54865C /* HUDPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HUDPanel.swift; sourceTree = "<group>"; };
 		DB40137D0539CB3BB9A305C8 /* ExtensionLaunchError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExtensionLaunchError.swift; sourceTree = "<group>"; };
 		DB44DCF1B6B9C9846CFB053D /* CameraView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraView.swift; sourceTree = "<group>"; };
@@ -3125,6 +3129,7 @@
 			isa = PBXGroup;
 			children = (
 				399F49D6101CD0A97809A4DD /* VoiceAISettings.swift */,
+				DB09D2618B27ECE2D925AF8D /* VoiceAskSettingsSection.swift */,
 				6EC1DFFB88EBC4C95EBE4F12 /* VoiceCloudDictationSection.swift */,
 				12C5D97246BF67AA8AE9F8AA /* VoiceModelRow.swift */,
 			);
@@ -3520,6 +3525,14 @@
 			path = Settings;
 			sourceTree = "<group>";
 		};
+		C0768EBA0069A668E4DF6E18 /* UI */ = {
+			isa = PBXGroup;
+			children = (
+				3CEC7FB0A4894835236EFC4A /* VoiceAskCoordinator.swift */,
+			);
+			path = UI;
+			sourceTree = "<group>";
+		};
 		C23A9ACF428FD868258D2A0B /* Settings */ = {
 			isa = PBXGroup;
 			children = (
@@ -3621,6 +3634,7 @@
 				AABF144D405EAD49EEF81ED7 /* Model */,
 				A7C61E1AA39A66F8B7CB8D9D /* Service */,
 				9DD3182D65504923FF858F90 /* Settings */,
+				C0768EBA0069A668E4DF6E18 /* UI */,
 			);
 			path = VoiceAI;
 			sourceTree = "<group>";
@@ -4973,6 +4987,8 @@
 				5B917652BDF19175F435E373 /* VoiceAIFailure.swift in Sources */,
 				08D36E8C92B97C61F3F37CA5 /* VoiceAIRoute.swift in Sources */,
 				DED775D5277ADFD2DC89965C /* VoiceAISettings.swift in Sources */,
+				A8B5C2F7B72DEBE17A1046BC /* VoiceAskCoordinator.swift in Sources */,
+				02E929807BCBEE73087DB965 /* VoiceAskSettingsSection.swift in Sources */,
 				9EE2476712E3335EA90F94BB /* VoiceAudio.swift in Sources */,
 				687DD3DAC389EE930BD873DF /* VoiceCloudDictationSection.swift in Sources */,
 				624C82CD22F78210DAABD527 /* VoiceCloudTranscriber.swift in Sources */,

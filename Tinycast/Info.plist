@@ -68,7 +68,7 @@
 	<key>NSCameraUsageDescription</key>
 	<string>Tinycast shows a camera preview so you can check yourself, and take a photo to the clipboard.</string>
 	<key>NSMicrophoneUsageDescription</key>
-	<string>Tinycast records audio only while you use Dictation, to transcribe it on your Mac.</string>
+	<string>Tinycast records audio only while you use Dictation or Ask by Voice, to transcribe it on your Mac or with the AI service you choose.</string>
 	<key>NSCalendarsFullAccessUsageDescription</key>
 	<string>Tinycast accesses your events to show your schedule and let you join meetings.</string>
 	<key>NSRemindersFullAccessUsageDescription</key>

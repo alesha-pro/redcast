@@ -243,6 +243,9 @@ final class AppCore {
         ScreenAwarenessCoordinator(
             settings: settings, appIndex: appIndex, hotKeys: hotKeys,
             paletteCoordinator: paletteCoordinator, core: self)
+    @ObservationIgnored private(set) lazy var voiceAskCoordinator = VoiceAskCoordinator(
+        settings: settings, voice: voiceSettings, aiSettings: aiSettings, appIndex: appIndex,
+        hotKeys: hotKeys, injector: textInjector, audioDucker: dictationAudioDucker, core: self)
     @ObservationIgnored private(set) lazy var agentCoordinator = AgentCoordinator(
         store: agentStore, core: self)
     @ObservationIgnored private(set) lazy var mcpCoordinator = MCPCoordinator(
@@ -323,6 +326,7 @@ final class AppCore {
             aiChatCoordinator.applyEnabled()
             agentStore.load()
             screenAwarenessCoordinator.applyEnabled()
+            voiceAskCoordinator.applyEnabled()
             mcpCoordinator.applyEnabled()
             customQuickActions.onChange = { [weak self] _ in
                 self?.quickActionCoordinator.applyCustomQuickActionsPresence()
@@ -388,6 +392,10 @@ final class AppCore {
             hotKeys.onDictationReleased = { [weak self] in self?.dictationCoordinator.released() }
             hotKeys.onDictationCancelled = { [weak self] in self?.dictationCoordinator.cancel() }
             hotKeys.onRunCommand = { [weak self] id in self?.launcherCoordinator.runCommand(id) }
+            hotKeys.releasedCommands = [.askByVoice]
+            hotKeys.onCommandReleased = { [weak self] id in
+                if id == .askByVoice { self?.voiceAskCoordinator.released() }
+            }
             hotKeys.onRunCustomCommand = { [weak self] id in
                 self?.customCommandCoordinator.runCustomCommand(id: id)
             }
@@ -546,6 +554,7 @@ final class AppCore {
 
     func stopDictationForTermination() async {
         if settings.dictationEnabled { dictationCoordinator.prepareForTermination() }
+        voiceAskCoordinator.prepareForTermination()
         dictationAudioDucker.restoreImmediately()
         await dictationAudioDucker.waitForTransition()
         await dictationModels.stop()
@@ -590,6 +599,7 @@ final class AppCore {
 
     func prepareForTermination() {
         if settings.dictationEnabled { dictationCoordinator.prepareForTermination() }
+        voiceAskCoordinator.prepareForTermination()
         settingsFile?.flush()
         clipboardTextIndexer?.stop()
         // HID remaps first: they outlive the process.
@@ -742,7 +752,12 @@ final class AppCore {
             {
                 _ = $0.aiEnabled
                 _ = $0.screenAwarenessEnabled
-            }, reproject: { $0.screenAwarenessCoordinator.applyEnabled() })
+            },
+            reproject: {
+                $0.screenAwarenessCoordinator.applyEnabled()
+                $0.voiceAskCoordinator.applyEnabled()
+            })
+        track(voiceSettings, { _ = $0.askEnabled }, reproject: { $0.voiceAskCoordinator.applyEnabled() })
         track({ _ = $0.calendarEnabled }, reproject: { $0.calendarCoordinator.applyEnabled() })
         track(
             {

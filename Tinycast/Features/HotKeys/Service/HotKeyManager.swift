@@ -24,6 +24,9 @@ final class HotKeyManager {
     }
     /// The launcher's own command funnel, so a shortcut and a palette row run the same thing.
     var onRunCommand: ((CommandID) -> Void)?
+    /// Commands that hear their chord's release, for hold-to-talk; set before `start`.
+    var releasedCommands: Set<CommandID> = []
+    var onCommandReleased: ((CommandID) -> Void)?
     var onRunCustomCommand: ((UUID) -> Void)?
     var onRunSystemAction: ((SystemAction.ID) -> Void)?
     var onRunWindowCommand: ((WindowCommand.ID) -> Void)?
@@ -398,7 +401,17 @@ final class HotKeyManager {
         center.register(
             id: action.defaultsKey, shortcut: shortcut,
             onKeyDown: { [weak self] _ in self?.perform(action) },
-            onKeyUp: action == .dictation ? { [weak self] in self?.onDictationReleased?() } : nil)
+            onKeyUp: releaseHandler(for: action))
+    }
+
+    /// Only a hold-to-talk action hears its chord's release; every other key-up passes through.
+    private func releaseHandler(for action: HotKeyAction) -> (() -> Void)? {
+        switch action {
+        case .dictation: return { [weak self] in self?.onDictationReleased?() }
+        case .command(let id) where releasedCommands.contains(id):
+            return { [weak self] in self?.onCommandReleased?(id) }
+        default: return nil
+        }
     }
 
     /// Rebuilt wholesale, so the map can't drift from what is on disk.

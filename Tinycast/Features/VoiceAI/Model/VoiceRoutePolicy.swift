@@ -32,7 +32,7 @@ enum VoiceRoutePolicy {
         }
     }
 
-    /// Only bodies Tinycast writes with input_audio: every OpenAI-compatible shape, never Anthropic.
+    /// Only a body Tinycast writes with input_audio: any OpenAI-compatible shape, never Anthropic.
     static func accepts(_ connection: AIConnection) -> Bool {
         connection.provider.apiShape == .openAICompatible
     }

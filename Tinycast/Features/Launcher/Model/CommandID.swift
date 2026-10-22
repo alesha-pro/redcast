@@ -5,6 +5,7 @@ enum CommandID: String, CaseIterable, Sendable {
     case quickAI = "command:ai-chat"
     case aiChat = "command:ai-chat-window"
     case askAboutScreen = "command:ask-about-screen"
+    case askByVoice = "command:ask-by-voice"
     case fixGrammar = "command:fix-grammar"
     case rewrite = "command:rewrite"
     case translate = "command:translate"
@@ -59,6 +60,7 @@ enum CommandID: String, CaseIterable, Sendable {
         case .quickAI: return "Quick AI"
         case .aiChat: return "AI Chat"
         case .askAboutScreen: return "Ask About Screen"
+        case .askByVoice: return "Ask by Voice"
         case .fixGrammar: return BuiltInQuickAction.fixGrammar.titleResource
         case .rewrite: return BuiltInQuickAction.rewrite.titleResource
         case .translate: return BuiltInQuickAction.translate.titleResource
@@ -111,6 +113,7 @@ enum CommandID: String, CaseIterable, Sendable {
         case .quickAI: return "sparkles"
         case .aiChat: return "bubble.left.and.bubble.right"
         case .askAboutScreen: return "macwindow.and.cursorarrow"
+        case .askByVoice: return "waveform.and.mic"
         case .fixGrammar: return BuiltInQuickAction.fixGrammar.symbol
         case .rewrite: return BuiltInQuickAction.rewrite.symbol
         case .translate: return BuiltInQuickAction.translate.symbol
@@ -183,6 +186,7 @@ enum CommandID: String, CaseIterable, Sendable {
         case .quickAI: ["ai"]
         case .aiChat: ["chat"]
         case .askAboutScreen: ["screen"]
+        case .askByVoice: ["voice"]
         default: []
         }
     }
