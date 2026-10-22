@@ -85,6 +85,11 @@ in root search or on a schedule: see [background and scheduled agents](backgroun
 - **The binding is the fork's, not the chat history's.** Which chat has which agent is
   `agent-chats.json` beside `agents.json` in Application Support, so upstream's SQLite schema is
   untouched. Deleting an agent frees its chats, which stay as plain AI chats, and deletes its notes.
+- **An ACP tool row holds only what it shows.** A call's diffs and output are compacted once, as they
+  arrive, by `ChatToolContent(call:)`, and the compacted form is both what the row unfolds and what
+  is saved: at most 12 KB a row. It is saved in its own table, `message_tool_content`, keyed like
+  `message_tools` and deleted with its message, so `message_tools` keeps its columns and a chat this
+  build saved opens unchanged, without the content, in a build from before it.
 
 ## ACP agents
 
@@ -131,6 +136,16 @@ They run on the user's own logins and subscriptions; Tinycast never sees a key.
   window and cost from the last `usage_update` (ACP's cost is the session's running total, stored as
   it came). Attachments go as image blocks and embedded resources when the agent declared it takes
   them, else inlined. A `refusal` stop reason is an error.
+- **A tool row unfolds what the call showed.** A report that carries `content` replaces the row's,
+  as ACP's updates do, through one `AIStreamEvent.toolOutput` that only `AIChatState` reads; the
+  mapper sends it only when the compacted content changed. Diffs show their path once per file and
+  a line diff (`-`, `+`, two lines of context, longer unchanged runs counted) — six blocks, 60 lines
+  each, 8 KB together, the rest counted. Text, which is how Claude Code's adapter sends a command's
+  output (fenced as `console`) and Codex's sends it at the command's end, loses its escape
+  sequences, one wrapping fence and overwritten progress, and keeps 80 lines of 240 characters: a
+  command its last 60, anything else its first 60. The row is collapsed until clicked, the unfolded
+  text wraps in a card like a code block and copies with Copy Output, and nothing is streamed per
+  chunk: `_meta.terminal_output` is not asked for. Images inside tool content are not shown.
 - **Modes are the agent's.** The modes a session offers (Claude Code's plan, Codex's read-only…)
   replace the model and reasoning pickers in the composer. The choice is stored on the agent as
   `acpMode`, applied with `session/set_mode` to a live session and to each new one, and the menu
@@ -156,9 +171,12 @@ They run on the user's own logins and subscriptions; Tinycast never sees a key.
 | `UI/AgentCoordinator.swift` | Bindings, cached context, the turn's prompt, its loop and provider registry, consent |
 | `Model/AgentRuntime.swift` | ACP presets and the command/arguments an agent runs |
 | `Model/ACPProtocol.swift` | Framing, `session/update` decoding, permissions, prompt blocks, modes, `ACPEventMapper` |
+| `Model/ChatToolContent.swift` | A tool row's compacted diffs and output as saved; the only fork type upstream's chat model names |
+| `Model/ACPToolContent.swift` | The compaction: line diff, folds, output cleaning, the per-row budget |
 | `Service/ACPConnection.swift` | One agent process: launch, `initialize`, requests, permission routing, exit |
 | `Service/ProcessTree.swift` | Descendants by pid and start time, and their SIGTERM then SIGKILL |
 | `Service/AgentACPHost.swift` | Processes per agent, sessions per chat, load/new, modes; `ACPAgentProvider` |
+| `UI/ChatToolContentView.swift` | `.toolContent(_:)`: a transcript row's fold and its diff or output card |
 | `Settings/AgentsSettingsSection.swift`, `AgentEditorPanel.swift` | The AI pane's list, its schedules and the editor |
 
 Background runs and schedules add their own files, listed in
@@ -256,9 +274,16 @@ prompt edit.
   Switch to Plan and ask again; Stop mid-turn; quit Tinycast and continue the chat — the session
   reloads. Repeat with Codex and with `hermes acp`, and with a command that does not exist (an error
   names it).
-- Harnesses: `acp-test` (framing, updates, permissions, prompts, modes and a scripted agent process
-  in `Tests/acp-fixtures/fake-agent.mjs`: streaming, consent, reuse, refusal, cancel, reload, lost
-  sessions, a missing command, two agents sharing a session id); `agent-test` (skills, catalog, path policy, tool sets, specs, consent
+- ACP rows: ask Claude Code to change two lines far apart in a file, then to run `ls -la` and a
+  failing test. Each row has a chevron and opens to the path and red and green lines with two of
+  context, or to the command's output without colour codes or a `console` fence; Copy Output copies
+  it. Quit and reopen the chat: the rows open the same. Ask for a 500-line file: the row shows 60
+  lines and a count. Repeat with Codex (`apply_patch` hunks, command output at its end).
+- Harnesses: `acp-test` (framing, updates, permissions, prompts, modes, tool content compaction,
+  and a scripted agent process in `Tests/acp-fixtures/fake-agent.mjs`: streaming, consent, reuse,
+  refusal, cancel, reload, lost sessions, a missing command, two agents sharing a session id, diffs
+  and output reaching their rows once); `ai-chat-test`'s fork case (content on its row, saved beside
+  it, unreadable or absent content, a store from before the table, the cascade); `agent-test` (skills, catalog, path policy, tool sets, specs, consent
   policy and per-agent rules, toolset order and routing, batches, budget, elision, the prompt and the
   rules it states, persistence); `agent-tools-test` (the executor against a real folder: reads,
   writes with consent, link escapes, commands, timeouts and Stop, memory, skills, HTML; the built-ins

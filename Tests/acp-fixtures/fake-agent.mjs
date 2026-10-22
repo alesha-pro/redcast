@@ -54,6 +54,22 @@ async function prompt(id, params) {
     send({ id, result: { stopReason: "refusal" } });
     return;
   }
+  if (text.includes("DIFF")) {
+    const diff = { type: "diff", path: "/tmp/a.txt", oldText: "keep\nold\nkeep 2", newText: "keep\nnew\nkeep 2" };
+    update(sessionId, {
+      sessionUpdate: "tool_call", toolCallId: "call_d", title: "Edit a.txt", kind: "edit", status: "in_progress",
+      content: [diff],
+    });
+    update(sessionId, { sessionUpdate: "tool_call_update", toolCallId: "call_d", content: [diff] });
+    update(sessionId, { sessionUpdate: "tool_call_update", toolCallId: "call_d", status: "completed" });
+    update(sessionId, { sessionUpdate: "tool_call", toolCallId: "call_x", title: "npm test", kind: "execute", status: "in_progress" });
+    update(sessionId, {
+      sessionUpdate: "tool_call_update", toolCallId: "call_x", status: "completed",
+      content: [{ type: "content", content: { type: "text", text: "```console\n\u001b[32mok\u001b[0m 3 tests\n```" } }],
+    });
+    send({ id, result: { stopReason: "end_turn" } });
+    return;
+  }
 
   update(sessionId, { sessionUpdate: "agent_thought_chunk", content: { type: "text", text: "Thinking it over." } });
   update(sessionId, {

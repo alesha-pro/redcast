@@ -182,6 +182,8 @@ struct ACPToolCall: Equatable, Sendable {
     var kind: String?
     var status: Status?
     var rawInput: JSONValue?
+    /// Whether this report carried `content` at all; when it does, it replaces the row's.
+    var hasContent: Bool
     var diffs: [ACPDiff]
     var text: String?
 
@@ -192,6 +194,7 @@ struct ACPToolCall: Equatable, Sendable {
         kind = object["kind"]?.stringValue
         status = object["status"]?.stringValue.flatMap(Status.init(rawValue:))
         rawInput = object["rawInput"].flatMap { $0 == .null ? nil : $0 }
+        hasContent = object["content"]?.arrayValue != nil
         var diffs: [ACPDiff] = []
         var texts: [String] = []
         for item in object["content"]?.arrayValue ?? [] {
@@ -407,6 +410,8 @@ struct ACPEventMapper: Sendable {
     let origin: String
     private var titles: [String: String] = [:]
     private var settled: Set<String> = []
+    /// What each row was last given, by hash, so an update repeating its content sends nothing.
+    private var shown: [String: Int] = [:]
     private var lastPlan: [ACPPlanEntry] = []
     private var lastUsage: (used: Int, size: Int, costUSD: Double?)?
 
@@ -423,7 +428,8 @@ struct ACPEventMapper: Sendable {
         case .toolCall(let call):
             let title = call.title ?? call.kind ?? "tool"
             titles[call.id] = title
-            return [.toolCall(id: call.id, origin: origin, title: title)] + settle(call)
+            return [.toolCall(id: call.id, origin: origin, title: title)] + output(of: call)
+                + settle(call)
         case .toolCallUpdate(let call):
             var events: [AIStreamEvent] = []
             if titles[call.id] == nil {
@@ -431,7 +437,7 @@ struct ACPEventMapper: Sendable {
                 titles[call.id] = title
                 events.append(.toolCall(id: call.id, origin: origin, title: title))
             }
-            return events + settle(call)
+            return events + output(of: call) + settle(call)
         case .plan(let entries):
             guard entries != lastPlan, !entries.isEmpty else { return [] }
             lastPlan = entries
@@ -480,6 +486,14 @@ struct ACPEventMapper: Sendable {
                         costUSD: lastUsage.costUSD)))
         }
         return events
+    }
+
+    /// Content replaces the row's, as ACP's updates do; one that compacts to nothing is not sent.
+    private mutating func output(of call: ACPToolCall) -> [AIStreamEvent] {
+        guard call.hasContent, let content = ChatToolContent(call: call),
+            shown.updateValue(content.hashValue, forKey: call.id) != content.hashValue
+        else { return [] }
+        return [.toolOutput(id: call.id, content: content)]
     }
 
     private mutating func settle(_ call: ACPToolCall) -> [AIStreamEvent] {
