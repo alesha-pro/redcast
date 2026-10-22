@@ -42,22 +42,33 @@ enum VoiceRoutePolicy {
         _ stored: AIModelSelection?, use: VoiceUse, connections: [AIConnection],
         isEnabled: (UUID) -> Bool
     ) -> AIModelSelection? {
-        let eligible = connections.filter { accepts($0) && isEnabled($0.id) }
+        let offered = choices(connections, use: use, isEnabled: isEnabled)
         if case .api(let id, let model, _) = stored, !model.isEmpty,
-            eligible.contains(where: { $0.id == id })
+            offered.contains(where: { $0.id == id })
         {
             return stored
         }
         for provider in preferredProviders {
-            guard let connection = eligible.first(where: { $0.provider == provider }),
-                let preset = defaults(for: use, provider: provider)
-            else { continue }
+            if let connection = offered.first(where: { $0.provider == provider }) {
+                return initial(on: connection, use: use)
+            }
+        }
+        return offered.first.flatMap { initial(on: $0, use: use) }
+    }
+
+    /// The connections a voice route may use: enabled, audio-capable and with a model to name.
+    static func choices(
+        _ connections: [AIConnection], use: VoiceUse, isEnabled: (UUID) -> Bool
+    ) -> [AIConnection] {
+        connections.filter { accepts($0) && isEnabled($0.id) && initial(on: $0, use: use) != nil }
+    }
+
+    /// A connection's starting model: the preset where one is known, else the first it lists.
+    static func initial(on connection: AIConnection, use: VoiceUse) -> AIModelSelection? {
+        if let preset = defaults(for: use, provider: connection.provider) {
             return .api(connection: connection.id, model: preset.model, effort: preset.effort)
         }
-        guard let connection = eligible.first(where: { !$0.models.isEmpty }),
-            let model = connection.models.first
-        else { return nil }
-        return .api(connection: connection.id, model: model, effort: nil)
+        return connection.models.first.map { .api(connection: connection.id, model: $0, effort: nil) }
     }
 
     /// The cheapest level the catalog lists, any real level before "none"; nil keeps the default.

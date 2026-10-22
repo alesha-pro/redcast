@@ -19813,6 +19813,58 @@
         }
       }
     },
+    "Add an OpenRouter or OpenAI-compatible connection in AI settings first." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Füge zuerst in den KI-Einstellungen eine OpenRouter- oder OpenAI-kompatible Verbindung hinzu."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Primero añade una conexión de OpenRouter o compatible con OpenAI en los ajustes de IA."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ajoutez d’abord une connexion OpenRouter ou compatible OpenAI dans les réglages IA."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "先にAI設定でOpenRouterまたはOpenAI互換の接続を追加してください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "먼저 AI 설정에서 OpenRouter 또는 OpenAI 호환 연결을 추가하세요."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Primeiro adicione uma conexão OpenRouter ou compatível com OpenAI nos ajustes de IA."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сначала добавьте подключение OpenRouter или совместимое с OpenAI в настройках ИИ."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请先在 AI 设置中添加 OpenRouter 或 OpenAI 兼容连接。"
+          }
+        }
+      }
+    },
     "Add an app to this layout" : {
       "localizations" : {
         "de" : {
@@ -25915,6 +25967,58 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "音频"
+          }
+        }
+      }
+    },
+    "Audio leaves this Mac only when you finish a recording, and is never saved. Insert while recording stays off." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Audio verlässt diesen Mac nur, wenn du eine Aufnahme beendest, und wird nie gespeichert. „Während der Aufnahme einfügen“ bleibt aus."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El audio solo sale de este Mac cuando terminas una grabación y nunca se guarda. «Insertar durante la grabación» permanece desactivado."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L’audio ne quitte ce Mac que lorsque vous terminez un enregistrement et n’est jamais conservé. « Insérer pendant l’enregistrement » reste désactivé."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "音声は録音を終えたときにのみこのMacから送信され、保存されることはありません。「録音中に挿入」はオフのままです。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "오디오는 녹음을 마칠 때만 이 Mac을 떠나며 저장되지 않습니다. '녹음 중 삽입'은 꺼진 상태로 유지됩니다."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O áudio só sai deste Mac quando você termina uma gravação e nunca é salvo. “Inserir durante a gravação” fica desativado."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Звук покидает этот Mac, только когда вы заканчиваете запись, и никогда не сохраняется. «Вставлять во время записи» остаётся выключенным."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "音频仅在你结束录音时才会离开这台 Mac，且绝不会被保存。“录音时插入”保持关闭。"
           }
         }
       }
@@ -32673,6 +32777,110 @@
         }
       }
     },
+    "Choose a model for Ask by Voice in Settings → AI." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wähle in „Einstellungen → KI“ ein Modell für „Per Sprache fragen“ aus."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Elige un modelo para Preguntar por voz en Ajustes → IA."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choisissez un modèle pour Demander à voix haute dans Réglages → IA."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "設定 → AIで「音声で質問」のモデルを選択してください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "설정 → AI에서 음성으로 묻기에 사용할 모델을 선택하세요."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Escolha um modelo para Perguntar por Voz em Ajustes → IA."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Выберите модель для «Спросить голосом» в разделе «Настройки» → «ИИ»."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请在“设置”→“AI”中为“语音提问”选取模型。"
+          }
+        }
+      }
+    },
+    "Choose a model for cloud transcription in Settings → Dictation." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wähle in „Einstellungen → Diktat“ ein Modell für die Cloud-Transkription aus."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Elige un modelo para la transcripción en la nube en Ajustes → Dictado."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choisissez un modèle pour la transcription dans le cloud dans Réglages → Dictée."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "設定 → 音声入力でクラウド文字起こしのモデルを選択してください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "설정 → 받아쓰기에서 클라우드 받아쓰기에 사용할 모델을 선택하세요."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Escolha um modelo para a transcrição na nuvem em Ajustes → Ditado."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Выберите модель для облачной расшифровки в разделе «Настройки» → «Диктовка»."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请在“设置”→“听写”中为云端转写选取模型。"
+          }
+        }
+      }
+    },
     "Choose a model in Settings → Quick Actions." : {
       "localizations" : {
         "de" : {
@@ -34074,6 +34282,58 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "要清理 %@ 吗？"
+          }
+        }
+      }
+    },
+    "Clean up speech" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sprache bereinigen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Limpiar el habla"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nettoyer la parole"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "話し言葉を整える"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "말 다듬기"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Limpar a fala"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Очищать речь"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "整理口语"
           }
         }
       }
@@ -35636,6 +35896,58 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "关闭该 App 会将其停用。"
+          }
+        }
+      }
+    },
+    "Cloud transcription" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cloud-Transkription"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Transcripción en la nube"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Transcription dans le cloud"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "クラウド文字起こし"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "클라우드 받아쓰기"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Transcrição na nuvem"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Облачная расшифровка"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "云端转写"
           }
         }
       }
@@ -48021,6 +48333,64 @@
         }
       }
     },
+    "Each finished recording goes to %@ to be transcribed by %@. Tinycast keeps no copy of the audio; your provider's data policy applies." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jede beendete Aufnahme geht an %1$@ und wird von %2$@ transkribiert. Tinycast behält keine Kopie des Audios; es gilt die Datenrichtlinie deines Anbieters."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Each finished recording goes to %1$@ to be transcribed by %2$@. Tinycast keeps no copy of the audio; your provider's data policy applies."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cada grabación terminada se envía a %1$@ para que %2$@ la transcriba. Tinycast no guarda ninguna copia del audio; se aplica la política de datos de tu proveedor."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chaque enregistrement terminé est envoyé à %1$@ pour être transcrit par %2$@. Tinycast ne conserve aucune copie de l’audio ; la politique de données de votre fournisseur s’applique."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "録音を終えるたびに、%1$@に送られ%2$@で文字起こしされます。Tinycastは音声のコピーを保持しません。プロバイダのデータポリシーが適用されます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "녹음을 마칠 때마다 %1$@(으)로 전송되어 %2$@이(가) 받아씁니다. Tinycast는 오디오 사본을 보관하지 않으며, 제공업체의 데이터 정책이 적용됩니다."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cada gravação concluída vai para %1$@ para ser transcrita por %2$@. O Tinycast não guarda cópia do áudio; vale a política de dados do seu provedor."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Каждая законченная запись отправляется в %1$@ для расшифровки моделью %2$@. Tinycast не хранит копию звука; действует политика данных вашего провайдера."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "每段结束的录音都会发送到 %1$@，由 %2$@ 转写。Tinycast 不保留音频副本；适用你的服务提供商的数据政策。"
+          }
+        }
+      }
+    },
     "Earlier" : {
       "localizations" : {
         "de" : {
@@ -55907,6 +56277,58 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "请先完成快捷键的录制。"
+          }
+        }
+      }
+    },
+    "Finish the current dictation first." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Beende zuerst das aktuelle Diktat."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Primero termina el dictado actual."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Terminez d’abord la dictée en cours."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "先に現在の音声入力を終えてください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "먼저 현재 받아쓰기를 끝내세요."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Primeiro termine o ditado atual."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сначала завершите текущую диктовку."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请先完成当前的听写。"
           }
         }
       }
@@ -69520,6 +69942,58 @@
         }
       }
     },
+    "Leave out fillers and false starts. Off keeps every word." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Füllwörter und Fehlstarts weglassen. Aus behält jedes Wort."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Omite muletillas y arranques en falso. Desactivado conserva cada palabra."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Omet les mots de remplissage et les faux départs. Désactivé, chaque mot est conservé."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "つなぎ言葉や言い直しを省きます。オフにするとすべての語を残します。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "군말과 말실수를 뺍니다. 끄면 모든 단어를 그대로 둡니다."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Omite muletas e falsos começos. Desativado mantém cada palavra."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Убирать слова-паразиты и оговорки. Если выключено, сохраняется каждое слово."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "省略口头禅和说错重来的部分。关闭后保留每个字。"
+          }
+        }
+      }
+    },
     "Left" : {
       "comment" : "A modifier key's side on a keycap (“Left ⌘”), its first letter is a compact prefix; also a window position",
       "localizations" : {
@@ -81257,6 +81731,58 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "没有与“%@”匹配的模型。"
+          }
+        }
+      }
+    },
+    "No model on this connection takes audio." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kein Modell dieser Verbindung nimmt Audio entgegen."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ningún modelo de esta conexión acepta audio."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aucun modèle de cette connexion n’accepte l’audio."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この接続には音声を受け付けるモデルがありません。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "이 연결에는 오디오를 받는 모델이 없습니다."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nenhum modelo desta conexão aceita áudio."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ни одна модель этого подключения не принимает звук."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此连接中没有可接收音频的模型。"
           }
         }
       }
@@ -106791,6 +107317,58 @@
         }
       }
     },
+    "Send each recording to an AI connection instead of the on-device model." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jede Aufnahme an eine KI-Verbindung statt an das lokale Modell senden."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Envía cada grabación a una conexión de IA en lugar del modelo del dispositivo."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Envoyer chaque enregistrement à une connexion IA au lieu du modèle sur l’appareil."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "各録音をデバイス上のモデルではなくAI接続に送信します。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "각 녹음을 기기 내 모델 대신 AI 연결로 보냅니다."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Envia cada gravação para uma conexão de IA em vez do modelo no dispositivo."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Отправлять каждую запись в подключение ИИ вместо модели на устройстве."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "将每段录音发送到 AI 连接，而不是设备端模型。"
+          }
+        }
+      }
+    },
     "Sent before every message, after Tinycast's own. Both are billed each turn." : {
       "localizations" : {
         "de" : {
@@ -129085,6 +129663,110 @@
         }
       }
     },
+    "Transcribe Dictation in the Cloud?" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diktat in der Cloud transkribieren?"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "¿Transcribir el dictado en la nube?"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Transcrire la dictée dans le cloud ?"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "音声入力をクラウドで文字起こししますか？"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "받아쓰기를 클라우드에서 처리하시겠습니까?"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Transcrever o Ditado na nuvem?"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Расшифровывать диктовку в облаке?"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "要在云端转写听写吗？"
+          }
+        }
+      }
+    },
+    "Transcribe in the cloud" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "In der Cloud transkribieren"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Transcribir en la nube"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Transcrire dans le cloud"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "クラウドで文字起こし"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "클라우드에서 받아쓰기"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Transcrever na nuvem"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Расшифровывать в облаке"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在云端转写"
+          }
+        }
+      }
+    },
     "Transcribe speech on your Mac with a local model." : {
       "localizations" : {
         "de" : {
@@ -136099,6 +136781,58 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "单词数"
+          }
+        }
+      }
+    },
+    "Words to spell exactly" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Genau zu schreibende Wörter"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Palabras con ortografía exacta"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mots à orthographier tels quels"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正確に表記する語"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "정확히 표기할 단어"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Palavras com grafia exata"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Слова с точным написанием"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "需准确拼写的词"
           }
         }
       }

@@ -31,6 +31,14 @@ final class AppCore {
     @ObservationIgnored private(set) lazy var hyperKey = HyperKeyManager(
         settings: settings, hotKeys: hotKeys)
     @ObservationIgnored private lazy var dictationKey = DictationKeyManager(hotKeys: hotKeys)
+    @ObservationIgnored private(set) lazy var voiceSettings = VoiceAISettings()
+    @ObservationIgnored private(set) lazy var voiceCloud = VoiceCloudTranscriber(
+        settings: settings, voice: voiceSettings, aiSettings: aiSettings,
+        confirm: { [unowned self] in
+            await self.confirm(
+                title: $0, message: $1, symbol: "waveform", confirmTitle: String(localized: "Continue"),
+                tone: .neutral, confirmRole: .standard)
+        })
     let windowMover = WindowMover()
     let spaceSwitcher = SpaceSwitcher()
     let inputSourceSwitcher = InputSourceSwitcher()
@@ -107,7 +115,9 @@ final class AppCore {
                 symbol: "waveform", confirmTitle: String(localized: "Continue"), tone: .neutral,
                 confirmRole: .standard)
         },
-        showMessage: { [unowned self] in self.showMessage($0, tone: $1) })
+        showMessage: { [unowned self] in self.showMessage($0, tone: $1) },
+        cloudIsOn: { [unowned self] in self.voiceCloud.isOn },
+        cloudTranscribe: { [unowned self] in try await self.voiceCloud.transcribe($0, language: $1) })
     @ObservationIgnored private(set) lazy var quicklinkCoordinator = QuicklinkCoordinator(
         store: quicklinks, settings: settings,
         appIndex: appIndex, injector: textInjector, hotKeys: hotKeys, favorites: favorites,
