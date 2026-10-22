@@ -79,6 +79,10 @@ row and chord, `AppIndex`, `LauncherList`, `LauncherCoordinator`, `AppActionsMen
   `AgentACPHost.onCost` for each ACP `usage_update`); a route that reports none counts nothing.
   Run Now and `@handle` runs are a person's gesture: never held, never counted. A cap file that will
   not read counts as $0, so nothing scheduled starts until the cap is set again.
+- **An agent's row and chord cost nothing until used.** The rows exist only while AI is on, and only
+  an agent with a chord is indexed in `boundAgentIDs` and registered with `HotKeyCenter`. Deleting an
+  agent takes its chord, favorite, alias and ranking with it; no chord travels in a backup or
+  `settings.json`, since the agents themselves do not.
 - **Notification Center only on opt-in, and never with the answer.** A banner names the agent, the
   run and whether it finished; the answer stays in the chat. `AgentRunNotifier` and its delegate
   exist only while some agent opts in, and macOS asks for permission on the toggle's own click.
@@ -142,10 +146,10 @@ first, with ⌥ turning a running row into **Stop**; then **Agent Sessions**, on
 which jumps to it; then Search Agent Sessions and Clear Finished while the hub's half is on, and
 Agent Settings…. Opening it marks finished runs and sessions seen. The work its closing does waits a
 turn of the main queue, because AppKit sends the chosen row's action after `menuDidClose`, and the
-background coordinator is not let go while the menu is open. A launcher run and Run Now show a HUD at the start and the end; a schedule's own runs show none,
-so nothing pops up at 3 a.m. A run whose chat is on screen in a key AI Chat window is marked seen
-with no HUD and no banner. A run still going after the agent's limit (15 minutes by default, 5 to
-60) is stopped.
+background coordinator is not let go while the menu is open. A launcher run and Run Now show a HUD
+at the start and the end; a schedule's own runs show none, so nothing pops up at 3 a.m. A run whose
+chat is on screen in a key AI Chat window is marked seen with no HUD and no banner. A run still going
+after the agent's limit (15 minutes by default, 5 to 60) is stopped.
 
 A native agent's model is told, while its turn runs unattended, that nobody can answer and that it
 should finish with a short report (`AgentBackgroundBriefing.text`); a follow-up typed in the window
