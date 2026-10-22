@@ -6,7 +6,9 @@
 - `HotKeyBinding` — what an action is bound to: `.combo(KeyShortcut)`,
   `.doubleTap(DoubleTapModifier)`, sided `.modifier` / `.doubleModifier`, `.globe`, or `.doubleGlobe`.
 - `HotKeyCenter` — the Carbon `RegisterEventHotKey` layer, pausable.
-- Dictation alone also observes Carbon's key-release event for hold-to-talk.
+- Dictation, and the commands in `HotKeyManager.releasedCommands` (Ask by Voice), also observe
+  Carbon's key-release event for hold-to-talk. A command hears it only for a key combination, and the
+  Secure Input equivalents keep Dictation's release alone, so a command held there acts as a toggle.
 - `DoubleTapModifier` / `DoubleTapDetector` — the double-tap recognizer.
 - `ModifierKey` / `ModifierKeyDetector` — reported sides, lone presses, taps and holds.
 - `ModifierTapMonitor` — the shared modifier-only tap, including Dictation's hold/release callbacks.

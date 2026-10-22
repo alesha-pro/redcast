@@ -17001,6 +17001,58 @@
         }
       }
     },
+    "A shortcut records your question and sends it, with the window in front of you, to %@. Nothing is recorded or read until you press it." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ein Kurzbefehl nimmt deine Frage auf und sendet sie mit dem Fenster vor dir an %@. Nichts wird aufgenommen oder gelesen, bevor du ihn drückst."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Un atajo graba tu pregunta y la envía, junto con la ventana que tienes delante, a %@. No se graba ni se lee nada hasta que lo pulses."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Un raccourci enregistre votre question et l’envoie, avec la fenêtre au premier plan, à %@. Rien n’est enregistré ni lu tant que vous ne l’utilisez pas."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ショートカットで質問を録音し、前面のウインドウと一緒に%@へ送信します。押すまでは何も録音・読み取りされません。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "단축키로 질문을 녹음해 앞에 있는 윈도우와 함께 %@(으)로 보냅니다. 누르기 전에는 아무것도 녹음하거나 읽지 않습니다."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Um atalho grava sua pergunta e a envia, com a janela à sua frente, para %@. Nada é gravado nem lido até você pressioná-lo."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сочетание клавиш записывает ваш вопрос и отправляет его вместе с окном перед вами в %@. Пока вы его не нажмёте, ничего не записывается и не читается."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "快捷键会录下你的问题，并连同你面前的窗口一起发送到 %@。在你按下之前，不会录制或读取任何内容。"
+          }
+        }
+      }
+    },
     "A tiny, native macOS launcher." : {
       "localizations" : {
         "de" : {
@@ -25237,6 +25289,58 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "运行此命令前先询问。"
+          }
+        }
+      }
+    },
+    "Ask by Voice" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Per Sprache fragen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Preguntar por voz"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Demander à voix haute"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "音声で質問"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "음성으로 묻기"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Perguntar por Voz"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Спросить голосом"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "语音提问"
           }
         }
       }
@@ -42115,6 +42219,58 @@
         }
       }
     },
+    "Couldn't type into this app — the reply is shown instead." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "In diese App konnte nicht getippt werden – die Antwort wird stattdessen angezeigt."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pudo escribir en esta app; en su lugar se muestra la respuesta."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossible de saisir dans cette app — la réponse est affichée à la place."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このAppに入力できませんでした。代わりに返答を表示します。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "이 앱에 입력할 수 없어 대신 답변을 표시합니다."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Não foi possível digitar neste app — a resposta é mostrada no lugar."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не удалось ввести текст в это приложение — вместо этого показан ответ."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法在此 App 中输入，改为显示回复。"
+          }
+        }
+      }
+    },
     "Couldn't update %@." : {
       "localizations" : {
         "de" : {
@@ -50002,6 +50158,110 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "启用 App"
+          }
+        }
+      }
+    },
+    "Enable Ask by Voice" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "„Per Sprache fragen“ aktivieren"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Activar Preguntar por voz"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Activer Demander à voix haute"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "「音声で質問」を有効にする"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "음성으로 묻기 켜기"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ativar Perguntar por Voz"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Включить «Спросить голосом»"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "启用语音提问"
+          }
+        }
+      }
+    },
+    "Enable Ask by Voice?" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "„Per Sprache fragen“ aktivieren?"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "¿Activar Preguntar por voz?"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Activer Demander à voix haute ?"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "「音声で質問」を有効にしますか？"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "음성으로 묻기를 켜시겠습니까?"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ativar Perguntar por Voz?"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Включить «Спросить голосом»?"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "启用语音提问？"
           }
         }
       }
@@ -61391,6 +61651,58 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "“按住说话”需要使用组合键或单个修饰键"
+          }
+        }
+      }
+    },
+    "Hold to talk needs a key combination. Double taps and single modifiers start and stop instead." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zum Sprechen halten braucht eine Tastenkombination. Doppeltipps und einzelne Sondertasten starten und stoppen stattdessen."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mantener para hablar necesita una combinación de teclas. Las dobles pulsaciones y los modificadores sueltos inician y detienen en su lugar."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Maintenir pour parler nécessite une combinaison de touches. Les doubles frappes et les modificateurs seuls démarrent et arrêtent à la place."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "押している間だけ話すにはキーの組み合わせが必要です。ダブルタップや単独の修飾キーでは開始と停止を切り替えます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "누르고 말하기에는 키 조합이 필요합니다. 두 번 탭하기와 단일 보조 키는 대신 시작과 중지를 전환합니다."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Segurar para falar precisa de uma combinação de teclas. Toques duplos e modificadores isolados iniciam e param em vez disso."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Для удержания нужно сочетание клавиш. Двойное нажатие и одиночные модификаторы вместо этого запускают и останавливают запись."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "按住说话需要组合键。连按两下和单个修饰键则改为开始和停止。"
           }
         }
       }
@@ -108097,6 +108409,58 @@
         }
       }
     },
+    "Set its shortcut under Commands. The recording is sent with the capture and never saved; a question is kept only if you continue it in AI Chat." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lege den Kurzbefehl unter „Befehle“ fest. Die Aufnahme wird mit der Erfassung gesendet und nie gespeichert; eine Frage bleibt nur erhalten, wenn du sie im KI-Chat fortsetzt."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Define su atajo en Comandos. La grabación se envía con la captura y nunca se guarda; una pregunta solo se conserva si la continúas en el chat de IA."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Définissez son raccourci dans Commandes. L’enregistrement est envoyé avec la capture et n’est jamais conservé ; une question n’est gardée que si vous la poursuivez dans Conversation IA."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ショートカットは「コマンド」で設定します。録音はキャプチャと一緒に送信され、保存されません。質問はAIチャットで続けた場合にのみ残ります。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "단축키는 명령에서 설정하세요. 녹음은 캡처와 함께 전송되며 저장되지 않습니다. 질문은 AI 채팅에서 이어갈 때만 남습니다."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Defina o atalho em Comandos. A gravação é enviada com a captura e nunca é salva; uma pergunta só é mantida se você a continuar no Chat de IA."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сочетание клавиш задаётся в разделе «Команды». Запись отправляется вместе со снимком окна и не сохраняется; вопрос остаётся, только если вы продолжите его в ИИ-чате."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在“命令”中设置其快捷键。录音会随截取内容一起发送，绝不保存；只有在 AI 聊天中继续时才会保留问题。"
+          }
+        }
+      }
+    },
     "Settings" : {
       "localizations" : {
         "de" : {
@@ -112997,6 +113361,58 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "空间"
+          }
+        }
+      }
+    },
+    "Speak a question about the window in front of you. The answer opens beside it, or goes into the field you asked about." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stelle eine Frage zum Fenster vor dir. Die Antwort öffnet sich daneben oder landet in dem Feld, nach dem du gefragt hast."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Haz una pregunta en voz alta sobre la ventana que tienes delante. La respuesta se abre a su lado o va al campo del que preguntaste."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Posez à voix haute une question sur la fenêtre au premier plan. La réponse s’ouvre à côté ou va dans le champ dont vous avez parlé."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "前面のウインドウについて声で質問します。答えはその横に表示されるか、指定したフィールドに入力されます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "앞에 있는 윈도우에 대해 말로 질문하세요. 답변은 그 옆에 열리거나 요청한 필드에 입력됩니다."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fale uma pergunta sobre a janela à sua frente. A resposta abre ao lado dela ou vai para o campo sobre o qual você perguntou."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Задайте голосом вопрос об окне перед вами. Ответ откроется рядом с ним или попадёт в поле, о котором вы просили."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "用语音询问你面前的窗口。回答会在旁边打开，或填入你所说的输入框。"
           }
         }
       }
@@ -130855,6 +131271,58 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "开启 Apple Intelligence，或在上方添加提供商。"
+          }
+        }
+      }
+    },
+    "Turn on Screen Awareness first." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aktiviere zuerst die Bildschirmerkennung."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Primero activa Screen Awareness."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Activez d’abord la reconnaissance de l’écran."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "先に画面認識をオンにしてください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "먼저 화면 인식을 켜세요."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Primeiro ative o reconhecimento da tela."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сначала включите Screen Awareness."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请先开启屏幕感知。"
           }
         }
       }

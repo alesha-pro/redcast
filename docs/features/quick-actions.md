@@ -220,6 +220,11 @@ Non-activating, so the target app keeps its selection while the panel holds key.
 `sendEvent`: `↵` replaces, `⌘C` copies, `⌘J` continues in AI Chat, `esc` dismisses; click-away
 dismisses like every other borderless surface.
 
+The panel also hosts [Ask by Voice](voice-ai.md#ask-by-voice) answers, through its own
+`QuickActionPanelController` and a synthetic custom action titled with the spoken question. `present`'s
+optional `onDismiss` runs once on every dismissal, Replace and Continue included, after the panel is
+gone, so its owner can stop a reply still streaming; `QuickActionCoordinator` passes none.
+
 **Continue in AI Chat** turns a finished result into a new chat in the AI Chat window, so the next
 message refines it. `AIChatSurfacesState.openSeededInWindow` always makes a fresh chat — never one
 already open — and `AIChatState.seed` saves the opening turn at once. The request is

@@ -303,6 +303,10 @@ enum SettingsSearchCatalog {
             .aiScreenAwareness, "Include a screenshot",
             keywords: ["screen recording", "image", "capture", "picture"]),
         .init(
+            .aiAskByVoice, "Enable Ask by Voice",
+            keywords: ["voice", "speak", "microphone", "question", "gemini"]),
+        .init(.aiAskByVoice, "Shortcut behavior", keywords: ["hold", "toggle", "push to talk"]),
+        .init(
             .aiConversations, "Opens to",
             keywords: ["new chat", "last", "summon", "resume", "window", "quick ai"]),
         .init(

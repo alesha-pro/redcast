@@ -31,6 +31,9 @@ plus the few lines that wire it in.
 - **The window's text gives way first.** `ScreenContextFormatter` keeps the header, the selection and
   the focused field, then fills what remains of `AIAttachmentBudget.maxInlinedTextBytes` with window
   text. A cut always says so — a capture that silently stops is a page the model believes it read whole.
+- **One capture, two commands.** `captureTarget()` and `capture(_:screenshot:)` are the read behind
+  Ask About Screen and [Ask by Voice](voice-ai.md#ask-by-voice) alike, so both have the same target,
+  refusals, dialogs and never-capture rules. Ask by Voice exists only while this feature is on.
 - **What was on screen is material, not a request.** The text attachment opens by saying so. A window
   title is forced onto one line, so it cannot forge a header row, and the attachment is named after the
   app alone.
@@ -54,7 +57,7 @@ plus the few lines that wire it in.
 | `Model/ScreenContextFormatter.swift` | The capture as the Markdown attachment, its budget and its name |
 | `Service/ScreenContextReader.swift` | The Accessibility walk, off-main: focused window, title, frame, web area URL, focused field |
 | `Service/WindowScreenshotter.swift` | Finds the window by pid and frame, captures it with ScreenCaptureKit; `ScreenRecordingAccess` |
-| `UI/ScreenAwarenessCoordinator.swift` | The one funnel: target, permission, capture, staging |
+| `UI/ScreenAwarenessCoordinator.swift` | The one funnel: target, permission, capture, staging; the capture is shared with Ask by Voice |
 | `Model/ScreenAwarenessDestination.swift` | AI Chat (the default, as in Raycast) or Quick AI |
 | `Settings/ScreenAwarenessSettingsSection.swift` | The AI pane's section |
 

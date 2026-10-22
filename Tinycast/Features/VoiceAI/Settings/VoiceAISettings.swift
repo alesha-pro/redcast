@@ -24,6 +24,16 @@ final class VoiceAISettings {
     var vocabulary: String {
         didSet { defaults.set(vocabulary, forKey: Key.voiceVocabulary.rawValue) }
     }
+    /// Off by default: its shortcut records a question and reads the window in front.
+    var askEnabled: Bool {
+        didSet { defaults.set(askEnabled, forKey: Key.voiceAskEnabled.rawValue) }
+    }
+    var askMode: DictationMode {
+        didSet { defaults.set(askMode.rawValue, forKey: Key.voiceAskMode.rawValue) }
+    }
+    var askModel: AIModelSelection? {
+        didSet { persist(askModel, forKey: .voiceAskModel) }
+    }
 
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
@@ -31,6 +41,11 @@ final class VoiceAISettings {
         dictationModel = Self.selection(defaults.data(forKey: Key.voiceDictationModel.rawValue))
         cleanup = defaults.object(forKey: Key.voiceDictationCleanup.rawValue) as? Bool ?? true
         vocabulary = defaults.string(forKey: Key.voiceVocabulary.rawValue) ?? ""
+        askEnabled = defaults.bool(forKey: Key.voiceAskEnabled.rawValue)
+        askMode =
+            defaults.string(forKey: Key.voiceAskMode.rawValue).flatMap(DictationMode.init(rawValue:))
+            ?? .toggle
+        askModel = Self.selection(defaults.data(forKey: Key.voiceAskModel.rawValue))
     }
 
     private static func selection(_ data: Data?) -> AIModelSelection? {

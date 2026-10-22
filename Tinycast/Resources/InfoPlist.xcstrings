@@ -243,55 +243,55 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tinycast nimmt Audio nur auf, während du das Diktat verwendest, und wandelt es auf deinem Mac in Text um."
+            "value" : "Tinycast nimmt Audio nur auf, während du das Diktat oder „Per Sprache fragen“ verwendest, und wandelt es auf deinem Mac oder mit dem KI-Dienst deiner Wahl in Text um."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tinycast records audio only while you use Dictation, to transcribe it on your Mac."
+            "value" : "Tinycast records audio only while you use Dictation or Ask by Voice, to transcribe it on your Mac or with the AI service you choose."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tinycast solo graba audio mientras usas Dictado para transcribirlo en tu Mac."
+            "value" : "Tinycast solo graba audio mientras usas Dictado o Preguntar por voz, para transcribirlo en tu Mac o con el servicio de IA que elijas."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tinycast enregistre l’audio uniquement lorsque vous utilisez la dictée, pour le transcrire sur votre Mac."
+            "value" : "Tinycast enregistre l’audio uniquement lorsque vous utilisez la dictée ou Demander à voix haute, pour le transcrire sur votre Mac ou avec le service d’IA de votre choix."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tinycastは音声入力の使用中のみ音声を録音し、Mac上で文字に起こします。"
+            "value" : "Tinycastは音声入力または「音声で質問」の使用中のみ音声を録音し、Mac上または選択したAIサービスで文字に起こします。"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tinycast는 받아쓰기를 사용하는 동안에만 오디오를 녹음하여 Mac에서 텍스트로 변환합니다."
+            "value" : "Tinycast는 받아쓰기 또는 음성으로 묻기를 사용하는 동안에만 오디오를 녹음하여 Mac에서 또는 선택한 AI 서비스로 텍스트로 변환합니다."
           }
         },
         "pt" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "O Tinycast grava áudio apenas enquanto você usa o Ditado, para transcrevê-lo no seu Mac."
+            "value" : "O Tinycast grava áudio apenas enquanto você usa o Ditado ou Perguntar por Voz, para transcrevê-lo no seu Mac ou com o serviço de IA que você escolher."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tinycast записывает звук только во время диктовки и преобразует его в текст на вашем Mac."
+            "value" : "Tinycast записывает звук только во время диктовки или «Спросить голосом» и преобразует его в текст на вашем Mac или с помощью выбранного вами сервиса ИИ."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tinycast 仅在你使用听写时录制音频，并在你的 Mac 上将其转为文字。"
+            "value" : "Tinycast 仅在你使用听写或“语音提问”时录制音频，并在你的 Mac 上或通过你选择的 AI 服务将其转为文字。"
           }
         }
       }
