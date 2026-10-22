@@ -336,6 +336,16 @@ final class AIChatCoordinator {
 
     /// A turn's route and its tools: a CLI with its own client is handed servers, others the loop.
     private func provider(for chat: AIChatState, scopedTo slug: String?) throws -> any AIProvider {
+        if core.agentCoordinator.runsOwnRuntime(chat) {
+            let enabled = chat.toolScope.isEnabled
+            let excluded = chat.toolScope.excluded
+            let mcp = core.mcpCoordinator
+            let agent = core.agentCoordinator.acpProvider(for: chat) {
+                guard enabled else { return [] }
+                return await mcp.toolServers(scopedTo: slug).filter { !excluded.contains($0.handle) }
+            }
+            if let agent { return agent }
+        }
         guard model(for: chat)?.runsItsOwnTools == true else {
             return toolAware(try provider(for: chat), scopedTo: slug, in: chat)
         }

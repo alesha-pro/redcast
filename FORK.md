@@ -19,6 +19,7 @@ OpenCode, Goose, Hermes, local models — on the subscriptions and machines you 
 | Continue in AI Chat | ⌘J turns a Quick Action result into a chat that refines it | [quick-actions](docs/features/quick-actions.md#the-panel) |
 | Screen Awareness | Double-tap right ⌘: the window in front — title, URL, selection, focused field, readable text, screenshot — attached to AI Chat | [screen-awareness](docs/features/screen-awareness.md) |
 | Agents | A chat that lives in a folder: its `AGENTS.md`, project and global `.agents/skills`, notes, and built-in tools (files, terminal, web, memory) on any tool-calling API model, every change and command asked first | [agents](docs/features/agents.md) |
+| ACP agents | An agent can run as its own CLI over the Agent Client Protocol — Claude Code, Codex, Gemini CLI, OpenCode, Goose, Hermes or any command — on your own logins, with its permission requests, tool rows, plans and modes in AI Chat, and sessions that survive a relaunch | [agents](docs/features/agents.md#acp-agents) |
 
 Builds of this fork use the bundle id `com.tinycast.app.fork`: they never update themselves from
 upstream's feed, and they keep their settings apart from an installed upstream Tinycast.
@@ -51,14 +52,9 @@ Sizes are focused working days. Waves are ordered by leverage, not by size.
 
 ### Wave 1 — agent-native core
 
-1. **ACP agents — any coding agent in Tinycast.** An [Agent Client Protocol](https://agentclientprotocol.com)
-   client, so an agent profile can run Claude Code (`claude-agent-acp`), Codex (`codex-acp`), Gemini
-   CLI (`gemini --acp`), OpenCode (`opencode acp`), Goose (`goose acp`), Hermes or any custom ACP
-   command — on the user's own logins and subscriptions — in the agent's folder. `session/update`
-   streams map onto the chat transcript (text, thinking, tool calls with diffs, plans);
-   `session/request_permission` becomes Tinycast's consent dialog; `fs/*` and `terminal/*` reuse the
-   agent executor's path policy; Screen Awareness captures go in as image and resource blocks; the
-   chat's MCP servers are handed to `session/new`. *4–6 days.*
+1. **ACP agents — shipped** (see above). Next on it: render diffs and command output inside tool
+   rows, expose the agent's slash commands (`available_commands_update`) in the composer, a launcher
+   row and hotkey per agent, and Tinycast's own `fs/*` / `terminal/*` so edits can show in an editor.
 2. **Agent Sessions hub.** Search every past Codex, Claude Code and Tinycast session from the launcher
    (titles, first prompts, full text), preview it, and resume it in its folder and terminal. A live
    list of running agents fed by Claude Code hooks and Codex `notify`: a HUD and menu-bar badge when an

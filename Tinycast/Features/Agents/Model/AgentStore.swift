@@ -8,11 +8,14 @@ final class AgentStore {
     private(set) var agents: [AgentProfile] = []
     /// Chat id to agent id; kept here rather than in chat history, which is upstream's schema.
     private(set) var chatAgents: [UUID: UUID] = [:]
+    /// Chat id to the ACP session its agent keeps, so a relaunch can reload instead of restart.
+    private(set) var acpSessions: [UUID: String] = [:]
     /// False when the file wouldn't read; every mutation then refuses rather than pretends.
     private(set) var isAvailable = true
 
     private let agentsURL: URL
     private let bindingsURL: URL
+    private let acpSessionsURL: URL
     let directory: URL
 
     init(directory: URL? = nil) {
@@ -20,6 +23,7 @@ final class AgentStore {
         self.directory = base
         agentsURL = base.appendingPathComponent("agents.json")
         bindingsURL = base.appendingPathComponent("agent-chats.json")
+        acpSessionsURL = base.appendingPathComponent("agent-acp-sessions.json")
         try? FileManager.default.createDirectory(at: base, withIntermediateDirectories: true)
     }
 
@@ -54,6 +58,22 @@ final class AgentStore {
             let known = Set(agents.map(\.id))
             chatAgents = decoded.filter { known.contains($0.value) }
         }
+        if let data = try? Data(contentsOf: acpSessionsURL),
+            let decoded = try? JSONDecoder().decode([UUID: String].self, from: data)
+        {
+            acpSessions = decoded.filter { chatAgents[$0.key] != nil }
+        }
+    }
+
+    func acpSession(forChat chatID: UUID) -> String? {
+        acpSessions[chatID]
+    }
+
+    func setACPSession(_ id: String?, forChat chatID: UUID) {
+        guard acpSessions[chatID] != id else { return }
+        acpSessions[chatID] = id
+        guard let data = try? JSONEncoder().encode(acpSessions) else { return }
+        try? data.write(to: acpSessionsURL, options: .atomic)
     }
 
     func agent(id: UUID) -> AgentProfile? {
@@ -80,7 +100,9 @@ final class AgentStore {
 
     func remove(id: UUID) throws(AgentProfileError) {
         try commit(agents.filter { $0.id != id })
-        bind(chatAgents.filter { $0.value == id }.map(\.key), to: nil)
+        let chats = chatAgents.filter { $0.value == id }.map(\.key)
+        bind(chats, to: nil)
+        for chat in chats { setACPSession(nil, forChat: chat) }
     }
 
     /// A chat's agent; nil takes the chat back to plain AI.

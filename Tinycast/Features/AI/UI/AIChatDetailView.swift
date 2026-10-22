@@ -208,9 +208,13 @@ private struct AIChatComposer: View {
                 AIAgentPicker(chat: chat, agents: coordinator.agents, coordinator: coordinator)
                     .layoutPriority(-1)
             }
-            AIModelPicker(chat: chat, selected: coordinator.model(for: chat), coordinator: coordinator)
-                .layoutPriority(-1)
-            AIReasoningPicker(chat: chat, coordinator: coordinator)
+            if !coordinator.agents.runsOwnRuntime(chat) {
+                AIModelPicker(chat: chat, selected: coordinator.model(for: chat), coordinator: coordinator)
+                    .layoutPriority(-1)
+                AIReasoningPicker(chat: chat, coordinator: coordinator)
+            } else if let modes = coordinator.agents.modes(for: chat) {
+                AIAgentModePicker(chat: chat, modes: modes, agents: coordinator.agents)
+            }
             ContextGauge(
                 report: coordinator.contextReport(for: chat, detailed: false), hovered: $showsContext)
             if coordinator.dictation.isEnabled {
@@ -473,6 +477,35 @@ private struct AIAgentPicker: View {
         }
         .composerMenu()
         .help("Choose this chat's agent")
+    }
+}
+
+/// An ACP agent's own modes, such as Claude Code's plan mode or Codex's read-only. Fork-only.
+private struct AIAgentModePicker: View {
+    let chat: AIChatState
+    let modes: ACPModes
+    let agents: AgentCoordinator
+
+    var body: some View {
+        Menu {
+            ForEach(modes.available) { mode in
+                Toggle(
+                    isOn: Binding(
+                        get: { modes.current == mode.id },
+                        set: { if $0 { agents.setMode(mode.id, for: chat) } })
+                ) {
+                    Text(mode.name)
+                    if let description = mode.description { Text(description) }
+                }
+            }
+        } label: {
+            ComposerControlLabel(title: modes.currentMode?.name ?? String(localized: "Mode")) {
+                Image(systemName: "slider.horizontal.3")
+                    .font(Theme.Typography.composerSymbol)
+            }
+        }
+        .composerMenu()
+        .help("Switch the agent's mode")
     }
 }
 
