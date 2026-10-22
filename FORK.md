@@ -36,14 +36,32 @@ upstream's feed, and they keep their settings apart from an installed upstream T
   same commit. Two harnesses fail on a clean upstream checkout too and are not fork regressions:
   `form-input-test` (display-bound) and, occasionally under load, `icon-cache-test`.
 
+## Installing the fork
+
+`Scripts/fork/install.sh` builds the fork in Release for this Mac, signs it with the keychain's one
+`Apple Development` identity, quits the installed app gracefully, swaps the new bundle in by rename and
+relaunches it. About shows the `git describe` version and the commit count (a fresh clone needs
+`git fetch upstream --tags` first). Details and the manual sweep are in
+[fork tooling](docs/fork-tooling.md#scriptsforkinstallsh).
+
+- `--self-check` resolves the identity, version and paths and builds nothing; `--rollback` puts back
+  the copy the last install replaced; `--no-launch` and `--force-quit` do what they say.
+- It refuses to replace upstream's same-named `Tinycast.app`, and to install a build whose code
+  requirement differs from the installed one: that would cost every privacy grant.
+  `--accept-new-identity` goes ahead and prints the `tccutil reset` lines; it never runs them itself.
+- Started from a Tinycast agent or command, it finishes in a session of its own
+  (`build/fork/install.log`), because quitting Tinycast reaps its agents' process trees.
+- If macOS App Management blocks the swap, the script names the setting and leaves the old app in place.
+- The Accessibility grant survives a reinstall. A capture refused while other apps capture fine is that
+  one app's process refusing: quit and reopen the app you captured before toggling the grant.
+
 ## Roadmap
 
 Sizes are focused working days. Waves are ordered by leverage, not by size.
 
 ### Wave 0 — fork foundation
 
-- **Release script.** One command builds the fork in Release with its bundle id and a stable signing
-  identity, installs it and relaunches it, versioned from `git describe`.
+- **Release script — shipped** as `Scripts/fork/install.sh` (see [Installing the fork](#installing-the-fork)).
 - **Upstream sync.** A script (and later a scheduled Action that opens a PR) that merges upstream,
   regenerates the project, runs the harnesses and lists what upstream changed.
 - **Ports from other forks** (all AGPL, credited): alias + Space and the extension-runtime fixes for
