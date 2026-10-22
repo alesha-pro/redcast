@@ -244,7 +244,7 @@ final class AgentCoordinator {
         let title = request.toolCall.title ?? request.toolCall.kind ?? String(localized: "Use a tool")
         let summary = request.toolCall.summary
         let answer = await choose(
-            in: acpHost.chatID(forSession: request.sessionID),
+            in: acpHost.chatID(forSession: request.sessionID, of: agent.id),
             title: String(localized: "\(agent.name): \(title)"), message: summary, symbol: agent.symbol,
             options: options.enumerated().map { index, option in
                 DialogAction(

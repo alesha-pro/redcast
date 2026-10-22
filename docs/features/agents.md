@@ -95,7 +95,9 @@ They run on the user's own logins and subscriptions; Tinycast never sees a key.
   `initialize` allows four minutes, because an adapter's first `npx` run downloads it. A chat's
   session id is kept in `agent-acp-sessions.json`; after a relaunch or an idle stop (two minutes)
   the next turn sends `session/load` when the agent supports it and drops the replay, since no turn is
-  listening, and starts a fresh session when the agent has lost it.
+  listening, and starts a fresh session when the agent has lost it. A session id is the agent's
+  own, and two agents may both say `sess_1`, so turns, updates and permission requests are routed
+  by agent and session together.
 - **Nothing outlives the agent.** An ACP agent is a tree — `npx`, the adapter, the vendor CLI it
   spawns (Claude Code's is about 380 MB together) — and closing stdin lets the top go while a
   grandchild lingers, orphaned to launchd. `ProcessTree` reads the descendants by `proc_listchildpids`
