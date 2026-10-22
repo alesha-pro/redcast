@@ -57,6 +57,7 @@ struct AgentSessionsTests {
         openCodeReader()
         newSourceCommands()
         await newSourceSearch()
+        await claudeAppRoute()
 
         print("\(passes) passed, \(failures) failed")
         if failures > 0 { exit(1) }
@@ -1763,6 +1764,49 @@ extension AgentSessionsTests {
         expect(quokka == ["gemini:" + g2], "a legacy chat is searched too")
         let flamingo = await hits("flamingo")
         expect(flamingo == ["opencode:" + openCodeID("a")], "OpenCode is searched through its database")
+    }
+
+    static func claudeAppRoute() async {
+        let desktop = "local_0f8e2c1a-5b7d-4e9a-a3c6-2d4f6b8e0a1c"
+        let other = "local_7a9c1e3f-2b4d-4f6a-8c0e-1d3f5b7a9c2e"
+        func record(_ id: String, transcript: String?) -> String {
+            let cli = transcript.map { #""cliSessionId":"\#($0)","# } ?? ""
+            return #"{"sessionId":"\#(id)",\#(cli)"cwd":"/Users/me/dev/app","isArchived":false,"title":"t"}"#
+        }
+        expect(
+            ClaudeAppRoute.desktopID(inHead: Data(record(desktop, transcript: s1).utf8), transcriptID: s1) == desktop,
+            "a record names the desktop session running a transcript")
+        expect(
+            ClaudeAppRoute.desktopID(inHead: Data(record(desktop, transcript: s2).utf8), transcriptID: s1) == nil,
+            "another transcript's record is not it")
+        expect(
+            ClaudeAppRoute.desktopID(inHead: Data(record(desktop, transcript: nil).utf8), transcriptID: s1) == nil,
+            "nor a record that runs no transcript")
+        expect(
+            ClaudeAppRoute.desktopID(inHead: Data(record("local_a;open x", transcript: s1).utf8), transcriptID: s1) == nil,
+            "an id the app would refuse is never used")
+        expect(
+            ClaudeAppRoute.continueURL(desktopID: desktop)?.absoluteString == "claude://code/continue?session=" + desktop,
+            "the route the app's handler and dock menu use")
+        expect(ClaudeAppRoute.continueURL(desktopID: "last") == nil, "only a session's own id")
+        expect(ClaudeAppRoute.continueURL(desktopID: "local_" + String(repeating: "a", count: 65)) == nil, "≤ 64")
+
+        let home = scratch.appending(path: "claude-app-home", directoryHint: .isDirectory)
+        let root = AgentSessionsLocations(home: home).claudeAppSessions
+        expect(root.path.hasSuffix("Library/Application Support/Claude/claude-code-sessions"), "the app's records")
+        let organization = root.appending(path: "account-1/org-1", directoryHint: .isDirectory)
+        try? FileManager.default.createDirectory(at: organization, withIntermediateDirectories: true)
+        let records = [(other, s2), (desktop, s1)]
+        for (id, transcript) in records {
+            try? Data(record(id, transcript: transcript).utf8).write(to: organization.appending(path: id + ".json"))
+        }
+        try? Data(record("local_ignored", transcript: s3).utf8).write(to: organization.appending(path: "notes.json"))
+        let found = await AgentSessionsScanner.claudeAppSession(transcriptID: s1, root: root)
+        expect(found == desktop, "the lookup finds the record by its transcript, got \(found ?? "nil")")
+        let missing = await AgentSessionsScanner.claudeAppSession(transcriptID: s3, root: root)
+        expect(missing == nil, "only local_ records are read")
+        let none = await AgentSessionsScanner.claudeAppSession(transcriptID: s1, root: home.appending(path: "none"))
+        expect(none == nil, "no records, no route")
     }
 }
 

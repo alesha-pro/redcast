@@ -795,6 +795,7 @@
 		D19969C92342E025A16443B5 /* CalcTokenizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE1C64977153EF104F583008 /* CalcTokenizer.swift */; };
 		D1F02A377FF12C14CE73B1CB /* ExtensionSearchState.swift in Sources */ = {isa = PBXBuildFile; fileRef = A5C67CBB0BD596D3E74326D2 /* ExtensionSearchState.swift */; };
 		D1F9C28CA4048480DB818EE9 /* LauncherList.swift in Sources */ = {isa = PBXBuildFile; fileRef = 132C5A534C02305C1A29CC74 /* LauncherList.swift */; };
+		D2E49C4410E4D47E05838F1A /* ClaudeAppRoute.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3206B9285AEEF07089742316 /* ClaudeAppRoute.swift */; };
 		D3278EA1940C94A2A2D0DBB2 /* AgentScheduler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 983D8E24B0DD6AC54B6095D7 /* AgentScheduler.swift */; };
 		D37EEAAC8153880548E909C4 /* DictionaryEntry.swift in Sources */ = {isa = PBXBuildFile; fileRef = E01F745C8C21DF1290E2169C /* DictionaryEntry.swift */; };
 		D37F4361928A38602002FAEF /* MCPSettingsSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00ECBD55353C83A7F4E93592 /* MCPSettingsSection.swift */; };
@@ -1210,6 +1211,7 @@
 		31B366A24536270C1FE581B9 /* NoteToolFormat.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoteToolFormat.swift; sourceTree = "<group>"; };
 		31BAD6EE1BA3036C4B5A3D19 /* HUDPresenter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HUDPresenter.swift; sourceTree = "<group>"; };
 		31F2C83F4B985EA6CD03BC69 /* QuickActionResultView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuickActionResultView.swift; sourceTree = "<group>"; };
+		3206B9285AEEF07089742316 /* ClaudeAppRoute.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClaudeAppRoute.swift; sourceTree = "<group>"; };
 		322CDA010EDCE32555CD4212 /* PlainTextSurface.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlainTextSurface.swift; sourceTree = "<group>"; };
 		3265CBD6C91FC67E3996AF8E /* MCPOAuthChallenge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MCPOAuthChallenge.swift; sourceTree = "<group>"; };
 		32733B27AE0BD75742D1394F /* DialogView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DialogView.swift; sourceTree = "<group>"; };
@@ -2453,6 +2455,7 @@
 				270CBE79D67F6E332CF5E0BD /* AgentSession.swift */,
 				EA777CA4F0662076D36467B5 /* AgentSessionQuery.swift */,
 				B3C43FC91BA2941C988C1F81 /* AgentSessionsLocations.swift */,
+				3206B9285AEEF07089742316 /* ClaudeAppRoute.swift */,
 				A404373BB9EEA846761CDB07 /* ClaudeTranscriptDecoder.swift */,
 				18260697F38C2D4A9487D70C /* CodexStateReader.swift */,
 				5845754DF5700DCAE88D5EB2 /* GeminiChatDecoder.swift */,
@@ -4852,6 +4855,7 @@
 				5EFFB1E7D84965D155133A67 /* ChatTitle.swift in Sources */,
 				454AD9FFAB6FC2F69C1A515C /* ChatToolScope.swift in Sources */,
 				E77BF5D26A6D9E9FC7E82259 /* ChatTranscriptView.swift in Sources */,
+				D2E49C4410E4D47E05838F1A /* ClaudeAppRoute.swift in Sources */,
 				1E66AE39C9756C29365AF431 /* ClaudeControlProtocol.swift in Sources */,
 				5BD31373EC8C1DD85722ABF5 /* ClaudeLiveSessionsProbe.swift in Sources */,
 				C1236C0EB496068BFC0DB18C /* ClaudeMCPLaunch.swift in Sources */,

@@ -270,6 +270,20 @@ enum AgentSessionsScanner {
         return try? handle.read(upToCount: length)
     }
 
+    /// Read on ⌘O only: the Claude app's record running `transcriptID`, the first that matches.
+    @concurrent static func claudeAppSession(transcriptID: String, root: URL) async -> String? {
+        guard AgentResumeCommand.isSafeID(transcriptID) else { return nil }
+        for organization in folders(in: root).flatMap(folders(in:)) {
+            for file in files(in: organization)
+            where file.lastPathComponent.hasPrefix(ClaudeAppRoute.recordPrefix) && file.pathExtension == "json" {
+                guard !Task.isCancelled else { return nil }
+                guard let head = head(of: file, length: ClaudeAppRoute.headLength) else { continue }
+                if let id = ClaudeAppRoute.desktopID(inHead: head, transcriptID: transcriptID) { return id }
+            }
+        }
+        return nil
+    }
+
     /// One `fileExists` per project folder; the session id was validated before it got here.
     static func claudeTranscript(_ sessionID: String, root: URL) -> URL? {
         guard AgentResumeCommand.isSafeID(sessionID),
