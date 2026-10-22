@@ -74,6 +74,9 @@ to re-register from
 and to prune bindings whose record was deleted while Tinycast wasn't running. That prune is why
 `QuicklinkStore` loads at launch even when the feature is off
 (see [quicklinks.md](quicklinks.md#hotkeys)).
+The fork's agents index theirs in `boundAgentIDs`, pruned by `AgentCoordinator` once `agents.json`
+has read and on an agent's deletion; none travels in a backup or `settings.json`, since the agents
+do not (see [background-agents.md](background-agents.md#an-agents-own-row-and-chord)).
 Apple Shortcuts keep the same kind of index in `boundAppleShortcutIDs`, pruned not at launch but after
 the first successful read of the library, since a failed read looks exactly like deletion
 (see [apple-shortcuts.md](apple-shortcuts.md#sweeping-deleted-shortcuts)).

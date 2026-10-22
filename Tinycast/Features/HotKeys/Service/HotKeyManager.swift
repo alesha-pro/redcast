@@ -38,6 +38,8 @@ final class HotKeyManager {
     var onRunAppleShortcut: ((UUID) -> Void)?
     var onExpandSnippet: ((StoredSnippet.ID) -> Void)?
     var onRunExtensionCommand: ((String) -> Void)?
+    /// Fork: an agent's chord, which summons root search with its handle typed.
+    var onSummonAgent: ((UUID) -> Void)?
     /// Names what only the stores know; the fixed catalogs resolve here. Set in `AppCore.start()`.
     var displayName: ((HotKeyAction) -> String?)?
     /// Whether the action's launcher category is switched on. Set in `AppCore.start()`.
@@ -93,6 +95,8 @@ final class HotKeyManager {
     private let boundAppleShortcutKey = "boundAppleShortcutIDs"
     private let boundSnippetKey = "boundSnippetIDs"
     private let boundExtensionCommandKey = "boundExtensionCommandEntryIDs"
+    // Fork: agents' ids, pruned by AgentCoordinator once `agents.json` has read.
+    private let boundAgentKey = "boundAgentIDs"
 
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
@@ -164,6 +168,9 @@ final class HotKeyManager {
         defaults.stringArray(forKey: boundSnippetKey) ?? []
     }
 
+    /// Fork: an agent's binding is cleared with the agent, or at launch once it is known gone.
+    var boundAgentIDs: [UUID] { boundIDs(key: boundAgentKey) }
+
     /// A deleted app takes its Settings row with it, so nothing else could ever clear its binding.
     func removeAppBindings(where isUninstalled: (String) -> Bool) {
         for bundleID in boundBundleIDs where isUninstalled(bundleID) {
@@ -234,6 +241,9 @@ final class HotKeyManager {
             index(id, bound: binding != nil, key: boundSnippetKey)
         case .extensionCommand(let entryID):
             index(entryID, bound: binding != nil, key: boundExtensionCommandKey)
+        // Fork: indexed like the other per-item kinds, so launch re-registers it.
+        case .agent(let id):
+            index(id, bound: binding != nil, key: boundAgentKey)
         case .togglePalette, .dictation, .command, .systemAction, .windowCommand:
             break
         }
@@ -354,6 +364,8 @@ final class HotKeyManager {
         actions += boundAppleShortcutIDs.map { .appleShortcut(id: $0) }
         actions += boundSnippetIDs.map { .snippet(id: $0) }
         actions += boundExtensionCommandEntryIDs.map { .extensionCommand(entryID: $0) }
+        // Fork: only bound agents, so an agent without a chord registers nothing.
+        actions += boundAgentIDs.map { .agent(id: $0) }
         actions += SystemAction.ID.allCases.map { .systemAction(id: $0) }
         actions += WindowCommand.ID.allCases.map { .windowCommand(id: $0) }
         candidateActionsCache = actions
@@ -392,6 +404,9 @@ final class HotKeyManager {
             return displayName?(action) ?? String(localized: "Snippet")
         case .extensionCommand:
             return displayName?(action) ?? String(localized: "Extension Command")
+        // Fork: the agent's own name, from AppCore's lookup.
+        case .agent:
+            return displayName?(action) ?? String(localized: "Agent")
         }
     }
 
@@ -454,6 +469,8 @@ final class HotKeyManager {
         case .appleShortcut(let id): onRunAppleShortcut?(id)
         case .snippet(let id): onExpandSnippet?(id)
         case .extensionCommand(let entryID): onRunExtensionCommand?(entryID)
+        // Fork: the agent's handle typed into root search.
+        case .agent(let id): onSummonAgent?(id)
         }
     }
 

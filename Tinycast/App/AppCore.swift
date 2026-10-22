@@ -335,7 +335,7 @@ final class AppCore {
             chatGPTSubscription.launchSettings = { [aiSettings] in aiSettings.launch(for: .codex) }
             aiChatCoordinator.applyEnabled()
             agentStore.load()
-            agentCoordinator.applyBackground()
+            agentCoordinator.apply()
             screenAwarenessCoordinator.applyEnabled()
             voiceAskCoordinator.applyEnabled()
             agentSessionsCoordinator.applyEnabled()
@@ -439,6 +439,8 @@ final class AppCore {
             hotKeys.onRunExtensionCommand = { [weak self] entryID in
                 self?.extensionCoordinator.runExtensionCommand(entryID: entryID)
             }
+            // Fork: an agent's own chord.
+            hotKeys.onSummonAgent = { [weak self] id in self?.agentCoordinator.summon(agentID: id) }
             extensions.onDidUninstall = { [weak self] entryIDs in
                 self?.extensionCoordinator.removeExtensionReferences(entryIDs: entryIDs)
                 self?.extensionAICoordinator.forget(entryIDs: entryIDs)
@@ -557,6 +559,9 @@ final class AppCore {
             return snippetsStore.record(id: id)?.snippet.name
         case .extensionCommand(let entryID):
             return appIndex.apps.first { $0.kind == .extensionCommand && $0.id == entryID }?.name
+        // Fork: an agent is named from its own store, as the launcher row is.
+        case .agent(let id):
+            return agentStore.agent(id: id)?.name
         case .togglePalette, .dictation, .command, .systemAction, .windowCommand:
             return nil
         }
@@ -743,7 +748,7 @@ final class AppCore {
             { _ = $0.aiEnabled },
             reproject: {
                 $0.aiChatCoordinator.applyEnabled()
-                $0.agentCoordinator.applyBackground()
+                $0.agentCoordinator.apply()
             })
         track(
             { _ = $0.dictationIdleRelease },

@@ -380,6 +380,10 @@ and the gear's destination — when a prefix names its destination outright. Tod
 results, cards or files, so ↵ cannot launch whatever ranked first, and ⌘↵ on such a row goes to
 `FallbackCoordinator.secondary`. Claimed rows are never in `available`, so Settings › Fallbacks never
 lists them, and any query that does not open with `@` costs the claim one character's comparison.
+Agents are also ordinary entries of the fork's `AppEntry.Kind.agent`, one section published between
+custom commands and Quick Actions, gated by AI's switch through `settingsOwner` rather than a
+`VisibilityStore` category; their rows, chords and ⌘K menu are in
+[background-agents.md](background-agents.md#an-agents-own-row-and-chord).
 
 **A fallback row is not a result, and `LauncherScreen.Row` says so.** `.fallback` is its own case
 with a `fallback-` prefixed id, because Quick AI can be a ranked hit *and* a fallback in the same

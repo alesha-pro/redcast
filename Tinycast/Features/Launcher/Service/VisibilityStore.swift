@@ -84,6 +84,8 @@ final class VisibilityStore {
         case .togglePalette, .dictation, .quickAction, .customCommand, .windowCommand, .customWindowSize,
             .windowLayout, .windowRoom, .quicklink, .appleShortcut, .snippet, .extensionCommand:
             true
+        // Fork: an agent answers to AI's switch, which its own dispatch checks.
+        case .agent: true
         }
     }
 }

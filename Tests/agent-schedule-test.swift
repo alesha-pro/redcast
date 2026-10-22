@@ -18,6 +18,7 @@ struct AgentScheduleTests {
 
     static func main() async {
         handlesAreStableAndUnique()
+        launcherRowsHaveTheirOwnIDs()
         addressesParse()
         dailyOccurrences()
         weekdaysSkipTheWeekend()
@@ -76,6 +77,19 @@ struct AgentScheduleTests {
     static let daily8 = AgentScheduleRule(kind: .daily, minuteOfDay: 8 * 60)
 
     // MARK: - Addresses
+
+    static func launcherRowsHaveTheirOwnIDs() {
+        let rig = agent("Rig")
+        expect(rig.entryID.hasPrefix(AgentProfile.entryIDPrefix), "an agent's row has the agents' prefix")
+        expect(AgentProfile.id(fromEntryID: rig.entryID) == rig.id, "and its id reads back")
+        let id = rig.id.uuidString.lowercased()
+        expect(AgentProfile.id(fromEntryID: "agent:" + id) == nil, "an @handle task row is not an agent's row")
+        expect(AgentProfile.id(fromEntryID: "agent-pick:" + id) == nil, "nor is a Choose Agent row")
+        expect(AgentProfile.id(fromEntryID: AgentProfile.entryIDPrefix + "nope") == nil, "a broken id names nobody")
+        var renamed = rig
+        renamed.name = "Renamed"
+        expect(renamed.entryID == rig.entryID, "a rename keeps the row's favorite, alias and chord")
+    }
 
     static func handlesAreStableAndUnique() {
         expect(AgentTaskAddress.handle(for: "Rig") == "rig", "a name lower-cases to its handle")

@@ -135,6 +135,7 @@ struct LauncherList: View {
         let kinds: [AppEntry.Kind] = [
             .meeting, .application, .systemSettings, .extensionCommand, .quicklink, .appleShortcut,
             .snippet, .systemAction, .windowLayout, .windowRoom, .windowCommand, .customCommand,
+            .agent,  // Fork: AI agents, published between custom commands and Quick Actions.
             .quickAction, .command
         ]
         for kind in kinds {
