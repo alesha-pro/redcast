@@ -48,6 +48,8 @@ struct AgentSessionsTests {
         await eventResolution()
         liveListing()
         await transcriptSearch()
+        await hookFilesOnDisk()
+        await liveProbe()
 
         print("\(passes) passed, \(failures) failed")
         if failures > 0 { exit(1) }
@@ -1088,6 +1090,195 @@ struct AgentSessionsTests {
         expect(byID["77777777-7777-4777-8777-777777777777"]?.status == .idle, "an unknown status is idle")
         expect(byID["88888888-8888-4888-8888-888888888888"]?.status == .finished, "a done background session")
         expect(ClaudeAgentsListing.decode(Data("not json".utf8)).isEmpty, "garbage decodes to nothing")
+    }
+
+    // MARK: - 15. Hook files on disk
+
+    static func hookFilesOnDisk() async {
+        let fileManager = FileManager.default
+        let home = scratch.appending(path: "home", directoryHint: .isDirectory)
+        let backups = scratch.appending(path: "hook-backups", directoryHint: .isDirectory)
+        let dotfiles = scratch.appending(path: "dotfiles", directoryHint: .isDirectory)
+        let settings = home.appending(path: ".claude/settings.json")
+        let hooks = home.appending(path: ".codex/hooks.json")
+        for folder in [home.appending(path: ".claude"), dotfiles] {
+            try? fileManager.createDirectory(at: folder, withIntermediateDirectories: true)
+        }
+        let plain = text("hooks/claude-settings-plain.json")
+        let installed = install(plain)?.after ?? ""
+        let codexInstalled = install(nil, .codex)?.after ?? ""
+        func write(_ text: String, to url: URL) {
+            try? Data(text.utf8).write(to: url)
+        }
+        func contents(_ url: URL) -> String? {
+            (try? Data(contentsOf: url)).flatMap { String(data: $0, encoding: .utf8) }
+        }
+        func mode(_ url: URL) -> Int? {
+            (try? fileManager.attributesOfItem(atPath: url.path))?[.posixPermissions] as? Int
+        }
+        func backupNames() -> [String] {
+            ((try? fileManager.contentsOfDirectory(atPath: backups.path)) ?? []).sorted()
+        }
+        var clock = 1_700_000_000.0
+        func apply(_ targets: [AgentHookTarget], on: Bool, before edit: (() -> Void)? = nil) async
+            -> AgentHookRepository.Failure?
+        {
+            var changes: [AgentHookFileFormat.Change] = []
+            var snapshots: [AgentHookTarget: AgentHookRepository.Snapshot] = [:]
+            for target in targets {
+                let snapshot = await AgentHookRepository.snapshot(target, home: home)
+                snapshots[target] = snapshot
+                let change = on ? install(snapshot.text, target) : snapshot.text.flatMap { remove($0, target) }
+                if let change { changes.append(change) }
+            }
+            edit?()
+            clock += 1
+            do throws(AgentHookRepository.Failure) {
+                try await AgentHookRepository.apply(
+                    changes, expected: snapshots, backups: backups, now: Date(timeIntervalSince1970: clock))
+                return nil
+            } catch {
+                return error
+            }
+        }
+
+        let missing = await AgentHookRepository.snapshot(.codex, home: home)
+        expect(missing.text == nil && missing.isReadable && !missing.isAgentPresent, "no ~/.codex: nothing to offer")
+        write(plain, to: settings)
+        try? fileManager.setAttributes([.posixPermissions: 0o640], ofItemAtPath: settings.path)
+        try? fileManager.createDirectory(at: home.appending(path: ".codex"), withIntermediateDirectories: true)
+
+        let edited = await apply([.claude], on: true) { write(plain + " ", to: settings) }
+        expect(edited == .changed(.claude), "a file edited after its diff is refused")
+        expect(contents(settings) == plain + " " && backupNames().isEmpty, "and left alone, with no backup")
+        write(plain, to: settings)
+
+        let raced = await apply([.claude, .codex], on: true) { write("{}\n", to: hooks) }
+        expect(raced == .changed(.codex), "a second file that moved on is refused")
+        expect(contents(settings) == plain, "before the first is written")
+        try? fileManager.removeItem(at: hooks)
+
+        let turnedOn = await apply([.claude, .codex], on: true)
+        expect(turnedOn == nil, "both files take the hooks")
+        expect(contents(settings) == installed && contents(hooks) == codexInstalled, "byte for byte")
+        expect(mode(settings) == 0o640, "the file keeps its permissions")
+        let first = backupNames()
+        expect(first.count == 1 && first.first?.hasPrefix("claude-") == true, "the original is backed up")
+        expect(contents(backups.appending(path: first.first ?? "")) == plain, "as it was")
+        expect(mode(backups.appending(path: first.first ?? "")) == 0o600, "privately")
+
+        let turnedOff = await apply([.claude, .codex], on: false)
+        expect(turnedOff == nil, "turning off")
+        expect(contents(settings) == plain, "restores the original bytes")
+        expect(!fileManager.fileExists(atPath: hooks.path), "and deletes a hooks.json that held only ours")
+
+        for _ in 0..<3 {
+            _ = await apply([.claude], on: true)
+            _ = await apply([.claude], on: false)
+        }
+        let rotated = backupNames().filter { $0.hasPrefix("claude-") }
+        expect(rotated.count == 5 && !rotated.contains(first[0]), "the newest five backups are kept, got \(rotated)")
+
+        let linkedSettings = dotfiles.appending(path: "settings.json")
+        let linkedHooks = dotfiles.appending(path: "hooks.json")
+        write(plain, to: linkedSettings)
+        write(codexInstalled, to: linkedHooks)
+        try? fileManager.removeItem(at: settings)
+        try? fileManager.createSymbolicLink(at: settings, withDestinationURL: linkedSettings)
+        try? fileManager.createSymbolicLink(at: hooks, withDestinationURL: linkedHooks)
+        func isLink(_ url: URL) -> Bool {
+            (try? fileManager.destinationOfSymbolicLink(atPath: url.path)) != nil
+        }
+        let linkedOn = await apply([.claude], on: true)
+        expect(linkedOn == nil, "a symlinked settings.json")
+        expect(isLink(settings) && contents(linkedSettings) == installed, "is written through, the link kept")
+        let linkedOff = await apply([.claude, .codex], on: false)
+        expect(linkedOff == nil, "and both links")
+        expect(isLink(settings) && contents(linkedSettings) == plain, "are restored through")
+        expect(isLink(hooks) && contents(linkedHooks) == "{}\n", "a linked hooks.json is emptied, never unlinked")
+
+        try? fileManager.removeItem(at: settings)
+        try? Data([0x7B, 0xFF, 0xFE, 0x7D]).write(to: settings)
+        let binary = await AgentHookRepository.snapshot(.claude, home: home)
+        expect(!binary.isReadable && binary.text == nil, "a file that is not UTF-8 is unreadable")
+
+        let record = home.appending(path: "state/live-status.json")
+        let saved = LiveStatusRecord(token: token, targets: [.claude, .codex], installedAt: Date(timeIntervalSince1970: 9))
+        await AgentHookRepository.saveLiveStatus(saved, to: record)
+        let loaded = await AgentHookRepository.loadLiveStatus(record)
+        expect(loaded == saved && mode(record) == 0o600, "live-status.json round-trips, private")
+        await AgentHookRepository.saveLiveStatus(nil, to: record)
+        let cleared = await AgentHookRepository.loadLiveStatus(record)
+        expect(cleared == nil && !fileManager.fileExists(atPath: record.path), "off deletes it")
+    }
+
+    // MARK: - 16. Live sessions probe
+
+    static func liveProbe() async {
+        let fileManager = FileManager.default
+        let folder = scratch.appending(path: "probe", directoryHint: .isDirectory)
+        try? fileManager.createDirectory(at: folder, withIntermediateDirectories: true)
+        func shim(_ name: String, _ body: String) -> URL {
+            let url = folder.appending(path: name)
+            try? ("#!/bin/sh\n" + body + "\n").write(to: url, atomically: true, encoding: .utf8)
+            try? fileManager.setAttributes([.posixPermissions: 0o755], ofItemAtPath: url.path)
+            return url
+        }
+        func pids(_ url: URL) -> [Int32] {
+            ((try? String(contentsOf: url, encoding: .utf8)) ?? "").split(separator: " ").compactMap {
+                Int32($0.trimmingCharacters(in: .whitespacesAndNewlines))
+            }
+        }
+        func gone(_ pids: [Int32]) async -> Bool {
+            for _ in 0..<50 {
+                if pids.allSatisfy({ kill($0, 0) == -1 && errno == ESRCH }) { return true }
+                try? await Task.sleep(for: .milliseconds(100))
+            }
+            return false
+        }
+
+        let listing = folder.appending(path: "agents.json")
+        try? fixture("claude-agents.json").write(to: listing)
+        let printing = shim("claude", "[ \"$1 $2\" = 'agents --json' ] || exit 3\nexec /bin/cat '\(listing.path)'")
+        let printed = await ClaudeLiveSessionsProbe.run(executable: printing, home: folder)
+        expect(
+            printed == ClaudeAgentsListing.decode(fixture("claude-agents.json")) && printed.count == 5,
+            "the probe runs `claude agents --json` and decodes it")
+        let failing = shim("claude-failing", "/bin/cat '\(listing.path)'; exit 1")
+        let failed = await ClaudeLiveSessionsProbe.run(executable: failing, home: folder)
+        expect(failed.isEmpty, "a failed run gives nothing")
+
+        // Process.terminate signals the child's group; leaving it, a grandchild needs the tree walk.
+        func detaching(_ name: String, recording file: URL) -> URL {
+            shim(
+                name,
+                "/usr/bin/perl -e 'setpgrp(0, 0); exec \"/bin/sleep\", \"60\"' &\n"
+                    + "echo $$ $! > '\(file.path)'\n/bin/sleep 60")
+        }
+        let hungPIDs = folder.appending(path: "hung.pids")
+        let hanging = detaching("claude-hanging", recording: hungPIDs)
+        let started = ContinuousClock.now
+        let hung = await ClaudeLiveSessionsProbe.run(executable: hanging, home: folder)
+        let took = ContinuousClock.now - started
+        expect(hung.isEmpty && took >= .seconds(3) && took < .seconds(9), "the watchdog stops a hang, took \(took)")
+        let hungTree = pids(hungPIDs)
+        let hungGone = await gone(hungTree)
+        expect(hungTree.count == 2 && hungGone, "the probe and its grandchild are gone")
+
+        let cancelledPIDs = folder.appending(path: "cancelled.pids")
+        let waiting = detaching("claude-waiting", recording: cancelledPIDs)
+        let probe = Task { await ClaudeLiveSessionsProbe.run(executable: waiting, home: folder) }
+        for _ in 0..<50 where pids(cancelledPIDs).count < 2 {
+            try? await Task.sleep(for: .milliseconds(50))
+        }
+        let cancelledAt = ContinuousClock.now
+        probe.cancel()
+        let cancelled = await probe.value
+        let stopped = ContinuousClock.now - cancelledAt
+        expect(cancelled.isEmpty && stopped < .seconds(3), "cancelling stops it before the watchdog, took \(stopped)")
+        let cancelledTree = pids(cancelledPIDs)
+        let cancelledGone = await gone(cancelledTree)
+        expect(cancelledTree.count == 2 && cancelledGone, "and reaps its whole tree")
     }
 
     // MARK: - Search inside transcripts

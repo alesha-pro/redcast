@@ -817,8 +817,11 @@ run agent-test             Tinycast/Features/Agents/Model/*.swift \
                            Tinycast/Features/AI/Model/ChatGPTSubscription.swift \
                            Tinycast/Features/AI/Model/InstalledAI.swift
 AS=Tinycast/Features/AgentSessions
-run agent-sessions-test    $L/SearchRelevance.swift $AS/Model/*.swift \
-                           $AS/Service/AgentSessionsScanner.swift $AS/Service/AgentTranscriptSearch.swift
+run slow agent-sessions-test $L/SearchRelevance.swift $AS/Model/*.swift \
+                           $AS/Service/AgentSessionsScanner.swift $AS/Service/AgentTranscriptSearch.swift \
+                           $AS/Service/AgentHookRepository.swift $AS/Service/ClaudeLiveSessionsProbe.swift \
+                           Tinycast/Features/Agents/Service/ProcessTree.swift \
+                           Tinycast/Platform/ExecutableLocator.swift Tinycast/Platform/ProcessExit.swift
 run index agent-sessions-performance $L/SearchRelevance.swift $AS/Model/*.swift
 run quick-action-test      Tinycast/Features/Settings/AppSettingsKey.swift \
                            Tinycast/Features/AI/Model/AIConnection.swift \

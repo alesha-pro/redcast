@@ -33,36 +33,19 @@ enum AgentHookRepository {
         read(target, at: url(for: target, home: home))
     }
 
-    /// Re-reads first and refuses a file that changed; the original is copied before it is touched.
+    /// Every file is re-read before any is written, so one that moved on leaves them all untouched.
     @concurrent static func apply(
-        _ change: AgentHookFileFormat.Change, expected: Snapshot, backups: URL, now: Date
-    ) async throws(Failure) -> URL? {
-        let current = read(change.target, at: expected.url)
-        guard current.text == expected.text, current.text == change.before else { throw .changed(change.target) }
-        let fileManager = FileManager.default
-        var backup: URL?
-        if let before = change.before {
-            backup = try saveBackup(before, target: change.target, folder: backups, now: now)
+        _ changes: [AgentHookFileFormat.Change], expected: [AgentHookTarget: Snapshot], backups: URL, now: Date
+    ) async throws(Failure) {
+        var checked: [(AgentHookFileFormat.Change, Snapshot)] = []
+        for change in changes {
+            guard let snapshot = expected[change.target], read(change.target, at: snapshot.url).text == snapshot.text
+            else { throw .changed(change.target) }
+            checked.append((change, snapshot))
         }
-        // A dotfiles symlink is written through, so the link itself survives.
-        let isLink = (try? expected.url.resourceValues(forKeys: [.isSymbolicLinkKey]))?.isSymbolicLink == true
-        let destination = isLink ? expected.url.resolvingSymlinksInPath() : expected.url
-        let permissions = (try? fileManager.attributesOfItem(atPath: destination.path))?[.posixPermissions]
-        do {
-            guard let after = change.after ?? (isLink ? "{}\n" : nil) else {
-                try fileManager.removeItem(at: destination)
-                return backup
-            }
-            try fileManager.createDirectory(
-                at: destination.deletingLastPathComponent(), withIntermediateDirectories: true)
-            try Data(after.utf8).write(to: destination, options: .atomic)
-            if let permissions {
-                try fileManager.setAttributes([.posixPermissions: permissions], ofItemAtPath: destination.path)
-            }
-        } catch {
-            throw .writeFailed(error.localizedDescription)
+        for (change, snapshot) in checked {
+            try write(change, expected: snapshot, backups: backups, now: now)
         }
-        return backup
     }
 
     @concurrent static func loadLiveStatus(_ url: URL) async -> LiveStatusRecord? {
@@ -94,6 +77,36 @@ enum AgentHookRepository {
 
     // MARK: - Private
 
+    /// Re-reads first and refuses a file that changed; the original is copied before it is touched.
+    private static func write(
+        _ change: AgentHookFileFormat.Change, expected: Snapshot, backups: URL, now: Date
+    ) throws(Failure) {
+        let current = read(change.target, at: expected.url)
+        guard current.text == expected.text, current.text == change.before else { throw .changed(change.target) }
+        let fileManager = FileManager.default
+        if let before = change.before {
+            try saveBackup(before, target: change.target, folder: backups, now: now)
+        }
+        // A dotfiles symlink is written through, so the link itself survives.
+        let isLink = (try? expected.url.resourceValues(forKeys: [.isSymbolicLinkKey]))?.isSymbolicLink == true
+        let destination = isLink ? expected.url.resolvingSymlinksInPath() : expected.url
+        let permissions = (try? fileManager.attributesOfItem(atPath: destination.path))?[.posixPermissions]
+        do {
+            guard let after = change.after ?? (isLink ? "{}\n" : nil) else {
+                try fileManager.removeItem(at: destination)
+                return
+            }
+            try fileManager.createDirectory(
+                at: destination.deletingLastPathComponent(), withIntermediateDirectories: true)
+            try Data(after.utf8).write(to: destination, options: .atomic)
+            if let permissions {
+                try fileManager.setAttributes([.posixPermissions: permissions], ofItemAtPath: destination.path)
+            }
+        } catch {
+            throw .writeFailed(error.localizedDescription)
+        }
+    }
+
     private static func read(_ target: AgentHookTarget, at url: URL) -> Snapshot {
         var isDirectory: ObjCBool = false
         let folder = url.deletingLastPathComponent().path
@@ -114,9 +127,7 @@ enum AgentHookRepository {
             target: target, url: url, text: text, modified: modified, isReadable: true, isAgentPresent: present)
     }
 
-    private static func saveBackup(_ text: String, target: AgentHookTarget, folder: URL, now: Date)
-        throws(Failure) -> URL
-    {
+    private static func saveBackup(_ text: String, target: AgentHookTarget, folder: URL, now: Date) throws(Failure) {
         let fileManager = FileManager.default
         let parts = Calendar(identifier: .gregorian).dateComponents(in: .current, from: now)
         let stamp = String(
@@ -136,6 +147,5 @@ enum AgentHookRepository {
         for name in kept.dropFirst(backupsKept) {
             try? fileManager.removeItem(at: folder.appending(path: name, directoryHint: .notDirectory))
         }
-        return url
     }
 }

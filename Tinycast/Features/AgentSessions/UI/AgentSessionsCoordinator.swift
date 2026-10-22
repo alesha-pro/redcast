@@ -477,22 +477,15 @@ final class AgentSessionsCoordinator {
             backups: Self.stateFolder.appending(path: "hook-backups", directoryHint: .isDirectory), targets: targets)
     }
 
-    /// Re-reads every file first; one that moved on since the diff sends the panel back to review.
+    /// A file that moved on since the diff sends the panel back to review.
     func apply(_ plan: LiveStatusPlan) async -> LiveStatusResult {
-        for change in plan.changes {
-            let current = await AgentHookRepository.snapshot(change.target, home: home)
-            guard current.text == plan.snapshots[change.target]?.text else { return await changed(plan, change.target) }
-        }
-        for change in plan.changes {
-            guard let expected = plan.snapshots[change.target] else { continue }
-            do throws(AgentHookRepository.Failure) {
-                _ = try await AgentHookRepository.apply(change, expected: expected, backups: plan.backups, now: Date())
-            } catch .changed(let target) {
-                return await changed(plan, target)
-            } catch {
-                guard case .writeFailed(let message) = error else { return .failed("") }
-                return .failed(message)
-            }
+        do throws(AgentHookRepository.Failure) {
+            try await AgentHookRepository.apply(plan.changes, expected: plan.snapshots, backups: plan.backups, now: Date())
+        } catch .changed(let target) {
+            return await changed(plan, target)
+        } catch {
+            guard case .writeFailed(let message) = error else { return .failed("") }
+            return .failed(message)
         }
         if plan.turningOn {
             let record = LiveStatusRecord(token: plan.token, targets: plan.targets, installedAt: Date())
