@@ -104281,6 +104281,58 @@
         }
       }
     },
+    "Read the window of %@" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Das Fenster von %@ lesen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Leer la ventana de %@"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lire la fenêtre de %@"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@のウインドウを読み取る"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 윈도우 읽기"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ler a janela de %@"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Прочитать окно %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "读取 %@ 的窗口"
+          }
+        }
+      }
+    },
     "Reading Claude Code sessions… %lld of %lld" : {
       "localizations" : {
         "de" : {
@@ -112899,6 +112951,58 @@
         }
       }
     },
+    "Screen" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bildschirm"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pantalla"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Écran"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "画面"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "화면"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tela"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Экран"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "屏幕"
+          }
+        }
+      }
+    },
     "Screen Awareness" : {
       "localizations" : {
         "de" : {
@@ -113103,6 +113207,58 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "这台 Mac 上无法锁定屏幕。"
+          }
+        }
+      }
+    },
+    "Screen reads the text of the window behind Tinycast when the agent asks, never a picture. Screen Awareness must be on." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mit „Bildschirm“ liest der Agent auf Anfrage den Text des Fensters hinter Tinycast, nie ein Bild. Die Bildschirmerkennung muss aktiviert sein."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Con «Pantalla», el agente lee, cuando lo pide, el texto de la ventana que hay detrás de Tinycast, nunca una imagen. Screen Awareness debe estar activado."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Avec « Écran », l’agent lit à sa demande le texte de la fenêtre derrière Tinycast, jamais une image. La reconnaissance de l’écran doit être activée."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "「画面」では、エージェントが求めたときにTinycastの背後にあるウインドウのテキストを読み取ります。画像は読み取りません。画面認識をオンにする必要があります。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "'화면'을 사용하면 에이전트가 요청할 때 Tinycast 뒤에 있는 윈도우의 텍스트를 읽습니다. 이미지는 읽지 않습니다. 화면 인식이 켜져 있어야 합니다."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Com “Tela”, o agente lê, quando pede, o texto da janela atrás do Tinycast, nunca uma imagem. O Reconhecimento da tela precisa estar ativado."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "С «Экраном» агент по запросу читает текст окна за Tinycast — только текст, без изображения. Screen Awareness должен быть включён."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "启用“屏幕”后，代理会在需要时读取 Tinycast 后面窗口中的文字，从不读取图像。需要先开启屏幕感知。"
           }
         }
       }

@@ -45,6 +45,16 @@ plus the few lines that wire it in.
   `screenAwarenessShortcutOffered` then stays set, so a binding the reader cleared stays cleared.
 - **The capture is taken before anything comes forward.** Both destinations are shown only after the
   window was read, so neither the AI Chat window nor the palette can become the window captured.
+- **An agent reads the screen only when ticked, as text, and keeps nothing.** `ScreenAgentTools` offers
+  `screen_context` to an agent on Tinycast's loop with the Screen family ticked (off for every agent until
+  then), and only while AI and this feature are on, checked again at each call. It reads the frontmost
+  normal-layer window of a regular app other than Tinycast, found in `CGWindowListCopyWindowInfo` by owner
+  pid at call time (no observer, no Screen Recording), through the same `ScreenContextReader` and
+  `AccessibilityText` selection Ask About Screen uses, never a screenshot. The text goes into that call's
+  result only, cut by `ScreenContextFormatter` under 24 KB, and is never written down. It is personal
+  data, so the agent's rule for that risk decides (always by default: ticking Screen is the grant), and
+  `context.consent` runs before the read so Ask or Never is honoured; a run nobody watches gets no read
+  under Ask. Without Accessibility it says so rather than prompting.
 - **A picture the route cannot see stays behind.** `AIChatCoordinator.stage` checks
   `AIModelCapabilities.images`; on a text-only route only the text is staged and a HUD says so, rather
   than staging an image the send would refuse.
@@ -57,6 +67,7 @@ plus the few lines that wire it in.
 | `Model/ScreenContextFormatter.swift` | The capture as the Markdown attachment, its budget and its name |
 | `Service/ScreenContextReader.swift` | The Accessibility walk, off-main: focused window, title, frame, web area URL, focused field |
 | `Service/WindowScreenshotter.swift` | Finds the window by pid and frame, captures it with ScreenCaptureKit; `ScreenRecordingAccess` |
+| `Service/ScreenAgentTools.swift` | `screen_context` for agents: the window behind Tinycast, read as text when called |
 | `UI/ScreenAwarenessCoordinator.swift` | The one funnel: target, permission, capture, staging; the capture is shared with Ask by Voice |
 | `Model/ScreenAwarenessDestination.swift` | AI Chat (the default, as in Raycast) or Quick AI |
 | `Settings/ScreenAwarenessSettingsSection.swift` | The AI pane's section |
@@ -104,5 +115,9 @@ bounded to 1568px like any pasted picture.
 - Switch **Open captures in** to Quick AI: the same capture lands in the palette's chat instead.
 - With Tinycast's Settings in front, press the shortcut: refused with a HUD.
 - Turn the feature off: the launcher row disappears and the shortcut does nothing.
+- Tick Screen for an agent (Settings → AI → Agents), open a page in Safari, then ask the agent in AI Chat
+  what is on the page: the transcript shows `screen_context` and the answer quotes the page. Turn
+  Screen Awareness off: the checkbox greys out and the agent says it cannot read the screen.
 - Harness: `screen-awareness-test` (section order, budget and cut markers, forged titles, secure roles,
-  line normalizing).
+  line normalizing; the agent tool's spec, opt-in, consent before any read, the off and untrusted paths,
+  and its cut).

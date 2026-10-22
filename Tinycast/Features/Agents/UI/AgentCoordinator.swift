@@ -197,6 +197,12 @@ final class AgentCoordinator {
             providers.append(WebSearchAgentTools(runner: core.webSearch.runner(canFetch: true)))
         }
         if core.settings.notesEnabled { providers.append(core.notesAI.agentTools) }
+        if core.settings.aiEnabled, core.settings.screenAwarenessEnabled {
+            providers.append(
+                ScreenAgentTools(isEnabled: { @MainActor [weak settings = core.settings] in
+                    settings.map { $0.aiEnabled && $0.screenAwarenessEnabled } ?? false
+                }))
+        }
         return providers
     }
 

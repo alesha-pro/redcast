@@ -219,6 +219,7 @@ struct AgentEditorPanel: View {
             .toggleStyle(.checkbox)
             HStack(spacing: Theme.Spacing.lg) {
                 Toggle("Notes", isOn: tool(.notes)).disabled(!core.settings.notesEnabled)
+                Toggle("Screen", isOn: tool(.screen)).disabled(!core.settings.screenAwarenessEnabled)
                 Toggle("Sub-agents", isOn: tool(.delegate))
             }
             .toggleStyle(.checkbox)
@@ -229,6 +230,14 @@ struct AgentEditorPanel: View {
                 """
                 Notes searches and reads your Tinycast Notes, and always asks before adding to \
                 them. Notes must be on.
+                """
+            )
+            .font(.caption)
+            .foregroundStyle(.secondary)
+            Text(
+                """
+                Screen reads the text of the window behind Tinycast when the agent asks, never a \
+                picture. Screen Awareness must be on.
                 """
             )
             .font(.caption)

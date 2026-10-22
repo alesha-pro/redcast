@@ -203,11 +203,13 @@ because the composer's label and menu styles are private to that file.
 | `load_skill` | — (when skills exist) | read | any | always | — |
 | `update_plan` | — | own | any | always | — |
 | `delegate` | sub-agents | read (each of its calls meets its own rule) | any | always | — |
+| `screen_context` | screen (while Screen Awareness is on) | personal | any | always | — |
 | `notes_search`, `notes_read` | notes | personal | any | always | — |
 | `notes_append` | notes | change | workspace, full | ask | — (always asks) |
 
 The notes family is off for every agent until ticked, and offered only while Notes is on; see
-[notes and AI](notes-ai.md). Sub-agents is off until ticked too.
+[notes and AI](notes-ai.md). Sub-agents is off until ticked too, and so is Screen, which is offered only
+while [Screen Awareness](screen-awareness.md) is on and reads the window behind Tinycast as text.
 
 `run_command` runs through `ShellCommandRunner.stream` with the login shell's environment in the
 agent's folder, stopped after its timeout (120 s by default, 600 s at most); escape sequences are
@@ -228,9 +230,8 @@ concurrent searches' rows complete together, since `AIChatState` closes every op
 
 ## Adding a tool family
 
-Notes arrived this way ([notes and AI](notes-ai.md)); web search, screen context, a plan and
-sub-agents each arrive as one provider too. Nothing else changes: no router edit, no upstream line, no
-prompt edit.
+Notes ([notes and AI](notes-ai.md)), web search, screen context, the plan and sub-agents each arrived
+this way, as one provider. Nothing else changes: no router edit, no upstream line, no prompt edit.
 
 1. Write a `struct` conforming to `AgentToolProvider`. `specs(for:)` lists everything it can offer
    now, with `family` set when a profile switch governs the tool, an honest `risk`, and `concurrent`
@@ -279,6 +280,7 @@ prompt edit.
 - Ask an agent with Web on about today's news: the transcript shows its `web_search` row and a
   "Searched web" row, then the answer cites sources. With Web off it says it cannot look things up.
 - Tick Notes in the editor and run [notes and AI](notes-ai.md#manual-sweep)'s agent half.
+- Tick Screen and run [Screen Awareness](screen-awareness.md#manual-sweep)'s agent step.
 - Delete the agent: its chats remain as plain chats and the composer shows No Agent.
 - ACP: make an agent on Claude Code in a project folder; ask it to read and change a file. The first
   turn may wait while npx fetches the adapter; then the dialog lists Claude's own options, the
