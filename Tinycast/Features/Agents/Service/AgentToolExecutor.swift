@@ -269,6 +269,12 @@ nonisolated struct AgentToolExecutor: Sendable {
         guard await consent(AgentConsentRequest(summary: "Fetch " + url.absoluteString, detail: "")) else {
             return .failure(.declined)
         }
+        return await Self.readPage(url)
+    }
+
+    /// `web_fetch` past its question; a chat without an agent reads pages through it as well.
+    @concurrent
+    static func readPage(_ url: URL) async -> Result<String, AgentToolFailure> {
         do {
             let (bytes, response) = try await Self.session.bytes(from: url)
             var data = Data()

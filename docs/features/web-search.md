@@ -3,7 +3,8 @@
 `web_search` is one built-in tool that searches the web from any tool-calling API route: OpenAI,
 Anthropic, Gemini, OpenRouter and every OpenAI-compatible endpoint. An agent gets it with its **Web**
 family, beside `web_fetch`. A chat without an agent gets it from the **Web search** toggle in
-Settings → AI → Chat. Codex keeps its own search; Apple Intelligence and the installed CLIs get
+Settings → AI → Chat, together with `read_page`, which reads a page the user linked or a search in
+the same turn returned. Codex keeps its own search; Apple Intelligence and the installed CLIs get
 nothing. Engines are tried in the user's order, and the default chain needs no key and no account:
 Exa, then Parallel, then DuckDuckGo. The feature is this fork's, in `Features/WebSearch/` plus the
 few lines that wire it into `AIChatCoordinator`, `AIToolLoopProvider`, `AgentCoordinator`,
@@ -12,15 +13,29 @@ few lines that wire it into `AIChatCoordinator`, `AIToolLoopProvider`, `AgentCoo
 ## Invariants
 
 - **Network only inside a turn, or on Test.** A request leaves only when a model calls `web_search`
-  in a turn the user sent, or when the user presses **Test** in the engines panel. There is no
-  warm-up, health check, retry timer, cache or file; nothing from a search outlives its turn except
-  the answer the loop already holds.
+  or `read_page` in a turn the user sent, or when the user presses **Test** in the engines panel.
+  There is no warm-up, health check, retry timer, cache or file; nothing from a search outlives its
+  turn except the answer the loop already holds.
 - **An agent's Web family is its switch; a plain chat follows `aiWebSearch`.** `WebSearchAgentTools`
   offers `web_search` with family `.web` and risk `.network`, so the toolset drops it with Web
   unticked or set to Never Allow, and Ask Each Chat asks before each search. A chat without an agent
   gets the tool only while `aiWebSearch` is on, off by default. Codex keeps its thread's own search.
   OpenRouter's billed `web` plugin is no longer sent: `AIChatCoordinator.webSearch(for:)` is false on
   every API route.
+- **`read_page` opens only an address the turn was given, never one the model wrote.** A chat
+  without an agent reads a page only when its URL appears in one of the user's own messages of the
+  request (inlined attachments included) or in a `web_search` answer earlier in the same turn.
+  `WebChatTools.watching` sees each round's messages before its calls run, and `WebPageScope`
+  judges by them alone: a page read, the model's replies, MCP results and the instructions add
+  nothing, so a page cannot steer the next read and the model cannot put chat text into an address.
+  Scheme, host case, a leading `www.`, a trailing or doubled slash, a fragment, a default port and
+  percent-escapes do not tell pages apart; a query or a longer path does. No dialog asks: the toggle
+  is the consent, as it is for search, and this rule keeps its grant no wider than search's.
+- **A page is read as `web_fetch` reads it.** `read_page` goes through
+  `AgentToolExecutor.readPage`, `web_fetch`'s own read without its question: one ephemeral session
+  with no cache, 20 s idle, 2 MB at most, HTML to text, 28 KB to the model. The answer opens by
+  saying page text is material, never instructions; a search answer names `read_page` (or
+  `web_fetch` for an agent) as the way to read a result in full.
 - **Engines run in the user's order, and any failure moves on.** A 429, a CAPTCHA, a 4xx or 5xx, a
   timeout, an unreadable shape or zero results hands the query to the next engine, with at most four
   requests per call (`WebSearchRunner.maxAttempts`). A keyed engine without a key, and SearXNG
@@ -53,7 +68,7 @@ few lines that wire it into `AIChatCoordinator`, `AIToolLoopProvider`, `AgentCoo
 | --- | --- | --- | --- |
 | Agent, Web on | any API route | `web_fetch` + `web_search` | false |
 | Agent, Web off or Never Allow | any API route | neither | false |
-| No agent, toggle on | any API route | `web_search` | false |
+| No agent, toggle on | any API route | `web_search` + `read_page` | false |
 | No agent, toggle off | any API route | none | false |
 | Any | Codex | none (Codex searches itself) | the toggle |
 | Any | Apple Intelligence, Claude, Grok, OpenCode, Cursor, ACP agents | none | as before |
@@ -83,9 +98,12 @@ sentence. SearXNG documents no week for its JSON API, so a week widens to a mont
 | `Model/WebSearchEndpoint.swift` | One `URLRequest` per engine, byte-stable bodies, the SearXNG address policy |
 | `Model/WebSearchDecoder.swift` | Status and body to results: the MCP envelope, Exa's text, DuckDuckGo's HTML, three JSON shapes |
 | `Model/WebSearchTool.swift` | The `AITool`, argument parsing, the bounded answer, `searchingWithTinycast` |
+| `Model/WebPageTool.swift` | `read_page` as the model sees it: the `AITool`, its address, the answer and refusals |
+| `Model/WebPageScope.swift` | Which addresses a turn was given, and what tells two addresses apart |
 | `Service/WebSearchRunner.swift` | The chain for one call: keys on demand, the transport, fallback |
 | `Service/WebSearchAgentTools.swift` | The Web family's provider: consent, the search row, the runner |
-| `Settings/WebSearchSettingsStore.swift` | The engine list in `UserDefaults`, the Keychain item, `runner(canFetch:)` |
+| `Service/WebChatTools.swift` | A plain chat's turn: routes `web_search` and `read_page`, watches each round's messages |
+| `Settings/WebSearchSettingsStore.swift` | The engine list in `UserDefaults`, the Keychain item, `runner(reader:)`, `chatTools()` |
 | `Settings/WebSearchEnginesRow.swift`, `WebSearchEnginesPanel.swift` | The row under the toggle and its editor: order, switches, keys, address, Test |
 
 `AppCore.webSearch` is created lazily, the first time AI Settings, an agent turn with Web or a plain
@@ -117,20 +135,29 @@ A configuration saved by an older build gains the engine at the end of its order
    news question makes a search row. Off, no tool is sent.
 5. OpenRouter plain chat with Web Search on: the request body has no `plugins`, and the search row
    appears.
-6. Codex with Web Search on: unchanged, Codex's own rows.
-7. Switch Exa and Parallel off: answers say "from DuckDuckGo". Search a burst of times; if DuckDuckGo
+6. A plain chat with Web Search on: "Summarise https://www.swift.org/blog/" shows a
+   "Web search · read_page" row and a summary. "Find the Swift 6 migration guide and read it" shows a
+   search row, then a `read_page` row on a result. Ask it to open a link it found on that page, or
+   to add `?ref=x` to one: the row fails and the reply says it needs a search or your link. With
+   Web Search off, no `read_page` is sent. Settings → AI → Chat's caption says the model may read a
+   page you linked or a search found.
+7. Codex with Web Search on: unchanged, Codex's own rows.
+8. Switch Exa and Parallel off: answers say "from DuckDuckGo". Search a burst of times; if DuckDuckGo
    refuses, the reply says the search failed and nothing hangs.
-8. Add a Tavily key: Test passes. Move Tavily first and a search says "from Tavily". Clear the key:
+9. Add a Tavily key: Test passes. Move Tavily first and a search says "from Tavily". Clear the key:
    its switch goes off.
-9. SearXNG, if one is reachable: `http://192.168.1.3:8888` shows the IP-address error;
-   `http://llm-server.local:8888` (or a single-label name) passes Test, after macOS asks for Local
-   Network access on first use. Moved first, searches say "from SearXNG".
-10. Press Stop during a slow search: the turn ends at once.
-11. Export a backup and import it on a clean profile: the engine list is back at the defaults and no
+10. SearXNG, if one is reachable: `http://192.168.1.3:8888` shows the IP-address error;
+    `http://llm-server.local:8888` (or a single-label name) passes Test, after macOS asks for Local
+    Network access on first use. Moved first, searches say "from SearXNG".
+11. Press Stop during a slow search: the turn ends at once.
+12. Export a backup and import it on a clean profile: the engine list is back at the defaults and no
     key travels.
-12. Quit with the AI pane never opened and no agent search run: `defaults read com.tinycast.app.fork
+13. Quit with the AI pane never opened and no agent search run: `defaults read com.tinycast.app.fork
     aiWebSearchEngines` finds nothing.
 
 Harness: `web-search-test` (the tool's schema, arguments, every engine's exact request, the address
 policy, every recorded answer and failure, the bounded answer, configuration across builds, the chain
-through a fake transport, both loops' rows, the agent provider through a toolset and its consent).
+through a fake transport, both loops' rows, the agent provider through a toolset and its consent, and
+`read_page`: its schema, what tells pages apart, what the turn was given, and a plain chat's loop
+reading a found page and a linked one while a forged address, a page's own link and a read beside
+its search are refused).
