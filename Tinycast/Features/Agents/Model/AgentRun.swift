@@ -160,7 +160,6 @@ extension AgentRunMode {
 struct AgentBackgroundNeeds: Equatable, Sendable {
     /// One sleeping task and its wake, clock and time-zone observers.
     var scheduler = false
-    /// The Notification Center delegate.
     var notifier = false
 
     var any: Bool { scheduler || notifier }

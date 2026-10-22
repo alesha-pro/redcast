@@ -6,13 +6,17 @@ import Observation
 @Observable
 final class AgentCoordinator {
     let store: AgentStore
-    private unowned let core: AppCore
+    unowned let core: AppCore
 
     /// Read off-main and kept, so a send never waits on the disk; refreshed after every use.
     @ObservationIgnored private var contexts: [UUID: AgentContext] = [:]
     @ObservationIgnored private var refreshing: Set<UUID> = []
     /// "Allow for This Chat", per family and risk; never written down.
     @ObservationIgnored private var chatGrants: [UUID: Set<AgentGrant>] = [:]
+    /// Made on first need and dropped once idle, so a Mac with no schedule holds none of it.
+    private var backgroundRuns: AgentBackgroundCoordinator?
+    /// Every agent question queues here, a chat's and an unattended run's alike.
+    @ObservationIgnored let consentGate = AgentConsentGate()
 
     @ObservationIgnored private(set) lazy var acpHost: AgentACPHost = {
         let host = AgentACPHost(
@@ -63,7 +67,32 @@ final class AgentCoordinator {
     }
 
     func stopAll() {
+        backgroundRuns?.stopAll()
         acpHost.stopAll()
+    }
+
+    var background: AgentBackgroundCoordinator {
+        if let backgroundRuns { return backgroundRuns }
+        let made = AgentBackgroundCoordinator(store: store, core: core)
+        made.onIdle = { [weak self, weak made] in
+            guard let self, let made, self.backgroundRuns === made else { return }
+            self.backgroundRuns = nil
+        }
+        backgroundRuns = made
+        return made
+    }
+
+    /// Read by the settings rows; nil while nothing runs in the background at all.
+    var runs: AgentRunLedger? { backgroundRuns?.ledger }
+
+    /// AI on or off, agents or schedules changed: made only when a schedule or a banner needs it.
+    func applyBackground() {
+        let aiEnabled = core.settings.aiEnabled
+        core.appIndex.setCommandsVisible([.runAgentTask], aiEnabled && !store.agents.isEmpty)
+        let needs = AgentBackgroundNeeds.of(
+            aiEnabled: aiEnabled, agents: store.agents, schedules: store.schedules)
+        guard backgroundRuns != nil || needs.any else { return }
+        background.apply()
     }
 
     func modes(for chat: AIChatState) -> ACPModes? {
@@ -105,7 +134,9 @@ final class AgentCoordinator {
     /// The agent's part of the instructions; nil for a chat without one.
     func prompt(for chat: AIChatState, hasTools: Bool) -> String? {
         guard let agent = agent(for: chat) else { return nil }
-        return context(for: agent).prompt(now: Date(), timeZone: .current, hasTools: hasTools)
+        let prompt = context(for: agent).prompt(now: Date(), timeZone: .current, hasTools: hasTools)
+        guard backgroundRuns?.isUnattended(chat.session.id) == true else { return prompt }
+        return prompt + "\n\n" + AgentBackgroundBriefing.text
     }
 
     /// An agent chat's turn on the fork's loop, MCP's tools beside its own; nil leaves it upstream.
@@ -113,7 +144,8 @@ final class AgentCoordinator {
         guard let agent = agent(for: chat), agent.runtime == nil else { return nil }
         let chatID = chat.session.id
         let mcp = core.mcpCoordinator
-        return loop(for: agent, over: base, mode: .chat(chatID), mcpTools: mcpTools) { call in
+        let mode = backgroundRuns?.runMode(forChat: chatID) ?? .chat(chatID)
+        return loop(for: agent, over: base, mode: mode, mcpTools: mcpTools) { call in
             await mcp.invoke(call, in: chatID)
         }
     }
@@ -131,7 +163,11 @@ final class AgentCoordinator {
             profile: agent, skills: context.skills, memoryURL: store.memoryURL(for: agent.id),
             mode: mode)
         let toolset = AgentToolset(
-            turn: turn, providers: providers(for: agent), mcpTools: mcpTools, mcp: mcp
+            turn: turn, providers: providers(for: agent), mcpTools: mcpTools, mcp: mcp,
+            refused: { [weak self] _ in
+                guard case .unattended(let chatID) = mode else { return }
+                Task { @MainActor in self?.backgroundRuns?.noteDeclined(chatID) }
+            }
         ) { [weak self] spec, request in
             guard case .chat(let chatID) = mode else { return false }
             return await self?.ask(spec, request, by: agent, in: chatID) ?? false
@@ -181,16 +217,15 @@ final class AgentCoordinator {
             case (.files?, .change): String(localized: "\(agent.name) wants to change a file")
             default: String(localized: "\(agent.name) wants to use \(spec.tool.title)")
             }
-        NSApp.activate(ignoringOtherApps: true)
-        let answer = await core.choose(
-            title: title,
+        let answer = await choose(
+            in: chatID, title: title,
             message: [request.summary, request.detail].filter { !$0.isEmpty }.joined(separator: "\n\n"),
             symbol: agent.symbol,
             options: [
                 DialogAction(title: String(localized: "Allow")),
                 DialogAction(title: String(localized: "Allow for This Chat")),
                 DialogAction(title: String(localized: "Don't Allow"), role: .cancel)
-            ], defaultIndex: 0)
+            ], refusal: 2)
         // Stop while the dialog was up: the turn is gone, so its answer must not act.
         guard !Task.isCancelled else { return false }
         switch answer {
@@ -208,17 +243,53 @@ final class AgentCoordinator {
         guard !options.isEmpty else { return nil }
         let title = request.toolCall.title ?? request.toolCall.kind ?? String(localized: "Use a tool")
         let summary = request.toolCall.summary
-        NSApp.activate(ignoringOtherApps: true)
-        let answer = await core.choose(
-            title: String(localized: "\(agent.name): \(title)"),
-            message: summary.isEmpty ? nil : summary, symbol: agent.symbol,
+        let answer = await choose(
+            in: acpHost.chatID(forSession: request.sessionID),
+            title: String(localized: "\(agent.name): \(title)"), message: summary, symbol: agent.symbol,
             options: options.enumerated().map { index, option in
                 DialogAction(
                     title: option.name,
                     role: index == options.count - 1 && !option.allows
                         ? .cancel : option.allows ? .standard : .destructive)
-            }, defaultIndex: 0)
+            }, refusal: options.last?.allows == false ? options.count - 1 : nil)
+        guard let answer else {
+            return options.first { $0.kind == .rejectOnce }?.id ?? options.last { !$0.allows }?.id
+        }
         return options.indices.contains(answer) ? options[answer].id : nil
+    }
+
+    /// One question at a time; an unattended one reaches only someone at the Mac. Nil: refused.
+    private func choose(
+        in chatID: UUID?, title: String, message: String, symbol: String, options: [DialogAction],
+        refusal: Int?
+    ) async -> Int? {
+        let unattended = chatID.map { backgroundRuns?.isUnattended($0) == true } ?? false
+        guard let chatID, unattended else {
+            return await consentGate.run(dialogIsUp: { [core] in core.isShowingDialog }) {
+                NSApp.activate(ignoringOtherApps: true)
+                return await core.choose(
+                    title: title, message: message.isEmpty ? nil : message, symbol: symbol,
+                    options: options, defaultIndex: 0)
+            }
+        }
+        let runs = { [weak self] in self?.backgroundRuns }
+        guard let refusal, runs()?.consentMode(forChat: chatID) == .ask else {
+            runs()?.noteDeclined(chatID)
+            return nil
+        }
+        runs()?.waiting(chatID, true)
+        defer { runs()?.waiting(chatID, false) }
+        let answer = await consentGate.run(dialogIsUp: { [core] in core.isShowingDialog }) { () -> Int? in
+            // Asked again after its wait: whoever was at the Mac may have left meanwhile.
+            guard !Task.isCancelled, runs()?.consentMode(forChat: chatID) == .ask else { return nil }
+            let run = runs()?.ledger.run(chatID)?.title ?? ""
+            let origin = String(localized: "From a background run: “\(run)”")
+            return await core.choose(
+                title: title, message: [message, origin].filter { !$0.isEmpty }.joined(separator: "\n\n"),
+                symbol: symbol, options: options, defaultIndex: refusal)
+        }
+        if !Task.isCancelled, answer == nil || answer == refusal { runs()?.noteDeclined(chatID) }
+        return answer
     }
 
     // MARK: - Editing
@@ -226,6 +297,7 @@ final class AgentCoordinator {
     func add(_ draft: AgentProfile) throws(AgentProfileError) {
         let agent = try store.add(draft)
         refresh(agent)
+        applyBackground()
     }
 
     func update(_ draft: AgentProfile) throws(AgentProfileError) {
@@ -239,6 +311,7 @@ final class AgentCoordinator {
             }
         }
         if let agent = store.agent(id: draft.id) { refresh(agent) }
+        applyBackground()
     }
 
     func delete(id: UUID) async {
@@ -258,5 +331,36 @@ final class AgentCoordinator {
         }
         contexts[id] = nil
         try? FileManager.default.removeItem(at: store.memoryURL(for: id).deletingLastPathComponent())
+        applyBackground()
+    }
+
+    // MARK: - Schedules
+
+    @discardableResult
+    func saveSchedule(_ draft: AgentSchedule) throws(AgentScheduleError) -> AgentSchedule {
+        let saved = try store.saveSchedule(draft, now: Date())
+        applyBackground()
+        return saved
+    }
+
+    func removeSchedule(id: UUID) async {
+        guard let schedule = store.schedule(id: id),
+            await core.confirm(
+                title: String(localized: "Delete “\(schedule.name)”?"),
+                message: String(localized: "Its past runs stay in AI Chat."),
+                symbol: "clock", confirmTitle: String(localized: "Delete"))
+        else { return }
+        do {
+            try store.removeSchedule(id: id)
+        } catch {
+            core.showMessage(error.localizedDescription, tone: .danger)
+            return
+        }
+        applyBackground()
+    }
+
+    /// Run Now: announced like a launcher run; the schedule's next time stays where it was.
+    func runNow(_ schedule: AgentSchedule) {
+        background.start(schedule, manual: true)
     }
 }

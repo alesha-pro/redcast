@@ -93,6 +93,11 @@ final class AgentACPHost {
         store.setACPSession(nil, forChat: chatID)
     }
 
+    /// A permission request names its session, never its chat; this is the only map back.
+    func chatID(forSession id: String) -> UUID? {
+        sessions.first { $0.value.sessionID == id }?.key
+    }
+
     /// For a run nobody is watching: the agent goes as soon as no turn of its is left.
     func release(agentID: UUID) {
         guard let connection = connections[agentID] else { return }

@@ -11,6 +11,7 @@ struct AgentEditorPanel: View {
     @State private var showingIconPicker = false
     @State private var found: (project: [AgentSkill], global: [AgentSkill]) = ([], [])
     @State private var argumentsText = ""
+    @State private var notificationsDenied = false
 
     private static let iconSymbols = [
         AgentProfile.sfSymbol, "person.crop.circle", "brain", "terminal", "hammer", "wrench.and.screwdriver",
@@ -71,6 +72,7 @@ struct AgentEditorPanel: View {
                         toolsField
                         permissionsField
                     }
+                    backgroundField
                     contextField
                     skillsField
                 }
@@ -248,6 +250,66 @@ struct AgentEditorPanel: View {
                     .foregroundStyle(.secondary)
             }
         }
+    }
+
+    /// A run nobody watches: what its requests get, whether it says it ended, and its time limit.
+    private var backgroundField: some View {
+        field("In the background") {
+            Picker("In the background", selection: background.consent) {
+                Text("Ask me").tag(AgentBackgroundConsent.ask)
+                Text("Decline").tag(AgentBackgroundConsent.decline)
+            }
+            .labelsHidden()
+            .pickerStyle(.segmented)
+            Text(
+                """
+                Ask me shows the dialog only while you're at the Mac, with Don't Allow on Return. \
+                Otherwise the request is declined and the agent is told.
+                """
+            )
+            .font(.caption)
+            .foregroundStyle(.secondary)
+            Toggle("Notify in Notification Center when a run ends", isOn: notifies)
+                .toggleStyle(.checkbox)
+            if notificationsDenied {
+                Text("Notifications are off for Tinycast. Turn them on in System Settings › Notifications.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Button("Open Notification Settings") {
+                    guard
+                        let url = URL(
+                            string: "x-apple.systempreferences:com.apple.Notifications-Settings.extension")
+                    else { return }
+                    NSWorkspace.shared.open(url)
+                }
+            }
+            Stepper(value: background.minutes, in: AgentBackgroundPolicy.minuteRange, step: 5) {
+                Text("Stop a run after \(draft.backgroundPolicy.minutes) minutes")
+            }
+        }
+    }
+
+    /// The defaults are stored as nothing, so an untouched agent's file says nothing about them.
+    private var background: Binding<AgentBackgroundPolicy> {
+        Binding(
+            get: { draft.backgroundPolicy },
+            set: { draft.background = $0 == AgentBackgroundPolicy() ? nil : $0 })
+    }
+
+    /// macOS asks once, on this click; a refusal turns the switch back off and says where it lives.
+    private var notifies: Binding<Bool> {
+        Binding(
+            get: { draft.backgroundPolicy.notifies },
+            set: { isOn in
+                background.wrappedValue.notifies = isOn
+                notificationsDenied = false
+                guard isOn else { return }
+                Task {
+                    guard await !AgentRunNotifier.authorize() else { return }
+                    background.wrappedValue.notifies = false
+                    notificationsDenied = true
+                }
+            })
     }
 
     private var contextField: some View {

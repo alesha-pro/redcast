@@ -7,7 +7,12 @@ enum FallbackActionsMenu {
     static func content(
         fallback: Fallback, entry: AppEntry, query: String, core: AppCore
     ) -> PopoverMenuContent {
-        PopoverMenuContent(
+        if let menu = AgentTaskActionsMenu.content(
+            fallback: fallback, entry: entry, query: query, core: core)
+        {
+            return menu
+        }
+        return PopoverMenuContent(
             header: entry.name,
             items: [
                 PopoverMenuItem(

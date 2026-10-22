@@ -281,7 +281,7 @@ final class AIChatCoordinator {
     // MARK: - Either surface
 
     @discardableResult
-    func send(_ input: String, in chat: AIChatState) -> Bool {
+    func send(_ input: String, in chat: AIChatState, title: String? = nil) -> Bool {
         guard settings.aiEnabled else { return false }
         do {
             let address = MCPComposerAddress.parse(input, slugs: core.mcpCoordinator.slugs)
@@ -290,6 +290,7 @@ final class AIChatCoordinator {
                 model: model(for: chat), webSearch: webSearch(for: chat),
                 instructions: instructions(for: chat), contextBudget: contextBudget(for: chat),
                 toolScope: address.slug)
+            if sent, let title { core.chatHistory.rename(id: chat.session.id, to: title) }
             // Named while the answer streams, so the sidebar has a title before the reply ends.
             if sent { nameIfNeeded(chat) }
             return sent
