@@ -20,6 +20,7 @@ OpenCode, Goose, Hermes, local models — on the subscriptions and machines you 
 | Screen Awareness | Double-tap right ⌘: the window in front — title, URL, selection, focused field, readable text, screenshot — attached to AI Chat | [screen-awareness](docs/features/screen-awareness.md) |
 | Agents | A chat that lives in a folder: its `AGENTS.md`, project and global `.agents/skills`, notes, and built-in tools (files, terminal, web, memory) on any tool-calling API model, every change and command asked first unless the agent's permissions say otherwise | [agents](docs/features/agents.md) |
 | Native agent harness | Agent chats on API models run the fork's own tool loop: tool families plug in as providers with a risk each, every change, command and fetch passes one consent policy, read-only calls in a round run in parallel, a long turn elides old results instead of stopping, and Stop ends a running command and voids a late Allow | [agents](docs/features/agents.md#adding-a-tool-family) |
+| Background and scheduled agents | `@agent do X` in root search runs a turn with no window: a transient menu-bar item shows it working, a HUD (and an opt-in banner) says when it ended, and the result is a chat. Schedules run an agent daily, on working days or every few hours while Tinycast is open, with one sleeping task, a catch-up rule and an optional note. Unattended requests ask only someone at the Mac, with Return on Don't Allow | [background-agents](docs/features/background-agents.md) |
 | ACP agents | An agent can run as its own CLI over the Agent Client Protocol — Claude Code, Codex, Gemini CLI, OpenCode, Goose, Hermes or any command — on your own logins, with its permission requests, tool rows, plans and modes in AI Chat, and sessions that survive a relaunch | [agents](docs/features/agents.md#acp-agents) |
 
 Builds of this fork use the bundle id `com.tinycast.app.fork`: they never update themselves from
@@ -33,6 +34,9 @@ upstream's feed, and they keep their settings apart from an installed upstream T
 - Agent chats run the fork's `AgentLoopProvider`; `agent-loop-test` runs it and upstream's
   `AIToolLoopProvider` on the same script, so a merge that changes upstream's loop fails a harness
   until the fork follows.
+- `LauncherScreen.init`'s claim hunk (`@agent` rows answering alone) is the fork's likeliest merge
+  conflict: it is one contiguous block, so resolve it there and keep upstream's comments above their
+  lines.
 - `Tinycast.xcodeproj` is generated: after a merge, resolve `project.yml` and run `xcodegen generate`
   rather than hand-merging `project.pbxproj`. `Localizable.xcstrings` entries are inserted by hand in
   catalog order (a local `sync-strings.sh` reorders hundreds of unrelated entries).
@@ -62,7 +66,8 @@ Sizes are focused working days. Waves are ordered by leverage, not by size.
 2. **Agent Sessions hub.** Search every past Codex, Claude Code and Tinycast session from the launcher
    (titles, first prompts, full text), preview it, and resume it in its folder and terminal. A live
    list of running agents fed by Claude Code hooks and Codex `notify`: a HUD and menu-bar badge when an
-   agent finishes or waits for approval, one key to jump to it. *3–4 days.*
+   agent finishes or waits for approval, one key to jump to it. *3–4 days.* The menu-bar badge
+   reuses the background agents' `AgentRunsStatusItem`.
 3. **Voice to AI.** On top of the existing on-device dictation: dictation *modes* that pass the
    transcript through a prompt before it is typed (speak Russian, get an English post; per-app tone),
    a *voice command* over the selection ("make this shorter"), and hold-to-talk into AI Chat or an
@@ -74,10 +79,8 @@ Sizes are focused working days. Waves are ordered by leverage, not by size.
 
 ### Wave 2 — context and power
 
-5. **Background and scheduled agents.** `@agent do X` from the launcher runs without a window; a
-   menu-bar badge shows progress, a notification brings back the result. Schedules for recurring jobs
-   (a morning digest, a nightly report into Notes). Runs on the native harness:
-   `AgentCoordinator.loop(for:over:mode:)` with `.unattended`, where a rule of ask refuses. *3–4 days.*
+5. ~~**Background and scheduled agents.**~~ Shipped (see above). Next on it: a per-agent launcher
+   row and hotkey, the unattended briefing for ACP agents, and a spend cap for schedules.
 6. **Screen Awareness+ and Capture.** Area and full-screen capture, Vision OCR when an app exposes no
    Accessibility text (canvas apps, games), Finder's selected files, a `{screen}` placeholder for
    Quick Actions ("reply to this" in one key), a `screen_context` agent tool, and a searchable
@@ -101,7 +104,8 @@ Sizes are focused working days. Waves are ordered by leverage, not by size.
 12. **Developer utilities.** Kill by port, JSON / Base64 / URL / hash / UUID tools, colour picker,
     Caffeinate, timers and Pomodoro (`nikteg`, `Sai1boats` forks), `#` to run a shell line from root
     search.
-13. **Notes ↔ AI.** `@note` as chat context; agents and scheduled jobs write their reports into Notes.
+13. **Notes ↔ AI.** `@note` as chat context; agents and scheduled jobs write their reports into Notes
+    (scheduled jobs already can, with Append the answer to a note).
 14. **Usage dashboard.** Tokens and spend per model and per day from chat history and provider APIs.
     An agent turn's cost across its rounds lands with it, in `AgentLoopProvider`.
 15. **App-aware snippets.** Offer the snippets written for the app in front first (`NikAtNight`).
