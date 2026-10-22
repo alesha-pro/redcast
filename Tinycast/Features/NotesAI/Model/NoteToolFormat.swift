@@ -12,7 +12,7 @@ enum NoteToolFormat {
     private static let maxTitleLength = 120
     private static let snippetLead = 40
 
-    /// File name, then title, then what an unnamed note shows: the first tier with a hit decides.
+    /// File name, the `name(_:)` form, title, then an unnamed note's first line: first hit decides.
     static func resolve(_ raw: String, in summaries: [NoteSummary]) -> Resolution {
         let name = raw.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !name.isEmpty else { return .missing(suggestions: []) }
@@ -20,6 +20,8 @@ enum NoteToolFormat {
         let stem = name.lowercased().hasSuffix(".md") ? folded(String(name.dropLast(3))) : key
         let tiers: [(NoteSummary) -> Bool] = [
             { $0.id.rawValue == name || $0.id.rawValue == name + ".md" },
+            // By its file alone, since an unnamed note's first line may change between two calls.
+            { name.hasSuffix(" (\($0.id.rawValue))") },
             { [key, stem].contains(folded($0.title)) },
             { folded($0.displayTitle) == key }
         ]

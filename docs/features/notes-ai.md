@@ -77,8 +77,10 @@ the menu item and modifier in `AIChatDetailView`, `NotesStore.amendDraft`, and t
   with its file name when an unnamed note shows its first line instead, and dated
   `yyyy-MM-dd HH:mm` in the Mac's time zone.
 - `notes_read` takes `note`, `offset` and `limit` (2,000 lines). A note is found by file name, then
-  title, then first line, case and accents folded; two at the deciding step fail with both file names,
-  and none fails with up to five close titles.
+  by the name the tools print for it (`<first line> (<file>.md)`, matched by its file so an edited
+  first line still finds it), then title, then first line, case and accents folded; two at the
+  deciding step fail with both file names, and none fails with up to five close titles.
+  `notes_append` finds its note the same way.
 - `notes_append` takes `note`, `text` (64 KB) and `create` (default true). Exactly one blank line
   goes before the text and the note ends in a newline. A missing note is created under its title, a
   slash turned into a dash, after the dialog names it: "Create the note “T”" or "Add to “T”", with
@@ -102,9 +104,11 @@ the menu item and modifier in `AIChatDetailView`, `NotesStore.amendDraft`, and t
   in the editor, survives the next keystroke and is saved.
 - Open a note in Notes and hide the window. Edit its file in another editor, then have the agent add
   to it: the file keeps the edit and the addition, and showing Notes shows both.
+- Make a note in Notes without naming it. Ask the agent to find it and add to it: it reads and adds
+  to that `Untitled N` note, and no note named after its first line appears.
 - Set Changes to Always Allow: the append runs without a dialog. A read-only agent is never offered
   `notes_append`.
 - Harness: `notes-ai-test` (definitions and specs, the toolset's offer and consent, `@note`, joining,
-  resolution, search, paging and the 28 KB cut, append with consent, refusal, creation and limits, the
-  open-draft route, the attachment budget, and `NotesStore.amendDraft` end to end, a stale clean
-  draft and an unsaved one included).
+  resolution and its printed names read back, search, paging and the 28 KB cut, append with consent,
+  refusal, creation and limits, the open-draft route, the attachment budget, and
+  `NotesStore.amendDraft` end to end, a stale clean draft and an unsaved one included).

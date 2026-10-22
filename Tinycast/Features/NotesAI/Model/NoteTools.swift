@@ -50,7 +50,8 @@ enum NoteTools {
                     + review,
                 [
                     "note": string(
-                        "Title of the note to add to. A new note with this title is made when none has it."),
+                        "Title of the note to add to, as notes_search shows it. A new note with this "
+                            + "title is made when none has it."),
                     "text": string("Markdown to add at the end."),
                     "create": .object([
                         "type": .string("boolean"),
