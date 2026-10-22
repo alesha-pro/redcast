@@ -39,6 +39,9 @@ struct VoiceAskSettingsSection: View {
             }
             if voice.askEnabled {
                 VoiceModelRow(use: .ask, selection: voice.askModel, choose: coordinator.choose)
+                if !core.agentCoordinator.agents.isEmpty {
+                    agentPicker
+                }
             }
         } header: {
             SettingsSectionHeader(.aiAskByVoice)
@@ -53,6 +56,29 @@ struct VoiceAskSettingsSection: View {
             .font(.caption)
             .foregroundStyle(.secondary)
         }
+    }
+
+    private var agentPicker: some View {
+        Picker(selection: agentBinding) {
+            Text("The model above").tag(UUID?.none)
+            ForEach(core.agentCoordinator.agents) { agent in
+                Label(agent.name, systemImage: agent.symbol).tag(Optional(agent.id))
+            }
+        } label: {
+            SettingsRowTitle(.aiAskByVoice, "Answer with")
+            Text(
+                """
+                With an agent, the model above only writes down your request, and the agent works on \
+                it in the background with the window in front attached.
+                """)
+        }
+    }
+
+    /// A deleted agent reads as the model, which is what answers now.
+    private var agentBinding: Binding<UUID?> {
+        Binding(
+            get: { core.voiceAskCoordinator.agent?.id },
+            set: { core.voiceSettings.askAgent = $0 })
     }
 
     private func caption(_ text: LocalizedStringKey) -> some View {

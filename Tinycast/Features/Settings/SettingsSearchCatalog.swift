@@ -322,6 +322,7 @@ enum SettingsSearchCatalog {
             .aiAskByVoice, "Enable Ask by Voice",
             keywords: ["voice", "speak", "microphone", "question", "gemini"]),
         .init(.aiAskByVoice, "Shortcut behavior", keywords: ["hold", "toggle", "push to talk"]),
+        .init(.aiAskByVoice, "Answer with", keywords: ["agent", "background", "voice", "model"]),
         .init(
             .aiConversations, "Opens to",
             keywords: ["new chat", "last", "summon", "resume", "window", "quick ai"]),

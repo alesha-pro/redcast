@@ -19,6 +19,8 @@ struct VoiceCoordinatorTests {
         try await askStartAndStopOrder()
         try await askHoldToTalk()
         try await askDismissAndSwitchOff()
+        try await askAgent()
+        try await askAgentRefusals()
         try await editReplaces()
         try await editSelectionMoved()
         try await editRefusalsAndFailures()
@@ -590,6 +592,101 @@ struct VoiceCoordinatorTests {
         expect(world.recorder?.starts == 3, "and its shortcut does nothing")
     }
 
+    // MARK: - Ask an agent
+
+    static func askAgent() async throws {
+        let world = try await World.asking()
+        defer { world.tearDown() }
+        let coder = AgentProfile(id: UUID(), name: "Coder")
+        world.core.agentCoordinator.agents = [coder]
+        world.voice.askAgent = coder.id
+        world.voice.vocabulary = "Tinycast"
+        world.settings.screenAwarenessScreenshot = true
+        expect(world.ask.agent?.id == coder.id, "An agent can answer Ask by Voice")
+
+        world.ask.pressed()
+        try await wait { world.recorder?.isRecording == true }
+        world.ask.pressed()
+        try await wait { Network.streams.count == 1 }
+        expect(world.screen.screenshots == [true], "The window is read with its picture, for the agent's model")
+        let request = Network.requests[0]
+        let fixture = VoicePrompt.agentRequest(audio: AIAudio(data: Data(), format: "wav"), vocabulary: "Tinycast")
+        expect(
+            Network.routes == [routerAsk] && request.instructions == fixture.instructions,
+            "The request is only written down, as dictation on Ask by Voice's route")
+        expect(
+            request.messages.count == 1 && request.messages[0].text == VoicePrompt.transcribeRequest
+                && request.messages[0].audio.count == 1 && request.messages[0].images.isEmpty,
+            "and the voice route never sees the window's text or picture")
+        Network.streams[0].yield(.text("«Проверь эту "))
+        Network.streams[0].yield(.text("страницу»"))
+        Network.streams[0].finish()
+        let runs = world.core.agentCoordinator.background
+        try await wait { runs.started.count == 1 }
+        expect(
+            runs.started[0].task == "Проверь эту страницу" && runs.started[0].agent == coder.id,
+            "The agent runs the transcript as its background task")
+        expect(runs.started[0].attachments.map(\.name) == ["Fixture", "picture"], "with the window attached")
+        expect(
+            world.panel == nil && DictationPanelController.latest?.isVisible == false
+                && world.ducker.begins == world.ducker.ends,
+            "No panel opens and the capsule closes")
+
+        world.core.paletteCoordinator.isVisible = true
+        world.core.paletteCoordinator.targetApp = NSRunningApplication.runningApplications(
+            withBundleIdentifier: "com.apple.dock"
+        ).first
+        QuickActionRunner.selected = "Hello"
+        try await world.editAndReply("INSERT\nQ: Короче\n\nHi", stream: 1)
+        try await wait { world.injector.queued == 1 }
+        expect(
+            Network.requests[1].instructions == VoicePrompt.editInstructions && runs.started.count == 1,
+            "Editing a selection stays with the model")
+        world.core.paletteCoordinator.isVisible = false
+
+        try await world.askAndReply("[[NO_SPEECH]]", stream: 2)
+        try await wait { world.core.messages.last == "No speech was recorded" }
+        expect(runs.started.count == 1, "Silence starts no run")
+
+        world.ask.pressed()
+        try await wait { world.recorder?.isRecording == true }
+        world.ask.pressed()
+        try await wait { Network.streams.count == 4 }
+        DictationPanelController.latest?.onCancel?()
+        Network.streams[3].yield(.text("Поздно"))
+        Network.streams[3].finish()
+        try await settle()
+        expect(runs.started.count == 1, "Escape while it is written down starts nothing")
+
+        world.core.agentCoordinator.agents = []
+        expect(world.ask.agent == nil, "A deleted agent leaves the model to answer")
+        try await world.askAndReply("ANSWER\nQ: Что?\n\nЭто", stream: 4)
+        try await wait { world.panel?.state?.finished == "Это" }
+        expect(Network.requests[4].instructions == VoicePrompt.askInstructions, "as an ordinary question")
+    }
+
+    static func askAgentRefusals() async throws {
+        let world = try await World.asking()
+        defer { world.tearDown() }
+        let coder = AgentProfile(id: UUID(), name: "Coder")
+        world.core.agentCoordinator.agents = [coder]
+        world.voice.askAgent = coder.id
+        world.core.agentCoordinator.runs = AgentRunLedger(busy: [coder.id], activeCount: 1)
+        world.ask.pressed()
+        expect(
+            world.core.messages.last == "Coder is still working on another task" && world.recorder == nil,
+            "An agent still at work refuses the press before anything is recorded")
+        world.core.agentCoordinator.runs = AgentRunLedger(busy: [], activeCount: 3)
+        world.ask.pressed()
+        expect(
+            world.core.messages.last == "Three agents are already running" && world.recorder == nil,
+            "as do three running agents")
+        world.core.agentCoordinator.runs = AgentRunLedger(busy: [], activeCount: 2)
+        world.ask.pressed()
+        try await wait { world.recorder?.isRecording == true }
+        expect(Network.requests.isEmpty, "Room for one more records, and sends only once finished")
+    }
+
     // MARK: - Edit Selection by Voice
 
     static func editReplaces() async throws {
@@ -935,6 +1032,7 @@ enum DialogAction {
 @MainActor
 final class AppCore {
     let dictationCoordinator = DictationCoordinator()
+    let agentCoordinator = AgentCoordinator()
     let screenAwarenessCoordinator = ScreenAwarenessCoordinator()
     let paletteCoordinator = PaletteCoordinator()
     let aiChatCoordinator = AIChatCoordinator()
@@ -996,18 +1094,24 @@ final class ScreenAwarenessCoordinator {
     var holdCapture = false
     var pending: CheckedContinuation<Void, Never>?
     var refusals = 0
+    var screenshots: [Bool] = []
 
     func captureTarget() -> NSRunningApplication? { .current }
     func reportMissingAccessibility() { refusals += 1 }
 
     func capture(_ target: NSRunningApplication, screenshot: Bool) async -> Capture? {
+        screenshots.append(screenshot)
         if holdCapture { await withCheckedContinuation { pending = $0 } }
         let field = focused ? ScreenContext.FocusedField(role: "AXTextArea", label: nil, value: "") : nil
         return Capture(
             context: ScreenContext(
                 appName: "Fixture", bundleID: nil, focusedField: field, windowText: ["Window text"],
                 capturedAt: Date(timeIntervalSince1970: 0)),
-            screenshot: nil)
+            screenshot: screenshot ? Data() : nil)
+    }
+
+    func attachments(for capture: Capture) -> [ChatAttachmentReader.Staged] {
+        [.init(name: capture.context.appName)] + (capture.screenshot == nil ? [] : [.init(name: "picture")])
     }
 
     func release() {
@@ -1015,6 +1119,40 @@ final class ScreenAwarenessCoordinator {
         pending = nil
         waiting?.resume()
     }
+}
+
+struct AgentProfile {
+    let id: UUID
+    let name: String
+}
+
+enum ChatAttachmentReader {
+    struct Staged {
+        let name: String
+    }
+}
+
+struct AgentRunLedger {
+    var busy: Set<UUID> = []
+    var activeCount = 0
+    func isBusy(agent: UUID) -> Bool { busy.contains(agent) }
+}
+
+@MainActor
+final class AgentBackgroundCoordinator {
+    static let maxConcurrent = 3
+    var started: [(task: String, agent: UUID, attachments: [ChatAttachmentReader.Staged])] = []
+
+    func start(_ task: String, with agent: AgentProfile, attachments: [ChatAttachmentReader.Staged] = []) {
+        started.append((task, agent.id, attachments))
+    }
+}
+
+@MainActor
+final class AgentCoordinator {
+    var agents: [AgentProfile] = []
+    var runs: AgentRunLedger?
+    let background = AgentBackgroundCoordinator()
 }
 
 @MainActor

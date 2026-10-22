@@ -45,10 +45,14 @@ final class AgentBackgroundCoordinator {
 
     // MARK: - Starting
 
-    /// A launcher run: the task as typed, announced by a HUD at its start and end.
+    /// A launcher run, or a spoken one with its window attached; a HUD announces its start and end.
     @discardableResult
-    func start(_ task: String, with agent: AgentProfile) -> Result<UUID, Refusal> {
-        begin(task, with: agent, origin: .launcher, title: AgentRun.title(for: task), chatTitle: nil)
+    func start(
+        _ task: String, with agent: AgentProfile, attachments: [ChatAttachmentReader.Staged] = []
+    ) -> Result<UUID, Refusal> {
+        begin(
+            task, with: agent, origin: .launcher, title: AgentRun.title(for: task), chatTitle: nil,
+            attachments: attachments)
     }
 
     /// A schedule's run; `manual` is Run Now, which leaves the schedule's own timing alone.
@@ -71,7 +75,7 @@ final class AgentBackgroundCoordinator {
 
     private func begin(
         _ task: String, with agent: AgentProfile, origin: AgentRun.Origin, title: String,
-        chatTitle: String?
+        chatTitle: String?, attachments: [ChatAttachmentReader.Staged] = []
     ) -> Result<UUID, Refusal> {
         guard core.settings.aiEnabled else { return .failure(.aiOff) }
         guard ledger.activeCount < Self.maxConcurrent else {
@@ -94,6 +98,8 @@ final class AgentBackgroundCoordinator {
         core.agentCoordinator.setAgent(agent, for: chat)
         // Only Always-trusted servers ride an unattended turn: an Ask one raises its own dialog.
         chat.toolScope.excluded = Set(core.mcpCoordinator.servers.filter { $0.trust != .always }.map(\.slug))
+        // Staged once the agent is set, so a picture its model cannot see stays behind.
+        if !attachments.isEmpty { ai.stage(attachments, into: chat) }
         // Before the send: the turn's prompt, tools and consent all look the run up.
         ledger.begin(
             AgentRun(

@@ -34,6 +34,7 @@ struct VoiceAITests {
         modeRequestBodies()
         editReply()
         editRequestBody()
+        agentRequestBody()
 
         print("\(passes) passed, \(failures) failed")
         if failures > 0 { exit(1) }
@@ -775,6 +776,33 @@ struct VoiceAITests {
         expect(
             (parts.last?["input_audio"] as? [String: Any])?["data"] as? String == bytes.base64EncodedString(),
             "and the spoken instruction last, as raw base64")
+        expect((body["reasoning"] as? [String: Any])?["effort"] as? String == "low", "on Ask by Voice's effort")
+    }
+
+    // MARK: - Ask an agent by voice
+
+    static func agentRequestBody() {
+        let bytes = Data((0..<48).map { UInt8($0) })
+        let request = VoicePrompt.agentRequest(audio: AIAudio(data: bytes, format: "wav"), vocabulary: "Tinycast")
+        expect(
+            request.instructions
+                == VoicePrompt.dictationInstructions(.init(cleanup: true, language: nil, vocabulary: "Tinycast")),
+            "a request for an agent is written down by the cleaned dictation rules, which never answer")
+        let body = AIRequestBody.make(
+            request,
+            configuration: AIHTTPConfiguration(
+                provider: .openRouter, baseURL: URL(string: "https://openrouter.ai/api/v1")!,
+                model: "google/gemini-3.8-flash", effort: "low"))
+        let messages = body["messages"] as? [[String: Any]] ?? []
+        expect(messages.count == 2 && messages.first?["role"] as? String == "system", "its rules, then one turn")
+        let parts = messages.last?["content"] as? [[String: Any]] ?? []
+        expect(
+            parts.map { $0["type"] as? String } == ["text", "input_audio"]
+                && parts.first?["text"] as? String == VoicePrompt.transcribeRequest,
+            "the transcription request and the recording, and no window text or picture")
+        expect(
+            (parts.last?["input_audio"] as? [String: Any])?["data"] as? String == bytes.base64EncodedString(),
+            "the recording as raw base64")
         expect((body["reasoning"] as? [String: Any])?["effort"] as? String == "low", "on Ask by Voice's effort")
     }
 }

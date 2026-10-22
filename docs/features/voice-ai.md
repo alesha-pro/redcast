@@ -14,10 +14,14 @@ Gemini connection:
   focused field when the question asked for that.
 - **Edit Selection by Voice** comes with it: select text, press its shortcut, say "make this
   shorter", and the selection is rewritten in place — or, if it moved meanwhile, shown in the panel.
+- **An agent can answer** Ask by Voice instead of its model: the request is written down and runs as
+  that agent's background task, exactly as `@handle request` typed in root search, with the window
+  attached.
 
 Upstream declined voice control (#1550), so this lives in `Features/VoiceAI/` plus a few lines in
 `AIRequest`, `AIRequestBody`, `DictationCoordinator`, `ScreenAwarenessCoordinator`,
-`QuickActionPanelController`, `HotKeyManager`, the launcher's command tables and `AppCore`.
+`AgentBackgroundCoordinator`, `QuickActionPanelController`, `HotKeyManager`, the launcher's command
+tables and `AppCore`.
 
 ## Invariants
 
@@ -33,7 +37,8 @@ Upstream declined voice control (#1550), so this lives in `Features/VoiceAI/` pl
   "Choose a model…" rather than replaced. Choosing another connection in the row asks again, naming it;
   another model on the same connection does not. The OpenRouter, Gemini and OpenAI-compatible fallbacks
   in `VoiceRoutePolicy.proposal` only fill a dialog.
-- **Network only after a recording ends.** One POST per finished recording; the model list is fetched
+- **Network only after a recording ends.** One POST per finished recording (two for a mode on a model
+  that only transcribes), plus an agent's own turn when one answers; the model list is fetched
   only when **Choose…** is clicked. While idle there is no timer, observer, tap, session or process:
   `VoiceCloudTranscriber` holds only references, and `VoiceAskCoordinator` builds its recorder,
   capsule and panel controller on the first press. Ask by Voice registers one Carbon hotkey, only when
@@ -74,6 +79,13 @@ Upstream declined voice control (#1550), so this lives in `Features/VoiceAI/` pl
   shows, Tab changes it only while listening, and the request uses that one; closing the capsule
   forgets it and releases the chip. No built-in mode's name is ever stored, so it follows the app's
   language, and the stored value reads field by field, so a missing or unknown field never loses it.
+- **An agent gets the window; the voice route gets only the recording.** With an agent under
+  **Answer with**, the recording goes to Ask by Voice's consented route as a dictation request and
+  nothing else, and the window's text and picture are staged in the agent's own run chat, where its
+  model decides whether it sees the picture. The run is `AgentBackgroundCoordinator.start`, the
+  `@handle` path, with its HUDs, time limit and unattended consent. A busy agent or three running
+  agents refuse the press before anything is recorded; a deleted agent means the model again; Edit
+  Selection by Voice always answers with the model.
 - **Insert while recording is off with the cloud engine.** Each chunk would be a paid request, so
   `DictationCoordinator` never starts the live loop while `cloudIsOn()`.
 - **Retention is the provider's.** Tinycast keeps no copy. What OpenRouter and Google keep follows the
@@ -105,7 +117,7 @@ Upstream declined voice control (#1550), so this lives in `Features/VoiceAI/` pl
 | `Settings/VoiceCloudDictationSection.swift` | The Dictation pane's Cloud transcription section |
 | `Settings/VoiceModesSection.swift` | Dictation modes and Modes by app, shown while Cloud transcription is on |
 | `Settings/VoiceModeEditorPanel.swift` | A mode's name and instructions; a built-in's can be reset |
-| `Settings/VoiceAskSettingsSection.swift` | The AI pane's Ask by Voice section, after Screen Awareness |
+| `Settings/VoiceAskSettingsSection.swift` | The AI pane's Ask by Voice section, after Screen Awareness; Answer with |
 
 `AIMessage.audio` carries the recording; `AIRequestBody` writes it as an `input_audio` part with raw
 base64 and a `format`, on the OpenAI-compatible shape only ([AI](ai.md#web-search-and-attachments)).
@@ -219,6 +231,25 @@ reply is complete, then:
   AI Chat with the instruction and the original text;
 - a replacement that fails shows the panel too, with a HUD.
 
+## Ask an agent by voice
+
+**Answer with**, under Ask by Voice's model while some agent exists, is the model above or any agent
+(`VoiceAISettings.askAgent`, an id that travels in no backup and has no settings-file key, since
+agents never travel either). With an agent chosen, a press of Ask by Voice is refused at once with
+the background run's own message when that agent is still working or three agents are, so nothing is
+recorded for a run that could not start. Otherwise it records and reads the window exactly as a
+question does, with the picture whenever **Include a screenshot** is on, since the agent's model, not
+the voice route, will look at it.
+
+When the recording ends, `VoicePrompt.agentRequest` (the dictation request with Clean up speech on
+and the vocabulary) goes to Ask by Voice's route, and the cleaned transcript, unless it is empty or
+`[[NO_SPEECH]]`, becomes the task. The capsule closes and `AgentBackgroundCoordinator.start(task,
+with: agent, attachments:)` runs it as the launcher would: a fresh chat bound to the agent, the
+window's text as a Markdown document and the picture staged in it (a model that cannot see images
+gets the text alone and a HUD says so), then the send. From there it is an ordinary background run:
+its menu-bar item, its HUDs, its limit and its consent rules ([background
+agents](background-agents.md)). Escape while the request is being written down starts nothing.
+
 ## Routes and models
 
 `VoiceRoutePolicy.route` is the saved choice while its connection exists, hears audio and is enabled,
@@ -265,6 +296,9 @@ the `ANSWER`/`INSERT` and `Q:` header, INSERT only for a request to write into t
 field's text alone in the conversation's language and tone, and otherwise a brief Markdown answer in
 the language the reader spoke. Silence is `ANSWER`, an empty `Q:` and `[[NO_SPEECH]]`.
 
+**Agent** is the dictation request with Clean up speech on, no language and the vocabulary: the
+voice route writes the request down and never sees the window.
+
 **Edit** sends its rules as the system message, then one user message: "Spell these as written when
 you hear them: …" when there is a vocabulary, `Text:` and the selection, then the audio. The rules ask
 for the `INSERT` and `Q:` header, then the edited text alone, in the text's own language and format
@@ -276,7 +310,8 @@ Silence is `INSERT`, an empty `Q:` and `[[NO_SPEECH]]`.
 The encoding sets only the upload size: Gemini bills 32 tokens per second of audio whatever the
 format. At the standard tier, twenty seconds of dictation on `gemini-3.1-flash-lite` at `minimal` is
 about $0.0005 (640 audio tokens, about 350 prompt and 80 output tokens); an Ask on `gemini-3.8-flash` at
-`low` is about $0.01, mostly the screen text (up to about 8,000 tokens) and the picture.
+`low` is about $0.01, mostly the screen text (up to about 8,000 tokens) and the picture. A request
+for an agent costs a dictation's worth on the Ask model, plus the agent's own turn on its model.
 
 Memory is transient: 15 s of speech is 480 KB of WAV, about 640 KB as base64 in the body, plus about
 0.3 MB of JPEG and 32 KB of screen text for an Ask. The worst case, the five-minute cap, is a 9.6 MB WAV,
@@ -337,6 +372,14 @@ ends.
   Electron field, note whether it replaces in place or shows the panel. With nothing selected: "Select
   some text first." at once and the recording stops. Hold its single-modifier shortcut in Hold to
   talk: release finishes.
+- **Ask an agent by voice.** With an agent set up, choose it under Answer with. Open a Safari page,
+  press Ask by Voice, say "Сделай краткую выжимку этой страницы в заметку", press again: the capsule
+  closes, "<agent> is working in the background" appears with the menu-bar item, and the run's chat
+  shows the request as typed text, the window as `Screen — Safari.md` and, with Include a screenshot
+  on, the picture (a proxy shows the voice route got only the audio). Press again while it runs:
+  refused at once, with no recording. Stay silent: "No speech was recorded" and no run. Escape in the
+  capsule while it processes: no run. Edit Selection by Voice still edits with the model. Delete the
+  agent: Answer with shows the model, and a question opens the panel again.
 - **Refusals.** Ask while Dictation records: a HUD refuses. With Tinycast in front: refused. Without
   Screen Recording: text only plus a HUD. Escape in the panel mid-stream: the stream stops (a proxy
   shows it cancelled).
@@ -364,11 +407,15 @@ ends.
   `prompt_tokens_details.audio_tokens`. Repeat with `gemini-3.5-flash-lite/minimal` and with
   `google/gemini-3.8-flash` and `reasoning:{effort:"low"}` for Ask, and tune `VoiceAudio`'s gate
   constants with the built-in microphone and a headset.
-- Harnesses: `voice-ai-test` (WAV header and samples, the gate, both prompts, the `input_audio` body,
-  the reply header and `VoiceReplySession` under every chunking, transcript cleanup, the route and the
-  proposal, the insert policy); `voice-coordinator-test` (the shipped `VoiceCloudTranscriber` and
+- Harnesses: `voice-ai-test` (WAV header and samples, the gate, the prompts, every request body —
+  dictation, Ask, a mode in one and two steps, an edit, an agent's — the reply header and
+  `VoiceReplySession` under every chunking, transcript cleanup, the route and the proposal, the insert
+  policy, mode settings); `voice-coordinator-test` (the shipped `VoiceCloudTranscriber` and
   `VoiceAskCoordinator` against recorded effects: consent saving exactly what it named and asking
   again for another connection, no rerouting, the session token through capture, delivery, supersede
-  and dismissal, and the recorder's start and stop order; dictation modes on the capsule; Edit Selection
-  by Voice replacing an unchanged selection, showing a moved one, refusing an unreadable one); `dictation-field-test` (the cloud seam in
-  `DictationCoordinator`); `hotkey-dispatch-test` (a command's release, Secure Input's included).
+  and dismissal, and the recorder's start and stop order; dictation modes on the capsule; Edit
+  Selection by Voice replacing an unchanged selection, showing a moved one, refusing an unreadable
+  one; an agent getting the transcript and the window while the route gets the audio alone, and
+  refusing a press while it or three agents are busy); `dictation-field-test` (the cloud seam in
+  `DictationCoordinator`); `hotkey-dispatch-test` (a command's release, Secure Input's included, and
+  a voice command held on a single modifier).

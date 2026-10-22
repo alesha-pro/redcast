@@ -25156,6 +25156,58 @@
         }
       }
     },
+    "Answer with" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Antworten mit"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Responder con"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Répondre avec"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "回答に使うもの"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "답변 주체"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Responder com"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Отвечает"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "由谁回答"
+          }
+        }
+      }
+    },
     "Answered HTTP %lld." : {
       "localizations" : {
         "de" : {
@@ -132527,6 +132579,58 @@
         }
       }
     },
+    "The model above" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Das Modell oben"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El modelo de arriba"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le modèle ci-dessus"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "上のモデル"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "위의 모델"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O modelo acima"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Модель выше"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "上面的模型"
+          }
+        }
+      }
+    },
     "The model returned nothing." : {
       "localizations" : {
         "de" : {
@@ -150897,6 +151001,58 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "使用逗号作为小数分隔符时，以 ; 分隔参数。"
+          }
+        }
+      }
+    },
+    "With an agent, the model above only writes down your request, and the agent works on it in the background with the window in front attached." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mit einem Agenten schreibt das Modell oben deine Bitte nur auf, und der Agent bearbeitet sie im Hintergrund, mit dem Fenster vor dir im Anhang."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Con un agente, el modelo de arriba solo transcribe tu petición, y el agente trabaja en ella en segundo plano con la ventana que tienes delante adjunta."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Avec un agent, le modèle ci-dessus ne fait que transcrire votre demande, et l’agent la traite en arrière-plan, avec la fenêtre au premier plan en pièce jointe."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "エージェントを選ぶと、上のモデルは依頼を書き起こすだけで、エージェントが前面のウインドウを添付してバックグラウンドで作業します。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "에이전트를 선택하면 위의 모델은 요청을 받아 적기만 하고, 에이전트가 앞에 있는 윈도우를 첨부해 백그라운드에서 작업합니다."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Com um agente, o modelo acima apenas transcreve seu pedido, e o agente trabalha nele em segundo plano com a janela à sua frente anexada."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "С агентом модель выше только записывает вашу просьбу, а агент выполняет её в фоне, получив окно перед вами во вложении."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "选择智能体时，上面的模型只负责转写你的请求，智能体会附上你面前的窗口，在后台处理它。"
           }
         }
       }

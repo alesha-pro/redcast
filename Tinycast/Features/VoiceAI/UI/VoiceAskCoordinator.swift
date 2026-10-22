@@ -8,7 +8,10 @@ final class VoiceAskCoordinator {
 
     /// What a recording is for, and what is read while the reader speaks.
     private enum Purpose {
-        case ask(screen: Task<ScreenAwarenessCoordinator.Capture?, Never>, wantsScreenshot: Bool)
+        /// With an agent, the request is only transcribed and runs as its background task.
+        case ask(
+            screen: Task<ScreenAwarenessCoordinator.Capture?, Never>, wantsScreenshot: Bool,
+            agent: AgentProfile?)
         /// The selected text, or nil once a refusal has ended the session and said why.
         case edit(selection: Task<String?, Never>)
     }
@@ -82,6 +85,12 @@ final class VoiceAskCoordinator {
     var route: AIModelSelection? {
         VoiceRoutePolicy.route(
             voice.askModel, use: .ask, connections: aiSettings.connections, isEnabled: isRouteEnabled)
+    }
+
+    /// The agent a question goes to while it still exists; nil answers with the model.
+    var agent: AgentProfile? {
+        guard let id = voice.askAgent else { return nil }
+        return core.agentCoordinator.agents.first { $0.id == id }
     }
 
     /// What enabling names; nil while no connection hears audio, which keeps the switch disabled.
@@ -251,6 +260,11 @@ final class VoiceAskCoordinator {
             core.showMessage(VoiceAIFailure.noAskModel.localizedDescription, tone: .danger)
             return
         }
+        let agent = command == .askByVoice ? agent : nil
+        if let agent, let refusal = refusal(of: agent) {
+            core.showMessage(refusal, tone: .neutral)
+            return
+        }
         let provider: any AIProvider
         do {
             provider = try VoiceAIRoute.provider(for: route, settings: aiSettings)
@@ -269,10 +283,11 @@ final class VoiceAskCoordinator {
         if command == .editByVoice {
             purpose = .edit(selection: readSelection(in: app, token: current))
         } else {
-            let wantsScreenshot = settings.screenAwarenessScreenshot && takesImages(route)
+            // An agent's own model decides on the picture; this route never sees the window then.
+            let wantsScreenshot = settings.screenAwarenessScreenshot && (agent != nil || takesImages(route))
             purpose = .ask(
                 screen: Task { await screenAwareness.capture(app, screenshot: wantsScreenshot) },
-                wantsScreenshot: wantsScreenshot)
+                wantsScreenshot: wantsScreenshot, agent: agent)
         }
         session = Session(app: app, route: route, provider: provider, purpose: purpose)
         audioDucker.begin()
@@ -305,8 +320,13 @@ final class VoiceAskCoordinator {
         let current = token
         work = Task { [weak self] in
             switch session.purpose {
-            case .ask(let reading, let wantsScreenshot):
-                await self?.reply(session, reading: reading, wantsScreenshot: wantsScreenshot, wav: wav, token: current)
+            case .ask(let reading, let wantsScreenshot, nil):
+                await self?.reply(
+                    session, reading: reading, wantsScreenshot: wantsScreenshot, wav: wav, token: current)
+            case .ask(let reading, let wantsScreenshot, let agent?):
+                await self?.handOff(
+                    session, to: agent, reading: reading, wantsScreenshot: wantsScreenshot, wav: wav,
+                    token: current)
             case .edit(let selection):
                 await self?.edit(session, selection: selection, wav: wav, token: current)
             }
@@ -365,11 +385,7 @@ final class VoiceAskCoordinator {
         let jpeg: Data? =
             if let png = capture.screenshot { await VoiceMediaEncoder.jpeg(fromPNG: png) } else { nil }
         guard token == current else { return }
-        if wantsScreenshot, capture.screenshot == nil, !ScreenRecordingAccess.isGranted {
-            core.showMessage(
-                String(localized: "No screenshot: allow Screen Recording for Tinycast in System Settings."),
-                tone: .neutral)
-        }
+        reportMissingScreenshot(wanted: wantsScreenshot, capture)
         let screen = ScreenContextFormatter.markdown(
             capture.context, maxBytes: AIAttachmentBudget.maxInlinedTextBytes, timeZone: .current,
             hasScreenshot: jpeg != nil)
@@ -438,6 +454,64 @@ final class VoiceAskCoordinator {
         case .review(let text): present(asked).finish(text)
         case .insert(let text): deliver(text, for: asked)
         }
+    }
+
+    /// Missing permission is worth one line; a capture that simply had no picture is not.
+    private func reportMissingScreenshot(wanted: Bool, _ capture: ScreenAwarenessCoordinator.Capture) {
+        guard wanted, capture.screenshot == nil, !ScreenRecordingAccess.isGranted else { return }
+        core.showMessage(
+            String(localized: "No screenshot: allow Screen Recording for Tinycast in System Settings."),
+            tone: .neutral)
+    }
+
+    // MARK: - Agent
+
+    /// Asked before recording, so a request that could not run is never sent to be transcribed.
+    private func refusal(of agent: AgentProfile) -> String? {
+        guard let runs = core.agentCoordinator.runs else { return nil }
+        if runs.isBusy(agent: agent.id) {
+            return String(localized: "\(agent.name) is still working on another task")
+        }
+        guard runs.activeCount < AgentBackgroundCoordinator.maxConcurrent else {
+            return String(localized: "Three agents are already running")
+        }
+        return nil
+    }
+
+    /// Transcribed on the consented route, then run exactly as `@handle request` would be.
+    private func handOff(
+        _ session: Session, to agent: AgentProfile, reading: Task<ScreenAwarenessCoordinator.Capture?, Never>,
+        wantsScreenshot: Bool, wav: Task<Data?, Never>, token current: UUID
+    ) async {
+        let wav = await wav.value
+        guard token == current else { return }
+        guard let wav else { return finish(failing: VoiceAIFailure.noSpeech.localizedDescription) }
+        let capture = await reading.value
+        guard token == current else { return }
+        guard let capture else { return endSession() }
+        reportMissingScreenshot(wanted: wantsScreenshot, capture)
+        let request = VoicePrompt.agentRequest(
+            audio: AIAudio(data: wav, format: "wav"), vocabulary: voice.vocabulary)
+        var text = ""
+        do {
+            for try await event in session.provider.stream(request) {
+                guard token == current else { return }
+                if case .text(let delta) = event { text += delta }
+            }
+            try Task.checkCancellation()
+        } catch is CancellationError {
+            return
+        } catch {
+            guard token == current else { return }
+            return finish(failing: error.localizedDescription)
+        }
+        guard token == current else { return }
+        guard let task = VoiceTranscript.cleaned(text) else {
+            return finish(failing: VoiceAIFailure.noSpeech.localizedDescription)
+        }
+        endSession()
+        core.agentCoordinator.background.start(
+            task, with: agent, attachments: core.screenAwarenessCoordinator.attachments(for: capture))
     }
 
     // MARK: - Edit
@@ -554,7 +628,7 @@ final class VoiceAskCoordinator {
     /// Back to idle; an answer already on screen stays there.
     private func endSession() {
         if phase == .starting || phase == .listening { audioDucker.end() }
-        if case .ask(let reading, _)? = session?.purpose { reading.cancel() }
+        if case .ask(let reading, _, _)? = session?.purpose { reading.cancel() }
         session = nil
         phase = .idle
         finishWhenStarted = false

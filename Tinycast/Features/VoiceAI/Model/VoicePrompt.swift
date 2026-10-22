@@ -62,6 +62,11 @@ enum VoicePrompt {
             messages: [AIMessage(role: .user, text: transcribeRequest, audio: [audio])])
     }
 
+    /// A request for an agent is only written down here; the window goes to the agent, not this route.
+    static func agentRequest(audio: AIAudio, vocabulary: String) -> AIRequest {
+        dictationRequest(audio: audio, options: .init(cleanup: true, language: nil, vocabulary: vocabulary))
+    }
+
     static let modeRequestText = "Transcribe the recording, then rewrite it as the mode says."
 
     /// One request: the speech heard, then rewritten by the mode; never answered or carried out.
