@@ -42,6 +42,12 @@ in `Features/AgentSessions/`, plus the few lines that wire it in.
   `agentSessionsEnabled`, `agentSessionsTerminal` and `agentStatusMenuBar` are excluded from backups;
   only `agentSessionsEnabled` has a settings-file key (`ai.agentSessions`). The menu-bar item is off
   by default and exists only while an agent works, waits or finished unseen.
+- **A moved folder counts everywhere.** Tinycast cannot see `CLAUDE_CONFIG_DIR` or `CODEX_HOME`, so
+  Settings holds **Claude Code folder** and **Codex folder** in their place (empty is `~/.claude` /
+  `~/.codex`, `~` is expanded, relative text is ignored). One `AgentSessionsLocations`, built from
+  them at each use, feeds reading, the cache root, the live probe, event lookup, the hook files and
+  resume commands, which set the variable with `env` only for a folder that differs from the default.
+  Neither field travels in a backup or has a settings-file key.
 - **Tinycast's own ACP sessions show once.** A Claude or Codex session whose id is in
   `AgentStore.acpSessions` is a Tinycast chat and is listed only as that chat; Codex threads with the
   `tinycast` originator are dropped for the same reason.
@@ -56,6 +62,7 @@ in `Features/AgentSessions/`, plus the few lines that wire it in.
 | File | Holds |
 | --- | --- |
 | `Model/AgentSession.swift` | The row model, sources and hosts, live status, `AgentSessionText` cuts |
+| `Model/AgentSessionsLocations.swift` | Every agent's folder (default or moved), the paths under them, the variables a resume sets |
 | `Model/ClaudeTranscriptDecoder.swift` | JSONL head and tail facts, the line filter, human prompts, titles, preview turns |
 | `Model/ClaudeIndexFormat.swift` | The cache file, `ClaudeRescanPolicy` (reuse, tail or full read per transcript) |
 | `Model/CodexStateReader.swift` | `state_5.sqlite` threads, `thread_history_1.sqlite` turns, rollout turns, hosts, titles |
@@ -98,6 +105,9 @@ Formats were measured on Claude Code 2.1.285–2.1.303 and codex-cli 0.162; no p
 - **Tinycast.** `ChatHistoryStore.conversations`, already resident while AI is on; a chat bound to an
   agent takes that agent's folder.
 
+Claude Code's folder is `~/.claude` and Codex's `~/.codex` unless Settings names another (see
+Invariants); everything above is then read under that folder.
+
 The Claude index is cached in `Caches/<bundle id>/agent-sessions/claude-index.json` (mode 0600): per
 transcript its size, mtime, cwd, branch, entry point, first and last prompt (≤ 300 characters) and
 title. An unchanged file is reused, a grown one reads only its tail, anything else is read again.
@@ -107,7 +117,10 @@ Switching the hub off deletes the cache.
 
 `AgentResumeCommand` builds `cd '<folder>' && claude --resume <id>` (`--fork-session` to fork),
 `codex resume <id>` / `codex fork <id>` and `claude attach <short id>`; an id outside
-`[0-9A-Za-z-]{1,64}` gets no command at all. Folders are single-quoted for the shell and
+`[0-9A-Za-z-]{1,64}` gets no command at all. A moved folder rides along as
+`env CLAUDE_CONFIG_DIR='<folder>' claude …` (or `CODEX_HOME`): `env`, because the `.command` body
+`exec`s the line and `exec NAME=…` is not a command. That body is built from the folder, so a folder
+whose name holds ` && ` still runs the agent. Folders are single-quoted for the shell and
 backslash-escaped for AppleScript. **Automatic** is the terminal the live session runs in, else
 Terminal.
 
@@ -140,7 +153,8 @@ Claude Code gets `UserPromptSubmit` (working), `Notification` matching `permissi
 `elicitation_dialog`, `elicitation_url_dialog` and `agent_needs_input` (waiting), `Stop` (finished),
 `StopFailure` (failed) and `SessionEnd` (ended) in `~/.claude/settings.json`; Codex gets
 `UserPromptSubmit`, `PermissionRequest`, `Stop` and `SessionEnd` in `~/.codex/hooks.json`, created
-when absent and deleted again when it held only these. Codex's `notify` is never touched: it is
+when absent and deleted again when it held only these. A moved folder moves the file with it; turn
+live status off before moving one, or the old folder keeps hooks that Tinycast no longer lists. Codex's `notify` is never touched: it is
 already taken by Computer Use, and Codex allows one. Codex runs new hooks only after `/hooks` trusts
 them; **Update…** keeps the token, so the command and the trust survive it. The `hooks` value is
 re-rendered in the file's own indent and line endings with its keys in their original order; every
@@ -195,3 +209,7 @@ Run in `Tinycast Dev.app` with AI on.
     the panel is open: Turn On refuses and shows the new diff.
 17. `open "tinycast://agent-sessions/event?v=1&k=wrong&agent=claude&event=finished&session=x"`:
     nothing happens and the launcher does not open.
+18. Set **Claude Code folder** to a folder you use with `CLAUDE_CONFIG_DIR` (and **Codex folder** for
+    `CODEX_HOME`): the next open lists its sessions; ⌘↵ copies `… && env CLAUDE_CONFIG_DIR='…' claude
+    --resume …` and ↵ resumes it; **Turn On…** diffs that folder's `settings.json`; a path that is not a
+    folder says so under the field; clearing the field reads `~/.claude` again.

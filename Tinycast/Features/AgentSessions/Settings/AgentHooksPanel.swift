@@ -143,7 +143,7 @@ private struct AgentHookChangeView: View {
     }
 
     private func path(_ url: URL?) -> String {
-        guard let url else { return change.target.relativePath }
+        guard let url else { return change.target.fileName }
         return (url.path as NSString).abbreviatingWithTildeInPath
     }
 }

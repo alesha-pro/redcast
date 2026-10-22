@@ -45,25 +45,22 @@ final class AgentSessionIndex {
 
     private let chatHistory: ChatHistoryStore
     private let agentStore: AgentStore
-    private let home: URL
+    /// Set on each open, so a folder moved in Settings is read from the next open on.
+    @ObservationIgnored private(set) var locations: AgentSessionsLocations
     private let cacheURL: URL
     private let claudeExecutable: () async -> URL?
     private static let log = Logger(subsystem: "com.tinycast", category: "AgentSessions")
 
     init(
-        chatHistory: ChatHistoryStore, agentStore: AgentStore, home: URL, cacheURL: URL,
+        chatHistory: ChatHistoryStore, agentStore: AgentStore, locations: AgentSessionsLocations, cacheURL: URL,
         claudeExecutable: @escaping () async -> URL?
     ) {
         self.chatHistory = chatHistory
         self.agentStore = agentStore
-        self.home = home
+        self.locations = locations
         self.cacheURL = cacheURL
         self.claudeExecutable = claudeExecutable
     }
-
-    var claudeRoot: URL { home.appending(path: ".claude/projects", directoryHint: .isDirectory) }
-    var codexState: URL { home.appending(path: ".codex/state_5.sqlite", directoryHint: .notDirectory) }
-    var codexHistory: URL { home.appending(path: ".codex/thread_history_1.sqlite", directoryHint: .notDirectory) }
 
     /// Memoised on (query, revision, filter): the palette rebuilds the screen many times a render.
     func rows(for query: String) -> [AgentSession] {
@@ -80,14 +77,14 @@ final class AgentSessionIndex {
         keyed[id]?.session
     }
 
-    /// A preserved re-summon finds the index loaded and keeps it as it is.
-    func open() {
-        guard phase == .idle else { return }
+    /// A preserved re-summon finds the index loaded and keeps it, unless a folder moved meanwhile.
+    func open(_ locations: AgentSessionsLocations) {
+        guard phase == .idle || locations != self.locations else { return }
+        self.locations = locations
         load()
     }
 
     func refresh() {
-        guard phase != .idle else { return open() }
         load()
     }
 
@@ -133,7 +130,7 @@ final class AgentSessionIndex {
         let state = TranscriptSearchState(query: query)
         transcriptSearch = state
         let stream = AgentTranscriptSearch.run(
-            query: query, sessions: sessions.filter(filter.admits), codexHistory: codexHistory,
+            query: query, sessions: sessions.filter(filter.admits), locations: locations,
             progress: { [weak self] done, total in
                 Task { @MainActor in
                     guard let self, self.transcriptSearch?.id == state.id else { return }
@@ -193,7 +190,8 @@ final class AgentSessionIndex {
     }
 
     private func loadCodex(_ generation: Int, includeArchived: Bool, acp: Set<String>) async {
-        let result = await AgentSessionsScanner.codexThreads(database: codexState, includeArchived: includeArchived)
+        let result = await AgentSessionsScanner.codexThreads(
+            database: locations.codexState, includeArchived: includeArchived)
         guard isCurrent(generation) else { return }
         switch result {
         case .success(let threads):
@@ -209,7 +207,7 @@ final class AgentSessionIndex {
     }
 
     private func loadClaude(_ generation: Int, acp: Set<String>) async {
-        let root = claudeRoot
+        let root = locations.claudeProjects
         let rootPath = root.path
         let cache = await AgentSessionsScanner.loadCache(cacheURL, root: rootPath)
         let listing = await AgentSessionsScanner.listClaude(root: root)
@@ -240,7 +238,8 @@ final class AgentSessionIndex {
     private func loadLive(_ generation: Int) async {
         guard bySource[.claude]?.isEmpty == false, let executable = await claudeExecutable() else { return }
         let entries = await AgentProcessHost.resolving(
-            await ClaudeLiveSessionsProbe.run(executable: executable, home: home))
+            await ClaudeLiveSessionsProbe.run(
+                executable: executable, home: locations.home, environment: locations.environment(for: .claude)))
         guard isCurrent(generation) else { return }
         probed = Dictionary(
             entries.map { ("claude:" + $0.sessionID, $0) }, uniquingKeysWith: { first, _ in first })

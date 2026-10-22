@@ -196,7 +196,9 @@ private struct AgentSessionsView: View {
         case .session(let session)? where session.source == .tinycast:
             ChatHistoryPreview(history: chatHistory, chat: chat, conversationID: UUID(uuidString: session.sessionID))
         case .session(let session)?:
-            AgentSessionPreview(session: session, live: index.live[session.id], codexHistory: index.codexHistory)
+            AgentSessionPreview(
+                session: session, live: index.live[session.id], locations: index.locations,
+                command: coordinator.resumeCommand(session, action: .resume))
         default:
             Color.clear.frame(maxWidth: .infinity, maxHeight: .infinity)
         }
