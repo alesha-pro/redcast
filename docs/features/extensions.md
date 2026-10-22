@@ -85,7 +85,7 @@ timers, `fetch`, `URL`, `URLSearchParams`, `Blob`/`File`/`FormData`, `DOMExcepti
 
 ## The JS runtime
 
-`Tinycast/Resources/RaycastRuntime.generated.js` (~200 KB minified) is **generated and committed**, the
+`Tinycast/Resources/RaycastRuntime.generated.js` (~263 KB minified) is **generated and committed**, the
 same arrangement as `EmojiData.generated.swift`: building Tinycast never needs Node. Sources live in
 [`Scripts/raycast-runtime/`](../../Scripts/raycast-runtime):
 
@@ -96,6 +96,7 @@ same arrangement as `EmojiData.generated.swift`: building Tinycast never needs N
 | `src/reconciler.js`                              | `react-reconciler` host config that commits into a JSON tree                                                           |
 | `src/api/components.js`                          | every `@raycast/api` component                                                                                         |
 | `src/api/system.js`                              | Clipboard, LocalStorage, Cache, Toast, preferences, environment                                                        |
+| `src/api/ai.js`                                  | `AI.ask` and its pull loop, `AI.Model`, `refreshModels` — see [extension-ai](extension-ai.md)                          |
 | `src/api/enums.generated.js`                     | Icon / Color / Toast.Style / … extracted from the real `@raycast/api` types                                            |
 | `src/node-shims.js`                              | `path`, `fs`, `os`, `child_process`, `crypto`, `zlib`, `util`, `events`, `buffer`, `punycode`, …                       |
 | `src/websocket.js`                               | the `WebSocket` global, and the raw socket a bundled `ws` attaches to                                                  |
@@ -674,7 +675,9 @@ interval floor instead of sixty.
 `showInFinder`, `getApplications`, `getDefaultApplication`, `getFrontmostApplication`,
 `getSelectedText`, `getSelectedFinderItems`, `launchCommand`, `updateCommandMetadata`,
 `openExtensionPreferences`, `OAuth`,
-`useNavigation`, `Icon`, `Color`, `Image.Mask`, `Keyboard.Shortcut.Common`, `LaunchType`.
+`useNavigation`, `Icon`, `Color`, `Image.Mask`, `Keyboard.Shortcut.Common`, `LaunchType`, and, once
+allowed in Settings, `AI.ask`, `AI.refreshModels`, `environment.canAccess(AI)` and `@raycast/utils`'
+`useAI`, answered by your own model ([extension-ai](extension-ai.md)).
 
 **`raycast://` URLs** — extensions address Raycast by scheme; the most common is a bare
 `open("raycast://")` to bring the window back after something stole focus (1Password's auth flow does
@@ -718,6 +721,15 @@ extends the latter at module scope, and running the callback in place is the who
 Its presence lets bundled `safe-buffer` select the modern Buffer API rather than calling the class
 as a legacy function. `EventEmitter.once` passes the emitter as the listener's receiver, like `on`,
 and removes the listener before invoking it; bundled duplex streams rely on that receiver at `end`.
+
+`querystring.stringify` coerces like Node: `undefined`, `null` and a non-finite number become an
+empty value, so google-auth-library sends a client without a secret as `client_secret=`, which Google
+accepts, rather than `client_secret=undefined`, which it answers with `invalid_client`. `buffer`
+hands out the global `Blob` and `File`, as Node's does: undici subclasses them as it loads.
+A bundled undici finds its global dispatcher slot (`Symbol.for("undici.globalDispatcher.1")`) already
+filled, so it never builds a socket `Agent`: the dispatcher replays each request through the `fetch`
+bridge and hands the answer to undici's handler whole, and an abort ends it with one `onError`.
+`stream` answers the `isDisturbed`, `isErrored` and `isReadable` probes undici asks of a body.
 
 **WebAssembly** — `compile`, `instantiate` and their streaming forms run through the synchronous
 `Module` and `Instance` constructors. JavaScriptCore settles the promise forms from a run-loop timer on
@@ -820,7 +832,8 @@ extensions / 114 of 147 view commands** boot and render. `Scripts/raycast-runtim
 
 | Gap                                                          | Why                                                                                                                                                                                                                                                                                                                                          |
 | ------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **`AI`, `BrowserExtension`, `WindowManagement`**             | Raycast services with no local equivalent. Importing them works; calling one throws with a clear reason.                                                                                                                                                                                                                                     |
+| **`BrowserExtension`, `WindowManagement`**                   | Raycast services with no local equivalent. Importing them works; calling one throws with a clear reason.                                                                                                                                                                                                                                     |
+| **`AI.experimental_decide`, extension model providers, AI outside a command you open** | No route returns the calibrated probabilities `experimental_decide` needs; `ai.modelProvider` models are not surfaced; a status item, a timer or a command one launches must never spend tokens. See [extension-ai](extension-ai.md).                                                                                                    |
 | **A WebSocket to a host with a certificate macOS distrusts** | `ws`'s `rejectUnauthorized: false` is ignored — URLSession validates the chain either way.                                                                                                                                                                                                                                                   |
 | **Aborting a `fetch` already in flight**                     | `AbortSignal` is complete — `timeout`, `abort` and `any` included — and `fetch` checks it on both sides of the host call, so a caller gets its `AbortError`. The request itself still runs to completion: the signal isn't carried across the bridge, so nothing cancels the `URLSessionTask`. A timeout bounds the caller, not the network. |
 | **Interactive `spawn` stdin**                                | stdout and stderr stream, but stdin is sent once as the child starts: whatever was written in the same tick. A later `stdin.write` is dropped.                                                                                                                                                                                               |

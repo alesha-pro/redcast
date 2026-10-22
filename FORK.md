@@ -25,6 +25,8 @@ OpenCode, Goose, Hermes, local models — on the subscriptions and machines you 
 | Background and scheduled agents | `@agent do X` in root search runs a turn with no window: a transient menu-bar item shows it working, a HUD (and an opt-in banner) says when it ended, and the result is a chat. Schedules run an agent daily, on working days or every few hours while Tinycast is open, with one sleeping task, a catch-up rule and an optional note. Unattended requests ask only someone at the Mac, with Return on Don't Allow | [background-agents](docs/features/background-agents.md) |
 | ACP agents | An agent can run as its own CLI over the Agent Client Protocol — Claude Code, Codex, Gemini CLI, OpenCode, Goose, Hermes or any command — on your own logins, with its permission requests, tool rows, plans and modes in AI Chat, and sessions that survive a relaunch | [agents](docs/features/agents.md#acp-agents) |
 | Voice AI | Cloud dictation through Gemini Flash on your own OpenRouter, Gemini or OpenAI-compatible connection, and Ask by Voice: speak a question about the window in front, get the answer beside it or typed into the field. Audio goes only to the connection you approved | [voice-ai](docs/features/voice-ai.md) |
+| Raycast AI for extensions | `AI.ask`, `useAI` and `canAccess(AI)` answered by your own model, off until you allow it and asked once per extension (a dismissed question asks again); only in a command you open, never in a menu-bar command, a background refresh or anything one launches | [extension-ai](docs/features/extension-ai.md) |
+| Extension runtime fixes | Google sign-in without a client secret (`querystring` coerces like Node), and extensions that bundle undici (`buffer.Blob`/`File`, undici's requests sent through the `fetch` bridge); ported from sermelipharo/tinycast-space | [extensions](docs/features/extensions.md) |
 
 Builds of this fork use the bundle id `com.tinycast.app.fork`: they never update themselves from
 upstream's feed, and they keep their settings apart from an installed upstream Tinycast.
@@ -57,9 +59,9 @@ Sizes are focused working days. Waves are ordered by leverage, not by size.
   identity, installs it and relaunches it, versioned from `git describe`.
 - **Upstream sync.** A script (and later a scheduled Action that opens a PR) that merges upstream,
   regenerates the project, runs the harnesses and lists what upstream changed.
-- **Ports from other forks** (all AGPL, credited): alias + Space and the extension-runtime fixes for
-  Google sign-in and undici from `sermelipharo/tinycast-space`; Change Alias / Change Shortcut from ⌘K
-  from `jhasubhash/tinycast`.
+- **Ports from other forks** (all AGPL, credited): alias + Space from `sermelipharo/tinycast-space`;
+  Change Alias / Change Shortcut from ⌘K from `jhasubhash/tinycast`. The same fork's extension-runtime
+  fixes for Google sign-in and undici have shipped (see above).
 
 ### Wave 1 — agent-native core
 
@@ -91,9 +93,10 @@ Sizes are focused working days. Waves are ordered by leverage, not by size.
    screenshot library (upstream #1211 declined; `dnw3` and `fminkowski` forks built capture). *3–4 days.*
 7. **Web search — shipped** (see above). Next: `read_page` for plain chats, and the same tool for
    Codex and Claude through Tinycast's MCP server (item 4).
-8. **Raycast AI for extensions.** Implement `AI.ask` and `useAI` in the extension runtime on top of
-   Tinycast's providers; today the runtime rejects the whole `AI` namespace, so every AI-powered
-   Raycast extension fails. *2–3 days.*
+8. **Raycast AI for extensions — shipped** (see above). Next on it: honour the requested `AI.Model`
+   (an Anthropic id to an Anthropic connection), `creativity` as temperature where a route takes one,
+   `AI.experimental_decide`, extension model providers, and AI from a menu-bar item's own action, where
+   the click is the gesture (the menu-bar lane has no AI host today).
 9. **Model arena.** One prompt to two to four models side by side, streaming in columns; keep the best
    answer and continue with that model. *3 days.*
 
@@ -119,4 +122,6 @@ Sizes are focused working days. Waves are ordered by leverage, not by size.
 ## Credits
 
 Upstream: [abue-ammar/tinycast](https://github.com/abue-ammar/tinycast), AGPL-3.0. Ideas surveyed from
-the forks named above; anything ported from them is credited in its commit.
+the forks named above; anything ported from them is credited in its commit. The extension-runtime fixes
+come from [sermelipharo/tinycast-space](https://github.com/sermelipharo/tinycast-space) (patches 0004,
+0008 and 0009).

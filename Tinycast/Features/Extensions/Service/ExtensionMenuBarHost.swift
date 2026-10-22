@@ -24,6 +24,7 @@ final class ExtensionMenuBarHost: ExtensionHostContext {
 
     var activeExtensionName: String? { owner.manifest.name }
     var activeLaunchType: ExtensionLaunchType { isInteractive ? .userInitiated : .background }
+    var isOpenedByUser: Bool { isInteractive }
     var pasteTarget: NSRunningApplication? { NSWorkspace.shared.frontmostApplication }
     var applicationURLs: [URL] { coordinator?.applicationURLs ?? [] }
 
@@ -53,13 +54,16 @@ final class ExtensionMenuBarHost: ExtensionHostContext {
 
     func launch(
         command: String, extensionName: String?, arguments: [String: String],
-        fallbackText: String?, launchType: ExtensionLaunchType, launchContext: [String: RenderValue]
+        fallbackText: String?, launchType: ExtensionLaunchType, launchContext: [String: RenderValue],
+        openedByUser: Bool
     ) throws {
         try manager?.launch(
             command: command, extensionName: extensionName ?? owner.manifest.name,
             arguments: arguments, fallbackText: fallbackText, launchType: launchType,
-            launchContext: launchContext)
+            launchContext: launchContext, openedByUser: openedByUser)
     }
 
-    func launch(_ link: ExtensionDeepLink) throws { try manager?.launch(link) }
+    func launch(_ link: ExtensionDeepLink, openedByUser: Bool) throws {
+        try manager?.launch(link, openedByUser: openedByUser)
+    }
 }

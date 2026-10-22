@@ -18202,6 +18202,58 @@
         }
       }
     },
+    "Allow “%@” to use AI?" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "„%@“ die Nutzung von KI erlauben?"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "¿Permitir que “%@” use la IA?"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Autoriser « %@ » à utiliser l’IA ?"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "「%@」にAIの使用を許可しますか?"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "“%@”에서 AI를 사용하도록 허용하시겠습니까?"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Permitir que “%@” use a IA?"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Разрешить «%@» использовать ИИ?"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "要允许“%@”使用 AI 吗？"
+          }
+        }
+      }
+    },
     "Allows File Search and finding protected app leftovers." : {
       "localizations" : {
         "de" : {
@@ -18302,6 +18354,58 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "允许加入你的下一场会议。"
+          }
+        }
+      }
+    },
+    "AI is off. Turn it on in Settings → AI to let extensions use it." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "KI ist aus. Aktiviere sie in „Einstellungen → KI“, damit Erweiterungen sie nutzen können."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La IA está desactivada. Actívala en Ajustes → IA para que las extensiones puedan usarla."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L’IA est désactivée. Activez-la dans Réglages → IA pour que les extensions puissent l’utiliser."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AIはオフです。拡張機能で使うには、設定 → AIでオンにしてください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AI가 꺼져 있습니다. 확장 프로그램이 사용하려면 설정 → AI에서 켜십시오."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A IA está desativada. Ative-a em Ajustes → IA para que as extensões possam usá-la."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ИИ выключен. Включите его в разделе «Настройки» → «ИИ», чтобы расширения могли им пользоваться."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AI 已关闭。请在“设置”→“AI”中打开，以便扩展使用。"
           }
         }
       }
@@ -22879,6 +22983,58 @@
         }
       }
     },
+    "Allow extensions to use AI" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Erweiterungen die Nutzung von KI erlauben"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Permitir que las extensiones usen la IA"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Autoriser les extensions à utiliser l’IA"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "拡張機能にAIの使用を許可"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "확장 프로그램의 AI 사용 허용"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Permitir que as extensões usem a IA"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Разрешить расширениям использовать ИИ"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "允许扩展使用 AI"
+          }
+        }
+      }
+    },
     "Allow for This Chat" : {
       "localizations" : {
         "de" : {
@@ -26176,6 +26332,58 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "“询问屏幕内容”会读取你面前的窗口（其中的文本、你正在输入的栏位，以及在你允许时的截图），并附加到 Quick AI。在你运行该命令之前不会读取任何内容。"
+          }
+        }
+      }
+    },
+    "Ask Again" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Erneut fragen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Volver a preguntar"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Redemander"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "もう一度確認"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "다시 묻기"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Perguntar novamente"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Спросить снова"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "重新询问"
           }
         }
       }
@@ -34545,6 +34753,58 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "请在“设置”→“听写”中为云端转写选取模型。"
+          }
+        }
+      }
+    },
+    "Choose a model for extensions in Settings → Extensions." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wähle in „Einstellungen → Erweiterungen“ ein Modell für Erweiterungen aus."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Elige un modelo para las extensiones en Ajustes → Extensiones."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choisissez un modèle pour les extensions dans Réglages → Extensions."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "設定 → 拡張機能で、拡張機能用のモデルを選択してください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "설정 → 확장 프로그램에서 확장 프로그램용 모델을 선택하십시오."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Escolha um modelo para as extensões em Ajustes → Extensões."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Выберите модель для расширений в разделе «Настройки» → «Расширения»."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请在“设置”→“扩展”中为扩展选取模型。"
           }
         }
       }
@@ -55466,6 +55726,58 @@
         }
       }
     },
+    "Every model an extension names is answered by this one. Up to 10 requests a minute and 100 an hour per extension; menu-bar commands and background refreshes can't use AI." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jedes Modell, das eine Erweiterung anfordert, wird von diesem beantwortet. Bis zu 10 Anfragen pro Minute und 100 pro Stunde je Erweiterung; Menüleistenbefehle und Hintergrundaktualisierungen können keine KI nutzen."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Este modelo responde por cualquier modelo que pida una extensión. Hasta 10 solicitudes por minuto y 100 por hora por extensión; los comandos de la barra de menús y las actualizaciones en segundo plano no pueden usar la IA."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ce modèle répond pour tout modèle demandé par une extension. Jusqu’à 10 requêtes par minute et 100 par heure par extension ; les commandes de la barre des menus et les actualisations en arrière-plan ne peuvent pas utiliser l’IA."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "拡張機能が指定するモデルにかかわらず、このモデルが回答します。拡張機能ごとに1分あたり10件、1時間あたり100件までです。メニューバーのコマンドとバックグラウンド更新ではAIを使用できません。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "확장 프로그램이 지정하는 모든 모델 대신 이 모델이 응답합니다. 확장 프로그램당 분당 10회, 시간당 100회까지 요청할 수 있으며, 메뉴 막대 명령과 백그라운드 새로 고침에서는 AI를 사용할 수 없습니다."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Este modelo responde por qualquer modelo que uma extensão peça. Até 10 solicitações por minuto e 100 por hora por extensão; comandos da barra de menus e atualizações em segundo plano não podem usar a IA."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "На запрос любой модели от расширения отвечает эта. Не более 10 запросов в минуту и 100 в час на расширение; команды строки меню и фоновые обновления не могут использовать ИИ."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无论扩展指定哪个模型，都由此模型回答。每个扩展每分钟最多 10 次请求、每小时最多 100 次；菜单栏命令和后台刷新无法使用 AI。"
+          }
+        }
+      }
+    },
     "Every past calculation goes. This can't be undone." : {
       "localizations" : {
         "de" : {
@@ -57152,6 +57464,110 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "扩展是在这台 Mac 上运行的第三方 JavaScript。运行中的命令会在内存中保留一个 JavaScript 引擎，直到你离开它，因此在其打开期间，Tinycast 会明显占用更多内存。"
+          }
+        }
+      }
+    },
+    "Extensions can use AI only in a command you open." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Erweiterungen können KI nur in einem Befehl nutzen, den du öffnest."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Las extensiones solo pueden usar la IA en un comando que abras tú."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Les extensions ne peuvent utiliser l’IA que dans une commande que vous ouvrez."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "拡張機能がAIを使用できるのは、ユーザーが開いたコマンドの中だけです。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "확장 프로그램은 사용자가 연 명령에서만 AI를 사용할 수 있습니다."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "As extensões só podem usar a IA em um comando que você abrir."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Расширения могут использовать ИИ только в команде, которую вы открыли."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "扩展只能在你打开的命令中使用 AI。"
+          }
+        }
+      }
+    },
+    "Extensions can't use AI. Turn it on in Settings → Extensions." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Erweiterungen können keine KI nutzen. Aktiviere dies in „Einstellungen → Erweiterungen“."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Las extensiones no pueden usar la IA. Actívalo en Ajustes → Extensiones."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Les extensions ne peuvent pas utiliser l’IA. Activez cette option dans Réglages → Extensions."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "拡張機能はAIを使用できません。設定 → 拡張機能でオンにしてください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "확장 프로그램이 AI를 사용할 수 없습니다. 설정 → 확장 프로그램에서 켜십시오."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "As extensões não podem usar a IA. Ative isso em Ajustes → Extensões."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Расширения не могут использовать ИИ. Включите это в разделе «Настройки» → «Расширения»."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "扩展无法使用 AI。请在“设置”→“扩展”中打开。"
           }
         }
       }
@@ -70132,6 +70548,58 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "无法准备其私有支持文件夹。"
+          }
+        }
+      }
+    },
+    "Its prompts go to %@ and can include text the extension reads, such as your selection or clipboard. You can change this in Settings → Extensions." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Prompts der Erweiterung gehen an %@ und können Text enthalten, den sie liest, etwa deine Auswahl oder die Zwischenablage. Du kannst das in „Einstellungen → Erweiterungen“ ändern."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sus prompts se envían a %@ y pueden incluir texto que lee la extensión, como tu selección o el portapapeles. Puedes cambiarlo en Ajustes → Extensiones."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ses requêtes sont envoyées à %@ et peuvent contenir du texte lu par l’extension, comme votre sélection ou le presse-papiers. Vous pouvez modifier ce choix dans Réglages → Extensions."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この拡張機能のプロンプトは%@に送信され、選択範囲やクリップボードなど、拡張機能が読み取ったテキストが含まれることがあります。設定 → 拡張機能で変更できます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "이 확장 프로그램의 프롬프트는 %@(으)로 전송되며, 선택한 텍스트나 클립보드처럼 확장 프로그램이 읽은 텍스트가 포함될 수 있습니다. 설정 → 확장 프로그램에서 변경할 수 있습니다."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Os prompts dela vão para %@ e podem incluir texto que a extensão lê, como sua seleção ou a área de transferência. Você pode mudar isso em Ajustes → Extensões."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Её запросы отправляются в %@ и могут содержать текст, который читает расширение, например выделенный текст или буфер обмена. Это можно изменить в разделе «Настройки» → «Расширения»."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "它的提示词会发送到 %@，并可能包含扩展读取的文本，例如你选中的内容或剪贴板。你可以在“设置”→“扩展”中更改。"
           }
         }
       }
@@ -99397,6 +99865,58 @@
         }
       }
     },
+    "Raycast extensions that ask AI answer with your own model. Each one asks you first." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Raycast-Erweiterungen, die KI anfragen, antworten mit deinem eigenen Modell. Jede fragt dich vorher."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Las extensiones de Raycast que consultan a la IA responden con tu propio modelo. Cada una te pide permiso primero."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Les extensions Raycast qui font appel à l’IA répondent avec votre propre modèle. Chacune vous demande d’abord l’autorisation."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AIに問い合わせるRaycast拡張機能は、あなたのモデルで回答します。拡張機能ごとに最初に確認します。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AI에 질문하는 Raycast 확장 프로그램은 사용자의 모델로 응답합니다. 각 확장 프로그램은 먼저 사용자에게 묻습니다."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "As extensões do Raycast que consultam a IA respondem com o seu próprio modelo. Cada uma pede sua permissão primeiro."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Расширения Raycast, обращающиеся к ИИ, отвечают с помощью вашей модели. Каждое сначала спросит разрешения."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "调用 AI 的 Raycast 扩展会使用你自己的模型回答。每个扩展都会先征求你的同意。"
+          }
+        }
+      }
+    },
     "Raycast is running — quit it to avoid hotkey conflicts." : {
       "localizations" : {
         "de" : {
@@ -99449,54 +99969,54 @@
         }
       }
     },
-    "Raycast's AI, browser and window services." : {
+    "Raycast's browser and window services." : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Die KI-, Browser- und Fensterdienste von Raycast."
+            "value" : "Die Browser- und Fensterdienste von Raycast."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Servicios de IA, navegador y ventanas de Raycast."
+            "value" : "Servicios de navegador y ventanas de Raycast."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Services d’IA, de navigation web et de gestion des fenêtres de Raycast."
+            "value" : "Services de navigation web et de gestion des fenêtres de Raycast."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "RaycastのAI、ブラウザ、ウインドウのサービス。"
+            "value" : "Raycastのブラウザとウインドウのサービス。"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Raycast의 AI, 웹 브라우저 및 윈도우 서비스."
+            "value" : "Raycast의 웹 브라우저 및 윈도우 서비스."
           }
         },
         "pt" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Serviços de IA, navegador e janelas do Raycast."
+            "value" : "Serviços de navegador e janelas do Raycast."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Службы ИИ, браузера и окон Raycast."
+            "value" : "Службы браузера и окон Raycast."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Raycast 的 AI、浏览器和窗口服务。"
+            "value" : "Raycast 的浏览器和窗口服务。"
           }
         }
       }
@@ -126695,6 +127215,116 @@
         }
       }
     },
+    "The prompt is empty." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der Prompt ist leer."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El prompt está vacío."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La requête est vide."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "プロンプトが空です。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "프롬프트가 비어 있습니다."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O prompt está vazio."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Запрос пуст."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "提示词为空。"
+          }
+        }
+      }
+    },
+    "The prompt is too long: %lld KB, where the limit is %lld KB." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der Prompt ist zu lang: %1$lld KB, erlaubt sind %2$lld KB."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The prompt is too long: %1$lld KB, where the limit is %2$lld KB."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El prompt es demasiado largo: %1$lld KB, y el límite es %2$lld KB."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La requête est trop longue : %1$lld Ko, alors que la limite est de %2$lld Ko."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "プロンプトが長すぎます: %1$lld KB（上限は%2$lld KB）。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "프롬프트가 너무 깁니다: %1$lld KB(한도 %2$lld KB)."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O prompt é longo demais: %1$lld KB, e o limite é %2$lld KB."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Запрос слишком длинный: %1$lld КБ при ограничении %2$lld КБ."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "提示词过长：%1$lld KB，上限为 %2$lld KB。"
+          }
+        }
+      }
+    },
     "The provider could not be reached." : {
       "localizations" : {
         "de" : {
@@ -129347,6 +129977,58 @@
         }
       }
     },
+    "This AI answer has already ended." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diese KI-Antwort ist bereits beendet."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esta respuesta de la IA ya ha terminado."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cette réponse de l’IA est déjà terminée."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このAIの回答はすでに終了しています。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "이 AI 응답은 이미 종료되었습니다."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esta resposta da IA já terminou."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Этот ответ ИИ уже завершён."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此 AI 回答已结束。"
+          }
+        }
+      }
+    },
     "This Mac does not support Apple Intelligence." : {
       "localizations" : {
         "de" : {
@@ -130589,6 +131271,162 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "此导出文件太大，无法导入。请清除部分 Raycast 剪贴板历史记录，然后重新导出。"
+          }
+        }
+      }
+    },
+    "This extension can use AI once you allow it. It will ask again next time." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diese Erweiterung kann KI nutzen, sobald du es erlaubst. Sie fragt beim nächsten Mal erneut."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esta extensión podrá usar la IA cuando se lo permitas. Volverá a preguntar la próxima vez."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cette extension pourra utiliser l’IA une fois que vous l’aurez autorisée. Elle vous le redemandera la prochaine fois."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この拡張機能は、許可するとAIを使用できます。次回もう一度確認されます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "이 확장 프로그램은 허용하면 AI를 사용할 수 있습니다. 다음에 다시 묻습니다."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esta extensão poderá usar a IA quando você permitir. Ela perguntará de novo na próxima vez."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Это расширение сможет использовать ИИ, когда вы разрешите. В следующий раз оно спросит снова."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你允许后，此扩展即可使用 AI。下次它会再次询问。"
+          }
+        }
+      }
+    },
+    "This extension isn't allowed to use AI. You can change this in Settings → Extensions." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diese Erweiterung darf keine KI nutzen. Du kannst das in „Einstellungen → Erweiterungen“ ändern."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esta extensión no tiene permiso para usar la IA. Puedes cambiarlo en Ajustes → Extensiones."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cette extension n’est pas autorisée à utiliser l’IA. Vous pouvez modifier ce choix dans Réglages → Extensions."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この拡張機能にはAIの使用が許可されていません。設定 → 拡張機能で変更できます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "이 확장 프로그램은 AI를 사용하도록 허용되지 않았습니다. 설정 → 확장 프로그램에서 변경할 수 있습니다."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esta extensão não tem permissão para usar a IA. Você pode mudar isso em Ajustes → Extensões."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Этому расширению не разрешено использовать ИИ. Это можно изменить в разделе «Настройки» → «Расширения»."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此扩展不允许使用 AI。你可以在“设置”→“扩展”中更改。"
+          }
+        }
+      }
+    },
+    "This extension reached its AI limit of 10 requests a minute and 100 an hour. Try again in %lld s." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diese Erweiterung hat ihr KI-Limit von 10 Anfragen pro Minute und 100 pro Stunde erreicht. Versuche es in %lld s erneut."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esta extensión alcanzó su límite de IA de 10 solicitudes por minuto y 100 por hora. Inténtalo de nuevo en %lld s."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cette extension a atteint sa limite d’IA de 10 requêtes par minute et 100 par heure. Réessayez dans %lld s."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この拡張機能はAIの上限（1分あたり10件、1時間あたり100件）に達しました。%lld秒後にもう一度お試しください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "이 확장 프로그램이 AI 한도(분당 10회, 시간당 100회)에 도달했습니다. %lld초 후에 다시 시도하십시오."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esta extensão atingiu o limite de IA de 10 solicitações por minuto e 100 por hora. Tente novamente em %lld s."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Это расширение исчерпало лимит ИИ: 10 запросов в минуту и 100 в час. Повторите попытку через %lld с."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此扩展已达到 AI 上限：每分钟 10 次请求、每小时 100 次。请在 %lld 秒后重试。"
           }
         }
       }
@@ -136793,6 +137631,58 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "提高音量"
+          }
+        }
+      }
+    },
+    "Turn on AI in Settings → AI first." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aktiviere zuerst KI in „Einstellungen → KI“."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Primero activa la IA en Ajustes → IA."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Activez d’abord l’IA dans Réglages → IA."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "先に設定 → AIでAIをオンにしてください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "먼저 설정 → AI에서 AI를 켜십시오."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Primeiro ative a IA em Ajustes → IA."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сначала включите ИИ в разделе «Настройки» → «ИИ»."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请先在“设置”→“AI”中打开 AI。"
           }
         }
       }

@@ -251,6 +251,8 @@ final class AppCore {
     @ObservationIgnored private(set) lazy var webSearch = WebSearchSettingsStore()
     @ObservationIgnored private(set) lazy var notesAI = NotesAICoordinator(
         store: notesStore, settings: settings, core: self)
+    @ObservationIgnored private(set) lazy var extensionAICoordinator = ExtensionAICoordinator(
+        core: self)
     @ObservationIgnored private(set) lazy var mcpCoordinator = MCPCoordinator(
         settings: settings, store: mcpSettings, manager: mcp, core: self)
     /// Its own window and lifecycle, like Settings; Quick AI is the palette's half of the feature.
@@ -318,6 +320,7 @@ final class AppCore {
             appIndex.start(settings: settings)
             clipboardCoordinator.applyEnabled()
             extensions.start(appIndex: appIndex, coordinator: extensionCoordinator)
+            extensions.ai = extensionAICoordinator.gate
             extensionCoordinator.applyEnabled()
             fileSearchCoordinator.applyEnabled()
             windowSwitchCoordinator.applyEnabled()
@@ -433,6 +436,7 @@ final class AppCore {
             }
             extensions.onDidUninstall = { [weak self] entryIDs in
                 self?.extensionCoordinator.removeExtensionReferences(entryIDs: entryIDs)
+                self?.extensionAICoordinator.forget(entryIDs: entryIDs)
             }
             appIndex.onScan = { [weak self] in
                 guard let self else { return }

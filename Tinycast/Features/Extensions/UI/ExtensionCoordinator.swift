@@ -184,18 +184,18 @@ final class ExtensionCoordinator {
     func runExtensionCommand(
         _ app: AppEntry, arguments: [String: String] = [:], fallbackText: String? = nil,
         launchType: ExtensionLaunchType = .userInitiated,
-        launchContext: [String: RenderValue] = [:]
+        launchContext: [String: RenderValue] = [:], openedByUser: Bool = true
     ) {
         guard let (owner, command) = extensions.resolve(app) else { return }
         run(
             owner, command: command, arguments: arguments, fallbackText: fallbackText,
-            launchType: launchType, launchContext: launchContext)
+            launchType: launchType, launchContext: launchContext, openedByUser: openedByUser)
     }
 
     private func run(
         _ owner: InstalledExtension, command: ExtensionCommand, arguments: [String: String],
         fallbackText: String? = nil, launchType: ExtensionLaunchType = .userInitiated,
-        launchContext: [String: RenderValue] = [:]
+        launchContext: [String: RenderValue] = [:], openedByUser: Bool = true
     ) {
         switch command.mode {
         case .view:
@@ -213,7 +213,7 @@ final class ExtensionCoordinator {
         Task {
             await extensions.run(
                 owner, command: command, arguments: arguments, fallbackText: fallbackText,
-                launchType: launchType, launchContext: launchContext)
+                launchType: launchType, launchContext: launchContext, openedByUser: openedByUser)
         }
     }
 
