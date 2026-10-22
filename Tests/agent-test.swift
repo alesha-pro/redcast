@@ -172,12 +172,6 @@ struct AgentTests {
         expect(
             names(quiet, false) == [AgentToolbox.readMemory, AgentToolbox.writeMemory],
             "only the families switched on are offered")
-        expect(full.isSubset(of: AgentToolbox.allNames), "every offered name is one the router knows")
-        expect(
-            AgentToolbox.tools(for: profile(), hasSkills: false).allSatisfy {
-                !$0.name.contains("__")
-            },
-            "no built-in name can be mistaken for an MCP server's tool")
     }
 
     static func builtInToolsDeclareWhatTheyReach() {

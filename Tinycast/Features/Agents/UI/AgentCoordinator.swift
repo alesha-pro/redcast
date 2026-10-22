@@ -11,8 +11,8 @@ final class AgentCoordinator {
     /// Read off-main and kept, so a send never waits on the disk; refreshed after every use.
     @ObservationIgnored private var contexts: [UUID: AgentContext] = [:]
     @ObservationIgnored private var refreshing: Set<UUID> = []
-    /// "Allow for This Chat", per kind of request; never written down.
-    @ObservationIgnored private var chatGrants: [UUID: Set<AgentConsentRequest.Kind>] = [:]
+    /// "Allow for This Chat", per family and risk; never written down.
+    @ObservationIgnored private var chatGrants: [UUID: Set<AgentGrant>] = [:]
 
     @ObservationIgnored private(set) lazy var acpHost: AgentACPHost = {
         let host = AgentACPHost(
@@ -108,20 +108,42 @@ final class AgentCoordinator {
         return context(for: agent).prompt(now: Date(), timeZone: .current, hasTools: hasTools)
     }
 
-    func tools(for chat: AIChatState) -> [AITool] {
-        guard let agent = agent(for: chat) else { return [] }
-        return AgentToolbox.tools(for: agent, hasSkills: !context(for: agent).skills.isEmpty)
+    /// An agent chat's turn on the fork's loop, MCP's tools beside its own; nil leaves it upstream.
+    func loop(over base: any AIProvider, mcpTools: [AITool], in chat: AIChatState) -> (any AIProvider)? {
+        guard let agent = agent(for: chat), agent.runtime == nil else { return nil }
+        let chatID = chat.session.id
+        let mcp = core.mcpCoordinator
+        return loop(for: agent, over: base, mode: .chat(chatID), mcpTools: mcpTools) { call in
+            await mcp.invoke(call, in: chatID)
+        }
     }
 
-    func executor(for chat: AIChatState) -> AgentToolExecutor? {
-        guard let agent = agent(for: chat) else { return nil }
-        let chatID = chat.session.id
-        return AgentToolExecutor(
-            profile: agent, skills: context(for: agent).skills,
-            memoryURL: store.memoryURL(for: agent.id)
-        ) { [weak self] request in
-            await self?.permit(request, by: agent, in: chatID) ?? false
+    /// The one place a turn's tools are assembled: a chat now, a run with no window later.
+    func loop(
+        for agent: AgentProfile, over base: any AIProvider, mode: AgentRunMode,
+        mcpTools: [AITool] = [],
+        mcp: @escaping @Sendable (AIToolCall) async -> AIToolResult = {
+            .failure($0.id, "There is no tool called \($0.name).")
         }
+    ) -> AgentLoopProvider? {
+        let context = context(for: agent)
+        let turn = AgentTurn(
+            profile: agent, skills: context.skills, memoryURL: store.memoryURL(for: agent.id),
+            mode: mode)
+        let toolset = AgentToolset(
+            turn: turn, providers: providers(for: agent), mcpTools: mcpTools, mcp: mcp
+        ) { [weak self] spec, request in
+            guard case .chat(let chatID) = mode else { return false }
+            return await self?.ask(spec, request, by: agent, in: chatID) ?? false
+        }
+        guard !toolset.tools.isEmpty else { return nil }
+        return AgentLoopProvider(
+            base: base, toolset: toolset, maxRounds: core.aiSettings.toolRounds.limit)
+    }
+
+    /// The registry: one line per family, built per turn so nothing stays resident between turns.
+    private func providers(for agent: AgentProfile) -> [any AgentToolProvider] {
+        [AgentBuiltInTools()]
     }
 
     /// The cached reading when there is one; the first ever is read in place, the rest refresh.
@@ -148,18 +170,20 @@ final class AgentCoordinator {
 
     // MARK: - Consent
 
-    private func permit(
-        _ request: AgentConsentRequest, by agent: AgentProfile, in chatID: UUID
+    /// The dialog behind a rule of ask; a chat grant skips it, and Stop voids its answer.
+    private func ask(
+        _ spec: AgentToolSpec, _ request: AgentConsentRequest, by agent: AgentProfile, in chatID: UUID
     ) async -> Bool {
-        if chatGrants[chatID]?.contains(request.kind) == true { return true }
+        if chatGrants[chatID]?.contains(spec.grant) == true { return true }
         let title =
-            switch request.kind {
-            case .command: String(localized: "\(agent.name) wants to run a command")
-            case .write: String(localized: "\(agent.name) wants to change a file")
-            }
+            spec.risk == .execute
+            ? String(localized: "\(agent.name) wants to run a command")
+            : String(localized: "\(agent.name) wants to change a file")
         NSApp.activate(ignoringOtherApps: true)
         let answer = await core.choose(
-            title: title, message: request.summary + "\n\n" + request.detail, symbol: agent.symbol,
+            title: title,
+            message: [request.summary, request.detail].filter { !$0.isEmpty }.joined(separator: "\n\n"),
+            symbol: agent.symbol,
             options: [
                 DialogAction(title: String(localized: "Allow")),
                 DialogAction(title: String(localized: "Allow for This Chat")),
@@ -170,7 +194,7 @@ final class AgentCoordinator {
         switch answer {
         case 0: return true
         case 1:
-            chatGrants[chatID, default: []].insert(request.kind)
+            chatGrants[chatID, default: []].insert(spec.grant)
             return true
         default: return false
         }

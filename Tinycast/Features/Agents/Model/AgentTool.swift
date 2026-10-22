@@ -47,12 +47,6 @@ enum AgentRunMode: Hashable, Sendable {
 
 /// What a change or command looks like to the person asked to allow it.
 struct AgentConsentRequest: Sendable {
-    enum Kind: Hashable, Sendable {
-        case write
-        case command
-    }
-
-    let kind: Kind
     let summary: String
     let detail: String
 }

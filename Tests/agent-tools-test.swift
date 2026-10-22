@@ -77,8 +77,8 @@ struct AgentToolsTests {
         expect(
             (try? String(contentsOfFile: folder + "/out/new.md", encoding: .utf8)) == "hello",
             "creating the folders it needs")
-        let firstAsk = await asked.last?.kind
-        expect(firstAsk == .write, "having asked first")
+        let firstAsk = await asked.last?.summary
+        expect(firstAsk?.hasPrefix("Create ") == true, "having asked first")
         let edited = await agent.run(
             call(AgentToolbox.editFile, #"{"path":"out/new.md","old_text":"hello","new_text":"bye"}"#))
         expect(
@@ -105,8 +105,8 @@ struct AgentToolsTests {
             command.content.hasPrefix("exit status 0") && command.content.contains("done"),
             "runs a command and reports its status, got \(command.content)")
         expect(command.content.contains("project"), "in the agent's folder")
-        let commandAsk = await asked.last?.kind
-        expect(commandAsk == .command, "after asking")
+        let commandAsk = await asked.last?.summary
+        expect(commandAsk == "pwd; echo done", "after asking")
         let slow = await agent.run(
             call(AgentToolbox.runCommand, #"{"command":"sleep 30","timeout_seconds":1}"#))
         expect(slow.content.contains("stopped after 1 s"), "a command past its timeout is stopped")
@@ -150,6 +150,7 @@ struct AgentToolsTests {
         expect(big.content.contains("continue with offset"), "and still says where to continue")
 
         await throughTheToolset(folder: folder, memory: memory)
+        await aRefusalLeavesNoEffect(folder: folder, memory: memory)
 
         print("\(passes) passed, \(failures) failed")
         if failures > 0 { exit(1) }
@@ -233,6 +234,49 @@ struct AgentToolsTests {
         expect(
             stray.content == "There is no tool called other__tool." && reachedAfter.count == 1,
             "a server's tool that was not offered this turn never reaches MCP")
+    }
+}
+
+/// Every built-in that can reach past reading asks, and a no leaves nothing behind.
+extension AgentToolsTests {
+    static func aRefusalLeavesNoEffect(folder: String, memory: URL) async {
+        try? "before".write(toFile: folder + "/kept.txt", atomically: true, encoding: .utf8)
+        let notes = (try? String(contentsOf: memory, encoding: .utf8)) ?? ""
+        let calls: [String: String] = [
+            AgentToolbox.writeFile: #"{"path":"kept.txt","content":"after"}"#,
+            AgentToolbox.editFile: #"{"path":"kept.txt","old_text":"before","new_text":"after"}"#,
+            AgentToolbox.runCommand: #"{"command":"touch ran.txt"}"#,
+            AgentToolbox.webFetch: #"{"url":"http://127.0.0.1:9/"}"#
+        ]
+        let turn = AgentTurn(
+            profile: AgentProfile(name: "T", directory: folder, access: .fullAccess), skills: [],
+            memoryURL: memory, mode: .chat(UUID()))
+        let specs = AgentBuiltInTools().specs(for: turn).filter { ![.read, .own].contains($0.risk) }
+        expect(
+            Set(specs.map(\.tool.name)) == Set(calls.keys),
+            "every built-in that reaches past reading is checked here")
+        for spec in specs {
+            let refusals = Asked()
+            let context = AgentToolContext(
+                turn: turn,
+                consent: { request in
+                    await refusals.record(request)
+                    return false
+                },
+                signal: { _ in })
+            let result = await AgentBuiltInTools().run(
+                AIToolCall(id: spec.tool.name, name: spec.tool.name, arguments: calls[spec.tool.name] ?? "{}"),
+                in: context)
+            let asked = await refusals.last != nil
+            expect(asked && result.isError, "\(spec.tool.name) asks before it acts, and reports a refusal")
+        }
+        expect(
+            (try? String(contentsOfFile: folder + "/kept.txt", encoding: .utf8)) == "before",
+            "a refused write or edit leaves the file as it was")
+        expect(!FileManager.default.fileExists(atPath: folder + "/ran.txt"), "a refused command never runs")
+        expect(
+            ((try? String(contentsOf: memory, encoding: .utf8)) ?? "") == notes,
+            "and the agent's notes are untouched")
     }
 }
 
