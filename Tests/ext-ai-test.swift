@@ -1,6 +1,11 @@
 import Foundation
 import Synchronization
 
+/// Only `RenderNode.arguments(from:)` reaches for the runtime, and this harness never runs JS.
+enum ExtensionRuntime {
+    static func jsonArray(from json: String) -> [Any] { [] }
+}
+
 /// A provider that plays a script: events, pauses, a failure, or a wait that only a cancel ends.
 final class ScriptedProvider: AIProvider {
     enum Step: Sendable {
@@ -81,6 +86,18 @@ struct ExtensionAITests {
         await cancellingEndsTheProvider()
         await streamsBelongToTheirOwner()
         await aCancelledReaderCancelsTheStream()
+        await aCommandNobodyOpenedNeverAsks()
+        await aMissingModelIsReportedBeforeAsking()
+        await concurrentAsksShareOneQuestion()
+        await aDismissedQuestionKeepsNothing()
+        await onlyAChosenButtonIsKept()
+        await aSwitchTurnedOffDuringTheQuestionWins()
+        await aCommandLeftDuringTheQuestionStartsNothing()
+        await aReadChecksTheGatesAgain()
+        await turningTheSwitchOffEndsEveryAnswer()
+        await leavingACommandEndsOnlyItsAnswers()
+        await theLimitCountsOnlyRoutedAsks()
+        aDanglingPickFallsBackToChat()
         settingsRoundTrip()
 
         print("\(passes) passed, \(failures) failed")
@@ -163,7 +180,7 @@ struct ExtensionAITests {
 
     static func refusalsExplainThemselves() {
         let all: [ExtensionAIRefusal] = [
-            .featureOff, .aiOff, .unattended, .denied, .noModel, .emptyPrompt,
+            .featureOff, .aiOff, .unattended, .denied, .unanswered, .noModel, .emptyPrompt,
             .promptTooLong(kilobytes: 300), .rateLimited(seconds: 42)
         ]
         let messages = all.compactMap(\.errorDescription)
@@ -346,6 +363,279 @@ struct ExtensionAITests {
             expect(false, "the cancelled read throws")
         }
         expect(provider.wasTerminated && bridge.isIdle, "cancelling the reading task ends the stream")
+    }
+
+    // MARK: - Gate
+
+    /// The gate on scratch defaults with AI on and one API model; the test plays the dialog.
+    @MainActor
+    final class Gate {
+        enum Reply {
+            case now(Bool?)
+            case held
+        }
+
+        let suite = "ext-ai-test-gate-\(UUID().uuidString)"
+        let defaults: UserDefaults
+        let aiSettings: AISettingsStore
+        var aiOn = true
+        var reply = Reply.now(true)
+        var routeFails = false
+        var provider = ScriptedProvider([.event(.text("answer"))])
+        private(set) var asked: [String] = []
+        private(set) var made = 0
+        private var held: [CheckedContinuation<Bool?, Never>] = []
+
+        private(set) lazy var gate = ExtensionAIGate(
+            defaults: defaults, aiSettings: aiSettings, aiEnabled: { [unowned self] in aiOn },
+            ask: { [unowned self] name in
+                asked.append(name)
+                switch reply {
+                case .now(let answer): return answer
+                case .held: return await withCheckedContinuation { held.append($0) }
+                }
+            },
+            makeProvider: { [unowned self] _ in
+                if routeFails { throw AIProviderError.unavailable("The route is off.") }
+                made += 1
+                return provider
+            })
+
+        init(model: Bool = true, featureOn: Bool = true) {
+            defaults = UserDefaults(suiteName: suite) ?? .standard
+            aiSettings = AISettingsStore(defaults: defaults)
+            if model { aiSettings.save(AIConnection(provider: .openAI, models: ["gpt"])) }
+            gate.setEnabled(featureOn)
+        }
+
+        var isAsking: Bool { !held.isEmpty }
+
+        func answer(_ answer: Bool?) {
+            let waiting = held
+            held = []
+            for question in waiting { question.resume(returning: answer) }
+        }
+
+        func close() {
+            gate.setEnabled(false)
+            defaults.removePersistentDomain(forName: suite)
+        }
+
+        func start(
+            _ name: String = "ext", prompt: String = "p", openedByUser: Bool = true,
+            owner: ObjectIdentifier = ExtensionAITests.owner
+        ) async -> Result<Int, any Error> {
+            do {
+                let id = try await gate.perform(
+                    method: "start", arguments: [.object(["prompt": .string(prompt)])],
+                    extensionName: name, openedByUser: openedByUser, owner: owner)
+                return .success(id as? Int ?? -1)
+            } catch {
+                return .failure(error)
+            }
+        }
+
+        func read(_ id: Int, _ name: String = "ext") async -> Result<String?, any Error> {
+            do {
+                let chunk = try await gate.perform(
+                    method: "read", arguments: [.number(Double(id))], extensionName: name,
+                    openedByUser: true, owner: ExtensionAITests.owner)
+                return .success(chunk as? String)
+            } catch {
+                return .failure(error)
+            }
+        }
+    }
+
+    static func refusal<Value>(_ result: Result<Value, any Error>) -> ExtensionAIRefusal? {
+        guard case .failure(let error) = result else { return nil }
+        return error as? ExtensionAIRefusal
+    }
+
+    static func aCommandNobodyOpenedNeverAsks() async {
+        let fixture = Gate()
+        defer { fixture.close() }
+        let result = await fixture.start(openedByUser: false)
+        expect(refusal(result) == .unattended, "a run the user didn't open is refused")
+        expect(fixture.asked.isEmpty && fixture.made == 0, "before any question or route")
+        expect(fixture.gate.settings.grants.isEmpty, "and nothing is recorded for it")
+        expect(fixture.gate.canAccess(extensionName: "ext"), "a command the user opens may still ask")
+    }
+
+    static func aMissingModelIsReportedBeforeAsking() async {
+        let fixture = Gate(model: false)
+        defer { fixture.close() }
+        let result = await fixture.start()
+        expect(refusal(result) == .noModel, "no model is refused")
+        expect(fixture.asked.isEmpty, "without asking a question it can't act on")
+        expect(!fixture.gate.canAccess(extensionName: "ext"), "and canAccess reports it")
+    }
+
+    static func concurrentAsksShareOneQuestion() async {
+        let fixture = Gate()
+        defer { fixture.close() }
+        fixture.reply = .held
+        async let first = fixture.start()
+        async let second = fixture.start()
+        await settle()
+        expect(fixture.asked == ["ext"] && fixture.isAsking, "two asks raise one question")
+        fixture.answer(true)
+        let (one, two) = await (first, second)
+        expect(
+            (try? one.get()).map { $0 > 0 } == true && (try? two.get()).map { $0 > 0 } == true
+                && (try? one.get()) != (try? two.get()),
+            "an Allow starts both answers")
+        expect(fixture.gate.settings.grants == ["ext": true] && fixture.made == 2, "and is kept")
+        let third = await fixture.start()
+        expect(refusal(third) == nil && fixture.asked.count == 1, "the next ask isn't asked")
+    }
+
+    static func aDismissedQuestionKeepsNothing() async {
+        let fixture = Gate()
+        defer { fixture.close() }
+        fixture.reply = .now(nil)
+        let result = await fixture.start()
+        expect(refusal(result) == .unanswered, "a dismissed or busy dialog refuses once")
+        expect(fixture.gate.settings.grants.isEmpty && fixture.made == 0, "and records no answer")
+        _ = await fixture.start()
+        expect(fixture.asked.count == 2, "so the next ask asks again")
+        expect(fixture.gate.canAccess(extensionName: "ext"), "and canAccess still reports a question")
+    }
+
+    static func onlyAChosenButtonIsKept() async {
+        let fixture = Gate()
+        defer { fixture.close() }
+        fixture.reply = .now(false)
+        let first = await fixture.start()
+        expect(refusal(first) == .denied, "Don't Allow refuses")
+        expect(fixture.gate.settings.grants == ["ext": false], "and is kept")
+        let second = await fixture.start()
+        expect(refusal(second) == .denied && fixture.asked.count == 1, "without asking again")
+        expect(!fixture.gate.canAccess(extensionName: "ext"), "canAccess reports the refusal")
+    }
+
+    static func aSwitchTurnedOffDuringTheQuestionWins() async {
+        let fixture = Gate()
+        defer { fixture.close() }
+        fixture.reply = .held
+        async let asking = fixture.start()
+        await settle()
+        fixture.aiOn = false
+        fixture.answer(true)
+        let result = await asking
+        expect(refusal(result) == .aiOff, "the gates are checked again after the answer")
+        expect(fixture.gate.settings.grants == ["ext": true], "the answer itself is kept")
+        expect(fixture.made == 0 && fixture.gate.isIdle, "and no route is made")
+    }
+
+    static func aCommandLeftDuringTheQuestionStartsNothing() async {
+        let fixture = Gate()
+        defer { fixture.close() }
+        fixture.reply = .held
+        let asking = Task { await fixture.start() }
+        await settle()
+        asking.cancel()
+        fixture.answer(true)
+        let result = await asking.value
+        if case .failure(let error) = result {
+            expect(error is CancellationError, "a cancelled ask throws CancellationError")
+        } else {
+            expect(false, "a cancelled ask starts nothing")
+        }
+        expect(fixture.made == 0 && fixture.gate.isIdle, "no route is made")
+    }
+
+    static func aReadChecksTheGatesAgain() async {
+        let fixture = Gate()
+        defer { fixture.close() }
+        fixture.provider = ScriptedProvider([.hang])
+        guard let id = try? await fixture.start().get() else {
+            expect(false, "an allowed ask starts")
+            return
+        }
+        fixture.aiOn = false
+        let refused = await fixture.read(id)
+        expect(refusal(refused) == .aiOff, "a read after AI is turned off is refused")
+        await settle()
+        expect(fixture.provider.wasTerminated && fixture.gate.isIdle, "and ends the answer")
+
+        fixture.aiOn = true
+        fixture.provider = ScriptedProvider([.hang])
+        guard let next = try? await fixture.start().get() else {
+            expect(false, "a second ask starts")
+            return
+        }
+        fixture.gate.settings.setGrant(false, for: "ext")
+        let withdrawn = await fixture.read(next)
+        expect(refusal(withdrawn) == .denied, "an allowance withdrawn in Settings ends it")
+        await settle()
+        expect(fixture.provider.wasTerminated && fixture.gate.isIdle, "at its next read")
+    }
+
+    static func turningTheSwitchOffEndsEveryAnswer() async {
+        let fixture = Gate()
+        defer { fixture.close() }
+        fixture.provider = ScriptedProvider([.hang])
+        _ = await fixture.start("a")
+        _ = await fixture.start("b", owner: otherOwner)
+        expect(!fixture.gate.isIdle, "two answers are in flight")
+        fixture.gate.setEnabled(false)
+        await settle()
+        expect(fixture.provider.wasTerminated && fixture.gate.isIdle, "the switch ends them all")
+        expect(!fixture.gate.settings.isEnabled, "and stays off")
+    }
+
+    static func leavingACommandEndsOnlyItsAnswers() async {
+        let fixture = Gate()
+        defer { fixture.close() }
+        let mine = ScriptedProvider([.hang])
+        let theirs = ScriptedProvider([.hang])
+        fixture.provider = mine
+        _ = await fixture.start()
+        fixture.provider = theirs
+        _ = await fixture.start(owner: otherOwner)
+        fixture.gate.sessionEnded(owner: owner)
+        await settle()
+        expect(mine.wasTerminated && !theirs.wasTerminated, "a session's end cancels only its answers")
+        expect(!fixture.gate.isIdle, "the other command's answer runs on")
+    }
+
+    static func theLimitCountsOnlyRoutedAsks() async {
+        let fixture = Gate()
+        defer { fixture.close() }
+        for _ in 0..<4 {
+            _ = await fixture.start(openedByUser: false)
+            _ = await fixture.start(prompt: " ")
+        }
+        fixture.routeFails = true
+        for _ in 0..<4 {
+            _ = await fixture.start()
+        }
+        fixture.routeFails = false
+        var admitted = 0
+        for _ in 0..<10 where (try? await fixture.start().get()) != nil {
+            admitted += 1
+        }
+        expect(admitted == 10, "twelve refused asks cost nothing: ten more are admitted")
+        let limited = await fixture.start()
+        if case .rateLimited(let seconds)? = refusal(limited) {
+            expect(seconds > 0 && seconds <= 60, "the eleventh waits for the minute")
+        } else {
+            expect(false, "the eleventh routed ask is limited")
+        }
+        expect(fixture.made == 11, "a limited ask was routed before the limit refused it")
+        let other = await fixture.start("other")
+        expect(refusal(other) == nil, "another extension has its own limit")
+    }
+
+    static func aDanglingPickFallsBackToChat() {
+        let fixture = Gate()
+        defer { fixture.close() }
+        let chat = fixture.aiSettings.defaultModel
+        fixture.gate.settings.select(.api(connection: UUID(), model: "gone", effort: nil))
+        expect(chat != nil && fixture.gate.selection() == chat, "a deleted pick answers with AI Chat's model")
+        fixture.gate.settings.select(.claude(model: "sonnet", effort: nil))
+        expect(fixture.gate.selection() == .claude(model: "sonnet", effort: nil), "a live pick is used")
     }
 
     // MARK: - Settings
