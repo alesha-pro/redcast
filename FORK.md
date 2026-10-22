@@ -19,6 +19,7 @@ OpenCode, Goose, Hermes, local models — on the subscriptions and machines you 
 | Continue in AI Chat | ⌘J turns a Quick Action result into a chat that refines it | [quick-actions](docs/features/quick-actions.md#the-panel) |
 | Screen Awareness | Double-tap right ⌘: the window in front — title, URL, selection, focused field, readable text, screenshot — attached to AI Chat | [screen-awareness](docs/features/screen-awareness.md) |
 | Agents | A chat that lives in a folder: its `AGENTS.md`, project and global `.agents/skills`, notes, and built-in tools (files, terminal, web, memory) on any tool-calling API model, every change and command asked first unless the agent's permissions say otherwise | [agents](docs/features/agents.md) |
+| Native agent harness | Agent chats on API models run the fork's own tool loop: tool families plug in as providers with a risk each, every change, command and fetch passes one consent policy, read-only calls in a round run in parallel, a long turn elides old results instead of stopping, and Stop ends a running command and voids a late Allow | [agents](docs/features/agents.md#adding-a-tool-family) |
 | ACP agents | An agent can run as its own CLI over the Agent Client Protocol — Claude Code, Codex, Gemini CLI, OpenCode, Goose, Hermes or any command — on your own logins, with its permission requests, tool rows, plans and modes in AI Chat, and sessions that survive a relaunch | [agents](docs/features/agents.md#acp-agents) |
 
 Builds of this fork use the bundle id `com.tinycast.app.fork`: they never update themselves from
@@ -75,14 +76,16 @@ Sizes are focused working days. Waves are ordered by leverage, not by size.
 
 5. **Background and scheduled agents.** `@agent do X` from the launcher runs without a window; a
    menu-bar badge shows progress, a notification brings back the result. Schedules for recurring jobs
-   (a morning digest, a nightly report into Notes). *3–4 days.*
+   (a morning digest, a nightly report into Notes). Runs on the native harness:
+   `AgentCoordinator.loop(for:over:mode:)` with `.unattended`, where a rule of ask refuses. *3–4 days.*
 6. **Screen Awareness+ and Capture.** Area and full-screen capture, Vision OCR when an app exposes no
    Accessibility text (canvas apps, games), Finder's selected files, a `{screen}` placeholder for
    Quick Actions ("reply to this" in one key), a `screen_context` agent tool, and a searchable
    screenshot library (upstream #1211 declined; `dnw3` and `fminkowski` forks built capture). *3–4 days.*
 7. **Web search and page reading on every route.** A `web_search` tool (Brave, Exa, Tavily or a
    self-hosted SearXNG) and `read_page` for every chat and agent, not only Codex and OpenRouter
-   (upstream #1610). *1–2 days.*
+   (upstream #1610). For agents it is one `AgentToolProvider` and one line in `providers(for:)`.
+   *1–2 days.*
 8. **Raycast AI for extensions.** Implement `AI.ask` and `useAI` in the extension runtime on top of
    Tinycast's providers; today the runtime rejects the whole `AI` namespace, so every AI-powered
    Raycast extension fails. *2–3 days.*
@@ -100,6 +103,7 @@ Sizes are focused working days. Waves are ordered by leverage, not by size.
     search.
 13. **Notes ↔ AI.** `@note` as chat context; agents and scheduled jobs write their reports into Notes.
 14. **Usage dashboard.** Tokens and spend per model and per day from chat history and provider APIs.
+    An agent turn's cost across its rounds lands with it, in `AgentLoopProvider`.
 15. **App-aware snippets.** Offer the snippets written for the app in front first (`NikAtNight`).
 16. **Moonshot — meeting copilot.** On-device transcription of microphone and system audio into a
     running transcript, summarised into Notes when the meeting ends.
