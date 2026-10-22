@@ -111,6 +111,7 @@ final class ScreenAwarenessCoordinator {
                 ? await WindowScreenshotter.capture(pid: pid, frame: reading.windowFrame) : nil
             guard let self, !Task.isCancelled else { return }
             self.capturing = nil
+            guard !reading.accessibilityRefused else { return self.reportMissingAccessibility() }
             self.present(reading.context, screenshot: screenshot, wantedScreenshot: wantsScreenshot)
         }
     }

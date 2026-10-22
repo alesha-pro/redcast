@@ -17,6 +17,10 @@ plus the few lines that wire it in.
 - **Enabling is consent.** The toggle confirms through `DialogController` first, then asks for
   Accessibility, as Quick Actions do. Turning the screenshot on is what asks for Screen Recording;
   without that grant a capture simply carries no picture and one HUD line says why.
+- **A stale grant is reported, not captured.** After a reinstall macOS can keep Tinycast listed and
+  `AXIsProcessTrusted` true while every call answers `kAXErrorAPIDisabled`. The reader stops at the
+  first such answer from all three window lookups and the coordinator raises the same dialog a missing
+  grant gets — switch it off and on — rather than staging a capture that holds only the app's name.
 - **Only on a gesture, and never Tinycast itself.** Nothing is read until the command runs. With the
   palette open the target is the app behind it (`PaletteCoordinator.targetApp`); with it closed, the
   frontmost app. Tinycast's own bundle is refused with a HUD rather than captured.
