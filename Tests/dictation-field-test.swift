@@ -15,6 +15,8 @@ struct DictationFieldTest {
         try await testLiveDeliveryFailure()
         try await testQueuedLiveChunk(cancelling: false)
         try await testQueuedLiveChunk(cancelling: true)
+        try await testCloudEngine()
+        try await testCloudCancellation()
         print("ALL PASSED")
     }
 
@@ -195,6 +197,53 @@ struct DictationFieldTest {
         expect(fixture.messages.isEmpty, "A chunk dropped by cancelling never fails the next session")
     }
 
+    private static func testCloudEngine() async throws {
+        let fixture = Fixture()
+        fixture.cloudOn = true
+        fixture.models.installed = false
+        fixture.settings.dictationLiveInsertion = true
+        fixture.settings.dictationLanguage = "ru"
+        expect(fixture.coordinator.hasModel, "The cloud engine needs no downloaded model")
+        let editor = ComposerTextView()
+        try await fixture.start(into: editor)
+        fixture.capture.snapshotSamples =
+            [Float](repeating: 0.5, count: 32_000)
+            + [Float](repeating: 0, count: 16_000)
+        // Past the live poll's first tick, which would transcribe this chunk locally.
+        try await Task.sleep(for: .milliseconds(2_500))
+        expect(
+            fixture.models.calls == 0 && fixture.cloud.calls.isEmpty,
+            "Insert while recording never runs with the cloud engine")
+        fixture.coordinator.toggle(into: editor)
+        try await wait { fixture.cloud.pending != nil }
+        expect(
+            fixture.cloud.calls.count == 1 && fixture.cloud.calls.first?.language == "ru",
+            "The final pass goes to the cloud engine once, with the language")
+        fixture.cloud.finish("Cloud words")
+        try await wait { fixture.coordinator.field == nil }
+        expect(editor.string == "Cloud words", "The cloud transcript is typed where the local one would be")
+        expect(fixture.models.calls == 0, "The on-device model is never asked")
+        fixture.cloudOn = false
+        expect(!fixture.coordinator.hasModel, "Without the cloud engine a missing model is missing")
+    }
+
+    private static func testCloudCancellation() async throws {
+        let fixture = Fixture()
+        fixture.cloudOn = true
+        let editor = ComposerTextView()
+        try await fixture.start(into: editor)
+        fixture.coordinator.toggle(into: editor)
+        try await wait { fixture.cloud.pending != nil }
+        fixture.coordinator.cancel(in: editor)
+        try await wait { fixture.cloud.cancelled }
+        expect(fixture.coordinator.field == nil, "Cancelling ends the session during the cloud call")
+        fixture.cloud.finish("Too late")
+        try await wait { !fixture.coordinator.isBusy }
+        await fixture.queue.drain()
+        expect(editor.string.isEmpty, "A cancelled cloud call types nothing")
+        expect(fixture.messages.isEmpty && Paster.copies.isEmpty, "and reports or copies nothing")
+    }
+
     /// The live poll sleeps longer than `wait` allows.
     private static func waitLong(until condition: () -> Bool) async throws {
         let deadline = ContinuousClock.now + .seconds(8)
@@ -222,13 +271,17 @@ struct DictationFieldTest {
         let settings = AppSettings()
         let models = DictationModelStore()
         let queue = DeliveryQueue()
+        let cloud = CloudEngine()
+        var cloudOn = false
         var messages: [String] = []
         lazy var coordinator = DictationCoordinator(
             settings: settings, hotKeys: HotKeyManager(), models: models,
             injector: TextInjector(
                 clipboardManager: ClipboardManager(), settings: settings, deliveryQueue: queue),
             audioDucker: DictationAudioDucker(), confirmEnable: { false },
-            showMessage: { [weak self] message, _ in self?.messages.append(message) })
+            showMessage: { [weak self] message, _ in self?.messages.append(message) },
+            cloudIsOn: { [weak self] in self?.cloudOn ?? false },
+            cloudTranscribe: { [cloud] in try await cloud.transcribe($0, language: $1) })
 
         var capture: DictationCapture { DictationCapture.latest! }
         var panel: DictationPanelController { DictationPanelController.latest! }
@@ -352,16 +405,42 @@ final class DictationCapture {
 final class DictationModelStore {
     var pending: CheckedContinuation<String, any Error>?
     var finished = false
+    var installed = true
+    var calls = 0
 
-    func isInstalled(_ model: DictationModel) -> Bool { true }
+    func isInstalled(_ model: DictationModel) -> Bool { installed }
     func download(_ model: DictationModel) async throws {}
     func delete(_ model: DictationModel) async throws {}
     func stop() async {}
     func prepareForTermination() {}
 
     func transcribe(_ samples: [Float], model: DictationModel, language: String?) async throws -> String {
+        calls += 1
         defer { finished = true }
         return try await withCheckedThrowingContinuation { pending = $0 }
+    }
+
+    func finish(_ text: String) {
+        let continuation = pending
+        pending = nil
+        continuation?.resume(returning: text)
+    }
+}
+
+/// Voice AI's engine as DictationCoordinator sees it: two closures, recorded here.
+@MainActor
+final class CloudEngine {
+    var pending: CheckedContinuation<String, any Error>?
+    var calls: [(samples: Int, language: String?)] = []
+    var cancelled = false
+
+    func transcribe(_ samples: [Float], language: String?) async throws -> String {
+        calls.append((samples.count, language))
+        return try await withTaskCancellationHandler {
+            try await withCheckedThrowingContinuation { pending = $0 }
+        } onCancel: {
+            Task { @MainActor in self.cancelled = true }
+        }
     }
 
     func finish(_ text: String) {
