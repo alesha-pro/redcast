@@ -147,8 +147,9 @@ falls in the period are decoded.
 ## Upstream touches
 
 Each marked with a one-line `Fork:` comment: the log's wrap in `AppCore.quickActionProvider` and in
-`AIChatCoordinator`'s title request; `.aiUsage` beside AI Chat's commands in
-`AIChatCoordinator.applyEnabled`; the `aiUsage` `CommandID` (name, symbol, the AI pane's
+`AIChatCoordinator`'s title request; the `.aiUsage` visibility line of its own after AI Chat's in
+`AIChatCoordinator.applyEnabled`, which leaves upstream's line as it was; the `aiUsage` `CommandID`
+(its declaration, its `name` and `sfSymbol` cases, and its own line in the AI pane's
 `ownedCommands`) and its case in `LauncherCoordinator.runCommand`; the
 `openRouterManagementKeys` scope in `KeychainSecretStore`; its removal in
 `AIProvidersPanel.removeConnection`; the `usageTrendHeight` token in `Theme`; and the section's
