@@ -32,6 +32,18 @@ upstream's feed, and they keep their settings apart from an installed upstream T
 - `Tinycast.xcodeproj` is generated: after a merge, resolve `project.yml` and run `xcodegen generate`
   rather than hand-merging `project.pbxproj`. `Localizable.xcstrings` entries are inserted by hand in
   catalog order (a local `sync-strings.sh` reorders hundreds of unrelated entries).
+- `Scripts/fork/sync-upstream.sh` does the merge: into `sync/upstream-<sha>`, upstream's
+  `project.pbxproj` and runtime bundle regenerated, the string catalog merged key by key, an
+  `Upstream-Sync:` trailer, then the build, harness, lint and purity gates and a summary of what
+  upstream changed. Other conflicts stop it for `--continue`. Upstream force-pushes `main` now and
+  then; the script re-anchors on commits it can prove are already merged and otherwise stops with a
+  `git range-diff` to read. Details: [fork tooling](docs/fork-tooling.md#scriptsforksync-upstreamsh).
+- **A sync branch lands by fast-forward or a merge commit, never squash or rebase**: either drops
+  upstream's ancestry, and the next sync replays everything.
+- Upstream's five workflows must be disabled before Actions is ever enabled on the fork (one `gh`
+  loop, in [fork tooling](docs/fork-tooling.md#upstream-workflows-on-the-fork)). A nightly sync Action
+  with one rolling PR is proposed there, not active; it needs a `FORK_SYNC_TOKEN` fine-grained token
+  (Contents, Pull requests and Workflows read-write) with a one-year expiry, to be noted here.
 - Every fork change keeps upstream's bar: harnesses, `./Scripts/lint.sh`, eight languages, docs in the
   same commit. Two harnesses fail on a clean upstream checkout too and are not fork regressions:
   `form-input-test` (display-bound) and, occasionally under load, `icon-cache-test`.
@@ -62,8 +74,9 @@ Sizes are focused working days. Waves are ordered by leverage, not by size.
 ### Wave 0 — fork foundation
 
 - **Release script — shipped** as `Scripts/fork/install.sh` (see [Installing the fork](#installing-the-fork)).
-- **Upstream sync.** A script (and later a scheduled Action that opens a PR) that merges upstream,
-  regenerates the project, runs the harnesses and lists what upstream changed.
+- **Upstream sync — shipped** as `Scripts/fork/sync-upstream.sh`. The scheduled Action that keeps one
+  rolling PR stays a [proposal](docs/fork-tooling.md#proposed-a-nightly-sync-action-not-active) until
+  the script has done three to five syncs by hand.
 - **Ports from other forks** (all AGPL, credited): alias + Space and the extension-runtime fixes for
   Google sign-in and undici from `sermelipharo/tinycast-space`; Change Alias / Change Shortcut from ⌘K
   from `jhasubhash/tinycast`.
