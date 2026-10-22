@@ -188,6 +188,7 @@ If a change touches anything in the right column, the harness on the left is man
 | `syntax-highlight-test` | `AI/Model/SyntaxGrammar.swift`, `SyntaxHighlighter.swift`, `SyntaxStructuredLexers.swift` — every grammar's tokens, language aliases, the size limit and streaming prefixes |
 | `mcp-test` | `MCP/Model/` and `MCPSettingsStore` — JSON-RPC framing, handles, tool names, output flattening, trust, `@server` addressing, the shape a vendor CLI is handed, and which servers Tinycast leaves to that CLI |
 | `mcp-stdio-test` | `MCP/Service/` against a stub server — handshake, listing, calling, and every way one can go away |
+| `agent-sessions-test` | `AgentSessions/Model/` plus `AgentSessionsScanner` and `AgentTranscriptSearch` — the line filter, head and tail reads, titles, the rescan policy, a Codex database built per run, ranking, resume commands with hostile folders, hook-file install and removal byte for byte, the hook command run against shims, deep links, activity and the `claude agents --json` listing; synthetic fixtures in `Tests/agent-sessions-fixtures/` |
 | `mcp-oauth-test` | OAuth parsing, RFC 7636 PKCE, discovery and resource binding, loopback callback validation/cancellation, dynamic registration, supplied client credentials and their token-endpoint authentication, Keychain token rotation, concurrent refresh, the wider margin for a token lent to a CLI, redirects and one-retry 401 handling |
 
 `mcp-stdio-test` copies `Tests/ai-fixtures/mcp-stub.js` into a scratch directory. The stub
@@ -335,6 +336,16 @@ $D/clipboard-thumbnail-performance /tmp/ctp --original
 $D/clipboard-thumbnail-performance /tmp/ctp --copies
 ```
 
+`Tests/agent-sessions-performance.swift` folds 1,000 synthetic sessions, ranks 50 typed prefixes and
+decodes the head and tail of 500 synthetic 96 KB transcripts, printing milliseconds as JSON:
+
+```sh
+swiftc -O -swift-version 6 Tinycast/Features/Launcher/Model/SearchRelevance.swift \
+    Tinycast/Features/AgentSessions/Model/*.swift Tests/agent-sessions-performance.swift \
+    -o /tmp/agent-sessions-performance
+/tmp/agent-sessions-performance
+```
+
 `Tests/emoji-search-performance.swift` times uncached queries, typing prefixes and memo hits against
 the loaded catalog, with process RSS and footprint as JSON; `--names` also lists every catalog name
 missing from its own top five results, and `--languages fr,ja` loads those keyword packs first (run it
@@ -401,6 +412,7 @@ Measured at the end of the 2026 refactor, on `main`. Useful as orders of magnitu
 | `ClipboardStore.pinnedItems` | 27–127 µs per uncached search, 1,000-row window — no cache earns its invalidation yet |
 | Rendered Notes editor, 100,000 characters | 30 ms install and full restyle; 7.5, 5.9 and 3.3 ms per character typed at the end, middle and start (5.2, 3.1 and 0.6 ms with rendering off); 0.6 ms per caret move |
 | `count items of trash` | 5,000 ms against a cold Finder on an *empty* Trash, 110 ms warm — why AppleScript is detached |
+| Agent Sessions, 1,000 sessions | 1.6 ms to fold the keys, 3.2–4.1 ms per typed keystroke (budget 5 ms); 500 head and tail decodes in 97–123 ms (budget 400 ms), `-O` on Apple silicon |
 
 Launch time, allocation counts and RSS have never been captured as numbers. The signposts are in place,
 so any of them can be taken from `main` whenever a change makes it worth knowing.

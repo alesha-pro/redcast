@@ -1,0 +1,12 @@
+{
+  "model": "opus",
+  "permissions": {
+    "allow": [
+      "Bash(ls:*)"
+    ]
+  },
+  "statusLine": {
+    "type": "command",
+    "command": "printf '%s' \"{ok}\""
+  }
+}
