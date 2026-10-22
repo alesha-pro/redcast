@@ -138,8 +138,8 @@ bottom with the model picker. ⌘J hands a Quick AI conversation to the window.
   prompt and thinking tokens, and the model's window and cost where a route says them — Claude's CLI
   reports all of it, the Anthropic API its cache, OpenAI-shaped routes their reasoning tokens and
   OpenRouter its cost. `ChatMessage.usage` holds it and `message_details` keeps it, so a reopened chat
-  still knows its last turn. A tool-loop reply's cost is its whole turn's — `AIToolLoopProvider` adds
-  each round's to the ones before — while its tokens stay the last round's, what the window holds.
+  still knows its last turn. A tool-loop reply's cost is its whole turn's — `AIToolLoopProvider` and
+  `AgentLoopProvider` add each round's to the ones before — while its tokens stay the last round's.
   Requests to OpenAI's own endpoint (`api.openai.com`) ask for usage with
   `stream_options.include_usage`; no other server is sent the field, an OpenAI preset on a gateway
   included.

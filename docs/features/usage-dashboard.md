@@ -46,10 +46,11 @@ ACP agent, for a day, a week or a month — from the chat history kept on this M
 
 ## Accuracy fixes it relies on
 
-- **A tool-loop reply costs its whole turn.** `AIToolLoopProvider` streams each round from a fresh
-  decoder, and a reply keeps the last `.usage` it saw. The loop now adds each round's cost to the
-  ones before, so the reply (and `ContextCard`'s Cost) carries the turn's spend. Tokens stay the last
-  round's, because the context gauge reads them as what the window holds.
+- **A tool-loop reply costs its whole turn.** `AIToolLoopProvider` and the agents' own
+  `AgentLoopProvider` stream each round from a fresh decoder, and a reply keeps the last `.usage` it
+  saw. Both loops now add each round's cost to the ones before, so the reply (and `ContextCard`'s
+  Cost) carries the turn's spend. Tokens stay the last round's, because the context gauge reads them
+  as what the window holds.
 - **OpenAI is asked for usage.** OpenAI streams usage only with `stream_options.include_usage`, so
   `AIRequestBody` sends it to OpenAI's own endpoint alone — a base URL on `api.openai.com`, whatever
   the preset. An OpenAI preset pointed at a gateway (Azure, LiteLLM, vLLM…) is not asked, since some
@@ -129,4 +130,4 @@ chat no ACP agent ran sums as stored. Periods use a Berlin Gregorian calendar wi
 OpenRouter's documented `/key` and `/credits` bodies, an error body and status mapping are decoded
 without a network. It also holds the two accuracy fixes: a two-round tool turn's cost is both
 rounds', and only OpenAI's own endpoint is sent `stream_options` — an OpenAI preset on a gateway and
-an unknown server are not.
+an unknown server are not. `agent-loop-test` holds the agents' loop to the same sum.
