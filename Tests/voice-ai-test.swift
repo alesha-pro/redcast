@@ -375,6 +375,16 @@ struct VoiceAITests {
             VoiceRoutePolicy.resolve(.codex(model: "gpt", effort: nil), use: .ask, connections: all, isEnabled: everything)
                 == .api(connection: router.id, model: "google/gemini-3.8-flash", effort: "low"),
             "a CLI route is never a voice route")
+        let bare = AIConnection(name: "Bare", provider: .openAICompatible)
+        expect(
+            VoiceRoutePolicy.choices([claude, bare, local, router], use: .ask, isEnabled: { $0 != router.id })
+                .map(\.id) == [local.id],
+            "only enabled, audio-capable connections with a model to name are offered")
+        expect(
+            VoiceRoutePolicy.resolve(
+                .api(connection: local.id, model: "", effort: nil), use: .ask, connections: [local],
+                isEnabled: everything) == .api(connection: local.id, model: "whisper-chat", effort: nil),
+            "an empty model is never kept")
 
         expect(VoiceRoutePolicy.fastestEffort(["high", "medium", "low"]) == "low", "low when it is the floor")
         expect(VoiceRoutePolicy.fastestEffort(["high", "medium", "low", "minimal", "none"]) == "minimal", "minimal first")

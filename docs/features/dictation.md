@@ -3,7 +3,8 @@
 Dictation is off by default. A user-selected global shortcut records from the chosen microphone,
 transcribes locally and sends the result through `TextInjector`. Parakeet Ultra (quality) and Redux
 (lightweight) support 25 languages. Qwen3-ASR 0.6B and 1.7B support 30 languages and 22 Chinese dialects.
-No model is bundled. The Settings pane downloads a pinned Core ML conversion on request.
+Transcription is on-device by default and no model is bundled: the Settings pane downloads a pinned
+Core ML conversion on request. [Cloud transcription](voice-ai.md) is an optional second engine.
 
 Recognition uses Apple's Core ML and Accelerate, with no external library. Each model family has
 its own adapter inside the bundled helper; both variants share that family's implementation.
@@ -66,7 +67,9 @@ compilation of its 2-bit weights; Ultra's encoder and both variants' decoder/joi
   Cancelling an active transcription, failed inference and normal quit stop the helper; late results cannot paste.
 - Audio stays in memory, bounded to five minutes of mono 16 kHz Float32 samples. Pipes carry
   bounded JSON control messages and binary audio; recordings are never written to disk or sent
-  over the network. Long recordings split near a quiet passage without overlapping samples.
+  over the network unless Cloud transcription is on: then the finished recording, trimmed and
+  encoded as WAV in memory, is sent once to the chosen connection, and live insertion never runs.
+  Long recordings split near a quiet passage without overlapping samples.
 - Live insertion is off by default and flushes at speech pauses, or after eight seconds of
   unpaused speech at the latest. While recording, the coordinator transcribes the audio since the
   last flush and pastes each chunk through `TextInjector` in order; finishing lets queued chunks
@@ -113,7 +116,8 @@ progress and atomic installation for both families, including cancellation, stal
 and competing downloads on shared or independent cache roots, without sockets or timed waits.
 `dictation-volume-test` uses private files and injected audio controls to verify crash recovery
 before and after fade steps, user volume changes, output switching, failed writes and rapid cancellation,
-without changing the system volume or downloading a model.
+without changing the system volume or downloading a model. `voice-ai-test` covers the cloud engine's
+speech gate, WAV encoding, prompt and request body, without a network or a microphone.
 
 Also exercise all four real models, short and long recordings, downloads/removal, initial microphone
 grant and denial, hold/toggle shortcuts, Return/Escape, output destinations, live insertion on and off, surrounding text with

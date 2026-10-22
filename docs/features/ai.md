@@ -816,7 +816,7 @@ A text-ish file is deliberately absent from this table: it is inlined as text be
 sees the turn, so every route — the on-device model and all installed CLI transports included — takes one with no
 transport code at all.
 
-`AIMessage.audio` is absent too, because no chat turn carries it: only a voice request sets it.
+`AIMessage.audio` is absent too, because no chat turn carries it: only [Voice AI](voice-ai.md) sets it.
 `AIRequestBody` writes each `AIAudio` as an `input_audio` part — raw base64 and a `format`, never a data URL
 — after the text and image parts, on the OpenAI-compatible shape only. The Anthropic builder ignores it, and
 voice routes never pick an Anthropic connection.

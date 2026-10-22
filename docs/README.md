@@ -27,6 +27,7 @@ open with an `## Invariants` section; read it before changing anything in that a
 [AI providers and chat](features/ai.md) ·
 [quick actions](features/quick-actions.md) ·
 [screen awareness](features/screen-awareness.md) ·
+[voice AI](features/voice-ai.md) ·
 [agents](features/agents.md) ·
 [clipboard](features/clipboard.md) ·
 [calculator](features/calculator.md) ·
