@@ -1,6 +1,6 @@
 import AppKit
 
-/// One sleeping task for the next due schedule, re-armed on wake, clock and time-zone changes.
+/// One task sleeping toward the next due time: none while the Mac sleeps, re-armed when it wakes.
 @MainActor
 final class AgentScheduler {
     enum Start {
@@ -14,20 +14,26 @@ final class AgentScheduler {
     private let start: (AgentSchedule) -> Start
     private let now: () -> Date
     private let calendar: () -> Calendar
+    /// How long the Mac has slept, counted from any fixed point; only its growth is read.
+    private let slept: () -> Duration
 
     private var timer: Task<Void, Never>?
     private var observers: [NotificationToken] = []
     /// After launch or wake, nothing due runs before this.
     private var notBefore: Date?
+    private var sleptAtLastApply: Duration
 
     init(
         store: AgentStore, start: @escaping (AgentSchedule) -> Start,
-        now: @escaping () -> Date = Date.init, calendar: @escaping () -> Calendar = { .current }
+        now: @escaping () -> Date = Date.init, calendar: @escaping () -> Calendar = { .current },
+        slept: @escaping () -> Duration = AgentScheduler.sleepMeter()
     ) {
         self.store = store
         self.start = start
         self.now = now
         self.calendar = calendar
+        self.slept = slept
+        sleptAtLastApply = slept()
     }
 
     isolated deinit {
@@ -44,7 +50,12 @@ final class AgentScheduler {
         timer?.cancel()
         timer = nil
         let now = now()
-        if settling { notBefore = now.addingTimeInterval(AgentSchedulePolicy.settle) }
+        let slept = slept()
+        // Whatever comes first after a sleep, the wake or a clock change or a run's end, settles.
+        if settling || slept - sleptAtLastApply > .seconds(1) {
+            notBefore = now.addingTimeInterval(AgentSchedulePolicy.settle)
+        }
+        sleptAtLastApply = slept
         if let notBefore, notBefore <= now { self.notBefore = nil }
         let enabled = store.schedules.filter(\.isEnabled)
         guard !enabled.isEmpty else {
@@ -74,12 +85,17 @@ final class AgentScheduler {
         observe()
         guard let next else { return }
         let delay = max(0, next.timeIntervalSince(now))
-        // `Task.sleep` keeps counting through sleep, so a deadline passed asleep fires on wake.
         timer = Task { [weak self] in
             try? await Task.sleep(for: .seconds(delay), tolerance: .seconds(30))
             guard !Task.isCancelled else { return }
             self?.apply(settling: false)
         }
+    }
+
+    /// The Mac is going to sleep: nothing ticks until the wake re-arms.
+    func suspend() {
+        timer?.cancel()
+        timer = nil
     }
 
     func stop() {
@@ -89,28 +105,35 @@ final class AgentScheduler {
         notBefore = nil
     }
 
+    /// The continuous clock counts sleep and the suspending one does not; their gap is time asleep.
+    nonisolated static func sleepMeter() -> () -> Duration {
+        let total = ContinuousClock.now
+        let awake = SuspendingClock.now
+        return { total.duration(to: .now) - awake.duration(to: .now) }
+    }
+
     private func observe() {
         guard observers.isEmpty else { return }
         let workspace = NSWorkspace.shared.notificationCenter
         let center = NotificationCenter.default
-        let wake: @Sendable (Notification) -> Void = { [weak self] _ in
-            Task { @MainActor in self?.apply(settling: true) }
-        }
-        let clock: @Sendable (Notification) -> Void = { [weak self] _ in
-            Task { @MainActor in self?.apply(settling: false) }
-        }
         observers = [
-            NotificationToken(
-                workspace.addObserver(
-                    forName: NSWorkspace.didWakeNotification, object: nil, queue: .main, using: wake),
-                center: workspace),
-            NotificationToken(
-                center.addObserver(forName: .NSSystemClockDidChange, object: nil, queue: .main, using: clock),
-                center: center),
-            NotificationToken(
-                center.addObserver(
-                    forName: .NSSystemTimeZoneDidChange, object: nil, queue: .main, using: clock),
-                center: center)
+            observe(workspace, NSWorkspace.willSleepNotification) { $0.suspend() },
+            observe(workspace, NSWorkspace.didWakeNotification) { $0.apply(settling: true) },
+            observe(center, .NSSystemClockDidChange) { $0.apply(settling: false) },
+            observe(center, .NSSystemTimeZoneDidChange) { $0.apply(settling: false) }
         ]
+    }
+
+    private func observe(
+        _ center: NotificationCenter, _ name: Notification.Name,
+        _ handler: @escaping @Sendable @MainActor (AgentScheduler) -> Void
+    ) -> NotificationToken {
+        NotificationToken(
+            center.addObserver(forName: name, object: nil, queue: .main) { [weak self] _ in
+                MainActor.assumeIsolated {
+                    guard let self else { return }
+                    handler(self)
+                }
+            }, center: center)
     }
 }

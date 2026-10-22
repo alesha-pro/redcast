@@ -34,6 +34,7 @@ struct AgentScheduleTests {
         profilesWithoutBackgroundDecode()
         nothingIsResidentWithoutASchedule()
         theSchedulerFiresWhatIsDue()
+        aDueTimePassedAsleepWaitsForTheSettle()
         await consentQueuesBehindADialog()
 
         print("\(passes) passed, \(failures) failed")
@@ -575,6 +576,51 @@ struct AgentScheduleTests {
         expect(scheduler.isArmed, "and arms for tomorrow")
         scheduler.apply(settling: false)
         expect(starts.count == 2, "it never runs twice for one occurrence")
+    }
+
+    /// The Mac slept through 08:00: whatever reaches the scheduler first after it waits 60 s.
+    static func aDueTimePassedAsleepWaitsForTheSettle() {
+        let directory = scratch()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let store = AgentStore(directory: directory)
+        guard let owner = try? store.add(AgentProfile(name: "Rig", directory: "/tmp")) else { return }
+        let created = at("2026-10-22T07:00:00Z")
+        guard
+            let schedule = try? store.saveSchedule(
+                AgentSchedule(agentID: owner.id, name: "n", prompt: "p", rule: daily8, createdAt: created),
+                now: created)
+        else { return expect(false, "it saves") }
+        var now = at("2026-10-22T07:30:00Z")
+        var slept = Duration.seconds(12)
+        var starts: [UUID] = []
+        let scheduler = AgentScheduler(
+            store: store,
+            start: {
+                starts.append($0.id)
+                return .started
+            }, now: { now }, calendar: { calendar() }, slept: { slept })
+        defer { scheduler.stop() }
+
+        scheduler.apply(settling: false)
+        expect(scheduler.isArmed && starts.isEmpty, "awake before 08:00, it sleeps toward it")
+        scheduler.suspend()
+        expect(!scheduler.isArmed && scheduler.isObserving, "nothing ticks while the Mac sleeps, but the wake is heard")
+        now = at("2026-10-22T08:30:00Z")
+        slept += .seconds(3_590)
+        scheduler.apply(settling: false)
+        expect(starts.isEmpty, "a clock change or a run's end before the wake still waits out the settle")
+        expect(scheduler.isArmed, "and arms for the settle's end")
+        now = now.addingTimeInterval(5)
+        scheduler.apply(settling: true)
+        expect(starts.isEmpty, "the wake itself, arriving second, waits too")
+        now = now.addingTimeInterval(AgentSchedulePolicy.settle)
+        scheduler.apply(settling: false)
+        expect(starts == [schedule.id], "then the missed 08:00 runs once")
+        expect(store.baseline(for: schedule) == now, "and counts as done for today")
+        now = at("2026-10-23T08:00:05Z")
+        slept += .milliseconds(200)
+        scheduler.apply(settling: false)
+        expect(starts.count == 2, "a hiccup under a second is not a sleep: the next 08:00 runs on time")
     }
 
     // MARK: - The consent gate
