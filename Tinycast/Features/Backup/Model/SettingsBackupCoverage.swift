@@ -171,6 +171,8 @@ enum SettingsBackupCoverage {
         AppSettingsKey.screenAwarenessScreenshot.rawValue:
             "Sends a picture of the frontmost window to an AI destination; an import must not decide "
             + "that this Mac's screen leaves it.",
+        AppSettingsKey.screenAwarenessDestination.rawValue:
+            "Only means something beside screenAwarenessEnabled, which never travels in a backup.",
         AppSettingsKey.quickActionModel.rawValue:
             "Names an external AI destination for text taken from whatever app is frontmost; an "
             + "import must not choose one.",

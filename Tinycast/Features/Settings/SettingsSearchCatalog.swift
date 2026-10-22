@@ -294,6 +294,9 @@ enum SettingsSearchCatalog {
             .aiScreenAwareness, "Enable Screen Awareness",
             keywords: ["screen", "window", "context", "ask about screen", "focused window"]),
         .init(
+            .aiScreenAwareness, "Open captures in",
+            keywords: ["ai chat", "quick ai", "double tap", "right command"]),
+        .init(
             .aiScreenAwareness, "Include a screenshot",
             keywords: ["screen recording", "image", "capture", "picture"]),
         .init(

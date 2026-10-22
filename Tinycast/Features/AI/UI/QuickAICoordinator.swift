@@ -63,32 +63,14 @@ final class QuickAICoordinator {
         chatCoordinator.attachPastedFile(files: files, to: chat)
     }
 
-    /// A capture made elsewhere, staged as if pasted; a picture the route cannot see stays behind.
+    /// Quick AI opens on the chat its open policy picks, with the capture staged in it.
     func showStaging(_ items: [ChatAttachmentReader.Staged]) {
         guard settings.aiEnabled else { return }
         if !paletteCoordinator.isShowing(.ai) {
             applyOpenPolicy()
             paletteCoordinator.showPalette(mode: .ai)
         }
-        let seesImages = chatCoordinator.capabilities(for: chat).images
-        var leftImageBehind = false
-        for item in items {
-            if case .image = item.payload, !seesImages {
-                leftImageBehind = true
-                continue
-            }
-            let attachment = ChatAttachment(
-                payload: item.payload, name: item.name, preview: item.preview)
-            if let refusal = chat.attach(attachment) {
-                core.showMessage(refusal.message, tone: .neutral)
-                return
-            }
-        }
-        if leftImageBehind {
-            core.showMessage(
-                String(localized: "This model can't see images, so only the window's text is attached."),
-                tone: .neutral)
-        }
+        chatCoordinator.stage(items, into: chat)
     }
 
     /// The one place deciding whether summoning resumes; Pop to Root only forgets the screen.

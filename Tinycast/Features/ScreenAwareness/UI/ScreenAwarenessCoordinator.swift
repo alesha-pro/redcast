@@ -5,6 +5,7 @@ import AppKit
 final class ScreenAwarenessCoordinator {
     private let settings: AppSettings
     private let appIndex: AppIndex
+    private let hotKeys: HotKeyManager
     private let paletteCoordinator: PaletteCoordinator
     private unowned let core: AppCore
 
@@ -12,11 +13,12 @@ final class ScreenAwarenessCoordinator {
     private var capturing: Task<Void, Never>?
 
     init(
-        settings: AppSettings, appIndex: AppIndex, paletteCoordinator: PaletteCoordinator,
-        core: AppCore
+        settings: AppSettings, appIndex: AppIndex, hotKeys: HotKeyManager,
+        paletteCoordinator: PaletteCoordinator, core: AppCore
     ) {
         self.settings = settings
         self.appIndex = appIndex
+        self.hotKeys = hotKeys
         self.paletteCoordinator = paletteCoordinator
         self.core = core
     }
@@ -56,7 +58,18 @@ final class ScreenAwarenessCoordinator {
             else { return }
             settings.screenAwarenessEnabled = true
             Permissions.ensureAccessibility()
+            bindSuggestedShortcut()
         }
+    }
+
+    /// Raycast's gesture, taken only when the command has none and nothing else holds it.
+    private func bindSuggestedShortcut() {
+        let action = HotKeyAction.command(.askAboutScreen)
+        let suggested = HotKeyBinding.doubleModifier(.rightCommand)
+        guard hotKeys.binding(for: action) == nil,
+            hotKeys.conflictOwner(of: suggested, excluding: action) == nil
+        else { return }
+        hotKeys.setBinding(suggested, for: action)
     }
 
     /// Asking happens in the gesture that wants the picture, as Accessibility's does above.
@@ -116,7 +129,13 @@ final class ScreenAwarenessCoordinator {
         if let screenshot, case .staged(let image) = ChatAttachmentReader.image(screenshot) {
             items.append(image)
         }
-        core.quickAICoordinator.showStaging(items)
+        switch settings.screenAwarenessDestination {
+        case .aiChat:
+            if paletteCoordinator.isVisible { paletteCoordinator.hidePalette(restoreFocus: false) }
+            core.aiChatCoordinator.showStaging(items)
+        case .quickAI:
+            core.quickAICoordinator.showStaging(items)
+        }
         // Missing permission is worth one line; a capture that simply had no picture is not.
         if wantedScreenshot, screenshot == nil, !ScreenRecordingAccess.isGranted {
             core.showMessage(

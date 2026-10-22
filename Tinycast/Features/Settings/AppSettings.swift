@@ -441,6 +441,13 @@ final class AppSettings {
         }
     }
 
+    var screenAwarenessDestination: ScreenAwarenessDestination {
+        didSet {
+            defaults.set(
+                screenAwarenessDestination.rawValue, forKey: Key.screenAwarenessDestination.rawValue)
+        }
+    }
+
     var snippetsShowInLauncher: Bool {
         didSet { defaults.set(snippetsShowInLauncher, forKey: Key.snippetsShowInLauncher.rawValue) }
     }
@@ -810,6 +817,9 @@ final class AppSettings {
         quickActionsEnabled = defaults.bool(forKey: Key.quickActionsEnabled.rawValue)
         screenAwarenessEnabled = defaults.bool(forKey: Key.screenAwarenessEnabled.rawValue)
         screenAwarenessScreenshot = defaults.bool(forKey: Key.screenAwarenessScreenshot.rawValue)
+        screenAwarenessDestination =
+            defaults.string(forKey: Key.screenAwarenessDestination.rawValue)
+            .flatMap(ScreenAwarenessDestination.init(rawValue:)) ?? .aiChat
         snippetsShowInLauncher =
             defaults.object(forKey: Key.snippetsShowInLauncher.rawValue) == nil
             || defaults.bool(forKey: Key.snippetsShowInLauncher.rawValue)

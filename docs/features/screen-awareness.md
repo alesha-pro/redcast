@@ -1,7 +1,7 @@
 # Screen Awareness
 
-**Ask About Screen** reads the window in front of you and opens Quick AI with it attached, ready for
-a question: the app and window title, the page's URL in a browser, the selected text, the field the
+**Ask About Screen** reads the window in front of you and opens AI Chat — or Quick AI, per
+**Open captures in** — with it attached, ready for a question: the app and window title, the page's URL in a browser, the selected text, the field the
 caret is in, the window's readable text and, when allowed, a screenshot of that window. It is the
 fork's take on Raycast's Screen Awareness; upstream lists screen reading under
 [not planned](../not-planned.md), so this feature lives only here, kept to `Features/ScreenAwareness/`
@@ -28,7 +28,13 @@ plus the few lines that wire it in.
 - **What was on screen is material, not a request.** The text attachment opens by saying so. A window
   title is forced onto one line, so it cannot forge a header row, and the attachment is named after the
   app alone.
-- **A picture the route cannot see stays behind.** `QuickAICoordinator.showStaging` checks
+- **Raycast's gesture, never someone else's.** Enabling binds Ask About Screen to a double tap of the
+  right ⌘ (`HotKeyBinding.doubleModifier(.rightCommand)`) only when the command has no binding and
+  `HotKeyManager.conflictOwner` finds nothing holding that gesture; a binding the reader chose, or
+  cleared, is never replaced.
+- **The capture is taken before anything comes forward.** Both destinations are shown only after the
+  window was read, so neither the AI Chat window nor the palette can become the window captured.
+- **A picture the route cannot see stays behind.** `AIChatCoordinator.stage` checks
   `AIModelCapabilities.images`; on a text-only route only the text is staged and a HUD says so, rather
   than staging an image the send would refuse.
 
@@ -41,6 +47,7 @@ plus the few lines that wire it in.
 | `Service/ScreenContextReader.swift` | The Accessibility walk, off-main: focused window, title, frame, web area URL, focused field |
 | `Service/WindowScreenshotter.swift` | Finds the window by pid and frame, captures it with ScreenCaptureKit; `ScreenRecordingAccess` |
 | `UI/ScreenAwarenessCoordinator.swift` | The one funnel: target, permission, capture, staging |
+| `Model/ScreenAwarenessDestination.swift` | AI Chat (the default, as in Raycast) or Quick AI |
 | `Settings/ScreenAwarenessSettingsSection.swift` | The AI pane's section |
 
 ## Reading the window
@@ -71,7 +78,9 @@ bounded to 1568px like any pasted picture.
 
 - Turn Screen Awareness on in Settings → AI: the dialog asks first, then Accessibility is requested.
   Bind a shortcut to Ask About Screen under the AI pane's commands.
-- In Safari, select a sentence and press the shortcut: Quick AI opens with `Screen — Safari.md`
+- Enable it with Ask About Screen unbound: the command takes double-tap right ⌘. Bind that gesture to
+  something else first, then enable: the command stays unbound.
+- In Safari, select a sentence and double-tap right ⌘: AI Chat opens with `Screen — Safari.md`
   holding the URL, the selection and the page's text, and the question goes out with it.
 - In Chrome and in an Electron app (Slack, VS Code): the window text is there, not empty.
 - In Mail with the caret in a reply: the focused field carries the draft.
@@ -80,7 +89,8 @@ bounded to 1568px like any pasted picture.
   window's picture; refused, it carries text and one HUD line points to System Settings.
 - Pick a text-only model in Quick AI and capture: only the text is staged, and a HUD says why.
 - Run Ask About Screen from the launcher (⌘Space → "Ask About Screen"): the app behind the palette is
-  what gets captured, not Tinycast.
+  what gets captured, not Tinycast, and the palette closes as AI Chat opens.
+- Switch **Open captures in** to Quick AI: the same capture lands in the palette's chat instead.
 - With Tinycast's Settings in front, press the shortcut: refused with a HUD.
 - Turn the feature off: the launcher row disappears and the shortcut does nothing.
 - Harness: `screen-awareness-test` (section order, budget and cut markers, forged titles, secure roles,
