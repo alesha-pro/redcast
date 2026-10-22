@@ -294,6 +294,12 @@ enum SettingsSearchCatalog {
             .aiAgents, "Add Agent",
             keywords: ["agent", "folder", "skills", "agents.md", "workspace", "tools", "terminal"]),
         .init(
+            group: .aiAgents, "Agent schedules",
+            keywords: [
+                "schedule", "recurring", "daily", "weekdays", "background", "notification", "digest",
+                "run agent task"
+            ]),
+        .init(
             .aiScreenAwareness, "Enable Screen Awareness",
             keywords: ["screen", "window", "context", "ask about screen", "focused window"]),
         .init(
