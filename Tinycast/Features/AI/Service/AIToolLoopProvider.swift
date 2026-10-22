@@ -48,6 +48,8 @@ struct AIToolLoopProvider: AIProvider {
         var carried = 0
         var rounds = 0
         while maxRounds.map({ rounds < $0 }) ?? (carried < Self.maxTurnHistoryBytes) {
+            // A call that outlived Stop must not bill another round.
+            try Task.checkCancellation()
             rounds += 1
             let round = try await streamRound(
                 request.continuing(with: messages, tools: tools), into: continuation)

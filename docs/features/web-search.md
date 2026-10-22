@@ -41,6 +41,9 @@ few lines that wire it into `AIChatCoordinator`, `AIToolLoopProvider`, `AgentCoo
   offered `web_search` into `.searching` / `.searched` through `WebSearchTool.query(in:)`. In an
   agent's chat the provider signals the same row between its own tool row's ends, so a failed search
   still shows as a failed row.
+- **Stop ends the turn where it is.** Cancellation reaches the running request, no further engine
+  is tried, and both loops check for it before each round, so a search that outlived Stop never
+  sends the model another billed round. `web-search-test` and `agent-loop-test` hold this.
 - **Model-facing text is English.** The tool's description, the answer and the failure lines are
   for the model, like `AgentToolExecutor`'s; everything the user reads is localized.
 
