@@ -161,12 +161,13 @@ struct AgentToolsTests {
         let asks = AskRecorder()
         let mcp = MCPRecorder()
         func toolset(
-            _ access: AgentAccess, mode: AgentRunMode = .chat(UUID()), allowing: Bool = true
+            _ access: AgentAccess, mode: AgentRunMode = .chat(UUID()), allowing: Bool = true,
+            rules: AgentConsentRules? = nil
         ) -> AgentToolset {
             AgentToolset(
                 turn: AgentTurn(
-                    profile: AgentProfile(name: "T", directory: folder, access: access), skills: [],
-                    memoryURL: memory, mode: mode),
+                    profile: AgentProfile(name: "T", directory: folder, access: access, consent: rules),
+                    skills: [], memoryURL: memory, mode: mode),
                 providers: [AgentBuiltInTools()],
                 mcpTools: [
                     AITool(name: "srv__tool", description: "", parameters: .object([:]), origin: "srv")
@@ -227,6 +228,21 @@ struct AgentToolsTests {
         expect(
             afterAlone == before && !FileManager.default.fileExists(atPath: folder + "/alone.md"),
             "without asking anyone, and nothing is written")
+
+        let trusted = AgentConsentRules(risks: [.change: .always, .execute: .never])
+        let unasked = await toolset(.workspaceWrite, mode: .unattended(UUID()), rules: trusted).run(
+            call(AgentToolbox.writeFile, #"{"path":"trusted.md","content":"x"}"#), signal: quiet)
+        let afterTrusted = await asks.count
+        expect(
+            !unasked.isError && afterTrusted == before
+                && FileManager.default.fileExists(atPath: folder + "/trusted.md"),
+            "Always Allow on changes writes without asking, even with nobody there")
+        let barred = await toolset(.workspaceWrite, rules: trusted).run(
+            call(AgentToolbox.runCommand, #"{"command":"touch barred.txt"}"#), signal: quiet)
+        expect(
+            barred.content == "There is no tool called run_command."
+                && !FileManager.default.fileExists(atPath: folder + "/barred.txt"),
+            "and Never Allow on commands withholds the terminal")
 
         let offered = await toolset(.workspaceWrite).run(call("srv__tool", "{}"), signal: quiet)
         let reached = await mcp.names

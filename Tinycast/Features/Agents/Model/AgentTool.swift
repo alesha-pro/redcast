@@ -1,7 +1,7 @@
 import Foundation
 
 /// What a call reaches; it decides which agents are offered the tool and who is asked first.
-enum AgentToolRisk: String, CaseIterable, Sendable {
+enum AgentToolRisk: String, CaseIterable, Codable, CodingKeyRepresentable, Sendable {
     case read  // the folder, skills, the agent's notes
     case own  // writes only the agent's own notes or plan
     case network  // text leaves the Mac: a URL, a query

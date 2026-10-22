@@ -59,6 +59,8 @@ struct AgentProfile: Codable, Hashable, Identifiable, Sendable {
     var runtime: AgentRuntime?
     /// The ACP mode new sessions start in, by the agent's own id for it; nil keeps its default.
     var acpMode: String?
+    /// Optional, so every `agents.json` written before it still decodes; nil keeps the defaults.
+    var consent: AgentConsentRules?
     var createdAt: Date
 
     init(
@@ -68,7 +70,7 @@ struct AgentProfile: Codable, Hashable, Identifiable, Sendable {
         skillSources: Set<AgentSkillSource> = Set(AgentSkillSource.allCases),
         disabledSkills: Set<String> = [], readsProjectInstructions: Bool = true,
         readsGlobalInstructions: Bool = false, runtime: AgentRuntime? = nil,
-        createdAt: Date = Date()
+        consent: AgentConsentRules? = nil, createdAt: Date = Date()
     ) {
         self.id = id
         self.name = name
@@ -83,6 +85,7 @@ struct AgentProfile: Codable, Hashable, Identifiable, Sendable {
         self.readsProjectInstructions = readsProjectInstructions
         self.readsGlobalInstructions = readsGlobalInstructions
         self.runtime = runtime
+        self.consent = consent
         self.createdAt = createdAt
     }
 
