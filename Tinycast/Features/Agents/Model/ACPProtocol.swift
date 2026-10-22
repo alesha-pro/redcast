@@ -80,7 +80,9 @@ enum ACPUpdate: Equatable, Sendable {
     case usage(used: Int, size: Int, costUSD: Double?)
     /// The agent moved itself to another mode, as Claude Code does when it leaves plan mode.
     case mode(String)
-    /// Commands, notices and the rest: known to exist, not drawn yet.
+    /// The session's slash commands, the whole list each time.
+    case commands([ACPCommand])
+    /// Notices and the rest: known to exist, not drawn yet.
     case other(String)
 
     static func decode(_ params: JSONValue) -> (sessionID: String, update: ACPUpdate)? {
@@ -105,6 +107,8 @@ enum ACPUpdate: Equatable, Sendable {
         case "current_mode_update":
             guard let mode = update["currentModeId"]?.stringValue else { return nil }
             decoded = .mode(mode)
+        case "available_commands_update":
+            decoded = .commands(ACPCommand.list(update["availableCommands"]))
         case "usage_update":
             let cost = update["cost"]?.objectValue
             let usd =
@@ -338,9 +342,13 @@ enum ACPPrompt {
     /// Prior turns travel only when the agent could not reload its own copy of the session.
     static let maxHistoryBytes = 24 * 1_024
 
+    /// A slash command leads with its text, where agents look for one, and carries no preamble.
     static func blocks(
-        for message: AIMessage, context: String?, history: [AIMessage], capabilities: Capabilities
+        for message: AIMessage, context: String?, history: [AIMessage], capabilities: Capabilities,
+        asCommand: Bool = false
     ) -> [[String: Any]] {
+        let request: [String: Any] = ["type": "text", "text": message.text]
+        guard !asCommand else { return [request] + attachments(of: message, capabilities: capabilities) }
         var blocks: [[String: Any]] = []
         var preamble: [String] = []
         if let context, !context.isEmpty { preamble.append(context) }
@@ -351,18 +359,19 @@ enum ACPPrompt {
         if !preamble.isEmpty {
             blocks.append(["type": "text", "text": preamble.joined(separator: "\n\n")])
         }
-        for document in message.documents {
-            blocks.append(block(for: document, capabilities: capabilities))
+        return blocks + attachments(of: message, capabilities: capabilities) + [request]
+    }
+
+    private static func attachments(
+        of message: AIMessage, capabilities: Capabilities
+    ) -> [[String: Any]] {
+        var blocks = message.documents.map { block(for: $0, capabilities: capabilities) }
+        guard capabilities.image else { return blocks }
+        for image in message.images {
+            blocks.append([
+                "type": "image", "mimeType": image.mimeType, "data": image.data.base64EncodedString()
+            ])
         }
-        if capabilities.image {
-            for image in message.images {
-                blocks.append([
-                    "type": "image", "mimeType": image.mimeType,
-                    "data": image.data.base64EncodedString()
-                ])
-            }
-        }
-        blocks.append(["type": "text", "text": message.text])
         return blocks
     }
 
@@ -450,7 +459,7 @@ struct ACPEventMapper: Sendable {
             // Held for the turn's end, where the prompt's own result has the finer counts.
             lastUsage = (used, size, cost ?? lastUsage?.costUSD)
             return []
-        case .mode, .other:
+        case .mode, .commands, .other:
             return []
         }
     }

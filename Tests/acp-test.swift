@@ -23,11 +23,14 @@ struct ACPTests {
         eventsSettleEachCallOnce()
         toolContentIsCompactedOnce()
         toolOutputReachesItsRowOnce()
+        commandsDecodeMatchAndComplete()
+        aCommandLeadsItsPrompt()
         runtimesParseTheirArguments()
         await aRealProcessStreamsATurn()
         await stoppingLeavesNoProcessBehind()
         await twoAgentsSharingASessionIDStayApart()
         await toolContentReachesItsRows()
+        await commandsReachTheChatAndLeadTheirTurn()
 
         print("\(passes) passed, \(failures) failed")
         if failures > 0 { exit(1) }
@@ -89,9 +92,14 @@ struct ACPTests {
                 == .mode("plan"),
             "the agent moving to another mode is reported")
         expect(
-            decoded(#"{"sessionId":"s","update":{"sessionUpdate":"available_commands_update","availableCommands":[]}}"#)
-                == .other("available_commands_update"),
+            decoded(#"{"sessionId":"s","update":{"sessionUpdate":"session_info_update","title":"x"}}"#)
+                == .other("session_info_update"),
             "an update not drawn yet is kept as known, not dropped as malformed")
+        expect(
+            decoded((#"{"sessionId":"s","update":{"sessionUpdate":"available_commands_update","# +
+                #""availableCommands":[{"name":"web","description":"Search","input":{"hint":"query"}}]}}"#))
+                == .commands([ACPCommand(name: "web", description: "Search", hint: "query")]),
+            "a session's slash commands decode with their hints")
         expect(decoded(#"{"update":{"sessionUpdate":"plan"}}"#) == nil, "an update names its session")
     }
 
@@ -602,6 +610,46 @@ extension ACPTests {
             done == [.toolOutput(id: "c", content: ChatToolContent(output: "ok")), .toolResult(id: "c", isError: false)],
             "new content replaces the old before the row closes, got \(done)")
     }
+
+    static func commandsDecodeMatchAndComplete() {
+        let listed = ACPCommand.list(
+            JSONValue(data: Data((#"[{"name":"/review","description":"Review\nchanges","input":{"hint":"what"}},"# +
+                #"{"name":"compact"},{"name":"bad name"},{"name":"a/b"},{"name":"Review"},"# +
+                #"{"name":"pr-comments","description":"Comments","input":null}]"#).utf8)))
+        expect(
+            listed.map(\.name) == ["review", "compact", "pr-comments"],
+            "a leading slash goes, and names that could never be typed back or repeat are dropped, got \(listed)")
+        expect(listed.first?.description == "Review changes" && listed.first?.hint == "what", "one line, with its hint")
+        expect(listed[1].hint == nil && listed[1].description.isEmpty, "a command may have neither")
+        let many = ACPCommand.list(.array((0..<500).map { .object(["name": .string("c\($0)")]) }))
+        expect(many.count == ACPCommand.maxCount, "a list is held to its cap")
+        expect(ACPCommand.typedName(in: "/rev") == "rev", "a draft after its slash is a name being typed")
+        expect(ACPCommand.typedName(in: "/review now") == nil, "until a space ends it")
+        expect(ACPCommand.typedName(in: "review") == nil, "and a draft without a slash types none")
+        expect(ACPCommand.matches(for: "/", in: listed) == listed, "a bare slash offers every command")
+        expect(
+            ACPCommand.matches(for: "/CO", in: listed).map(\.name) == ["compact", "pr-comments"],
+            "names it starts come first, then the ones it appears in, in any case")
+        expect(ACPCommand.matches(for: "/zzz", in: listed).isEmpty, "a name nothing has offers nothing")
+        expect(listed[0].completion == "/review ", "completing leaves the name and room for its input")
+        expect(ACPCommand.invocation(in: "/review the diff", offered: listed) == "review", "an offered command runs")
+        expect(ACPCommand.invocation(in: "/Review", offered: listed) == "review", "in any case")
+        expect(ACPCommand.invocation(in: "/unknown x", offered: listed) == nil, "a name the agent never offered is text")
+        expect(ACPCommand.invocation(in: "/etc/hosts", offered: []) == nil, "and a path is never a command")
+        expect(ACPCommand.invocation(in: "/compact", offered: []) == "compact", "before any list, a bare name is one")
+        expect(ACPCommand.invocation(in: "compact", offered: listed) == nil, "text without its slash is text")
+    }
+
+    static func aCommandLeadsItsPrompt() {
+        let message = AIMessage(
+            role: .user, text: "/review now",
+            documents: [AIDocument(data: Data("a".utf8), mimeType: "text/plain", name: "a.txt")])
+        let blocks = ACPPrompt.blocks(
+            for: message, context: "CONTEXT", history: [AIMessage(role: .user, text: "Hello")],
+            capabilities: .init(), asCommand: true)
+        expect(blocks.first?["text"] as? String == "/review now", "the command is the first block, where agents look")
+        expect(blocks.count == 2, "followed by its files, with no briefing or history")
+    }
 }
 
 extension ACPTests {
@@ -630,6 +678,32 @@ extension ACPTests {
         expect(
             callOpens != nil && filled != nil && callCloses != nil && callOpens! < filled! && filled! < callCloses!,
             "a row opens, fills, then closes")
+    }
+
+    /// The fake agent lists its commands just after `session/new` answers, before the chat binds.
+    static func commandsReachTheChatAndLeadTheirTurn() async {
+        guard let (agent, host, root) = await fakeAgent() else { return }
+        defer {
+            host.stopAll()
+            try? FileManager.default.removeItem(at: root)
+        }
+        let listed = Listed()
+        host.onCommands = { chat, _, commands in listed.events.append((chat, commands.map(\.name))) }
+        let chat = UUID()
+        let command = replyText(await stream("/review the diff", chat: chat, agent: agent, host: host))
+        expect(
+            command.contains("ran /review the diff; without context; blocks 1"),
+            "a command on a fresh session goes first and alone, got \(command)")
+        try? await Task.sleep(for: .milliseconds(200))
+        expect(
+            listed.events.contains { $0.chat == chat && $0.names == ["review", "compact"] },
+            "the session's commands reach its chat even when they beat its binding, got \(listed.events)")
+        let next = replyText(await stream("Hello", chat: chat, agent: agent, host: host))
+        expect(next.contains("with context"), "the briefing the command skipped rides the next turn, got \(next)")
+        let other = replyText(await stream("/unknown thing", chat: UUID(), agent: agent, host: host))
+        expect(
+            other.contains("turn 1") && other.contains("with context"),
+            "a name the agent never offered is an ordinary first turn, got \(other)")
     }
 
     private static func fakeAgent() async -> (AgentProfile, AgentACPHost, URL)? {
@@ -661,4 +735,13 @@ extension ACPTests {
         }
         return events
     }
+
+    private static func replyText(_ events: [AIStreamEvent]) -> String {
+        events.compactMap { if case .text(let text) = $0 { text } else { nil } }.joined()
+    }
+}
+
+@MainActor
+final class Listed {
+    var events: [(chat: UUID?, names: [String])] = []
 }
