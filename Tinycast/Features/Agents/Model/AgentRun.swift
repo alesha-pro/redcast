@@ -158,7 +158,7 @@ extension AgentRunMode {
 
 /// What background agents keep alive: nothing at all until a schedule or a banner needs it.
 struct AgentBackgroundNeeds: Equatable, Sendable {
-    /// One sleeping task and its wake, clock and time-zone observers.
+    /// One sleeping task and its sleep, wake, clock and time-zone observers.
     var scheduler = false
     var notifier = false
 

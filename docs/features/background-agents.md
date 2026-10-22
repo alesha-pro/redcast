@@ -25,10 +25,14 @@ the launcher's fallback files, `CommandID`, `AISettingsView` and `AppCore`.
   nothing, and that a scheduler with no enabled schedule holds neither a task nor an observer. A
   launcher run makes the coordinator, and it is dropped again once nothing runs, shows or waits.
 - **One sleeping task, no heartbeat.** `AgentScheduler` sleeps until the next due time with a 30 s
-  tolerance and re-arms on wake, clock and time-zone changes, the only three observers it keeps,
-  and only while some schedule is enabled. `Task.sleep` counts through sleep, so a deadline passed
-  asleep fires on wake. A run in flight adds one watchdog task, one transient `NSStatusItem` and one
-  `ProcessInfo` activity that keeps the Mac from idle-sleeping, all released when the run ends.
+  tolerance, drops that task when the Mac is about to sleep and re-arms on wake, clock and time-zone
+  changes: four observers, kept only while some schedule is enabled. A run in flight adds one
+  watchdog task, one transient `NSStatusItem` and one `ProcessInfo` activity that keeps the Mac from
+  idle-sleeping, all released when the run ends.
+- **After sleep, every due run waits out the settle.** The wake, a clock change and a run's end can
+  reach the scheduler in any order. Each compares the continuous clock, which counts sleep, with the
+  suspending one, which does not; any gap over a second means the Mac slept, so the first of them
+  already holds a due run 60 s for the network.
 - **Schedules are only active while Tinycast runs.** There is no launchd job, helper or XPC service.
   Times are local wall-clock times wherever the Mac is. A run up to five minutes late is on time;
   after launch or wake a due run waits 60 s for the network.
@@ -123,7 +127,7 @@ other is written on disk and re-listed the next time Notes opens. With Notes off
 | `Model/AgentTaskAddress.swift` | Handles and `@handle task` parsing |
 | `Model/AgentSchedule.swift` | The rule, the schedule, its errors, and `AgentSchedulePolicy`: occurrences, verdicts, summaries |
 | `Model/AgentRun.swift` | A run and the ledger behind the indicator, `AgentConsentMode`, `AgentBackgroundNeeds`, the note block, the briefing |
-| `Service/AgentScheduler.swift` | The one sleeping task and its three observers |
+| `Service/AgentScheduler.swift` | The one sleeping task, its four observers and the sleep meter |
 | `Service/AgentRunNotifier.swift` | Opt-in Notification Center banners |
 | `UI/AgentBackgroundCoordinator.swift` | Starting, watching and finishing runs; consent mode; the item, the notifier and the scheduler |
 | `UI/AgentConsentGate.swift` | One agent question at a time, never over another dialog |
@@ -160,7 +164,8 @@ other is written on disk and re-listed the next time Notes opens. With Notes off
   "<name> · <date>" and the note has the section. With that note open and edited in Notes, the append
   goes through the editor and the edit survives.
 - Sleep across a due time and wake: the run starts about 60 s after wake (**Run once when back**), or
-  not at all (**Skip it**). Quit across a due time and relaunch: the same.
+  not at all (**Skip it**), never at the wake itself, also with a background run in flight when the
+  lid closed. Quit across a due time and relaunch: the same.
 - Change the time zone: the next run follows local time. Disable for two days and re-enable: no
   catch-up run. Agent busy at the due time: the run starts when the current one ends.
 - No schedules: `sample` shows no `AgentScheduler` task and Activity Monitor no idle wake-ups from it.
@@ -172,5 +177,5 @@ other is written on disk and re-listed the next time Notes opens. With Notes off
 
 Harness: `agent-schedule-test` — handles and addresses, occurrences across weekends and daylight
 saving, verdicts and catch-up, the ledger and its indicator, consent modes and a counted unattended
-refusal, note blocks, persistence and its refusals, the scheduler's arming, and the consent gate
-waiting for a dialog in order.
+refusal, note blocks, persistence and its refusals, the scheduler's arming and its settle after
+sleep, and the consent gate waiting for a dialog in order.
