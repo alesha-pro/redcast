@@ -20,6 +20,7 @@ OpenCode, Goose, Hermes, local models — on the subscriptions and machines you 
 | Screen Awareness | Double-tap right ⌘: the window in front — title, URL, selection, focused field, readable text, screenshot — attached to AI Chat | [screen-awareness](docs/features/screen-awareness.md) |
 | Agents | A chat that lives in a folder: its `AGENTS.md`, project and global `.agents/skills`, notes, and built-in tools (files, terminal, web, memory) on any tool-calling API model, every change and command asked first | [agents](docs/features/agents.md) |
 | ACP agents | An agent can run as its own CLI over the Agent Client Protocol — Claude Code, Codex, Gemini CLI, OpenCode, Goose, Hermes or any command — on your own logins, with its permission requests, tool rows, plans and modes in AI Chat, and sessions that survive a relaunch | [agents](docs/features/agents.md#acp-agents) |
+| Alias + Space | Type an entry's alias exactly and press Space: it opens, or its first field takes the caret; `\`␣ types a space, and apps keep searching. From `sermelipharo/tinycast-space`, after `mSarheed/pipcast` | [alias actions](docs/features/alias-actions.md) |
 
 Builds of this fork use the bundle id `com.tinycast.app.fork`: they never update themselves from
 upstream's feed, and they keep their settings apart from an installed upstream Tinycast.

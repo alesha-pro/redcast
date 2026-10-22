@@ -775,6 +775,7 @@ run mcp-test               Tinycast/Features/Settings/AppSettingsKey.swift \
 run -O text-diff-test      Tinycast/Features/QuickActions/Model/TextDiffEngine.swift
 run index text-diff-performance Tinycast/Features/QuickActions/Model/TextDiffEngine.swift
 run screen-awareness-test  Tinycast/Features/ScreenAwareness/Model/*.swift
+run alias-actions-test     Tinycast/Features/AliasActions/Model/*.swift
 run acp-test               Tinycast/Features/Agents/Model/*.swift \
                            Tinycast/Features/Agents/Service/*.swift \
                            Tinycast/Features/Settings/AppSettingsKey.swift \
