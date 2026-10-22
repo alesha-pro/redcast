@@ -268,6 +268,7 @@
 		4640C7CC8DCA6E6FA49394A8 /* CommandsSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D303E193CFEFE455778C150 /* CommandsSettingsView.swift */; };
 		464F93E1F16A3242396F32F9 /* SearchScopes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E4A7E45F7D1CC5FB8868715 /* SearchScopes.swift */; };
 		46F5D522E6F5470D3694A218 /* RaycastImportReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8CD7591D273A6484DD48018A /* RaycastImportReader.swift */; };
+		474330E66870F74D058BBDB1 /* AgentSessionsLocations.swift in Sources */ = {isa = PBXBuildFile; fileRef = B3C43FC91BA2941C988C1F81 /* AgentSessionsLocations.swift */; };
 		4756BD8CEF9FC57A0C016555 /* AIConnectionEditorPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87C6479121B0371B3491FA8A /* AIConnectionEditorPanel.swift */; };
 		478500C6465327947EBD9D61 /* RaycastSnippetImport.swift in Sources */ = {isa = PBXBuildFile; fileRef = C80806A442BADAC390ECD993 /* RaycastSnippetImport.swift */; };
 		47A443F25878A27DE6DF24AA /* NoteEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEAFF79E9897975CAC5EAC0E /* NoteEditorView.swift */; };
@@ -1693,6 +1694,7 @@
 		B35ED5C4019986E638EE5C28 /* DictationModelStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DictationModelStore.swift; sourceTree = "<group>"; };
 		B36FACE26406FD2205FEF03E /* NOTICE.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = NOTICE.md; sourceTree = "<group>"; };
 		B387D22D9C920FA6443EB193 /* ChatAttachmentReader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatAttachmentReader.swift; sourceTree = "<group>"; };
+		B3C43FC91BA2941C988C1F81 /* AgentSessionsLocations.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentSessionsLocations.swift; sourceTree = "<group>"; };
 		B3C7D17F97002FD58E8A5F53 /* PermissionsSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PermissionsSettingsView.swift; sourceTree = "<group>"; };
 		B429F11F5F1AB1C249A3C132 /* ScreenContextReader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenContextReader.swift; sourceTree = "<group>"; };
 		B45A6AB1413A8A08EF7F0A9E /* ClipboardFilterButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardFilterButton.swift; sourceTree = "<group>"; };
@@ -2442,6 +2444,7 @@
 				0370B186A71EC41F989BDA65 /* AgentResumeCommand.swift */,
 				270CBE79D67F6E332CF5E0BD /* AgentSession.swift */,
 				EA777CA4F0662076D36467B5 /* AgentSessionQuery.swift */,
+				B3C43FC91BA2941C988C1F81 /* AgentSessionsLocations.swift */,
 				56E45FB6210EFE9788234149 /* ClaudeIndexFormat.swift */,
 				A404373BB9EEA846761CDB07 /* ClaudeTranscriptDecoder.swift */,
 				18260697F38C2D4A9487D70C /* CodexStateReader.swift */,
@@ -4712,6 +4715,7 @@
 				D9FB3B5C422F77894490AD61 /* AgentSessionQuery.swift in Sources */,
 				EB2263F4D5103F69165B8B65 /* AgentSessionsCoordinator.swift in Sources */,
 				D9EAFD1A738092F7580AB213 /* AgentSessionsList.swift in Sources */,
+				474330E66870F74D058BBDB1 /* AgentSessionsLocations.swift in Sources */,
 				39F7FD11173F45A3F336F7D2 /* AgentSessionsScanner.swift in Sources */,
 				EC61418DA7D13D3D74B321AA /* AgentSessionsScreen.swift in Sources */,
 				CF9CD9A72F4909A0DC14D24E /* AgentSessionsSettingsSection.swift in Sources */,

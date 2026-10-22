@@ -57,7 +57,9 @@ enum AgentSessionsScanner {
         return entries
     }
 
-    @concurrent static func previewTurns(for session: AgentSession, codexHistory: URL) async -> [SessionTurn]? {
+    @concurrent static func previewTurns(for session: AgentSession, locations: AgentSessionsLocations) async
+        -> [SessionTurn]?
+    {
         let wide = ClaudeTranscriptDecoder.tailWindowWide
         switch session.source {
         case .claude:
@@ -67,7 +69,7 @@ enum AgentSessionsScanner {
             return ClaudeTranscriptDecoder.previewTurns(window, startsMidLine: offset > 0, limit: previewLimit)
         case .codex:
             let projected = try? CodexStateReader.historyTurns(
-                database: codexHistory, threadID: session.sessionID, limit: previewLimit)
+                database: locations.codexHistory, threadID: session.sessionID, limit: previewLimit)
             if let projected, !projected.isEmpty { return projected }
             guard let path = session.transcriptPath,
                 let (window, offset) = window(at: URL(filePath: path), length: wide)

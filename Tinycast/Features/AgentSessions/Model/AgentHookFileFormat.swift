@@ -4,9 +4,8 @@ enum AgentHookTarget: String, Codable, Sendable, CaseIterable {
     case claude, codex
 
     var agent: AgentSource { self == .claude ? .claude : .codex }
-    /// The agent's own folder, which has to exist before the hub offers to touch it.
-    var folder: String { self == .claude ? ".claude" : ".codex" }
-    var relativePath: String { self == .claude ? ".claude/settings.json" : ".codex/hooks.json" }
+    /// The file's name inside the agent's folder, which `AgentSessionsLocations` places.
+    var fileName: String { self == .claude ? "settings.json" : "hooks.json" }
 }
 
 enum AgentHookEvent: String, Sendable, CaseIterable { case working, waiting, finished, failed, ended }

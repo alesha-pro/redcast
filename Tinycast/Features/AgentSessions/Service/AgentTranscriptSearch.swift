@@ -16,13 +16,14 @@ enum AgentTranscriptSearch {
 
     /// The stream ends after the last file or the 50th hit; cancelling its consumer stops the scan.
     static func run(
-        query: String, sessions: [AgentSession], codexHistory: URL,
+        query: String, sessions: [AgentSession], locations: AgentSessionsLocations,
         progress: @escaping @Sendable (Int, Int) -> Void
     ) -> AsyncStream<Hit> {
         let claude = sessions.filter { $0.source == .claude && $0.transcriptPath != nil }
             .sorted { $0.updatedAt > $1.updatedAt }
         let codex = sessions.filter { $0.source == .codex }.sorted { $0.updatedAt > $1.updatedAt }
         let needles = needles(for: query)
+        let codexHistory = locations.codexHistory
         return AsyncStream { continuation in
             let task = Task.detached(priority: .utility) {
                 let total = claude.count + codex.count

@@ -30,6 +30,20 @@ struct AgentSessionsSettingsSection: View {
                 SettingsRowTitle(.aiAgentSessions, "Resume in")
             }
             .disabled(!appSettings.agentSessionsEnabled)
+            LabeledContent {
+                AgentFolderField(placeholder: "~/.claude", text: folderBinding(\.agentSessionsClaudeFolder))
+            } label: {
+                SettingsRowTitle(.aiAgentSessions, "Claude Code folder")
+                folderNote(appSettings.agentSessionsClaudeFolder, variable: "CLAUDE_CONFIG_DIR", default: "~/.claude")
+            }
+            .disabled(!appSettings.agentSessionsEnabled)
+            LabeledContent {
+                AgentFolderField(placeholder: "~/.codex", text: folderBinding(\.agentSessionsCodexFolder))
+            } label: {
+                SettingsRowTitle(.aiAgentSessions, "Codex folder")
+                folderNote(appSettings.agentSessionsCodexFolder, variable: "CODEX_HOME", default: "~/.codex")
+            }
+            .disabled(!appSettings.agentSessionsEnabled)
             SettingsRow(title: "Live status", subtitle: statusText, anchor: .aiAgentSessions) {
                 liveStatusButtons
             }
@@ -104,9 +118,54 @@ struct AgentSessionsSettingsSection: View {
             set: { appSettings.agentSessionsTerminal = $0 })
     }
 
+    /// Live status is read again, since its hook files live in the folder that moved.
+    private func folderBinding(_ key: ReferenceWritableKeyPath<AppSettings, String>) -> Binding<String> {
+        Binding(
+            get: { appSettings[keyPath: key] },
+            set: { text in
+                appSettings[keyPath: key] = text.trimmingCharacters(in: .whitespacesAndNewlines)
+                Task { summary = await coordinator.liveStatusSummary() }
+            })
+    }
+
+    /// One `stat` per render of the section, which only Settings shows.
+    private func folderNote(_ text: String, variable: String, default folder: String) -> Text {
+        let url = AgentSessionsLocations.folder(text, home: FileManager.default.homeDirectoryForCurrentUser)
+        guard text.isEmpty || url.map({ AgentSessionsCoordinator.folderExists($0.path) }) == true else {
+            return Text("No folder at this path.")
+        }
+        return Text("Where \(variable) points, if you set it. Empty reads \(folder).")
+    }
+
     private var menuBarBinding: Binding<Bool> {
         Binding(
             get: { appSettings.agentStatusMenuBar },
             set: { coordinator.setStatusItemEnabled($0) })
+    }
+}
+
+/// One agent's folder, saved on Return or when the field is left rather than on every keystroke.
+private struct AgentFolderField: View {
+    let placeholder: String
+    @Binding var text: String
+    @State private var draft = ""
+    @FocusState private var focused: Bool
+
+    var body: some View {
+        TextField(placeholder, text: $draft, prompt: Text(verbatim: placeholder))
+            .labelsHidden()
+            .font(.callout.monospaced())
+            .autocorrectionDisabled()
+            .focused($focused)
+            .onSubmit(save)
+            .onChange(of: focused) { _, isFocused in
+                if !isFocused { save() }
+            }
+            .onAppear { draft = text }
+    }
+
+    private func save() {
+        guard draft.trimmingCharacters(in: .whitespacesAndNewlines) != text else { return }
+        text = draft
     }
 }

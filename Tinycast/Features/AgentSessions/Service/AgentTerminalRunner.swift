@@ -36,7 +36,7 @@ enum AgentTerminalRunner {
             return .running
         case .shellScript:
             guard let command else { return try await openFolder(directory, with: appURL) }
-            let script = try await writeScript(AgentResumeCommand.script(command: command))
+            let script = try await writeScript(AgentResumeCommand.script(command: command, directory: directory))
             return try await open([script], with: appURL)
         case .folderURL(let scheme):
             guard let directory else { throw .scriptFailed("") }

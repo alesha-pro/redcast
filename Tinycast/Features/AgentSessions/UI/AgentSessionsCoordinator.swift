@@ -64,7 +64,7 @@ final class AgentSessionsCoordinator {
     var index: AgentSessionIndex {
         if let builtIndex { return builtIndex }
         let index = AgentSessionIndex(
-            chatHistory: chatHistory, agentStore: agentStore, home: home, cacheURL: Self.cacheURL,
+            chatHistory: chatHistory, agentStore: agentStore, locations: locations, cacheURL: Self.cacheURL,
             claudeExecutable: { [weak self] in await self?.locateClaude() })
         builtIndex = index
         return index
@@ -79,6 +79,13 @@ final class AgentSessionsCoordinator {
     }
 
     var isActive: Bool { settings.aiEnabled && settings.agentSessionsEnabled }
+
+    /// Read from settings at each use, so a folder moved in Settings counts from the next read on.
+    var locations: AgentSessionsLocations {
+        AgentSessionsLocations(
+            home: home, claudeFolder: settings.agentSessionsClaudeFolder,
+            codexFolder: settings.agentSessionsCodexFolder)
+    }
 
     static var cacheURL: URL {
         AppPaths.caches().appending(path: "agent-sessions/claude-index.json", directoryHint: .notDirectory)
@@ -111,14 +118,14 @@ final class AgentSessionsCoordinator {
 
     func show(query: String? = nil) {
         guard isActive else { return }
-        index.open()
+        index.open(locations)
         let seed = query.flatMap { $0.isEmpty ? nil : String($0.prefix(AgentDeepLink.queryLimit)) }
         paletteCoordinator.togglePalette(mode: .agentSessions, seeding: seed)
     }
 
     func screenAppeared() {
         guard isActive else { return }
-        index.open()
+        index.open(locations)
         if let builtActivity {
             builtActivity.prune(now: Date())
             index.applyReported(builtActivity.items)
@@ -185,7 +192,7 @@ final class AgentSessionsCoordinator {
     }
 
     func resume(_ session: AgentSession, action: AgentResumeAction) {
-        guard let command = AgentResumeCommand.command(for: session, action: action) else {
+        guard let command = resumeCommand(session, action: action) else {
             core.showMessage(String(localized: "This session can't be resumed"), tone: .danger)
             return
         }
@@ -201,12 +208,17 @@ final class AgentSessionsCoordinator {
     }
 
     func copyResumeCommand(_ session: AgentSession) {
-        guard let command = AgentResumeCommand.command(for: session, action: .resume) else {
+        guard let command = resumeCommand(session, action: .resume) else {
             core.showMessage(String(localized: "This session can't be resumed"), tone: .danger)
             return
         }
         _ = Paster.copyPlainText(command)
         core.showMessage(String(localized: "Resume command copied"))
+    }
+
+    func resumeCommand(_ session: AgentSession, action: AgentResumeAction) -> String? {
+        AgentResumeCommand.command(
+            for: session, action: action, environment: locations.environment(for: session.source))
     }
 
     func openInApp(_ session: AgentSession) {
@@ -266,13 +278,14 @@ final class AgentSessionsCoordinator {
             builtActivity.prune(now: Date())
             if let target = AgentActivityPolicy.jumpTarget(builtActivity.items) { return jump(to: target) }
         }
-        let home = home
+        let locations = locations
         Task {
             guard let executable = await locateClaude() else {
                 return core.showMessage(String(localized: "No agent is waiting"), tone: .neutral)
             }
             let entries = await AgentProcessHost.resolving(
-                await ClaudeLiveSessionsProbe.run(executable: executable, home: home))
+                await ClaudeLiveSessionsProbe.run(
+                    executable: executable, home: locations.home, environment: locations.environment(for: .claude)))
             let waiting = entries.filter { entry in
                 guard case .waiting = entry.status else { return false }
                 return !isTinycastOwned(sessionID: entry.sessionID, hostBundleID: entry.hostBundleID)
@@ -329,11 +342,10 @@ final class AgentSessionsCoordinator {
     }
 
     private func handle(_ event: AgentEvent, now: Date) async {
-        let claudeRoot = home.appending(path: ".claude/projects", directoryHint: .isDirectory)
-        let codexState = home.appending(path: ".codex/state_5.sqlite", directoryHint: .notDirectory)
+        let locations = locations
         async let host = AgentProcessHost.hosting(event.pid)
         var resolved = await AgentSessionsScanner.resolve(
-            event, claudeRoot: claudeRoot, codexState: codexState, now: now)
+            event, claudeRoot: locations.claudeProjects, codexState: locations.codexState, now: now)
         (resolved.hostBundleID, resolved.tty) = await host
         guard isActive else { return }
         if isTinycastOwned(sessionID: event.sessionID, hostBundleID: resolved.hostBundleID) { resolved.host = .tinycast }
@@ -420,8 +432,9 @@ final class AgentSessionsCoordinator {
         liveToken = .some(record?.token)
         var summary = LiveStatusSummary(isOn: record != nil)
         let bundleID = Bundle.main.bundleIdentifier ?? ""
+        let locations = locations
         for target in AgentHookTarget.allCases {
-            let snapshot = await AgentHookRepository.snapshot(target, home: home)
+            let snapshot = await AgentHookRepository.snapshot(target, locations: locations)
             guard snapshot.isAgentPresent else { continue }
             summary.states[target] =
                 snapshot.isReadable
@@ -439,8 +452,9 @@ final class AgentSessionsCoordinator {
         var snapshots: [AgentHookTarget: AgentHookRepository.Snapshot] = [:]
         var problems: [String] = []
         var targets: [AgentHookTarget] = []
+        let locations = locations
         for target in AgentHookTarget.allCases {
-            let snapshot = await AgentHookRepository.snapshot(target, home: home)
+            let snapshot = await AgentHookRepository.snapshot(target, locations: locations)
             guard snapshot.isAgentPresent else { continue }
             targets.append(target)
             snapshots[target] = snapshot
@@ -505,7 +519,7 @@ final class AgentSessionsCoordinator {
 
     private func changed(_ plan: LiveStatusPlan, _ target: AgentHookTarget) async -> LiveStatusResult {
         var fresh = await prepareLiveStatus(on: plan.turningOn)
-        let file = (AgentHookRepository.url(for: target, home: home).path as NSString).abbreviatingWithTildeInPath
+        let file = (locations.hookFile(target).path as NSString).abbreviatingWithTildeInPath
         fresh.notice = String(localized: "\(file) changed while you were reviewing it.")
         return .changed(fresh)
     }

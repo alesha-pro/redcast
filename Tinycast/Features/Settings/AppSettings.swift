@@ -470,6 +470,16 @@ final class AppSettings {
         didSet { defaults.set(agentStatusMenuBar, forKey: Key.agentStatusMenuBar.rawValue) }
     }
 
+    /// Where `CLAUDE_CONFIG_DIR` points; empty reads `~/.claude`.
+    var agentSessionsClaudeFolder: String {
+        didSet { defaults.set(agentSessionsClaudeFolder, forKey: Key.agentSessionsClaudeFolder.rawValue) }
+    }
+
+    /// Where `CODEX_HOME` points; empty reads `~/.codex`.
+    var agentSessionsCodexFolder: String {
+        didSet { defaults.set(agentSessionsCodexFolder, forKey: Key.agentSessionsCodexFolder.rawValue) }
+    }
+
     var snippetsShowInLauncher: Bool {
         didSet { defaults.set(snippetsShowInLauncher, forKey: Key.snippetsShowInLauncher.rawValue) }
     }
@@ -849,6 +859,8 @@ final class AppSettings {
             || defaults.bool(forKey: Key.agentSessionsEnabled.rawValue)
         agentSessionsTerminal = defaults.string(forKey: Key.agentSessionsTerminal.rawValue) ?? ""
         agentStatusMenuBar = defaults.bool(forKey: Key.agentStatusMenuBar.rawValue)
+        agentSessionsClaudeFolder = defaults.string(forKey: Key.agentSessionsClaudeFolder.rawValue) ?? ""
+        agentSessionsCodexFolder = defaults.string(forKey: Key.agentSessionsCodexFolder.rawValue) ?? ""
         snippetsShowInLauncher =
             defaults.object(forKey: Key.snippetsShowInLauncher.rawValue) == nil
             || defaults.bool(forKey: Key.snippetsShowInLauncher.rawValue)

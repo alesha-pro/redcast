@@ -50,6 +50,7 @@ struct AgentSessionsTests {
         await transcriptSearch()
         await hookFilesOnDisk()
         await liveProbe()
+        await movedFolders()
 
         print("\(passes) passed, \(failures) failed")
         if failures > 0 { exit(1) }
@@ -653,7 +654,7 @@ struct AgentSessionsTests {
         expect(AgentResumeCommand.focusScript(for: .terminal, tty: "ttys0\"; do") == nil, "a bad tty")
         expect(AgentResumeCommand.focusScript(for: .warp, tty: "ttys004") == nil, "Warp can't focus a tab")
 
-        let body = AgentResumeCommand.script(command: "cd '/a' && claude --resume \(s1)")
+        let body = AgentResumeCommand.script(command: "cd '/a' && claude --resume \(s1)", directory: "/a")
         let lines = body.split(separator: "\n").map(String.init)
         expect(lines.first == "#!/bin/sh" && lines[safe: 1] == #"/bin/rm -f -- "$0""#, "the script deletes itself first")
         expect(lines[safe: 2] == "cd '/a' && exec claude --resume \(s1)", "then execs the agent")
@@ -1126,7 +1127,7 @@ struct AgentSessionsTests {
             var changes: [AgentHookFileFormat.Change] = []
             var snapshots: [AgentHookTarget: AgentHookRepository.Snapshot] = [:]
             for target in targets {
-                let snapshot = await AgentHookRepository.snapshot(target, home: home)
+                let snapshot = await AgentHookRepository.snapshot(target, locations: AgentSessionsLocations(home: home))
                 snapshots[target] = snapshot
                 let change = on ? install(snapshot.text, target) : snapshot.text.flatMap { remove($0, target) }
                 if let change { changes.append(change) }
@@ -1142,7 +1143,7 @@ struct AgentSessionsTests {
             }
         }
 
-        let missing = await AgentHookRepository.snapshot(.codex, home: home)
+        let missing = await AgentHookRepository.snapshot(.codex, locations: AgentSessionsLocations(home: home))
         expect(missing.text == nil && missing.isReadable && !missing.isAgentPresent, "no ~/.codex: nothing to offer")
         write(plain, to: settings)
         try? fileManager.setAttributes([.posixPermissions: 0o640], ofItemAtPath: settings.path)
@@ -1199,7 +1200,7 @@ struct AgentSessionsTests {
 
         try? fileManager.removeItem(at: settings)
         try? Data([0x7B, 0xFF, 0xFE, 0x7D]).write(to: settings)
-        let binary = await AgentHookRepository.snapshot(.claude, home: home)
+        let binary = await AgentHookRepository.snapshot(.claude, locations: AgentSessionsLocations(home: home))
         expect(!binary.isReadable && binary.text == nil, "a file that is not UTF-8 is unreadable")
 
         let record = home.appending(path: "state/live-status.json")
@@ -1292,7 +1293,8 @@ struct AgentSessionsTests {
         func hits(_ query: String) async -> [AgentTranscriptSearch.Hit] {
             var found: [AgentTranscriptSearch.Hit] = []
             for await hit in AgentTranscriptSearch.run(
-                query: query, sessions: sessions, codexHistory: scratch.appending(path: "none.sqlite"),
+                query: query, sessions: sessions,
+                locations: AgentSessionsLocations(home: scratch.appending(path: "nobody", directoryHint: .isDirectory)),
                 progress: { _, _ in })
             {
                 found.append(hit)
@@ -1308,6 +1310,90 @@ struct AgentSessionsTests {
         expect(cyrillic.map(\.sessionID) == [s1], "Cyrillic is found")
         let toolOutput = await hits("file contents that mention")
         expect(toolOutput.isEmpty, "tool output is never a hit")
+    }
+}
+
+// MARK: - Moved folders
+
+extension AgentSessionsTests {
+    static func movedFolders() async {
+        let home = URL(filePath: "/Users/me", directoryHint: .isDirectory)
+        let plain = AgentSessionsLocations(home: home)
+        expect(plain.claude.path == "/Users/me/.claude" && plain.codex.path == "/Users/me/.codex", "defaults")
+        expect(plain.claudeProjects.path == "/Users/me/.claude/projects", "Claude's projects")
+        expect(plain.codexState.path == "/Users/me/.codex/state_5.sqlite", "Codex's state")
+        expect(plain.hookFile(.claude).path == "/Users/me/.claude/settings.json", "Claude's hook file")
+        expect(plain.environment(for: .claude).isEmpty && plain.environment(for: .codex).isEmpty, "no variable")
+
+        let moved = AgentSessionsLocations(home: home, claudeFolder: " ~/cfg/claude/ ", codexFolder: "/srv/codex")
+        expect(moved.claude.path == "/Users/me/cfg/claude", "~ is the home, got \(moved.claude.path)")
+        expect(moved.codex.path == "/srv/codex", "an absolute folder")
+        expect(moved.claudeProjects.path == "/Users/me/cfg/claude/projects", "projects follow the folder")
+        expect(moved.hookFile(.codex).path == "/srv/codex/hooks.json", "so do the hooks")
+        expect(moved.codexHistory.path == "/srv/codex/thread_history_1.sqlite", "and Codex's history")
+        expect(moved.environment(for: .claude) == ["CLAUDE_CONFIG_DIR": "/Users/me/cfg/claude"], "CLAUDE_CONFIG_DIR")
+        expect(moved.environment(for: .codex) == ["CODEX_HOME": "/srv/codex"], "CODEX_HOME")
+        expect(moved.environment(for: .tinycast).isEmpty, "a Tinycast chat has none")
+        let relative = AgentSessionsLocations(home: home, claudeFolder: "cfg", codexFolder: "~/.codex/")
+        expect(relative.claude == plain.claude, "relative text reads the default")
+        expect(relative.environment(for: .codex).isEmpty, "the default spelled out adds no variable")
+
+        let app = session(.claude, s1, title: "t", folder: "/Users/me/dev/app")
+        let claudeLine = AgentResumeCommand.command(
+            for: app, action: .resume, environment: moved.environment(for: .claude))
+        expect(
+            claudeLine == "cd '/Users/me/dev/app' && env CLAUDE_CONFIG_DIR='/Users/me/cfg/claude' claude --resume \(s1)",
+            "the moved folder rides along, got \(claudeLine ?? "nil")")
+        let codex = session(.codex, codexID(1), title: "t", folder: "/Users/me/dev/api")
+        expect(
+            AgentResumeCommand.command(for: codex, action: .fork, environment: ["CODEX_HOME": "/srv/it's"])
+                == "cd '/Users/me/dev/api' && env CODEX_HOME='/srv/it'\\''s' codex fork \(codexID(1))",
+            "the folder is quoted")
+        expect(
+            AgentResumeCommand.command(for: app, action: .resume, environment: ["A=B;rm": "x", "lower": "y"])
+                == "cd '/Users/me/dev/app' && claude --resume \(s1)",
+            "only plain variable names are set")
+        expect(
+            AgentResumeCommand.command(
+                for: app, action: .attach(shortID: "bg7"), environment: moved.environment(for: .claude))
+                == "env CLAUDE_CONFIG_DIR='/Users/me/cfg/claude' claude attach bg7",
+            "attach keeps the folder")
+
+        let tricky = "/tmp/a && b"
+        let trickySession = session(.claude, s1, title: "t", folder: tricky)
+        let trickyLine = AgentResumeCommand.command(
+            for: trickySession, action: .resume, environment: ["CLAUDE_CONFIG_DIR": "/c"]) ?? ""
+        let body = AgentResumeCommand.script(command: trickyLine, directory: tricky)
+        expect(
+            body.hasSuffix("cd '/tmp/a && b' && exec env CLAUDE_CONFIG_DIR='/c' claude --resume \(s1)\n"),
+            "a folder holding && still execs the agent, got \(body.debugDescription)")
+        expect(
+            AgentResumeCommand.script(command: "codex resume x", directory: nil).hasSuffix("\nexec codex resume x\n"),
+            "without a folder")
+
+        let fileManager = FileManager.default
+        let movedHome = scratch.appending(path: "moved-home", directoryHint: .isDirectory)
+        let claudeFolder = scratch.appending(path: "elsewhere/claude", directoryHint: .isDirectory)
+        try? fileManager.createDirectory(at: claudeFolder, withIntermediateDirectories: true)
+        try? Data("{}\n".utf8).write(to: claudeFolder.appending(path: "settings.json"))
+        let locations = AgentSessionsLocations(home: movedHome, claudeFolder: claudeFolder.path)
+        let snapshot = await AgentHookRepository.snapshot(.claude, locations: locations)
+        expect(
+            snapshot.isAgentPresent && snapshot.text == "{}\n"
+                && snapshot.url.standardizedFileURL.path == claudeFolder.appending(path: "settings.json").path,
+            "live status reads the moved folder")
+        let codexSnapshot = await AgentHookRepository.snapshot(.codex, locations: locations)
+        expect(!codexSnapshot.isAgentPresent, "and Codex's default one, absent here")
+
+        let probeFolder = scratch.appending(path: "probe-env", directoryHint: .isDirectory)
+        try? fileManager.createDirectory(at: probeFolder, withIntermediateDirectories: true)
+        let fake = probeFolder.appending(path: "claude")
+        let script = #"printf '[{"sessionId":"%s","status":"busy"}]' "$CLAUDE_CONFIG_DIR""#
+        try? ("#!/bin/sh\n" + script + "\n").write(to: fake, atomically: true, encoding: .utf8)
+        try? fileManager.setAttributes([.posixPermissions: 0o755], ofItemAtPath: fake.path)
+        let entries = await ClaudeLiveSessionsProbe.run(
+            executable: fake, home: probeFolder, environment: ["CLAUDE_CONFIG_DIR": "moved-folder-ok"])
+        expect(entries.map(\.sessionID) == ["moved-folder-ok"], "the probe passes the folder, got \(entries)")
     }
 }
 

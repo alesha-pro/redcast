@@ -25,12 +25,8 @@ enum AgentHookRepository {
     /// Larger than any settings file a person writes; past it the hub refuses rather than reads.
     private static let sizeCap = 4 * 1_048_576
 
-    static func url(for target: AgentHookTarget, home: URL) -> URL {
-        home.appending(path: target.relativePath, directoryHint: .notDirectory)
-    }
-
-    @concurrent static func snapshot(_ target: AgentHookTarget, home: URL) async -> Snapshot {
-        read(target, at: url(for: target, home: home))
+    @concurrent static func snapshot(_ target: AgentHookTarget, locations: AgentSessionsLocations) async -> Snapshot {
+        read(target, at: locations.hookFile(target))
     }
 
     /// Every file is re-read before any is written, so one that moved on leaves them all untouched.

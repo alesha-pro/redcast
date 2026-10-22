@@ -209,6 +209,10 @@ enum SettingsBackupCoverage {
             "Names a terminal installed on this Mac; another Mac may not have it.",
         AppSettingsKey.agentStatusMenuBar.rawValue:
             "Only means something beside live status, which is installed per Mac and never travels.",
+        AppSettingsKey.agentSessionsClaudeFolder.rawValue:
+            "Names a folder on this Mac; another Mac may keep Claude Code's history elsewhere.",
+        AppSettingsKey.agentSessionsCodexFolder.rawValue:
+            "Names a folder on this Mac; another Mac may keep Codex's history elsewhere.",
         AppSettingsKey.quickActionModel.rawValue:
             "Names an external AI destination for text taken from whatever app is frontmost; an "
             + "import must not choose one.",
