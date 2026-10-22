@@ -159,6 +159,9 @@ struct AgentSessionsTests {
         expect(
             kind(#"{"parentUuid":null,"isSidechain":false,"attachment":{"kind":"file"},"type":"attachment"}"#)
                 == .other, "an attachment line is skipped")
+        expect(
+            kind(#"{"type":"user","message":{"role":"user","content":"hi"}}"#) == .conversation(user: true),
+            "a turn that leads with its type is still a turn")
     }
 
     // MARK: - 2. Head reader
