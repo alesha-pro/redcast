@@ -126,17 +126,19 @@ remote when it is missing.
    re-anchor, `Upstream-Rewrite-Anchor: <sha>`.
 7. **Gates**, unless `--skip-gates`: the Debug build (and its warnings in files the merge changed),
    `./Scripts/run-tests.sh` (each failure is rerun twice alone, then on pristine upstream in a
-   temporary worktree; only a harness that passes upstream is a regression, and `form-input-test`,
-   `onboarding-test` and `icon-cache-test` are reported, never fatal), `./Scripts/lint.sh`, the
-   `Model/` purity grep, and `merge-xcstrings.mjs --self-test`.
+   temporary worktree; a harness that passes upstream is a regression, and so is a failing one that
+   upstream's `run-tests.sh` does not list, since upstream would fail it as unknown;
+   `form-input-test`, `onboarding-test` and `icon-cache-test` are reported, never fatal),
+   `./Scripts/lint.sh`, the `Model/` purity grep, and `merge-xcstrings.mjs --self-test`.
 8. **Summary** in `build/sync/summary-<sha>.md` (also the PR body): the gates; what needs attention
    (files both sides changed, catalog keys to review, new upstream workflows to disable, changed rule
    docs, lines added to `docs/not-planned.md`, entitlement or usage-string changes, new harnesses);
    upstream's commits grouped by area with their PR links; the top 30 files by churn.
 
-`TINYCAST_SYNC_XCODEGEN` replaces the `xcodegen` command (the self-test sets it to `true`),
-`TINYCAST_UPSTREAM_URL` the upstream URL, and `TINYCAST_SYNC_KEEP=1` keeps the self-test's throwaway
-repositories for a look after a failure.
+`TINYCAST_SYNC_XCODEGEN` replaces the `xcodegen` command (the self-test sets it to `true`, and puts
+stand-in `xcodebuild`, `swiftlint` and `pnpm` first on its `PATH`), `TINYCAST_UPSTREAM_URL` the
+upstream URL, and `TINYCAST_SYNC_KEEP=1` keeps the self-test's throwaway repositories for a look
+after a failure.
 
 ### `Scripts/fork/merge-xcstrings.mjs`
 
@@ -287,9 +289,13 @@ Rollout, in this order: disable the five workflows; create `FORK_SYNC_TOKEN` and
 
 ### Manual sweep
 
-1. `Scripts/fork/sync-upstream.sh --self-test` passes: an advance, an already-merged upstream, a
-   rewrite re-anchored, an interleaved and a dropping rewrite refused, `project.pbxproj` and catalog
-   conflicts resolved, an unknown conflict aborted in CI and resumed with `--continue` locally.
+1. `Scripts/fork/sync-upstream.sh --self-test` passes. It covers an advance, an already-merged
+   upstream, a rewrite re-anchored, and an interleaved and a dropping rewrite refused. It resolves
+   `project.pbxproj` and catalog conflicts, aborts an unknown conflict in CI and resumes one locally
+   with `--continue`. It rebuilds a runtime both sides patched. Its gated runs, with stub runners on
+   each side, check the harness triage. A flaky, an environmental and an upstream-too failure pass
+   and are listed. A regression and a failing fork-only harness exit 1. Only warnings in merged
+   files are reported.
 2. `node Scripts/fork/merge-xcstrings.mjs --self-test` passes.
 3. A real sync on a clean `main` ends with a summary whose gates are green, and its branch lands with
    `git merge --ff-only`.
