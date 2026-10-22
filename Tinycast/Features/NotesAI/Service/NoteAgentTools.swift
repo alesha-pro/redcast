@@ -1,6 +1,6 @@
 import Foundation
 
-/// Notes as an agent tool family: reading is personal data, adding is a change under its rule.
+/// Notes as an agent tool family: reading is personal data, adding is a change that always asks.
 struct NoteAgentTools: AgentToolProvider {
     let repository: NotesRepository
     let timeZone: TimeZone
@@ -10,15 +10,12 @@ struct NoteAgentTools: AgentToolProvider {
     private static let previewLength = 600
 
     func specs(for turn: AgentTurn) -> [AgentToolSpec] {
-        let appendAsks = AgentConsentPolicy.rule(for: .change, in: .notes, of: turn.profile) == .ask
-        return NoteTools.definitions(
-            canWrite: turn.profile.access.writes, appendAsks: appendAsks,
-            origin: String(localized: "Notes")
-        ).map { tool in
-            tool.name == NoteTools.append
-                ? AgentToolSpec(tool: tool, family: .notes, risk: .change, concurrent: false)
-                : AgentToolSpec(tool: tool, family: .notes, risk: .personal, concurrent: true)
-        }
+        NoteTools.definitions(canWrite: turn.profile.access.writes, origin: String(localized: "Notes"))
+            .map { tool in
+                tool.name == NoteTools.append
+                    ? AgentToolSpec(tool: tool, family: .notes, risk: .change, concurrent: false)
+                    : AgentToolSpec(tool: tool, family: .notes, risk: .personal, concurrent: true)
+            }
     }
 
     func run(_ call: AIToolCall, in context: AgentToolContext) async -> AIToolResult {

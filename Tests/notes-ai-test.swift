@@ -92,8 +92,8 @@ struct NotesAITests {
     // MARK: - 1. Definitions and specs
 
     static func definitionsAndSpecs() {
-        let writable = NoteTools.definitions(canWrite: true, appendAsks: true, origin: "Notes")
-        let readOnly = NoteTools.definitions(canWrite: false, appendAsks: true, origin: "Notes")
+        let writable = NoteTools.definitions(canWrite: true, origin: "Notes")
+        let readOnly = NoteTools.definitions(canWrite: false, origin: "Notes")
         expect(
             writable.map(\.name) == [NoteTools.search, NoteTools.read, NoteTools.append],
             "a writable agent gets all three Notes tools")
@@ -110,11 +110,9 @@ struct NotesAITests {
         let required = writable.last?.parameters.objectValue?["required"]?.arrayValue?
             .compactMap(\.stringValue)
         expect(required == ["note", "text"], "notes_append requires note and text")
-        let unasked = NoteTools.definitions(canWrite: true, appendAsks: false, origin: "Notes")
         expect(
-            writable.last?.description.contains("asked first") == true
-                && unasked.last?.description.contains("asked first") == false,
-            "the append's description states the rule it runs under")
+            writable.last?.description.contains("The user is asked first.") == true,
+            "the append's description says the user is asked, which no rule switches off")
 
         let specs = provider(folder("specs")).specs(for: turn(profile()))
         let table = Dictionary(uniqueKeysWithValues: specs.map { ($0.tool.name, $0) })
@@ -162,9 +160,12 @@ struct NotesAITests {
         expect(
             toolset(profile(.readOnly)).tools.map(\.name) == [NoteTools.search, NoteTools.read],
             "a read-only agent is never offered the append")
-        let barred = toolset(profile(rules: AgentConsentRules(risks: [.change: .never])))
-        expect(
-            !barred.tools.map(\.name).contains(NoteTools.append), "Never Allow on changes withholds it")
+        for rule in AgentConsentRule.allCases {
+            let rules = AgentConsentRules.setting(rule, for: .change, in: nil)
+            expect(
+                AgentConsentPolicy.rule(for: .change, in: .notes, of: profile(rules: rules)) == .ask,
+                "Changes set to \(rule) still leaves an addition to Notes asking")
+        }
         let offered = toolset(profile())
         expect(
             offered.isConcurrent(NoteTools.search) && !offered.isConcurrent(NoteTools.append),
@@ -181,11 +182,23 @@ struct NotesAITests {
             !appended.isError && asked?.family == .notes && asked?.risk == .change,
             "an append asks as a change to notes, so a grant never covers files")
         expect(text("Plan.md", in: root) == "first\n\nsecond\n", "and then adds the text")
-        let unattended = await toolset(profile(), mode: .unattended(UUID())).run(
+        let trusting = profile(tools: [.files, .notes], rules: AgentConsentRules(risks: [.change: .always]))
+        let before = await asks.count
+        _ = await toolset(trusting).run(
             call(NoteTools.append, #"{"note":"Plan","text":"third"}"#), signal: quiet)
+        let after = await asks.count
         expect(
-            unattended.isError && text("Plan.md", in: root) == "first\n\nsecond\n",
-            "with nobody to ask, an append is refused and the note stays")
+            after == before + 1 && text("Plan.md", in: root) == "first\n\nsecond\n\nthird\n",
+            "Always Allow for file changes never makes an append silent")
+        let barred = profile(tools: [.files, .notes], rules: AgentConsentRules(risks: [.change: .never]))
+        expect(
+            toolset(barred).tools.map(\.name).contains(NoteTools.append),
+            "Never Allow for file changes leaves the append offered, still asking")
+        let unattended = await toolset(trusting, mode: .unattended(UUID())).run(
+            call(NoteTools.append, #"{"note":"Plan","text":"fourth"}"#), signal: quiet)
+        expect(
+            unattended.isError && text("Plan.md", in: root) == "first\n\nsecond\n\nthird\n",
+            "with nobody to ask, an append is refused and the note stays, whatever Changes says")
     }
 
     // MARK: - 2. @note

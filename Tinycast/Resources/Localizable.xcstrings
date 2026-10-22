@@ -83715,54 +83715,54 @@
         }
       }
     },
-    "Notes searches and reads your Tinycast Notes, and adds to them under Changes. Notes must be on." : {
+    "Notes searches and reads your Tinycast Notes, and always asks before adding to them. Notes must be on." : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Mit „Notizen“ kann der Agent deine Tinycast-Notizen durchsuchen, lesen und ergänzen; Ergänzungen folgen „Änderungen“. Notizen müssen aktiviert sein."
+            "value" : "Mit „Notizen“ durchsucht und liest der Agent deine Tinycast-Notizen und fragt immer, bevor er etwas hinzufügt. Notizen müssen aktiviert sein."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Con «Notas», el agente busca y lee tus notas de Tinycast y les añade texto según «Cambios». Notas debe estar activado."
+            "value" : "Con «Notas», el agente busca y lee tus notas de Tinycast, y siempre pregunta antes de añadirles texto. Notas debe estar activado."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Avec « Notes », l’agent recherche et lit vos notes Tinycast, et y ajoute du texte selon « Modifications ». Notes doit être activé."
+            "value" : "Avec « Notes », l’agent recherche et lit vos notes Tinycast, et demande toujours avant d’y ajouter du texte. Notes doit être activé."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "「メモ」では、エージェントがTinycastのメモを検索・閲覧し、「変更」の設定に従って追記します。メモをオンにする必要があります。"
+            "value" : "「メモ」では、エージェントがTinycastのメモを検索・閲覧し、追記する前には必ず確認します。メモをオンにする必要があります。"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "'메모'를 사용하면 에이전트가 Tinycast 메모를 검색하고 읽으며, '변경' 설정에 따라 내용을 추가합니다. 메모가 켜져 있어야 합니다."
+            "value" : "'메모'를 사용하면 에이전트가 Tinycast 메모를 검색하고 읽으며, 내용을 추가하기 전에는 항상 묻습니다. 메모가 켜져 있어야 합니다."
           }
         },
         "pt" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Com “Notas”, o agente busca e lê suas notas do Tinycast e acrescenta texto a elas conforme “Alterações”. As Notas precisam estar ativadas."
+            "value" : "Com “Notas”, o agente busca e lê suas notas do Tinycast e sempre pergunta antes de acrescentar texto a elas. As Notas precisam estar ativadas."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "С «Заметками» агент ищет и читает ваши заметки Tinycast и дописывает в них по правилу «Изменения». Заметки должны быть включены."
+            "value" : "С «Заметками» агент ищет и читает ваши заметки Tinycast и всегда спрашивает, прежде чем дописать в них. Заметки должны быть включены."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "启用“笔记”后，代理可以搜索和阅读你的 Tinycast 笔记，并按“更改”的规则向其中添加内容。需要先开启笔记。"
+            "value" : "启用“笔记”后，代理可以搜索和阅读你的 Tinycast 笔记，并在向其中添加内容前总会先征求你的同意。需要先开启笔记。"
           }
         }
       }
