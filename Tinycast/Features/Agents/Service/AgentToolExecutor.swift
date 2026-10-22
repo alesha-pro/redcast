@@ -221,6 +221,17 @@ nonisolated struct AgentToolExecutor: Sendable {
         guard await consent(request) else { return .failure(.declined) }
         let session = ShellCommandRunner.stream(
             command, loadingShellEnvironment: true, workingDirectory: profile.directory)
+        // Abandoning the events leaves the command running, so Stop has to stop it.
+        return await withTaskCancellationHandler {
+            await collect(session, timeout: timeout)
+        } onCancel: {
+            session.stop()
+        }
+    }
+
+    private func collect(
+        _ session: ShellCommandSession, timeout: Int
+    ) async -> Result<String, AgentToolFailure> {
         let watchdog = Task {
             try await Task.sleep(for: .seconds(timeout))
             session.stop()

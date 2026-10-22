@@ -165,6 +165,8 @@ final class AgentCoordinator {
                 DialogAction(title: String(localized: "Allow for This Chat")),
                 DialogAction(title: String(localized: "Don't Allow"), role: .cancel)
             ], defaultIndex: 0)
+        // Stop while the dialog was up: the turn is gone, so its answer must not act.
+        guard !Task.isCancelled else { return false }
         switch answer {
         case 0: return true
         case 1:

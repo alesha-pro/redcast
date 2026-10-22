@@ -110,6 +110,18 @@ struct AgentToolsTests {
         let slow = await agent.run(
             call(AgentToolbox.runCommand, #"{"command":"sleep 30","timeout_seconds":1}"#))
         expect(slow.content.contains("stopped after 1 s"), "a command past its timeout is stopped")
+        let started = ContinuousClock.now
+        let stopping = Task {
+            await agent.run(call(AgentToolbox.runCommand, #"{"command":"sleep 1; touch stopped.txt"}"#))
+        }
+        try? await Task.sleep(for: .milliseconds(300))
+        stopping.cancel()
+        _ = await stopping.value
+        expect(ContinuousClock.now - started < .seconds(1), "Stop ends a running command's call at once")
+        try? await Task.sleep(for: .milliseconds(1_500))
+        expect(
+            !FileManager.default.fileExists(atPath: folder + "/stopped.txt"),
+            "and the command itself, so it never reaches its next step")
 
         _ = await agent.run(call(AgentToolbox.writeMemory, #"{"text":"likes tea"}"#))
         _ = await agent.run(call(AgentToolbox.writeMemory, #"{"text":"lives in Almaty"}"#))
