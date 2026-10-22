@@ -5,6 +5,8 @@ enum CommandID: String, CaseIterable, Sendable {
     case quickAI = "command:ai-chat"
     case aiChat = "command:ai-chat-window"
     case askAboutScreen = "command:ask-about-screen"
+    case searchAgentSessions = "command:search-agent-sessions"
+    case jumpToAgent = "command:jump-to-agent"
     case fixGrammar = "command:fix-grammar"
     case rewrite = "command:rewrite"
     case translate = "command:translate"
@@ -59,6 +61,8 @@ enum CommandID: String, CaseIterable, Sendable {
         case .quickAI: return "Quick AI"
         case .aiChat: return "AI Chat"
         case .askAboutScreen: return "Ask About Screen"
+        case .searchAgentSessions: return "Search Agent Sessions"
+        case .jumpToAgent: return "Jump to Agent"
         case .fixGrammar: return BuiltInQuickAction.fixGrammar.titleResource
         case .rewrite: return BuiltInQuickAction.rewrite.titleResource
         case .translate: return BuiltInQuickAction.translate.titleResource
@@ -111,6 +115,8 @@ enum CommandID: String, CaseIterable, Sendable {
         case .quickAI: return "sparkles"
         case .aiChat: return "bubble.left.and.bubble.right"
         case .askAboutScreen: return "macwindow.and.cursorarrow"
+        case .searchAgentSessions: return "clock.arrow.2.circlepath"
+        case .jumpToAgent: return "arrow.up.forward.app"
         case .fixGrammar: return BuiltInQuickAction.fixGrammar.symbol
         case .rewrite: return BuiltInQuickAction.rewrite.symbol
         case .translate: return BuiltInQuickAction.translate.symbol
@@ -183,6 +189,7 @@ enum CommandID: String, CaseIterable, Sendable {
         case .quickAI: ["ai"]
         case .aiChat: ["chat"]
         case .askAboutScreen: ["screen"]
+        case .searchAgentSessions: ["sessions"]
         default: []
         }
     }

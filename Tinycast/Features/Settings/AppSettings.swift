@@ -456,6 +456,20 @@ final class AppSettings {
         }
     }
 
+    /// On out of the box, but nothing is read until Search Agent Sessions opens.
+    var agentSessionsEnabled: Bool {
+        didSet { defaults.set(agentSessionsEnabled, forKey: Key.agentSessionsEnabled.rawValue) }
+    }
+
+    /// An `AgentTerminal` raw value; empty means the terminal a session last ran in.
+    var agentSessionsTerminal: String {
+        didSet { defaults.set(agentSessionsTerminal, forKey: Key.agentSessionsTerminal.rawValue) }
+    }
+
+    var agentStatusMenuBar: Bool {
+        didSet { defaults.set(agentStatusMenuBar, forKey: Key.agentStatusMenuBar.rawValue) }
+    }
+
     var snippetsShowInLauncher: Bool {
         didSet { defaults.set(snippetsShowInLauncher, forKey: Key.snippetsShowInLauncher.rawValue) }
     }
@@ -830,6 +844,11 @@ final class AppSettings {
             .flatMap(ScreenAwarenessDestination.init(rawValue:)) ?? .aiChat
         screenAwarenessShortcutOffered = defaults.bool(
             forKey: Key.screenAwarenessShortcutOffered.rawValue)
+        agentSessionsEnabled =
+            defaults.object(forKey: Key.agentSessionsEnabled.rawValue) == nil
+            || defaults.bool(forKey: Key.agentSessionsEnabled.rawValue)
+        agentSessionsTerminal = defaults.string(forKey: Key.agentSessionsTerminal.rawValue) ?? ""
+        agentStatusMenuBar = defaults.bool(forKey: Key.agentStatusMenuBar.rawValue)
         snippetsShowInLauncher =
             defaults.object(forKey: Key.snippetsShowInLauncher.rawValue) == nil
             || defaults.bool(forKey: Key.snippetsShowInLauncher.rawValue)

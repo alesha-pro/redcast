@@ -79,6 +79,7 @@ enum SettingsFileSchema {
         case .aiOpensTo: return bind(ai, \.opensTo)
         case .aiNewChatAfter: return bind(ai, \.newChatAfter)
         case .aiToolRounds: return bind(ai, \.toolRounds)
+        case .agentSessionsEnabled: return bind(settings, \.agentSessionsEnabled)
         case .aiCommands: return launcher.commandsBinding(for: key, owner: .ai)
         case .quickActionLanguage: return bind(quickActions, \.settings.targetLanguage)
         case .quickActionCommands: return launcher.commandsBinding(for: key, owner: .quickActions)

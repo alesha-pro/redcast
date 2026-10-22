@@ -58,6 +58,8 @@ They run on the user's own logins and subscriptions; Tinycast never sees a key.
   session id is kept in `agent-acp-sessions.json`; after a relaunch or an idle stop (two minutes)
   the next turn sends `session/load` when the agent supports it and drops the replay, since no turn is
   listening, and starts a fresh session when the agent has lost it.
+- **Its sessions show once in Agent Sessions.** A Claude or Codex session whose id is in
+  `acpSessions` is listed only as its Tinycast chat (see [agent-sessions.md](agent-sessions.md)).
 - **Nothing outlives the agent.** An ACP agent is a tree — `npx`, the adapter, the vendor CLI it
   spawns (Claude Code's is about 380 MB together) — and closing stdin lets the top go while a
   grandchild lingers, orphaned to launchd. `ProcessTree` reads the descendants by `proc_listchildpids`
