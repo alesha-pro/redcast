@@ -62,6 +62,13 @@ struct AgentsSettingsSection: View {
         .settingsEditorPanel(item: $editingSchedule) { request in
             AgentScheduleEditorPanel(request: request)
         }
+        // Edit Agent from a launcher row's ⌘K menu lands here, however the pane was opened.
+        .onChange(of: core.agentCoordinator.pendingEdit, initial: true) { _, id in
+            guard let id else { return }
+            core.agentCoordinator.pendingEdit = nil
+            guard let agent = core.agentCoordinator.store.agent(id: id) else { return }
+            editing = AgentEditRequest(agent: agent)
+        }
     }
 
     private func scheduleRow(_ schedule: AgentSchedule, of agent: AgentProfile) -> some View {

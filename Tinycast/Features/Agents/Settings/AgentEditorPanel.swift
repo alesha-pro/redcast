@@ -48,6 +48,7 @@ struct AgentEditorPanel: View {
                         iconField
                     }
                     folderField
+                    if let existing { shortcutField(for: existing) }
                     runtimeField
                     field("Instructions") {
                         TextEditor(text: $draft.instructions)
@@ -144,6 +145,17 @@ struct AgentEditorPanel: View {
                     .settingsEditorTextField()
                 Button("Choose…", action: chooseFolder)
             }
+        }
+    }
+
+    /// Recorded at once, like every shortcut recorder, so Cancel leaves a new chord in place.
+    private func shortcutField(for agent: AgentProfile) -> some View {
+        let handle = core.agentCoordinator.handle(of: agent.id) ?? ""
+        return field("Shortcut") {
+            ShortcutRecorder(action: .agent(id: agent.id))
+            Text("Opens the launcher with @\(handle) typed, ready for a task or a chat.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
         }
     }
 

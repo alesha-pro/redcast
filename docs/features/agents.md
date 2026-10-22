@@ -6,7 +6,8 @@ instructions, and its built-in tools — files, terminal, web and memory — act
 fork's; upstream lists AI-assistant features under [not planned](../not-planned.md), so the feature
 stays in `Features/Agents/` plus the few lines in `AIChatCoordinator`, `AIChatDetailView`,
 `AISettingsView` and `AppCore` that wire it in. An agent can also work with no window, from `@handle`
-in root search or on a schedule: see [background and scheduled agents](background-agents.md).
+in root search or on a schedule, and is a launcher row of its own with an optional chord: see
+[background and scheduled agents](background-agents.md).
 
 ## Invariants
 

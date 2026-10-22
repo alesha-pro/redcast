@@ -8,7 +8,9 @@ or every few hours, each with a prompt and a rule for runs missed while the Mac 
 an ordinary chat, and a schedule can also append its answer to a note.
 
 Everything lives in `Features/Agents/` plus a few lines in `AIChatSurfacesState`, `AIChatCoordinator`,
-the launcher's fallback files, `CommandID`, `AISettingsView` and `AppCore`.
+the launcher's fallback files, `CommandID`, `AISettingsView` and `AppCore`, and, for each agent's own
+row and chord, `AppIndex`, `LauncherList`, `LauncherCoordinator`, `AppActionsMenu`, `HotKeyAction`,
+`HotKeyManager` and `VisibilityStore`, each hunk marked `Fork:`.
 
 ## Invariants
 
@@ -106,6 +108,28 @@ happened to rank first. They are `Fallback.agent` and `.agentPick`, never part o
 Settings › Fallbacks never lists them. An ordinary query costs the claim one character's
 comparison. **Run Agent Task** seeds root search with `@`; it is listed in the launcher and under
 Settings › AI › Commands, where its hotkey and alias come free, while AI is on and an agent exists.
+All of these rows are `AppEntry.Kind.agent`, like the agents' own rows below, but keep their
+`agent:` and `agent-pick:` ids.
+
+### An agent's own row and chord
+
+While AI is on, every agent is also a row of its own in root search, under **Agents**, with its
+`@handle` beside its name (`AppEntry.Kind.agent`, id `agent-profile:<uuid>`, built by
+`AgentCoordinator.publishLauncherRows`). Typing its name finds it, and `agent` or `agents` lists them
+all, the way `meeting` lists meetings. ↵ opens a new AI Chat with the agent. Its ⌘K menu offers
+**New Chat** (↵), **Run in Background…**, which types `@handle ` into the field for a task, and
+**Edit Agent**, which opens Settings › AI › Agents with the agent's editor up; then the shared
+Favorites, Change Alias and Change Shortcut rows. The rows answer to AI's switch (`settingsOwner`
+`.ai`), so no Settings checkbox gates them and **Hide from Search** is not offered, and Suggestions
+never push one.
+
+An agent's **chord** (`HotKeyAction.agent(id:)`) is recorded from that ⌘K row or from **Shortcut** in
+the agent's editor. It summons root search with `@handle ` typed: ↵ on the empty task opens a chat,
+a typed task runs in the background, ⌘↵ runs it in AI Chat in front of you. Only bound agents are
+indexed (`boundAgentIDs`) and registered, so an agent without a chord costs nothing. Deleting an
+agent clears its chord, favorite, alias, hidden flag and ranking; a chord whose agent is gone at
+launch is dropped once `agents.json` has read. Chords, like agents, travel in no backup and no
+`settings.json`.
 
 ## While and after a run
 
@@ -180,6 +204,7 @@ local to the Mac's day and time zone, like the schedules.
 | `UI/AgentsStatusItem.swift` | The one transient Agents menu-bar item and its menu, runs and sessions |
 | `UI/AgentsMenuBar.swift` | `AgentCoordinator.refreshMenuBar`: when the item exists, what it shows, what its rows do |
 | `UI/AgentTaskLauncher.swift` | Root search's claim, ↵, ⌘↵, Run Agent Task and the rows' ⌘K menu |
+| `UI/AgentLauncherRows.swift` | Each agent's own row, its ⌘K menu, its chord's summon, and its cleanup on delete |
 | `UI/AgentNoteWriter.swift` | Appending to a note, through the store or on disk; in `UI/` because it needs `NotesStore` |
 | `Settings/AgentScheduleEditorPanel.swift` | The schedule editor |
 
@@ -204,6 +229,15 @@ local to the Mac's day and time zone, like the schedules.
 - ⌘↵ on `@rig task`: it runs in AI Chat in front of you, as a normal chat.
 - **Run Agent Task** and its hotkey: the palette opens with `@`. Hidden, and the hotkey inert, while AI
   is off or there are no agents.
+- Type an agent's name: its row shows under Agents with `@rig` beside it; ↵ opens a chat with it.
+  `agents` lists every agent. Rename the agent: the row follows, and its favorite, alias and chord
+  stay. ⌘K → Run in Background…: the field reads `@rig `. ⌘K → Edit Agent: Settings opens on AI with
+  Rig's editor up, also when Settings was already open on another pane.
+- ⌘K → Change Shortcut, press ⌥⌘R: the chord summons the palette with `@rig ` typed from any app;
+  Return opens a chat, a typed task runs in the background. The editor's Shortcut shows the same
+  chord. A chord another action owns is refused with its name. An agent without a chord: nothing in
+  `HotKeyCenter` for it. Delete the agent: the chord is free again and its row, favorite and alias
+  are gone. AI off: no agent rows, and the chord does nothing.
 
 **Schedules**
 
