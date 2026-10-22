@@ -58,13 +58,15 @@ relaunches it. About shows the `git describe` version and the commit count (a fr
 `git fetch upstream --tags` first). Details and the manual sweep are in
 [fork tooling](docs/fork-tooling.md#scriptsforkinstallsh).
 
-- `--self-check` resolves the identity, version and paths and builds nothing; `--rollback` puts back
-  the copy the last install replaced; `--no-launch` and `--force-quit` do what they say.
+- `--self-check` resolves the identity, version and paths and builds nothing; `--self-test` rehearses
+  an install, a rollback and a start from Tinycast with a stubbed build in `$TMPDIR`; `--rollback` puts
+  back the copy the last install replaced; `--no-launch` and `--force-quit` do what they say.
 - It refuses to replace upstream's same-named `Tinycast.app`, and to install a build whose code
   requirement differs from the installed one: that would cost every privacy grant.
   `--accept-new-identity` goes ahead and prints the `tccutil reset` lines; it never runs them itself.
-- Started from a Tinycast agent or command, it finishes in a session of its own
-  (`build/fork/install.log`), because quitting Tinycast reaps its agents' process trees.
+- Started from a Tinycast agent or command, it moves to a session of its own before it builds and
+  logs to `build/fork/install.log`: an agent's command watchdog and Tinycast's quit both end the
+  process group that started it.
 - If macOS App Management blocks the swap, the script names the setting and leaves the old app in place.
 - The Accessibility grant survives a reinstall. A capture refused while other apps capture fine is that
   one app's process refusing: quit and reopen the app you captured before toggling the grant.
