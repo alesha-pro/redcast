@@ -45,6 +45,11 @@ in `Features/AgentSessions/`, plus the few lines that wire it in.
 - **Tinycast's own ACP sessions show once.** A Claude or Codex session whose id is in
   `AgentStore.acpSessions` is a Tinycast chat and is listed only as that chat; Codex threads with the
   `tinycast` originator are dropped for the same reason.
+- **Only a person's own sessions are tracked.** An event for an automated run (`claude -p`, an SDK
+  run, `codex exec`, a Codex subagent or guardian review) or for Tinycast's own session (an
+  `acpSessions` id, the `tinycast` originator, or an agent whose process runs under Tinycast) is
+  dropped, along with any entry it had before it was known. So no HUD, menu-bar row or Jump to Agent
+  ever points at one, and a burst of them never evicts a waiting session from the 32 kept.
 
 ## Layout
 
@@ -141,10 +146,12 @@ them; **Update…** keeps the token, so the command and the trust survive it. Th
 re-rendered in the file's own indent and line endings with its keys in their original order; every
 other byte of the file stays as it was.
 
-An event resolves its session from this Mac's own history and its host app and tty from the pid. A
-HUD is shown only for finished, waiting or failed; never for an automated run, a Claude app or Codex
-app session, a host that is in front, an unchanged status, or a repeat within 10 s. Activity keeps at
-most 32 entries, drops an ended one after 10 minutes and anything after 12 hours.
+An event resolves its session from this Mac's own history and its host app and tty from the pid; a
+Codex thread is looked up by id even when the listing hides it, so a subagent reads as automated and
+Tinycast's own thread as Tinycast's. Only a person's own sessions are kept (see Invariants). A HUD is
+shown only for finished, waiting or failed; never for a Claude app or Codex app session, a host that
+is in front, an unchanged status, or a repeat within 10 s. Activity keeps at most 32 entries, drops
+an ended one after 10 minutes and anything after 12 hours.
 
 The menu-bar item builds its rows as it opens and marks the finished ones seen; the work its closing
 does (which may remove the item) waits a turn of the main queue, because AppKit delivers the chosen
@@ -176,7 +183,9 @@ Run in `Tinycast Dev.app` with AI on.
     Codex, `/hooks` lists four hooks and trusting them works.
 13. With another app in front, a finished Claude turn gives "Claude Code finished in <folder>", a
     permission prompt "… needs you …"; none while that Terminal is in front, none for a Claude.app
-    session, none for `claude -p`. Check `$PPID` resolves the host for both agents.
+    session. `claude -p`, `codex exec`, an AI Chat turn on the Codex route and an agent chat in
+    Tinycast give no HUD, no menu-bar row and are never a Jump to Agent target. Check `$PPID`
+    resolves the host for both agents.
 14. The menu-bar item (opt-in) appears while an agent works and leaves after Clear Finished; its rows
     jump. With only one finished agent left, open the menu and click its row: the terminal comes
     forward and the item then leaves. When another agent finishes, choose Search Agent Sessions from

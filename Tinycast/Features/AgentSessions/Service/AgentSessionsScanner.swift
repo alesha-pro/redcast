@@ -115,12 +115,12 @@ enum AgentSessionsScanner {
             let (title, origin) = ClaudeTranscriptDecoder.title(head: head, tail: tail)
             activity.title = origin == .untitled ? nil : title
             activity.directory = tail.relocatedCwd ?? head.cwd
-            activity.isAutomated = ClaudeTranscriptDecoder.host(entrypoint: head.entrypoint) == .automated
+            activity.host = ClaudeTranscriptDecoder.host(entrypoint: head.entrypoint)
         case .codex:
             guard let thread = try? CodexStateReader.thread(database: codexState, id: event.sessionID) else { break }
             activity.title = thread.titleOrigin == .untitled ? nil : thread.title
             activity.directory = thread.directory
-            activity.isAutomated = thread.isAutomated
+            activity.host = thread.host
         case .tinycast:
             break
         }
