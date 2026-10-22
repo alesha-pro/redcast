@@ -23,6 +23,8 @@ enum AIRequestBody {
             "messages": messages,
             "stream": true
         ]
+        // OpenAI streams usage only when asked; OpenRouter and most gateways send it regardless.
+        if configuration.provider == .openAI { body["stream_options"] = ["include_usage": true] }
         // OpenRouter's own search layer, so it works for every model it routes.
         if input.webSearch, configuration.provider == .openRouter {
             body["plugins"] = [["id": "web"]]
