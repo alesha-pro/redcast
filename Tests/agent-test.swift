@@ -38,6 +38,9 @@ struct AgentTests {
         aPlanReadsAsAChecklist()
         newerFamiliesStayOutOfOlderBuildsWay()
         aToolsetCanOfferReadingOnly()
+        compactionCoversWhatTheBudgetDrops()
+        compactionNotesRideTheFirstQuestion()
+        compactionNotesAreKeptPerChat()
 
         print("\(passes) passed, \(failures) failed")
         if failures > 0 { exit(1) }
@@ -659,6 +662,144 @@ extension AgentTests {
                 && routed.title(for: AIToolCall(id: "3", name: "srv__x", arguments: "{}")) == nil
                 && routed.title(for: AIToolCall(id: "4", name: "nope", arguments: "{}")) == nil,
             "every other row keeps its tool's title")
+    }
+}
+
+/// Cross-turn compaction's arithmetic: what was dropped, what the notes cover, and what goes out.
+extension AgentTests {
+    /// `count` messages of 100 bytes, a question at every even index.
+    static func history(_ count: Int) -> [AgentCompaction.Entry] {
+        (0..<count).map { index in
+            AgentCompaction.Entry(
+                id: UUID(), isUser: index.isMultiple(of: 2),
+                text: String(index % 10) + String(repeating: "m", count: 99))
+        }
+    }
+
+    static func sent(_ history: [AgentCompaction.Entry], from start: Int) -> [AIMessage] {
+        history[start...].map { AIMessage(role: $0.isUser ? .user : .assistant, text: $0.text) }
+    }
+
+    static func compactionCoversWhatTheBudgetDrops() {
+        let chat = history(19)
+        expect(AgentCompaction.dropped(from: chat, sent: sent(chat, from: 10)) == 10, "ten were dropped")
+        expect(AgentCompaction.dropped(from: chat, sent: sent(chat, from: 0)) == 0, "or none")
+        let shifted = sent(chat, from: 10).map {
+            AIMessage(role: $0.role == .user ? .assistant : .user, text: $0.text)
+        }
+        expect(
+            AgentCompaction.dropped(from: chat, sent: shifted) == nil,
+            "a request that no longer lines up with the history is left alone")
+        expect(
+            AgentCompaction.dropped(from: Array(chat.prefix(3)), sent: sent(chat, from: 10)) == nil,
+            "as is one longer than the history")
+
+        expect(
+            AgentCompaction.coverage(of: chat, dropped: 10) == 16,
+            "notes reach the first question from which at most half of what went out is left")
+        expect(
+            AgentCompaction.coverage(of: chat, dropped: 18) == 18,
+            "and never past the newest question")
+        let first = AgentCompaction.plan(history: chat, dropped: 10, summary: nil)
+        expect(first == .extend(from: 0, to: 16, previous: nil), "the first notes cover from the start")
+
+        let notes = AgentChatSummary(text: "notes", covered: 16, lastCoveredID: chat[15].id)
+        expect(
+            AgentCompaction.plan(history: chat, dropped: 10, summary: notes) == .reuse(notes)
+                && AgentCompaction.plan(history: chat, dropped: 16, summary: notes) == .reuse(notes),
+            "notes that reach past what was dropped are reused, with no request")
+        let longer = history(31)
+        let moved = AgentChatSummary(text: "notes", covered: 14, lastCoveredID: longer[13].id)
+        expect(
+            AgentCompaction.plan(history: longer, dropped: 16, summary: moved)
+                == .extend(from: 14, to: AgentCompaction.coverage(of: longer, dropped: 16), previous: moved),
+            "past them, only the newly dropped messages are folded in")
+        let stale = AgentChatSummary(text: "notes", covered: 14, lastCoveredID: UUID())
+        expect(
+            AgentCompaction.plan(history: chat, dropped: 10, summary: stale)
+                == .extend(from: 0, to: 16, previous: nil),
+            "notes on a history that changed underneath start over")
+        let odd = AgentChatSummary(text: "notes", covered: 13, lastCoveredID: chat[12].id)
+        expect(
+            AgentCompaction.plan(history: chat, dropped: 10, summary: odd) == .extend(from: 0, to: 16, previous: nil),
+            "as do notes that would leave a reply opening the request")
+    }
+
+    static func compactionNotesRideTheFirstQuestion() {
+        let chat = history(19)
+        let image = AIImage(data: Data([1]), mimeType: "image/png")
+        var request = sent(chat, from: 10)
+        request[request.count - 1] = AIMessage(role: .user, text: chat[18].text, images: [image])
+        let notes = AgentChatSummary(text: "notes", covered: 14, lastCoveredID: chat[13].id)
+        let led = AgentCompaction.messages(request, dropped: 10, summary: notes)
+        expect(led.count == 5, "what the notes stand for is not sent twice")
+        expect(
+            led.first?.role == .user && led.first?.text == AgentCompaction.preface("notes") + chat[14].text,
+            "the notes lead the first question sent, so no two questions arrive in a row")
+        expect(led.last?.images == [image], "and the newest question keeps its attachments")
+        let whole = AgentChatSummary(text: "notes", covered: 18, lastCoveredID: chat[17].id)
+        let alone = AgentCompaction.messages(request, dropped: 10, summary: whole)
+        expect(
+            alone.count == 1 && alone.first?.images == [image]
+                && alone.first?.text.hasPrefix(AgentCompaction.preface("notes")) == true,
+            "notes may lead the newest question itself")
+
+        let fold = AgentCompaction.request(previous: notes, slice: chat[14..<18])
+        let text = fold.messages.first?.text ?? ""
+        expect(
+            fold.instructions == AgentCompaction.instructions && fold.tools.isEmpty
+                && fold.messages.count == 1,
+            "folding is one request with no tools")
+        expect(
+            text.hasPrefix("<notes>\nnotes\n</notes>") && text.contains("User: " + chat[14].text)
+                && text.contains("Agent: " + chat[17].text) && !text.contains(chat[13].text),
+            "it carries the notes so far and only the messages they must now cover")
+        let huge = (0..<40).map { index in
+            AgentCompaction.Entry(
+                id: UUID(), isUser: index.isMultiple(of: 2), text: String(repeating: "й", count: 10_000))
+        }
+        let bounded = AgentCompaction.request(previous: nil, slice: huge[0..<40]).messages.first?.text ?? ""
+        expect(
+            bounded.utf8.count <= AgentCompaction.maxSourceBytes + 128
+                && bounded.contains("earlier messages left out."),
+            "a long stretch is read newest first, each message clipped, and says what it left out")
+        expect(
+            AgentCompaction.summary("  ", covering: 14, of: chat) == nil,
+            "a model that wrote nothing leaves no notes")
+        let kept = AgentCompaction.summary(String(repeating: "ж", count: 9_000), covering: 14, of: chat)
+        expect(
+            (kept?.text.utf8.count ?? .max) <= AgentCompaction.maxSummaryBytes + 3
+                && kept?.covered == 14 && kept?.lastCoveredID == chat[13].id,
+            "notes are held to 8 KB and remember the last message they stand for")
+    }
+
+    static func compactionNotesAreKeptPerChat() {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("AgentTests-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let store = AgentStore(directory: directory)
+        let (kept, gone, freed) = (UUID(), UUID(), UUID())
+        let notes = AgentChatSummary(text: "notes", covered: 2, lastCoveredID: UUID())
+        for chat in [kept, gone, freed] { try? notes.write(to: store.summaryURL(forChat: chat)) }
+        expect(AgentChatSummary.load(from: store.summaryURL(forChat: kept)) == notes, "notes round-trip")
+        expect(
+            store.summaryURL(forChat: kept).path.contains("agent-summaries/\(kept.uuidString.lowercased())"),
+            "one file per chat, beside the agents")
+        store.pruneSummaries(keeping: [kept, freed])
+        expect(
+            AgentChatSummary.load(from: store.summaryURL(forChat: gone)) == nil
+                && AgentChatSummary.load(from: store.summaryURL(forChat: kept)) != nil,
+            "a deleted chat's notes are swept, the rest stay")
+        guard let agent = try? store.add(AgentProfile(name: "Builder", directory: folder)) else {
+            return expect(false, "an agent is saved")
+        }
+        store.setAgent(agent.id, forChat: freed)
+        try? store.remove(id: agent.id)
+        expect(
+            AgentChatSummary.load(from: store.summaryURL(forChat: freed)) == nil,
+            "deleting an agent drops its chats' notes, since they are plain chats now")
+        store.removeSummary(forChat: kept)
+        expect(AgentChatSummary.load(from: store.summaryURL(forChat: kept)) == nil, "and so can one chat")
     }
 }
 

@@ -31,6 +31,10 @@ struct AgentLoopTests {
         await aSubAgentAnswersInsideItsParentsTurn()
         await aSubAgentIsBounded()
         await stopReachesASubAgent()
+        await compactionAddsNothingWhileNothingIsDropped()
+        await compactionSummarisesOnceThenReuses()
+        await aFailedSummaryLeavesTheTurnAsBuilt()
+        await stopReachesTheSummary()
 
         print("\(passes) passed, \(failures) failed")
         if failures > 0 { exit(1) }
@@ -462,6 +466,214 @@ extension AgentLoopTests {
             (sleeper.noticed ?? .now) - stopped < .milliseconds(100),
             "Stop reaches the sub-agent's running call at once")
         expect(base.requests.count == 2, "and neither the child nor the parent asks the model again")
+    }
+}
+
+// MARK: - Cross-turn compaction
+
+extension AgentLoopTests {
+    static let folder = FileManager.default.temporaryDirectory
+        .appendingPathComponent("AgentLoopTests-\(UUID().uuidString)")
+
+    /// `count` messages of 1 KB, a question at every even index; the last is the turn's question.
+    static func chat(_ count: Int, after earlier: [AgentCompaction.Entry] = []) -> [AgentCompaction.Entry] {
+        earlier + (earlier.count..<earlier.count + count).map { index in
+            AgentCompaction.Entry(
+                id: UUID(), isUser: index.isMultiple(of: 2),
+                text: "m\(index) " + String(repeating: "x", count: 1_000))
+        }
+    }
+
+    /// What `ChatSession.requestMessages` would have sent: the last `count` messages.
+    static func request(_ history: [AgentCompaction.Entry], keeping count: Int) -> AIRequest {
+        AIRequest(
+            instructions: "Be brief.",
+            messages: history.suffix(count).map {
+                AIMessage(role: $0.isUser ? .user : .assistant, text: $0.text)
+            })
+    }
+
+    static func source(_ history: [AgentCompaction.Entry], file: URL) -> AgentCompaction.Source {
+        AgentCompaction.Source(url: file, origin: "Loop", history: { history })
+    }
+
+    static func run(
+        _ loop: AgentLoopProvider, _ request: AIRequest
+    ) async -> (events: [AIStreamEvent], failure: String?) {
+        var events: [AIStreamEvent] = []
+        do {
+            for try await event in loop.stream(request) { events.append(event) }
+        } catch {
+            return (events, error.localizedDescription)
+        }
+        return (events, nil)
+    }
+
+    static func lastCost(_ events: [AIStreamEvent]) -> Double? {
+        events.compactMap { event -> Double? in
+            if case .usage(let usage) = event { usage.costUSD } else { nil }
+        }.last
+    }
+
+    static func compactionAddsNothingWhileNothingIsDropped() async {
+        let file = folder.appendingPathComponent("whole.json")
+        let history = chat(7)
+        let script: [AIStreamEvent] = [.text("ok"), .finished]
+        let base = ScriptedProvider(rounds: [script])
+        let tools = toolset([FakeTools(names: ["fs_read"]) { _, _ in "x" }])
+        let outcome = await run(
+            AgentLoopProvider(base: base, toolset: tools, maxRounds: 25, compaction: source(history, file: file)),
+            request(history, keeping: 7))
+        expect(
+            base.requests.count == 1 && base.requests.first?.messages == request(history, keeping: 7).messages,
+            "a chat that still fits costs no extra request and goes out as built")
+        expect(outcome.events == script, "and shows no summary row")
+        expect(!FileManager.default.fileExists(atPath: file.path), "and keeps no notes")
+    }
+
+    static func compactionSummarisesOnceThenReuses() async {
+        let file = folder.appendingPathComponent("long.json")
+        let history = chat(19)
+        let built = request(history, keeping: 9)
+        let base = ScriptedProvider(rounds: [
+            [.text("notes v1"), .usage(AIUsage(inputTokens: 900, costUSD: 0.001)), .finished],
+            [.text("answer"), .usage(AIUsage(inputTokens: 50, costUSD: 0.01)), .finished]
+        ])
+        let tools = toolset([FakeTools(names: ["fs_read"]) { _, _ in "x" }])
+        let first = await run(
+            AgentLoopProvider(base: base, toolset: tools, maxRounds: 25, compaction: source(history, file: file)),
+            built)
+        let reach = AgentCompaction.coverage(of: history, dropped: 10)
+        expect(base.requests.count == 2, "the first turn that drops messages asks for notes once")
+        let fold = base.requests.first
+        expect(
+            fold?.instructions == AgentCompaction.instructions && fold?.tools.isEmpty == true
+                && fold?.messages.first?.text.contains("User: m0 ") == true
+                && fold?.messages.first?.text.contains("m\(reach) ") == false,
+            "of the chat's own model, with no tools, over what it drops and a little more")
+        let sent = base.requests.last?.messages ?? []
+        expect(
+            sent.count == 9 - (reach - 10)
+                && sent.first?.text == AgentCompaction.preface("notes v1") + history[reach].text,
+            "then the notes lead the turn, and what they cover is not sent twice")
+        expect(
+            Array(first.events.prefix(2)) == [
+                .toolCall(id: AgentCompaction.markerID, origin: "Loop", title: AgentCompaction.markerTitle),
+                .toolResult(id: AgentCompaction.markerID, isError: false)
+            ],
+            "a quiet row says earlier messages were summarised, got \(first.events)")
+        expect(
+            abs((lastCost(first.events) ?? 0) - 0.011) < 1e-12,
+            "and the reply's cost includes the notes")
+        let stored = AgentChatSummary.load(from: file)
+        expect(
+            stored?.text == "notes v1" && stored?.covered == reach
+                && stored?.lastCoveredID == history[reach - 1].id,
+            "the notes are kept with what they stand for")
+
+        let grown = chat(2, after: history)
+        let again = ScriptedProvider(rounds: [[.text("again"), .finished]])
+        let second = await run(
+            AgentLoopProvider(base: again, toolset: tools, maxRounds: 25, compaction: source(grown, file: file)),
+            request(grown, keeping: 9))
+        let rowShown = second.events.contains { $0 == .toolResult(id: AgentCompaction.markerID, isError: false) }
+        expect(again.requests.count == 1 && !rowShown, "the next turn reuses them with no request and no row")
+        expect(
+            again.requests.first?.messages.first?.text.hasPrefix(AgentCompaction.preface("notes v1")) == true,
+            "and they still lead it")
+
+        let longer = chat(12, after: grown)
+        let extend = ScriptedProvider(rounds: [[.text("notes v2"), .finished], [.text("ok"), .finished]])
+        _ = await run(
+            AgentLoopProvider(base: extend, toolset: tools, maxRounds: 25, compaction: source(longer, file: file)),
+            request(longer, keeping: 9))
+        let folded = extend.requests.first?.messages.first?.text ?? ""
+        expect(
+            folded.hasPrefix("<notes>\nnotes v1\n</notes>") && !folded.contains("User: m0 ")
+                && folded.contains("m\(reach) "),
+            "past them, one request folds only the newly dropped messages into the notes")
+        expect(
+            AgentChatSummary.load(from: file)?.text == "notes v2"
+                && (AgentChatSummary.load(from: file)?.covered ?? 0) > reach,
+            "which then stand for more of the chat")
+    }
+
+    static func aFailedSummaryLeavesTheTurnAsBuilt() async {
+        let file = folder.appendingPathComponent("failed.json")
+        let history = chat(19)
+        let built = request(history, keeping: 9)
+        let base = FailingFirstProvider(then: [[.text("answer"), .finished]])
+        let tools = toolset([FakeTools(names: ["fs_read"]) { _, _ in "x" }])
+        let outcome = await run(
+            AgentLoopProvider(base: base, toolset: tools, maxRounds: 25, compaction: source(history, file: file)),
+            built)
+        expect(
+            outcome.failure == nil && outcome.events.contains(.toolResult(id: AgentCompaction.markerID, isError: true)),
+            "a failed summary marks its row and the turn goes on")
+        expect(base.requests.last?.messages == built.messages, "as it was built")
+        expect(!FileManager.default.fileExists(atPath: file.path), "and keeps no notes")
+    }
+
+    static func stopReachesTheSummary() async {
+        let file = folder.appendingPathComponent("stopped.json")
+        let history = chat(19)
+        let base = HangingProvider()
+        let loop = AgentLoopProvider(
+            base: base, toolset: toolset([FakeTools(names: ["fs_read"]) { _, _ in "x" }]), maxRounds: 25,
+            compaction: source(history, file: file))
+        let consumer = Task {
+            do {
+                for try await _ in loop.stream(request(history, keeping: 9)) {}
+            } catch {}
+        }
+        while base.requests == 0 { try? await Task.sleep(for: .milliseconds(10)) }
+        consumer.cancel()
+        await consumer.value
+        try? await Task.sleep(for: .milliseconds(200))
+        expect(base.requests == 1, "Stop while the notes are made sends nothing more")
+        expect(!FileManager.default.fileExists(atPath: file.path), "and keeps no notes")
+        try? FileManager.default.removeItem(at: folder)
+    }
+}
+
+/// Fails its first request as a route that is down would, then replays a script.
+final class FailingFirstProvider: AIProvider, @unchecked Sendable {
+    private let script: ScriptedProvider
+    private let lock = NSLock()
+    private var seen: [AIRequest] = []
+
+    init(then rounds: [[AIStreamEvent]]) {
+        script = ScriptedProvider(rounds: rounds)
+    }
+
+    var requests: [AIRequest] { lock.withLock { seen } }
+
+    func stream(_ request: AIRequest) -> AIProviderStream {
+        let first = lock.withLock {
+            seen.append(request)
+            return seen.count == 1
+        }
+        guard first else { return script.stream(request) }
+        return AIProviderStream { $0.finish(throwing: AIProviderError.responseFailed("down")) }
+    }
+}
+
+/// Never answers, until whoever is listening goes away.
+final class HangingProvider: AIProvider, @unchecked Sendable {
+    private let lock = NSLock()
+    private var count = 0
+
+    var requests: Int { lock.withLock { count } }
+
+    func stream(_ request: AIRequest) -> AIProviderStream {
+        lock.withLock { count += 1 }
+        return AIProviderStream { continuation in
+            let task = Task {
+                try? await Task.sleep(for: .seconds(30))
+                continuation.finish()
+            }
+            continuation.onTermination = { _ in task.cancel() }
+        }
     }
 }
 
