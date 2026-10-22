@@ -35,6 +35,7 @@ struct AgentTests {
         thePromptCarriesTheFoldersContext()
         thePromptStatesTheAgentsOwnRules()
         agentsAndTheirChatsSurviveARelaunch()
+        aPlanReadsAsAChecklist()
 
         print("\(passes) passed, \(failures) failed")
         if failures > 0 { exit(1) }
@@ -550,6 +551,50 @@ struct AgentTests {
         expect(
             reloaded.memoryURL(for: agent.id).path.contains(agent.id.uuidString.lowercased()),
             "each agent's notes live under its own id")
+    }
+}
+
+/// `update_plan` and an ACP agent's plan read the same, and a malformed list shows nothing.
+extension AgentTests {
+    static func aPlanReadsAsAChecklist() {
+        let items = AgentPlan.items(
+            in: #"{"plan":[{"step":"Read the code","status":"completed"},"#
+                + #"{"step":"Fix\nit","status":"in_progress"},{"step":"Ship","status":"later"},"#
+                + #"{"step":"  ","status":"pending"},{"status":"pending"}]}"#)
+        expect(
+            items == [
+                AgentPlan.Item(step: "Read the code", status: .completed),
+                AgentPlan.Item(step: "Fix it", status: .inProgress),
+                AgentPlan.Item(step: "Ship", status: .pending)
+            ],
+            "steps keep their order, a line break folds, an unknown status is pending, got \(items ?? [])")
+        expect(
+            AgentPlan.checklist(items ?? []) == "Plan:\n✓ Read the code\n→ Fix it\n· Ship\n",
+            "and show as the checklist ACP plans show")
+        expect(AgentPlan.items(in: #"{"plan":[]}"#) == nil, "an empty plan shows nothing")
+        expect(AgentPlan.items(in: #"{"items":[{"step":"x"}]}"#) == nil, "nor does another shape")
+        expect(AgentPlan.items(in: "not json") == nil, "nor text that is not JSON")
+        let long = (0..<80).map { #"{"step":"\#($0)\#(String(repeating: "x", count: 400))"}"# }
+        let capped = AgentPlan.items(in: #"{"plan":["# + long.joined(separator: ",") + "]}")
+        expect(
+            capped?.count == AgentPlan.maxSteps
+                && capped?.allSatisfy { $0.step.count <= AgentPlan.maxStepLength } == true,
+            "a plan is held to 50 steps of 300 characters")
+
+        var mapper = ACPEventMapper(origin: "Agent")
+        let entries = [
+            ACPPlanEntry(.object(["content": .string("Read the code"), "status": .string("completed")]))!,
+            ACPPlanEntry(.object(["content": .string("Fix it"), "status": .string("in_progress")]))!,
+            ACPPlanEntry(.object(["content": .string("Ship")]))!
+        ]
+        expect(
+            mapper.events(for: .plan(entries)) == [.reasoning(AgentPlan.checklist(items ?? []))],
+            "an ACP agent's plan reads exactly like update_plan's")
+        let tool = AgentPlan.definition(origin: "Builder")
+        expect(
+            tool.name == "update_plan" && !AgentToolbox.tools(for: profile(.fullAccess), hasSkills: true)
+                .contains { $0.name == tool.name },
+            "update_plan is a name no built-in uses")
     }
 }
 

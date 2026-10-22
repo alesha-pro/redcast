@@ -184,6 +184,7 @@ final class AgentCoordinator {
             providers.append(WebSearchAgentTools(runner: core.webSearch.runner(canFetch: true)))
         }
         if core.settings.notesEnabled { providers.append(core.notesAI.agentTools) }
+        providers.append(AgentPlanTools())
         return providers
     }
 

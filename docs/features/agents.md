@@ -82,6 +82,10 @@ in root search or on a schedule: see [background and scheduled agents](backgroun
   pairing of calls and results are never touched, a stub is never stubbed again, and the gap between
   the two marks means the prefix changes rarely, so a provider's prompt cache keeps hitting. Elided
   bytes stop counting toward the history wall.
+- **A plan is shown, never kept.** `update_plan` belongs to no family and is the agent's own (risk
+  own), so every agent on Tinycast's loop has it and it never asks. The model sends the whole checklist
+  each time; `AgentPlanTools` shows it as a reasoning fold with the same lines `ACPEventMapper` draws for
+  an ACP agent's plan (`AgentPlan.checklist`), and stores nothing.
 - **The binding is the fork's, not the chat history's.** Which chat has which agent is
   `agent-chats.json` beside `agents.json` in Application Support, so upstream's SQLite schema is
   untouched. Deleting an agent frees its chats, which stay as plain AI chats, and deletes its notes.
@@ -150,9 +154,11 @@ They run on the user's own logins and subscriptions; Tinycast never sees a key.
 | `Model/AgentConsentPolicy.swift` | Rules (ask, always, never), an agent's own (`AgentConsentRules`), `AgentGrant`, the verdict per rule and mode |
 | `Model/AgentToolset.swift` | One turn's offered tools in a stable order, and where each call goes |
 | `Model/AgentTurnBudget.swift` | The per-result, per-turn and history limits; `AgentBatchPolicy` |
+| `Model/AgentPlan.swift` | `update_plan`'s definition and arguments, and the checklist ACP plans share |
 | `Service/AgentContextLoader.swift` | Reads `AGENTS.md` (or a lone `CLAUDE.md`), `~/.agents/AGENTS.md`, skills, notes |
 | `Service/AgentToolExecutor.swift` | `AgentBuiltInTools`, the first provider; the executor runs each call: ripgrep search, terminal with timeout, web fetch, HTML to text |
 | `Service/AgentLoopProvider.swift` | The agent chats' tool loop: rounds, batches, budget, Stop |
+| `Service/AgentPlanTools.swift` | `update_plan`: shows the checklist it is sent |
 | `UI/AgentCoordinator.swift` | Bindings, cached context, the turn's prompt, its loop and provider registry, consent |
 | `Model/AgentRuntime.swift` | ACP presets and the command/arguments an agent runs |
 | `Model/ACPProtocol.swift` | Framing, `session/update` decoding, permissions, prompt blocks, modes, `ACPEventMapper` |
@@ -179,6 +185,7 @@ because the composer's label and menu styles are private to that file.
 | `memory_read` | memory | read | any | always | — |
 | `memory_write` | memory | own | any | always | — |
 | `load_skill` | — (when skills exist) | read | any | always | — |
+| `update_plan` | — | own | any | always | — |
 | `notes_search`, `notes_read` | notes | personal | any | always | — |
 | `notes_append` | notes | change | workspace, full | ask | — (always asks) |
 
@@ -236,6 +243,8 @@ prompt edit.
   file untouched and the model asks what to do instead; Allow for This Chat stops the next question.
 - Ask it to run `ls ..`: the command dialog appears; ask it to read `../something`: refused.
 - Ask a question a skill covers: the transcript shows `load_skill` before the work.
+- Ask for a task of several steps: a reasoning fold opens with `Plan:` and ✓, → and · lines, and a later
+  call shows the list again with steps ticked.
 - Tell it to remember something, start a new chat with the same agent, ask about it.
 - A read-only agent is never offered the terminal or writes; a chat without an agent is unchanged.
 - Ask it to run `sleep 30`, then Stop: `ps` shows no `sleep`. Ask for a change, Stop while the dialog
@@ -260,9 +269,9 @@ prompt edit.
   in `Tests/acp-fixtures/fake-agent.mjs`: streaming, consent, reuse, refusal, cancel, reload, lost
   sessions, a missing command, two agents sharing a session id); `agent-test` (skills, catalog, path policy, tool sets, specs, consent
   policy and per-agent rules, toolset order and routing, batches, budget, elision, the prompt and the
-  rules it states, persistence); `agent-tools-test` (the executor against a real folder: reads,
+  rules it states, persistence, the plan checklist shared with ACP); `agent-tools-test` (the executor against a real folder: reads,
   writes with consent, link escapes, commands, timeouts and Stop, memory, skills, HTML; the built-ins
-  through a toolset, with and without an agent's own rules; every refused effect); and
+  through a toolset, with and without an agent's own rules; every refused effect; `update_plan`); and
   `agent-loop-test` (the fork's loop and upstream's on the same scripts under 128 KB; routing,
   signals, Stop, parallel batches, a long turn that elides); `web-search-test` covers the search
   provider through a toolset and the loop; and `agent-schedule-test` covers background runs and
