@@ -27,6 +27,7 @@ struct WebSearchTests {
         configurationSurvivesOtherBuilds()
         await theChainFallsThrough()
         searchingFollowsTheRoute()
+        await agentsSearchThroughTheirWebFamily()
 
         print("\(passes) passed, \(failures) failed")
         if failures > 0 { exit(1) }
@@ -479,6 +480,103 @@ struct WebSearchTests {
         let toolless = AIModelCapabilities(images: false, documents: false, webSearch: true, tools: false)
         expect(!toolless.searchingWithTinycast(agentDecides: false).webSearch, "no tools, no search tool")
     }
+
+    // MARK: - Agents
+
+    static func agentsSearchThroughTheirWebFamily() async {
+        let transport = FakeTransport(["search.parallel.ai": (fixture("parallel.json"), 200)])
+        let provider = WebSearchAgentTools(runner: runner([.parallel], transport: transport, canFetch: true))
+        let agent = AgentProfile(name: "Researcher", directory: "/tmp")
+        let turn = AgentTurn(
+            profile: agent, skills: [], memoryURL: URL(fileURLWithPath: "/tmp/memory.md"), mode: .chat(UUID()))
+        let spec = provider.specs(for: turn).first
+        expect(
+            spec?.tool.name == "web_search" && spec?.family == .web && spec?.risk == .network
+                && spec?.concurrent == true,
+            "web_search is the Web family's, a network risk, safe to run beside others")
+        expect(spec?.tool.origin == "Researcher", "its row belongs to the agent")
+        let builtIn = AgentToolbox.tools(for: agent, hasSkills: true).map(\.name)
+        expect(!builtIn.contains(WebSearchTool.name), "no built-in claims the name")
+
+        let offered = toolset(agent, provider).tools.map(\.name)
+        expect(
+            offered.contains("web_fetch") && offered.last == "web_search",
+            "Web offers fetch and search, search after the built-ins, got \(offered)")
+        var filesOnly = agent
+        filesOnly.tools = [.files]
+        expect(!toolset(filesOnly, provider).tools.map(\.name).contains("web_search"), "Web off, no search")
+        var never = agent
+        never.consent = AgentConsentRules.setting(.never, for: .network, in: nil)
+        expect(!toolset(never, provider).tools.map(\.name).contains("web_search"), "Never Allow, no search")
+        expect(toolset(agent, provider).isConcurrent("web_search"), "a search may share a round")
+
+        var asking = agent
+        asking.consent = AgentConsentRules.setting(.ask, for: .network, in: nil)
+        let refused = SignalLog()
+        let declined = await toolset(asking, provider, allows: false).run(call(), signal: refused.append)
+        expect(declined.isError && declined.content.contains("declined"), "a refused search says so")
+        expect(transport.hosts.isEmpty && refused.signals.isEmpty, "and sends nothing, shows nothing")
+
+        let shown = SignalLog()
+        let searched = await toolset(asking, provider, allows: true).run(call(), signal: shown.append)
+        expect(!searched.isError && searched.content.contains("from Parallel"), "an allowed search answers")
+        expect(searched.content.contains("web_fetch"), "and points an agent at web_fetch")
+        expect(shown.signals == ["searching swift", "searched swift"], "between its row's ends, got \(shown.signals)")
+        expect(transport.hosts == ["search.parallel.ai"], "with one request")
+
+        let base = ScriptedProvider(rounds: [
+            [.toolCallRequested(AIToolCall(id: "s1", name: "web_search", arguments: #"{"query":"q"}"#))],
+            [.text("ok"), .finished]
+        ])
+        let loop = AgentLoopProvider(base: base, toolset: toolset(agent, provider), maxRounds: 5)
+        let events = await collect(loop)
+        expect(
+            Array(events.prefix(4)) == [
+                .toolCall(id: "s1", origin: "Researcher", title: "web_search"), .searching("q"), .searched("q"),
+                .toolResult(id: "s1", isError: false)
+            ],
+            "an agent's search opens its row, then the search row, got \(events)")
+        expect(
+            base.requests.last?.messages.last?.toolResult?.content.hasPrefix(#"Web results for "q""#) == true,
+            "and the model reads the results")
+
+        let empty = WebSearchAgentTools(runner: runner([], transport: FakeTransport([:])))
+        let unset = SignalLog()
+        let noEngine = await toolset(agent, empty).run(call(), signal: unset.append)
+        expect(noEngine.content == WebSearchTool.noEngines && unset.signals.isEmpty, "no engine, no search row")
+    }
+
+    /// The built-ins' specs as they are offered, run by nobody, beside the search provider.
+    static func toolset(
+        _ profile: AgentProfile, _ search: WebSearchAgentTools, allows: Bool = false
+    ) -> AgentToolset {
+        AgentToolset(
+            turn: AgentTurn(
+                profile: profile, skills: [], memoryURL: URL(fileURLWithPath: "/tmp/memory.md"),
+                mode: .chat(UUID())),
+            providers: [BuiltInSpecs(), search], mcpTools: [],
+            mcp: { .failure($0.id, "no MCP") }, ask: { _, _ in allows })
+    }
+
+    static func collect(_ provider: any AIProvider) async -> [AIStreamEvent] {
+        var events: [AIStreamEvent] = []
+        let request = AIRequest(instructions: nil, messages: [AIMessage(role: .user, text: "go")])
+        do {
+            for try await event in provider.stream(request) { events.append(event) }
+        } catch {}
+        return events
+    }
+}
+
+/// `AgentBuiltInTools`' offer without its executor, which needs the app's shell types.
+struct BuiltInSpecs: AgentToolProvider {
+    func specs(for turn: AgentTurn) -> [AgentToolSpec] {
+        AgentToolbox.tools(for: turn.profile, hasSkills: false).map { AgentToolbox.spec(for: $0) }
+    }
+
+    func run(_ call: AIToolCall, in context: AgentToolContext) async -> AIToolResult {
+        .failure(call.id, "not run here")
+    }
 }
 
 /// Answers by host and records every request; a host it does not know answers 500.
@@ -518,6 +616,47 @@ final class KeyReads: @unchecked Sendable {
     func read() -> [String: String] {
         lock.withLock { reads += 1 }
         return keys
+    }
+}
+
+final class SignalLog: @unchecked Sendable {
+    private let lock = NSLock()
+    private var seen: [String] = []
+
+    var signals: [String] { lock.withLock { seen } }
+
+    func append(_ signal: AgentToolSignal) {
+        let line =
+            switch signal {
+            case .searching(let query): "searching " + query
+            case .searched(let query): "searched " + query
+            case .reasoning(let text): "reasoning " + text
+            }
+        lock.withLock { seen.append(line) }
+    }
+}
+
+/// A base route that replays one scripted round per request.
+final class ScriptedProvider: AIProvider, @unchecked Sendable {
+    private let lock = NSLock()
+    private var rounds: [[AIStreamEvent]]
+    private var seen: [AIRequest] = []
+
+    init(rounds: [[AIStreamEvent]]) {
+        self.rounds = rounds
+    }
+
+    var requests: [AIRequest] { lock.withLock { seen } }
+
+    func stream(_ request: AIRequest) -> AIProviderStream {
+        let events: [AIStreamEvent] = lock.withLock {
+            seen.append(request)
+            return rounds.isEmpty ? [.finished] : rounds.removeFirst()
+        }
+        return AIProviderStream { continuation in
+            for event in events { continuation.yield(event) }
+            continuation.finish()
+        }
     }
 }
 

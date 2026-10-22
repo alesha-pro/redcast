@@ -320,6 +320,7 @@
 		5770FB1A3FD29E27C25C944E /* SearchRelevance.swift in Sources */ = {isa = PBXBuildFile; fileRef = ABB9DB77DCE25C41D86BB955 /* SearchRelevance.swift */; };
 		57784875AA132F7756399363 /* SnippetsListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 41E419A4DA5AB5B3A87B80F2 /* SnippetsListView.swift */; };
 		57B8D2628E23D0D9BD8815AD /* MCPStdioTransport.swift in Sources */ = {isa = PBXBuildFile; fileRef = A5958B66BC7FD9FE3F2B8F49 /* MCPStdioTransport.swift */; };
+		57BD29BD683317ADF9F10380 /* WebSearchAgentTools.swift in Sources */ = {isa = PBXBuildFile; fileRef = 95566B7A05BCBC05C9A03A80 /* WebSearchAgentTools.swift */; };
 		58D369977E702AD66F070913 /* SnippetMarkdownSerializer.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE3331A5E8F892CC257AD31B /* SnippetMarkdownSerializer.swift */; };
 		5970306ABC24B03028E66D45 /* FileSearchIgnoreList.swift in Sources */ = {isa = PBXBuildFile; fileRef = CBFF39C46E98D0808B188E2E /* FileSearchIgnoreList.swift */; };
 		5988C5F5629CE78FB6692BB3 /* SettingsEditorPresenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 607E7B669817BFC39B12C12D /* SettingsEditorPresenter.swift */; };
@@ -1447,6 +1448,7 @@
 		94D1EA2460590C49B4A66C64 /* AIModelSelectionRows.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIModelSelectionRows.swift; sourceTree = "<group>"; };
 		950ED06E696547AAEFC9FA9A /* CompactFavoritesRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompactFavoritesRow.swift; sourceTree = "<group>"; };
 		951E746BA1AD25D167A1775F /* SystemSettingsSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemSettingsSettingsView.swift; sourceTree = "<group>"; };
+		95566B7A05BCBC05C9A03A80 /* WebSearchAgentTools.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebSearchAgentTools.swift; sourceTree = "<group>"; };
 		955FBE410967A64A05A2DA3D /* CalcDateFormatters.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalcDateFormatters.swift; sourceTree = "<group>"; };
 		95BFA41B0D7F369A8CF1E013 /* HyperKey.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HyperKey.swift; sourceTree = "<group>"; };
 		95C2F7AE05BF02E8465E426B /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
@@ -3419,6 +3421,7 @@
 		B03D4B2919CDDD945989C7EC /* Service */ = {
 			isa = PBXGroup;
 			children = (
+				95566B7A05BCBC05C9A03A80 /* WebSearchAgentTools.swift */,
 				A2F62E447D26C1FAD7CEB2EB /* WebSearchRunner.swift */,
 			);
 			path = Service;
@@ -4986,6 +4989,7 @@
 				106AF34CEAEB08CBCC924118 /* VolumeLevel.swift in Sources */,
 				15292937738B7CD3AE23EF73 /* VolumeSlider.swift in Sources */,
 				1F1AD34A26931AF6E11E13F7 /* VolumeState.swift in Sources */,
+				57BD29BD683317ADF9F10380 /* WebSearchAgentTools.swift in Sources */,
 				8F83193E3343AD84D885929D /* WebSearchConfiguration.swift in Sources */,
 				E9F8C3B16F7947BC41ADB080 /* WebSearchDecoder.swift in Sources */,
 				99D5FE858C2541D949B91654 /* WebSearchEndpoint.swift in Sources */,
