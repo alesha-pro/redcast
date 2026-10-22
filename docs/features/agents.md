@@ -116,9 +116,9 @@ in root search or on a schedule: see [background and scheduled agents](backgroun
   made and closes when done (failed when the request fails, and the turn then goes as it was built);
   reuse shows nothing. The notes are `AgentChatSummary` in `agent-summaries/<chat>.json`, with how many
   messages they cover and the id of the last, so notes on a history that changed underneath start over.
-  They go when the chat is deleted (one at a time, all at once, or by retention, through
-  `AppCore.pruneAgentSummaries`), when the chat leaves its agent and when its agent is deleted. Plain
-  chats and ACP chats never make any.
+  They go when the chat is deleted (by its id one at a time; all at once or by retention through
+  `AppCore.pruneAgentSummaries`, which keeps only the chats still listed), when the chat leaves its
+  agent and when its agent is deleted. Plain chats and ACP chats never make any.
 - **The binding is the fork's, not the chat history's.** Which chat has which agent is
   `agent-chats.json` beside `agents.json` in Application Support, so upstream's SQLite schema is
   untouched. Deleting an agent frees its chats, which stay as plain AI chats, and deletes its notes.
