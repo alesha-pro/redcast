@@ -119,6 +119,17 @@ export async function runAIFixtures(check) {
     check("a signal aborted beforehand makes no host call",
       preAborted === "AbortError" && harness.state.hostCalls.length === before, preAborted);
 
+    script({ start: () => wait(20).then(() => 13), read: chunks(13, "late") });
+    const abortedWhileAsking = await run(`
+      const controller = new AbortController();
+      const answer = AI.ask("x", { signal: controller.signal });
+      await Promise.resolve();
+      controller.abort();
+      try { await answer; return "resolved"; } catch (error) { return error.name; }`);
+    check("an abort while ai.start is pending cancels the id it returns and never reads",
+      abortedWhileAsking === "AbortError" && calls.includes("cancel 13") && !calls.includes("read 13"),
+      `${abortedWhileAsking} ${calls.join("|")}`);
+
     script({ start: () => 11, read: pending });
     const timedOut = await run(`
       try { await AI.ask("x", { signal: AbortSignal.timeout(5) }); return "resolved"; } catch (error) { return error.name; }`);

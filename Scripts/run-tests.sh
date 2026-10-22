@@ -831,17 +831,12 @@ run agent-test             Tinycast/Features/Agents/Model/*.swift \
                            Tinycast/Features/AI/Model/ChatGPTSubscription.swift \
                            Tinycast/Features/AI/Model/InstalledAI.swift
 run ext-ai-test            Tinycast/Features/ExtensionAI/Model/*.swift \
-                           Tinycast/Features/ExtensionAI/Service/ExtensionAIBridge.swift \
+                           Tinycast/Features/ExtensionAI/Service/*.swift \
                            Tinycast/Features/ExtensionAI/Settings/ExtensionAISettingsStore.swift \
                            Tinycast/Features/Settings/AppSettingsKey.swift \
-                           Tinycast/Features/Extensions/Model/ExtensionLaunchType.swift \
-                           Tinycast/Features/AI/Model/AIRequest.swift \
-                           Tinycast/Features/AI/Model/AITool.swift \
-                           Tinycast/Features/AI/Model/JSONValue.swift \
-                           Tinycast/Features/AI/Model/AIConnection.swift \
-                           Tinycast/Features/AI/Model/AppleIntelligence.swift \
-                           Tinycast/Features/AI/Model/ChatGPTSubscription.swift \
-                           Tinycast/Features/AI/Model/InstalledAI.swift \
+                           Tinycast/Features/Extensions/Model/RenderNode.swift \
+                           Tinycast/Features/AI/Model/*.swift \
+                           Tinycast/Features/AI/Settings/AISettingsStore.swift \
                            Tinycast/Features/AI/Service/AIProvider.swift
 run quick-action-test      Tinycast/Features/Settings/AppSettingsKey.swift \
                            Tinycast/Features/AI/Model/AIConnection.swift \

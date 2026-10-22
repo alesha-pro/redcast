@@ -10,8 +10,9 @@ host calls to it.
 
 - **Off until asked, three times over.** Settings → Extensions → AI → **Allow extensions to use AI**
   (`extensionsAIEnabled`, off by default), AI itself (`AppSettings.aiEnabled`), and each extension's
-  own answer to a one-time dialog on its first `AI.ask`. The switch, the model and the answers never
-  ride a backup and have no `settings.json` key.
+  own answer to a one-time dialog on its first `AI.ask`. Only a chosen Allow or Don't Allow is kept:
+  a dialog dismissed, or one that could not be shown, records nothing. The switch, the model and the
+  answers never ride a backup and have no `settings.json` key.
 - **One route answers every model.** The requested `AI.Model` value, a `{ id }` model and `creativity`
   are ignored. The answer comes from the model chosen for extensions, or from AI Chat's default when
   that is "Same as AI Chat". A pick whose API connection was deleted counts as unset; a route merely
@@ -39,7 +40,7 @@ host calls to it.
 ## The request
 
 ```
-JS  AI.ask ──ai.start{prompt}──▶ ExtensionAICoordinator: prompt → gates → model → consent → route → rate
+JS  AI.ask ──ai.start{prompt}──▶ ExtensionAIGate: prompt → gates → model → consent → route → rate
                                      └─▶ ExtensionAIBridge.start(request, provider, owner) → id
 JS  ◀──── id
 JS  loop: ai.read(id) ──▶ waits for ≥1 text delta, or the end ──▶ all unread text | null
@@ -57,8 +58,11 @@ bridge.sessionEnded() ──▶ cancelAll(owner)   (leaving the command, shutdow
 - Only `AIStreamEvent.text` is forwarded. Reasoning, thinking, search and usage events are dropped. A
   provider error after some text delivers the text first; the next read throws its message.
 - The first `ai.start` of an extension without an answer shows Tinycast's dialog — "Allow “Color
-  Picker” to use AI?", naming the model — after activating the app. Concurrent asks from one extension
-  share it. Escape counts as Don't Allow. A command left while it was up starts nothing.
+  Picker” to use AI?", naming the model — after activating the app: **Allow**, **Don't Allow** and
+  **Not Now**. Concurrent asks from one extension share it. Only the first two are kept; Escape, a
+  click elsewhere and Not Now refuse this ask once, and the next one asks again. While another
+  Tinycast dialog is up nothing is shown and the ask is refused the same way, since a second dialog
+  would resolve unseen. A command left while it was up starts nothing.
 - `environment.canAccess(AI)` is injected per launch: true when the user opened the command, the gates
   do not refuse (an unanswered extension still counts, since it will be asked), and a model resolves.
   An answer given mid-run reaches the next launch.
@@ -73,6 +77,7 @@ The message is what the extension's `Error.message` reads.
 | AI off | AI is off. Turn it on in Settings → AI to let extensions use it. |
 | a background refresh, or a command one launched | Extensions can use AI only in a command you open. |
 | answered Don't Allow | This extension isn't allowed to use AI. You can change this in Settings → Extensions. |
+| dialog dismissed, or another dialog up | This extension can use AI once you allow it. It will ask again next time. |
 | no model | Choose a model for extensions in Settings → Extensions. |
 | blank prompt | The prompt is empty. |
 | over 256 KB of UTF-8 | The prompt is too long: … KB, where the limit is 256 KB. |
@@ -103,10 +108,11 @@ already redacted by the route.
 | `Model/ExtensionAIRefusal.swift` | The refusals and their messages |
 | `Model/ExtensionAIRateLimit.swift` | The sliding per-extension window |
 | `Service/ExtensionAIHost.swift` | The protocol `ExtensionHostBridge` calls |
+| `Service/ExtensionAIGate.swift` | The host: gates, the shared question, routing, rate limit; the dialog, AI's switch and the route factory are injected |
 | `Service/ExtensionAIBridge.swift` | Answers in flight: coalescing, one reader, owners, cancellation |
 | `Settings/ExtensionAISettingsStore.swift` | The switch, the model and the answers in `UserDefaults` |
 | `Settings/ExtensionAISettingsSection.swift` | Settings → Extensions → AI |
-| `UI/ExtensionAICoordinator.swift` | The host: gates, consent dialog, routing, rate limit |
+| `UI/ExtensionAICoordinator.swift` | The gate's wiring, the consent dialog and the Settings actions |
 | `Scripts/raycast-runtime/src/api/ai.js` | The `AI` namespace: `ask`, the pull loop, `Model`, `refreshModels` |
 
 Upstream lines: `ExtensionHostBridge` (the `ai` property, one `case`, `askAI`, one line in
@@ -120,7 +126,7 @@ anchor, the search entry, the section in `ExtensionsSettingsView`, and `system.j
 ## Weight
 
 No task, timer, observer, file or process exists until an extension calls `AI.ask`. The coordinator
-is three stored references; its settings store is created on first use. An answer in flight is one
+and its gate are a few references and closures; the settings store is created on first use. An answer in flight is one
 `Task`, the route's own stream and the unread text, all released on finish, cancel or session end.
 The rate limiter holds at most 100 dates per extension that asked. The runtime grew by under 1 KB.
 CLI routes spawn a process per answer only when you pick a CLI model, as Quick Actions do.
@@ -130,8 +136,8 @@ CLI routes spawn a process per answer only when you pick a CLI model, as Quick A
 Install from the store and turn on Settings → Extensions → AI.
 
 1. **Color Picker → Generate Colors** (`useAI`, `stream: false`, expects a bare JSON array). The first
-   run shows the dialog naming the model; after Allow a grid of colours appears. Repeat with an API
-   model and with Apple Intelligence.
+   run shows the dialog naming the model, with Allow, Don't Allow and Not Now; after Allow a grid of
+   colours appears. Repeat with an API model and with Apple Intelligence.
 2. **Lorem Ipsum → AI Generate** (no-view, gated on `canAccess(AI)`). With the switch off its "no
    access" path runs and no dialog appears; with it on the dialog appears and the text is copied.
 3. **Linear → Create Sub-Issues**, or any streaming `useAI` Detail: the markdown grows in place.
@@ -139,6 +145,9 @@ Install from the store and turn on Settings → Extensions → AI.
    route's process exits).
 4. Don't Allow, then rerun: the extension sees `canAccess(AI) === false` or the "not allowed" error.
    Flip it in Settings and rerun: it works without a dialog. Ask Again brings the dialog back.
+   Escape, Not Now, or a click on another app: the "ask again next time" error, no entry appears
+   in Settings, and the next run asks again. With another Tinycast dialog up (an extension's
+   `confirmAlert`, say), an `AI.ask` fails the same way and no second dialog appears.
 5. Eleven quick reruns: the failure toast names the wait.
 6. Turn AI off in Settings → AI mid-answer: the answer ends with the AI-off message.
 7. A menu-bar command calling `AI.ask` fails with the menu-bar message. A background-refresh no-view
@@ -157,14 +166,20 @@ Install from the store and turn on Settings → Extensions → AI.
 - `ext-ai-test`: every gate row and its precedence, prompt bounds in UTF-8 bytes, the request's
   shape, dangling picks, refusal messages, the rate limit's windows, and the bridge against a scripted
   provider (coalescing, waiting reads, dropped events, text before an error, cancel, owners, a
-  cancelled reader), plus the store's round trip.
+  cancelled reader), plus the store's round trip. The gate itself, with a scripted dialog: a run
+  nobody opened is refused before any question; no model is reported before asking; concurrent asks
+  share one question; a dismissed or busy dialog keeps nothing; Don't Allow is kept; the gates are
+  checked again after the answer; a command left during the question starts nothing; a read checks
+  the gates again; the switch ends every answer; a session's end ends only its own; the limit counts
+  only routed asks; a dangling pick falls back to AI Chat's model.
 - `ext-test`: `AI.ask` streaming under JavaScriptCore, `canAccess(AI)` from the launch context, and
   the real `ExtensionHostBridge` between them: it names itself as the owner, stamps `ai.*` calls and
   `launchCommand`/`raycast://` launches with the context's origin, so a menu-bar refresh's
   `UserInitiated` launch reaches the next command as not the user's, ends its answers when the session
   ends, and on a menu-bar bridge has no AI host.
 - `node Scripts/raycast-runtime/ai-fixtures.mjs` (also run by `fixtures.mjs`): `canAccess`, streaming,
-  late listeners, failures, refusals, abort, timeout, a throwing listener, `useAI`'s abort-then-ask
-  pattern, `AI.Model`, `refreshModels` and `experimental_decide`.
+  late listeners, failures, refusals, abort, an abort while `ai.start` waits on the dialog, timeout, a
+  throwing listener, `useAI`'s abort-then-ask pattern, `AI.Model`, `refreshModels` and
+  `experimental_decide`.
 - `node Scripts/raycast-runtime/test.mjs <extension> <command>` with `TEST_AI=1` lets a real
   extension see `canAccess(AI)`; the stub answers each `AI.ask` with `TEST_AI_REPLY` or a fixed line.

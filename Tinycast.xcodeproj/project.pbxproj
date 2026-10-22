@@ -738,6 +738,7 @@
 		D7293913917ABBCD527EB615 /* CalcToken.swift in Sources */ = {isa = PBXBuildFile; fileRef = 34F2E06B7C8613EB3096B94B /* CalcToken.swift */; };
 		D736A0FE574A343AA0FD3911 /* AppIndex.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8E58EBB08450BA3426DF0565 /* AppIndex.swift */; };
 		D7C49F8AC18CB80B58E4FEAA /* RoomLayoutKind.swift in Sources */ = {isa = PBXBuildFile; fileRef = 39B8982F3CFB63CAAB0520E3 /* RoomLayoutKind.swift */; };
+		D851B0F21AE0158346F14770 /* ExtensionAIGate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1FE67EB39674A9FC6D683CC2 /* ExtensionAIGate.swift */; };
 		D9113113F828FD6983715D6B /* UninstallView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 62F2B0F5FDD503E6BB739A47 /* UninstallView.swift */; };
 		D929CEAC227F3C88BBC134BF /* AIModelMenu.swift in Sources */ = {isa = PBXBuildFile; fileRef = 539938F5D4D2AFEE587113D3 /* AIModelMenu.swift */; };
 		D99DAF62B746E6009E1BFB1F /* QuickAction.swift in Sources */ = {isa = PBXBuildFile; fileRef = E8A4DEF28F120FE354EB5599 /* QuickAction.swift */; };
@@ -1029,6 +1030,7 @@
 		1F64FC06CB10BDF8CD044D64 /* ScheduleView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScheduleView.swift; sourceTree = "<group>"; };
 		1F84CC7876A495616C52D5C5 /* AppPickerPopover.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppPickerPopover.swift; sourceTree = "<group>"; };
 		1F8AB48A3C8B78B04CBFF36B /* ExtensionMenuBarController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExtensionMenuBarController.swift; sourceTree = "<group>"; };
+		1FE67EB39674A9FC6D683CC2 /* ExtensionAIGate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExtensionAIGate.swift; sourceTree = "<group>"; };
 		201FCD08ACA933378876385B /* ClipboardStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardStore.swift; sourceTree = "<group>"; };
 		2069789D62057E302322AFDB /* MeetingRowParts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeetingRowParts.swift; sourceTree = "<group>"; };
 		209D951FDD587A040F1F76F3 /* PaletteWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaletteWindowController.swift; sourceTree = "<group>"; };
@@ -1863,6 +1865,7 @@
 			isa = PBXGroup;
 			children = (
 				06C755B1815C781CBEC5BACA /* ExtensionAIBridge.swift */,
+				1FE67EB39674A9FC6D683CC2 /* ExtensionAIGate.swift */,
 				F6531998CD62A2FD74818BBF /* ExtensionAIHost.swift */,
 			);
 			path = Service;
@@ -4461,6 +4464,7 @@
 				F244E0064508C29F74363A8C /* ExecutablePicker.swift in Sources */,
 				CA854A49D98F35BF9CCF7B76 /* ExtensionAIBridge.swift in Sources */,
 				778B9715C76F40376A4E1A71 /* ExtensionAICoordinator.swift in Sources */,
+				D851B0F21AE0158346F14770 /* ExtensionAIGate.swift in Sources */,
 				43C6A9A379ACD1688306A9F0 /* ExtensionAIHost.swift in Sources */,
 				D026D26FE2F5A48E8D1DBC1E /* ExtensionAIPolicy.swift in Sources */,
 				AF8BFFA3617634D361B38D16 /* ExtensionAIRateLimit.swift in Sources */,

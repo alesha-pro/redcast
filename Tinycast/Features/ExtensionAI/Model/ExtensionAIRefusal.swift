@@ -6,6 +6,7 @@ enum ExtensionAIRefusal: LocalizedError, Equatable, Sendable {
     case aiOff
     case unattended
     case denied
+    case unanswered
     case noModel
     case emptyPrompt
     case promptTooLong(kilobytes: Int)
@@ -25,6 +26,9 @@ enum ExtensionAIRefusal: LocalizedError, Equatable, Sendable {
                     This extension isn't allowed to use AI. You can change this in Settings \u{2192} \
                     Extensions.
                     """)
+        case .unanswered:
+            return String(
+                localized: "This extension can use AI once you allow it. It will ask again next time.")
         case .noModel:
             return String(localized: "Choose a model for extensions in Settings \u{2192} Extensions.")
         case .emptyPrompt:

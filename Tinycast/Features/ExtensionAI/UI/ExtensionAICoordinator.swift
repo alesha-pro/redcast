@@ -1,61 +1,30 @@
 import AppKit
 import Foundation
 
-/// Answers an extension's `AI.ask` with the model chosen for extensions, once the user allows it.
+/// Extension AI's app side: the gate's wiring, its consent dialog and the Settings actions.
 @MainActor
-final class ExtensionAICoordinator: ExtensionAIHost {
+final class ExtensionAICoordinator {
     private unowned let core: AppCore
-    private(set) lazy var settings = ExtensionAISettingsStore()
-    private let bridge = ExtensionAIBridge()
-    private var rateLimit = ExtensionAIRateLimit()
-    /// One dialog per extension, however many of its asks arrive while it is up.
-    private var consents: [String: Task<Bool, Never>] = [:]
+    private(set) lazy var gate = ExtensionAIGate(
+        aiSettings: core.aiSettings,
+        aiEnabled: { [unowned core] in core.settings.aiEnabled },
+        ask: { [unowned self] name in await askConsent(for: name) },
+        makeProvider: { [unowned core] selection in
+            try AIProviderFactory.make(
+                selection: selection, settings: core.aiSettings,
+                subscription: core.chatGPTSubscription, installedAI: core.installedAI)
+        })
+
+    var settings: ExtensionAISettingsStore { gate.settings }
 
     init(core: AppCore) {
         self.core = core
     }
 
-    // MARK: - ExtensionAIHost
-
-    func perform(
-        method: String, arguments: [RenderValue], extensionName: String, openedByUser: Bool,
-        owner: ObjectIdentifier
-    ) async throws -> Any? {
-        switch method {
-        case "start":
-            let prompt = arguments.first?.objectValue?["prompt"]?.stringValue ?? ""
-            return try await start(
-                prompt: prompt, extensionName: extensionName, openedByUser: openedByUser, owner: owner)
-        case "read":
-            let id = streamID(arguments)
-            if case .refused(let refusal) = access(extensionName, openedByUser: openedByUser) {
-                bridge.cancel(id, owner: owner)
-                throw refusal
-            }
-            return try await bridge.read(id, owner: owner)
-        case "cancel":
-            bridge.cancel(streamID(arguments), owner: owner)
-            return nil
-        default:
-            throw ExtensionHostError.unknown("ai.\(method)")
-        }
-    }
-
-    /// Runs at every launch, so it only reads: a dangling pick is repaired by the Settings section.
-    func canAccess(extensionName: String) -> Bool {
-        if case .refused = access(extensionName, openedByUser: true) { return false }
-        return selection() != nil
-    }
-
-    func sessionEnded(owner: ObjectIdentifier) {
-        bridge.cancelAll(owner: owner)
-    }
-
     // MARK: - Settings
 
     func setEnabled(_ enabled: Bool) {
-        settings.isEnabled = enabled
-        if !enabled { bridge.cancelAll() }
+        gate.setEnabled(enabled)
     }
 
     func repairModel() {
@@ -71,75 +40,33 @@ final class ExtensionAICoordinator: ExtensionAIHost {
 
     func modelTitle() -> String {
         let chat = core.aiChatCoordinator
-        return chat.modelTitle(of: selection(), among: chat.modelOptions)
+        return chat.modelTitle(of: gate.selection(), among: chat.modelOptions)
     }
 
     // MARK: - Asking
 
-    private func start(
-        prompt raw: String, extensionName name: String, openedByUser: Bool, owner: ObjectIdentifier
-    ) async throws -> Int {
-        let prompt = try ExtensionAIPolicy.prompt(from: raw)
-        let gate = access(name, openedByUser: openedByUser)
-        if case .refused(let refusal) = gate { throw refusal }
-        guard selection() != nil else { throw ExtensionAIRefusal.noModel }
-        if gate == .ask {
-            guard await consent(for: name) else { throw ExtensionAIRefusal.denied }
-            try Task.checkCancellation()
-            if case .refused(let refusal) = access(name, openedByUser: openedByUser) { throw refusal }
-        }
-        guard let selection = selection() else { throw ExtensionAIRefusal.noModel }
-        let provider = try AIProviderFactory.make(
-            selection: selection, settings: core.aiSettings, subscription: core.chatGPTSubscription,
-            installedAI: core.installedAI)
-        if let wait = rateLimit.admit(name, at: Date()) {
-            throw ExtensionAIRefusal.rateLimited(seconds: max(1, Int(wait.rounded(.up))))
-        }
-        return bridge.start(ExtensionAIPolicy.request(prompt: prompt), on: provider, owner: owner)
-    }
-
-    private func access(_ name: String, openedByUser: Bool) -> ExtensionAIAccess {
-        ExtensionAIPolicy.access(
-            featureOn: settings.isEnabled, aiOn: core.settings.aiEnabled, openedByUser: openedByUser,
-            grant: settings.grants[name])
-    }
-
-    private func selection() -> AIModelSelection? {
-        let chosen = settings.model.flatMap {
-            ExtensionAIPolicy.isDangling($0, connections: core.aiSettings.connections) ? nil : $0
-        }
-        return chosen ?? core.aiSettings.defaultModel
-    }
-
-    private func streamID(_ arguments: [RenderValue]) -> Int {
-        arguments.first?.doubleValue.flatMap(Int.init(exactly:)) ?? 0
-    }
-
-    /// Both answers are kept, so Escape counts as Don't Allow until changed in Settings.
-    private func consent(for name: String) async -> Bool {
-        if let pending = consents[name] { return await pending.value }
-        let asking = Task {
-            let allowed = await askConsent(for: name)
-            settings.setGrant(allowed, for: name)
-            consents[name] = nil
-            return allowed
-        }
-        consents[name] = asking
-        return await asking.value
-    }
-
-    /// The dialog outranks the palette, so a view command keeps its screen behind it.
-    private func askConsent(for name: String) async -> Bool {
+    /// Behind another dialog it would resolve unseen as a cancel, so it is not shown at all.
+    private func askConsent(for name: String) async -> Bool? {
+        guard !core.isShowingDialog else { return nil }
         let title = core.extensions.installed.first { $0.manifest.name == name }?.title ?? name
         NSApp.activate(ignoringOtherApps: true)
-        return await core.confirm(
+        let answer = await core.choose(
             title: String(localized: "Allow \u{201C}\(title)\u{201D} to use AI?"),
             message: String(
                 localized: """
                     Its prompts go to \(modelTitle()) and can include text the extension reads, such \
                     as your selection or clipboard. You can change this in Settings \u{2192} Extensions.
                     """),
-            symbol: "sparkles", confirmTitle: String(localized: "Allow"), tone: .neutral,
-            confirmRole: .standard, dismissTitle: String(localized: "Don't Allow"))
+            symbol: "sparkles",
+            options: [
+                DialogAction(title: String(localized: "Allow")),
+                DialogAction(title: String(localized: "Don't Allow")),
+                DialogAction(title: String(localized: "Not Now"), role: .cancel)
+            ], defaultIndex: 0)
+        return switch answer {
+        case 0: true
+        case 1: false
+        default: nil
+        }
     }
 }

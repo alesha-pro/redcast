@@ -124915,6 +124915,58 @@
         }
       }
     },
+    "This extension can use AI once you allow it. It will ask again next time." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diese Erweiterung kann KI nutzen, sobald du es erlaubst. Sie fragt beim nächsten Mal erneut."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esta extensión podrá usar la IA cuando se lo permitas. Volverá a preguntar la próxima vez."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cette extension pourra utiliser l’IA une fois que vous l’aurez autorisée. Elle vous le redemandera la prochaine fois."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この拡張機能は、許可するとAIを使用できます。次回もう一度確認されます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "이 확장 프로그램은 허용하면 AI를 사용할 수 있습니다. 다음에 다시 묻습니다."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esta extensão poderá usar a IA quando você permitir. Ela perguntará de novo na próxima vez."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Это расширение сможет использовать ИИ, когда вы разрешите. В следующий раз оно спросит снова."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你允许后，此扩展即可使用 AI。下次它会再次询问。"
+          }
+        }
+      }
+    },
     "This extension isn't allowed to use AI. You can change this in Settings → Extensions." : {
       "localizations" : {
         "de" : {
