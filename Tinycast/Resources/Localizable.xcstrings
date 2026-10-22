@@ -52088,6 +52088,58 @@
         }
       }
     },
+    "Enter the server's address, like https://search.example.com." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gib die Adresse des Servers ein, etwa https://search.example.com."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Introduce la dirección del servidor, como https://search.example.com."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Saisissez l’adresse du serveur, par exemple https://search.example.com."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "https://search.example.com のように、サーバのアドレスを入力してください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "https://search.example.com과 같이 서버 주소를 입력하십시오."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Digite o endereço do servidor, como https://search.example.com."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Введите адрес сервера, например https://search.example.com."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请输入服务器地址，例如 https://search.example.com。"
+          }
+        }
+      }
+    },
     "Enter the text Tinycast expands." : {
       "localizations" : {
         "de" : {
@@ -132977,6 +133029,58 @@
         }
       }
     },
+    "Use HTTPS, or a name on your network such as llm-server.local." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verwende HTTPS oder einen Namen in deinem Netzwerk wie llm-server.local."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usa HTTPS o un nombre de tu red, como llm-server.local."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Utilisez HTTPS, ou un nom de votre réseau comme llm-server.local."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "HTTPS、またはllm-server.localのようなネットワーク上の名前を使用してください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "HTTPS 또는 llm-server.local과 같은 네트워크상의 이름을 사용하십시오."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Use HTTPS ou um nome da sua rede, como llm-server.local."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Используйте HTTPS или имя в вашей сети, например llm-server.local."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请使用 HTTPS，或你网络中的名称，例如 llm-server.local。"
+          }
+        }
+      }
+    },
     "Use Original Icon" : {
       "localizations" : {
         "de" : {
@@ -138911,6 +139015,58 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "布局“%@”"
+          }
+        }
+      }
+    },
+    "macOS blocks plain HTTP to an IP address. Use the server's name, like llm-server.local, or HTTPS." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "macOS blockiert unverschlüsseltes HTTP zu einer IP-Adresse. Verwende den Namen des Servers, etwa llm-server.local, oder HTTPS."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "macOS bloquea HTTP sin cifrar a una dirección IP. Usa el nombre del servidor, como llm-server.local, o HTTPS."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "macOS bloque le HTTP non chiffré vers une adresse IP. Utilisez le nom du serveur, comme llm-server.local, ou HTTPS."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "macOSはIPアドレスへの暗号化されていないHTTP接続をブロックします。llm-server.localのようなサーバ名か、HTTPSを使用してください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "macOS는 IP 주소로의 암호화되지 않은 HTTP 연결을 차단합니다. llm-server.local과 같은 서버 이름이나 HTTPS를 사용하십시오."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O macOS bloqueia HTTP sem criptografia para um endereço IP. Use o nome do servidor, como llm-server.local, ou HTTPS."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "macOS блокирует незашифрованный HTTP к IP-адресу. Используйте имя сервера, например llm-server.local, или HTTPS."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "macOS 会阻止通过明文 HTTP 访问 IP 地址。请使用服务器名称（例如 llm-server.local）或 HTTPS。"
           }
         }
       }

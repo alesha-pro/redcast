@@ -1,0 +1,27 @@
+{
+  "type": "search",
+  "query": {
+    "original": "SearXNG JSON API"
+  },
+  "web": {
+    "type": "search",
+    "results": [
+      {
+        "title": "Search API — SearXNG Documentation",
+        "url": "https://docs.searxng.org/dev/search_api.html",
+        "description": "SearXNG supports querying via a simple HTTP API with JSON, CSV or RSS output.",
+        "age": "2 days ago",
+        "page_age": "2026-10-20T08:00:00",
+        "language": "en",
+        "family_friendly": true
+      },
+      {
+        "title": "Get results in JSON format? · searxng/searxng",
+        "url": "https://github.com/searxng/searxng/discussions/1789",
+        "description": "JSON needs to be activated in the formats settings.",
+        "age": "September 20, 2022",
+        "language": "en"
+      }
+    ]
+  }
+}
