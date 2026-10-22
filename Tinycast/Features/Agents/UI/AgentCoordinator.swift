@@ -163,7 +163,8 @@ final class AgentCoordinator {
             profile: agent, skills: context.skills, memoryURL: store.memoryURL(for: agent.id),
             mode: mode)
         let toolset = AgentToolset(
-            turn: turn, providers: providers(for: agent), mcpTools: mcpTools, mcp: mcp,
+            turn: turn, providers: providers(for: agent, in: context, over: base, mode: mode),
+            mcpTools: mcpTools, mcp: mcp,
             refused: { [weak self] _ in
                 guard case .unattended(let chatID) = mode else { return }
                 Task { @MainActor in self?.backgroundRuns?.noteDeclined(chatID) }
@@ -178,14 +179,50 @@ final class AgentCoordinator {
     }
 
     /// The registry: one line per family, built per turn so nothing stays resident between turns.
-    private func providers(for agent: AgentProfile) -> [any AgentToolProvider] {
+    private func providers(
+        for agent: AgentProfile, in context: AgentContext, over base: any AIProvider, mode: AgentRunMode
+    ) -> [any AgentToolProvider] {
+        var providers = familyProviders(for: agent)
+        providers.append(AgentPlanTools())
+        if agent.tools.contains(.delegate) {
+            providers.append(delegate(for: agent, in: context, over: base, mode: mode))
+        }
+        return providers
+    }
+
+    /// What a sub-agent shares with its parent: every family, but not the plan or a delegate.
+    private func familyProviders(for agent: AgentProfile) -> [any AgentToolProvider] {
         var providers: [any AgentToolProvider] = [AgentBuiltInTools()]
         if agent.tools.contains(.web) {
             providers.append(WebSearchAgentTools(runner: core.webSearch.runner(canFetch: true)))
         }
         if core.settings.notesEnabled { providers.append(core.notesAI.agentTools) }
-        providers.append(AgentPlanTools())
         return providers
+    }
+
+    /// A read-only copy of the agent with no delegate of its own, so sub-agents stop at one level.
+    private func delegate(
+        for agent: AgentProfile, in context: AgentContext, over base: any AIProvider, mode: AgentRunMode
+    ) -> AgentDelegateTools {
+        var reader = agent
+        reader.access = .readOnly
+        reader.tools.remove(.delegate)
+        let parent =
+            switch mode {
+            case .chat(let id), .unattended(let id): id
+            }
+        let toolset = AgentToolset(
+            turn: AgentTurn(
+                profile: reader, skills: context.skills, memoryURL: store.memoryURL(for: agent.id),
+                mode: .unattended(parent)),
+            providers: familyProviders(for: reader), mcpTools: [], offering: AgentToolRisk.reads,
+            mcp: { .failure($0.id, "There is no tool called \($0.name).") }, ask: { _, _ in false })
+        let prompt = AgentContext(
+            profile: reader, projectInstructions: context.projectInstructions,
+            globalInstructions: context.globalInstructions, skills: context.skills, memory: context.memory
+        ).prompt(now: Date(), timeZone: .current, hasTools: true)
+        return AgentDelegateTools(
+            base: base, toolset: toolset, instructions: prompt + "\n\n" + AgentDelegateTools.briefing)
     }
 
     /// Whether this chat's agent is offered `web_search`: Web ticked, and not Never Allow.

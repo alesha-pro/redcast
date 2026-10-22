@@ -716,6 +716,7 @@ final class SignalLog: @unchecked Sendable {
             case .searching(let query): "searching " + query
             case .searched(let query): "searched " + query
             case .reasoning(let text): "reasoning " + text
+            case .spent(let cost): "spent \(cost)"
             }
         lock.withLock { seen.append(line) }
     }

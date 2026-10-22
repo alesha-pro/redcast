@@ -1,4 +1,5 @@
 import Foundation
+import Synchronization
 
 /// An agent's turn: re-streams it until the model stops calling tools or a cap ends it.
 struct AgentLoopProvider: AIProvider {
@@ -38,7 +39,11 @@ struct AgentLoopProvider: AIProvider {
         var budget = AgentTurnBudget()
         var rounds = 0
         var billed: Double?
-        let signal: @Sendable (AgentToolSignal) -> Void = { continuation.yield($0.event) }
+        let spend = Spend()
+        let signal: @Sendable (AgentToolSignal) -> Void = { signal in
+            if case .spent(let cost) = signal { spend.add(cost) }
+            if let event = signal.event { continuation.yield(event) }
+        }
         while maxRounds.map({ rounds < $0 }) ?? (budget.carried < AgentTurnBudget.historyBytes) {
             // A call that outlived Stop must not bill another round.
             try Task.checkCancellation()
@@ -60,12 +65,12 @@ struct AgentLoopProvider: AIProvider {
                 let calls = Array(round.calls[batch])
                 for call in calls {
                     let tool = toolset.tools.first { $0.name == call.name }
-                    continuation.yield(
-                        .toolCall(
-                            id: call.id, origin: tool?.origin ?? "", title: tool?.title ?? call.name))
+                    let title = toolset.title(for: call) ?? tool?.title ?? call.name
+                    continuation.yield(.toolCall(id: call.id, origin: tool?.origin ?? "", title: title))
                 }
                 let results = await run(calls, signal: signal, budget: &budget, into: continuation)
                 messages += results.map { AIMessage(role: .tool, text: "", toolResult: $0) }
+                if let spent = spend.take() { billed = (billed ?? 0) + spent }
             }
             budget.release(
                 AgentTurnBudget.elide(&messages, turnStart: request.messages.count, keepFrom: roundStart))
@@ -123,5 +128,22 @@ struct AgentLoopProvider: AIProvider {
             }
         }
         return (text, calls, cost)
+    }
+}
+
+/// What a batch's calls spent of their own; they run in a task group, so it is summed under a lock.
+private final class Spend: Sendable {
+    private let total = Mutex(0.0)
+
+    func add(_ cost: Double) {
+        total.withLock { $0 += cost }
+    }
+
+    /// The sum since the last take, nil when nothing was spent.
+    func take() -> Double? {
+        total.withLock { sum in
+            defer { sum = 0 }
+            return sum > 0 ? sum : nil
+        }
     }
 }

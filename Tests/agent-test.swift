@@ -36,6 +36,8 @@ struct AgentTests {
         thePromptStatesTheAgentsOwnRules()
         agentsAndTheirChatsSurviveARelaunch()
         aPlanReadsAsAChecklist()
+        newerFamiliesStayOutOfOlderBuildsWay()
+        aToolsetCanOfferReadingOnly()
 
         print("\(passes) passed, \(failures) failed")
         if failures > 0 { exit(1) }
@@ -596,6 +598,85 @@ extension AgentTests {
                 .contains { $0.name == tool.name },
             "update_plan is a name no built-in uses")
     }
+}
+
+/// Screen and Sub-agents are written where the previous build, which knows neither, never looks.
+extension AgentTests {
+    static func newerFamiliesStayOutOfOlderBuildsWay() {
+        var agent = profile()
+        agent.tools = [.files, .notes, .screen, .delegate]
+        guard let data = try? JSONEncoder().encode(agent),
+            let object = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any]
+        else { return expect(false, "a profile encodes") }
+        let legacy: Set<String> = ["files", "terminal", "web", "memory", "notes"]
+        expect(
+            Set(object["tools"] as? [String] ?? []) == ["files", "notes"],
+            "tools holds only the families the previous build can decode")
+        expect(
+            Set(object["addedTools"] as? [String] ?? []) == ["screen", "delegate"],
+            "and the newer ones ride their own key, which that build ignores")
+        let decoded = try? JSONDecoder().decode(AgentProfile.self, from: data)
+        expect(decoded == agent, "both come back as one set")
+        expect(
+            (try? JSONEncoder().encode(profile())).flatMap { String(data: $0, encoding: .utf8) }?
+                .contains("addedTools") == false,
+            "an agent without them writes no extra key")
+        expect(
+            Set(AgentToolKind.allCases.map(\.rawValue)).subtracting(legacy)
+                == Set(AgentToolKind.unknownToOlderBuilds.map(\.rawValue)),
+            "every family the previous build lacks is kept out of tools")
+        var future = object
+        future["addedTools"] = ["screen", "telepathy"]
+        let later = (try? JSONSerialization.data(withJSONObject: future))
+            .flatMap { try? JSONDecoder().decode(AgentProfile.self, from: $0) }
+        expect(
+            later?.tools == [.files, .notes, .screen],
+            "and a family from a newer build is dropped rather than losing the agent")
+        expect(
+            AgentToolKind.defaults.isDisjoint(with: AgentToolKind.unknownToOlderBuilds),
+            "neither starts on for a new agent")
+    }
+
+    static func aToolsetCanOfferReadingOnly() {
+        var agent = profile(.fullAccess)
+        agent.tools = Set(AgentToolKind.allCases)
+        let everything = FakeProvider(
+            offered: AgentToolRisk.allCases.map { spec("t_\($0.rawValue)", nil, $0) })
+        let reading = AgentToolset(
+            turn: turn(agent), providers: [everything], mcpTools: [], offering: AgentToolRisk.reads,
+            mcp: { .failure($0.id, "mcp") }, ask: { _, _ in false })
+        expect(
+            reading.tools.map(\.name) == ["t_read", "t_network", "t_personal"],
+            "a sub-agent's toolset offers what reads and nothing that changes, writes or runs")
+        let titled = TitledProvider()
+        let routed = AgentToolset(
+            turn: turn(agent), providers: [titled, everything], mcpTools: [tool("srv__x")],
+            mcp: { .failure($0.id, "mcp") }, ask: { _, _ in false })
+        let named = AIToolCall(id: "1", name: "named", arguments: "{}")
+        expect(routed.title(for: named) == "named: 1", "a provider may title its own call's row")
+        expect(
+            routed.title(for: AIToolCall(id: "2", name: "t_read", arguments: "{}")) == nil
+                && routed.title(for: AIToolCall(id: "3", name: "srv__x", arguments: "{}")) == nil
+                && routed.title(for: AIToolCall(id: "4", name: "nope", arguments: "{}")) == nil,
+            "every other row keeps its tool's title")
+    }
+}
+
+/// Names each call's row after the call.
+struct TitledProvider: AgentToolProvider {
+    func specs(for turn: AgentTurn) -> [AgentToolSpec] {
+        [
+            AgentToolSpec(
+                tool: AITool(name: "named", description: "", parameters: .object([:]), origin: "Test"),
+                family: nil, risk: .read, concurrent: false)
+        ]
+    }
+
+    func run(_ call: AIToolCall, in context: AgentToolContext) async -> AIToolResult {
+        .failure(call.id, "fake")
+    }
+
+    func title(for call: AIToolCall) -> String? { "named: " + call.id }
 }
 
 /// Offers what it is given; its calls are never run here.

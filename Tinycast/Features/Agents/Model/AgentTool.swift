@@ -9,6 +9,9 @@ enum AgentToolRisk: String, CaseIterable, Codable, CodingKeyRepresentable, Senda
     case change  // the user's files or notes, changed
     case execute  // a program, run
 
+    /// What a sub-agent may reach: nothing it changes, writes down or runs.
+    static let reads: Set<AgentToolRisk> = [.read, .network, .personal]
+
     /// A read-only agent changes nothing and runs nothing, whichever provider offers it.
     func isOffered(to access: AgentAccess) -> Bool {
         switch self {
@@ -51,17 +54,20 @@ struct AgentConsentRequest: Sendable {
     let detail: String
 }
 
-/// What a call may add to the transcript besides its own row.
+/// What a call may add to the transcript besides its own row, or to what the turn cost.
 enum AgentToolSignal: Sendable {
     case searching(String)
     case searched(String)
     case reasoning(String)
+    /// A call's own model spend, as a sub-agent's, billed into the turn rather than shown.
+    case spent(Double)
 
-    var event: AIStreamEvent {
+    var event: AIStreamEvent? {
         switch self {
         case .searching(let query): .searching(query)
         case .searched(let query): .searched(query)
         case .reasoning(let text): .reasoning(text)
+        case .spent: nil
         }
     }
 }
@@ -79,4 +85,10 @@ protocol AgentToolProvider: Sendable {
     /// Everything it can offer now; the toolset applies the profile, the access and the rules.
     func specs(for turn: AgentTurn) -> [AgentToolSpec]
     func run(_ call: AIToolCall, in context: AgentToolContext) async -> AIToolResult
+    /// What this call's row says instead of the tool's title, as a sub-task's name.
+    func title(for call: AIToolCall) -> String?
+}
+
+extension AgentToolProvider {
+    func title(for call: AIToolCall) -> String? { nil }
 }
