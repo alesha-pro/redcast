@@ -125,6 +125,8 @@ final class ExtensionHostBridge: ExtensionHostAPI {
     private let clipboardStore: ClipboardStore
     private let fetcher: ExtensionFetcher
     private let sockets = ExtensionWebSocketBridge()
+    /// The fork's AI host; menu bridges never get one, so a status item cannot spend tokens.
+    weak var ai: (any ExtensionAIHost)?
     private var reportedSocketFailures: Set<String> = []
     /// One browser sign-in at a time; the palette keeps its command alive while it is out.
     private(set) var isSigningIn = false
@@ -157,6 +159,7 @@ final class ExtensionHostBridge: ExtensionHostAPI {
         case "oauth": return try await oauth(method: method, arguments: arguments)
         case "fetch": return try await fetch(arguments.first)
         case "websocket": return try await sockets.perform(method: method, arguments: arguments)
+        case "ai": return try await askAI(method: method, arguments: arguments)
         case "dns": return await ExtensionNameResolver.resolve(arguments.first)
         case "proc" where method == "read": return try await ExtensionAsyncProcess.read(arguments)
         case "proc": return try await ExtensionAsyncProcess.wait(arguments.first)
@@ -199,10 +202,19 @@ final class ExtensionHostBridge: ExtensionHostAPI {
         return (context, name)
     }
 
+    private func askAI(method: String, arguments: [RenderValue]) async throws -> Any? {
+        let (context, name) = try requireContext()
+        guard let ai else { throw ExtensionHostError.unsupported("AI in menu-bar commands") }
+        return try await ai.perform(
+            method: method, arguments: arguments, extensionName: name,
+            launchType: context.activeLaunchType, owner: ObjectIdentifier(self))
+    }
+
     /// Called wherever a command's context is discarded: nothing left open outlives its session.
     func sessionEnded() {
         sockets.closeAll()
         reportedSocketFailures.removeAll()
+        ai?.sessionEnded(owner: ObjectIdentifier(self))
     }
 
     // MARK: - Clipboard

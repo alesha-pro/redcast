@@ -48,6 +48,11 @@ final class ExtensionManager: ExtensionRuntimeDelegate, ExtensionHostContext {
 
     /// The entry ids an uninstall invalidated, so another feature can drop what it keyed to them.
     @ObservationIgnored var onDidUninstall: (([String]) -> Void)?
+    /// Answers `AI.ask` for palette commands; menu-bar bridges are scoped without it.
+    var ai: (any ExtensionAIHost)? {
+        get { bridge.ai }
+        set { bridge.ai = newValue }
+    }
 
     @ObservationIgnored private var sessionID: String?
     @ObservationIgnored private var backgroundSessionID: String?
@@ -481,7 +486,9 @@ final class ExtensionManager: ExtensionRuntimeDelegate, ExtensionHostContext {
             fallbackText: fallbackText,
             launchType: launchType,
             isDarkAppearance: NSApp.effectiveAppearance.isDark,
-            launchContext: launchContext)
+            launchContext: launchContext,
+            aiAccess: launchType != .background
+                && bridge.ai?.canAccess(extensionName: owner.manifest.name) == true)
     }
 
     func stop() async {

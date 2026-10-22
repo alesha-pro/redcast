@@ -18,6 +18,12 @@ export function unsupported(what) {
   );
 }
 
+// An API answers `environment.canAccess` from the launch-context field it registered.
+const accessFields = new Map();
+export function registerAccess(api, field) {
+  accessFields.set(api, field);
+}
+
 // ─── Clipboard ──────────────────────────────────────────────────────
 
 export const Clipboard = {
@@ -142,7 +148,7 @@ export const environment = new Proxy(
   {},
   {
     get(_target, key) {
-      if (key === "canAccess") return () => false;
+      if (key === "canAccess") return (api) => boot[accessFields.get(api)]?.access === true;
       return boot.environment?.[key];
     },
     has: (_target, key) => key in (boot.environment ?? {}),

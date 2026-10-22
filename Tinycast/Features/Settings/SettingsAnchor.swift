@@ -111,6 +111,7 @@ extension SettingsAnchor {
 
     static let extensionsExtensions = Self(tab: .extensions, title: "Extensions")
     static let extensionsCompatibility = Self(tab: .extensions, title: "Compatibility")
+    static let extensionsAI = Self(tab: .extensions, title: "AI")
     static let extensionsInstalled = Self(
         tab: .extensions,
         title: LocalizedStringResource("extensions-installed-section", defaultValue: "Installed"))
