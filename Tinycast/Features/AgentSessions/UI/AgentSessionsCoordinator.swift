@@ -45,7 +45,6 @@ final class AgentSessionsCoordinator {
     private var liveToken: String??
     /// Resolved once per open screen; the footer reads it on every render.
     private var installedTerminals: Set<String>?
-    private var statusItem: AgentStatusItem?
     private static let log = Logger(subsystem: "com.tinycast", category: "AgentSessions")
 
     init(
@@ -379,38 +378,66 @@ final class AgentSessionsCoordinator {
         return token
     }
 
-    // MARK: - Status item
+    // MARK: - Menu bar
 
     func setStatusItemEnabled(_ enabled: Bool) {
         settings.agentStatusMenuBar = enabled
         updateStatusItem()
     }
 
-    /// Present only while an agent works, waits, or finished unseen; removed when the list empties.
+    /// The hub's half of the Agents menu-bar item: shown only while its own switch is on.
     private func updateStatusItem() {
-        builtActivity?.prune(now: Date())
-        let items = builtActivity?.items ?? []
-        guard isActive, settings.agentStatusMenuBar, items.contains(where: \.needsAttention) else {
-            statusItem?.remove()
-            statusItem = nil
-            return
-        }
-        if statusItem == nil {
-            statusItem = AgentStatusItem(
-                rows: { [weak self] in
-                    self?.builtActivity?.prune(now: Date())
-                    return self?.builtActivity?.items.filter(\.needsAttention) ?? []
-                },
-                onOpen: { [weak self] in self?.builtActivity?.markFinishedSeen() },
-                onClose: { [weak self] in self?.updateStatusItem() },
-                onSelect: { [weak self] activity in self?.jump(to: activity) },
-                onSearch: { [weak self] in self?.show() },
-                onClear: { [weak self] in
-                    self?.builtActivity?.clearFinished()
-                    self?.updateStatusItem()
-                })
-        }
-        statusItem?.update(waiting: items.filter { if case .waiting = $0.status { true } else { false } }.count)
+        core.agentCoordinator.refreshMenuBar()
+    }
+
+    /// Agents that work, wait, or finished unseen; nothing at all while the switch is off.
+    private var menuBarSessions: [AgentActivity] {
+        guard isActive, settings.agentStatusMenuBar, let builtActivity else { return [] }
+        builtActivity.prune(now: Date())
+        return builtActivity.items.filter(\.needsAttention)
+    }
+
+    var menuBarIndicator: AgentRunLedger.Indicator {
+        let items = menuBarSessions
+        return .of(
+            waiting: items.count { if case .waiting = $0.status { true } else { false } },
+            running: items.count { $0.status == .working },
+            failed: items.contains { $0.status == .failed && !$0.seen },
+            done: items.contains { $0.status == .finished && !$0.seen })
+    }
+
+    /// Built as the menu opens; nil keeps the hub's rows and actions off the item.
+    var menuBarRows: [AgentsStatusItem.SessionRow]? {
+        guard isActive, settings.agentStatusMenuBar else { return nil }
+        return menuBarSessions.map { AgentsStatusItem.SessionRow(id: $0.id, title: Self.menuTitle(of: $0)) }
+    }
+
+    func jump(toSession id: AgentActivity.ID) {
+        guard let activity = builtActivity?.items.first(where: { $0.id == id }) else { return }
+        jump(to: activity)
+    }
+
+    func markFinishedSeen() {
+        builtActivity?.markFinishedSeen()
+    }
+
+    func clearFinished() {
+        builtActivity?.clearFinished()
+        updateStatusItem()
+    }
+
+    /// Absolute times, so nothing on an open menu goes stale.
+    private static func menuTitle(of activity: AgentActivity) -> String {
+        let name = activity.title ?? activity.agent.productName
+        let folder = activity.directory.map { ($0 as NSString).lastPathComponent } ?? activity.agent.productName
+        let time = activity.updatedAt.formatted(date: .omitted, time: .shortened)
+        let symbol =
+            switch activity.status {
+            case .waiting: "◉"
+            case .working: "◌"
+            default: "○"
+            }
+        return "\(symbol) \(name) — \(folder) · \(AgentSessionsList.chipTitle(activity.status)) · \(time)"
     }
 
     // MARK: - Live status

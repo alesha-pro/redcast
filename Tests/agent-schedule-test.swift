@@ -26,6 +26,7 @@ struct AgentScheduleTests {
         verdicts()
         aWeekAwayRunsOnce()
         ledgerIndicator()
+        oneItemForRunsAndSessions()
         runTitles()
         consentModes()
         consentPlans()
@@ -246,7 +247,7 @@ struct AgentScheduleTests {
         expect(ledger.indicator == .running(2), "two in flight")
         expect(ledger.isBusy(agent: rig) && !ledger.isBusy(agent: UUID()), "busy is per agent")
         ledger.update(second.id) { $0.state = .waiting }
-        expect(ledger.indicator == .waiting, "a run waiting for an answer beats running")
+        expect(ledger.indicator == .waiting(1), "a run waiting for an answer beats running")
         ledger.update(second.id) { $0.state = .done }
         expect(ledger.indicator == .running(1), "running beats a finished run")
         ledger.update(first.id) { $0.state = .failed("No model") }
@@ -270,6 +271,21 @@ struct AgentScheduleTests {
         expect(kept.isRunning(schedule: scheduled), "a schedule's run is found by its schedule")
         expect(!AgentRun.Origin.schedule(scheduled, manual: false).announces, "a schedule's own run is quiet")
         expect(AgentRun.Origin.schedule(scheduled, manual: true).announces, "Run Now is announced")
+    }
+
+    static func oneItemForRunsAndSessions() {
+        typealias Indicator = AgentRunLedger.Indicator
+        expect(Indicator.of(waiting: 0, running: 0, failed: false, done: false) == .hidden, "nothing: no item")
+        expect(Indicator.of(waiting: 2, running: 3, failed: true, done: true) == .waiting(2), "waiting first")
+        expect(Indicator.of(waiting: 0, running: 3, failed: true, done: true) == .running(3), "then working")
+        expect(Indicator.of(waiting: 0, running: 0, failed: true, done: true) == .failed, "then a failure")
+        expect(Indicator.of(waiting: 0, running: 0, failed: false, done: true) == .done, "then a success")
+        expect(Indicator.waiting(1).merged(with: .waiting(2)) == .waiting(3), "waiting runs and sessions add up")
+        expect(Indicator.running(1).merged(with: .running(1)) == .running(2), "so do working ones")
+        expect(Indicator.running(4).merged(with: .waiting(1)) == .waiting(1), "a session waiting beats runs working")
+        expect(Indicator.done.merged(with: .failed) == .failed, "an unseen failure beats an unseen success")
+        expect(Indicator.hidden.merged(with: .done) == .done, "one source alone keeps the item")
+        expect(Indicator.hidden.merged(with: .hidden) == .hidden, "and with neither it goes")
     }
 
     static func runTitles() {
