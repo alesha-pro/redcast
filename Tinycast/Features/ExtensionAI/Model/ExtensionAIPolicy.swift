@@ -12,11 +12,11 @@ enum ExtensionAIPolicy {
     static let maxPromptBytes = 256 * 1_024
 
     static func access(
-        featureOn: Bool, aiOn: Bool, openedByUser: Bool, grant: Bool?
+        featureOn: Bool, aiOn: Bool, actingForUser: Bool, grant: Bool?
     ) -> ExtensionAIAccess {
         guard featureOn else { return .refused(.featureOff) }
         guard aiOn else { return .refused(.aiOff) }
-        guard openedByUser else { return .refused(.unattended) }
+        guard actingForUser else { return .refused(.unattended) }
         switch grant {
         case nil: return .ask
         case true?: return .allowed

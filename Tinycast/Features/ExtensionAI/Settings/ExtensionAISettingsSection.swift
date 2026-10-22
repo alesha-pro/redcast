@@ -36,8 +36,8 @@ struct ExtensionAISettingsSection: View {
         } footer: {
             Text(
                 """
-                Every model an extension names is answered by this one. Up to 10 requests a minute and \
-                100 an hour per extension; menu-bar commands and background refreshes can't use AI.
+                Up to 10 requests a minute and 100 an hour per extension. Background refreshes can't use \
+                AI, and a menu-bar command can use it only from an item you click.
                 """
             )
             .font(.caption)

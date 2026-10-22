@@ -5,7 +5,7 @@ import Foundation
 protocol ExtensionAIHost: AnyObject {
     /// `owner` is the calling bridge, so one command's streams never answer another's reads.
     func perform(
-        method: String, arguments: [RenderValue], extensionName: String, openedByUser: Bool,
+        method: String, arguments: [RenderValue], extensionName: String, actingForUser: Bool,
         owner: ObjectIdentifier
     ) async throws -> Any?
     func canAccess(extensionName: String) -> Bool

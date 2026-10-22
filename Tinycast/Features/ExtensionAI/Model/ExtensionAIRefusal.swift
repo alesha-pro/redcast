@@ -19,7 +19,8 @@ enum ExtensionAIRefusal: LocalizedError, Equatable, Sendable {
         case .aiOff:
             return String(localized: "AI is off. Turn it on in Settings \u{2192} AI to let extensions use it.")
         case .unattended:
-            return String(localized: "Extensions can use AI only in a command you open.")
+            return String(
+                localized: "Extensions can use AI only in a command you open or from a menu-bar item you click.")
         case .denied:
             return String(
                 localized: """

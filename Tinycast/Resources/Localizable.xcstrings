@@ -58218,58 +58218,6 @@
         }
       }
     },
-    "Every model an extension names is answered by this one. Up to 10 requests a minute and 100 an hour per extension; menu-bar commands and background refreshes can't use AI." : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Jedes Modell, das eine Erweiterung anfordert, wird von diesem beantwortet. Bis zu 10 Anfragen pro Minute und 100 pro Stunde je Erweiterung; Menüleistenbefehle und Hintergrundaktualisierungen können keine KI nutzen."
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Este modelo responde por cualquier modelo que pida una extensión. Hasta 10 solicitudes por minuto y 100 por hora por extensión; los comandos de la barra de menús y las actualizaciones en segundo plano no pueden usar la IA."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ce modèle répond pour tout modèle demandé par une extension. Jusqu’à 10 requêtes par minute et 100 par heure par extension ; les commandes de la barre des menus et les actualisations en arrière-plan ne peuvent pas utiliser l’IA."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "拡張機能が指定するモデルにかかわらず、このモデルが回答します。拡張機能ごとに1分あたり10件、1時間あたり100件までです。メニューバーのコマンドとバックグラウンド更新ではAIを使用できません。"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "확장 프로그램이 지정하는 모든 모델 대신 이 모델이 응답합니다. 확장 프로그램당 분당 10회, 시간당 100회까지 요청할 수 있으며, 메뉴 막대 명령과 백그라운드 새로 고침에서는 AI를 사용할 수 없습니다."
-          }
-        },
-        "pt" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Este modelo responde por qualquer modelo que uma extensão peça. Até 10 solicitações por minuto e 100 por hora por extensão; comandos da barra de menus e atualizações em segundo plano não podem usar a IA."
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "На запрос любой модели от расширения отвечает эта. Не более 10 запросов в минуту и 100 в час на расширение; команды строки меню и фоновые обновления не могут использовать ИИ."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "无论扩展指定哪个模型，都由此模型回答。每个扩展每分钟最多 10 次请求、每小时最多 100 次；菜单栏命令和后台刷新无法使用 AI。"
-          }
-        }
-      }
-    },
     "Every past calculation goes. This can't be undone." : {
       "localizations" : {
         "de" : {
@@ -59960,54 +59908,54 @@
         }
       }
     },
-    "Extensions can use AI only in a command you open." : {
+    "Extensions can use AI only in a command you open or from a menu-bar item you click." : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Erweiterungen können KI nur in einem Befehl nutzen, den du öffnest."
+            "value" : "Erweiterungen können KI nur in einem Befehl nutzen, den du öffnest, oder über ein Menüleistenelement, das du anklickst."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Las extensiones solo pueden usar la IA en un comando que abras tú."
+            "value" : "Las extensiones solo pueden usar la IA en un comando que abras tú o desde un elemento de la barra de menús en el que hagas clic."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Les extensions ne peuvent utiliser l’IA que dans une commande que vous ouvrez."
+            "value" : "Les extensions ne peuvent utiliser l’IA que dans une commande que vous ouvrez ou depuis un élément de la barre des menus sur lequel vous cliquez."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "拡張機能がAIを使用できるのは、ユーザーが開いたコマンドの中だけです。"
+            "value" : "拡張機能がAIを使用できるのは、ユーザーが開いたコマンドの中か、クリックしたメニューバー項目からだけです。"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "확장 프로그램은 사용자가 연 명령에서만 AI를 사용할 수 있습니다."
+            "value" : "확장 프로그램은 사용자가 연 명령이나 클릭한 메뉴 막대 항목에서만 AI를 사용할 수 있습니다."
           }
         },
         "pt" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "As extensões só podem usar a IA em um comando que você abrir."
+            "value" : "As extensões só podem usar a IA em um comando que você abrir ou a partir de um item da barra de menus em que você clicar."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Расширения могут использовать ИИ только в команде, которую вы открыли."
+            "value" : "Расширения могут использовать ИИ только в команде, которую вы открыли, или из пункта строки меню, на который вы нажали."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "扩展只能在你打开的命令中使用 AI。"
+            "value" : "扩展只能在你打开的命令中或从你点击的菜单栏项目中使用 AI。"
           }
         }
       }
@@ -145578,6 +145526,58 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "未命名会话"
+          }
+        }
+      }
+    },
+    "Up to 10 requests a minute and 100 an hour per extension. Background refreshes can't use AI, and a menu-bar command can use it only from an item you click." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bis zu 10 Anfragen pro Minute und 100 pro Stunde je Erweiterung. Hintergrundaktualisierungen können keine KI nutzen, und ein Menüleistenbefehl nur über ein Element, das du anklickst."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hasta 10 solicitudes por minuto y 100 por hora por extensión. Las actualizaciones en segundo plano no pueden usar la IA, y un comando de la barra de menús solo puede usarla desde un elemento en el que hagas clic."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jusqu’à 10 requêtes par minute et 100 par heure par extension. Les actualisations en arrière-plan ne peuvent pas utiliser l’IA, et une commande de la barre des menus ne peut l’utiliser que depuis un élément sur lequel vous cliquez."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "拡張機能ごとに1分あたり10件、1時間あたり100件までです。バックグラウンド更新ではAIを使用できず、メニューバーのコマンドではクリックした項目からのみ使用できます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "확장 프로그램당 분당 10회, 시간당 100회까지 요청할 수 있습니다. 백그라운드 새로 고침에서는 AI를 사용할 수 없으며, 메뉴 막대 명령은 사용자가 클릭한 항목에서만 AI를 사용할 수 있습니다."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Até 10 solicitações por minuto e 100 por hora por extensão. Atualizações em segundo plano não podem usar a IA, e um comando da barra de menus só pode usá-la a partir de um item em que você clicar."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не более 10 запросов в минуту и 100 в час на расширение. Фоновые обновления не могут использовать ИИ, а команда строки меню — только из пункта, на который вы нажали."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "每个扩展每分钟最多 10 次请求、每小时最多 100 次。后台刷新无法使用 AI，菜单栏命令只能在你点击的项目中使用 AI。"
           }
         }
       }

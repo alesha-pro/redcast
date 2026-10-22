@@ -23,6 +23,9 @@ final class ExtensionMenuBarManager: ExtensionRuntimeDelegate {
         let runtime: ExtensionRuntime
         var stop: () -> Void
         var enableInteraction: () -> Void = {}
+        // Fork: AI rides only an item's action in flight; `aiAccess` is canAccess(AI).
+        var setActing: (Bool) -> Void = { _ in }
+        var aiAccess = false
     }
 
     var isRunning: Bool { active != nil }
@@ -43,7 +46,10 @@ final class ExtensionMenuBarManager: ExtensionRuntimeDelegate {
         let execution: Execution
         var runtime: ExtensionRuntime { execution.runtime }
         var isLoading = true
-        var pendingActions = 0
+        // Fork: a click's action in flight is the user's gesture, the one thing AI may answer here.
+        var pendingActions = 0 {
+            didSet { execution.setActing(pendingActions > 0) }
+        }
         var isInteractive: Bool
 
         init(request: Request, owner: InstalledExtension, mode: ExtensionCommandMode, execution: Execution) {
@@ -204,7 +210,9 @@ final class ExtensionMenuBarManager: ExtensionRuntimeDelegate {
             caches: storage.caches(extension: owner.manifest.name),
             arguments: command.completeArguments(request.arguments),
             fallbackText: nil, launchType: request.type,
-            isDarkAppearance: NSApp.effectiveAppearance.isDark, launchContext: request.context)
+            isDarkAppearance: NSApp.effectiveAppearance.isDark, launchContext: request.context,
+            // Fork: resolved with the execution, so a refresh nobody opened reports no access.
+            aiAccess: execution.aiAccess)
         launchTask = Task { [weak self] in
             do {
                 let code = try await Task.detached(priority: .utility) {

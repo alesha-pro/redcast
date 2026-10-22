@@ -48,7 +48,7 @@ final class ExtensionManager: ExtensionRuntimeDelegate, ExtensionHostContext {
 
     /// The entry ids an uninstall invalidated, so another feature can drop what it keyed to them.
     @ObservationIgnored var onDidUninstall: (([String]) -> Void)?
-    /// Answers `AI.ask` for palette commands; menu-bar bridges are scoped without it.
+    /// Answers `AI.ask`; the menu-bar lane's bridges share it and their hosts narrow when it may.
     var ai: (any ExtensionAIHost)? {
         get { bridge.ai }
         set { bridge.ai = newValue }
@@ -108,13 +108,18 @@ final class ExtensionManager: ExtensionRuntimeDelegate, ExtensionHostContext {
                         owner: owner, command: command, launchType: type, storage: self.storage,
                         manager: self, coordinator: coordinator)
                     let bridge = self.bridge.scoped(to: host)
+                    // Fork: its host lets AI answer only inside an item's action.
+                    bridge.ai = self.bridge.ai
                     return .init(
                         runtime: ExtensionRuntime(
                             hostAPI: bridge,
                             priority: type == .background ? .utility : .userInitiated),
                         stop: {
                             bridge.context = nil
-                        }, enableInteraction: { host.enableInteraction() })
+                        }, enableInteraction: { host.enableInteraction() },
+                        setActing: { host.isRunningAction = $0 },
+                        aiAccess: type == .userInitiated
+                            && self.bridge.ai?.canAccess(extensionName: owner.manifest.name) == true)
                 },
                 onError: { [weak coordinator] message, owner, needsPreferences in
                     coordinator?.showHUD(message)

@@ -206,6 +206,7 @@ struct ExtensionTests {
         await hostBridgeAIChecks()
         await menuBarRuntimeChecks()
         await menuBarHostChecks()
+        await menuBarAIChecks()
         await ExtensionFetchTests.runChecks()
 
         print("\n\(passes) passed, \(failures) failed")
