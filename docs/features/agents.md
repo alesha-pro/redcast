@@ -25,7 +25,9 @@ stays in `Features/Agents/` plus the few lines in `AIChatCoordinator`, `AIChatDe
 - **Every change and every command asks.** `write_file`, `edit_file` and `run_command` go through
   `AgentCoordinator.permit`, a `DialogController` choice of Allow, Allow for This Chat, or Don't Allow.
   The chat grant is per kind (writes, commands), in memory, and cleared when the chat's agent changes.
-  A declined call returns a result telling the model to ask what the user wants instead.
+  A declined call returns a result telling the model to ask what the user wants instead. Stop voids
+  an answer given after it and stops a running command, so neither a late Allow nor the command's
+  next step acts once the turn is gone.
 - **Paths are checked after links are followed.** `AgentPathPolicy` resolves `~` and relative paths
   against the folder and standardizes `..` away; the executor then resolves symlinks on both the path
   and the folder before asking. Reading reaches the folder and the granted skills' folders; writing
@@ -149,4 +151,4 @@ stripped and only the output's tail is kept. `search_files` prefers ripgrep and 
   in `Tests/acp-fixtures/fake-agent.mjs`: streaming, consent, reuse, refusal, cancel, reload, lost
   sessions, a missing command), `agent-test` (skills, catalog, path policy, tool sets, prompt, persistence) and
   `agent-tools-test` (the executor against a real folder: reads, writes with consent, link escapes,
-  commands and timeouts, memory, skills, HTML).
+  commands, timeouts and Stop, memory, skills, HTML).
