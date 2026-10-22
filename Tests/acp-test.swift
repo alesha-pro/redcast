@@ -517,6 +517,10 @@ extension ACPTests {
             "a new file is additions, cut to the row's lines with the rest counted, got \(created.suffix(2))")
         expect(rows("same\nlines", "same\nlines").isEmpty, "a diff that changes nothing shows no lines")
         expect(rows("a\r\nb\r\n", "a\r\nc\r\n") == [" a", "-b", "+c"], "CRLF lines compare as lines")
+        expect(
+            ChatToolContent.lines(of: ChatToolContent.Diff(path: "p", lines: "-a\r\n+b\n\u{1F}3"))
+                == [.removed("a"), .added("b"), .cut(3)],
+            "and read back as lines, whatever ended them")
         let wide = rows(
             (1...400).map { "old \($0)" }.joined(separator: "\n"),
             (1...400).map { "new \($0)" }.joined(separator: "\n"))
