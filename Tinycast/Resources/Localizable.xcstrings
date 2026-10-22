@@ -78882,6 +78882,110 @@
         }
       }
     },
+    "Management Key" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verwaltungsschlüssel"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clave de gestión"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clé de gestion"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "管理キー"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "관리 키"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chave de gerenciamento"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Управляющий ключ"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "管理密钥"
+          }
+        }
+      }
+    },
+    "Management Key…" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verwaltungsschlüssel …"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clave de gestión…"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clé de gestion…"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "管理キー…"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "관리 키…"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chave de gerenciamento…"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Управляющий ключ…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "管理密钥…"
+          }
+        }
+      }
+    },
     "Manage…" : {
       "localizations" : {
         "de" : {
@@ -96765,6 +96869,58 @@
         }
       }
     },
+    "OpenRouter Management Key" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OpenRouter-Verwaltungsschlüssel"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clave de gestión de OpenRouter"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clé de gestion OpenRouter"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OpenRouterの管理キー"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OpenRouter 관리 키"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chave de gerenciamento do OpenRouter"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Управляющий ключ OpenRouter"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OpenRouter 管理密钥"
+          }
+        }
+      }
+    },
     "OpenRouter didn't answer. Try again." : {
       "localizations" : {
         "de" : {
@@ -96865,6 +97021,58 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "OpenRouter 拒绝了该密钥。"
+          }
+        }
+      }
+    },
+    "OpenRouter rejected the management key." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OpenRouter hat den Verwaltungsschlüssel abgelehnt."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OpenRouter rechazó la clave de gestión."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OpenRouter a refusé la clé de gestion."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OpenRouterが管理キーを拒否しました。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OpenRouter가 관리 키를 거부했습니다."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O OpenRouter recusou a chave de gerenciamento."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OpenRouter отклонил управляющий ключ."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OpenRouter 拒绝了该管理密钥。"
           }
         }
       }
@@ -146777,6 +146985,58 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "用以下方式使用“%@”…"
+          }
+        }
+      }
+    },
+    "Used only to read your account's credits when you press Check Balance, and sent only to OpenRouter. Create one in OpenRouter's settings under Management Keys." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wird nur verwendet, um beim Klick auf „Guthaben prüfen“ das Guthaben deines Kontos zu lesen, und nur an OpenRouter gesendet. Erstelle einen in den OpenRouter-Einstellungen unter „Management Keys“."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Solo se usa para leer los créditos de tu cuenta cuando pulsas Consultar saldo, y solo se envía a OpenRouter. Crea una en los ajustes de OpenRouter, en Management Keys."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Utilisée uniquement pour lire les crédits de votre compte lorsque vous cliquez sur Vérifier le solde, et envoyée uniquement à OpenRouter. Créez-en une dans les réglages d’OpenRouter, sous Management Keys."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "「残高を確認」を押したときにアカウントのクレジットを読み取るためだけに使われ、OpenRouterにのみ送信されます。OpenRouterの設定の「Management Keys」で作成してください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "잔액 확인을 누를 때 계정의 크레딧을 읽는 데만 쓰이며 OpenRouter로만 전송됩니다. OpenRouter 설정의 Management Keys에서 만드십시오."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usada só para ler os créditos da sua conta quando você clica em Verificar saldo, e enviada só ao OpenRouter. Crie uma nas configurações do OpenRouter, em Management Keys."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Используется только для того, чтобы узнать кредиты аккаунта по кнопке «Проверить баланс», и отправляется только в OpenRouter. Создайте его в настройках OpenRouter в разделе Management Keys."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "仅在你点按“查询余额”时用于读取账户的额度，并且只发送给 OpenRouter。请在 OpenRouter 设置的 Management Keys 中创建。"
           }
         }
       }

@@ -4,8 +4,9 @@ Settings → AI → **Usage** sums the tokens and cost each reply reported — p
 agent, for a day, a week or a month — from the chat history kept on this Mac and from a small log of
 the replies no chat keeps (Quick Actions, Ask by Voice and cloud dictation, extension AI, chat
 titles). A strip of bars shows the period's tokens per hour of a day or per day of a week or month.
-On a press of **Check Balance** it asks OpenRouter what a key has spent. It is the fork's (roadmap
-item 14 in [FORK.md](../../FORK.md)), kept to `Features/UsageDashboard/` plus one line each in
+On a press of **Check Balance** it asks OpenRouter what a key has spent, and with an optional
+management key what the account has left. It is the fork's (roadmap item 14 in
+[FORK.md](../../FORK.md)), kept to `Features/UsageDashboard/` plus one line each in
 `AISettingsView`, `SettingsAnchor` and `SettingsSearchCatalog`, the `databaseURL` that
 `ChatHistoryStore` exposes, the two accuracy fixes below, and the `Fork:`-marked lines listed under
 [Upstream touches](#upstream-touches).
@@ -40,8 +41,9 @@ item 14 in [FORK.md](../../FORK.md)), kept to `Features/UsageDashboard/` plus on
   both, with a `LAG` window over the bound chats alone.
 - **A balance is fetched on a press, on a session made for it.** **Check Balance** reads the
   connection's key from Keychain off-main, checks the base URL with `AIEndpointPolicy`, and sends
-  `GET /key` — then `GET /credits` only when the key says it is a management key — on a per-call
-  `.ephemeral` session with no URL cache and no cookie storage, invalidated once the check ends.
+  `GET /key` — then `GET /credits` with a stored management key, or with the chat key only when it
+  says it is one — on a per-call `.ephemeral` session with no URL cache and no cookie storage,
+  invalidated once the check ends.
   The answer lives in the row's `@State` and goes with it: never persisted, polled or refreshed.
 - **Replies no chat keeps are logged, and only their numbers.** `UsageRecordingProvider` wraps the
   provider at the four places such a reply is asked for — `AppCore.quickActionProvider`,
@@ -68,10 +70,18 @@ item 14 in [FORK.md](../../FORK.md)), kept to `Features/UsageDashboard/` plus on
   entries land in their slice in Swift. A bar is the slice's tokens (every route reports tokens, not
   every route a cost); its tooltip names the slice with its tokens and cost. Plain
   `RoundedRectangle`s, no chart framework, nothing kept once the section goes.
+- **A management key goes only to OpenRouter's `/credits`, only on Check Balance.** It is stored per
+  OpenRouter connection in its own Keychain scope (`openrouter-management-keys`, account = the
+  connection's id), set and removed in a small panel from the balance row that checks for it with
+  `hasSecret` and never reads it back, and removed with its connection. Check Balance reads it
+  off-main with the chat key and sends it to the fixed `https://openrouter.ai/api/v1/credits` —
+  never to the connection's base URL, so a proxy never sees an account key. Without one, the chat
+  key is asked for credits only when `/key` says it is a management key.
 - **No settings surface, and nothing in a backup.** No `AppSettings` key, no `SettingsFileKey`,
   nothing in `SettingsBackupCoverage`: the period is view state and a balance is transient. The
-  usage log is AI usage data like chat history, so no backup category carries it. The section dims
-  with the rest of the AI pane while AI is off.
+  usage log is AI usage data like chat history, so no backup category carries it; the management key
+  is Keychain material, which never travels. The section dims with the rest of the AI pane while AI
+  is off.
 
 ## Accuracy fixes it relies on
 
@@ -103,7 +113,7 @@ item 14 in [FORK.md](../../FORK.md)), kept to `Features/UsageDashboard/` plus on
 - **OpenRouter BYOK** reports `cost` 0 with the real figure in
   `cost_details.upstream_inference_cost`, which is not parsed.
 - **The account balance needs a management key.** `GET /credits` refuses the inference key chats
-  use, so the row says so instead of showing credits.
+  use, so without a management key the row says so instead of showing credits.
 - **Two clocks.** The section's periods follow this Mac's calendar and time zone; OpenRouter's spend
   is per UTC day, Monday-start UTC week and UTC month, and the row says "(UTC)".
 
@@ -114,12 +124,12 @@ item 14 in [FORK.md](../../FORK.md)), kept to `Features/UsageDashboard/` plus on
 | `Model/UsagePeriod.swift` | Day, week and month intervals from an injected `Calendar`, stepping, titles, the trend's slices |
 | `Model/UsageReport.swift` | `UsageTotals`, `UsageRow`, `UsageSubject`, the merged and sorted `UsageReport` with its slices, `UsageFormat` |
 | `Model/UsageLedgerEntry.swift` | One logged reply, its line format both ways, and reading and trimming a log's bytes |
-| `Model/OpenRouterAccount.swift` | `/key` and `/credits` requests and decoding, what a status means, the binding limit |
+| `Model/OpenRouterAccount.swift` | `/key` and `/credits` requests and decoding, the management key's fixed request, what a status means |
 | `Service/UsageQuery.swift` | The read-only aggregate by conversation and slice, ACP running totals turned into rises, and the report built with the log off-main |
 | `Service/UsageLedger.swift` | `ai-usage.tsv`: the locked append, the age trim and the read |
 | `Service/UsageRecordingProvider.swift` | The pass-through provider that logs a reply's usage when its stream ends |
-| `Service/OpenRouterAccountClient.swift` | The Keychain read and the per-call fetch |
-| `Settings/UsageSection.swift` | The section, the trend strip, a row per model or agent, a balance row per OpenRouter connection |
+| `Service/OpenRouterAccountClient.swift` | The Keychain reads and the per-call fetch |
+| `Settings/UsageSection.swift` | The section, the trend strip, a row per model or agent, a balance row per OpenRouter connection and its management-key panel |
 
 The aggregate scans `message_details` (replies with usage) first: `CROSS JOIN` pins that order, so
 `messages` is searched by its primary key rather than scanned whole, and the result is one row per
@@ -135,7 +145,9 @@ falls in the period are decoded.
 ## Upstream touches
 
 Each marked with a one-line `Fork:` comment: the log's wrap in `AppCore.quickActionProvider` and in
-`AIChatCoordinator`'s title request, and the `usageTrendHeight` token in `Theme`.
+`AIChatCoordinator`'s title request; the `openRouterManagementKeys` scope in `KeychainSecretStore`;
+its removal in `AIProvidersPanel.removeConnection`; the `usageTrendHeight` token in `Theme`; and the
+section's search keywords in `SettingsSearchCatalog`.
 
 ## Manual sweep
 
@@ -154,7 +166,8 @@ Each marked with a one-line `Fork:` comment: the log's wrap in `AppCore.quickAct
   limit or "No spending limit on this key", and the management-key caption. A wrong key reads
   "OpenRouter rejected the key."; with the network off, "OpenRouter didn't answer. Try again."
 - Nothing refreshes by itself: watch with Little Snitch or `nettop` while the section is open.
-- Settings search for "usage", "tokens", "cost" or "openrouter" lands on the section.
+- Settings search for "usage", "tokens", "cost", "openrouter" or "management key" lands on the
+  section.
 - Run a Quick Action on an OpenRouter model, then show the section: its model's line gains a reply
   and its cost, and `ai-usage.tsv` in `~/Library/Application Support/<bundle id>/` has one line with
   no text of the selection or the answer. Do the same with Ask by Voice, a cloud dictation, an
@@ -163,6 +176,11 @@ Each marked with a one-line `Fork:` comment: the log's wrap in `AppCore.quickAct
 - The trend: Day shows a bar per hour, Week seven and Month one per day; the current one is tinted
   and later ones are a hairline; hovering a bar names it with its tokens and cost. A 25-hour day
   (the last Sunday of October in Europe) shows 25 bars.
+- Management Key… on an OpenRouter row: Save a management key, then Check Balance: the third line is
+  the account's credits left. `nettop` shows the `/credits` call to `openrouter.ai` even when the
+  connection's base URL is a proxy. A wrong management key reads "OpenRouter rejected the management
+  key."; Remove brings back the management-key caption. Deleting the connection in Providers removes
+  the key (Keychain Access shows no `openrouter-management-keys` item for it).
 
 ## Harness
 
@@ -176,7 +194,8 @@ only the rise inside it, a drop starts counting afresh, an unpriced reply keeps 
 chat no ACP agent ran sums as stored. Periods use a Berlin Gregorian calendar with Monday weeks (a
 23-hour DST day, a week across the clock change, stepping back across a year); formats use `en_US`.
 OpenRouter's documented `/key` and `/credits` bodies, an error body and status mapping are decoded
-without a network. It also holds the two accuracy fixes: a two-round tool turn's cost is both rounds', and only
+without a network; the management key's request goes to the fixed `/credits` URL and a refusal names
+it. It also holds the two accuracy fixes: a two-round tool turn's cost is both rounds', and only
 OpenAI's own endpoint is sent `stream_options` — an OpenAI preset on a gateway and an unknown server
 are not. `agent-loop-test` holds the agents' loop to the same sum.
 
