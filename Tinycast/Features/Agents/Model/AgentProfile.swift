@@ -22,6 +22,9 @@ enum AgentToolKind: String, Codable, CaseIterable, Identifiable, Sendable {
     case memory
 
     var id: String { rawValue }
+
+    /// A family added later starts off, so it never switches itself on for a new agent.
+    static let defaults: Set<AgentToolKind> = [.files, .terminal, .web, .memory]
 }
 
 /// Where an agent's skills come from; a project skill wins over a global one of the same name.
@@ -61,7 +64,7 @@ struct AgentProfile: Codable, Hashable, Identifiable, Sendable {
     init(
         id: UUID = UUID(), name: String, iconSymbol: String? = nil, instructions: String = "",
         model: AIModelSelection? = nil, directory: String, access: AgentAccess = .workspaceWrite,
-        tools: Set<AgentToolKind> = Set(AgentToolKind.allCases),
+        tools: Set<AgentToolKind> = AgentToolKind.defaults,
         skillSources: Set<AgentSkillSource> = Set(AgentSkillSource.allCases),
         disabledSkills: Set<String> = [], readsProjectInstructions: Bool = true,
         readsGlobalInstructions: Bool = false, runtime: AgentRuntime? = nil,
