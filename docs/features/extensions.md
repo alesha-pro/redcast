@@ -719,6 +719,10 @@ Its presence lets bundled `safe-buffer` select the modern Buffer API rather than
 as a legacy function. `EventEmitter.once` passes the emitter as the listener's receiver, like `on`,
 and removes the listener before invoking it; bundled duplex streams rely on that receiver at `end`.
 
+`querystring.stringify` coerces like Node: `undefined`, `null` and a non-finite number become an
+empty value, so google-auth-library sends a client without a secret as `client_secret=`, which Google
+accepts, rather than `client_secret=undefined`, which it answers with `invalid_client`.
+
 **WebAssembly** — `compile`, `instantiate` and their streaming forms run through the synchronous
 `Module` and `Instance` constructors. JavaScriptCore settles the promise forms from a run-loop timer on
 the thread that owns the VM, and the runtime's queue never spins one, so they stayed pending forever.
