@@ -131,6 +131,13 @@ final class AIChatCoordinator {
         showWindow()
     }
 
+    /// A Quick Action's result, carried over with its request so the next message can refine it.
+    func continueQuickAction(prompt: String, reply: String, model: AIModelSelection?) {
+        guard settings.aiEnabled else { return }
+        chats.openSeededInWindow(prompt: prompt, reply: reply, model: model)
+        showWindow()
+    }
+
     /// A chat with no message yet is unsaved, so it has nothing to pin, copy or delete.
     func isSaved(_ chat: AIChatState) -> Bool {
         core.chatHistory.conversation(id: chat.session.id) != nil

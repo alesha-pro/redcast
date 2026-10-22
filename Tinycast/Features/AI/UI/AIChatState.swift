@@ -58,6 +58,18 @@ final class AIChatState {
         return true
     }
 
+    /// A finished exchange made elsewhere becomes this chat's opening, saved as if it had run here.
+    @discardableResult
+    func seed(prompt: String, reply: String, model: AIModelSelection?) -> Bool {
+        guard session.messages.isEmpty, !isStreaming else { return false }
+        session.append(ChatMessage(role: .user, text: prompt))
+        session.append(ChatMessage(role: .assistant, text: reply))
+        session.model = model
+        history.save(session)
+        onReplyFinished?(self)
+        return true
+    }
+
     /// The chat's own route from now on; a saved chat records it at once, a new one on first send.
     func setModel(_ model: AIModelSelection) {
         session.model = model

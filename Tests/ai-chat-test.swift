@@ -56,6 +56,7 @@ struct AIChatTests {
         await regenerateAsksTheSameQuestionAgain()
         await requestsIdentifyTheirConversation()
         await aConversationIsLiveOnOneSurfaceAtATime()
+        aQuickActionResultOpensAsItsOwnChat()
         await theWindowFollowsTheOpenPolicy()
         await everyStateReportsAFinishedReply()
         await reasoningFoldsIntoTheReplyAndIsNeverResent()
@@ -1469,6 +1470,39 @@ extension AIChatTests {
     }
 
     /// Two surfaces editing one transcript would each save over the other.
+    static func aQuickActionResultOpensAsItsOwnChat() {
+        let (store, directory) = temporaryStore("seeded")
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let chats = AIChatSurfacesState(history: store)
+        let opened = chats.window
+        let route = AIModelSelection.claude(model: "sonnet", effort: nil)
+
+        chats.openSeededInWindow(prompt: "Make it formal\n\nhey there", reply: "Good day.", model: route)
+        let seeded = chats.window
+        expect(seeded !== opened, "a Quick Action result opens as a new chat, never inside one")
+        expect(
+            seeded.session.messages.map(\.role) == [.user, .assistant],
+            "the request and the reply are its opening turn")
+        expect(
+            seeded.session.messages.allSatisfy { $0.state == .complete },
+            "the reply arrives finished, so the next message goes out at once")
+        expect(seeded.session.model == route, "the chat keeps answering on the action's route")
+
+        let reloaded = ChatHistoryStore(directory: directory).session(id: seeded.session.id)
+        expect(
+            reloaded?.messages.map(\.text) == ["Make it formal\n\nhey there", "Good day."],
+            "it is saved at once, so closing the window cannot lose it")
+        expect(
+            !seeded.seed(prompt: "Again", reply: "No", model: nil),
+            "a chat that already has a transcript is never seeded over")
+
+        chats.openSeededInWindow(prompt: "Second", reply: "Two", model: nil)
+        expect(chats.window !== seeded, "a second result opens a second chat")
+        expect(
+            store.session(id: seeded.session.id)?.messages.count == 2,
+            "and the first one stays as it was")
+    }
+
     static func aConversationIsLiveOnOneSurfaceAtATime() async {
         let (store, directory) = temporaryStore("surfaces")
         defer { try? FileManager.default.removeItem(at: directory) }
