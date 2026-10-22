@@ -201,7 +201,7 @@ final class AIChatCoordinator {
         core.chatGPTSubscription.turns.discardConversation(id: id)
         chats.delete(id: id)
         // Fork: an agent chat's notes on its earlier turns go with the chat.
-        core.pruneAgentSummaries()
+        core.agentStore.removeSummary(forChat: id)
     }
 
     func deleteAllChats() async {
