@@ -8,7 +8,7 @@ struct VoiceAskSettingsSection: View {
     var body: some View {
         @Bindable var voice = core.voiceSettings
         let coordinator = core.voiceAskCoordinator
-        let available = coordinator.selection != nil
+        let available = coordinator.proposal != nil
         return Section {
             Toggle(isOn: enabledBinding) {
                 SettingsRowTitle(.aiAskByVoice, "Enable Ask by Voice")
@@ -38,7 +38,7 @@ struct VoiceAskSettingsSection: View {
                     .foregroundStyle(.orange)
             }
             if voice.askEnabled {
-                VoiceModelRow(use: .ask, selection: $voice.askModel)
+                VoiceModelRow(use: .ask, selection: voice.askModel, choose: coordinator.choose)
             }
         } header: {
             SettingsSectionHeader(.aiAskByVoice)

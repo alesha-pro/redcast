@@ -19,10 +19,17 @@ Upstream declined voice control (#1550), so this lives in `Features/VoiceAI/` pl
 ## Invariants
 
 - **Off by default, and each switch is consent.** `VoiceAISettings.cloudDictation` and `askEnabled`
-  start false; turning either on asks first through `DialogController`, naming the connection that
-  will hear the audio. Ask by Voice also needs AI and Screen Awareness on, asks for the microphone, then
-  Accessibility. Both flags grant a capability, so no Voice AI key travels in a backup or has a
-  settings-file key.
+  start false; turning either on asks first through `DialogController`, naming the connection and the
+  model that will hear the audio, and approving saves exactly that choice as `dictationModel` or
+  `askModel`. Ask by Voice also needs AI and Screen Awareness on, asks for the microphone, then
+  Accessibility, and saves nothing unless both are granted. Both flags grant a capability, so no Voice
+  AI key travels in a backup or has a settings-file key.
+- **Audio goes only where consent was given.** `VoiceRoutePolicy.route` is the saved choice while its
+  connection exists, is enabled and hears audio, and nil otherwise; nothing else is ever sent to. A
+  connection added later never takes over, and a removed, disabled or changed one is refused with
+  "Choose a model…" rather than replaced. Choosing another connection in the row asks again, naming it;
+  another model on the same connection does not. The OpenRouter, Gemini and OpenAI-compatible fallbacks
+  in `VoiceRoutePolicy.proposal` only fill a dialog.
 - **Network only after a recording ends.** One POST per finished recording; the model list is fetched
   only when **Choose…** is clicked. While idle there is no timer, observer, tap, session or process:
   `VoiceCloudTranscriber` holds only references, and `VoiceAskCoordinator` builds its recorder,
@@ -60,15 +67,15 @@ Upstream declined voice control (#1550), so this lives in `Features/VoiceAI/` pl
 | `Model/VoicePrompt.swift` | The dictation and Ask instructions and requests, the chat prompt, the vocabulary line |
 | `Model/VoiceReply.swift` | `VoiceReplyParser` (the streamed ANSWER/INSERT header), `VoiceTranscript.cleaned` |
 | `Model/VoiceReplySession.swift` | One Ask reply: when the panel opens, what streams into it, and what it ends as |
-| `Model/VoiceRoutePolicy.swift` | Defaults, eligible connections, selection repair, effort choice, image gating |
+| `Model/VoiceRoutePolicy.swift` | Defaults, eligible connections, the consented route and the proposal, effort, images |
 | `Model/VoiceInsertPolicy.swift` | When an INSERT reply may be typed without review |
 | `Model/VoiceAIFailure.swift` | The feature's own errors |
 | `Service/VoiceAIRoute.swift` | A selection to an `HTTPAIProvider`: Keychain key and headers, endpoint policy |
 | `Service/VoiceMediaEncoder.swift` | Off the main actor: samples to WAV, the window's PNG to a bounded JPEG |
-| `Service/VoiceCloudTranscriber.swift` | The engine `DictationCoordinator` calls, and its consent dialog |
+| `Service/VoiceCloudTranscriber.swift` | The engine `DictationCoordinator` calls, and its consent dialogs |
 | `UI/VoiceAskCoordinator.swift` | The Ask by Voice funnel: shortcut, launcher row, capsule keys and panel |
 | `Settings/VoiceAISettings.swift` | The fork's own `@Observable` store over `AppSettingsKey` keys |
-| `Settings/VoiceModelRow.swift` | Connection and model, the catalog loaded on a click |
+| `Settings/VoiceModelRow.swift` | Connection and model, the catalog loaded on a click; a new connection goes through `choose` |
 | `Settings/VoiceCloudDictationSection.swift` | The Dictation pane's Cloud transcription section |
 | `Settings/VoiceAskSettingsSection.swift` | The AI pane's Ask by Voice section, after Screen Awareness |
 
@@ -81,8 +88,9 @@ base64 and a `format`, on the OpenAI-compatible shape only ([AI](ai.md#web-searc
 replaces only its transcription call: capture, the capsule, ducking, Return and Escape, spacing and
 capitalization, and the paste or copy destination stay Dictation's. The AI Chat composer mic goes
 through the same coordinator, so it uses the same engine, and `hasModel` is true without a downloaded
-model. `VoiceCloudTranscriber.transcribe` resolves the route, builds the provider (so a missing key
-surfaces before any encoding), gates and encodes, sends, collects the text deltas and cleans them.
+model. `VoiceCloudTranscriber.transcribe` takes the consented route (none is "Choose a model…" and
+no request), builds the provider (so a missing key surfaces before any encoding), gates and encodes,
+sends, collects the text deltas and cleans them.
 Cancelling Dictation cancels the task, and the stream's termination cancels the URL session task.
 
 ## Ask by Voice
@@ -92,8 +100,8 @@ its recorder among the AI pane's commands. The row leaves the launcher while AI,
 the switch is off, and the bound shortcut stays registered but does nothing.
 
 A press, from the shortcut or the row, is refused with a HUD while Dictation is busy, when Tinycast
-itself is in front, when no route resolves or its key is missing, and with Screen Awareness's dialog
-when Accessibility is missing. Otherwise it hides the palette, starts the window capture and the
+itself is in front, when the consented route is gone or its key is missing, and with Screen Awareness's
+dialog when Accessibility is missing. Otherwise it hides the palette, starts the window capture and the
 microphone together, and shows Dictation's capsule (`DictationCapture` and `DictationPanelController`
 instances of its own, sharing `AppCore.dictationAudioDucker`). The capture finishes while the reader
 is still speaking.
@@ -129,10 +137,13 @@ Screen Recording grant is one HUD line, as in Screen Awareness.
 
 ## Routes and models
 
-`VoiceRoutePolicy.resolve` keeps a stored choice while its connection exists, hears audio and is
-enabled. Otherwise it takes the first enabled OpenRouter connection, then Gemini, with the preset, and
-last any other OpenAI-compatible connection with the first model it lists. With none, each switch is
-disabled and says to add a connection.
+`VoiceRoutePolicy.route` is the saved choice while its connection exists, hears audio and is enabled,
+and nil otherwise; it is the only thing a recording is sent to. `VoiceRoutePolicy.proposal` is what a
+switch's dialog names: that saved choice, else the first enabled OpenRouter connection, then Gemini,
+with the preset, and last an OpenAI-compatible server with the first model it lists. The OpenAI API
+itself is never proposed, because its usual chat models take no audio; it can be chosen in the row.
+With no proposal, each switch is disabled and says to add a connection. While a switch is on and its
+route is gone, the row shows None and says nothing is sent until a connection is chosen.
 
 | Use | OpenRouter | Gemini | Effort |
 | --- | --- | --- | --- |
@@ -183,6 +194,11 @@ ends.
 - **Cloud transcription setup.** With the switch off, the Dictation pane shows only the toggle under
   Cloud transcription. With no OpenRouter, Gemini or OpenAI-compatible connection it is disabled with
   a caption. Add one, turn it on: the dialog names the connection and the model.
+- **The route stays where consent was given.** With cloud transcription on a local OpenAI-compatible
+  server, add an OpenRouter connection: dictation still goes to the server (a proxy shows it). Disable
+  the server in AI settings: the row shows None with its caption, Dictation says "Choose a model for
+  cloud transcription…" and nothing is sent. Choose OpenRouter in the row: a dialog names it, Cancel
+  keeps None, Continue saves it. Change only the model: no dialog. Repeat for Ask by Voice.
 - **Hold Fn.** In TextEdit say "Привет, это тест OpenRouter и Kubernetes, ну, как бы, в пятницу, нет, в
   субботу": clean Cyrillic and Latin text, no fillers, "в субботу".
 - **Cleanup off and vocabulary.** Turn Clean up speech off: the fillers stay. Add "Tinycast" to Words
@@ -192,11 +208,12 @@ ends.
   request. Escape while the capsule processes: nothing is typed. Wi-Fi off: the network error is a HUD.
 - **The composer mic** in AI Chat uses the cloud engine; switching cloud off returns it to the
   on-device model.
-- **Ask by Voice setup.** Turn on Screen Awareness, then Ask by Voice: the dialog names the connection,
-  then the microphone and Accessibility are asked for. Bind ⌃⌥Space under the AI pane's commands and
-  choose Hold to talk. Hold it and ask about a Safari page: the capsule shows, and on release the panel
-  streams an answer titled with the question. Try ⌘J (a chat seeded with the question, the screen text
-  and the answer), ⌘C, and ↵ (typed into Safari's field when one is focused).
+- **Ask by Voice setup.** Turn on Screen Awareness, then Ask by Voice: the dialog names the
+  connection and the model, then the microphone and Accessibility are asked for. Bind ⌃⌥Space under
+  the AI pane's commands and choose Hold to talk. Hold it and ask about a Safari page: the capsule
+  shows, and on release the panel streams an answer titled with the question. Try ⌘J (a chat seeded
+  with the question, the screen text and the answer), ⌘C, and ↵ (typed into Safari's field when one
+  is focused).
 - **INSERT.** In Mail with the caret in a reply, hold and say "Ответь, что я приду завтра в десять": the
   text is typed into the reply with no panel. Repeat in Terminal: the panel shows the text, and ↵
   types it.
@@ -230,6 +247,10 @@ ends.
   `prompt_tokens_details.audio_tokens`. Repeat with `gemini-3.5-flash-lite/minimal` and with
   `google/gemini-3.8-flash` and `reasoning:{effort:"low"}` for Ask, and tune `VoiceAudio`'s gate
   constants with the built-in microphone and a headset.
-- Harness: `voice-ai-test` (WAV header and samples, the gate, both prompts, the `input_audio` body, the
-  reply header and `VoiceReplySession` under every chunking, transcript cleanup, route resolution, the
-  insert policy).
+- Harnesses: `voice-ai-test` (WAV header and samples, the gate, both prompts, the `input_audio` body,
+  the reply header and `VoiceReplySession` under every chunking, transcript cleanup, the route and the
+  proposal, the insert policy); `voice-coordinator-test` (the shipped `VoiceCloudTranscriber` and
+  `VoiceAskCoordinator` against recorded effects: consent saving exactly what it named and asking
+  again for another connection, no rerouting, the session token through capture, delivery, supersede
+  and dismissal, and the recorder's start and stop order); `dictation-field-test` (the cloud seam in
+  `DictationCoordinator`); `hotkey-dispatch-test` (a command's release, Secure Input's included).

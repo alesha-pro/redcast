@@ -3,7 +3,9 @@ import SwiftUI
 /// A voice route's connection and model; the catalog is fetched only when Choose… is clicked.
 struct VoiceModelRow: View {
     let use: VoiceUse
-    @Binding var selection: AIModelSelection?
+    /// The consented route; a new connection goes through `choose`, which asks again.
+    let selection: AIModelSelection?
+    let choose: @MainActor (AIModelSelection) -> Void
 
     @Environment(AISettingsStore.self) private var aiSettings
     @State private var draft = ""
@@ -18,11 +20,16 @@ struct VoiceModelRow: View {
         let offered = VoiceRoutePolicy.choices(aiSettings.connections, use: use, isEnabled: isEnabled)
         let current = resolved
         Picker(selection: connectionBinding(offered)) {
+            if current == nil { Text("None").tag(UUID?.none) }
             ForEach(offered) { connection in
                 Text(verbatim: connection.title).tag(Optional(connection.id))
             }
         } label: {
             Text("Connection")
+            if current == nil, !offered.isEmpty {
+                Text("The chosen connection was removed or turned off. Nothing is sent until you choose one.")
+                    .foregroundStyle(.orange)
+            }
         }
         LabeledContent {
             HStack(spacing: Theme.Spacing.sm) {
@@ -47,7 +54,7 @@ struct VoiceModelRow: View {
     }
 
     private var resolved: AIModelSelection? {
-        VoiceRoutePolicy.resolve(
+        VoiceRoutePolicy.route(
             selection, use: use, connections: aiSettings.connections, isEnabled: isEnabled)
     }
 
@@ -62,8 +69,10 @@ struct VoiceModelRow: View {
         Binding(
             get: { resolvedConnection?.id },
             set: { id in
-                guard let connection = offered.first(where: { $0.id == id }) else { return }
-                selection = VoiceRoutePolicy.initial(on: connection, use: use)
+                guard let connection = offered.first(where: { $0.id == id }),
+                    let initial = VoiceRoutePolicy.initial(on: connection, use: use)
+                else { return }
+                choose(initial)
             })
     }
 
@@ -71,9 +80,8 @@ struct VoiceModelRow: View {
     private func commitDraft() {
         let model = draft.trimmingCharacters(in: .whitespacesAndNewlines)
         guard let connection = resolvedConnection, !model.isEmpty, model != resolved?.model else { return }
-        selection = .api(
-            connection: connection.id, model: model,
-            effort: VoiceRoutePolicy.effort(forTyped: model, use: use, provider: connection.provider))
+        let effort = VoiceRoutePolicy.effort(forTyped: model, use: use, provider: connection.provider)
+        choose(.api(connection: connection.id, model: model, effort: effort))
     }
 
     private var catalogList: some View {
@@ -108,9 +116,8 @@ struct VoiceModelRow: View {
     private func choose(_ model: AIModelDiscovery.Model) {
         guard let connection = resolvedConnection else { return }
         isChoosing = false
-        selection = .api(
-            connection: connection.id, model: model.id,
-            effort: VoiceRoutePolicy.fastestEffort(model.reasoningOptions?.efforts))
+        let effort = VoiceRoutePolicy.fastestEffort(model.reasoningOptions?.efforts)
+        choose(.api(connection: connection.id, model: model.id, effort: effort))
     }
 
     private func loadCatalog() {

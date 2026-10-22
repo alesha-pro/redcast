@@ -425,56 +425,62 @@ struct VoiceAITests {
         let gemini = AIConnection(name: "Google", provider: .gemini)
         let claude = AIConnection(name: "Claude", provider: .anthropic, models: ["claude"])
         let local = AIConnection(name: "Local", provider: .openAICompatible, models: ["whisper-chat"])
+        let openAI = AIConnection(name: "OpenAI", provider: .openAI, models: ["gpt-5"])
         let all = [claude, router, second, gemini]
         let everything: (UUID) -> Bool = { _ in true }
+        func route(_ stored: AIModelSelection?, _ connections: [AIConnection], isEnabled: (UUID) -> Bool = everything)
+            -> AIModelSelection?
+        {
+            VoiceRoutePolicy.route(stored, use: .ask, connections: connections, isEnabled: isEnabled)
+        }
+        func proposal(_ stored: AIModelSelection?, _ use: VoiceUse, _ connections: [AIConnection]) -> AIModelSelection? {
+            VoiceRoutePolicy.proposal(stored, use: use, connections: connections, isEnabled: everything)
+        }
 
         let stored = AIModelSelection.api(connection: second.id, model: "google/gemini-3.5-flash", effort: "low")
-        expect(
-            VoiceRoutePolicy.resolve(stored, use: .ask, connections: all, isEnabled: everything) == stored,
-            "a stored choice on an existing, enabled connection is kept")
+        expect(route(stored, all) == stored, "a consented choice on an existing, enabled connection is the route")
+        expect(proposal(stored, .ask, all) == stored, "and what turning the switch on again names")
+        expect(route(nil, all) == nil, "nothing consented to is nothing sent")
         let deleted = AIModelSelection.api(connection: UUID(), model: "x", effort: nil)
+        expect(route(deleted, all) == nil, "a deleted connection is never replaced by another")
+        expect(route(stored, all, isEnabled: { $0 != second.id }) == nil, "nor a disabled one")
+        var anthropicNow = second
+        anthropicNow.provider = .anthropic
+        expect(route(stored, [router, anthropicNow]) == nil, "nor one that no longer hears audio")
+        expect(route(.codex(model: "gpt", effort: nil), all) == nil, "a CLI route is never a voice route")
         expect(
-            VoiceRoutePolicy.resolve(deleted, use: .dictation, connections: all, isEnabled: everything)
+            route(.api(connection: local.id, model: "", effort: nil), [local]) == nil,
+            "a choice naming no model is no route")
+        let handPicked = AIModelSelection.api(connection: openAI.id, model: "gpt-audio", effort: nil)
+        expect(route(handPicked, [openAI]) == handPicked, "an OpenAI model chosen by hand is a route")
+
+        expect(
+            proposal(nil, .ask, all) == .api(connection: router.id, model: "google/gemini-3.8-flash", effort: "low"),
+            "Ask proposes Flash at low effort on the first OpenRouter connection")
+        expect(
+            proposal(deleted, .dictation, all)
                 == .api(connection: router.id, model: "google/gemini-3.1-flash-lite", effort: "minimal"),
-            "a deleted connection falls back to the first OpenRouter default")
+            "a deleted choice is replaced only in a proposal, which a dialog names")
         expect(
-            VoiceRoutePolicy.resolve(nil, use: .ask, connections: all, isEnabled: everything)
-                == .api(connection: router.id, model: "google/gemini-3.8-flash", effort: "low"),
-            "Ask defaults to Flash at low effort")
-        expect(
-            VoiceRoutePolicy.resolve(stored, use: .ask, connections: all, isEnabled: { $0 != second.id })
-                == .api(connection: router.id, model: "google/gemini-3.8-flash", effort: "low"),
-            "a disabled route is skipped")
-        expect(
-            VoiceRoutePolicy.resolve(
-                nil, use: .dictation, connections: [claude, gemini],
-                isEnabled: everything) == .api(connection: gemini.id, model: "gemini-3.1-flash-lite", effort: "minimal"),
+            proposal(nil, .dictation, [claude, gemini])
+                == .api(connection: gemini.id, model: "gemini-3.1-flash-lite", effort: "minimal"),
             "the Gemini default drops the google/ prefix")
-        expect(
-            VoiceRoutePolicy.resolve(nil, use: .dictation, connections: [claude], isEnabled: everything) == nil,
-            "an Anthropic connection never hears audio")
+        expect(proposal(nil, .dictation, [claude]) == nil, "an Anthropic connection never hears audio")
         let onClaude = AIModelSelection.api(connection: claude.id, model: "claude", effort: nil)
+        expect(proposal(onClaude, .ask, [claude]) == nil, "not even when it was chosen")
         expect(
-            VoiceRoutePolicy.resolve(onClaude, use: .ask, connections: [claude], isEnabled: everything) == nil,
-            "not even when it was chosen")
+            proposal(nil, .ask, [claude, openAI, local]) == .api(connection: local.id, model: "whisper-chat", effort: nil),
+            "an OpenAI-compatible server proposes its first model")
+        expect(proposal(nil, .ask, [openAI]) == nil, "OpenAI's own chat models are never proposed")
         expect(
-            VoiceRoutePolicy.resolve(nil, use: .ask, connections: [claude, local], isEnabled: everything)
-                == .api(connection: local.id, model: "whisper-chat", effort: nil),
-            "another OpenAI-compatible connection offers its first model")
-        expect(
-            VoiceRoutePolicy.resolve(.codex(model: "gpt", effort: nil), use: .ask, connections: all, isEnabled: everything)
+            proposal(.codex(model: "gpt", effort: nil), .ask, all)
                 == .api(connection: router.id, model: "google/gemini-3.8-flash", effort: "low"),
-            "a CLI route is never a voice route")
+            "a CLI choice is replaced by a proposal")
         let bare = AIConnection(name: "Bare", provider: .openAICompatible)
         expect(
-            VoiceRoutePolicy.choices([claude, bare, local, router], use: .ask, isEnabled: { $0 != router.id })
-                .map(\.id) == [local.id],
+            VoiceRoutePolicy.choices([claude, bare, local, router, openAI], use: .ask, isEnabled: { $0 != router.id })
+                .map(\.id) == [local.id, openAI.id],
             "only enabled, audio-capable connections with a model to name are offered")
-        expect(
-            VoiceRoutePolicy.resolve(
-                .api(connection: local.id, model: "", effort: nil), use: .ask, connections: [local],
-                isEnabled: everything) == .api(connection: local.id, model: "whisper-chat", effort: nil),
-            "an empty model is never kept")
 
         expect(VoiceRoutePolicy.fastestEffort(["high", "medium", "low"]) == "low", "low when it is the floor")
         expect(VoiceRoutePolicy.fastestEffort(["high", "medium", "low", "minimal", "none"]) == "minimal", "minimal first")

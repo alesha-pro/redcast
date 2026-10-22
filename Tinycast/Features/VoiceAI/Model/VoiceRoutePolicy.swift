@@ -12,8 +12,8 @@ enum VoiceRoutePolicy {
         let effort: String?
     }
 
-    /// The order a route is looked for when nothing is chosen: the two whose defaults are known.
-    private static let preferredProviders: [AIProviderKind] = [.openRouter, .gemini]
+    /// OpenAI's listed chat models take no input_audio, so it is chosen by hand, never proposed.
+    private static let proposedProviders: [AIProviderKind] = [.openRouter, .gemini, .openAICompatible]
     /// Gemini 3 cannot switch reasoning off, so `none` only ranks above the costlier levels.
     private static let effortsFastestFirst = ["minimal", "low", "none", "medium"]
 
@@ -37,23 +37,32 @@ enum VoiceRoutePolicy {
         connection.provider.apiShape == .openAICompatible
     }
 
-    /// A usable stored choice, else the OpenRouter then Gemini preset, else a listed model.
-    static func resolve(
+    /// Where a recording goes: only the consented choice, never a substitute for a missing one.
+    static func route(
         _ stored: AIModelSelection?, use: VoiceUse, connections: [AIConnection],
         isEnabled: (UUID) -> Bool
     ) -> AIModelSelection? {
-        let offered = choices(connections, use: use, isEnabled: isEnabled)
-        if case .api(let id, let model, _) = stored, !model.isEmpty,
-            offered.contains(where: { $0.id == id })
-        {
+        guard case .api(let id, let model, _) = stored, !model.isEmpty,
+            choices(connections, use: use, isEnabled: isEnabled).contains(where: { $0.id == id })
+        else { return nil }
+        return stored
+    }
+
+    /// What a consent dialog names: the usable stored choice, else the first proposed preset.
+    static func proposal(
+        _ stored: AIModelSelection?, use: VoiceUse, connections: [AIConnection],
+        isEnabled: (UUID) -> Bool
+    ) -> AIModelSelection? {
+        if let stored = route(stored, use: use, connections: connections, isEnabled: isEnabled) {
             return stored
         }
-        for provider in preferredProviders {
+        let offered = choices(connections, use: use, isEnabled: isEnabled)
+        for provider in proposedProviders {
             if let connection = offered.first(where: { $0.provider == provider }) {
                 return initial(on: connection, use: use)
             }
         }
-        return offered.first.flatMap { initial(on: $0, use: use) }
+        return nil
     }
 
     /// The connections a voice route may use: enabled, audio-capable and with a model to name.
