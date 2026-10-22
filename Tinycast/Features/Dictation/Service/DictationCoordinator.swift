@@ -38,7 +38,8 @@ final class DictationCoordinator {
         confirmEnable: @escaping () async -> Bool,
         showMessage: @escaping (String, DialogTone) -> Void,
         cloudIsOn: @escaping @MainActor () -> Bool = { false },
-        cloudTranscribe: @escaping @MainActor ([Float], String?) async throws -> String = { _, _ in "" }
+        cloudTranscribe: @escaping @MainActor ([Float], String?) async throws -> String = { _, _ in "" },
+        capsule: (DictationPanelController) -> Void = { _ in }
     ) {
         self.settings = settings
         self.hotKeys = hotKeys
@@ -53,6 +54,8 @@ final class DictationCoordinator {
         panel.onCancel = { [weak self] in self?.cancel() }
         capture.onLevels = { [weak self] in self?.panel.state.levels = $0 }
         capture.onLimit = { [weak self] in self?.accept() }
+        // Fork: the cloud engine names its dictation mode above the capsule and switches it on Tab.
+        capsule(panel)
     }
 
     func setEnabled(_ enabled: Bool) {

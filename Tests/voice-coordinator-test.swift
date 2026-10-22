@@ -8,6 +8,8 @@ struct VoiceCoordinatorTests {
         NSApplication.shared.setActivationPolicy(.prohibited)
         try await cloudConsent()
         try await cloudRouting()
+        try await cloudModes()
+        try await cloudModesTranscribeFirst()
         try await askConsent()
         try await askAnswer()
         try await askInsert()
@@ -132,6 +134,100 @@ struct VoiceCoordinatorTests {
         expect(cloud.route == nil, "A deleted connection is never replaced by another")
         try await expectRefusal(cloud, "nor sent anything once deleted")
         expect(cloud.proposal == routerDictation, "Only a new dialog may propose another")
+    }
+
+    static let slack = "com.tinyspeck.slackmacgap"
+    static let frame = NSRect(x: 100, y: 100, width: 144, height: 44)
+
+    static func cloudModes() async throws {
+        let world = World(connections: [router])
+        defer { world.tearDown() }
+        let cloud = world.cloud
+        let capsule = DictationPanelController()
+        cloud.attach(to: capsule)
+        world.frontmost = slack
+        world.voice.modes.assign(VoiceModeCatalog.translateToEnglish, to: slack)
+        capsule.onPlacement?(frame)
+        expect(cloud.activeMode == nil && VoiceModeCaption.latest == nil, "With the cloud off no mode applies")
+        expect(capsule.onTab?(false) == false, "and Tab passes through")
+
+        world.settings.dictationEnabled = true
+        world.core.answer = true
+        cloud.setEnabled(true)
+        try await wait { world.voice.cloudDictation }
+        capsule.onPlacement?(frame)
+        expect(cloud.activeMode?.id == VoiceModeCatalog.translateToEnglish, "The capsule takes the app's mode")
+        let caption = VoiceModeCaption.latest
+        expect(caption?.shown == "Translate to English" && caption?.frame == frame, "and names it above itself")
+
+        expect(capsule.onTab?(false) == true, "Tab switches the mode")
+        expect(
+            cloud.activeMode?.id == VoiceModeCatalog.polish
+                && world.voice.modes.mode(for: slack)?.id == VoiceModeCatalog.polish,
+            "to the next one, remembered for the app in front")
+        expect(caption?.shown == "Polish", "and the chip follows")
+        expect(capsule.onTab?(true) == true && cloud.activeMode?.id == VoiceModeCatalog.translateToEnglish, "⇧Tab goes back")
+        _ = capsule.onTab?(true)
+        expect(cloud.activeMode == nil && caption?.shown == nil, "past the first mode is the plain transcript")
+        expect(world.voice.modes.apps[slack] == nil, "and, being the default, leaves the app no entry")
+        _ = capsule.onTab?(false)
+        _ = capsule.onTab?(false)
+
+        let transcription = Task { try await cloud.transcribe(speech, language: nil) }
+        try await wait { Network.streams.count == 1 }
+        let polish = VoiceModeCatalog.builtIn(VoiceModeCatalog.polish)!
+        let request = Network.requests[0]
+        expect(
+            request.instructions?.contains(polish.instructions) == true
+                && request.messages.first?.audio.count == 1,
+            "Gemini hears the recording and the mode in one request")
+        capsule.state.phase = .transcribing
+        expect(capsule.onTab?(false) == false, "Tab no longer switches once the recording is sent")
+        Network.streams[0].yield(.text("Готово."))
+        Network.streams[0].finish()
+        let typed = try await transcription.value
+        expect(typed == "Готово.", "and its text is what is typed")
+
+        capsule.onPlacement?(nil)
+        expect(cloud.activeMode == nil && caption?.shown == nil, "Closing the capsule forgets the mode and the chip")
+        world.frontmost = "com.apple.mail"
+        capsule.state.phase = .listening
+        capsule.onPlacement?(frame)
+        expect(cloud.activeMode == nil, "An app without a mode of its own follows the default, here none")
+    }
+
+    static func cloudModesTranscribeFirst() async throws {
+        let world = World(connections: [local])
+        defer { world.tearDown() }
+        world.settings.dictationEnabled = true
+        world.core.answer = true
+        world.cloud.setEnabled(true)
+        try await wait { world.voice.cloudDictation }
+        let capsule = DictationPanelController()
+        world.cloud.attach(to: capsule)
+        world.voice.modes.assign(VoiceModeCatalog.asMessage, to: nil)
+        capsule.onPlacement?(frame)
+        let transcription = Task { try await world.cloud.transcribe(speech, language: nil) }
+        try await wait { Network.streams.count == 1 }
+        let first = Network.requests[0]
+        expect(
+            first.messages.first?.text == "Transcribe the recording." && first.messages.first?.audio.count == 1,
+            "Another model first transcribes, as plain dictation")
+        Network.streams[0].yield(.text("ну короче завтра в десять"))
+        Network.streams[0].finish()
+        try await wait { Network.streams.count == 2 }
+        let second = Network.requests[1]
+        let message = VoiceModeCatalog.builtIn(VoiceModeCatalog.asMessage)!
+        expect(
+            second.messages.first?.text == "Text:\nну короче завтра в десять"
+                && second.messages.first?.audio.isEmpty == true
+                && second.instructions?.contains(message.instructions) == true,
+            "then rewrites the transcript as text, by the mode")
+        expect(Network.routes == [onLocal], "both on the consented route")
+        Network.streams[1].yield(.text("Завтра в десять."))
+        Network.streams[1].finish()
+        let rewritten = try await transcription.value
+        expect(rewritten == "Завтра в десять.", "and the rewrite is typed")
     }
 
     static func expectRefusal(_ cloud: VoiceCloudTranscriber, _ message: String) async throws {
@@ -528,6 +624,7 @@ final class World {
     let appIndex = AppIndex()
     var microphone = true
     var microphoneRequests = 0
+    var frontmost: String?
     var screen: ScreenAwarenessCoordinator { core.screenAwarenessCoordinator }
     var recorder: DictationCapture? { DictationCapture.latest }
     var panel: QuickActionPanelController? { QuickActionPanelController.latest }
@@ -538,7 +635,8 @@ final class World {
             await core.confirm(
                 title: $0, message: $1, symbol: nil, confirmTitle: "Continue", tone: .neutral,
                 confirmRole: .standard)
-        })
+        },
+        frontmostBundleID: { [weak self] in self?.frontmost })
     lazy var ask = VoiceAskCoordinator(
         settings: settings, voice: voice, aiSettings: ai, appIndex: appIndex, hotKeys: hotKeys,
         injector: injector, audioDucker: ducker, core: core,
@@ -556,6 +654,7 @@ final class World {
         Network.reset()
         DictationCapture.latest = nil
         DictationPanelController.latest = nil
+        VoiceModeCaption.latest = nil
         QuickActionPanelController.latest = nil
     }
 
@@ -851,11 +950,29 @@ final class DictationPanelController {
     let state = State()
     var onAccept: (() -> Void)?
     var onCancel: (() -> Void)?
+    var onPlacement: ((NSRect?) -> Void)?
+    var onTab: ((Bool) -> Bool)?
     var isVisible = false
 
     init() { Self.latest = self }
     func show() { isVisible = true }
     func close() { isVisible = false }
+}
+
+@MainActor
+final class VoiceModeCaption {
+    static weak var latest: VoiceModeCaption?
+    var shown: String?
+    var frame: NSRect?
+
+    init() { Self.latest = self }
+
+    func show(_ name: String, above capsule: NSRect) {
+        shown = name
+        frame = capsule
+    }
+
+    func close() { shown = nil }
 }
 
 @MainActor

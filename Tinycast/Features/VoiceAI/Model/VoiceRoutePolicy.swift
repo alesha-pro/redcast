@@ -97,6 +97,11 @@ enum VoiceRoutePolicy {
         models.filter { $0.inputModalities?.contains("audio") ?? true }
     }
 
+    /// Gemini rewrites speech as it hears it; any other model transcribes, then rewrites as text.
+    static func rewritesWhileTranscribing(_ model: String) -> Bool {
+        model.lowercased().contains("gemini")
+    }
+
     /// A model the connection's own catalog marked text-only is sent no picture.
     static func takesImages(_ connection: AIConnection, model: String) -> Bool {
         !connection.models.contains(model) || connection.capabilities(for: model).images

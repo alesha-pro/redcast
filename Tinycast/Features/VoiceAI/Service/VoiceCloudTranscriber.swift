@@ -1,4 +1,4 @@
-import Foundation
+import AppKit
 
 /// The cloud engine behind the Dictation shortcut; capture, panel and insertion stay Dictation's.
 @MainActor
@@ -7,16 +7,26 @@ final class VoiceCloudTranscriber {
     private let voice: VoiceAISettings
     private let aiSettings: AISettingsStore
     private let confirm: (_ title: String, _ message: String) async -> Bool
+    private let frontmostBundleID: @MainActor () -> String?
     private var consentTask: Task<Void, Never>?
+    private weak var capsule: DictationPanelController?
+    /// While the capsule is up: the app it opened over, its frame, and the mode it names.
+    private var session: (bundleID: String?, frame: NSRect)?
+    private(set) var activeMode: VoiceMode?
+    private var caption: VoiceModeCaption?
 
     init(
         settings: AppSettings, voice: VoiceAISettings, aiSettings: AISettingsStore,
-        confirm: @escaping (_ title: String, _ message: String) async -> Bool
+        confirm: @escaping (_ title: String, _ message: String) async -> Bool,
+        frontmostBundleID: @escaping @MainActor () -> String? = {
+            NSWorkspace.shared.frontmostApplication?.bundleIdentifier
+        }
     ) {
         self.settings = settings
         self.voice = voice
         self.aiSettings = aiSettings
         self.confirm = confirm
+        self.frontmostBundleID = frontmostBundleID
     }
 
     var isOn: Bool { settings.dictationEnabled && voice.cloudDictation }
@@ -81,14 +91,72 @@ final class VoiceCloudTranscriber {
         }
     }
 
+    // MARK: - Modes
+
+    /// The capsule's hooks, set once; they act only while cloud transcription is on.
+    func attach(to capsule: DictationPanelController) {
+        self.capsule = capsule
+        capsule.onPlacement = { [weak self] in self?.capsuleMoved(to: $0) }
+        capsule.onTab = { [weak self] in self?.switchMode(backward: $0) ?? false }
+    }
+
+    private func capsuleMoved(to frame: NSRect?) {
+        guard let frame, isOn else {
+            session = nil
+            activeMode = nil
+            caption?.close()
+            caption = nil
+            return
+        }
+        let bundleID = frontmostBundleID()
+        session = (bundleID, frame)
+        activeMode = voice.modes.mode(for: bundleID)
+        showCaption()
+    }
+
+    /// Tab while listening: the next mode for this recording, remembered for the app in front.
+    private func switchMode(backward: Bool) -> Bool {
+        guard isOn, let session, capsule?.state.phase == .listening else { return false }
+        let next = voice.modes.next(after: activeMode?.id, backward: backward)
+        activeMode = next
+        voice.modes.assign(next?.id, to: session.bundleID)
+        showCaption()
+        return true
+    }
+
+    private func showCaption() {
+        guard let session, let activeMode else {
+            caption?.close()
+            caption = nil
+            return
+        }
+        let caption = caption ?? VoiceModeCaption()
+        self.caption = caption
+        caption.show(activeMode.name, above: session.frame)
+    }
+
+    // MARK: - Transcription
+
     func transcribe(_ samples: [Float], language: String?) async throws -> String {
         guard let selection = route else { throw VoiceAIFailure.noDictationModel }
         let provider = try VoiceAIRoute.provider(for: selection, settings: aiSettings)
+        let mode = activeMode
         guard let wav = await VoiceMediaEncoder.wav(samples) else { throw VoiceAIFailure.noSpeech }
         try Task.checkCancellation()
-        let request = VoicePrompt.dictationRequest(
-            audio: AIAudio(data: wav, format: "wav"),
-            options: .init(cleanup: voice.cleanup, language: language, vocabulary: voice.vocabulary))
+        let audio = AIAudio(data: wav, format: "wav")
+        let options = VoicePrompt.DictationOptions(
+            cleanup: voice.cleanup, language: language, vocabulary: voice.vocabulary)
+        let plain = VoicePrompt.dictationRequest(audio: audio, options: options)
+        guard let mode else { return try await collect(plain, on: provider) }
+        if case .api(_, let model, _) = selection, !VoiceRoutePolicy.rewritesWhileTranscribing(model) {
+            let transcript = try await collect(plain, on: provider)
+            return try await collect(VoicePrompt.rewriteRequest(transcript: transcript, mode: mode), on: provider)
+        }
+        return try await collect(VoicePrompt.modeRequest(audio: audio, mode: mode, options: options), on: provider)
+    }
+
+    /// The streamed text, cleaned; the sentinel or nothing at all is no speech.
+    private func collect(_ request: AIRequest, on provider: any AIProvider) async throws -> String {
         var text = ""
         for try await event in provider.stream(request) {
             if case .text(let delta) = event { text += delta }

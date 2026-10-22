@@ -6,7 +6,8 @@ Gemini connection:
 - **Cloud transcription** is a second engine for the Dictation shortcut. Whatever the shortcut is
   (hold Fn, toggle, a double tap), the finished recording goes to the model and the cleaned transcript
   is typed at the cursor through `TextInjector`, exactly where the on-device model's would be — the
-  fork's take on Wispr Flow.
+  fork's take on Wispr Flow. A **dictation mode** — Translate to English, Polish, As a message or
+  one of the reader's own — rewrites it on the way: per app, named in the capsule, switched with Tab.
 - **Ask by Voice** is a command with its own shortcut. It records a spoken question while Screen
   Awareness reads the window in front, sends the audio, the window's text and, when allowed, a
   screenshot in one request, and streams the answer into the Quick Action panel — or types it into the
@@ -57,6 +58,15 @@ Upstream declined voice control (#1550), so this lives in `Features/VoiceAI/` pl
   listen-only tap, which exists only while some modifier-only shortcut is bound; with the binding
   unset there is no tap, timer or observer. A held modifier is reserved like Dictation's, so a double
   tap of it bound elsewhere is refused, and a binding that collides holds nothing.
+- **A mode rewrites, it never answers.** Every mode prompt says the speech is material to rewrite,
+  never a request, and never to be answered or carried out, the dictation prompt's own guard; the
+  transcribe-then-rewrite path sends the transcript as `Text:` material. A mode applies only with
+  Cloud transcription on, on the route already consented to: it adds no destination and no request
+  for Gemini, and one text request for any other model.
+- **The mode is the one the capsule names.** It is resolved from the app in front when the capsule
+  shows, Tab changes it only while listening, and the request uses that one; closing the capsule
+  forgets it and releases the chip. No built-in mode's name is ever stored, so it follows the app's
+  language, and the stored value reads field by field, so a missing or unknown field never loses it.
 - **Insert while recording is off with the cloud engine.** Each chunk would be a paid request, so
   `DictationCoordinator` never starts the live loop while `cloudIsOn()`.
 - **Retention is the provider's.** Tinycast keeps no copy. What OpenRouter and Google keep follows the
@@ -73,14 +83,19 @@ Upstream declined voice control (#1550), so this lives in `Features/VoiceAI/` pl
 | `Model/VoiceReplySession.swift` | One Ask reply: when the panel opens, what streams into it, and what it ends as |
 | `Model/VoiceRoutePolicy.swift` | Defaults, eligible connections, the consented route and the proposal, effort, images |
 | `Model/VoiceInsertPolicy.swift` | When an INSERT reply may be typed without review |
+| `Model/VoiceMode.swift` | `VoiceMode`, and `VoiceModeCatalog`: the three built-ins with fixed ids and their symbols |
+| `Model/VoiceModeSettings.swift` | Custom modes, rewritten built-in instructions, hidden modes, the default and each app's mode |
 | `Model/VoiceAIFailure.swift` | The feature's own errors |
 | `Service/VoiceAIRoute.swift` | A selection to an `HTTPAIProvider`: Keychain key and headers, endpoint policy |
 | `Service/VoiceMediaEncoder.swift` | Off the main actor: samples to WAV, the window's PNG to a bounded JPEG |
-| `Service/VoiceCloudTranscriber.swift` | The engine `DictationCoordinator` calls, and its consent dialogs |
+| `Service/VoiceCloudTranscriber.swift` | The engine `DictationCoordinator` calls, its consent dialogs and the active mode |
 | `UI/VoiceAskCoordinator.swift` | The Ask by Voice funnel: shortcut, launcher row, capsule keys and panel |
+| `UI/VoiceModeCaption.swift` | The chip above the dictation capsule naming the active mode |
 | `Settings/VoiceAISettings.swift` | The fork's own `@Observable` store over `AppSettingsKey` keys |
 | `Settings/VoiceModelRow.swift` | Connection and model, the catalog loaded on a click; a new connection goes through `choose` |
 | `Settings/VoiceCloudDictationSection.swift` | The Dictation pane's Cloud transcription section |
+| `Settings/VoiceModesSection.swift` | Dictation modes and Modes by app, shown while Cloud transcription is on |
+| `Settings/VoiceModeEditorPanel.swift` | A mode's name and instructions; a built-in's can be reset |
 | `Settings/VoiceAskSettingsSection.swift` | The AI pane's Ask by Voice section, after Screen Awareness |
 
 `AIMessage.audio` carries the recording; `AIRequestBody` writes it as an `input_audio` part with raw
@@ -96,6 +111,31 @@ model. `VoiceCloudTranscriber.transcribe` takes the consented route (none is "Ch
 no request), builds the provider (so a missing key surfaces before any encoding), gates and encodes,
 sends, collects the text deltas and cleans them.
 Cancelling Dictation cancels the task, and the stream's termination cancels the URL session task.
+
+## Dictation modes
+
+A mode is a name and instructions that rewrite what was said before it is typed. Three ship: Translate
+to English (speak Russian, get English), Polish, and As a message. Their instructions can be rewritten
+and reset, and the reader adds, edits and deletes their own; a checkbox leaves any of them out of the
+Tab cycle. Settings → Dictation shows them while Cloud transcription is on.
+
+When the capsule shows, `VoiceCloudTranscriber` reads the app in front and takes its entry in **Modes
+by app**, else the **Default mode**, else none. The chip above the capsule (`VoiceModeCaption`, a
+nonactivating, mouse-transparent panel) names it and shows ⇥. Tab and ⇧Tab cycle none → each mode
+not left out → none while listening, and the choice is that app's from then on (an entry equal to the
+default is dropped, so the app follows the default again). Tab is the capsule's even during a held
+shortcut, as Return and Escape are.
+
+`DictationPanelController` reports its frame on show and nil on close through `onPlacement` and
+offers Tab through `onTab`; `DictationCoordinator` lends its capsule once, through a `capsule`
+closure with a default, and `VoiceCloudTranscriber.attach` sets both hooks. With the cloud engine
+off, the hooks do nothing and Tab passes through.
+
+A Gemini model gets one request: the mode's rules as the system message, then the recording — Gemini
+translates and rewrites speech as it transcribes it. Any other model is trusted only to transcribe:
+the plain dictation request first, then a text request on the same route with the transcript as
+`Text:` material (`VoiceRoutePolicy.rewritesWhileTranscribing`). Clean up speech shapes only plain
+dictation and that first step; a mode decides its own wording.
 
 ## Ask by Voice
 
@@ -179,6 +219,10 @@ every word. The Dictation language, when one is set, becomes "The speaker usuall
 to spell exactly** become one line of at most 500 characters. The reply is the transcript only, or
 `[[NO_SPEECH]]`; `VoiceTranscript.cleaned` strips one pair of wrapping quotes and a code fence.
 
+**A mode** keeps the guard and the spelling and language hints, says mixed languages are to be
+understood rather than kept, and gives the mode's instructions; the reply is the rewritten text only,
+or `[[NO_SPEECH]]`. The second step of the two-request path says the same of a text.
+
 **Ask** sends the screen Markdown (`ScreenContextFormatter`, within `AIAttachmentBudget`), a line saying
 whether a text field is focused and the vocabulary, then the JPEG, then the audio. The rules ask for
 the `ANSWER`/`INSERT` and `Q:` header, INSERT only for a request to write into the focused field, the
@@ -212,6 +256,15 @@ ends.
 - **Cleanup off and vocabulary.** Turn Clean up speech off: the fillers stay. Add "Tinycast" to Words
   to spell exactly and say it: it is spelled right.
 - **A dictated question.** Dictate "Какая сегодня погода?": it is transcribed, not answered.
+- **Dictation modes.** With Cloud transcription on, open Slack and hold Fn: no chip. Press Tab while
+  listening: "Translate to English ⇥" appears above the capsule; say "Привет, я буду через десять
+  минут": English is typed. Dictate in Slack again: the chip is already there. Dictate in Mail: no
+  chip. Set Default mode to Polish: Mail shows it, Slack keeps Translate. ⇧Tab back to none in Slack:
+  its entry disappears from Modes by app. Dictate "Какая сегодня погода?" in As a message: it is
+  written as a message, not answered. Press Tab after Return, while the capsule processes: nothing
+  changes. Leave Polish out of the Tab cycle: Tab skips it. Rewrite Polish's instructions, then Reset
+  to Default. Add a mode, choose it for an app, delete it: the app types the plain transcript. With a
+  local OpenAI-compatible model, a mode makes two requests (a proxy shows the audio then the text).
 - **Silence and cancelling.** Hold for 2 s in silence: "No speech was recorded", and a proxy shows no
   request. Escape while the capsule processes: nothing is typed. Wi-Fi off: the network error is a HUD.
 - **The composer mic** in AI Chat uses the cloud engine; switching cloud off returns it to the
