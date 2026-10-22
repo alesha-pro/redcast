@@ -45,7 +45,8 @@ upstream's feed, and they keep their settings apart from an installed upstream T
 - Upstream's five workflows must be disabled before Actions is ever enabled on the fork (one `gh`
   loop, in [fork tooling](docs/fork-tooling.md#upstream-workflows-on-the-fork)). A nightly sync Action
   with one rolling PR is proposed there, not active; it needs a `FORK_SYNC_TOKEN` fine-grained token
-  (Contents, Pull requests and Workflows read-write) with a one-year expiry, to be noted here.
+  (Contents, Pull requests and Workflows read-write) with a one-year expiry, to be noted here. Only
+  its publish job, which runs no repository code, ever holds that token.
 - Every fork change keeps upstream's bar: harnesses, `./Scripts/lint.sh`, eight languages, docs in the
   same commit. Two harnesses fail on a clean upstream checkout too and are not fork regressions:
   `form-input-test` (display-bound) and, occasionally under load, `icon-cache-test`.
