@@ -6,9 +6,35 @@ enum AIRequestBody {
         _ input: AIRequest, configuration: AIHTTPConfiguration
     ) -> [String: Any] {
         switch configuration.shape {
-        case .openAICompatible: return openAI(input, configuration: configuration)
-        case .anthropic: return anthropic(input, configuration: configuration)
+        case .openAICompatible: return cacheMarked(openAI(input, configuration: configuration), configuration)
+        case .anthropic: return cacheMarked(anthropic(input, configuration: configuration), configuration)
         }
+    }
+
+    // Fork: only Claude must be asked to cache, and only its own API and OpenRouter take the field.
+    private static func cacheMarked(
+        _ body: [String: Any], _ configuration: AIHTTPConfiguration
+    ) -> [String: Any] {
+        let mark = ["type": "ephemeral"]
+        let own =
+            configuration.shape == .anthropic
+            && configuration.baseURL.host() == URL(string: AIProviderKind.anthropic.defaultBaseURL)?.host()
+        let routed =
+            configuration.provider == .openRouter
+            && configuration.model.drop(while: { $0 == "~" }).hasPrefix("anthropic/")
+        guard own || routed else { return body }
+        var body = body
+        body["cache_control"] = mark
+        guard own else { return body }
+        // The prompt and tools also cache apart from the chat, so the agent's next chat reads them.
+        if let system = body["system"] {
+            body["system"] = [["type": "text", "text": system, "cache_control": mark]]
+        }
+        if var tools = body["tools"] as? [[String: Any]], let last = tools.indices.last {
+            tools[last]["cache_control"] = mark
+            body["tools"] = tools
+        }
+        return body
     }
 
     private static func openAI(

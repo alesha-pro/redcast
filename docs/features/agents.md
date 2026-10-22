@@ -82,6 +82,17 @@ in root search or on a schedule: see [background and scheduled agents](backgroun
   pairing of calls and results are never touched, a stub is never stubbed again, and the gap between
   the two marks means the prefix changes rarely, so a provider's prompt cache keeps hitting. Elided
   bytes stop counting toward the history wall.
+- **Claude is asked to cache; no other route is.** Anthropic and OpenRouter cache a Claude prompt only
+  when the request asks, while OpenAI, Gemini, DeepSeek and the rest cache a repeated prefix by
+  themselves and are sent as they always were. `AIRequestBody.cacheMarked`, one fork block in upstream's
+  file, adds a top-level `cache_control` to a request for Anthropic's own API (`api.anthropic.com`) or
+  for an OpenRouter `anthropic/` or `~anthropic/` model, which keeps one breakpoint on the newest block
+  as the conversation grows. On Anthropic's own API it also marks the system prompt and the last tool,
+  so a new chat with the same agent reads them from the cache: three breakpoints of the four allowed.
+  An Anthropic preset pointed at another host is a gateway, which may refuse a field it does not know,
+  so it is left alone. Every request on those routes asks, chats and Quick Actions included: a prompt
+  under the model's minimum is simply not cached, a write costs a quarter more than plain input and a
+  read a tenth, so a turn of two rounds or a reply within five minutes already pays for it.
 - **A plan is shown, never kept.** `update_plan` belongs to no family and is the agent's own (risk
   own), so every agent on Tinycast's loop has it and it never asks. The model sends the whole checklist
   each time; `AgentPlanTools` shows it as a reasoning fold with the same lines `ACPEventMapper` draws for
@@ -304,6 +315,10 @@ this way, as one provider. Nothing else changes: no router edit, no upstream lin
   turns no longer fit: one reply opens with a "Summary of earlier messages" row, the next few replies
   show none, and the agent still knows what was settled at the start. Its cost includes the summary.
   Delete the chat: `agent-summaries/` no longer holds its file.
+- On an Anthropic connection to `api.anthropic.com`, and again on OpenRouter with an `anthropic/` model,
+  ask an agent something that takes it two or three tool rounds: Settings → AI → Usage shows the
+  model's input with a "cached" share. Ask again in a new chat within five minutes: the cached share
+  covers the prompt and tools from the first request.
 - Delete the agent: its chats remain as plain chats and the composer shows No Agent.
 - ACP: make an agent on Claude Code in a project folder; ask it to read and change a file. The first
   turn may wait while npx fetches the adapter; then the dialog lists Claude's own options, the
@@ -324,5 +339,6 @@ this way, as one provider. Nothing else changes: no router edit, no upstream lin
   signals, Stop, parallel batches, a long turn that elides; a sub-agent's request, tools, answer, cost,
   bounds and Stop; compaction with nothing dropped, made once then reused then grown, a failed summary
   and Stop while it is made); `web-search-test` covers the search
-  provider through a toolset and the loop; and `agent-schedule-test` covers background runs and
+  provider through a toolset and the loop; `ai-provider-test` pins which routes are asked to cache and
+  where the marks go; and `agent-schedule-test` covers background runs and
   schedules (see [background-agents.md](background-agents.md#manual-sweep)).
