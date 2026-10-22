@@ -146,17 +146,34 @@ struct AgentContext: Equatable, Sendable {
         return lines.joined(separator: "\n")
     }
 
+    /// Read from the toolset's own rules, so the model never counts on a check that is not there.
     private var access: String {
-        switch profile.access {
-        case .readOnly:
-            "Access: read-only. You may read the folder and your skills; you cannot change files."
-        case .workspaceWrite:
-            "Access: you may change files inside the folder and run commands there; each change "
-                + "and command is shown to the user for approval."
-        case .fullAccess:
-            "Access: you may change files anywhere and run commands; each change and command is "
-                + "shown to the user for approval."
+        guard profile.access.writes else {
+            return "Access: read-only. You may read the folder and your skills; you cannot change "
+                + "files or run commands."
         }
+        let place = profile.access == .fullAccess ? "anywhere" : "inside the folder"
+        let changes: String =
+            switch AgentConsentPolicy.rule(for: .change, in: .files, of: profile) {
+            case .ask:
+                "Access: you may change files \(place); the user approves each change first, or "
+                    + "allows them for the rest of the chat."
+            case .always:
+                "Access: you may change files \(place) without asking; the user does not see a "
+                    + "change before it is made, so take care with anything hard to undo."
+            case .never: "Access: you cannot change files."
+            }
+        let commands: String =
+            switch AgentConsentPolicy.rule(for: .execute, in: .terminal, of: profile) {
+            case .ask:
+                "You may run commands in the folder; the user approves each one first, or allows "
+                    + "them for the rest of the chat."
+            case .always:
+                "You may run commands in the folder without asking; the user does not see one "
+                    + "before it runs, so take care with anything destructive."
+            case .never: "You cannot run commands."
+            }
+        return changes + " " + commands
     }
 
     static func capped(_ text: String, to maxBytes: Int) -> String {

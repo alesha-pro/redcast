@@ -370,28 +370,26 @@ final class AIChatCoordinator {
         _ provider: any AIProvider, scopedTo slug: String?, in chat: AIChatState
     ) -> any AIProvider {
         let tools = tools(for: chat, scopedTo: slug)
+        if capabilities(for: chat).tools,
+            let agent = core.agentCoordinator.loop(over: provider, mcpTools: tools, in: chat)
+        { return agent }
         guard capabilities(for: chat).tools, !tools.isEmpty else { return provider }
         let chatID = chat.session.id
-        let agent = core.agentCoordinator.executor(for: chat)
         return AIToolLoopProvider(
             base: provider, tools: tools, maxRounds: core.aiSettings.toolRounds.limit
         ) { [mcp = core.mcpCoordinator] call in
-            if let agent, AgentToolbox.allNames.contains(call.name) { return await agent.run(call) }
-            return await mcp.invoke(call, in: chatID)
+            await mcp.invoke(call, in: chatID)
         }
     }
 
     /// `@server` narrows a turn further, but never past what the chat's tools menu switched off.
-    /// An agent's own tools ride every turn; the tools menu only switches MCP servers.
     private func tools(for chat: AIChatState, scopedTo slug: String?) -> [AITool] {
-        let agentTools = core.agentCoordinator.tools(for: chat)
-        guard chat.toolScope.isEnabled else { return agentTools }
+        guard chat.toolScope.isEnabled else { return [] }
         let excluded = chat.toolScope.excluded
-        return agentTools
-            + core.mcpCoordinator.tools(scopedTo: slug).filter { tool in
-                guard let route = MCPToolName.parse(tool.name) else { return true }
-                return !excluded.contains(route.slug)
-            }
+        return core.mcpCoordinator.tools(scopedTo: slug).filter { tool in
+            guard let route = MCPToolName.parse(tool.name) else { return true }
+            return !excluded.contains(route.slug)
+        }
     }
 
     var mcpServers: [MCPServer] { core.mcpCoordinator.servers }

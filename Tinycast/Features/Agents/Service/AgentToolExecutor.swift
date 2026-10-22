@@ -1,15 +1,18 @@
 import Foundation
 
-/// What a change or command looks like to the person asked to allow it.
-struct AgentConsentRequest: Sendable {
-    enum Kind: Hashable, Sendable {
-        case write
-        case command
+/// The built-in families as one provider; each call gets an executor bound to its turn.
+struct AgentBuiltInTools: AgentToolProvider {
+    func specs(for turn: AgentTurn) -> [AgentToolSpec] {
+        AgentToolbox.tools(for: turn.profile, hasSkills: !turn.skills.isEmpty)
+            .map { AgentToolbox.spec(for: $0) }
     }
 
-    let kind: Kind
-    let summary: String
-    let detail: String
+    func run(_ call: AIToolCall, in context: AgentToolContext) async -> AIToolResult {
+        await AgentToolExecutor(
+            profile: context.turn.profile, skills: context.turn.skills,
+            memoryURL: context.turn.memoryURL, consent: context.consent
+        ).run(call)
+    }
 }
 
 /// Runs one built-in call off-main; a refusal or failure comes back as text the model can read.
@@ -155,7 +158,6 @@ nonisolated struct AgentToolExecutor: Sendable {
         }
         let exists = FileManager.default.fileExists(atPath: path)
         let request = AgentConsentRequest(
-            kind: .write,
             summary: (exists ? "Overwrite " : "Create ") + path,
             detail: Self.preview(content) + "\n\n(\(content.utf8.count) bytes)")
         guard await consent(request) else { return .failure(.declined) }
@@ -193,7 +195,7 @@ nonisolated struct AgentToolExecutor: Sendable {
                         : "old_text occurs \(count) times in \(path); include more context."))
         }
         let request = AgentConsentRequest(
-            kind: .write, summary: "Edit " + path,
+            summary: "Edit " + path,
             detail: "− " + Self.preview(old) + "\n\n+ " + Self.preview(new))
         guard await consent(request) else { return .failure(.declined) }
         do {
@@ -216,11 +218,21 @@ nonisolated struct AgentToolExecutor: Sendable {
         else { return .failure(.missing("command")) }
         let timeout = min(
             Self.maxTimeout, max(1, arguments["timeout_seconds"]?.intValue ?? Self.defaultTimeout))
-        let request = AgentConsentRequest(
-            kind: .command, summary: command, detail: "in \(profile.directory)")
+        let request = AgentConsentRequest(summary: command, detail: "in \(profile.directory)")
         guard await consent(request) else { return .failure(.declined) }
         let session = ShellCommandRunner.stream(
             command, loadingShellEnvironment: true, workingDirectory: profile.directory)
+        // Abandoning the events leaves the command running, so Stop has to stop it.
+        return await withTaskCancellationHandler {
+            await collect(session, timeout: timeout)
+        } onCancel: {
+            session.stop()
+        }
+    }
+
+    private func collect(
+        _ session: ShellCommandSession, timeout: Int
+    ) async -> Result<String, AgentToolFailure> {
         let watchdog = Task {
             try await Task.sleep(for: .seconds(timeout))
             session.stop()
@@ -254,6 +266,9 @@ nonisolated struct AgentToolExecutor: Sendable {
         guard let raw = arguments["url"]?.stringValue, let url = URL(string: raw),
             ["http", "https"].contains(url.scheme?.lowercased() ?? "")
         else { return .failure(.init("web_fetch takes an http or https URL.")) }
+        guard await consent(AgentConsentRequest(summary: "Fetch " + url.absoluteString, detail: "")) else {
+            return .failure(.declined)
+        }
         do {
             let (bytes, response) = try await Self.session.bytes(from: url)
             var data = Data()

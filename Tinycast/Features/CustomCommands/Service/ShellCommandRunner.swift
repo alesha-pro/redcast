@@ -171,6 +171,8 @@ enum ShellCommandRunner {
             stop: { [weak stopFlag = stopped] in
                 stopFlag?.mark()
                 terminal.signalSession(SIGTERM)
+                // `-i` ignores SIGTERM and gives jobs their own groups; a hang-up ends them all.
+                kill(terminal.processID, SIGHUP)
                 // The backstop, for a command that ignores a polite ask.
                 queue.asyncAfter(deadline: .now() + stopGrace) {
                     terminal.signalSession(SIGKILL)

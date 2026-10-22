@@ -69,6 +69,7 @@ struct AgentEditorPanel: View {
                             .foregroundStyle(.secondary)
                         accessField
                         toolsField
+                        permissionsField
                     }
                     contextField
                     skillsField
@@ -202,9 +203,6 @@ struct AgentEditorPanel: View {
             }
             .labelsHidden()
             .pickerStyle(.segmented)
-            Text("Every file change and command asks first, whatever the access.")
-                .font(.caption)
-                .foregroundStyle(.secondary)
         }
     }
 
@@ -217,6 +215,38 @@ struct AgentEditorPanel: View {
                 Toggle("Memory", isOn: tool(.memory))
             }
             .toggleStyle(.checkbox)
+        }
+    }
+
+    /// One row per risk the agent can reach today; a risk it cannot reach keeps its rule unseen.
+    @ViewBuilder
+    private var permissionsField: some View {
+        let writes = draft.access.writes
+        let risks: [(LocalizedStringKey, AgentToolRisk)] =
+            (writes && draft.tools.contains(.files) ? [("Changes", .change)] : [])
+            + (writes && draft.tools.contains(.terminal) ? [("Commands", .execute)] : [])
+            + (draft.tools.contains(.web) ? [("Web", .network)] : [])
+        if !risks.isEmpty {
+            field("Permissions") {
+                Grid(
+                    alignment: .leading, horizontalSpacing: Theme.Spacing.md,
+                    verticalSpacing: Theme.Spacing.sm
+                ) {
+                    ForEach(risks, id: \.1) { title, risk in
+                        GridRow {
+                            Text(title)
+                            Picker(title, selection: rule(risk)) {
+                                ForEach(AgentConsentRule.allCases, id: \.self) { Text($0.title).tag($0) }
+                            }
+                            .labelsHidden()
+                            .fixedSize()
+                        }
+                    }
+                }
+                Text("Always Allow also applies to runs nobody is watching.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
         }
     }
 
@@ -261,6 +291,12 @@ struct AgentEditorPanel: View {
             set: { on in
                 if on { draft.tools.insert(kind) } else { draft.tools.remove(kind) }
             })
+    }
+
+    private func rule(_ risk: AgentToolRisk) -> Binding<AgentConsentRule> {
+        Binding(
+            get: { AgentConsentPolicy.rule(for: risk, of: draft) },
+            set: { draft.consent = AgentConsentRules.setting($0, for: risk, in: draft.consent) })
     }
 
     private func source(_ source: AgentSkillSource) -> Binding<Bool> {

@@ -2976,6 +2976,64 @@
         }
       }
     },
+    "%@ wants to use %@" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ möchte %2$@ verwenden"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ wants to use %2$@"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ quiere usar %2$@"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ veut utiliser %2$@"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@が%2$@を使用しようとしています"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@이(가) %2$@을(를) 사용하려고 합니다"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ quer usar %2$@"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ хочет использовать %2$@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ 想要使用 %2$@"
+          }
+        }
+      }
+    },
     "%@ was kept: its credentials could not be removed from your login Keychain." : {
       "localizations" : {
         "de" : {
@@ -22200,6 +22258,58 @@
         }
       }
     },
+    "Always Allow also applies to runs nobody is watching." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "„Immer erlauben“ gilt auch für Läufe, bei denen niemand zusieht."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Permitir siempre también se aplica a las ejecuciones que nadie está supervisando."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "« Toujours autoriser » s’applique aussi aux exécutions que personne ne surveille."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "「常に許可」は、誰も見ていない実行にも適用されます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "‘항상 허용’은 아무도 지켜보지 않는 실행에도 적용됩니다."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sempre permitir também se aplica a execuções que ninguém está acompanhando."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "«Всегда разрешать» действует и для запусков, за которыми никто не следит."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "“始终允许”也适用于无人值守的运行。"
+          }
+        }
+      }
+    },
     "Always shown in a panel" : {
       "localizations" : {
         "de" : {
@@ -31210,6 +31320,58 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "更新日志"
+          }
+        }
+      }
+    },
+    "Changes" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Änderungen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cambios"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Modifications"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "変更"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "변경"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alterações"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Изменения"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "更改"
           }
         }
       }
@@ -52600,58 +52762,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "与此智能体的每个聊天都从它的文件夹开始，并带有该文件夹的上下文。"
-          }
-        }
-      }
-    },
-    "Every file change and command asks first, whatever the access." : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Jede Dateiänderung und jeder Befehl fragt zuerst, unabhängig vom Zugriff."
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Cada cambio de archivo y cada comando pregunta antes, sea cual sea el acceso."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Chaque modification de fichier et chaque commande demande d’abord, quel que soit l’accès."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "アクセス権に関係なく、ファイルの変更とコマンドは毎回確認します。"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "접근 권한과 관계없이 모든 파일 변경과 명령은 먼저 묻습니다."
-          }
-        },
-        "pt" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Cada alteração de arquivo e cada comando pergunta antes, seja qual for o acesso."
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Каждое изменение файла и каждая команда сначала спрашивают разрешение, при любом доступе."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "无论访问权限如何，每次修改文件和运行命令前都会先询问。"
           }
         }
       }
