@@ -89,7 +89,9 @@ relaunches it. About shows the `git describe` version and the commit count (a fr
 
 ## Roadmap
 
-Sizes are focused working days. Waves are ordered by leverage, not by size.
+Sizes are focused working days. Waves are ordered by leverage, not by size. Every item carries the
+owner's decision: **shipped**, **undecided**, **paused** or **declined**; a shipped item's "next on
+it" list is agreed work. Declined items stay listed so the numbers other docs cite keep their meaning.
 
 ### Wave 0 — fork foundation
 
@@ -104,6 +106,11 @@ Sizes are focused working days. Waves are ordered by leverage, not by size.
 
 ### Wave 1 — agent-native core
 
+- **Native agent harness — shipped** (see above). Next on it: cross-turn compaction (a summary of the
+  turns a long chat no longer sends), an `update_plan` tool shown as a checklist, a read-only
+  `delegate` sub-agent, prompt-cache markers where a transport needs them, and a `screen_context`
+  tool that reads the window behind Tinycast.
+
 1. **ACP agents — shipped** (see above). Next on it: render diffs and command output inside tool
    rows, expose the agent's slash commands (`available_commands_update`) in the composer, a launcher
    row and hotkey per agent, and Tinycast's own `fs/*` / `terminal/*` so edits can show in an editor.
@@ -116,48 +123,45 @@ Sizes are focused working days. Waves are ordered by leverage, not by size.
    prompt before it is typed (speak Russian, get an English post; per-app tone), a *voice command*
    over the selection ("make this shorter"), hold-to-talk on a single modifier, and asking an agent
    by voice. Upstream declined voice control (#1550). *2 days.*
-4. **Tinycast as an MCP server.** A bundled stdio helper that lets Claude Code, Codex and any MCP
-   client use the launcher's hands: clipboard history, the frontmost window's context, notes,
-   snippets, calendar, opening apps and URLs, a native `notify`, and `ask_user` — a Tinycast dialog an
-   agent can raise while you are in another app. *3–4 days.*
+4. **Tinycast as an MCP server — declined.** A stdio helper that would have lent the launcher's
+   clipboard, screen, notes and dialogs to Claude Code, Codex and other MCP clients. Those stay
+   inside Tinycast's own agents.
 
 ### Wave 2 — context and power
 
 5. **Background and scheduled agents — shipped** (see above). Next on it: a per-agent launcher row
    and hotkey, the unattended briefing for ACP agents, a spend cap for schedules, and one "Agents"
    menu-bar item shared with Agent Sessions' live status (item 2).
-6. **Screen Awareness+ and Capture.** Area and full-screen capture, Vision OCR when an app exposes no
-   Accessibility text (canvas apps, games), Finder's selected files, a `{screen}` placeholder for
-   Quick Actions ("reply to this" in one key), a `screen_context` agent tool, and a searchable
-   screenshot library (upstream #1211 declined; `dnw3` and `fminkowski` forks built capture). *3–4 days.*
-7. **Web search — shipped** (see above). Next: `read_page` for plain chats, and the same tool for
-   Codex and Claude through Tinycast's MCP server (item 4).
+6. **Screen Awareness+ and Capture — undecided.** Area and full-screen capture, Vision OCR when an
+   app exposes no Accessibility text (canvas apps, games), Finder's selected files, a `{screen}`
+   placeholder for Quick Actions ("reply to this" in one key) and a searchable screenshot library
+   (upstream #1211 declined; `dnw3` and `fminkowski` forks built capture). The `screen_context` agent
+   tool moved to the harness's next steps. *3–4 days.*
+7. **Web search — shipped** (see above). Next on it: `read_page` for plain chats.
 8. **Raycast AI for extensions — shipped** (see above). Next on it: honour the requested `AI.Model`
    (an Anthropic id to an Anthropic connection), `creativity` as temperature where a route takes one,
    `AI.experimental_decide`, extension model providers, and AI from a menu-bar item's own action, where
    the click is the gesture (the menu-bar lane has no AI host today).
-9. **Model arena.** One prompt to two to four models side by side, streaming in columns; keep the best
-   answer and continue with that model. *3 days.*
+9. **Model arena — declined.** One prompt to two to four models side by side.
 
 ### Wave 3 — daily delights
 
-10. **AI paste and AI snippets.** "Paste transformed…" on any clipboard item (translate, tidy, as a
-    list, as JSON), and an `{ai prompt="…"}` snippet placeholder that expands through a model.
-11. **Leader-key menus.** Vim-style key sequences and nested keyboard menus of actions (`mzarabi`'s
-    leader mode, `zachthinks/ZLaunch`'s LaunchDeck).
-12. **Developer utilities.** Kill by port, JSON / Base64 / URL / hash / UUID tools, colour picker,
-    Caffeinate, timers and Pomodoro (`nikteg`, `Sai1boats` forks), `#` to run a shell line from root
-    search.
+10. **AI paste and AI snippets — declined.** "Paste transformed…" on a clipboard item, and an
+    `{ai prompt="…"}` snippet placeholder.
+11. **Leader-key menus — declined.** Vim-style key sequences and nested keyboard menus of actions.
+12. **Developer utilities — paused**, perhaps as extensions rather than built-ins. Kill by port,
+    JSON / Base64 / URL / hash / UUID tools, colour picker, Caffeinate, timers and Pomodoro (`nikteg`,
+    `Sai1boats` forks), `#` to run a shell line from root search.
 13. **Notes ↔ AI — shipped** (see above): Attach Note… and `@note` in AI Chat, the
     `notes_search` / `notes_read` / `notes_append` tools for agents on the native harness, and a
     schedule's Append the answer to a note (item 5). Next on it: an Attach Note… item in Quick AI's ⌘K
-    menu, and the notes tools in the MCP server (item 4) for ACP agents.
+    menu.
 14. **Usage dashboard — shipped** (see above). Next on it: a ledger so Quick Actions count, an
     optional OpenRouter management key for the account balance, a trend strip, and a launcher command
     that opens the section.
-15. **App-aware snippets.** Offer the snippets written for the app in front first (`NikAtNight`).
-16. **Moonshot — meeting copilot.** On-device transcription of microphone and system audio into a
-    running transcript, summarised into Notes when the meeting ends.
+15. **App-aware snippets — declined.** Offer the snippets written for the app in front first.
+16. **Moonshot — meeting copilot — not now.** On-device transcription of microphone and system audio
+    into a running transcript, summarised into Notes when the meeting ends.
 
 ## Credits
 
