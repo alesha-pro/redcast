@@ -325,6 +325,9 @@ enum SettingsSearchCatalog {
             .aiConversations, "Keep conversations",
             keywords: ["retention", "delete", "history", "privacy"]),
         .init(
+            group: .aiUsage, "Usage",
+            keywords: ["tokens", "cost", "spend", "billing", "openrouter", "balance", "credits"]),
+        .init(
             .aiSystemPrompt, "Send a system prompt",
             keywords: ["instructions", "persona"]),
         .init(

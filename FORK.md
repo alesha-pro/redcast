@@ -27,6 +27,7 @@ OpenCode, Goose, Hermes, local models — on the subscriptions and machines you 
 | Voice AI | Cloud dictation through Gemini Flash on your own OpenRouter, Gemini or OpenAI-compatible connection, and Ask by Voice: speak a question about the window in front, get the answer beside it or typed into the field. Audio goes only to the connection you approved | [voice-ai](docs/features/voice-ai.md) |
 | Raycast AI for extensions | `AI.ask`, `useAI` and `canAccess(AI)` answered by your own model, off until you allow it and asked once per extension (a dismissed question asks again); only in a command you open, never in a menu-bar command, a background refresh or anything one launches | [extension-ai](docs/features/extension-ai.md) |
 | Extension runtime fixes | Google sign-in without a client secret (`querystring` coerces like Node), and extensions that bundle undici (`buffer.Blob`/`File`, undici's requests sent through the `fetch` bridge); ported from sermelipharo/tinycast-space | [extensions](docs/features/extensions.md) |
+| AI usage | Settings → AI → Usage: tokens and cost per model or ACP agent for a day, week or month, read from the chats on this Mac; an OpenRouter key's UTC spend and limit on Check Balance. An ACP reply counts what its session's running total rose; a tool-loop reply now costs its whole turn, and OpenAI's own API records tokens | [usage-dashboard](docs/features/usage-dashboard.md) |
 
 Builds of this fork use the bundle id `com.tinycast.app.fork`: they never update themselves from
 upstream's feed, and they keep their settings apart from an installed upstream Tinycast.
@@ -113,8 +114,9 @@ Sizes are focused working days. Waves are ordered by leverage, not by size.
     `notes_search` / `notes_read` / `notes_append` tools for agents on the native harness, and a
     schedule's Append the answer to a note (item 5). Next on it: an Attach Note… item in Quick AI's ⌘K
     menu, and the notes tools in the MCP server (item 4) for ACP agents.
-14. **Usage dashboard.** Tokens and spend per model and per day from chat history and provider APIs.
-    An agent turn's cost across its rounds lands with it, in `AgentLoopProvider`.
+14. **Usage dashboard — shipped** (see above). Next on it: a ledger so Quick Actions count, an
+    optional OpenRouter management key for the account balance, a trend strip, and a launcher command
+    that opens the section.
 15. **App-aware snippets.** Offer the snippets written for the app in front first (`NikAtNight`).
 16. **Moonshot — meeting copilot.** On-device transcription of microphone and system audio into a
     running transcript, summarised into Notes when the meeting ends.

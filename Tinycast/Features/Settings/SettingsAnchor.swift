@@ -52,6 +52,7 @@ extension SettingsAnchor {
     static let aiScreenAwareness = Self(tab: .ai, title: "Screen Awareness")
     static let aiAskByVoice = Self(tab: .ai, title: "Ask by Voice")
     static let aiAgents = Self(tab: .ai, title: "Agents")
+    static let aiUsage = Self(tab: .ai, title: "Usage")
     static let aiSystemPrompt = Self(tab: .ai, title: "System prompt")
     static let aiMCPServers = Self(tab: .ai, title: "MCP Servers")
     static let aiCommands = Self(tab: .ai, title: "Commands")

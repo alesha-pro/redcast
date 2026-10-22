@@ -40,6 +40,7 @@ struct AISettingsView: View {
                 ScreenAwarenessSettingsSection()
                 VoiceAskSettingsSection()
                 conversationsSection
+                UsageSection()
                 systemPromptSection
                 MCPSettingsSection()
             }
