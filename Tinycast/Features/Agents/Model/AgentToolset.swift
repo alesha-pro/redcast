@@ -12,11 +12,14 @@ struct AgentToolset: Sendable {
     private let routes: [String: Route]
     private let turn: AgentTurn
     private let mcp: @Sendable (AIToolCall) async -> AIToolResult
+    /// Told of each call its rule refused unasked, so a run nobody watched can say what it missed.
+    private let refused: @Sendable (AgentToolSpec) -> Void
     private let ask: @Sendable (AgentToolSpec, AgentConsentRequest) async -> Bool
 
     init(
         turn: AgentTurn, providers: [any AgentToolProvider], mcpTools: [AITool],
         mcp: @escaping @Sendable (AIToolCall) async -> AIToolResult,
+        refused: @escaping @Sendable (AgentToolSpec) -> Void = { _ in },
         ask: @escaping @Sendable (AgentToolSpec, AgentConsentRequest) async -> Bool
     ) {
         var tools: [AITool] = []
@@ -37,6 +40,7 @@ struct AgentToolset: Sendable {
         self.routes = routes
         self.turn = turn
         self.mcp = mcp
+        self.refused = refused
         self.ask = ask
     }
 
@@ -56,13 +60,16 @@ struct AgentToolset: Sendable {
             return await mcp(call)
         case .agent(let provider, let spec, let rule)?:
             let ask = ask
+            let refused = refused
             let mode = turn.mode
             let context = AgentToolContext(
                 turn: turn,
                 consent: { request in
                     switch AgentConsentPolicy.decide(rule, mode: mode) {
                     case .allow: return true
-                    case .refuse: return false
+                    case .refuse:
+                        refused(spec)
+                        return false
                     case .ask: return await ask(spec, request)
                     }
                 },
