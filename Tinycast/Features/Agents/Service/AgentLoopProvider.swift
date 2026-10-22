@@ -48,6 +48,7 @@ struct AgentLoopProvider: AIProvider {
                 continuation.yield(.finished)
                 return
             }
+            let roundStart = messages.count
             messages.append(AIMessage(role: .assistant, text: round.text, toolCalls: round.calls))
             budget.carry(round.text, calls: round.calls)
             let concurrent = round.calls.map { toolset.isConcurrent($0.name) }
@@ -63,6 +64,8 @@ struct AgentLoopProvider: AIProvider {
                 let results = await run(calls, signal: signal, budget: &budget, into: continuation)
                 messages += results.map { AIMessage(role: .tool, text: "", toolResult: $0) }
             }
+            budget.release(
+                AgentTurnBudget.elide(&messages, turnStart: request.messages.count, keepFrom: roundStart))
         }
         throw AIProviderError.responseFailed(
             String(localized: "Stopped after \(rounds) rounds of tool calls."))

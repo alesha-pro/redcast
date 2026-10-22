@@ -28,6 +28,7 @@ struct AgentTests {
         toolsetAppliesTheProfile()
         batchesKeepCallOrder()
         budgetCutsLikeUpstream()
+        elisionKeepsTheNewestRound()
         newFamiliesStartOff()
         thePromptCarriesTheFoldersContext()
         agentsAndTheirChatsSurviveARelaunch()
@@ -312,21 +313,71 @@ struct AgentTests {
             cut.content == String(repeating: "x", count: AgentTurnBudget.resultBytes) + "\n…truncated.",
             "a result past 32 KB is cut there and says so")
         expect(budget.carried == cut.content.utf8.count, "what the turn carries is what was kept")
-        for index in 0..<3 {
+        for index in 1..<(AgentTurnBudget.turnResultBytes / AgentTurnBudget.resultBytes) {
             _ = budget.admit(AIToolResult(callID: "\(index)", content: forty, isError: false))
         }
         let over = budget.admit(AIToolResult(callID: "z", content: "hi", isError: false))
         expect(
             over.isError && over.content == "This turn's tool output budget is used up.",
-            "past 128 KB in a turn, results are refused")
+            "past 512 KB in a turn, results are refused in upstream's words")
         var fresh = AgentTurnBudget()
-        let split = fresh.admit(
-            AIToolResult(
-                callID: "m", content: String(repeating: "x", count: AgentTurnBudget.resultBytes - 1) + "йй",
-                isError: false))
+        let almost = String(repeating: "x", count: AgentTurnBudget.resultBytes - 1)
+        let split = fresh.admit(AIToolResult(callID: "m", content: almost + "йй", isError: false))
         expect(
-            split.content == String(repeating: "x", count: AgentTurnBudget.resultBytes - 1) + "\n…truncated.",
+            split.content == almost + "\n…truncated.",
             "a cut that lands inside a character keeps only whole ones")
+    }
+
+    static func elisionKeepsTheNewestRound() {
+        func result(_ id: String, kilobytes: Int) -> AIMessage {
+            AIMessage(
+                role: .tool, text: "",
+                toolResult: AIToolResult(
+                    callID: id, content: String(repeating: "r", count: kilobytes * 1_024), isError: false))
+        }
+        func asking(_ ids: String...) -> AIMessage {
+            AIMessage(
+                role: .assistant, text: "",
+                toolCalls: ids.map { AIToolCall(id: $0, name: "read_" + $0, arguments: "{}") })
+        }
+        let history = [AIMessage(role: .user, text: "go")]
+        let small =
+            history + [asking("a"), result("a", kilobytes: 50), asking("b"), result("b", kilobytes: 50)]
+        var untouched = small
+        expect(
+            AgentTurnBudget.elide(&untouched, turnStart: 1, keepFrom: 3) == 0 && untouched == small,
+            "under the watermark nothing changes, so the cached prefix holds")
+
+        let full = history + [
+            asking("a"), result("a", kilobytes: 50), asking("b", "c"), result("b", kilobytes: 50),
+            result("c", kilobytes: 50), asking("d"), result("d", kilobytes: 30)
+        ]
+        var messages = full
+        let saved = AgentTurnBudget.elide(&messages, turnStart: 1, keepFrom: 6)
+        let contents = messages.compactMap(\.toolResult?.content)
+        expect(
+            contents[0].hasPrefix("[Earlier read_a result elided to save room: 51200 bytes.")
+                && contents[1].hasPrefix("[Earlier read_b result elided"),
+            "the oldest results are stubbed first, naming the tool and the size")
+        expect(contents[2] == full[5].toolResult?.content, "and stop as soon as the turn fits again")
+        expect(messages[6...] == full[6...], "the newest round is never touched")
+        let total = contents.reduce(0) { $0 + $1.utf8.count }
+        expect(total < AgentTurnBudget.elideTo, "what is left is under the low watermark")
+        expect(
+            saved == full.compactMap(\.toolResult?.content.utf8.count).reduce(0, +) - total,
+            "and the saving is reported exactly")
+        for (index, message) in messages.enumerated() {
+            guard let id = message.toolResult?.callID else { continue }
+            let asker = messages[..<index].last { $0.role == .assistant }
+            expect(
+                asker?.toolCalls.contains { $0.id == id } == true, "\(id) still follows the call that asked")
+        }
+
+        var again = messages + [asking("e"), result("e", kilobytes: 100)]
+        _ = AgentTurnBudget.elide(&again, turnStart: 1, keepFrom: again.count - 2)
+        expect(
+            again[2].toolResult?.content == messages[2].toolResult?.content,
+            "a stub is never stubbed again, so it keeps the size it reported")
     }
 
     static func newFamiliesStartOff() {
