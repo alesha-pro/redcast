@@ -74,6 +74,8 @@ struct ExtensionLaunchContext: Sendable {
     /// Injected, never read: a running command keeps what it booted with.
     var isDarkAppearance: Bool
     var launchContext: [String: RenderValue] = [:]
+    /// Injected like the appearance: an answer given mid-run reaches the next launch.
+    var aiAccess = false
 
     func jsonString() -> String {
         var environment: [String: Any] = [
@@ -101,7 +103,8 @@ struct ExtensionLaunchContext: Sendable {
                 "environment": environment,
                 "preferences": preferences.mapValues(\.jsonValue),
                 "caches": caches,
-                "launchProps": launchProps
+                "launchProps": launchProps,
+                "ai": ["access": aiAccess]
             ])
     }
 }

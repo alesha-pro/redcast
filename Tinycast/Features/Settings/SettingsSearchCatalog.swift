@@ -620,6 +620,9 @@ enum SettingsSearchCatalog {
                 "library", "uninstall", "update", "preferences", "appearance", "alias", "shortcut"
             ]),
         .init(
+            .extensionsAI, "Allow extensions to use AI",
+            keywords: ["raycast ai", "ai.ask", "useai", "model", "consent"]),
+        .init(
             group: .extensionsCompatibility, "Compatibility",
             keywords: ["supported", "unsupported", "raycast api"]),
         .init(

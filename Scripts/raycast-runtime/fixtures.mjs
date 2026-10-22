@@ -7,6 +7,7 @@ import { createHarness, bootConfig, describeTree } from "./test.mjs";
 import { transformSync } from "esbuild";
 import { runModuleFixtures } from "./modules-fixtures.mjs";
 import { runOAuthFixtures } from "./oauth-fixtures.mjs";
+import { runAIFixtures } from "./ai-fixtures.mjs";
 import { runForkFixtures } from "./fork-fixtures.mjs";
 
 let passes = 0;
@@ -1468,6 +1469,7 @@ export async function runFixtures() {
 
   await runModuleFixtures(check);
   await runOAuthFixtures(check);
+  await runAIFixtures(check);
   await runForkFixtures(check);
 
   console.log(failures === 0 ? "\nAll runtime fixtures passed." : `\n${failures} check(s) failed.`);

@@ -102,6 +102,15 @@ enum SettingsBackupCoverage {
             + "something else there.",
         AppSettingsKey.extensionsEnabled.rawValue:
             "Doubles as consent to run third-party JavaScript; an import must not switch it on.",
+        AppSettingsKey.extensionsAIEnabled.rawValue:
+            "Doubles as consent to let third-party extension code send prompts to an AI model; a "
+            + "flag that grants a capability is never carried by a backup.",
+        AppSettingsKey.extensionsAIModel.rawValue:
+            "Names an external AI destination for prompts written by third-party code; an import "
+            + "must not choose one.",
+        AppSettingsKey.extensionsAIGrants.rawValue:
+            "Says which installed extensions may reach a model on this Mac; an import must never "
+            + "grant one.",
         AppSettingsKey.palettePosition.rawValue:
             "Machine-local geometry: every entry names a display this Mac has, and no other one.",
         AppSettingsKey.paletteExpandedCenterDisplays.rawValue:

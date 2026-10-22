@@ -294,6 +294,8 @@ function syncHostCall(api, method, args) {
 const runningChildren = new Map();
 const openSockets = new Map();
 let nextSocketId = 1;
+let nextAIStream = 1;
+const answeredAIStreams = new Set();
 
 async function stubHostCall(api, method, args) {
   switch (`${api}.${method}`) {
@@ -309,6 +311,14 @@ async function stubHostCall(api, method, args) {
       return { name: "Finder", path: "/System/Library/CoreServices/Finder.app", bundleId: "com.apple.finder" };
     case "system.applications":
       return [];
+    case "ai.start":
+      return nextAIStream++;
+    case "ai.read":
+      if (answeredAIStreams.has(args[0])) return null;
+      answeredAIStreams.add(args[0]);
+      return process.env.TEST_AI_REPLY ?? "Stub answer from test.mjs.";
+    case "ai.cancel":
+      return null;
     case "fetch.request": {
       const spec = args[0];
       const response = await fetch(spec.url, {
@@ -501,7 +511,9 @@ async function runExtension(dir, commandName) {
       },
     }),
   );
-  harness.start("s1", readFileSync(file, "utf8"), file, dir, target.mode, {});
+  // `TEST_AI=1` lets the command see `canAccess(AI)`; the stub answers every `AI.ask` once.
+  const context = process.env.TEST_AI === "1" ? { ai: { access: true } } : {};
+  harness.start("s1", readFileSync(file, "utf8"), file, dir, target.mode, context);
 
   await new Promise((resolve) => setTimeout(resolve, Number(process.env.EXT_TEST_SETTLE_MS ?? 1500)));
   if (harness.state.failures.length) {
