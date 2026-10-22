@@ -54,6 +54,7 @@ final class AppCore {
     let favorites = FavoritesStore()
     let visibility = VisibilityStore()
     let aliases = AliasStore()
+    let inlineEntryEditor = InlineEntryEditor()
     let fallbacks = FallbackStore()
     let calcHistory = CalculatorHistoryStore()
     let currencyRates = CurrencyRateStore()

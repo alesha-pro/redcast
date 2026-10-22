@@ -414,6 +414,9 @@ Commands passes `CustomCommand.entryID`, Settings ▸ Extensions passes `extensi
 Settings ▸ Window Management passes each command, custom size, layout and room's `AppEntry`, and each
 dims the field when the entry is hidden from launcher search, whose entry the ranker never sees.
 
+This fork also edits both from ⌘K and opens an exact alias on Space; see
+[alias actions](alias-actions.md).
+
 Aliases ride along in a settings backup (`launcherAliases`), and deleting what an alias points at —
 uninstalling an app, deleting a quicklink or custom command, uninstalling an extension — removes it
 with the entry's other per-entry preferences.

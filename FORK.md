@@ -29,6 +29,8 @@ OpenCode, Goose, Hermes, local models — on the subscriptions and machines you 
 | Extension runtime fixes | Google sign-in without a client secret (`querystring` coerces like Node), and extensions that bundle undici (`buffer.Blob`/`File`, undici's requests sent through the `fetch` bridge); ported from sermelipharo/tinycast-space | [extensions](docs/features/extensions.md) |
 | AI usage | Settings → AI → Usage: tokens and cost per model or ACP agent for a day, week or month, read from the chats on this Mac; an OpenRouter key's UTC spend and limit on Check Balance. An ACP reply counts what its session's running total rose; a tool-loop reply now costs its whole turn, and OpenAI's own API records tokens | [usage-dashboard](docs/features/usage-dashboard.md) |
 | Agent Sessions | Search every past Claude Code, Codex and Tinycast session from the launcher — titles, prompts, folder and branch, a preview, and text inside transcripts on request — and resume it in its folder and terminal with one key; live sessions show their status and Jump to Agent brings a waiting one forward. Opt-in live status adds reviewed hooks to Claude Code and Codex for a HUD and a menu-bar item when an agent finishes or waits | [agent-sessions](docs/features/agent-sessions.md) |
+| Alias + Space | Type an entry's alias exactly and press Space: it opens, or its first field takes the caret; `\`␣ types a space, and apps keep searching. From `sermelipharo/tinycast-space`, after `mSarheed/pipcast` | [alias actions](docs/features/alias-actions.md) |
+| Change Alias / Change Shortcut | Edit an entry's alias in place, or record its global shortcut, from its ⌘K menu. From `jhasubhash/tinycast`, as reshaped in `sermelipharo/tinycast-space` | [alias actions](docs/features/alias-actions.md#change-alias--change-shortcut) |
 
 Builds of this fork use the bundle id `com.tinycast.app.fork`: they never update themselves from
 upstream's feed, and they keep their settings apart from an installed upstream Tinycast.
@@ -47,9 +49,43 @@ upstream's feed, and they keep their settings apart from an installed upstream T
 - `Tinycast.xcodeproj` is generated: after a merge, resolve `project.yml` and run `xcodegen generate`
   rather than hand-merging `project.pbxproj`. `Localizable.xcstrings` entries are inserted by hand in
   catalog order (a local `sync-strings.sh` reorders hundreds of unrelated entries).
+- `Scripts/fork/sync-upstream.sh` does the merge: into `sync/upstream-<sha>`, upstream's
+  `project.pbxproj` and runtime bundle regenerated, the string catalog merged key by key, an
+  `Upstream-Sync:` trailer, then the build, harness, lint and purity gates and a summary of what
+  upstream changed. Other conflicts stop it for `--continue`. Upstream force-pushes `main` now and
+  then; the script re-anchors on commits it can prove are already merged and otherwise stops with a
+  `git range-diff` to read. Details: [fork tooling](docs/fork-tooling.md#scriptsforksync-upstreamsh).
+- **A sync branch lands by fast-forward or a merge commit, never squash or rebase**: either drops
+  upstream's ancestry, and the next sync replays everything.
+- Upstream's five workflows must be disabled before Actions is ever enabled on the fork (one `gh`
+  loop, in [fork tooling](docs/fork-tooling.md#upstream-workflows-on-the-fork)). A nightly sync Action
+  with one rolling PR is proposed there, not active; it needs a `FORK_SYNC_TOKEN` fine-grained token
+  (Contents, Pull requests and Workflows read-write) with a one-year expiry, to be noted here. Only
+  its publish job, which runs no repository code, ever holds that token.
 - Every fork change keeps upstream's bar: harnesses, `./Scripts/lint.sh`, eight languages, docs in the
   same commit. Two harnesses fail on a clean upstream checkout too and are not fork regressions:
   `form-input-test` (display-bound) and, occasionally under load, `icon-cache-test`.
+
+## Installing the fork
+
+`Scripts/fork/install.sh` builds the fork in Release for this Mac, signs it with the keychain's one
+`Apple Development` identity, quits the installed app gracefully, swaps the new bundle in by rename and
+relaunches it. About shows the `git describe` version and the commit count (a fresh clone needs
+`git fetch upstream --tags` first). Details and the manual sweep are in
+[fork tooling](docs/fork-tooling.md#scriptsforkinstallsh).
+
+- `--self-check` resolves the identity, version and paths and builds nothing; `--self-test` rehearses
+  an install, a rollback and a start from Tinycast with a stubbed build in `$TMPDIR`; `--rollback` puts
+  back the copy the last install replaced; `--no-launch` and `--force-quit` do what they say.
+- It refuses to replace upstream's same-named `Tinycast.app`, and to install a build whose code
+  requirement differs from the installed one: that would cost every privacy grant.
+  `--accept-new-identity` goes ahead and prints the `tccutil reset` lines; it never runs them itself.
+- Started from a Tinycast agent or command, it moves to a session of its own before it builds and
+  logs to `build/fork/install.log`: an agent's command watchdog and Tinycast's quit both end the
+  process group that started it.
+- If macOS App Management blocks the swap, the script names the setting and leaves the old app in place.
+- The Accessibility grant survives a reinstall. A capture refused while other apps capture fine is that
+  one app's process refusing: quit and reopen the app you captured before toggling the grant.
 
 ## Roadmap
 
@@ -57,13 +93,14 @@ Sizes are focused working days. Waves are ordered by leverage, not by size.
 
 ### Wave 0 — fork foundation
 
-- **Release script.** One command builds the fork in Release with its bundle id and a stable signing
-  identity, installs it and relaunches it, versioned from `git describe`.
-- **Upstream sync.** A script (and later a scheduled Action that opens a PR) that merges upstream,
-  regenerates the project, runs the harnesses and lists what upstream changed.
-- **Ports from other forks** (all AGPL, credited): alias + Space from `sermelipharo/tinycast-space`;
-  Change Alias / Change Shortcut from ⌘K from `jhasubhash/tinycast`. The same fork's extension-runtime
-  fixes for Google sign-in and undici have shipped (see above).
+- **Release script — shipped** as `Scripts/fork/install.sh` (see [Installing the fork](#installing-the-fork)).
+- **Upstream sync — shipped** as `Scripts/fork/sync-upstream.sh`. The scheduled Action that keeps one
+  rolling PR stays a [proposal](docs/fork-tooling.md#proposed-a-nightly-sync-action-not-active) until
+  the script has done three to five syncs by hand.
+- **Ports from other forks — shipped** (all AGPL, credited): alias + Space from
+  `sermelipharo/tinycast-space`, Change Alias / Change Shortcut from ⌘K from `jhasubhash/tinycast`,
+  and the same `sermelipharo/tinycast-space` extension-runtime fixes for Google sign-in and undici
+  (see above). Confetti (`raycast://confetti`) was left out.
 
 ### Wave 1 — agent-native core
 
@@ -124,6 +161,16 @@ Sizes are focused working days. Waves are ordered by leverage, not by size.
 ## Credits
 
 Upstream: [abue-ammar/tinycast](https://github.com/abue-ammar/tinycast), AGPL-3.0. Ideas surveyed from
-the forks named above; anything ported from them is credited in its commit. The extension-runtime fixes
-come from [sermelipharo/tinycast-space](https://github.com/sermelipharo/tinycast-space) (patches 0004,
-0008 and 0009).
+the forks named above; anything ported from them is credited in its commit.
+
+- [sermelipharo/tinycast-space](https://github.com/sermelipharo/tinycast-space): alias + Space
+  ([691c43ef](https://github.com/sermelipharo/tinycast-space/commit/691c43efe07e12ca87f4601ee4257a6631505bf1))
+  and the reshaped ⌘K alias and shortcut editing
+  ([f29cad1b](https://github.com/sermelipharo/tinycast-space/commit/f29cad1bf3318af9692566d5ee9ce45bca589170)),
+  and the extension-runtime fixes for Google sign-in and undici (its patches 0004, 0008 and 0009).
+- [jhasubhash/tinycast](https://github.com/jhasubhash/tinycast): inline alias and shortcut editing in
+  the ⌘K panel
+  ([f509d005](https://github.com/jhasubhash/tinycast/commit/f509d005518818e70d9c559017bd932a62899956)),
+  and the first `sync-upstream.sh` this fork's sync script learned from.
+- [mSarheed/pipcast](https://github.com/mSarheed/pipcast): the alias + Space idea
+  ([4141ac68](https://github.com/mSarheed/pipcast/commit/4141ac680e)).
