@@ -4,9 +4,9 @@ import Foundation
 enum AgentAccess: String, Codable, CaseIterable, Identifiable, Sendable {
     /// Reads its folder and its skills; writes nothing, runs nothing.
     case readOnly
-    /// Writes inside its folder and runs commands there, each asking first.
+    /// Writes inside its folder and runs commands there; its consent rules say which ask first.
     case workspaceWrite
-    /// Reads and writes anywhere the account can; commands still ask first.
+    /// Reads and writes anywhere the account can, and runs commands; the same rules apply.
     case fullAccess
 
     var id: String { rawValue }
@@ -22,6 +22,9 @@ enum AgentToolKind: String, Codable, CaseIterable, Identifiable, Sendable {
     case memory
 
     var id: String { rawValue }
+
+    /// A family added later starts off, so it never switches itself on for a new agent.
+    static let defaults: Set<AgentToolKind> = [.files, .terminal, .web, .memory]
 }
 
 /// Where an agent's skills come from; a project skill wins over a global one of the same name.
@@ -56,16 +59,18 @@ struct AgentProfile: Codable, Hashable, Identifiable, Sendable {
     var runtime: AgentRuntime?
     /// The ACP mode new sessions start in, by the agent's own id for it; nil keeps its default.
     var acpMode: String?
+    /// Optional, so every `agents.json` written before it still decodes; nil keeps the defaults.
+    var consent: AgentConsentRules?
     var createdAt: Date
 
     init(
         id: UUID = UUID(), name: String, iconSymbol: String? = nil, instructions: String = "",
         model: AIModelSelection? = nil, directory: String, access: AgentAccess = .workspaceWrite,
-        tools: Set<AgentToolKind> = Set(AgentToolKind.allCases),
+        tools: Set<AgentToolKind> = AgentToolKind.defaults,
         skillSources: Set<AgentSkillSource> = Set(AgentSkillSource.allCases),
         disabledSkills: Set<String> = [], readsProjectInstructions: Bool = true,
         readsGlobalInstructions: Bool = false, runtime: AgentRuntime? = nil,
-        createdAt: Date = Date()
+        consent: AgentConsentRules? = nil, createdAt: Date = Date()
     ) {
         self.id = id
         self.name = name
@@ -80,6 +85,7 @@ struct AgentProfile: Codable, Hashable, Identifiable, Sendable {
         self.readsProjectInstructions = readsProjectInstructions
         self.readsGlobalInstructions = readsGlobalInstructions
         self.runtime = runtime
+        self.consent = consent
         self.createdAt = createdAt
     }
 

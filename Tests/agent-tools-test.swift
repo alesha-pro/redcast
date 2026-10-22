@@ -77,8 +77,8 @@ struct AgentToolsTests {
         expect(
             (try? String(contentsOfFile: folder + "/out/new.md", encoding: .utf8)) == "hello",
             "creating the folders it needs")
-        let firstAsk = await asked.last?.kind
-        expect(firstAsk == .write, "having asked first")
+        let firstAsk = await asked.last?.summary
+        expect(firstAsk?.hasPrefix("Create ") == true, "having asked first")
         let edited = await agent.run(
             call(AgentToolbox.editFile, #"{"path":"out/new.md","old_text":"hello","new_text":"bye"}"#))
         expect(
@@ -105,11 +105,23 @@ struct AgentToolsTests {
             command.content.hasPrefix("exit status 0") && command.content.contains("done"),
             "runs a command and reports its status, got \(command.content)")
         expect(command.content.contains("project"), "in the agent's folder")
-        let commandAsk = await asked.last?.kind
-        expect(commandAsk == .command, "after asking")
+        let commandAsk = await asked.last?.summary
+        expect(commandAsk == "pwd; echo done", "after asking")
         let slow = await agent.run(
             call(AgentToolbox.runCommand, #"{"command":"sleep 30","timeout_seconds":1}"#))
         expect(slow.content.contains("stopped after 1 s"), "a command past its timeout is stopped")
+        let started = ContinuousClock.now
+        let stopping = Task {
+            await agent.run(call(AgentToolbox.runCommand, #"{"command":"sleep 1; touch stopped.txt"}"#))
+        }
+        try? await Task.sleep(for: .milliseconds(300))
+        stopping.cancel()
+        _ = await stopping.value
+        expect(ContinuousClock.now - started < .seconds(1), "Stop ends a running command's call at once")
+        try? await Task.sleep(for: .milliseconds(1_500))
+        expect(
+            !FileManager.default.fileExists(atPath: folder + "/stopped.txt"),
+            "and the command itself, so it never reaches its next step")
 
         _ = await agent.run(call(AgentToolbox.writeMemory, #"{"text":"likes tea"}"#))
         _ = await agent.run(call(AgentToolbox.writeMemory, #"{"text":"lives in Almaty"}"#))
@@ -129,8 +141,183 @@ struct AgentToolsTests {
                 == "Title\nA & B",
             "a page reads as its text, scripts dropped and entities decoded")
 
+        try? String(repeating: "0123456789abcdef\n", count: 6_400).write(
+            toFile: folder + "/big.txt", atomically: true, encoding: .utf8)
+        let big = await agent.run(call(AgentToolbox.readFile, #"{"path":"big.txt"}"#))
+        expect(
+            big.content.utf8.count < AgentTurnBudget.resultBytes,
+            "the executor's own cut stays under the loop's, so the loop never cuts it again")
+        expect(big.content.contains("continue with offset"), "and still says where to continue")
+
+        await throughTheToolset(folder: folder, memory: memory)
+        await aRefusalLeavesNoEffect(folder: folder, memory: memory)
+
         print("\(passes) passed, \(failures) failed")
         if failures > 0 { exit(1) }
+    }
+
+    /// The built-ins behind the toolset: what a turn is offered, who is asked, where calls go.
+    static func throughTheToolset(folder: String, memory: URL) async {
+        let asks = AskRecorder()
+        let mcp = MCPRecorder()
+        func toolset(
+            _ access: AgentAccess, mode: AgentRunMode = .chat(UUID()), allowing: Bool = true,
+            rules: AgentConsentRules? = nil
+        ) -> AgentToolset {
+            AgentToolset(
+                turn: AgentTurn(
+                    profile: AgentProfile(name: "T", directory: folder, access: access, consent: rules),
+                    skills: [], memoryURL: memory, mode: mode),
+                providers: [AgentBuiltInTools()],
+                mcpTools: [
+                    AITool(name: "srv__tool", description: "", parameters: .object([:]), origin: "srv")
+                ],
+                mcp: { await mcp.invoke($0) },
+                ask: { spec, _ in await asks.record(spec, answer: allowing) })
+        }
+        func call(_ name: String, _ arguments: String) -> AIToolCall {
+            AIToolCall(id: UUID().uuidString, name: name, arguments: arguments)
+        }
+        let quiet: @Sendable (AgentToolSignal) -> Void = { _ in }
+
+        let read = call(AgentToolbox.readFile, #"{"path":"src/a.txt"}"#)
+        let direct = await AgentToolExecutor(
+            profile: AgentProfile(name: "T", directory: folder), skills: [], memoryURL: memory
+        ) { _ in true }.run(read)
+        let routed = await toolset(.workspaceWrite).run(read, signal: quiet)
+        expect(routed == direct, "a built-in call through the toolset is exactly the executor's")
+
+        let unoffered = await toolset(.readOnly).run(
+            call(AgentToolbox.writeFile, #"{"path":"ro.md","content":"x"}"#), signal: quiet)
+        expect(
+            unoffered.content == "There is no tool called write_file.",
+            "a read-only turn is not offered a write, so calling one finds nothing")
+        let askedNothing = await asks.count == 0
+        expect(
+            askedNothing && !FileManager.default.fileExists(atPath: folder + "/ro.md"),
+            "and neither asks nor writes")
+
+        _ = await toolset(.workspaceWrite).run(
+            call(AgentToolbox.writeFile, #"{"path":"set.md","content":"x"}"#), signal: quiet)
+        let write = await asks.last
+        expect(
+            write?.risk == .change && write?.family == .files
+                && FileManager.default.fileExists(atPath: folder + "/set.md"),
+            "a write asks as a change to files, then writes")
+        _ = await toolset(.workspaceWrite).run(
+            call(AgentToolbox.runCommand, #"{"command":"true"}"#), signal: quiet)
+        let command = await asks.last
+        expect(
+            command?.risk == .execute && command?.family == .terminal,
+            "a command asks as running a program from the terminal")
+
+        let before = await asks.count
+        let started = ContinuousClock.now
+        let fetched = await toolset(.workspaceWrite).run(
+            call(AgentToolbox.webFetch, #"{"url":"http://127.0.0.1:9/"}"#), signal: quiet)
+        expect(
+            fetched.isError && ContinuousClock.now - started < .seconds(5),
+            "a fetch nobody listens for fails fast, got \(fetched.content)")
+        let afterFetch = await asks.count
+        expect(afterFetch == before, "and a fetch never stops to ask by default")
+
+        let alone = await toolset(.workspaceWrite, mode: .unattended(UUID())).run(
+            call(AgentToolbox.writeFile, #"{"path":"alone.md","content":"x"}"#), signal: quiet)
+        expect(alone.isError, "with nobody there, a change that would ask is refused")
+        let afterAlone = await asks.count
+        expect(
+            afterAlone == before && !FileManager.default.fileExists(atPath: folder + "/alone.md"),
+            "without asking anyone, and nothing is written")
+
+        let trusted = AgentConsentRules(risks: [.change: .always, .execute: .never])
+        let unasked = await toolset(.workspaceWrite, mode: .unattended(UUID()), rules: trusted).run(
+            call(AgentToolbox.writeFile, #"{"path":"trusted.md","content":"x"}"#), signal: quiet)
+        let afterTrusted = await asks.count
+        expect(
+            !unasked.isError && afterTrusted == before
+                && FileManager.default.fileExists(atPath: folder + "/trusted.md"),
+            "Always Allow on changes writes without asking, even with nobody there")
+        let barred = await toolset(.workspaceWrite, rules: trusted).run(
+            call(AgentToolbox.runCommand, #"{"command":"touch barred.txt"}"#), signal: quiet)
+        expect(
+            barred.content == "There is no tool called run_command."
+                && !FileManager.default.fileExists(atPath: folder + "/barred.txt"),
+            "and Never Allow on commands withholds the terminal")
+
+        let offered = await toolset(.workspaceWrite).run(call("srv__tool", "{}"), signal: quiet)
+        let reached = await mcp.names
+        expect(!offered.isError && reached == ["srv__tool"], "an offered MCP tool reaches MCP")
+        let stray = await toolset(.workspaceWrite).run(call("other__tool", "{}"), signal: quiet)
+        let reachedAfter = await mcp.names
+        expect(
+            stray.content == "There is no tool called other__tool." && reachedAfter.count == 1,
+            "a server's tool that was not offered this turn never reaches MCP")
+    }
+}
+
+/// Every built-in that can reach past reading asks, and a no leaves nothing behind.
+extension AgentToolsTests {
+    static func aRefusalLeavesNoEffect(folder: String, memory: URL) async {
+        try? "before".write(toFile: folder + "/kept.txt", atomically: true, encoding: .utf8)
+        let notes = (try? String(contentsOf: memory, encoding: .utf8)) ?? ""
+        let calls: [String: String] = [
+            AgentToolbox.writeFile: #"{"path":"kept.txt","content":"after"}"#,
+            AgentToolbox.editFile: #"{"path":"kept.txt","old_text":"before","new_text":"after"}"#,
+            AgentToolbox.runCommand: #"{"command":"touch ran.txt"}"#,
+            AgentToolbox.webFetch: #"{"url":"http://127.0.0.1:9/"}"#
+        ]
+        let turn = AgentTurn(
+            profile: AgentProfile(name: "T", directory: folder, access: .fullAccess), skills: [],
+            memoryURL: memory, mode: .chat(UUID()))
+        let specs = AgentBuiltInTools().specs(for: turn).filter { ![.read, .own].contains($0.risk) }
+        expect(
+            Set(specs.map(\.tool.name)) == Set(calls.keys),
+            "every built-in that reaches past reading is checked here")
+        for spec in specs {
+            let refusals = Asked()
+            let context = AgentToolContext(
+                turn: turn,
+                consent: { request in
+                    await refusals.record(request)
+                    return false
+                },
+                signal: { _ in })
+            let name = spec.tool.name
+            let result = await AgentBuiltInTools().run(
+                AIToolCall(id: name, name: name, arguments: calls[name] ?? "{}"), in: context)
+            let asked = await refusals.last != nil
+            expect(asked && result.isError, "\(spec.tool.name) asks before it acts, and reports a refusal")
+        }
+        expect(
+            (try? String(contentsOfFile: folder + "/kept.txt", encoding: .utf8)) == "before",
+            "a refused write or edit leaves the file as it was")
+        expect(!FileManager.default.fileExists(atPath: folder + "/ran.txt"), "a refused command never runs")
+        expect(
+            ((try? String(contentsOf: memory, encoding: .utf8)) ?? "") == notes,
+            "and the agent's notes are untouched")
+    }
+}
+
+/// Answers every dialog as configured, remembering what each one was about.
+actor AskRecorder {
+    private var asked: [(risk: AgentToolRisk, family: AgentToolKind?)] = []
+
+    var count: Int { asked.count }
+    var last: (risk: AgentToolRisk, family: AgentToolKind?)? { asked.last }
+
+    func record(_ spec: AgentToolSpec, answer: Bool) -> Bool {
+        asked.append((spec.risk, spec.family))
+        return answer
+    }
+}
+
+/// Stands in for MCP: records each call it is handed.
+actor MCPRecorder {
+    private(set) var names: [String] = []
+
+    func invoke(_ call: AIToolCall) -> AIToolResult {
+        names.append(call.name)
+        return AIToolResult(callID: call.id, content: "from mcp", isError: false)
     }
 }
 

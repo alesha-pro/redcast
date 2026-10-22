@@ -207,7 +207,9 @@ assumed:
 
 `PseudoTerminal` also spawns with `POSIX_SPAWN_SETSID`, which is what makes Stop honest: the command
 leads its own session, so one `kill(-pid)` reaches the whole `a && b && c` chain. `Process.terminate`
-signals only zsh — a `sleep` started behind it survives, verified.
+signals only zsh — a `sleep` started behind it survives, verified. With **Load shell environment**
+on, zsh runs with `-i`, ignores SIGTERM and gives each job its own group, so Stop also hangs it up:
+zsh passes the hang-up to its jobs and exits before the next step of the chain can start.
 
 The pty's stdin gets an EOT byte at spawn, which keeps the invariant a `/dev/null` stdin gave the
 pipe path: a command that prompts reads EOF and moves on rather than waiting on a terminal that will
