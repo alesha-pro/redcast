@@ -107,8 +107,8 @@ struct ExtensionAITests {
     // MARK: - Policy
 
     static func gatesApplyInOrder() {
-        func access(_ featureOn: Bool, _ aiOn: Bool, _ openedByUser: Bool, _ grant: Bool?) -> ExtensionAIAccess {
-            ExtensionAIPolicy.access(featureOn: featureOn, aiOn: aiOn, openedByUser: openedByUser, grant: grant)
+        func access(_ featureOn: Bool, _ aiOn: Bool, _ actingForUser: Bool, _ grant: Bool?) -> ExtensionAIAccess {
+            ExtensionAIPolicy.access(featureOn: featureOn, aiOn: aiOn, actingForUser: actingForUser, grant: grant)
         }
         expect(access(false, true, true, true) == .refused(.featureOff), "the switch comes first")
         expect(access(false, false, false, false) == .refused(.featureOff), "the switch beats every gate")
@@ -422,13 +422,13 @@ struct ExtensionAITests {
         }
 
         func start(
-            _ name: String = "ext", prompt: String = "p", openedByUser: Bool = true,
+            _ name: String = "ext", prompt: String = "p", actingForUser: Bool = true,
             owner: ObjectIdentifier = ExtensionAITests.owner
         ) async -> Result<Int, any Error> {
             do {
                 let id = try await gate.perform(
                     method: "start", arguments: [.object(["prompt": .string(prompt)])],
-                    extensionName: name, openedByUser: openedByUser, owner: owner)
+                    extensionName: name, actingForUser: actingForUser, owner: owner)
                 return .success(id as? Int ?? -1)
             } catch {
                 return .failure(error)
@@ -439,7 +439,7 @@ struct ExtensionAITests {
             do {
                 let chunk = try await gate.perform(
                     method: "read", arguments: [.number(Double(id))], extensionName: name,
-                    openedByUser: true, owner: ExtensionAITests.owner)
+                    actingForUser: true, owner: ExtensionAITests.owner)
                 return .success(chunk as? String)
             } catch {
                 return .failure(error)
@@ -455,7 +455,7 @@ struct ExtensionAITests {
     static func aCommandNobodyOpenedNeverAsks() async {
         let fixture = Gate()
         defer { fixture.close() }
-        let result = await fixture.start(openedByUser: false)
+        let result = await fixture.start(actingForUser: false)
         expect(refusal(result) == .unattended, "a run the user didn't open is refused")
         expect(fixture.asked.isEmpty && fixture.made == 0, "before any question or route")
         expect(fixture.gate.settings.grants.isEmpty, "and nothing is recorded for it")
@@ -604,7 +604,7 @@ struct ExtensionAITests {
         let fixture = Gate()
         defer { fixture.close() }
         for _ in 0..<4 {
-            _ = await fixture.start(openedByUser: false)
+            _ = await fixture.start(actingForUser: false)
             _ = await fixture.start(prompt: " ")
         }
         fixture.routeFails = true

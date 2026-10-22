@@ -25,6 +25,9 @@ final class ExtensionMenuBarHost: ExtensionHostContext {
     var activeExtensionName: String? { owner.manifest.name }
     var activeLaunchType: ExtensionLaunchType { isInteractive ? .userInitiated : .background }
     var isOpenedByUser: Bool { isInteractive }
+    // Fork: AI rides a click on an item, never the menu's render, which a refresh runs too.
+    var isRunningAction = false
+    var isActingForUser: Bool { isRunningAction }
     var pasteTarget: NSRunningApplication? { NSWorkspace.shared.frontmostApplication }
     var applicationURLs: [URL] { coordinator?.applicationURLs ?? [] }
 

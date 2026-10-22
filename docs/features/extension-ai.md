@@ -17,25 +17,28 @@ host calls to it.
   are ignored. The answer comes from the model chosen for extensions, or from AI Chat's default when
   that is "Same as AI Chat". A pick whose API connection was deleted counts as unset; a route merely
   switched off is reported by the factory, never moved to another one.
-- **Only a command the user opened may ask.** Each host context reports `isOpenedByUser`, and the
-  bridge stamps every `ai.*` call and every launch with it. A background refresh is not opened by the
-  user, and neither is anything it launches, through `launchCommand` (`UserInitiated` included) or a
-  `raycast://` link it opens: the session keeps that origin, so `canAccess(AI)` is false and `AI.ask`
-  is refused before any dialog. The menu-bar lane has no AI host at all (`scoped(to:)` does not copy
-  it), and a launch onto it from a run nobody opened arrives as `.background`, so it cannot pass
-  the user's origin on either.
+- **Only what the user did may ask.** Each host context reports `isActingForUser`, and the bridge
+  stamps every `ai.*` call with it. A command the user opened acts for them throughout. A background
+  refresh does not, and neither does anything it launches, through `launchCommand` (`UserInitiated`
+  included) or a `raycast://` link it opens: the session keeps that origin, so `canAccess(AI)` is false
+  and `AI.ask` is refused before any dialog. A menu-bar command acts for the user only while one of its
+  items' actions runs: the click is the gesture. Its render never does, even in a menu the user
+  opened, because a refresh runs the same render.
 - **Pulled, never pushed.** JS keeps one `ai.read` outstanding per answer, and every delta since the
   last read arrives as one chunk. There is no timer, observer or push channel.
-- **Every answer has an end.** Leaving the command ends its answers (`sessionEnded`), an abort ends one
-  (`ai.cancel`), and a switch turned off ends them at their next read. The route's `onTermination`
-  cancels its request or process.
+- **Every answer has an end.** Leaving the command or the menu ends its answers (`sessionEnded`), an
+  abort ends one (`ai.cancel`), and a switch turned off ends them at their next read. Reads check the
+  switches, AI and the extension's answer again, not the origin: an answer an item's action started
+  may finish after the action, within the menu-bar lane's 60-second deadline. The route's
+  `onTermination` cancels its request or process.
 - **Nothing is kept.** Prompts and answers are never logged, stored or shown in chat history. The
   request carries the prompt alone: no instructions, system prompt, tools or web search.
 - **Raycast's rate limit applies per extension**, in memory: 10 requests a minute and 100 an hour,
   counted after consent and routing, so a refused call costs nothing.
-- **The upstream touch is a seam.** `ExtensionHostBridge` routes `ai` to `ExtensionAIHost`,
-  `ExtensionLaunchContext` carries one `aiAccess` flag, and a launch carries `openedByUser`;
-  everything else is in the fork's folder.
+- **The upstream touch is a seam.** `ExtensionHostBridge` routes `ai` to `ExtensionAIHost` with the
+  context's `isActingForUser`, `ExtensionLaunchContext` carries one `aiAccess` flag, a launch carries
+  `openedByUser`, and the menu-bar lane reports its actions in flight; everything else is in the
+  fork's folder.
 
 ## The request
 
@@ -63,9 +66,9 @@ bridge.sessionEnded() ──▶ cancelAll(owner)   (leaving the command, shutdow
   click elsewhere and Not Now refuse this ask once, and the next one asks again. While another
   Tinycast dialog is up nothing is shown and the ask is refused the same way, since a second dialog
   would resolve unseen. A command left while it was up starts nothing.
-- `environment.canAccess(AI)` is injected per launch: true when the user opened the command, the gates
-  do not refuse (an unanswered extension still counts, since it will be asked), and a model resolves.
-  An answer given mid-run reaches the next launch.
+- `environment.canAccess(AI)` is injected per launch: true when the user opened the command or the
+  menu, the gates do not refuse (an unanswered extension still counts, since it will be asked), and a
+  model resolves. A menu-bar refresh reports false. An answer given mid-run reaches the next launch.
 
 ## Errors
 
@@ -75,14 +78,13 @@ The message is what the extension's `Error.message` reads.
 | --- | --- |
 | switch off | Extensions can't use AI. Turn it on in Settings → Extensions. |
 | AI off | AI is off. Turn it on in Settings → AI to let extensions use it. |
-| a background refresh, or a command one launched | Extensions can use AI only in a command you open. |
+| a background refresh or launch, a command one launched, a menu's render | Extensions can use AI only in a command you open or from a menu-bar item you click. |
 | answered Don't Allow | This extension isn't allowed to use AI. You can change this in Settings → Extensions. |
 | dialog dismissed, or another dialog up | This extension can use AI once you allow it. It will ask again next time. |
 | no model | Choose a model for extensions in Settings → Extensions. |
 | blank prompt | The prompt is empty. |
 | over 256 KB of UTF-8 | The prompt is too long: … KB, where the limit is 256 KB. |
 | rate limit | This extension reached its AI limit of 10 requests a minute and 100 an hour. Try again in … s. |
-| the menu-bar lane: a menu-bar command, or a no-view command launched with `LaunchType.Background` | AI in menu-bar commands and background launches is not supported in Tinycast extensions. |
 
 A route that is off, a missing key and a failed request pass through as `AIProviderError` messages,
 already redacted by the route.
@@ -116,20 +118,24 @@ already redacted by the route.
 | `Scripts/raycast-runtime/src/api/ai.js` | The `AI` namespace: `ask`, the pull loop, `Model`, `refreshModels` |
 
 Upstream lines: `ExtensionHostBridge` (the `ai` property, one `case`, `askAI`, one line in
-`sessionEnded`, `isOpenedByUser` on `ExtensionHostContext` and `openedByUser` on its two `launch`
-calls), `ExtensionManager` (`ai`, the running session's origin, `aiAccess` in `makeLaunchContext`, and
-the menu-bar lane's `.background` for a launch nobody opened), `ExtensionMenuBarHost` and
+`sessionEnded`, `isOpenedByUser` and `isActingForUser` on `ExtensionHostContext` and `openedByUser` on
+its two `launch` calls), `ExtensionManager` (`ai`, the running session's origin, `aiAccess` in
+`makeLaunchContext`, the menu-bar lane's `.background` for a launch nobody opened, and its executions'
+AI host, `setActing` and `aiAccess`), `ExtensionMenuBarManager` (`Execution.setActing` and `aiAccess`,
+`pendingActions` reporting, the launch's `aiAccess`), `ExtensionMenuBarHost` (`isRunningAction`) and
 `ExtensionCoordinator` (passing `openedByUser` on), `ExtensionLaunchContext.aiAccess`, `AppCore` (the
 coordinator and two wiring lines), three `AppSettingsKey` cases with their backup exclusions, the
 anchor, the search entry, the section in `ExtensionsSettingsView`, and `system.js`'s `registerAccess`.
 
 ## Weight
 
-No task, timer, observer, file or process exists until an extension calls `AI.ask`. The coordinator
-and its gate are a few references and closures; the settings store is created on first use. An answer in flight is one
-`Task`, the route's own stream and the unread text, all released on finish, cancel or session end.
-The rate limiter holds at most 100 dates per extension that asked. The runtime grew by under 1 KB.
-CLI routes spawn a process per answer only when you pick a CLI model, as Quick Actions do.
+No task, timer, observer, file or process exists until an extension calls `AI.ask`. The coordinator and
+its gate are a few references and closures; the settings store is created on first use. An answer in
+flight is one `Task`, the route's own stream and the unread text, all released on finish, cancel or
+session end. The menu-bar lane holds one flag and one closure per running command, and a refresh never
+touches the AI settings. The rate limiter holds at most 100 dates per extension that asked. The runtime
+grew by under 1 KB. CLI routes spawn a process per answer only when you pick a CLI model, as Quick
+Actions do.
 
 ## Manual sweep
 
@@ -150,15 +156,19 @@ Install from the store and turn on Settings → Extensions → AI.
    `confirmAlert`, say), an `AI.ask` fails the same way and no second dialog appears.
 5. Eleven quick reruns: the failure toast names the wait.
 6. Turn AI off in Settings → AI mid-answer: the answer ends with the AI-off message.
-7. A menu-bar command calling `AI.ask` fails with the menu-bar message. A background-refresh no-view
-   command fails silently, as `usePromise` and toasts are quiet in the background. A menu-bar command
-   whose refresh calls `launchCommand({ name, type: LaunchType.UserInitiated })` on a no-view command
-   that asks AI: no dialog appears on any interval and the launched command gets the "only in a
-   command you open" error; opening the same command from the launcher asks as usual.
-8. Uninstall an allowed extension and reinstall it: it asks again.
-9. Export a settings backup: none of `extensionsAIEnabled`, `extensionsAIModel`, `extensionsAIGrants`
+7. A background-refresh no-view command fails silently, as `usePromise` and toasts are quiet in the
+   background. A menu-bar command whose refresh calls `launchCommand({ name, type:
+   LaunchType.UserInitiated })` on a no-view command that asks AI: no dialog appears on any interval
+   and the launched command gets the "command you open or menu-bar item you click" error; opening the
+   same command from the launcher asks as usual.
+8. A menu-bar command with an item whose action calls `AI.ask` (a local development extension is
+   enough): the first click shows the dialog, and after Allow the action gets its answer. An `AI.ask`
+   in the menu's render fails with the same error as item 7, whether the menu was opened or refreshed,
+   and the item still works afterwards. An answer longer than a minute ends with the lane's timeout.
+9. Uninstall an allowed extension and reinstall it: it asks again.
+10. Export a settings backup: none of `extensionsAIEnabled`, `extensionsAIModel`, `extensionsAIGrants`
    appear. `settings.json` has no `extensions.ai*` key.
-10. Delete the API connection the extension model used, then open Settings → Extensions: the picker
+11. Delete the API connection the extension model used, then open Settings → Extensions: the picker
     falls back to "Same as AI Chat".
 
 ## Harnesses
@@ -175,8 +185,10 @@ Install from the store and turn on Settings → Extensions → AI.
 - `ext-test`: `AI.ask` streaming under JavaScriptCore, `canAccess(AI)` from the launch context, and
   the real `ExtensionHostBridge` between them: it names itself as the owner, stamps `ai.*` calls and
   `launchCommand`/`raycast://` launches with the context's origin, so a menu-bar refresh's
-  `UserInitiated` launch reaches the next command as not the user's, ends its answers when the session
-  ends, and on a menu-bar bridge has no AI host.
+  `UserInitiated` launch reaches the next command as not the user's, and ends its answers when the
+  session ends. Through the real `ExtensionMenuBarManager`: a menu the user opened reports
+  `canAccess(AI)` but its render is refused, a click's action asks for the user and gets its answer,
+  the gesture ends with the action, closing the menu ends its answers, and a refresh reports no access.
 - `node Scripts/raycast-runtime/ai-fixtures.mjs` (also run by `fixtures.mjs`): `canAccess`, streaming,
   late listeners, failures, refusals, abort, an abort while `ai.start` waits on the dialog, timeout, a
   throwing listener, `useAI`'s abort-then-ask pattern, `AI.Model`, `refreshModels` and
