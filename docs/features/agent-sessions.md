@@ -4,10 +4,10 @@
 session in one palette screen: titles, first and last prompts, folder and branch, and a preview of the
 last turns. ↵ resumes a session where it lived — `cd` into its folder and `claude --resume <id>`,
 `codex resume <id>`, `gemini --resume <id>` or `opencode --session <id>` in the terminal it ran in — or
-reopens a Tinycast chat in AI Chat. **Jump to Agent** brings forward the terminal tab of an agent
-that is waiting for you. An opt-in **live status** adds small hooks to Claude Code and Codex so
-Tinycast can say, with a HUD, when an agent finishes or needs you. The feature lives in
-`Features/AgentSessions/`, plus the few lines that wire it in.
+reopens a Tinycast chat in AI Chat; ⌘O opens a Claude app session in Claude itself. **Jump to Agent**
+brings forward the terminal tab of an agent that is waiting for you. An opt-in **live status** adds
+small hooks to Claude Code and Codex so Tinycast can say, with a HUD, when an agent finishes or needs
+you. The feature lives in `Features/AgentSessions/`, plus the few lines that wire it in.
 
 ## Invariants
 
@@ -57,6 +57,11 @@ Tinycast can say, with a HUD, when an agent finishes or needs you. The feature l
   and resumed; nothing probes, hooks or watches them, and they never touch live status. On a Mac
   without them an open costs a missing cache file and folder for Gemini and one `stat` for OpenCode,
   and no cache file is written.
+- **The Claude app is opened only through its own route, and only on ⌘O.** The app's session records
+  are read on that gesture alone, off-main: the first 1 KB of each `local_*.json`, stopping at the
+  first whose `cliSessionId` is the row's transcript. The URL is built only from an id the app's own
+  handler accepts (`local_` and 1–64 of `[0-9A-Za-z-]`) and is handed to Claude.app by bundle, so no
+  other app that claims `claude://` receives it. Without a record, ⌘O only brings Claude forward.
 - **Only a person's own sessions are tracked.** An event for an automated run (`claude -p`, an SDK
   run, `codex exec`, a Codex subagent or guardian review) or for Tinycast's own session (an
   `acpSessions` id, the `tinycast` originator, or an agent whose process runs under Tinycast) is
@@ -70,6 +75,7 @@ Tinycast can say, with a HUD, when an agent finishes or needs you. The feature l
 | `Model/AgentSession.swift` | The row model, sources and hosts, live status, `AgentSessionText` cuts |
 | `Model/AgentSessionsLocations.swift` | Every agent's folder (default or moved), the paths under them, the variables a resume sets |
 | `Model/ClaudeTranscriptDecoder.swift` | JSONL head and tail facts, the line filter, human prompts, titles, preview turns |
+| `Model/ClaudeAppRoute.swift` | The Claude app's session records and `claude://code/continue` |
 | `Model/GeminiChatDecoder.swift` | Gemini CLI chat files: head and tail facts, prompts, summaries, preview turns, legacy `.json` |
 | `Model/JSONLineSplitter.swift` | Bounded line splitting for both head readers; a line past the cap is skipped, never held |
 | `Model/TranscriptIndexFormat.swift` | The Claude and Gemini caches, `TranscriptRescanPolicy` (reuse, tail or full read per file) |
@@ -80,7 +86,7 @@ Tinycast can say, with a HUD, when an agent finishes or needs you. The feature l
 | `Model/AgentResumeCommand.swift` | Terminals, shell quoting, resume commands, AppleScript and `.command` bodies |
 | `Model/AgentHookFileFormat.swift` | The hook command, install/remove/state, `JSONMemberSplice`, `OrderedJSON`, `LiveStatusRecord` |
 | `Model/AgentEvent.swift` | `AgentDeepLink`, events, `AgentActivityPolicy` (prune, jump, HUD), `ClaudeAgentsListing` |
-| `Service/AgentSessionsScanner.swift` | Listing, bounded head and tail reads, the cache files, previews, event lookup |
+| `Service/AgentSessionsScanner.swift` | Listing, bounded head and tail reads, the cache files, previews, event lookup, the Claude app record lookup |
 | `Service/AgentTranscriptSearch.swift` | Search inside transcripts on request |
 | `Service/AgentTerminalRunner.swift` | Opens a command or folder in a terminal; focuses a tab by tty |
 | `Service/AgentProcessHost.swift` | Host app and tty from a pid, by a `sysctl` walk up the parents |
@@ -134,6 +140,15 @@ Formats were measured on Claude Code 2.1.285–2.1.303 and codex-cli 0.162; no p
   probed, and a schema without `message`/`part` still lists titles.
 - **Tinycast.** `ChatHistoryStore.conversations`, already resident while AI is on; a chat bound to an
   agent takes that agent's folder.
+- **Claude app records** (read on ⌘O only; Claude.app 2.42304). The app keeps one record per Code
+  session under `~/Library/Application Support/Claude/` in
+  `claude-code-sessions/<account>/<organization>/local_<uuid>.json`, written compactly and beginning
+  `{"sessionId":"local_…","cliSessionId":"<uuid>"`, where the second id is the transcript in
+  `~/.claude/projects`. Its `Info.plist` registers `claude`, and its handler takes
+  `claude://code/continue?session=<id>` for `last` or a `local_` id and opens that session unless it
+  is archived (then the app's Code home); the app's own dock menu builds the same URL from each
+  record's `sessionId`. With the app's own deep-link entry points turned off it ignores the URL, and
+  Claude only comes forward.
 
 Claude Code's folder is `~/.claude` and Codex's `~/.codex` unless Settings names another (see
 Invariants); everything above is then read under that folder. Gemini CLI's and OpenCode's are their
@@ -216,8 +231,8 @@ Run in `Tinycast Dev.app` with AI on.
    Zap; if it opens in Zap's editor, Zap's launch kind becomes `.folderURL("zap")`.
 4. ⌃⌘↵ forks; ⌘↵ copies the command and pasting it works.
 5. A Codex thread resumes with `codex resume`; ⌘O opens it in the Codex app.
-6. A Claude app session: ⌘O activates Claude.app. Try `claude://code/continue?session=<uuid>` by
-   hand and record here whether it opens the session; until then ⌘O only activates the app.
+6. A Claude app session: ⌘O opens that very session in Claude.app, with Claude running and with it
+   quit; an archived one shows Claude's Code home. A Claude CLI session has no Open in Claude.
 7. A Tinycast chat opens in AI Chat; ⌘↵ opens it in Quick AI; an agent's chat shows the agent's name.
 8. A session whose folder was deleted: ↵ copies the command and the HUD explains.
 9. ⌘K → Show Automated Runs reveals `claude -p` and `codex exec` runs; Include Archived Sessions shows

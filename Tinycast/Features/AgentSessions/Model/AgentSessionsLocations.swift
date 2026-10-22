@@ -45,6 +45,10 @@ struct AgentSessionsLocations: Equatable, Sendable {
     var openCodeDatabase: URL {
         home.appending(path: ".local/share/opencode/opencode.db", directoryHint: .notDirectory)
     }
+    /// `<account>/<organization>/local_<id>.json`, one record per session the Claude app runs.
+    var claudeAppSessions: URL {
+        home.appending(path: "Library/Application Support/Claude/claude-code-sessions", directoryHint: .isDirectory)
+    }
 
     func hookFile(_ target: AgentHookTarget) -> URL {
         (target == .claude ? claude : codex).appending(path: target.fileName, directoryHint: .notDirectory)

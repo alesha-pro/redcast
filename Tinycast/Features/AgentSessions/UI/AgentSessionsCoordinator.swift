@@ -231,7 +231,7 @@ final class AgentSessionsCoordinator {
         case .claude:
             guard session.host == .claudeApp else { return }
             paletteCoordinator.hidePalette(restoreFocus: false)
-            activateApp(AgentActivityPolicy.claudeApp)
+            openClaudeApp(transcriptID: session.sessionID)
         case .codex:
             guard AgentResumeCommand.isSafeID(session.sessionID),
                 let url = URL(string: "codex://threads/" + session.sessionID)
@@ -557,6 +557,18 @@ final class AgentSessionsCoordinator {
 
     private func activateApp(_ bundleID: String) {
         Task { _ = await AgentTerminalRunner.focus(bundleID: bundleID, tty: nil) }
+    }
+
+    /// The app's own record names the session to continue; without one, Claude only comes forward.
+    private func openClaudeApp(transcriptID: String) {
+        let records = locations.claudeAppSessions
+        Task {
+            let desktopID = await AgentSessionsScanner.claudeAppSession(transcriptID: transcriptID, root: records)
+            guard let url = desktopID.flatMap(ClaudeAppRoute.continueURL(desktopID:)),
+                let app = NSWorkspace.shared.urlForApplication(withBundleIdentifier: AgentActivityPolicy.claudeApp)
+            else { return activateApp(AgentActivityPolicy.claudeApp) }
+            _ = try? await NSWorkspace.shared.open([url], withApplicationAt: app, configuration: .init())
+        }
     }
 
     private func run(_ command: String?, in directory: String?, terminal: AgentTerminal, copying copied: String) {
