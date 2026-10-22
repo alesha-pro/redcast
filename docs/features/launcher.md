@@ -372,6 +372,14 @@ lists exactly `FallbackCoordinator.available`, so a fallback whose feature is of
 pane as well as from the launcher, and reorders through ↑/↓ buttons like a favorite rather than
 introducing this codebase's first drag-reorder.
 
+**A claim answers alone.** `FallbackCoordinator.claim(_:)` returns a `FallbackClaim` — rows, a header
+and the gear's destination — when a prefix names its destination outright. Today the only one is
+`@handle` for agents (`Fallback.agent`, `.agentPick`; see
+[background-agents.md](background-agents.md#from-the-launcher)). `LauncherScreen` then shows no ranked
+results, cards or files, so ↵ cannot launch whatever ranked first, and ⌘↵ on such a row goes to
+`FallbackCoordinator.secondary`. Claimed rows are never in `available`, so Settings › Fallbacks never
+lists them, and any query that does not open with `@` costs the claim one character's comparison.
+
 **A fallback row is not a result, and `LauncherScreen.Row` says so.** `.fallback` is its own case
 with a `fallback-` prefixed id, because Quick AI can be a ranked hit *and* a fallback in the same
 list, and two rows sharing one id would collapse in `ForEach`. That is also why `LauncherList` takes

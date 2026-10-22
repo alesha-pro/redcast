@@ -1,5 +1,12 @@
 import Foundation
 
+/// Rows that answer a query alone: a prefix named their destination outright.
+struct FallbackClaim {
+    let title: String
+    let rows: [(fallback: Fallback, entry: AppEntry)]
+    let configure: () -> Void
+}
+
 /// Owns the launcher's fallback section: what it offers for a query, and where running one goes.
 @MainActor
 final class FallbackCoordinator {
@@ -37,7 +44,16 @@ final class FallbackCoordinator {
         switch fallback {
         case .builtin(let builtin): return CommandCatalog.makeEntry(builtin.command)
         case .quicklink(let id): return quicklinks.quicklink(id: id).map(AppEntry.init)
+        case .agent, .agentPick: return nil
         }
+    }
+
+    /// `@agent …` in root search; nil leaves the query to ordinary search and this section.
+    func claim(_ query: String) -> FallbackClaim? { core.agentCoordinator.taskClaim(for: query) }
+
+    /// ⌘↵ on a fallback row; only an agent's has a second way to run.
+    func secondary(_ fallback: Fallback, query: String) -> Bool {
+        core.agentCoordinator.runTaskInChat(fallback, query: query)
     }
 
     func run(_ fallback: Fallback, query: String) {
@@ -47,6 +63,7 @@ final class FallbackCoordinator {
         case .builtin(.runShellCommand): core.customCommandCoordinator.runShellCommand(query)
         case .builtin(.define): core.dictionaryCoordinator.show(term: query)
         case .quicklink(let id): core.quicklinkCoordinator.openQuicklink(id: id, filling: query)
+        case .agent, .agentPick: core.agentCoordinator.runTask(fallback, query: query)
         }
     }
 

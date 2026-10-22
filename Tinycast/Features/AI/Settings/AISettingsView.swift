@@ -28,7 +28,9 @@ struct AISettingsView: View {
                 SettingsSectionHeader(.aiAI)
             }
 
-            FeatureCommandsSection(owner: .ai, anchor: .aiCommands)
+            FeatureCommandsSection(
+                owner: .ai, anchor: .aiCommands,
+                excluding: core.agentCoordinator.agents.isEmpty ? [.runAgentTask] : [])
                 .settingsEnabled(appSettings.aiEnabled)
 
             Group {

@@ -117,6 +117,19 @@ final class AIChatSurfacesState {
         answeringElsewhere = answeringElsewhere.filter { $0.value.isStreaming }
     }
 
+    /// A chat started with no surface on it, parked like a window chat left mid-reply.
+    func park(_ state: AIChatState) {
+        guard state.isStreaming, holder(of: state.session.id) == nil else { return }
+        state.onReplyFinished = onReplyFinished
+        answeringElsewhere = answeringElsewhere.filter { $0.value.isStreaming }
+        answeringElsewhere[state.session.id] = state
+    }
+
+    /// Its reply has ended and saved, so nothing is lost by letting its transcript go.
+    func unpark(id: UUID) {
+        if answeringElsewhere[id]?.isStreaming == false { answeringElsewhere[id] = nil }
+    }
+
     // MARK: - Quick AI
 
     /// Refused while another surface has it: two writers would each save over the other.

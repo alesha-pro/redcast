@@ -5,7 +5,8 @@ An **agent** lives in one folder. A chat given an agent works there: its turns r
 instructions, and its built-in tools — files, terminal, web and memory — act there. Agents are this
 fork's; upstream lists AI-assistant features under [not planned](../not-planned.md), so the feature
 stays in `Features/Agents/` plus the few lines in `AIChatCoordinator`, `AIChatDetailView`,
-`AISettingsView` and `AppCore` that wire it in.
+`AISettingsView` and `AppCore` that wire it in. An agent can also work with no window, from `@handle`
+in root search or on a schedule: see [background and scheduled agents](background-agents.md).
 
 ## Invariants
 
@@ -98,7 +99,9 @@ They run on the user's own logins and subscriptions; Tinycast never sees a key.
   `initialize` allows four minutes, because an adapter's first `npx` run downloads it. A chat's
   session id is kept in `agent-acp-sessions.json`; after a relaunch or an idle stop (two minutes)
   the next turn sends `session/load` when the agent supports it and drops the replay, since no turn is
-  listening, and starts a fresh session when the agent has lost it.
+  listening, and starts a fresh session when the agent has lost it. A session id is the agent's
+  own, and two agents may both say `sess_1`, so turns, updates and permission requests are routed
+  by agent and session together.
 - **Nothing outlives the agent.** An ACP agent is a tree — `npx`, the adapter, the vendor CLI it
   spawns (Claude Code's is about 380 MB together) — and closing stdin lets the top go while a
   grandchild lingers, orphaned to launchd. `ProcessTree` reads the descendants by `proc_listchildpids`
@@ -117,7 +120,8 @@ They run on the user's own logins and subscriptions; Tinycast never sees a key.
   other request is answered with method-not-found. The permission dialog lists the agent's own
   options, allows first and the least committal refusal last, where the dialog keeps its cancel; the
   agent remembers an "always" itself. Stop sends `session/cancel` and answers every open permission
-  request as cancelled.
+  request as cancelled. A dialog closed unanswered picks the agent's refuse-once option, or cancels
+  when it offers none, so no "always" comes from a choice nobody made.
 - **Updates map onto the transcript.** Message chunks are text, thought chunks reasoning, a plan a
   reasoning block when it changes, tool calls rows that close exactly once — a call still open when
   the turn ends is closed as failed — and one usage at the end from the prompt's result, with the
@@ -150,7 +154,10 @@ They run on the user's own logins and subscriptions; Tinycast never sees a key.
 | `Model/ACPProtocol.swift` | Framing, `session/update` decoding, permissions, prompt blocks, modes, `ACPEventMapper` |
 | `Service/ACPConnection.swift` | One agent process: launch, `initialize`, requests, permission routing, exit |
 | `Service/AgentACPHost.swift` | Processes per agent, sessions per chat, load/new, modes; `ACPAgentProvider` |
-| `Settings/AgentsSettingsSection.swift`, `AgentEditorPanel.swift` | The AI pane's list and the editor |
+| `Settings/AgentsSettingsSection.swift`, `AgentEditorPanel.swift` | The AI pane's list, its schedules and the editor |
+
+Background runs and schedules add their own files, listed in
+[background-agents.md](background-agents.md#layout).
 
 The composer's agent menu is `AIAgentPicker` in `AIChatDetailView.swift`, beside the model picker,
 because the composer's label and menu styles are private to that file.
@@ -246,11 +253,12 @@ prompt edit.
   names it).
 - Harnesses: `acp-test` (framing, updates, permissions, prompts, modes and a scripted agent process
   in `Tests/acp-fixtures/fake-agent.mjs`: streaming, consent, reuse, refusal, cancel, reload, lost
-  sessions, a missing command); `agent-test` (skills, catalog, path policy, tool sets, specs, consent
+  sessions, a missing command, two agents sharing a session id); `agent-test` (skills, catalog, path policy, tool sets, specs, consent
   policy and per-agent rules, toolset order and routing, batches, budget, elision, the prompt and the
   rules it states, persistence); `agent-tools-test` (the executor against a real folder: reads,
   writes with consent, link escapes, commands, timeouts and Stop, memory, skills, HTML; the built-ins
   through a toolset, with and without an agent's own rules; every refused effect); and
   `agent-loop-test` (the fork's loop and upstream's on the same scripts under 128 KB; routing,
   signals, Stop, parallel batches, a long turn that elides); `web-search-test` covers the search
-  provider through a toolset and the loop.
+  provider through a toolset and the loop; and `agent-schedule-test` covers background runs and
+  schedules (see [background-agents.md](background-agents.md#manual-sweep)).

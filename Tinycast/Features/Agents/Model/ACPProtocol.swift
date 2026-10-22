@@ -306,6 +306,19 @@ struct ACPPermissionRequest: Sendable {
         }.map(\.element)
     }
 
+    /// Where the dialog keeps its cancel: the last option, when it refuses; nil when every one allows.
+    var refusalIndex: Int? {
+        let options = dialogOptions
+        return options.last?.allows == false ? options.count - 1 : nil
+    }
+
+    /// A dialog answer's option; no answer refuses once, or cancels, never leaving an "always".
+    func optionID(answering answer: Int?) -> String? {
+        let options = dialogOptions
+        guard let answer else { return options.first { $0.kind == .rejectOnce }?.id }
+        return options.indices.contains(answer) ? options[answer].id : nil
+    }
+
     static func result(selecting optionID: String?) -> [String: Any] {
         guard let optionID else { return ["outcome": ["outcome": "cancelled"]] }
         return ["outcome": ["outcome": "selected", "optionId": optionID]]

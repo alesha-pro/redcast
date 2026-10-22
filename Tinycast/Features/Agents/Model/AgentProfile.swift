@@ -63,6 +63,8 @@ struct AgentProfile: Codable, Hashable, Identifiable, Sendable {
     var acpMode: String?
     /// Optional, so every `agents.json` written before it still decodes; nil keeps the defaults.
     var consent: AgentConsentRules?
+    /// How a run nobody started from a chat behaves; nil is `AgentBackgroundPolicy()`.
+    var background: AgentBackgroundPolicy?
     var createdAt: Date
 
     init(
@@ -72,7 +74,8 @@ struct AgentProfile: Codable, Hashable, Identifiable, Sendable {
         skillSources: Set<AgentSkillSource> = Set(AgentSkillSource.allCases),
         disabledSkills: Set<String> = [], readsProjectInstructions: Bool = true,
         readsGlobalInstructions: Bool = false, runtime: AgentRuntime? = nil,
-        consent: AgentConsentRules? = nil, createdAt: Date = Date()
+        consent: AgentConsentRules? = nil, background: AgentBackgroundPolicy? = nil,
+        createdAt: Date = Date()
     ) {
         self.id = id
         self.name = name
@@ -88,10 +91,36 @@ struct AgentProfile: Codable, Hashable, Identifiable, Sendable {
         self.readsGlobalInstructions = readsGlobalInstructions
         self.runtime = runtime
         self.consent = consent
+        self.background = background
         self.createdAt = createdAt
     }
 
     var symbol: String { iconSymbol ?? Self.sfSymbol }
+
+    var backgroundPolicy: AgentBackgroundPolicy { background ?? AgentBackgroundPolicy() }
+}
+
+/// What an unattended run does with a request that would ask: a change, a command, a permission.
+enum AgentBackgroundConsent: String, Codable, CaseIterable, Identifiable, Sendable {
+    /// The dialog, only while someone is at the Mac and with Return on Don't Allow; else declined.
+    case ask
+    /// Refused at once; the model is told so and reports what it would have done.
+    case decline
+
+    var id: String { rawValue }
+}
+
+struct AgentBackgroundPolicy: Codable, Hashable, Sendable {
+    var consent: AgentBackgroundConsent = .ask
+    /// A Notification Center banner when a run ends; opt-in, since macOS asks for it once.
+    var notifies = false
+    /// A run still going after this long is stopped, so a stuck turn can't keep the Mac awake.
+    var minutes = 15
+
+    static let minuteRange = 5...60
+
+    /// The limit a run is held to, inside the range even when a hand-edited file says otherwise.
+    var limitMinutes: Int { min(max(minutes, Self.minuteRange.lowerBound), Self.minuteRange.upperBound) }
 }
 
 enum AgentProfileError: Error, LocalizedError, Equatable {

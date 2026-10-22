@@ -33,6 +33,9 @@ struct LauncherScreen: PaletteScreen {
     private let files: [FileSearchResult]
     /// The `Use "…" with` section, below every result; empty unless something is typed.
     private let fallbacks: [(fallback: Fallback, entry: AppEntry)]
+    /// Set when a prefix claimed the query, whose rows then answer alone under their own header.
+    private let fallbackTitle: String?
+    private let fallbackConfigure: (() -> Void)?
     /// Resolved in `init`: the palette indexes this several times per event, so it can't recompute.
     let rows: [Row]
 
@@ -57,14 +60,19 @@ struct LauncherScreen: PaletteScreen {
         // Listed even when hidden from search: the shortcut that opened it must still be answered.
         let pinned = vm.argumentEntryID.flatMap(core.customCommands.command(entryID:))
             .map(AppEntry.init).flatMap { $0.name == vm.query ? $0 : nil }
+        // `@agent …` names its destination, so its rows answer alone. See background-agents.md.
+        let claim = pinned == nil ? core.fallbackCoordinator.claim(vm.query) : nil
+        let alone = pinned != nil || claim != nil
         let ordered =
             pinned.map { AppIndex.Results(entries: [$0], matchCount: 1) }
-            ?? appIndex.orderedResults(
-                query: vm.query, visibility: visibility, favorites: favorites, hotKeys: core.hotKeys)
+            ?? (claim == nil
+                ? appIndex.orderedResults(
+                    query: vm.query, visibility: visibility, favorites: favorites, hotKeys: core.hotKeys)
+                : AppIndex.Results())
         var results = ordered.entries
         var matchCount = ordered.matchCount
         // A typed web address leads: nothing the index holds answers it better.
-        if pinned == nil, let browser = CommandCatalog.openInBrowser(for: vm.query),
+        if !alone, let browser = CommandCatalog.openInBrowser(for: vm.query),
             visibility.isVisible(browser)
         {
             results.insert(browser, at: 0)
@@ -72,12 +80,12 @@ struct LauncherScreen: PaletteScreen {
         }
         // No card over a pinned row: its fields hang off the selection, which must start on it.
         let calc =
-            pinned == nil
+            !alone
             ? CalcMemo.evaluate(vm.query, rates: currencyRates.rates, format: core.calcNumberFormat) : nil
         // After the calculator: `#FF5733` is never arithmetic, so the two can't both answer.
-        let color = calc == nil && pinned == nil ? ColorValue.parse(vm.query) : nil
-        let files = pinned == nil ? core.fileSearchCoordinator.launcherFiles(for: vm.query) : []
-        let fallbacks = core.fallbackCoordinator.entries(for: vm.query)
+        let color = calc == nil && !alone ? ColorValue.parse(vm.query) : nil
+        let files = !alone ? core.fileSearchCoordinator.launcherFiles(for: vm.query) : []
+        let fallbacks = claim?.rows ?? core.fallbackCoordinator.entries(for: vm.query)
         let entries =
             results.map(Row.entry) + files.map(Row.file)
             + fallbacks.map { Row.fallback($0.fallback, $0.entry) }
@@ -89,6 +97,8 @@ struct LauncherScreen: PaletteScreen {
         self.calc = calc
         self.files = files
         self.fallbacks = fallbacks
+        fallbackTitle = claim?.title
+        fallbackConfigure = claim?.configure
         self.color = color
         self.pinsFavorites = pinsFavorites
         self.favoriteCount = pinsFavorites ? ordered.favoriteCount : 0
@@ -307,6 +317,11 @@ struct LauncherScreen: PaletteScreen {
 
     /// ⌘↵ — a meeting copies its link, an answer becomes the query, an entry on disk is revealed.
     func secondary(at selection: Int) -> Bool {
+        if case .fallback(let fallback, _) = row(at: selection),
+            core.fallbackCoordinator.secondary(fallback, query: vm.query)
+        {
+            return true
+        }
         if let meeting = meeting(at: selection) {
             return MeetingActionsMenu.secondary(meeting: meeting, core: core)
         }
@@ -557,14 +572,14 @@ struct LauncherScreen: PaletteScreen {
     private var fallbackSection: LauncherList.FallbackSection? {
         guard !fallbacks.isEmpty else { return nil }
         return LauncherList.FallbackSection(
-            title: Fallback.sectionTitle(query: vm.query),
+            title: fallbackTitle ?? Fallback.sectionTitle(query: vm.query),
             entries: fallbacks.map(\.entry),
             onActivate: { activate(at: fallbackRow(at: $0)) },
             onActions: {
                 vm.selection = fallbackRow(at: $0)
                 openActions()
             },
-            onConfigure: core.fallbackCoordinator.showSettings)
+            onConfigure: fallbackConfigure ?? core.fallbackCoordinator.showSettings)
     }
 
     /// Fallbacks are the tail of `rows`, so a click maps to its flat index without a search.
