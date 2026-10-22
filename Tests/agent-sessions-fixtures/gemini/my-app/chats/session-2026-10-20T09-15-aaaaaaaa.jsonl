@@ -1,0 +1,17 @@
+{"sessionId":"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa","projectHash":"5e2b0c8a1f","startTime":"2026-10-20T09:15:03.662Z","lastUpdated":"2026-10-20T09:15:03.662Z","kind":"main"}
+{"id":"m1","timestamp":"2026-10-20T09:15:10.000Z","type":"user","content":[{"text":"/help"}]}
+{"id":"m2","timestamp":"2026-10-20T09:15:20.000Z","type":"user","content":[{"text":"<session_context>\nThis is the Gemini CLI.\n</session_context>"}]}
+{"id":"m3","timestamp":"2026-10-20T09:16:00.000Z","type":"user","content":[{"text":"explain the cache layer"},{"text":"\n--- Content from referenced files ---\nexport const cache = new Map();"}],"displayContent":[{"text":"explain the cache layer @src/cache.ts"}]}
+{"$set":{"lastUpdated":"2026-10-20T09:16:00.000Z"}}
+{"id":"m4","timestamp":"2026-10-20T09:16:30.000Z","type":"gemini","content":[{"text":"Thinking about caches","thought":true},{"text":"The cache keeps a zebra index of entries."}],"toolCalls":[{"id":"t1","name":"read_file","args":{"path":"src/cache.ts"},"result":[{"functionResponse":{"id":"t1","name":"read_file","response":{"output":"the tool output mentions a walrus"}}}],"status":"success","timestamp":"2026-10-20T09:16:20.000Z"}],"thoughts":[],"tokens":null,"model":"gemini-3-pro"}
+{"id":"m5","timestamp":"2026-10-20T09:16:40.000Z","type":"user","content":[{"functionResponse":{"id":"t1","name":"read_file","response":{"output":"the tool output mentions a walrus"}}}]}
+{"id":"m6","timestamp":"2026-10-20T09:16:50.000Z","type":"gemini","content":[{"text":"It also expires entries."}]}
+{"id":"m7","timestamp":"2026-10-20T09:17:00.000Z","type":"info","content":"Request cancelled."}
+{"id":"m7b","timestamp":"2026-10-20T09:17:10.000Z","type":"user","content":"try another way"}
+{"id":"m7c","timestamp":"2026-10-20T09:17:20.000Z","type":"gemini","content":[{"text":"Trying another way."}]}
+{"$rewindTo":"m7b"}
+{"id":"m8","timestamp":"2026-10-20T09:18:00.000Z","type":"user","content":"now add a test for it"}
+{"id":"m9","timestamp":"2026-10-20T09:18:30.000Z","type":"gemini","content":[{"text":"Added a test."}]}
+{"id":"m9","timestamp":"2026-10-20T09:18:30.000Z","type":"gemini","content":[{"text":"Added a test."}],"tokens":{"input":10,"output":4,"total":14}}
+{"$set":{"summary":"Cache layer walkthrough"}}
+{"$set":{"lastUpdated":"2026-10-20T09:18:30.000Z"}}

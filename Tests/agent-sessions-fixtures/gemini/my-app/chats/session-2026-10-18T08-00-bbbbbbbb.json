@@ -1,0 +1,34 @@
+{
+  "sessionId": "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+  "projectHash": "5e2b0c8a1f",
+  "startTime": "2026-10-18T08:00:00.000Z",
+  "lastUpdated": "2026-10-18T08:05:00.000Z",
+  "messages": [
+    {
+      "id": "l1",
+      "timestamp": "2026-10-18T08:00:10.000Z",
+      "type": "user",
+      "content": [
+        {
+          "text": "rename the quokka helper"
+        }
+      ]
+    },
+    {
+      "id": "l2",
+      "timestamp": "2026-10-18T08:00:20.000Z",
+      "type": "gemini",
+      "content": [
+        {
+          "text": "Renamed it."
+        }
+      ]
+    },
+    {
+      "id": "l3",
+      "timestamp": "2026-10-18T08:01:00.000Z",
+      "type": "user",
+      "content": "and update the docs"
+    }
+  ]
+}

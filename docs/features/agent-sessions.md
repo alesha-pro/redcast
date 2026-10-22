@@ -1,19 +1,21 @@
 # Agent Sessions
 
-**Search Agent Sessions** lists every past Claude Code, Codex and Tinycast AI session in one palette
-screen: titles, first and last prompts, folder and branch, and a preview of the last turns. ↵ resumes
-a session where it lived — `cd` into its folder and `claude --resume <id>` or `codex resume <id>` in
-the terminal it ran in — or reopens a Tinycast chat in AI Chat. **Jump to Agent** brings forward the
-terminal tab of an agent that is waiting for you. An opt-in **live status** adds small hooks to Claude
-Code and Codex so Tinycast can say, with a HUD, when an agent finishes or needs you. The feature lives
-in `Features/AgentSessions/`, plus the few lines that wire it in.
+**Search Agent Sessions** lists every past Claude Code, Codex, Gemini CLI, OpenCode and Tinycast AI
+session in one palette screen: titles, first and last prompts, folder and branch, and a preview of the
+last turns. ↵ resumes a session where it lived — `cd` into its folder and `claude --resume <id>`,
+`codex resume <id>`, `gemini --resume <id>` or `opencode --session <id>` in the terminal it ran in — or
+reopens a Tinycast chat in AI Chat. **Jump to Agent** brings forward the terminal tab of an agent
+that is waiting for you. An opt-in **live status** adds small hooks to Claude Code and Codex so
+Tinycast can say, with a HUD, when an agent finishes or needs you. The feature lives in
+`Features/AgentSessions/`, plus the few lines that wire it in.
 
 ## Invariants
 
-- **Read-only on agent data.** Transcripts are opened for reading; Codex's SQLite databases open with
-  `SQLITE_OPEN_READONLY` and `PRAGMA query_only`, and every connection closes before its function
-  returns. The hub writes only its own cache, `live-status.json`, the hook backups, the self-deleting
-  `.command` files and — after an approved diff — the two hook files.
+- **Read-only on agent data.** Transcripts are opened for reading; Codex's and OpenCode's SQLite
+  databases open with `SQLITE_OPEN_READONLY` and `PRAGMA query_only` (`HistoryDatabase`), and every
+  connection closes before its function returns. The hub writes only its own caches,
+  `live-status.json`, the hook backups, the self-deleting `.command` files and — after an approved
+  diff — the two hook files.
 - **Nothing is read until the screen opens, and it is all released on pop to root.**
   `AgentSessionsCoordinator.applyEnabled` at launch only shows or hides two commands; the index and
   the activity state are built on first use. `AgentSessionIndex.close()` runs from the screen's
@@ -48,9 +50,13 @@ in `Features/AgentSessions/`, plus the few lines that wire it in.
   them at each use, feeds reading, the cache root, the live probe, event lookup, the hook files and
   resume commands, which set the variable with `env` only for a folder that differs from the default.
   Neither field travels in a backup or has a settings-file key.
-- **Tinycast's own ACP sessions show once.** A Claude or Codex session whose id is in
+- **Tinycast's own ACP sessions show once.** A session of any of the four agents whose id is in
   `AgentStore.acpSessions` is a Tinycast chat and is listed only as that chat; Codex threads with the
   `tinycast` originator are dropped for the same reason.
+- **Gemini CLI and OpenCode are history only.** They are read when the screen opens like the others,
+  and resumed; nothing probes, hooks or watches them, and they never touch live status. On a Mac
+  without them an open costs a missing cache file and folder for Gemini and one `stat` for OpenCode,
+  and no cache file is written.
 - **Only a person's own sessions are tracked.** An event for an automated run (`claude -p`, an SDK
   run, `codex exec`, a Codex subagent or guardian review) or for Tinycast's own session (an
   `acpSessions` id, the `tinycast` originator, or an agent whose process runs under Tinycast) is
@@ -64,13 +70,17 @@ in `Features/AgentSessions/`, plus the few lines that wire it in.
 | `Model/AgentSession.swift` | The row model, sources and hosts, live status, `AgentSessionText` cuts |
 | `Model/AgentSessionsLocations.swift` | Every agent's folder (default or moved), the paths under them, the variables a resume sets |
 | `Model/ClaudeTranscriptDecoder.swift` | JSONL head and tail facts, the line filter, human prompts, titles, preview turns |
-| `Model/ClaudeIndexFormat.swift` | The cache file, `ClaudeRescanPolicy` (reuse, tail or full read per transcript) |
+| `Model/GeminiChatDecoder.swift` | Gemini CLI chat files: head and tail facts, prompts, summaries, preview turns, legacy `.json` |
+| `Model/JSONLineSplitter.swift` | Bounded line splitting for both head readers; a line past the cap is skipped, never held |
+| `Model/TranscriptIndexFormat.swift` | The Claude and Gemini caches, `TranscriptRescanPolicy` (reuse, tail or full read per file) |
+| `Model/HistoryDatabase.swift` | Read-only SQLite: open, probe columns, query; shared by Codex and OpenCode |
 | `Model/CodexStateReader.swift` | `state_5.sqlite` threads, `thread_history_1.sqlite` turns, rollout turns, hosts, titles |
+| `Model/OpenCodeStateReader.swift` | `opencode.db` sessions with first and last prompts, turns, search, placeholder titles |
 | `Model/AgentSessionQuery.swift` | Filter, folded search keys, ranking |
 | `Model/AgentResumeCommand.swift` | Terminals, shell quoting, resume commands, AppleScript and `.command` bodies |
 | `Model/AgentHookFileFormat.swift` | The hook command, install/remove/state, `JSONMemberSplice`, `OrderedJSON`, `LiveStatusRecord` |
 | `Model/AgentEvent.swift` | `AgentDeepLink`, events, `AgentActivityPolicy` (prune, jump, HUD), `ClaudeAgentsListing` |
-| `Service/AgentSessionsScanner.swift` | Listing, bounded head and tail reads, the cache file, previews, event lookup |
+| `Service/AgentSessionsScanner.swift` | Listing, bounded head and tail reads, the cache files, previews, event lookup |
 | `Service/AgentTranscriptSearch.swift` | Search inside transcripts on request |
 | `Service/AgentTerminalRunner.swift` | Opens a command or folder in a terminal; focuses a tab by tty |
 | `Service/AgentProcessHost.swift` | Host app and tty from a pid, by a `sysctl` walk up the parents |
@@ -102,25 +112,48 @@ Formats were measured on Claude Code 2.1.285–2.1.303 and codex-cli 0.162; no p
   are dropped. A preview comes from `thread_history_1.sqlite`'s projected items, else the uncompressed
   rollout's tail; a rollout that is now `.jsonl.zst` has no preview, since reading zstd would take a
   dependency.
+- **Gemini CLI** (from its source; not measured on a Mac). Chats are
+  `~/.gemini/tmp/<project>/chats/session-<date>-<id prefix>.jsonl`; a subagent's sits a folder deeper
+  and is skipped. The project's path is the text of `<project>/.project_root`, read once per open; an
+  older folder named by a hash has none, and its sessions list without a folder and cannot be resumed,
+  since Gemini looks a session up only among its folder's chats. Line 1 is metadata (`sessionId`,
+  `startTime`, `kind`); messages begin `{"id":…,"timestamp":…,"type":"user"|"gemini"|…`, so a line is
+  classified by its first 512 bytes; updates begin `{"$`. A prompt is a `user` turn's `displayContent`,
+  else its text parts, unless it starts with `/`, `?`, `<session_context>` or `<hook_context>` (Gemini's
+  own rule); tool responses and thought parts never count. The title is the last `$set` summary, else
+  the first prompt. Gemini writes a reply again, under the same id, as its tool calls and token counts
+  arrive, and `{"$rewindTo":id}` drops that message and everything after it: the preview keeps each
+  id's last copy in its first place and honours rewinds. A pre-JSONL `session-*.json` (one object,
+  never appended to) is decoded whole once up to 8 MB; the `.jsonl` Gemini writes beside it on resume
+  carries the same id and shows once.
+- **OpenCode** (from its v1.19 source; not measured on a Mac). One SQLite database,
+  `~/.local/share/opencode/opencode.db`: `session` rows without a `parent_id` (a child is a subagent's
+  run), archived ones only when asked, first and last prompts taken in the same query from `message` /
+  `part` text parts that are not `synthetic` (attached files) or `ignored`. A `New session - <date>`
+  title is a placeholder and the first prompt stands in; a session with neither is left out. Columns are
+  probed, and a schema without `message`/`part` still lists titles.
 - **Tinycast.** `ChatHistoryStore.conversations`, already resident while AI is on; a chat bound to an
   agent takes that agent's folder.
 
 Claude Code's folder is `~/.claude` and Codex's `~/.codex` unless Settings names another (see
-Invariants); everything above is then read under that folder.
+Invariants); everything above is then read under that folder. Gemini CLI's and OpenCode's are their
+defaults: `GEMINI_CLI_HOME`, `XDG_DATA_HOME` and `OPENCODE_DB` are not followed.
 
-The Claude index is cached in `Caches/<bundle id>/agent-sessions/claude-index.json` (mode 0600): per
-transcript its size, mtime, cwd, branch, entry point, first and last prompt (≤ 300 characters) and
-title. An unchanged file is reused, a grown one reads only its tail, anything else is read again.
-Switching the hub off deletes the cache.
+Claude Code's and Gemini CLI's files are indexed in `Caches/<bundle id>/agent-sessions/`
+`claude-index.json` and `gemini-index.json` (mode 0600, the same shape): per transcript its size,
+mtime, cwd or id, branch, entry point, first and last prompt (≤ 300 characters) and title. An
+unchanged file is reused, a grown one reads only its tail, anything else is read again. Switching the
+hub off deletes both.
 
 ## Resume
 
 `AgentResumeCommand` builds `cd '<folder>' && claude --resume <id>` (`--fork-session` to fork),
-`codex resume <id>` / `codex fork <id>` and `claude attach <short id>`; an id outside
-`[0-9A-Za-z-]{1,64}` gets no command at all. A moved folder rides along as
-`env CLAUDE_CONFIG_DIR='<folder>' claude …` (or `CODEX_HOME`): `env`, because the `.command` body
-`exec`s the line and `exec NAME=…` is not a command. That body is built from the folder, so a folder
-whose name holds ` && ` still runs the agent. Folders are single-quoted for the shell and
+`codex resume <id>` / `codex fork <id>`, `gemini --resume <id>` (no fork, and no command without a
+folder), `opencode --session <id>` (`--fork` to fork) and `claude attach <short id>`; an id outside
+`[0-9A-Za-z-]{1,64}` (plus `_` for Gemini's ids and OpenCode's `ses_…`) gets no command at all. A
+moved folder rides along as `env CLAUDE_CONFIG_DIR='<folder>' claude …` (or `CODEX_HOME`): `env`,
+because the `.command` body `exec`s the line and `exec NAME=…` is not a command. That body is built
+from the folder, so a folder whose name holds ` && ` still runs the agent. Folders are single-quoted for the shell and
 backslash-escaped for AppleScript. **Automatic** is the terminal the live session runs in, else
 Terminal.
 
@@ -154,8 +187,8 @@ Claude Code gets `UserPromptSubmit` (working), `Notification` matching `permissi
 `StopFailure` (failed) and `SessionEnd` (ended) in `~/.claude/settings.json`; Codex gets
 `UserPromptSubmit`, `PermissionRequest`, `Stop` and `SessionEnd` in `~/.codex/hooks.json`, created
 when absent and deleted again when it held only these. A moved folder moves the file with it; turn
-live status off before moving one, or the old folder keeps hooks that Tinycast no longer lists. Codex's `notify` is never touched: it is
-already taken by Computer Use, and Codex allows one. Codex runs new hooks only after `/hooks` trusts
+live status off before moving one, or the old folder keeps hooks that Tinycast no longer lists.
+Codex's `notify` is never touched: it is already taken by Computer Use, and Codex allows one. Codex runs new hooks only after `/hooks` trusts
 them; **Update…** keeps the token, so the command and the trust survive it. The `hooks` value is
 re-rendered in the file's own indent and line endings with its keys in their original order; every
 other byte of the file stays as it was.
@@ -187,8 +220,8 @@ Run in `Tinycast Dev.app` with AI on.
    hand and record here whether it opens the session; until then ⌘O only activates the app.
 7. A Tinycast chat opens in AI Chat; ⌘↵ opens it in Quick AI; an agent's chat shows the agent's name.
 8. A session whose folder was deleted: ↵ copies the command and the HUD explains.
-9. ⌘K → Show Automated Runs reveals `claude -p` and `codex exec` runs; Include Archived shows archived
-   Codex threads.
+9. ⌘K → Show Automated Runs reveals `claude -p` and `codex exec` runs; Include Archived Sessions shows
+   archived Codex threads.
 10. "Search inside transcripts" finds a word said only mid-session; typing cancels it.
 11. Start a Claude CLI session in Terminal and let it wait for permission: the row shows **Needs you**
     under Live, and **Jump to Agent** brings that tab forward.
@@ -213,3 +246,10 @@ Run in `Tinycast Dev.app` with AI on.
     `CODEX_HOME`): the next open lists its sessions; ⌘↵ copies `… && env CLAUDE_CONFIG_DIR='…' claude
     --resume …` and ↵ resumes it; **Turn On…** diffs that folder's `settings.json`; a path that is not a
     folder says so under the field; clearing the field reads `~/.claude` again.
+19. With Gemini CLI installed, a chat in a project lists with its summary or first prompt and its
+    folder; ↵ resumes it with `gemini --resume <id>` in that folder; there is no Fork. ⌘K → Show →
+    Gemini CLI narrows to them, a word said mid-chat is found by Search inside transcripts, and a
+    `/rewind` leaves the dropped turns out of the preview.
+20. With OpenCode installed, a session lists with its title, prompts and preview; ↵ resumes it with
+    `opencode --session <id>`, ⌃⌘↵ forks with `--fork`; an archived one shows only with Include
+    Archived Sessions; a subagent's child session never shows.
