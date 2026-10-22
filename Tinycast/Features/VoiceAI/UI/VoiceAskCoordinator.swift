@@ -22,15 +22,6 @@ final class VoiceAskCoordinator {
         let screen: String
     }
 
-    /// What the streamed reply has said so far; the panel exists only once an answer is certain.
-    private struct Reply {
-        var parser = VoiceReplyParser()
-        var mode: VoiceReplyMode?
-        var question: String?
-        var body = ""
-        var panel: QuickActionPanelState?
-    }
-
     private static let panelActionID = UUID(uuidString: "6F1C7A52-3B9E-4D0A-9C1E-5A1F00A0B0CE") ?? UUID()
 
     private let settings: AppSettings
@@ -280,7 +271,8 @@ final class VoiceAskCoordinator {
             audio: AIAudio(data: wav, format: "wav"), screen: screen,
             image: jpeg.map { AIImage(data: $0, mimeType: "image/jpeg") }, hasFocusedField: focused,
             vocabulary: voice.vocabulary)
-        var reply = Reply()
+        var reply = VoiceReplySession(bundleID: session.app.bundleIdentifier, hadFocusedField: focused)
+        var panel: QuickActionPanelState?
         let asked = { (question: String?) in
             Asked(question: question, app: session.app, selection: session.selection, screen: screen)
         }
@@ -288,17 +280,18 @@ final class VoiceAskCoordinator {
             for try await event in session.provider.stream(request) {
                 guard token == current else { return }
                 guard case .text(let delta) = event else { continue }
-                apply(reply.parser.feed(delta), to: &reply, asked: asked)
+                show(reply.feed(delta), in: &panel, asked: asked)
             }
             try Task.checkCancellation()
             guard token == current else { return }
-            apply(reply.parser.finish(), to: &reply, asked: asked)
-            complete(reply, asked: asked(reply.question), focused: focused)
+            let (steps, outcome) = reply.finish()
+            show(steps, in: &panel, asked: asked)
+            complete(outcome, panel: panel, asked: asked(reply.question))
         } catch is CancellationError {
             return
         } catch {
             guard token == current else { return }
-            if let panel = reply.panel {
+            if let panel {
                 panel.fail(error.localizedDescription)
                 endSession()
             } else {
@@ -307,50 +300,35 @@ final class VoiceAskCoordinator {
         }
     }
 
-    private func apply(
-        _ events: [VoiceReplyParser.Event], to reply: inout Reply, asked: (String?) -> Asked
+    private func show(
+        _ steps: [VoiceReplySession.Step], in panel: inout QuickActionPanelState?,
+        asked: (String?) -> Asked
     ) {
-        for event in events {
-            switch event {
-            case .header(let mode, let question):
-                reply.mode = mode
-                reply.question = question
-            case .body(let text):
-                reply.body += text
-                reply.panel?.append(text)
+        for step in steps {
+            switch step {
+            case .open(let question, let text):
+                capsule?.close()
+                let opened = present(asked(question))
+                opened.append(text)
+                panel = opened
+            case .append(let text):
+                panel?.append(text)
             }
-            // An unnamed answer may still be the no-speech sentinel, which is never shown.
-            guard reply.mode == .answer, reply.panel == nil,
-                reply.question != nil || !Self.mayBeSilence(reply.body)
-            else { continue }
-            capsule?.close()
-            let panel = present(asked(reply.question))
-            panel.append(reply.body)
-            reply.panel = panel
         }
     }
 
-    private func complete(_ reply: Reply, asked: Asked, focused: Bool) {
-        guard let text = VoiceTranscript.cleaned(reply.body) else {
-            endSession()
-            panels?.dismiss()
-            return core.showMessage(VoiceAIFailure.noSpeech.localizedDescription, tone: .danger)
-        }
-        guard reply.mode == .insert else {
-            let answer = reply.body.trimmingCharacters(in: .whitespacesAndNewlines)
-            (reply.panel ?? present(asked)).finish(answer)
-            return endSession()
-        }
+    private func complete(
+        _ outcome: VoiceReplySession.Outcome, panel: QuickActionPanelState?, asked: Asked
+    ) {
         endSession()
-        guard
-            VoiceInsertPolicy.autoInserts(
-                text, bundleID: asked.app.bundleIdentifier, hadFocusedField: focused)
-        else { return present(asked).finish(text) }
-        deliver(text, for: asked)
-    }
-
-    private static func mayBeSilence(_ body: String) -> Bool {
-        VoicePrompt.noSpeech.hasPrefix(body.trimmingCharacters(in: .whitespacesAndNewlines))
+        switch outcome {
+        case .noSpeech:
+            panels?.dismiss()
+            core.showMessage(VoiceAIFailure.noSpeech.localizedDescription, tone: .danger)
+        case .answer(let text): (panel ?? present(asked)).finish(text)
+        case .review(let text): present(asked).finish(text)
+        case .insert(let text): deliver(text, for: asked)
+        }
     }
 
     // MARK: - Surfaces

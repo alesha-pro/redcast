@@ -24,6 +24,8 @@ struct VoiceAITests {
         replyHeaderIgnoresChunking()
         replyHeaderVariants()
         transcriptCleaning()
+        replySession()
+        replySessionIgnoresChunking()
         routeResolution()
         insertPolicy()
 
@@ -325,6 +327,94 @@ struct VoiceAITests {
         expect(VoiceTranscript.cleaned("```\nline one\nline two\n```") == "line one\nline two", "fences go")
         expect(VoiceTranscript.cleaned("```text\nhello\n```") == "hello", "with their language tag")
         expect(VoiceTranscript.cleaned(" Plain text. ") == "Plain text.", "plain text is trimmed")
+    }
+
+    static func reply(
+        _ chunks: [String], bundleID: String? = "com.apple.TextEdit", focused: Bool = true
+    ) -> (steps: [VoiceReplySession.Step], outcome: VoiceReplySession.Outcome) {
+        var session = VoiceReplySession(bundleID: bundleID, hadFocusedField: focused)
+        let streamed = chunks.flatMap { session.feed($0) }
+        let end = session.finish()
+        return (streamed + end.steps, end.outcome)
+    }
+
+    static func replySession() {
+        let named = reply(["ANSWER\nQ: Что это?\n\n", "Это ", "окно."])
+        expect(
+            named.steps == [.open(question: "Что это?", text: ""), .append("Это "), .append("окно.")],
+            "a named answer opens the panel on its header and streams into it, got \(named.steps)")
+        expect(named.outcome == .answer("Это окно."), "and finishes with the whole answer")
+
+        let silence = reply(["ANSWER\nQ:\n\n", "[[NO", "_SPEECH]]"])
+        expect(silence.steps.isEmpty && silence.outcome == .noSpeech, "the sentinel never opens the panel")
+        let unnamed = reply(["ANSWER\nQ:\n\n", "[[", "Not silence"])
+        expect(
+            unnamed.steps == [.open(question: nil, text: "[[Not silence")] && unnamed.outcome == .answer("[[Not silence"),
+            "an unnamed answer opens once it cannot be the sentinel, with all it held, got \(unnamed.steps)")
+        let cut = reply(["ANSWER\nQ:\n\n[[NO"])
+        expect(cut.steps.isEmpty && cut.outcome == .answer("[[NO"), "a sentinel prefix that ends there is still shown")
+        let plain = reply(["Just", " text"])
+        expect(
+            plain.steps == [.open(question: nil, text: "Just text")] && plain.outcome == .answer("Just text"),
+            "a reply without a header is an answer")
+        let namedSilence = reply(["ANSWER\nQ: Hi\n\n[[NO_SPEECH]]"])
+        expect(namedSilence.outcome == .noSpeech, "a named answer that is silence still ends as no speech")
+        let fenced = reply(["ANSWER\nQ: Command?\n\n```\nls -la\n```\n"])
+        expect(fenced.outcome == .answer("```\nls -la\n```"), "an answer keeps its Markdown as written")
+
+        let insert = reply(["INSERT\nQ: Ответь\n\n", "«Приду ", "в десять»"])
+        expect(insert.steps.isEmpty, "an INSERT never opens the panel while it streams")
+        expect(insert.outcome == .insert("Приду в десять"), "and is typed cleaned of its wrapping quotes")
+        let terminal = reply(["INSERT\nQ: x\n\nls"], bundleID: "com.apple.Terminal")
+        expect(terminal.outcome == .review("ls"), "into a terminal it is shown for ↵ first")
+        let unfocused = reply(["INSERT\nQ: x\n\ntext"], focused: false)
+        expect(unfocused.outcome == .review("text"), "as it is without a focused field")
+        expect(reply(["INSERT\nQ:\n\n[[NO_SPEECH]]"]).outcome == .noSpeech, "a silent INSERT types nothing")
+        expect(reply(["INSERT\n"]).outcome == .noSpeech, "nor does an empty one")
+
+        var asked = VoiceReplySession(bundleID: nil, hadFocusedField: false)
+        _ = asked.feed("ANSWER\nQ: Сколько?\n")
+        expect(asked.question == "Сколько?" && asked.isPanelOpen, "the question titles the panel")
+    }
+
+    static func replySessionIgnoresChunking() {
+        for chunks in splits("ANSWER\nQ: Что это?\n\nОтвет") {
+            let steps = reply(chunks).steps
+            expect(
+                openings(steps) == ["Что это?"] && steps.first.map(isOpening) == true && shown(steps) == "Ответ",
+                "a named answer opens once, first, and shows all of it, got \(steps)")
+        }
+        for chunks in splits("ANSWER\nQ:\n\nНе тишина") {
+            let steps = reply(chunks).steps
+            expect(
+                openings(steps) == [nil] && steps.first.map(isOpening) == true && shown(steps) == "Не тишина",
+                "an unnamed answer opens once and loses nothing it held, got \(steps)")
+        }
+        for chunks in splits("ANSWER\nQ:\n\n[[NO_SPEECH]]") {
+            let result = reply(chunks)
+            expect(result.steps.isEmpty && result.outcome == .noSpeech, "silence stays hidden however it splits")
+        }
+    }
+
+    static func isOpening(_ step: VoiceReplySession.Step) -> Bool {
+        if case .open = step { return true }
+        return false
+    }
+
+    static func openings(_ steps: [VoiceReplySession.Step]) -> [String?] {
+        steps.compactMap {
+            if case .open(let question, _) = $0 { return .some(question) }
+            return nil
+        }
+    }
+
+    /// What the panel ends up showing: the text it opened with, then every appended piece.
+    static func shown(_ steps: [VoiceReplySession.Step]) -> String {
+        steps.map {
+            switch $0 {
+            case .open(_, let text), .append(let text): text
+            }
+        }.joined()
     }
 
     // MARK: - Routes

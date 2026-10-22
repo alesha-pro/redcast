@@ -59,6 +59,7 @@ Upstream declined voice control (#1550), so this lives in `Features/VoiceAI/` pl
 | `Model/VoiceAudio.swift` | The speech gate and the in-memory 16 kHz mono PCM16 WAV encoder |
 | `Model/VoicePrompt.swift` | The dictation and Ask instructions and requests, the chat prompt, the vocabulary line |
 | `Model/VoiceReply.swift` | `VoiceReplyParser` (the streamed ANSWER/INSERT header), `VoiceTranscript.cleaned` |
+| `Model/VoiceReplySession.swift` | One Ask reply: when the panel opens, what streams into it, and what it ends as |
 | `Model/VoiceRoutePolicy.swift` | Defaults, eligible connections, selection repair, effort choice, image gating |
 | `Model/VoiceInsertPolicy.swift` | When an INSERT reply may be typed without review |
 | `Model/VoiceAIFailure.swift` | The feature's own errors |
@@ -104,7 +105,8 @@ modifier in hold mode acts as a toggle and the settings say so. Every start wait
 stop, so one recorder never runs two sessions.
 
 The reply's first two lines are a header, read by `VoiceReplyParser` as they stream; a reply without
-one is an answer:
+one is an answer. `VoiceReplySession` turns the parsed reply into steps for the panel and an outcome,
+so the coordinator only presents:
 
 - **ANSWER** closes the capsule and opens the Quick Action panel, titled with the transcribed question
   (one line, at most 80 characters), with the answer streaming in. ⌘J continues it in AI Chat, seeded
@@ -229,4 +231,5 @@ ends.
   `google/gemini-3.8-flash` and `reasoning:{effort:"low"}` for Ask, and tune `VoiceAudio`'s gate
   constants with the built-in microphone and a headset.
 - Harness: `voice-ai-test` (WAV header and samples, the gate, both prompts, the `input_audio` body, the
-  reply header under every chunking, transcript cleanup, route resolution, the insert policy).
+  reply header and `VoiceReplySession` under every chunking, transcript cleanup, route resolution, the
+  insert policy).

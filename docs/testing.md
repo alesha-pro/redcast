@@ -189,7 +189,7 @@ If a change touches anything in the right column, the harness on the left is man
 | `mcp-test` | `MCP/Model/` and `MCPSettingsStore` — JSON-RPC framing, handles, tool names, output flattening, trust, `@server` addressing, the shape a vendor CLI is handed, and which servers Tinycast leaves to that CLI |
 | `mcp-stdio-test` | `MCP/Service/` against a stub server — handshake, listing, calling, and every way one can go away |
 | `mcp-oauth-test` | OAuth parsing, RFC 7636 PKCE, discovery and resource binding, loopback callback validation/cancellation, dynamic registration, supplied client credentials and their token-endpoint authentication, Keychain token rotation, concurrent refresh, the wider margin for a token lent to a CLI, redirects and one-retry 401 handling |
-| `voice-ai-test` | `VoiceAI/Model/` — the speech gate and WAV encoder, dictation and Ask prompts, `input_audio` request bodies, the streamed reply header, transcript cleanup, route resolution and the insert policy |
+| `voice-ai-test` | `VoiceAI/Model/` — the speech gate and WAV encoder, dictation and Ask prompts, `input_audio` request bodies, the streamed reply header and reply session, transcript cleanup, route resolution and the insert policy |
 
 `mcp-stdio-test` copies `Tests/ai-fixtures/mcp-stub.js` into a scratch directory. The stub
 reads fd 0 synchronously and writes replies with `fs.writeSync`, so a reply reaches the pipe before
