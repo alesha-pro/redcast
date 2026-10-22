@@ -146,6 +146,10 @@ HUD is shown only for finished, waiting or failed; never for an automated run, a
 app session, a host that is in front, an unchanged status, or a repeat within 10 s. Activity keeps at
 most 32 entries, drops an ended one after 10 minutes and anything after 12 hours.
 
+The menu-bar item builds its rows as it opens and marks the finished ones seen; the work its closing
+does (which may remove the item) waits a turn of the main queue, because AppKit delivers the chosen
+row's action after `menuDidClose` and a menu item holds its target weakly.
+
 ## Manual sweep
 
 Run in `Tinycast Dev.app` with AI on.
@@ -174,7 +178,9 @@ Run in `Tinycast Dev.app` with AI on.
     permission prompt "… needs you …"; none while that Terminal is in front, none for a Claude.app
     session, none for `claude -p`. Check `$PPID` resolves the host for both agents.
 14. The menu-bar item (opt-in) appears while an agent works and leaves after Clear Finished; its rows
-    jump.
+    jump. With only one finished agent left, open the menu and click its row: the terminal comes
+    forward and the item then leaves. When another agent finishes, choose Search Agent Sessions from
+    the menu instead: the screen opens.
 15. Quit Tinycast and run an agent: nothing launches, and the transcript shows no hook error.
 16. **Turn Off…** restores the original bytes (`diff` against the backup). Edit `settings.json` while
     the panel is open: Turn On refuses and shows the new diff.

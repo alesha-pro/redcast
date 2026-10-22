@@ -66,8 +66,9 @@ final class AgentStatusItem: NSObject, NSMenuDelegate {
         onOpen()
     }
 
+    /// AppKit sends the chosen item's action after this, and closing may release the item first.
     func menuDidClose(_ menu: NSMenu) {
-        onClose()
+        DispatchQueue.main.async { [weak self] in self?.onClose() }
     }
 
     /// Absolute times, so nothing on an open menu goes stale.
