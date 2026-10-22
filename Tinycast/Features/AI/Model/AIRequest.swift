@@ -165,6 +165,8 @@ enum AIStreamEvent: Equatable, Sendable {
     /// What the loop emits in its place, already carrying what a row has to show.
     case toolCall(id: String, origin: String, title: String)
     case toolResult(id: String, isError: Bool)
+    /// Fork: an ACP call's diff or output, replacing what its row showed before.
+    case toolOutput(id: String, content: ChatToolContent)
     case usage(AIUsage)
     case finished
 }
