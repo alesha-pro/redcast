@@ -258,14 +258,14 @@ save_state() {
 }
 
 GATE_BUILD=skipped GATE_TESTS=skipped GATE_LINT=skipped GATE_PURITY=skipped GATE_SELF=skipped
-FLAKY="" IGNORED="" UPSTREAM_TOO="" REGRESSIONS="" WARNINGS=""
+FLAKY="" IGNORED="" UPSTREAM_TOO="" REGRESSIONS="" FORK_ONLY="" WARNINGS=""
 
 harness_gate() {
     if ./Scripts/run-tests.sh 2>&1 | tee "$WORK/tests.log"; then
         GATE_TESTS=pass
         return
     fi
-    local failed name still=""
+    local failed name still="" upstream_harnesses
     failed="$(perl -pe 's/\e\[[0-9;]*m//g' "$WORK/tests.log" |
         sed -n 's/^FAILED .*harness(es) failed in [0-9]*s: //p' | tail -1)"
     if [ -z "$failed" ]; then
@@ -273,12 +273,16 @@ harness_gate() {
         REGRESSIONS=" (the runner failed before reporting harnesses; see $WORK/tests.log)"
         return
     fi
+    # Upstream's runner answers an unknown name with a failure, so a fork harness never goes there.
+    upstream_harnesses=" $(harness_names "$UP" | tr '\n' ' ')"
     for name in $failed; do
         if ./Scripts/run-tests.sh "$name" >/dev/null 2>&1 ||
             ./Scripts/run-tests.sh "$name" >/dev/null 2>&1; then
             FLAKY="$FLAKY $name"
         elif has_word "$ENVIRONMENTAL" "$name"; then
             IGNORED="$IGNORED $name"
+        elif ! has_word "$upstream_harnesses" "$name"; then
+            FORK_ONLY="$FORK_ONLY $name"
         else
             still="$still $name"
         fi
@@ -296,7 +300,7 @@ harness_gate() {
         done
         git worktree remove --force "$tree"
     fi
-    if [ -n "$REGRESSIONS" ]; then GATE_TESTS=fail; else GATE_TESTS=pass; fi
+    if [ -n "$REGRESSIONS$FORK_ONLY" ]; then GATE_TESTS=fail; else GATE_TESTS=pass; fi
 }
 
 run_gates() {
@@ -390,6 +394,7 @@ attention() {
     harnesses="$(comm -13 <(harness_names "$BASE") <(harness_names "$UP") | tr '\n' ' ')"
     [ -z "$harnesses" ] || printf -- '- New harnesses in run-tests.sh: %s\n' "${harnesses% }"
     [ -z "$REGRESSIONS" ] || printf -- '- Harness regressions (pass upstream):%s\n' "$REGRESSIONS"
+    [ -z "$FORK_ONLY" ] || printf -- "- The fork's own harnesses failing:%s\n" "$FORK_ONLY"
     [ -z "$UPSTREAM_TOO" ] || printf -- '- Harnesses failing upstream too:%s\n' "$UPSTREAM_TOO"
     [ -z "$IGNORED" ] || printf -- '- Environmental harnesses failed (ignored):%s\n' "$IGNORED"
     [ "$GATE_BUILD" != fail ] || printf -- '- The Debug build failed: %s/build.log\n' "$WORK"
@@ -572,10 +577,12 @@ new_case() {
     commit_file "$FORK" fork.txt "fork" "Fork work"
 }
 
+# `--gates` runs them against the stand-in tools on the self-test's PATH.
 run_sync() {
-    local status=0
-    (cd "$FORK" && ./Scripts/fork/sync-upstream.sh --skip-gates "$@") >"$CASE/out.log" 2>&1 ||
-        status=$?
+    local status=0 gates=--skip-gates
+    if [ "${1:-}" = --gates ]; then gates="" && shift; fi
+    (cd "$FORK" && PATH="$TEST_ROOT/bin:$PATH" ./Scripts/fork/sync-upstream.sh \
+        ${gates:+"$gates"} "$@") >"$CASE/out.log" 2>&1 || status=$?
     printf '%s' "$status"
 }
 
@@ -626,7 +633,8 @@ self_test() {
     export GIT_COMMITTER_NAME=Test GIT_COMMITTER_EMAIL=test@example.invalid
     export GIT_EDITOR=true GIT_MERGE_AUTOEDIT=no
     PASSES=0 FAILURES=0
-    local status up base
+    local status up base summary
+    stub_tools
 
     new_case advance
     commit_file "$UPR" up.txt "upstream" "Upstream work (#12)"
@@ -700,6 +708,46 @@ self_test() {
     check "--continue finishes it (exit $status)" [ "$status" = 0 ]
     check "with the trailer" [ "$(trailer Upstream-Sync)" = "$up" ]
 
+    new_case gates
+    gates_case "shared-test upstream-broken-test form-input-test flaky-test" \
+        "upstream-broken-test fail"$'\n'"form-input-test fail" \
+        "shared-test upstream-broken-test form-input-test flaky-test fork-test" \
+        "upstream-broken-test fail"$'\n'"form-input-test fail"$'\n'"flaky-test flaky"
+    up="$(git -C "$UPR" rev-parse HEAD)"
+    status="$(run_sync --gates)"
+    summary="$FORK/build/sync/summary-${up:0:7}.md"
+    check "failures that are not the fork's pass the gates (exit $status)" [ "$status" = 0 ]
+    check "a harness that passes alone is flaky" grep -q "(flaky: flaky-test)" "$summary"
+    check "one failing upstream too is listed" \
+        grep -q "failing upstream too: upstream-broken-test$" "$summary"
+    check "an environmental one is ignored" grep -q "(ignored): form-input-test$" "$summary"
+    check "a warning in a merged file is listed" grep -q "merged.swift:1:1: warning" "$summary"
+    check "and one in an untouched file is not" sh -c '! grep -q kept.swift "$1"' - "$summary"
+
+    new_case regression
+    gates_case "shared-test" "" "shared-test" "shared-test fail"
+    up="$(git -C "$UPR" rev-parse HEAD)"
+    status="$(run_sync --gates)"
+    summary="$FORK/build/sync/summary-${up:0:7}.md"
+    check "a harness that passes upstream and fails here fails the gates (exit $status)" \
+        [ "$status" = 1 ]
+    check "as a regression" grep -q "(pass upstream): shared-test$" "$summary"
+
+    new_case fork-harness
+    gates_case "shared-test" "" "shared-test fork-test" "fork-test fail"
+    up="$(git -C "$UPR" rev-parse HEAD)"
+    status="$(run_sync --gates)"
+    summary="$FORK/build/sync/summary-${up:0:7}.md"
+    check "a failing harness upstream lacks fails the gates (exit $status)" [ "$status" = 1 ]
+    check "and is listed as the fork's" grep -q "own harnesses failing: fork-test$" "$summary"
+
+    new_case runtime
+    runtime_case
+    status="$(run_sync)"
+    check "a runtime the fork patches merges (exit $status)" [ "$status" = 0 ]
+    check "and is rebuilt from both sides' sources" \
+        [ "$(git -C "$FORK" show "HEAD:$RUNTIME")" = "A B" ]
+
     printf '%d passed, %d failed\n' "$PASSES" "$FAILURES"
     [ "$FAILURES" -eq 0 ] || exit 1
     ok "sync-upstream self-test passed"
@@ -725,6 +773,82 @@ catalog_case() {
     git -C "$FORK" commit -q -am "Fork's string"
     catalog_entries A B Z >"$UPR/$CATALOG"
     git -C "$UPR" commit -q -am "Upstream's string"
+}
+
+# The gates' tools, and pnpm for the runtime rebuild: none of them may reach Xcode or the network.
+stub_tools() {
+    mkdir -p "$TEST_ROOT/bin"
+    {
+        printf '#!/bin/sh\n'
+        printf 'echo "$PWD/%s.swift:1:1: warning: stub"\n' merged kept
+    } >"$TEST_ROOT/bin/xcodebuild"
+    printf '#!/bin/sh\nexit 0\n' >"$TEST_ROOT/bin/swiftlint"
+    printf '#!/bin/sh\nexit 0\n' >"$TEST_ROOT/bin/pnpm"
+    chmod +x "$TEST_ROOT/bin/"*
+}
+
+# A run-tests.sh that knows the named harnesses; Tests/results fails one, or flakes it in the suite.
+runner_stub() {
+    cat <<'EOF'
+#!/bin/bash
+cd "$(dirname "$0")/.." || exit 1
+only="${1:-}" failed="" ran=0
+run() {
+    [ -z "$only" ] || [ "$1" = "$only" ] || return 0
+    ran=$((ran + 1))
+    case "$(sed -n "s/^$1 //p" Tests/results)" in
+    fail) failed="$failed $1" ;;
+    flaky) [ -n "$only" ] || failed="$failed $1" ;;
+    esac
+}
+EOF
+    printf 'run %s\n' "$@"
+    cat <<'EOF'
+[ "$ran" -gt 0 ] || { echo "No harness named '$only'." >&2; exit 2; }
+[ -z "$failed" ] || { echo "FAILED  harness(es) failed in 0s:$failed" >&2; exit 1; }
+echo "PASSED"
+EOF
+}
+
+# Upstream's runner and results, then the fork's own, then an upstream change to merged.swift.
+gates_case() {
+    mkdir -p "$UPR/Scripts" "$UPR/Tests" "$UPR/$(dirname "$CATALOG")"
+    # shellcheck disable=SC2086
+    runner_stub $1 >"$UPR/Scripts/run-tests.sh"
+    printf '#!/bin/sh\necho "lint-clean"\n' >"$UPR/Scripts/lint.sh"
+    chmod +x "$UPR/Scripts/run-tests.sh" "$UPR/Scripts/lint.sh"
+    printf '%s\n' "$2" >"$UPR/Tests/results"
+    catalog_entries A Z >"$UPR/$CATALOG"
+    printf 'kept\n' >"$UPR/kept.swift"
+    git -C "$UPR" add -A && git -C "$UPR" commit -q -m "Add the runner"
+    git -C "$FORK" pull -q --no-rebase --no-edit upstream main
+    # shellcheck disable=SC2086
+    runner_stub $3 >"$FORK/Scripts/run-tests.sh"
+    printf '%s\n' "$4" >"$FORK/Tests/results"
+    git -C "$FORK" commit -q -am "Fork's harnesses"
+    commit_file "$UPR" merged.swift "merged" "Upstream's change"
+}
+
+# Both sides patch one runtime source each and rebuild; the bundles conflict.
+runtime_case() {
+    local sources="$UPR/$RUNTIME_SOURCES"
+    mkdir -p "$sources/src" "$UPR/$(dirname "$RUNTIME")"
+    cat >"$sources/build.mjs" <<'EOF'
+import { readdirSync, readFileSync, writeFileSync } from "node:fs";
+const parts = readdirSync("src").sort().map((name) => readFileSync(`src/${name}`, "utf8").trim());
+writeFileSync("../../Tinycast/Resources/RaycastRuntime.generated.js", `${parts.join(" ")}\n`);
+EOF
+    printf 'a\n' >"$sources/src/a.js"
+    printf 'b\n' >"$sources/src/b.js"
+    printf 'a b\n' >"$UPR/$RUNTIME"
+    git -C "$UPR" add -A && git -C "$UPR" commit -q -m "Add the runtime"
+    git -C "$FORK" pull -q --no-rebase --no-edit upstream main
+    printf 'A\n' >"$FORK/$RUNTIME_SOURCES/src/a.js"
+    printf 'A b\n' >"$FORK/$RUNTIME"
+    git -C "$FORK" commit -q -am "Fork's runtime patch"
+    printf 'B\n' >"$sources/src/b.js"
+    printf 'a B\n' >"$UPR/$RUNTIME"
+    git -C "$UPR" commit -q -am "Upstream's runtime change"
 }
 
 case "$MODE" in
