@@ -116,6 +116,7 @@ enum AppSettingsKey: String, CaseIterable {
     case agentSessionsEnabled = "agentSessionsEnabled"
     case agentSessionsTerminal = "agentSessionsTerminal"
     case agentStatusMenuBar = "agentStatusMenuBar"
+    // Fork: Agent Sessions' folder overrides; per Mac, so no backup or settings-file key.
     case agentSessionsClaudeFolder = "agentSessionsClaudeFolder"
     case agentSessionsCodexFolder = "agentSessionsCodexFolder"
     case quickActionModel = "quickActionModel"

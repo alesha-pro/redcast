@@ -209,6 +209,7 @@ enum SettingsBackupCoverage {
             "Names a terminal installed on this Mac; another Mac may not have it.",
         AppSettingsKey.agentStatusMenuBar.rawValue:
             "Only means something beside live status, which is installed per Mac and never travels.",
+        // Fork: Agent Sessions' folder overrides.
         AppSettingsKey.agentSessionsClaudeFolder.rawValue:
             "Names a folder on this Mac; another Mac may keep Claude Code's history elsewhere.",
         AppSettingsKey.agentSessionsCodexFolder.rawValue:
