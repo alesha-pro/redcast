@@ -21,6 +21,7 @@ OpenCode, Goose, Hermes, local models — on the subscriptions and machines you 
 | Agents | A chat that lives in a folder: its `AGENTS.md`, project and global `.agents/skills`, notes, and built-in tools (files, terminal, web, memory) on any tool-calling API model, every change and command asked first | [agents](docs/features/agents.md) |
 | ACP agents | An agent can run as its own CLI over the Agent Client Protocol — Claude Code, Codex, Gemini CLI, OpenCode, Goose, Hermes or any command — on your own logins, with its permission requests, tool rows, plans and modes in AI Chat, and sessions that survive a relaunch | [agents](docs/features/agents.md#acp-agents) |
 | Alias + Space | Type an entry's alias exactly and press Space: it opens, or its first field takes the caret; `\`␣ types a space, and apps keep searching. From `sermelipharo/tinycast-space`, after `mSarheed/pipcast` | [alias actions](docs/features/alias-actions.md) |
+| Change Alias / Change Shortcut | Edit an entry's alias in place, or record its global shortcut, from its ⌘K menu. From `jhasubhash/tinycast`, as reshaped in `sermelipharo/tinycast-space` | [alias actions](docs/features/alias-actions.md#change-alias--change-shortcut) |
 
 Builds of this fork use the bundle id `com.tinycast.app.fork`: they never update themselves from
 upstream's feed, and they keep their settings apart from an installed upstream Tinycast.
@@ -78,9 +79,11 @@ Sizes are focused working days. Waves are ordered by leverage, not by size.
 - **Upstream sync — shipped** as `Scripts/fork/sync-upstream.sh`. The scheduled Action that keeps one
   rolling PR stays a [proposal](docs/fork-tooling.md#proposed-a-nightly-sync-action-not-active) until
   the script has done three to five syncs by hand.
-- **Ports from other forks** (all AGPL, credited): alias + Space and the extension-runtime fixes for
-  Google sign-in and undici from `sermelipharo/tinycast-space`; Change Alias / Change Shortcut from ⌘K
-  from `jhasubhash/tinycast`.
+- **Ports from other forks — shipped** (all AGPL, credited): alias + Space from
+  `sermelipharo/tinycast-space` and Change Alias / Change Shortcut from ⌘K from `jhasubhash/tinycast`.
+  The extension-runtime fixes for Google sign-in and undici from `sermelipharo/tinycast-space` travel
+  with the `raycast-ai` branch, which owns the extension runtime. Confetti (`raycast://confetti`) was
+  left out.
 
 ### Wave 1 — agent-native core
 
@@ -137,3 +140,14 @@ Sizes are focused working days. Waves are ordered by leverage, not by size.
 
 Upstream: [abue-ammar/tinycast](https://github.com/abue-ammar/tinycast), AGPL-3.0. Ideas surveyed from
 the forks named above; anything ported from them is credited in its commit.
+
+- [sermelipharo/tinycast-space](https://github.com/sermelipharo/tinycast-space): alias + Space
+  ([691c43ef](https://github.com/sermelipharo/tinycast-space/commit/691c43efe07e12ca87f4601ee4257a6631505bf1))
+  and the reshaped ⌘K alias and shortcut editing
+  ([f29cad1b](https://github.com/sermelipharo/tinycast-space/commit/f29cad1bf3318af9692566d5ee9ce45bca589170)).
+- [jhasubhash/tinycast](https://github.com/jhasubhash/tinycast): inline alias and shortcut editing in
+  the ⌘K panel
+  ([f509d005](https://github.com/jhasubhash/tinycast/commit/f509d005518818e70d9c559017bd932a62899956)),
+  and the first `sync-upstream.sh` this fork's sync script learned from.
+- [mSarheed/pipcast](https://github.com/mSarheed/pipcast): the alias + Space idea
+  ([4141ac68](https://github.com/mSarheed/pipcast/commit/4141ac680e)).

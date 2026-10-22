@@ -65,6 +65,7 @@ enum AppActionsMenu {
                 PopoverMenuItem(
                     title: title, systemImage: "eye.slash", shortcut: "⇧⌘H", action: onHideFromSearch))
         }
+        if isPersistent { items += core.inlineEntryEditor.menuItems(for: app, core: core) }
         if running, app.kind == .application {
             items.append(
                 PopoverMenuItem(
