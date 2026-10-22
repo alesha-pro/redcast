@@ -23,6 +23,10 @@ enum AIRequestBody {
             "messages": messages,
             "stream": true
         ]
+        // Only OpenAI's own API must be asked for usage, and a gateway on its preset may refuse it.
+        if configuration.baseURL.host() == URL(string: AIProviderKind.openAI.defaultBaseURL)?.host() {
+            body["stream_options"] = ["include_usage": true]
+        }
         // OpenRouter's own search layer, so it works for every model it routes.
         if input.webSearch, configuration.provider == .openRouter {
             body["plugins"] = [["id": "web"]]

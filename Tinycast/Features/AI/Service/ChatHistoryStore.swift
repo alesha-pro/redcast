@@ -94,7 +94,7 @@ final class ChatHistoryStore {
           ON conversations(updated_at DESC);
         """
 
-    @ObservationIgnored private let databaseURL: URL
+    @ObservationIgnored let databaseURL: URL
     @ObservationIgnored private var database: OpaquePointer?
 
     init(directory: URL) {

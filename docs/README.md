@@ -32,6 +32,7 @@ open with an `## Invariants` section; read it before changing anything in that a
 [web search](features/web-search.md) ·
 [notes and AI](features/notes-ai.md) ·
 [background agents](features/background-agents.md) ·
+[AI usage](features/usage-dashboard.md) ·
 [clipboard](features/clipboard.md) ·
 [calculator](features/calculator.md) ·
 [calendar](features/calendar.md) ·
