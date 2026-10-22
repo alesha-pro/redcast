@@ -405,12 +405,12 @@ final class AppCore {
             hotKeys.onDictationReleased = { [weak self] in self?.dictationCoordinator.released() }
             hotKeys.onDictationCancelled = { [weak self] in self?.dictationCoordinator.cancel() }
             hotKeys.onRunCommand = { [weak self] id in self?.launcherCoordinator.runCommand(id) }
-            hotKeys.releasedCommands = [.askByVoice]
+            hotKeys.releasedCommands = VoiceAskCoordinator.commands
             hotKeys.onCommandReleased = { [weak self] id in
-                if id == .askByVoice { self?.voiceAskCoordinator.released() }
+                if VoiceAskCoordinator.commands.contains(id) { self?.voiceAskCoordinator.released() }
             }
             hotKeys.onCommandCancelled = { [weak self] id in
-                if id == .askByVoice { self?.voiceAskCoordinator.cancel() }
+                if VoiceAskCoordinator.commands.contains(id) { self?.voiceAskCoordinator.cancel() }
             }
             voiceAskCoordinator.applyHoldMode()
             hotKeys.onRunCustomCommand = { [weak self] id in

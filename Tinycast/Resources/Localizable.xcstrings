@@ -18755,60 +18755,60 @@
         }
       }
     },
-    "A shortcut records your question and sends it, with the window in front of you, to %@ to be answered by %@. Nothing is recorded or read until you press it." : {
+    "A shortcut records your request and sends it, with the window in front of you or the text you selected, to %@ to be answered by %@. Nothing is recorded or read until you press it." : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ein Kurzbefehl nimmt deine Frage auf und sendet sie mit dem Fenster vor dir an %1$@, wo %2$@ sie beantwortet. Nichts wird aufgenommen oder gelesen, bevor du ihn drückst."
+            "value" : "Ein Kurzbefehl nimmt deine Anfrage auf und sendet sie mit dem Fenster vor dir oder dem ausgewählten Text an %1$@, wo %2$@ sie beantwortet. Nichts wird aufgenommen oder gelesen, bevor du ihn drückst."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "A shortcut records your question and sends it, with the window in front of you, to %1$@ to be answered by %2$@. Nothing is recorded or read until you press it."
+            "value" : "A shortcut records your request and sends it, with the window in front of you or the text you selected, to %1$@ to be answered by %2$@. Nothing is recorded or read until you press it."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Un atajo graba tu pregunta y la envía, junto con la ventana que tienes delante, a %1$@ para que %2$@ la responda. No se graba ni se lee nada hasta que lo pulses."
+            "value" : "Un atajo graba tu petición y la envía, junto con la ventana que tienes delante o el texto que seleccionaste, a %1$@ para que %2$@ la responda. No se graba ni se lee nada hasta que lo pulses."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Un raccourci enregistre votre question et l’envoie, avec la fenêtre au premier plan, à %1$@ pour que %2$@ y réponde. Rien n’est enregistré ni lu tant que vous ne l’utilisez pas."
+            "value" : "Un raccourci enregistre votre demande et l’envoie, avec la fenêtre au premier plan ou le texte sélectionné, à %1$@ pour que %2$@ y réponde. Rien n’est enregistré ni lu tant que vous ne l’utilisez pas."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "ショートカットで質問を録音し、前面のウインドウと一緒に%1$@へ送信して%2$@が回答します。押すまでは何も録音・読み取りされません。"
+            "value" : "ショートカットで依頼を録音し、前面のウインドウまたは選択したテキストと一緒に%1$@へ送信して%2$@が回答します。押すまでは何も録音・読み取りされません。"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "단축키로 질문을 녹음해 앞에 있는 윈도우와 함께 %1$@(으)로 보내면 %2$@이(가) 답합니다. 누르기 전에는 아무것도 녹음하거나 읽지 않습니다."
+            "value" : "단축키로 요청을 녹음해 앞에 있는 윈도우나 선택한 텍스트와 함께 %1$@(으)로 보내면 %2$@이(가) 답합니다. 누르기 전에는 아무것도 녹음하거나 읽지 않습니다."
           }
         },
         "pt" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Um atalho grava sua pergunta e a envia, com a janela à sua frente, para %1$@, onde %2$@ a responde. Nada é gravado nem lido até você pressioná-lo."
+            "value" : "Um atalho grava seu pedido e o envia, com a janela à sua frente ou o texto selecionado, para %1$@, onde %2$@ o responde. Nada é gravado nem lido até você pressioná-lo."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Сочетание клавиш записывает ваш вопрос и отправляет его вместе с окном перед вами в %1$@, где на него ответит %2$@. Пока вы его не нажмёте, ничего не записывается и не читается."
+            "value" : "Сочетание клавиш записывает вашу просьбу и отправляет её вместе с окном перед вами или выделенным текстом в %1$@, где на неё ответит %2$@. Пока вы его не нажмёте, ничего не записывается и не читается."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "快捷键会录下你的问题，并连同你面前的窗口一起发送到 %1$@，由 %2$@ 回答。在你按下之前，不会录制或读取任何内容。"
+            "value" : "快捷键会录下你的请求，并连同你面前的窗口或你选中的文本一起发送到 %1$@，由 %2$@ 回答。在你按下之前，不会录制或读取任何内容。"
           }
         }
       }
@@ -46223,6 +46223,58 @@
         }
       }
     },
+    "Couldn't replace the selection — the result is shown instead." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Auswahl konnte nicht ersetzt werden – das Ergebnis wird stattdessen angezeigt."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pudo reemplazar la selección; en su lugar se muestra el resultado."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossible de remplacer la sélection — le résultat est affiché à la place."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "選択範囲を置き換えられませんでした。代わりに結果を表示します。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "선택 영역을 바꿀 수 없어 대신 결과를 표시합니다."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Não foi possível substituir a seleção — o resultado é mostrado no lugar."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не удалось заменить выделение — вместо этого показан результат."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法替换所选内容，改为显示结果。"
+          }
+        }
+      }
+    },
     "Couldn't save Emoji & Symbols pins" : {
       "localizations" : {
         "de" : {
@@ -53743,6 +53795,58 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "编辑快速链接"
+          }
+        }
+      }
+    },
+    "Edit Selection by Voice" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Auswahl per Sprache bearbeiten"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Editar la selección por voz"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Modifier la sélection à voix haute"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "選択範囲を音声で編集"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "선택 영역을 음성으로 편집"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Editar seleção por Voz"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Изменить выделение голосом"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "语音编辑所选内容"
           }
         }
       }
@@ -118835,54 +118939,54 @@
         }
       }
     },
-    "Set its shortcut under Commands. The recording is sent with the capture and never saved; a question is kept only if you continue it in AI Chat." : {
+    "Set their shortcuts under Commands. Edit Selection by Voice rewrites the text you selected as you say. A recording is sent with what was read and never saved; it is kept only if you continue it in AI Chat." : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Lege den Kurzbefehl unter „Befehle“ fest. Die Aufnahme wird mit der Erfassung gesendet und nie gespeichert; eine Frage bleibt nur erhalten, wenn du sie im KI-Chat fortsetzt."
+            "value" : "Lege die Kurzbefehle unter „Befehle“ fest. „Auswahl per Sprache bearbeiten“ schreibt den ausgewählten Text so um, wie du es sagst. Eine Aufnahme wird mit dem Gelesenen gesendet und nie gespeichert; sie bleibt nur erhalten, wenn du sie im KI-Chat fortsetzt."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Define su atajo en Comandos. La grabación se envía con la captura y nunca se guarda; una pregunta solo se conserva si la continúas en el chat de IA."
+            "value" : "Define sus atajos en Comandos. Editar la selección por voz reescribe el texto seleccionado como digas. Una grabación se envía con lo leído y nunca se guarda; solo se conserva si la continúas en el chat de IA."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Définissez son raccourci dans Commandes. L’enregistrement est envoyé avec la capture et n’est jamais conservé ; une question n’est gardée que si vous la poursuivez dans Conversation IA."
+            "value" : "Définissez leurs raccourcis dans Commandes. Modifier la sélection à voix haute réécrit le texte sélectionné comme vous le dites. Un enregistrement est envoyé avec ce qui a été lu et n’est jamais conservé ; il n’est gardé que si vous le poursuivez dans Conversation IA."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "ショートカットは「コマンド」で設定します。録音はキャプチャと一緒に送信され、保存されません。質問はAIチャットで続けた場合にのみ残ります。"
+            "value" : "ショートカットは「コマンド」で設定します。「選択範囲を音声で編集」は、選択したテキストを話したとおりに書き直します。録音は読み取った内容と一緒に送信され、保存されません。AIチャットで続けた場合にのみ残ります。"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "단축키는 명령에서 설정하세요. 녹음은 캡처와 함께 전송되며 저장되지 않습니다. 질문은 AI 채팅에서 이어갈 때만 남습니다."
+            "value" : "단축키는 명령에서 설정하세요. 선택 영역을 음성으로 편집은 선택한 텍스트를 말한 대로 다시 씁니다. 녹음은 읽은 내용과 함께 전송되며 저장되지 않습니다. AI 채팅에서 이어갈 때만 남습니다."
           }
         },
         "pt" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Defina o atalho em Comandos. A gravação é enviada com a captura e nunca é salva; uma pergunta só é mantida se você a continuar no Chat de IA."
+            "value" : "Defina os atalhos em Comandos. Editar seleção por Voz reescreve o texto selecionado como você disser. Uma gravação é enviada com o que foi lido e nunca é salva; ela só é mantida se você a continuar no Chat de IA."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Сочетание клавиш задаётся в разделе «Команды». Запись отправляется вместе со снимком окна и не сохраняется; вопрос остаётся, только если вы продолжите его в ИИ-чате."
+            "value" : "Сочетания клавиш задаются в разделе «Команды». «Изменить выделение голосом» переписывает выделенный текст так, как вы скажете. Запись отправляется вместе с прочитанным и не сохраняется; она остаётся, только если вы продолжите её в ИИ-чате."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "在“命令”中设置其快捷键。录音会随截取内容一起发送，绝不保存；只有在 AI 聊天中继续时才会保留问题。"
+            "value" : "在“命令”中设置它们的快捷键。“语音编辑所选内容”会按你说的改写选中的文本。录音会随读取的内容一起发送，绝不保存；只有在 AI 聊天中继续时才会保留。"
           }
         }
       }
@@ -134037,6 +134141,58 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "无法写入该脚本。"
+          }
+        }
+      }
+    },
+    "The selection changed, so the result is shown instead." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Auswahl hat sich geändert, daher wird das Ergebnis stattdessen angezeigt."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La selección cambió, así que en su lugar se muestra el resultado."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La sélection a changé, le résultat est donc affiché à la place."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "選択範囲が変わったため、代わりに結果を表示します。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "선택 영역이 바뀌어 대신 결과를 표시합니다."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A seleção mudou, então o resultado é mostrado no lugar."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Выделение изменилось, поэтому вместо замены показан результат."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "所选内容已更改，因此改为显示结果。"
           }
         }
       }

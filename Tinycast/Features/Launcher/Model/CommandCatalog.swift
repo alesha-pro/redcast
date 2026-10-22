@@ -56,8 +56,8 @@ extension SettingsTab {
             [.createQuicklink, .searchQuicklinks, .importQuicklinks, .exportQuicklinks]
         case .ai:
             [
-                .quickAI, .aiChat, .askAboutScreen, .runAgentTask, .askByVoice, .searchAgentSessions,
-                .jumpToAgent
+                .quickAI, .aiChat, .askAboutScreen, .runAgentTask, .askByVoice, .editByVoice,
+                .searchAgentSessions, .jumpToAgent
             ]
         case .quickActions: [.fixGrammar, .rewrite, .translate, .summarize]
         case .fileSearch: [.searchFiles]

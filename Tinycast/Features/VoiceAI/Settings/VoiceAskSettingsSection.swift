@@ -45,8 +45,9 @@ struct VoiceAskSettingsSection: View {
         } footer: {
             Text(
                 """
-                Set its shortcut under Commands. The recording is sent with the capture and never \
-                saved; a question is kept only if you continue it in AI Chat.
+                Set their shortcuts under Commands. Edit Selection by Voice rewrites the text you \
+                selected as you say. A recording is sent with what was read and never saved; it is \
+                kept only if you continue it in AI Chat.
                 """
             )
             .font(.caption)
