@@ -49,6 +49,7 @@ final class AgentCoordinator {
     func setAgent(_ agent: AgentProfile?, for chat: AIChatState) {
         guard store.agent(forChat: chat.session.id)?.id != agent?.id else { return }
         store.setAgent(agent?.id, forChat: chat.session.id)
+        if agent == nil { store.removeSummary(forChat: chat.session.id) }
         chatGrants[chat.session.id] = nil
         acpHost.forget(chatID: chat.session.id)
         if let agent { refresh(agent) }
@@ -145,7 +146,14 @@ final class AgentCoordinator {
         let chatID = chat.session.id
         let mcp = core.mcpCoordinator
         let mode = backgroundRuns?.runMode(forChat: chatID) ?? .chat(chatID)
-        return loop(for: agent, over: base, mode: mode, mcpTools: mcpTools) { call in
+        let compaction = AgentCompaction.Source(
+            url: store.summaryURL(forChat: chatID), origin: agent.name,
+            history: { @MainActor [weak chat] in
+                chat?.session.historyMessages.map {
+                    AgentCompaction.Entry(id: $0.id, isUser: $0.role == .user, text: $0.text)
+                } ?? []
+            })
+        return loop(for: agent, over: base, mode: mode, mcpTools: mcpTools, compaction: compaction) { call in
             await mcp.invoke(call, in: chatID)
         }
     }
@@ -153,7 +161,7 @@ final class AgentCoordinator {
     /// The one place a turn's tools are assembled: a chat now, a run with no window later.
     func loop(
         for agent: AgentProfile, over base: any AIProvider, mode: AgentRunMode,
-        mcpTools: [AITool] = [],
+        mcpTools: [AITool] = [], compaction: AgentCompaction.Source? = nil,
         mcp: @escaping @Sendable (AIToolCall) async -> AIToolResult = {
             .failure($0.id, "There is no tool called \($0.name).")
         }
@@ -175,7 +183,8 @@ final class AgentCoordinator {
         }
         guard !toolset.tools.isEmpty else { return nil }
         return AgentLoopProvider(
-            base: base, toolset: toolset, maxRounds: core.aiSettings.toolRounds.limit)
+            base: base, toolset: toolset, maxRounds: core.aiSettings.toolRounds.limit,
+            compaction: compaction)
     }
 
     /// The registry: one line per family, built per turn so nothing stays resident between turns.
@@ -412,5 +421,13 @@ final class AgentCoordinator {
     /// Run Now: announced like a launcher run; the schedule's next time stays where it was.
     func runNow(_ schedule: AgentSchedule) {
         background.start(schedule, manual: true)
+    }
+}
+
+extension AppCore {
+    /// After chats are deleted, the notes their agents kept on earlier turns go with them.
+    func pruneAgentSummaries() {
+        guard chatHistory.isAvailable else { return }
+        agentStore.pruneSummaries(keeping: chatHistory.conversations.map(\.id))
     }
 }

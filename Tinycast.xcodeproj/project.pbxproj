@@ -729,6 +729,7 @@
 		C0642512B709EF0517ABF4CB /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C37CCD024267EB21876C7E9 /* AppDelegate.swift */; };
 		C0D1D4D7D03F48E8AC7901CF /* MCPOAuthHTTP.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10A05EA2484C7E9EC8B05A69 /* MCPOAuthHTTP.swift */; };
 		C1236C0EB496068BFC0DB18C /* ClaudeMCPLaunch.swift in Sources */ = {isa = PBXBuildFile; fileRef = 134523530108C7EE37EB5B18 /* ClaudeMCPLaunch.swift */; };
+		C13A0531462DBB0AE25CF57D /* AgentCompaction.swift in Sources */ = {isa = PBXBuildFile; fileRef = D3FA4D95A2AF235F9B8F04DF /* AgentCompaction.swift */; };
 		C1FC3507BFC408DCD7F142D8 /* ExtensionCommandMetadataStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD4C0743DE901F5E248991B4 /* ExtensionCommandMetadataStore.swift */; };
 		C215695FE671BC591DC99C2B /* DialogPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = BDB241B179A08518424F7C1B /* DialogPanel.swift */; };
 		C21CAD7076793A5625F6B80C /* ChatHistoryStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = B715A0256D2D0DDE1D28FC98 /* ChatHistoryStore.swift */; };
@@ -1831,6 +1832,7 @@
 		D381DD8CB296A6D5CFF90111 /* ClipboardFileKind.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardFileKind.swift; sourceTree = "<group>"; };
 		D3A6E15A480A4779ACCE259D /* EmptyResults.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmptyResults.swift; sourceTree = "<group>"; };
 		D3F82845FDA307DF71676352 /* CalendarAccess.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarAccess.swift; sourceTree = "<group>"; };
+		D3FA4D95A2AF235F9B8F04DF /* AgentCompaction.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentCompaction.swift; sourceTree = "<group>"; };
 		D43E5D47E198B86901D75515 /* ChatGPTSubscription.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatGPTSubscription.swift; sourceTree = "<group>"; };
 		D43F1080FB443A1D0616790E /* FavoritesStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FavoritesStore.swift; sourceTree = "<group>"; };
 		D4462AB0E866F02397B57EC6 /* MeetingDetails.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeetingDetails.swift; sourceTree = "<group>"; };
@@ -2875,6 +2877,7 @@
 			isa = PBXGroup;
 			children = (
 				95D55C01B8420D36212B1229 /* ACPProtocol.swift */,
+				D3FA4D95A2AF235F9B8F04DF /* AgentCompaction.swift */,
 				6FDC8652F1D9FCE69AA5FF59 /* AgentConsentPolicy.swift */,
 				6A725E52DF7D7C73054BD72D /* AgentPlan.swift */,
 				353D7FF3ED2E1F07D0998910 /* AgentProfile.swift */,
@@ -4697,6 +4700,7 @@
 				FA3190F75553EBF5CC9CED98 /* AgentACPHost.swift in Sources */,
 				3118884FA83A3A69EE2AE911 /* AgentActivityState.swift in Sources */,
 				4DA8F1EC8F78B6CF2DFD5673 /* AgentBackgroundCoordinator.swift in Sources */,
+				C13A0531462DBB0AE25CF57D /* AgentCompaction.swift in Sources */,
 				70302DD85A802B6EACFB7D93 /* AgentConsentGate.swift in Sources */,
 				1D90321F57503884D3A2318E /* AgentConsentPolicy.swift in Sources */,
 				43BE7AE29182A713747B48C5 /* AgentContextLoader.swift in Sources */,

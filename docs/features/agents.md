@@ -4,8 +4,8 @@ An **agent** lives in one folder. A chat given an agent works there: its turns r
 `AGENTS.md`, the skills in `<folder>/.agents/skills` and `~/.agents/skills`, the agent's own notes and
 instructions, and its built-in tools — files, terminal, web and memory — act there. Agents are this
 fork's; upstream lists AI-assistant features under [not planned](../not-planned.md), so the feature
-stays in `Features/Agents/` plus the few lines in `AIChatCoordinator`, `AIChatDetailView`,
-`AISettingsView` and `AppCore` that wire it in. An agent can also work with no window, from `@handle`
+stays in `Features/Agents/` plus the few lines in `AIChatCoordinator`, `QuickAICoordinator`,
+`AIChatDetailView`, `AISettingsView` and `AppCore` that wire it in. An agent can also work with no window, from `@handle`
 in root search or on a schedule: see [background and scheduled agents](background-agents.md).
 
 ## Invariants
@@ -101,6 +101,24 @@ in root search or on a schedule: see [background and scheduled agents](backgroun
   families the build before Screen and Sub-agents could decode, and those two under `addedTools`, a key
   that build ignores; reading merges both and drops a family name it does not know. A family added later
   joins `AgentToolKind.unknownToOlderBuilds`.
+- **A long agent chat keeps notes on what no longer fits, made once and grown rarely.**
+  `ChatSession.requestMessages` drops a chat's oldest turns past its text budget. For an agent chat on
+  Tinycast's loop, `AgentLoopProvider` first reads the chat's history (`AgentCompaction.Source`, read on
+  the main actor when the turn starts) and counts what was dropped. Nothing dropped: no file is read and
+  no request is made. Dropped and already covered: the stored notes are reused, with no request.
+  Dropped past them: one request to the chat's own model, with no tools, folds the notes so far and only
+  the newly dropped messages into new notes (at most 64 KB read, newest first, 6 KB a message; 8 KB
+  kept). The new notes reach past what was dropped, to the first question from which at most half of
+  what the budget sent is left, so later turns reuse them for a while. They lead the first question
+  sent, inside `<earlier_conversation>`, rather than as a message of their own, since some chat
+  templates reject two questions in a row, and nothing they cover is sent again. Their cost is billed
+  into the reply; tokens are left alone. A tool row, "Summary of earlier messages", opens while they are
+  made and closes when done (failed when the request fails, and the turn then goes as it was built);
+  reuse shows nothing. The notes are `AgentChatSummary` in `agent-summaries/<chat>.json`, with how many
+  messages they cover and the id of the last, so notes on a history that changed underneath start over.
+  They go when the chat is deleted (one at a time, all at once, or by retention, through
+  `AppCore.pruneAgentSummaries`), when the chat leaves its agent and when its agent is deleted. Plain
+  chats and ACP chats never make any.
 - **The binding is the fork's, not the chat history's.** Which chat has which agent is
   `agent-chats.json` beside `agents.json` in Application Support, so upstream's SQLite schema is
   untouched. Deleting an agent frees its chats, which stay as plain AI chats, and deletes its notes.
@@ -162,17 +180,18 @@ They run on the user's own logins and subscriptions; Tinycast never sees a key.
 | File | Holds |
 | --- | --- |
 | `Model/AgentProfile.swift` | The profile: folder, access, tool families, permissions, skill sources, instructions sources, model |
-| `Model/AgentStore.swift` | Agents and chat bindings as JSON; the notes' location |
+| `Model/AgentStore.swift` | Agents and chat bindings as JSON; where the agent's notes and a chat's summary live |
 | `Model/AgentSkill.swift` | `SKILL.md` front matter, the merged catalog, and `AgentContext.prompt` |
 | `Model/AgentToolbox.swift` | `AgentPathPolicy`, the tool definitions per profile, and what each reaches (`spec(for:)`) |
 | `Model/AgentTool.swift` | `AgentToolProvider`, `AgentToolSpec`, `AgentToolRisk`, `AgentTurn`, `AgentRunMode`, the call's context |
 | `Model/AgentConsentPolicy.swift` | Rules (ask, always, never), an agent's own (`AgentConsentRules`), `AgentGrant`, the verdict per rule and mode |
 | `Model/AgentToolset.swift` | One turn's offered tools in a stable order, and where each call goes |
 | `Model/AgentTurnBudget.swift` | The per-result, per-turn and history limits; `AgentBatchPolicy` |
+| `Model/AgentCompaction.swift` | Cross-turn notes: what was dropped, what they cover, when they grow, the request that makes them, `AgentChatSummary` |
 | `Model/AgentPlan.swift` | `update_plan`'s definition and arguments, and the checklist ACP plans share |
 | `Service/AgentContextLoader.swift` | Reads `AGENTS.md` (or a lone `CLAUDE.md`), `~/.agents/AGENTS.md`, skills, notes |
 | `Service/AgentToolExecutor.swift` | `AgentBuiltInTools`, the first provider; the executor runs each call: ripgrep search, terminal with timeout, web fetch, HTML to text |
-| `Service/AgentLoopProvider.swift` | The agent chats' tool loop: rounds, batches, budget, Stop |
+| `Service/AgentLoopProvider.swift` | The agent chats' tool loop: cross-turn notes, rounds, batches, budget, Stop |
 | `Service/AgentPlanTools.swift` | `update_plan`: shows the checklist it is sent |
 | `Service/AgentDelegateTools.swift` | `delegate`: one read-only sub-agent per call, its answer bounded and its cost billed |
 | `UI/AgentCoordinator.swift` | Bindings, cached context, the turn's prompt, its loop and provider registry, consent |
@@ -281,6 +300,10 @@ this way, as one provider. Nothing else changes: no router edit, no upstream lin
   "Searched web" row, then the answer cites sources. With Web off it says it cannot look things up.
 - Tick Notes in the editor and run [notes and AI](notes-ai.md#manual-sweep)'s agent half.
 - Tick Screen and run [Screen Awareness](screen-awareness.md#manual-sweep)'s agent step.
+- In a long agent chat (or with a small model whose budget fills fast), keep going until the oldest
+  turns no longer fit: one reply opens with a "Summary of earlier messages" row, the next few replies
+  show none, and the agent still knows what was settled at the start. Its cost includes the summary.
+  Delete the chat: `agent-summaries/` no longer holds its file.
 - Delete the agent: its chats remain as plain chats and the composer shows No Agent.
 - ACP: make an agent on Claude Code in a project folder; ask it to read and change a file. The first
   turn may wait while npx fetches the adapter; then the dialog lists Claude's own options, the
@@ -293,11 +316,13 @@ this way, as one provider. Nothing else changes: no router edit, no upstream lin
   sessions, a missing command, two agents sharing a session id); `agent-test` (skills, catalog, path policy, tool sets, specs, consent
   policy and per-agent rules, toolset order and routing, batches, budget, elision, the prompt and the
   rules it states, persistence, the plan checklist shared with ACP, newer families kept out of the
-  previous build's way, a reading-only toolset and per-call row titles); `agent-tools-test` (the executor against a real folder: reads,
+  previous build's way, a reading-only toolset and per-call row titles, compaction's coverage, reuse,
+  bounds and notes kept per chat); `agent-tools-test` (the executor against a real folder: reads,
   writes with consent, link escapes, commands, timeouts and Stop, memory, skills, HTML; the built-ins
   through a toolset, with and without an agent's own rules; every refused effect; `update_plan`); and
   `agent-loop-test` (the fork's loop and upstream's on the same scripts under 128 KB; routing,
   signals, Stop, parallel batches, a long turn that elides; a sub-agent's request, tools, answer, cost,
-  bounds and Stop); `web-search-test` covers the search
+  bounds and Stop; compaction with nothing dropped, made once then reused then grown, a failed summary
+  and Stop while it is made); `web-search-test` covers the search
   provider through a toolset and the loop; and `agent-schedule-test` covers background runs and
   schedules (see [background-agents.md](background-agents.md#manual-sweep)).

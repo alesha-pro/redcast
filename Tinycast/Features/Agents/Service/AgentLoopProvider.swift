@@ -9,11 +9,17 @@ struct AgentLoopProvider: AIProvider {
     private let base: any AIProvider
     private let toolset: AgentToolset
     private let maxRounds: Int?
+    /// An agent chat's; nil sends the turn as it was built, as upstream's loop does.
+    private let compaction: AgentCompaction.Source?
 
-    init(base: any AIProvider, toolset: AgentToolset, maxRounds: Int?) {
+    init(
+        base: any AIProvider, toolset: AgentToolset, maxRounds: Int?,
+        compaction: AgentCompaction.Source? = nil
+    ) {
         self.base = base
         self.toolset = toolset
         self.maxRounds = maxRounds
+        self.compaction = compaction
     }
 
     func stream(_ request: AIRequest) -> AIProviderStream {
@@ -35,10 +41,10 @@ struct AgentLoopProvider: AIProvider {
     private func run(
         _ request: AIRequest, into continuation: AIProviderStream.Continuation
     ) async throws {
-        var messages = request.messages
+        var (messages, billed) = try await compacted(request, into: continuation)
+        let turnStart = messages.count
         var budget = AgentTurnBudget()
         var rounds = 0
-        var billed: Double?
         let spend = Spend()
         let signal: @Sendable (AgentToolSignal) -> Void = { signal in
             if case .spent(let cost) = signal { spend.add(cost) }
@@ -73,10 +79,58 @@ struct AgentLoopProvider: AIProvider {
                 if let spent = spend.take() { billed = (billed ?? 0) + spent }
             }
             budget.release(
-                AgentTurnBudget.elide(&messages, turnStart: request.messages.count, keepFrom: roundStart))
+                AgentTurnBudget.elide(&messages, turnStart: turnStart, keepFrom: roundStart))
         }
         throw AIProviderError.responseFailed(
             String(localized: "Stopped after \(rounds) rounds of tool calls."))
+    }
+
+    /// The turn with notes on what the budget dropped leading it, and what making them cost.
+    private func compacted(
+        _ request: AIRequest, into continuation: AIProviderStream.Continuation
+    ) async throws -> (messages: [AIMessage], cost: Double?) {
+        guard let compaction else { return (request.messages, nil) }
+        let history = await compaction.history()
+        guard let dropped = AgentCompaction.dropped(from: history, sent: request.messages), dropped > 0
+        else { return (request.messages, nil) }
+        let stored = AgentChatSummary.load(from: compaction.url)
+        switch AgentCompaction.plan(history: history, dropped: dropped, summary: stored) {
+        case .reuse(let summary):
+            return (AgentCompaction.messages(request.messages, dropped: dropped, summary: summary), nil)
+        case .extend(let from, let to, let previous):
+            let id = AgentCompaction.markerID
+            continuation.yield(
+                .toolCall(id: id, origin: compaction.origin, title: AgentCompaction.markerTitle))
+            let made = try await summarise(
+                AgentCompaction.request(previous: previous, slice: history[from..<to]))
+            let summary = made.text.flatMap { AgentCompaction.summary($0, covering: to, of: history) }
+            continuation.yield(.toolResult(id: id, isError: summary == nil))
+            guard let summary else { return (request.messages, made.cost) }
+            try? summary.write(to: compaction.url)
+            return (AgentCompaction.messages(request.messages, dropped: dropped, summary: summary), made.cost)
+        }
+    }
+
+    /// The chat's own model, asked once with no tools; a failure leaves the turn as it was built.
+    private func summarise(_ request: AIRequest) async throws -> (text: String?, cost: Double?) {
+        var text = ""
+        var cost: Double?
+        do {
+            for try await event in base.stream(request) {
+                try Task.checkCancellation()
+                switch event {
+                case .text(let delta): text += delta
+                case .usage(let usage): cost = usage.costUSD ?? cost
+                default: break
+                }
+            }
+        } catch is CancellationError {
+            throw CancellationError()
+        } catch {
+            return (nil, cost)
+        }
+        try Task.checkCancellation()
+        return (text, cost)
     }
 
     /// A batch's admitted results in call order; each row closes as its own call ends.
