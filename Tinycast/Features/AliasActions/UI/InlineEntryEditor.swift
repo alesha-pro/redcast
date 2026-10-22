@@ -30,7 +30,7 @@ final class InlineEntryEditor {
         ) {
             self.record(action, core: core)
         }
-        shortcut.trailingAccessory = { AnyView(ShortcutRecorder(action: action)) }
+        shortcut.trailingAccessory = { AnyView(MenuShortcutBox(action: action)) }
         shortcut.keepsMenuOpen = true
         return [alias, shortcut]
     }
@@ -97,6 +97,28 @@ final class InlineEntryEditor {
     }
 }
 
+/// The box both rows end in, outlined while its row edits, so the two line up.
+private struct MenuEntryBox<Content: View>: View {
+    let isEditing: Bool
+    @ViewBuilder let content: Content
+    @Environment(\.metrics) private var metrics
+
+    var body: some View {
+        let shape = RoundedRectangle(cornerRadius: metrics.radius.menuRow, style: .continuous)
+        content
+            .font(metrics.typography.keyCap)
+            .lineLimit(1)
+            .truncationMode(.tail)
+            .padding(.horizontal, metrics.spacing.xs)
+            .frame(width: metrics.scaled(Theme.Size.shortcutRecorder), height: metrics.scaled(20))
+            .background(shape.fill(Theme.Colors.cardFill))
+            .overlay(
+                shape.strokeBorder(
+                    isEditing ? Theme.Colors.textTertiary : Theme.Colors.cardStroke, lineWidth: 1)
+            )
+    }
+}
+
 /// The saved alias, or the live draft with a caret while its row is being edited.
 private struct MenuAliasBox: View {
     let key: String
@@ -109,25 +131,17 @@ private struct MenuAliasBox: View {
     private var value: String { isEditing ? editor.draft.text : aliases.alias(for: key) ?? "" }
 
     var body: some View {
-        let shape = RoundedRectangle(cornerRadius: metrics.radius.menuRow, style: .continuous)
-        HStack(spacing: 1) {
-            Text(value.isEmpty ? String(localized: "Add Alias") : value)
-                .font(metrics.typography.keyCap)
-                .foregroundStyle(ink)
-                .lineLimit(1)
-                .truncationMode(.tail)
-            if isEditing {
-                Rectangle()
-                    .fill(Theme.Colors.textSecondary)
-                    .frame(width: 1.5, height: metrics.scaled(12))
+        MenuEntryBox(isEditing: isEditing) {
+            HStack(spacing: 1) {
+                Text(value.isEmpty ? String(localized: "Add Alias") : value)
+                    .foregroundStyle(ink)
+                if isEditing {
+                    Rectangle()
+                        .fill(Theme.Colors.textSecondary)
+                        .frame(width: 1.5, height: metrics.scaled(12))
+                }
             }
         }
-        .frame(width: metrics.scaled(112), height: metrics.scaled(20))
-        .background(shape.fill(Theme.Colors.cardFill))
-        .overlay(
-            shape.strokeBorder(
-                isEditing ? Theme.Colors.textTertiary : Theme.Colors.cardStroke, lineWidth: 1)
-        )
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(String(localized: "Change Alias"))
         .accessibilityValue(value)
@@ -137,5 +151,64 @@ private struct MenuAliasBox: View {
     private var ink: Color {
         if value.isEmpty { return Theme.Colors.textTertiary }
         return isEditing ? Theme.Colors.textPrimary : Theme.Colors.textSecondary
+    }
+}
+
+/// The shortcut, or while its row records the prompt, the keys held and a rejected chord's owner.
+private struct MenuShortcutBox: View {
+    let action: HotKeyAction
+    @Environment(HotKeyManager.self) private var hotKeys
+
+    private var capture: ShortcutCaptureSession { hotKeys.capture }
+    private var isRecording: Bool { hotKeys.recordingAction == action }
+    /// Settings draws this state in a callout, which the menu's own clipped window cannot hold.
+    private var conflict: ShortcutCaptureSession.Conflict? { isRecording ? capture.conflict : nil }
+
+    var body: some View {
+        MenuEntryBox(isEditing: isRecording) {
+            if let conflict {
+                Text(conflict.owner).foregroundStyle(.orange)
+            } else if let caps {
+                HStack(spacing: Theme.Spacing.xxs) {
+                    ForEach(Array(caps.text.enumerated()), id: \.offset) { _, cap in
+                        KeyCapChip.Label(text: cap, prefix: caps.prefix)
+                    }
+                }
+                .foregroundStyle(Theme.Colors.textSecondary)
+            } else {
+                Text(isRecording ? "Type a shortcut" : "Record Hotkey")
+                    .foregroundStyle(
+                        isRecording ? Theme.Colors.textSecondary : Theme.Colors.textTertiary)
+            }
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(String(localized: "Change Shortcut"))
+        .accessibilityValue(spokenValue)
+    }
+
+    /// The binding, or while recording the keys held so far; nil leaves the box to its prompt.
+    private var caps: (text: [String], prefix: String?)? {
+        guard isRecording else {
+            return hotKeys.binding(for: action).map { ($0.recorderKeycaps, $0.recorderPrefix) }
+        }
+        if let key = capture.awaitingSecondModifier ?? capture.heldModifier {
+            let secondPress = capture.awaitingSecondModifier == key && capture.heldModifier == key
+            let binding = secondPress ? key.doubleBinding : key.singleBinding
+            return (binding.recorderKeycaps, binding.recorderPrefix)
+        }
+        let flags =
+            capture.heldGlobe ? capture.heldModifiers.union(.function) : capture.heldModifiers
+        let held = KeyShortcut.collapsedModifierSymbols(
+            from: flags, hyperChord: KeyShortcut.displayedHyperChord())
+        return held.isEmpty ? nil : (held, nil)
+    }
+
+    private var spokenValue: Text {
+        if let conflict {
+            return Text(
+                "This shortcut is also used by \(conflict.owner). Record another shortcut.")
+        }
+        if let caps { return KeyCapChip.inlineText(caps.text, separator: " ") }
+        return Text(isRecording ? "Type a shortcut" : "Record Hotkey")
     }
 }

@@ -27,6 +27,9 @@ alias ranking, Tab-after-alias and Settings editing are unchanged; see
 - **`AppCore` owns the editor, and the menu ends it.** `InlineEntryEditor` is one `@Observable` object
   on `AppCore`, never a singleton. Closing the menu ends an alias edit and stops a recording the menu
   started — and only that one, so a recording in Settings is never cut short.
+- **The menu draws its own recording state.** Settings shows the prompt, the keys held and a conflict
+  in a callout over the pane. The menu is a window of its own, clipped to its rows, so the shortcut
+  box shows the same three states from the one `ShortcutCaptureSession` instead.
 
 ## Alias + Space
 
@@ -57,9 +60,13 @@ query-driven row (those have no preference to own):
   keeps the menu open and edits the alias in place: the box shows the draft with a caret, every plain
   key goes to it ahead of the menu's search field, Return commits it trimmed (a blank commit clears the
   alias), Delete removes a character and Escape drops the edit. A ⌘ or ⌃ chord still reaches the menu.
-- **Change Shortcut** draws the entry's `ShortcutRecorder`, the same control Settings uses, and
-  activating the row starts recording, so the next chord binds. Extension commands have one too:
-  `AppEntry.hotKeyAction` leaves them out, so the row keys them by entry id as Settings does.
+- **Change Shortcut** draws the entry's shortcut, or "Record Hotkey", in a box like the alias's.
+  Activating the row records through the same `HotKeyManager` capture Settings uses. The box is
+  outlined and says "Type a shortcut", then shows the keys held. A chord another action owns is
+  refused, and for a moment the box names that action in orange. Escape stops recording, and Delete
+  clears the shortcut. A click anywhere stops it too, and a click on the row records again.
+  Extension commands have one too: `AppEntry.hotKeyAction` leaves them out, so the row keys them by
+  entry id as Settings does.
 
 Both rows are `PopoverMenuItem`s with a `trailingAccessory` and `keepsMenuOpen`. `PaletteMenuContent`
 carries `keepsOpen`, so `activateMenuItem` runs such a row without closing the menu, and
@@ -73,7 +80,7 @@ moment you notice you want an alias is the moment you are looking at the row.
 | --- | --- |
 | `Model/AliasJump.swift` | `decide` (query, caret, aliases → ignore / escape / jump) and `target` (entry → field, arguments, run or nothing) |
 | `Model/InlineAliasDraft.swift` | the alias being typed into a ⌘K row: keys in, editing / cancelled / committed out |
-| `UI/InlineEntryEditor.swift` | the two menu rows, the key handling while an alias is edited, and the alias box |
+| `UI/InlineEntryEditor.swift` | the two menu rows, the key handling while an alias is edited, and the alias and shortcut boxes |
 | `Palette/RootPaletteView.swift` | the Space handler and an extension at the end that maps a row to `AliasJump.Entry` and applies the answer (it reads the view's private focus and scroll state, which is why it lives there); one line each in `closeMenus`, `activateMenuItem` and `handleMenuPanelKey` |
 | `DesignSystem/PopoverMenu.swift`, `Palette/PaletteScreen.swift` | `trailingAccessory` and `keepsMenuOpen` on the shared row, `keepsOpen` on the menu content |
 | `Launcher/UI/AppActionsMenu.swift`, `App/AppCore.swift` | the line that adds the rows, and the line that owns the editor |
@@ -89,7 +96,10 @@ moment you notice you want an alias is the moment you are looking at the row.
 - Tab after an alias still fills a quicklink's arguments, as upstream does.
 - ⌘K on any entry → Change Alias. Type, Delete, Return: the chip on the row updates. ⌘K → Change
   Alias, Escape: unchanged, and a second Escape closes the menu. Blank, then Return, clears the alias.
-- ⌘K → Change Shortcut, press ⌥⌘J: the recorder fills and the shortcut works globally. Close the
+- ⌘K → Change Shortcut, press ⌥⌘J: the box fills and the shortcut works globally. Close the
   menu mid-recording: recording stops. A recording started in Settings is not stopped by the palette.
+- ⌘K → Change Shortcut on an entry that already has one: the box is outlined and says "Type a
+  shortcut", and holding ⌘⌥ shows ⌥⌘. Press the launcher's own shortcut: the box names App Launcher
+  in orange, then asks again, and nothing is rebound. Escape keeps the old shortcut; Delete clears it.
 - An extension command's ⌘K menu offers Change Shortcut too, and Settings › Extensions shows it.
 - Settings shows the same alias and shortcut, and `settings.json` mirrors both when it is on.
