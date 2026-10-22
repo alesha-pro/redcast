@@ -1,7 +1,7 @@
 import Foundation
 import Observation
 
-/// The switch, the model and each extension's answer; none travels in a backup or settings.json.
+/// The switches, the model and each extension's answer; none travels in a backup or settings.json.
 @MainActor
 @Observable
 final class ExtensionAISettingsStore {
@@ -9,6 +9,10 @@ final class ExtensionAISettingsStore {
 
     var isEnabled: Bool {
         didSet { defaults.set(isEnabled, forKey: AppSettingsKey.extensionsAIEnabled.rawValue) }
+    }
+    /// Off by default: on, an extension's named model can move its prompts to another connection.
+    var honorsModels: Bool {
+        didSet { defaults.set(honorsModels, forKey: AppSettingsKey.extensionsAIHonorsModels.rawValue) }
     }
     /// Nil follows AI Chat's default model, including a later change to it.
     private(set) var model: AIModelSelection? {
@@ -22,6 +26,7 @@ final class ExtensionAISettingsStore {
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
         isEnabled = defaults.bool(forKey: AppSettingsKey.extensionsAIEnabled.rawValue)
+        honorsModels = defaults.bool(forKey: AppSettingsKey.extensionsAIHonorsModels.rawValue)
         model = defaults.data(forKey: AppSettingsKey.extensionsAIModel.rawValue).flatMap {
             try? JSONDecoder().decode(AIModelSelection.self, from: $0)
         }

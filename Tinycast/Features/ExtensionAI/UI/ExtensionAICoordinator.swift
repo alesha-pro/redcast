@@ -50,13 +50,22 @@ final class ExtensionAICoordinator {
         guard !core.isShowingDialog else { return nil }
         let title = core.extensions.installed.first { $0.manifest.name == name }?.title ?? name
         NSApp.activate(ignoringOtherApps: true)
-        let answer = await core.choose(
-            title: String(localized: "Allow \u{201C}\(title)\u{201D} to use AI?"),
-            message: String(
+        let message =
+            settings.honorsModels
+            ? String(
+                localized: """
+                    Its prompts go to \(modelTitle()), or to the closest model among your API connections \
+                    when it names another provider's, and can include text the extension reads, such as \
+                    your selection or clipboard. You can change this in Settings \u{2192} Extensions.
+                    """)
+            : String(
                 localized: """
                     Its prompts go to \(modelTitle()) and can include text the extension reads, such \
                     as your selection or clipboard. You can change this in Settings \u{2192} Extensions.
-                    """),
+                    """)
+        let answer = await core.choose(
+            title: String(localized: "Allow \u{201C}\(title)\u{201D} to use AI?"),
+            message: message,
             symbol: "sparkles",
             options: [
                 DialogAction(title: String(localized: "Allow")),

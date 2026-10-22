@@ -34,14 +34,26 @@ final class ExtensionAIBridge {
         let entry = Entry(owner: owner)
         entries[id] = entry
         entry.task = Task { [weak self] in
-            do {
-                for try await event in provider.stream(request) {
-                    guard case .text(let delta) = event, !delta.isEmpty else { continue }
-                    self?.deliver(delta, to: id)
+            var request = request
+            var answered = false
+            while true {
+                do {
+                    for try await event in provider.stream(request) {
+                        guard case .text(let delta) = event, !delta.isEmpty else { continue }
+                        answered = true
+                        self?.deliver(delta, to: id)
+                    }
+                    self?.end(id, with: .success(()))
+                } catch {
+                    if !answered, !Task.isCancelled,
+                        let retry = ExtensionAIPolicy.withoutTemperature(request, after: error)
+                    {
+                        request = retry
+                        continue
+                    }
+                    self?.end(id, with: .failure(error))
                 }
-                self?.end(id, with: .success(()))
-            } catch {
-                self?.end(id, with: .failure(error))
+                return
             }
         }
         return id

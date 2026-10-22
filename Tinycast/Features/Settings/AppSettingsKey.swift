@@ -68,6 +68,8 @@ enum AppSettingsKey: String, CaseIterable {
     case extensionsAIEnabled = "extensionsAIEnabled"
     case extensionsAIModel = "extensionsAIModel"
     case extensionsAIGrants = "extensionsAIGrants"
+    // Fork: lets an extension's named model pick the connection, so it never rides a backup.
+    case extensionsAIHonorsModels = "extensionsAIHonorsModels"
     case calendarEnabled = "calendarEnabled"
     case calendarShowInLauncher = "calendarShowInLauncher"
     case calendarLauncherLimit = "calendarLauncherLimit"

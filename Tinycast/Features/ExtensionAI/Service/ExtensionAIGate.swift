@@ -48,9 +48,9 @@ final class ExtensionAIGate: ExtensionAIHost {
     ) async throws -> Any? {
         switch method {
         case "start":
-            let prompt = arguments.first?.objectValue?["prompt"]?.stringValue ?? ""
             return try await start(
-                prompt: prompt, extensionName: extensionName, actingForUser: actingForUser, owner: owner)
+                arguments.first?.objectValue ?? [:], extensionName: extensionName,
+                actingForUser: actingForUser, owner: owner)
         case "read":
             let id = streamID(arguments)
             // The origin was checked at start: an item's action may end before its answer.
@@ -95,9 +95,10 @@ final class ExtensionAIGate: ExtensionAIHost {
     // MARK: - Asking
 
     private func start(
-        prompt raw: String, extensionName name: String, actingForUser: Bool, owner: ObjectIdentifier
+        _ ask: [String: RenderValue], extensionName name: String, actingForUser: Bool,
+        owner: ObjectIdentifier
     ) async throws -> Int {
-        let prompt = try ExtensionAIPolicy.prompt(from: raw)
+        let prompt = try ExtensionAIPolicy.prompt(from: ask["prompt"]?.stringValue ?? "")
         let gate = access(name, actingForUser: actingForUser)
         if case .refused(let refusal) = gate { throw refusal }
         guard selection() != nil else { throw ExtensionAIRefusal.noModel }
@@ -111,11 +112,40 @@ final class ExtensionAIGate: ExtensionAIHost {
             if case .refused(let refusal) = access(name, actingForUser: actingForUser) { throw refusal }
         }
         guard let selection = selection() else { throw ExtensionAIRefusal.noModel }
-        let provider = try makeProvider(selection)
+        let (route, provider) = try route(for: ask["model"]?.stringValue, fallback: selection)
         if let wait = rateLimit.admit(name, at: Date()) {
             throw ExtensionAIRefusal.rateLimited(seconds: max(1, Int(wait.rounded(.up))))
         }
-        return bridge.start(ExtensionAIPolicy.request(prompt: prompt), on: provider, owner: owner)
+        let temperature = ExtensionAIPolicy.temperature(
+            creativity: ask["creativity"],
+            brand: ExtensionAIModelRoute.brand(of: route, among: aiSettings.connections))
+        return bridge.start(
+            ExtensionAIPolicy.request(prompt: prompt, temperature: temperature), on: provider, owner: owner)
+    }
+
+    /// A named model the switch lets through, unless its route can't be built.
+    private func route(
+        for requested: String?, fallback: AIModelSelection
+    ) throws -> (AIModelSelection, any AIProvider) {
+        if settings.honorsModels, let requested,
+            let mapped = ExtensionAIModelRoute.selection(
+                for: requested, fallback: fallback, offered: offeredConnections()),
+            let provider = try? makeProvider(mapped)
+        {
+            return (mapped, provider)
+        }
+        return (fallback, try makeProvider(fallback))
+    }
+
+    /// Enabled API connections with only the models their pickers show.
+    private func offeredConnections() -> [AIConnection] {
+        aiSettings.connections.compactMap { connection in
+            let source = AIModelSource.api(connection.id)
+            guard aiSettings.isRouteEnabled(source) else { return nil }
+            var offered = connection
+            offered.models = connection.models.filter { aiSettings.isModelShown($0, in: source) }
+            return offered
+        }
     }
 
     private func access(_ name: String, actingForUser: Bool) -> ExtensionAIAccess {

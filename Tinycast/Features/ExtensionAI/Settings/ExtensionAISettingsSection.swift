@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Settings → Extensions → AI: the switch, the model extensions use, and each extension's answer.
+/// Settings → Extensions → AI: the switches, the model extensions use, and each extension's answer.
 struct ExtensionAISettingsSection: View {
     @Environment(AppCore.self) private var core
 
@@ -21,6 +21,14 @@ struct ExtensionAISettingsSection: View {
                     selection: store.model, inheritedTitle: String(localized: "Same as AI Chat"),
                     select: store.select, modelLabel: { Text("Model") },
                     effortLabel: { Text("Reasoning effort") })
+                Toggle(isOn: Binding(get: { store.honorsModels }, set: { store.honorsModels = $0 })) {
+                    SettingsRowTitle(.extensionsAI, "Use the model an extension asks for")
+                    Text(
+                        """
+                        An extension that names another provider's model, such as Claude or Gemini, gets \
+                        the closest one among your API connections. Otherwise the model above answers.
+                        """)
+                }
                 ForEach(store.grants.keys.sorted(), id: \.self) { name in
                     Toggle(
                         title(of: name),

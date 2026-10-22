@@ -8,6 +8,7 @@ const bare = (message) => message.replace(/^"(.*)"$/, "$1");
 // A scripted host: each test sets how `ai.start` and `ai.read` answer, and every call is recorded.
 function scriptedHarness() {
   const calls = [];
+  const requests = [];
   let script = {};
   const cancelled = new Set();
   const waiters = new Map();
@@ -15,6 +16,7 @@ function scriptedHarness() {
     stubs: {
       "ai.start": async ([request]) => {
         calls.push(`start ${request.prompt}`);
+        requests.push(request);
         return script.start ? script.start(request) : 1;
       },
       "ai.read": async ([id]) => {
@@ -37,10 +39,12 @@ function scriptedHarness() {
   return {
     harness,
     calls,
+    requests,
     pending,
     script: (next) => {
       script = next;
       calls.length = 0;
+      requests.length = 0;
     },
   };
 }
@@ -52,7 +56,7 @@ function chunks(id, ...parts) {
 
 export async function runAIFixtures(check) {
   console.log("\n▶ AI.ask and environment.canAccess(AI)");
-  const { harness, calls, pending, script } = scriptedHarness();
+  const { harness, calls, requests, pending, script } = scriptedHarness();
   harness.boot(bootConfig());
   const probe = `
     const api = require("@raycast/api");
@@ -145,6 +149,18 @@ export async function runAIFixtures(check) {
     const model = await run(`
       return JSON.stringify([AI.Model["OpenAI_GPT-4o"], Object.entries(AI.Model), typeof AI.Model.toString]);`);
     check("AI.Model reads any name back and lists one entry", model === '["OpenAI_GPT-4o",[["Tinycast","tinycast"]],"function"]', model);
+
+    script({ start: () => 14, read: chunks(14, "ok") });
+    await run(`
+      await AI.ask("named", { model: AI.Model["Anthropic_Claude_Haiku_4.5"], creativity: "low" });
+      await AI.ask("own", { model: { id: "local-llama" }, creativity: 1.2 });
+      await AI.ask("plain", { model: 7, creativity: {} });`);
+    check("a named model and creativity cross; an extension's own { id } model and junk do not",
+      JSON.stringify(requests) === JSON.stringify([
+        { prompt: "named", model: "Anthropic_Claude_Haiku_4.5", creativity: "low" },
+        { prompt: "own", creativity: 1.2 },
+        { prompt: "plain" },
+      ]), JSON.stringify(requests));
 
     const extras = await run(`
       const refreshed = await AI.refreshModels();

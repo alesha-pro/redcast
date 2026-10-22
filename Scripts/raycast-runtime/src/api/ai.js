@@ -4,7 +4,7 @@ import { EventEmitter } from "../events.js";
 import { hostCall } from "../host.js";
 import { registerAccess, unsupported } from "./system.js";
 
-// Every model routes to the one the user chose, so one honest entry stands for them all.
+// Any capitalised name reads back as itself; Swift reads its vendor, so no table ships here.
 const Model = new Proxy(Object.freeze({ Tinycast: "tinycast" }), {
   get: (target, key) =>
     typeof key === "string" && /^[A-Z]/.test(key) ? (target[key] ?? key) : Reflect.get(target, key),
@@ -17,9 +17,9 @@ function throwIfAborted(signal) {
 }
 
 // Pull-based like `proc.read`: one read outstanding, so a fast model never floods the queue.
-async function complete(prompt, signal, emitter) {
+async function complete(request, signal, emitter) {
   throwIfAborted(signal);
-  const id = await hostCall("ai", "start", [{ prompt: String(prompt ?? "") }]);
+  const id = await hostCall("ai", "start", [request]);
   const cancel = () => hostCall("ai", "cancel", [id]).catch(() => {});
   if (signal?.aborted) {
     cancel();
@@ -31,7 +31,7 @@ async function complete(prompt, signal, emitter) {
     for (let chunk; (chunk = await hostCall("ai", "read", [id])) != null; ) {
       throwIfAborted(signal);
       text += chunk;
-      emitter.emit("data", chunk);
+      emitter?.emit("data", chunk);
     }
   } catch (error) {
     throwIfAborted(signal);
@@ -45,9 +45,18 @@ async function complete(prompt, signal, emitter) {
   return text;
 }
 
+// A `{ id }` model is the extension's own provider, never surfaced, so only a name crosses.
+function askRequest(prompt, options) {
+  const request = { prompt: String(prompt ?? "") };
+  if (typeof options?.model === "string") request.model = options.model;
+  const creativity = options?.creativity;
+  if (typeof creativity === "string" || typeof creativity === "number") request.creativity = creativity;
+  return request;
+}
+
 function ask(prompt, options) {
   const emitter = new EventEmitter();
-  const answer = complete(prompt, options?.signal, emitter);
+  const answer = complete(askRequest(prompt, options), options?.signal, emitter);
   for (const name of ["on", "once", "off", "addListener", "removeListener"]) {
     answer[name] = (...args) => (emitter[name](...args), answer);
   }
