@@ -53,11 +53,12 @@ enum AgentResumeAction: Equatable, Sendable { case resume, fork, openFolder, att
 
 /// Every command and script the hub hands a terminal; no unvalidated text ever reaches one.
 enum AgentResumeCommand {
-    static func isSafeID(_ id: String) -> Bool {
+    /// Letters, digits and `-`; OpenCode's `ses_…` ids and Gemini's own ones may also hold `_`.
+    static func isSafeID(_ id: String, underscore: Bool = false) -> Bool {
         (1...64).contains(id.utf8.count)
             && id.utf8.allSatisfy { byte in
                 (0x30...0x39).contains(byte) || (0x41...0x5A).contains(byte) || (0x61...0x7A).contains(byte)
-                    || byte == UInt8(ascii: "-")
+                    || byte == UInt8(ascii: "-") || (underscore && byte == UInt8(ascii: "_"))
             }
     }
 
@@ -82,13 +83,19 @@ enum AgentResumeCommand {
             guard session.source == .claude, isSafeID(shortID) else { return nil }
             return env + "claude attach " + shortID
         case .resume, .fork:
-            guard isSafeID(session.sessionID) else { return nil }
+            let underscore = session.source == .gemini || session.source == .openCode
+            guard isSafeID(session.sessionID, underscore: underscore) else { return nil }
             let id = session.sessionID
             switch (session.source, action == .fork) {
             case (.claude, false): return inFolder("claude --resume " + id)
             case (.claude, true): return inFolder("claude --resume " + id + " --fork-session")
             case (.codex, false): return inFolder("codex resume " + id)
             case (.codex, true): return inFolder("codex fork " + id)
+            // Gemini looks a session up only among its folder's chats, and cannot fork one.
+            case (.gemini, false): return cd == nil ? nil : inFolder("gemini --resume " + id)
+            case (.gemini, true): return nil
+            case (.openCode, false): return inFolder("opencode --session " + id)
+            case (.openCode, true): return inFolder("opencode --session " + id + " --fork")
             case (.tinycast, _): return nil
             }
         }
@@ -193,7 +200,9 @@ enum AgentResumeCommand {
 
     static func isVariableName(_ name: String) -> Bool {
         guard let first = name.utf8.first, !(0x30...0x39).contains(first) else { return false }
-        return name.utf8.allSatisfy { (0x41...0x5A).contains($0) || (0x30...0x39).contains($0) || $0 == UInt8(ascii: "_") }
+        return name.utf8.allSatisfy { byte in
+            (0x41...0x5A).contains(byte) || (0x30...0x39).contains(byte) || byte == UInt8(ascii: "_")
+        }
     }
 
     static func isSafeTTY(_ tty: String) -> Bool {

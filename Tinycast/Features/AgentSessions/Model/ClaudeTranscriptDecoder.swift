@@ -27,10 +27,8 @@ enum ClaudeTranscriptDecoder {
     struct HeadReader: Sendable {
         private(set) var facts = HeadFacts()
         private(set) var consumed = 0
-        /// The longest line ever held, which the harness pins under `lineCap`.
-        private(set) var largestCarry = 0
-        private var carry = Data()
-        private var skipping = false
+        private var splitter = JSONLineSplitter(cap: lineCap)
+        var largestCarry: Int { splitter.largestCarry }
 
         init() {}
 
@@ -38,39 +36,16 @@ enum ClaudeTranscriptDecoder {
         mutating func consume(_ chunk: Data) -> Bool {
             consumed += chunk.count
             var start = chunk.startIndex
-            while start < chunk.endIndex {
-                guard let newline = chunk[start...].firstIndex(of: 0x0A) else {
-                    hold(chunk[start...])
-                    break
-                }
-                if !skipping, carry.count + (newline - start) <= lineCap {
-                    carry.append(chunk[start..<newline])
-                    largestCarry = max(largestCarry, carry.count)
-                    read(carry)
-                }
-                carry.removeAll(keepingCapacity: true)
-                skipping = false
-                start = newline + 1
+            while let line = splitter.next(in: chunk, from: &start) {
+                read(line)
                 if facts.isComplete { return true }
             }
             return facts.isComplete || consumed >= headCap
         }
 
         mutating func finish() -> HeadFacts {
-            if !skipping, !carry.isEmpty { read(carry) }
-            carry = Data()
+            if let line = splitter.finish() { read(line) }
             return facts
-        }
-
-        private mutating func hold(_ part: Data) {
-            guard !skipping else { return }
-            guard carry.count + part.count <= lineCap else {
-                carry.removeAll(keepingCapacity: false)
-                skipping = true
-                return
-            }
-            carry.append(part)
-            largestCarry = max(largestCarry, carry.count)
         }
 
         private mutating func read(_ line: Data) {
@@ -82,18 +57,19 @@ enum ClaudeTranscriptDecoder {
                 else { return }
                 facts.sessionID = facts.sessionID ?? object["sessionId"] as? String
                 switch type {
-                case "custom-title": facts.customTitle = nonEmpty(object["customTitle"]) ?? facts.customTitle
-                case "ai-title": facts.aiTitle = nonEmpty(object["aiTitle"]) ?? facts.aiTitle
-                case "summary": facts.summary = nonEmpty(object["summary"]) ?? facts.summary
+                case "custom-title":
+                    facts.customTitle = AgentSessionText.nonEmpty(object["customTitle"]) ?? facts.customTitle
+                case "ai-title": facts.aiTitle = AgentSessionText.nonEmpty(object["aiTitle"]) ?? facts.aiTitle
+                case "summary": facts.summary = AgentSessionText.nonEmpty(object["summary"]) ?? facts.summary
                 default: break
                 }
             case .conversation(let user):
                 guard let object = ClaudeTranscriptDecoder.object(line) else { return }
-                if facts.cwd == nil, let cwd = nonEmpty(object["cwd"]) {
+                if facts.cwd == nil, let cwd = AgentSessionText.nonEmpty(object["cwd"]) {
                     facts.cwd = cwd
                     facts.sessionID = facts.sessionID ?? object["sessionId"] as? String
-                    facts.branch = nonEmpty(object["gitBranch"])
-                    facts.entrypoint = nonEmpty(object["entrypoint"])
+                    facts.branch = AgentSessionText.nonEmpty(object["gitBranch"])
+                    facts.entrypoint = AgentSessionText.nonEmpty(object["entrypoint"])
                     facts.createdAt = (object["timestamp"] as? String).flatMap(ClaudeTranscriptDecoder.date)
                 }
                 if user, facts.firstPrompt == nil {
@@ -144,12 +120,15 @@ enum ClaudeTranscriptDecoder {
                     continue
                 }
                 switch type {
-                case "custom-title": facts.customTitle = facts.customTitle ?? nonEmpty(object["customTitle"])
-                case "ai-title": facts.aiTitle = facts.aiTitle ?? nonEmpty(object["aiTitle"])
-                case "summary": facts.summary = facts.summary ?? nonEmpty(object["summary"])
-                case "relocated": facts.relocatedCwd = facts.relocatedCwd ?? nonEmpty(object["relocatedCwd"])
+                case "custom-title":
+                    facts.customTitle = facts.customTitle ?? AgentSessionText.nonEmpty(object["customTitle"])
+                case "ai-title": facts.aiTitle = facts.aiTitle ?? AgentSessionText.nonEmpty(object["aiTitle"])
+                case "summary": facts.summary = facts.summary ?? AgentSessionText.nonEmpty(object["summary"])
+                case "relocated":
+                    facts.relocatedCwd = facts.relocatedCwd ?? AgentSessionText.nonEmpty(object["relocatedCwd"])
                 case "last-prompt":
-                    lastPrompt = lastPrompt ?? nonEmpty(object["lastPrompt"]).map { AgentSessionText.oneLine($0) }
+                    lastPrompt =
+                        lastPrompt ?? AgentSessionText.nonEmpty(object["lastPrompt"]).map { AgentSessionText.oneLine($0) }
                 default: break
                 }
             case .conversation(user: true):
@@ -269,8 +248,8 @@ enum ClaudeTranscriptDecoder {
 
     private static let metaOpening = Array("{\"type\":\"".utf8)
 
-    /// Lines of a window; one longer than `lineCap` is dropped rather than decoded.
-    static func lines(of window: Data, startsMidLine: Bool) -> [Data] {
+    /// Lines of a window; one longer than `cap` is dropped rather than decoded.
+    static func lines(of window: Data, startsMidLine: Bool, cap: Int = lineCap) -> [Data] {
         var result: [Data] = []
         var start = window.startIndex
         if startsMidLine {
@@ -279,7 +258,7 @@ enum ClaudeTranscriptDecoder {
         }
         while start < window.endIndex {
             let end = window[start...].firstIndex(of: 0x0A) ?? window.endIndex
-            if end > start, end - start <= lineCap { result.append(window[start..<end]) }
+            if end > start, end - start <= cap { result.append(window[start..<end]) }
             start = end + 1
         }
         return result
@@ -308,11 +287,4 @@ enum ClaudeTranscriptDecoder {
         guard let base = buffer.baseAddress, buffer.count >= needle.utf8CodeUnitCount else { return false }
         return memmem(base, buffer.count, needle.utf8Start, needle.utf8CodeUnitCount) != nil
     }
-}
-
-private func nonEmpty(_ value: Any?) -> String? {
-    guard let text = value as? String, !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-        return nil
-    }
-    return text
 }

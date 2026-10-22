@@ -64,7 +64,7 @@ final class AgentSessionsCoordinator {
     var index: AgentSessionIndex {
         if let builtIndex { return builtIndex }
         let index = AgentSessionIndex(
-            chatHistory: chatHistory, agentStore: agentStore, locations: locations, cacheURL: Self.cacheURL,
+            chatHistory: chatHistory, agentStore: agentStore, locations: locations, cacheFolder: Self.cacheFolder,
             claudeExecutable: { [weak self] in await self?.locateClaude() })
         builtIndex = index
         return index
@@ -87,8 +87,8 @@ final class AgentSessionsCoordinator {
             codexFolder: settings.agentSessionsCodexFolder)
     }
 
-    static var cacheURL: URL {
-        AppPaths.caches().appending(path: "agent-sessions/claude-index.json", directoryHint: .notDirectory)
+    static var cacheFolder: URL {
+        AppPaths.caches().appending(path: "agent-sessions", directoryHint: .isDirectory)
     }
 
     private static var stateFolder: URL {
@@ -108,12 +108,14 @@ final class AgentSessionsCoordinator {
         updateStatusItem()
     }
 
-    /// Off also deletes the cache, which holds titles and prompts.
+    /// Off also deletes the caches, which hold titles and prompts.
     func setEnabled(_ enabled: Bool) {
         settings.agentSessionsEnabled = enabled
         guard !enabled else { return }
-        let cache = Self.cacheURL
-        Task.detached(priority: .utility) { try? FileManager.default.removeItem(at: cache) }
+        let caches = [AgentSource.claude, .gemini].map { AgentSessionIndex.cacheFile($0, in: Self.cacheFolder) }
+        Task.detached(priority: .utility) {
+            for cache in caches { try? FileManager.default.removeItem(at: cache) }
+        }
     }
 
     func show(query: String? = nil) {
@@ -167,6 +169,7 @@ final class AgentSessionsCoordinator {
         case .tinycast: true
         case .claude: session.host == .claudeApp
         case .codex: NSWorkspace.shared.urlForApplication(withBundleIdentifier: AgentActivityPolicy.codexApp) != nil
+        case .gemini, .openCode: false
         }
     }
 
@@ -235,6 +238,8 @@ final class AgentSessionsCoordinator {
             else { return }
             paletteCoordinator.hidePalette(restoreFocus: false)
             NSWorkspace.shared.open(url)
+        case .gemini, .openCode:
+            break
         }
     }
 

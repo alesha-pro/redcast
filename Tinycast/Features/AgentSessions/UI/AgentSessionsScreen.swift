@@ -93,7 +93,9 @@ struct AgentSessionsScreen: PaletteScreen {
     }
 
     func tertiary(at selection: Int) -> Bool {
-        guard let session = session(at: selection), session.source != .tinycast else { return false }
+        guard let session = session(at: selection), coordinator.resumeCommand(session, action: .fork) != nil else {
+            return false
+        }
         coordinator.resume(session, action: .fork)
         return true
     }
@@ -247,19 +249,21 @@ enum AgentSessionsActionsMenu {
             ) {
                 coordinator.resume(session, action: .resume)
             })
-        items += [
+        items.append(
             PopoverMenuItem(
                 title: String(localized: "Copy Resume Command"), systemImage: "doc.on.doc", shortcut: "⌘↵"
             ) {
                 coordinator.copyResumeCommand(session)
-            },
-            PopoverMenuItem(
-                title: String(localized: "Fork in \(terminal)"), systemImage: "arrow.triangle.branch",
-                shortcut: "⌃⌘↵"
-            ) {
-                coordinator.resume(session, action: .fork)
-            }
-        ]
+            })
+        if coordinator.resumeCommand(session, action: .fork) != nil {
+            items.append(
+                PopoverMenuItem(
+                    title: String(localized: "Fork in \(terminal)"), systemImage: "arrow.triangle.branch",
+                    shortcut: "⌃⌘↵"
+                ) {
+                    coordinator.resume(session, action: .fork)
+                })
+        }
         if coordinator.canOpenInApp(session) {
             let title =
                 session.source == .claude ? String(localized: "Open in Claude") : String(localized: "Open in Codex")
@@ -321,10 +325,9 @@ enum AgentSessionsActionsMenu {
 
     private static func filterItems(index: AgentSessionIndex) -> [PopoverMenuItem] {
         let filter = index.filter
-        let sources: [(AgentSource?, String)] = [
-            (nil, String(localized: "All Sources")), (.claude, AgentSource.claude.productName),
-            (.codex, AgentSource.codex.productName), (.tinycast, AgentSource.tinycast.productName)
-        ]
+        let present = AgentSource.allCases.filter { index.hasSessions(from: $0) || filter.source == $0 }
+        let sources: [(AgentSource?, String)] =
+            [(nil, String(localized: "All Sources"))] + present.map { ($0, $0.productName) }
         var items = sources.enumerated().map { position, entry in
             PopoverMenuItem(
                 title: entry.1, icon: filter.source == entry.0 ? .symbol("checkmark") : .blank,
@@ -342,7 +345,7 @@ enum AgentSessionsActionsMenu {
             })
         items.append(
             PopoverMenuItem(
-                title: String(localized: "Include Archived Codex Threads"),
+                title: String(localized: "Include Archived Sessions"),
                 icon: filter.showsArchived ? .symbol("checkmark") : .blank
             ) {
                 index.filter.showsArchived.toggle()

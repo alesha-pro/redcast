@@ -304,7 +304,7 @@ enum SettingsSearchCatalog {
             ]),
         .init(
             .aiAgentSessions, "Search agent sessions",
-            keywords: ["claude code", "codex", "resume", "history", "sessions", "transcripts"]),
+            keywords: ["claude code", "codex", "gemini", "opencode", "resume", "history", "sessions", "transcripts"]),
         .init(.aiAgentSessions, "Resume in", keywords: ["terminal", "iterm", "ghostty", "warp", "zap"]),
         .init(
             .aiAgentSessions, "Claude Code folder",

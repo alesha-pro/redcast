@@ -1,25 +1,21 @@
 import Foundation
 import SQLite3
 
-private let codexSQLiteTransient = unsafeBitCast(-1, to: sqlite3_destructor_type.self)
-
 /// Codex's own databases, read-only; every connection closes before its function returns.
 enum CodexStateReader {
-    enum Failure: Error, Equatable { case missing, unreadable(String), schema(String) }
-
     static let requiredColumns: Set<String> = ["id", "cwd", "rollout_path", "created_at", "updated_at"]
 
     /// Visible, non-subagent threads, newest first; columns probed with PRAGMA table_info.
     static func threads(database: URL, includeArchived: Bool, limit: Int = 2_000)
-        throws(Failure) -> [AgentSession]
+        throws(HistoryDatabase.Failure) -> [AgentSession]
     {
-        let db = try open(database)
+        let db = try HistoryDatabase.open(database)
         defer { sqlite3_close_v2(db) }
-        let columns = try self.columns(of: "threads", in: db)
+        let columns = try HistoryDatabase.columns(of: "threads", in: db)
         let missing = requiredColumns.subtracting(columns)
         guard missing.isEmpty else { throw .schema(missing.sorted().joined(separator: ", ")) }
         let sql = threadsQuery(columns: columns, single: false)
-        let rows = try query(sql, in: db) { statement in
+        let rows = try HistoryDatabase.query(sql, in: db) { statement in
             sqlite3_bind_int(statement, 1, includeArchived ? 1 : 0)
             sqlite3_bind_int(statement, 2, Int32(limit))
         }
@@ -27,23 +23,25 @@ enum CodexStateReader {
     }
 
     /// Any thread, listed or not, so an event can tell a subagent or Tinycast's own thread apart.
-    static func thread(database: URL, id: String) throws(Failure) -> AgentSession? {
-        let db = try open(database)
+    static func thread(database: URL, id: String) throws(HistoryDatabase.Failure) -> AgentSession? {
+        let db = try HistoryDatabase.open(database)
         defer { sqlite3_close_v2(db) }
-        let columns = try self.columns(of: "threads", in: db)
+        let columns = try HistoryDatabase.columns(of: "threads", in: db)
         guard requiredColumns.isSubset(of: columns) else { throw .schema("threads") }
         let sql = threadsQuery(columns: columns, single: true)
-        let rows = try query(sql, in: db) { statement in
-            sqlite3_bind_text(statement, 1, id, -1, codexSQLiteTransient)
+        let rows = try HistoryDatabase.query(sql, in: db) { statement in
+            HistoryDatabase.bind(id, at: 1, in: statement)
         }
         return rows.first.flatMap { session(from: $0, listing: false) }
     }
 
     /// From thread_history's projected items; empty when the thread has none.
-    static func historyTurns(database: URL, threadID: String, limit: Int) throws(Failure) -> [SessionTurn] {
-        let db = try open(database)
+    static func historyTurns(database: URL, threadID: String, limit: Int)
+        throws(HistoryDatabase.Failure) -> [SessionTurn]
+    {
+        let db = try HistoryDatabase.open(database)
         defer { sqlite3_close_v2(db) }
-        guard try columns(of: "thread_items", in: db).isSuperset(of: ["item_type", "item_json"]) else {
+        guard try HistoryDatabase.columns(of: "thread_items", in: db).isSuperset(of: ["item_type", "item_json"]) else {
             return []
         }
         let sql = """
@@ -51,8 +49,8 @@ enum CodexStateReader {
             WHERE thread_id = ?1 AND item_type IN ('userMessage', 'agentMessage')
             ORDER BY rollout_ordinal DESC LIMIT ?2;
             """
-        let rows = try query(sql, in: db) { statement in
-            sqlite3_bind_text(statement, 1, threadID, -1, codexSQLiteTransient)
+        let rows = try HistoryDatabase.query(sql, in: db) { statement in
+            HistoryDatabase.bind(threadID, at: 1, in: statement)
             sqlite3_bind_int(statement, 2, Int32(limit))
         }
         return rows.reversed().compactMap { row in
@@ -68,17 +66,19 @@ enum CodexStateReader {
     }
 
     /// The first projected message holding `needle`, or nil; SQLite's `lower` folds ASCII only.
-    static func historyMatch(database: URL, threadID: String, needle: String) throws(Failure) -> String? {
-        let db = try open(database)
+    static func historyMatch(database: URL, threadID: String, needle: String)
+        throws(HistoryDatabase.Failure) -> String?
+    {
+        let db = try HistoryDatabase.open(database)
         defer { sqlite3_close_v2(db) }
         let sql = """
             SELECT item_type, item_json FROM thread_items WHERE thread_id = ?1 AND
               item_type IN ('userMessage','agentMessage') AND instr(lower(item_json), lower(?2)) > 0
             LIMIT 1;
             """
-        let rows = try query(sql, in: db) { statement in
-            sqlite3_bind_text(statement, 1, threadID, -1, codexSQLiteTransient)
-            sqlite3_bind_text(statement, 2, needle, -1, codexSQLiteTransient)
+        let rows = try HistoryDatabase.query(sql, in: db) { statement in
+            HistoryDatabase.bind(threadID, at: 1, in: statement)
+            HistoryDatabase.bind(needle, at: 2, in: statement)
         }
         guard let row = rows.first, let data = row[1].data(using: .utf8),
             let item = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any]
@@ -196,52 +196,6 @@ enum CodexStateReader {
         if columns.contains("preview") { conditions.append("preview <> ''") }
         if columns.contains("source") { conditions.append("source NOT LIKE '{%'") }
         return head + conditions.joined(separator: " AND ") + " ORDER BY updated_at DESC LIMIT ?2;"
-    }
-
-    // MARK: - SQLite
-
-    private static func open(_ url: URL) throws(Failure) -> OpaquePointer {
-        guard FileManager.default.fileExists(atPath: url.path) else { throw .missing }
-        var db: OpaquePointer?
-        let flags = SQLITE_OPEN_READONLY | SQLITE_OPEN_NOMUTEX
-        guard sqlite3_open_v2(url.path, &db, flags, nil) == SQLITE_OK, let db else {
-            let message = db.map { String(cString: sqlite3_errmsg($0)) } ?? "open failed"
-            sqlite3_close_v2(db)
-            throw .unreadable(message)
-        }
-        sqlite3_busy_timeout(db, 250)
-        sqlite3_exec(db, "PRAGMA query_only = 1;", nil, nil, nil)
-        return db
-    }
-
-    private static func columns(of table: String, in db: OpaquePointer) throws(Failure) -> Set<String> {
-        let rows = try query("PRAGMA table_info(\(table));", in: db) { _ in }
-        return Set(rows.map { $0[1] })
-    }
-
-    /// Every column as text; the callers convert, so one reader serves every query here.
-    private static func query(
-        _ sql: String, in db: OpaquePointer, bind: (OpaquePointer) -> Void
-    ) throws(Failure) -> [[String]] {
-        var statement: OpaquePointer?
-        guard sqlite3_prepare_v2(db, sql, -1, &statement, nil) == SQLITE_OK, let statement else {
-            throw .unreadable(String(cString: sqlite3_errmsg(db)))
-        }
-        defer { sqlite3_finalize(statement) }
-        bind(statement)
-        var rows: [[String]] = []
-        while true {
-            let step = sqlite3_step(statement)
-            guard step == SQLITE_ROW else {
-                guard step == SQLITE_DONE else { throw .unreadable(String(cString: sqlite3_errmsg(db))) }
-                return rows
-            }
-            let count = sqlite3_column_count(statement)
-            rows.append(
-                (0..<count).map { column in
-                    sqlite3_column_text(statement, column).map { String(cString: $0) } ?? ""
-                })
-        }
     }
 
     // MARK: - Items
