@@ -24,6 +24,7 @@ struct NotesAITests {
         await searching()
         await reading()
         await appendingThroughTheRunner()
+        await anUnnamedNoteByItsPrintedName()
         await openDraftRouting()
         attachments()
         await theStoreTakesAnAppend()
@@ -258,6 +259,18 @@ struct NotesAITests {
         }
         expect(suggestions.first == "Standup" && suggestions.count <= 5, "but suggests close titles")
         expect(NoteToolFormat.name(two) == "Ideas (Untitled 2.md)", "an unnamed note is named with its file")
+        for note in all {
+            expect(
+                NoteToolFormat.resolve(NoteToolFormat.name(note), in: all) == .found(note),
+                "the name a tool prints finds its note again: \(NoteToolFormat.name(note))")
+        }
+        expect(
+            NoteToolFormat.resolve("Ideas, edited (Untitled 3.md)", in: all) == .found(three),
+            "by its file even after its first line changed")
+        let titled = summary("Plan (Standup.md).md")
+        expect(
+            NoteToolFormat.resolve("Plan (Standup.md)", in: all + [titled]) == .found(titled),
+            "a title that merely looks like that form is still its own file first")
         expect(
             NoteToolFormat.row(standup, timeZone: TimeZone(identifier: "UTC") ?? .current)
                 == "Standup · modified 2026-09-21 14:13",
@@ -419,6 +432,31 @@ struct NotesAITests {
             let result = await off.run(call(name, #"{"note":"Report","text":"x"}"#))
             expect(result.content == NoteToolRunner.turnedOff, "\(name) refuses while Notes is off")
         }
+    }
+
+    static func anUnnamedNoteByItsPrintedName() async {
+        let root = folder("unnamed")
+        defer { try? FileManager.default.removeItem(at: root) }
+        write([("Untitled 2.md", "Ideas for Q4\nship it\n")], in: root)
+        let notes = runner(root)
+        let listed = await notes.run(call(NoteTools.search, "{}"))
+        let row = listed.content.components(separatedBy: "\n").first { $0.hasPrefix("- ") }
+        let printed = row.flatMap { $0.dropFirst(2).components(separatedBy: " · modified").first } ?? ""
+        expect(
+            printed == "Ideas for Q4 (Untitled 2.md)", "the search names it by line and file, got \(printed)")
+        let arguments = { (extra: String) in
+            let object = ["note": printed, "text": extra]
+            let data = (try? JSONSerialization.data(withJSONObject: object)) ?? Data()
+            return String(data: data, encoding: .utf8) ?? "{}"
+        }
+        let read = await notes.run(call(NoteTools.read, arguments("")))
+        expect(!read.isError && read.content.contains("ship it"), "notes_read takes that name back")
+        let added = await notes.run(call(NoteTools.append, arguments("more")))
+        expect(
+            added.content == "Added 4 bytes to “Ideas for Q4”."
+                && text("Untitled 2.md", in: root) == "Ideas for Q4\nship it\n\nmore\n"
+                && (try? FileManager.default.contentsOfDirectory(atPath: root.path).count) == 1,
+            "and notes_append adds to that note rather than making a new one, got \(added.content)")
     }
 
     // MARK: - 8. The open note
