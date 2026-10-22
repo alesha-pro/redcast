@@ -7,6 +7,11 @@ let nextSession = 1;
 let nextRequest = 1000;
 const waiting = new Map();
 const state = { loads: [], cancels: [], news: 0, modes: [], grandchild: null };
+const commands = [
+  { name: "review", description: "Review the changes", input: { hint: "what to review" } },
+  { name: "/compact", description: "Summarise\nthe conversation", input: null },
+  { name: "bad name", description: "never offered" },
+];
 const modes = {
   currentModeId: "default",
   availableModes: [
@@ -52,6 +57,16 @@ async function prompt(id, params) {
   }
   if (text.includes("REFUSE")) {
     send({ id, result: { stopReason: "refusal" } });
+    return;
+  }
+  const first = prompt[0]?.type === "text" ? prompt[0].text : "";
+  if (first.startsWith("/")) {
+    const context = text.includes("Context from Tinycast") ? "with context" : "without context";
+    update(sessionId, {
+      sessionUpdate: "agent_message_chunk",
+      content: { type: "text", text: `ran ${first}; ${context}; blocks ${prompt.length}` },
+    });
+    send({ id, result: { stopReason: "end_turn" } });
     return;
   }
   if (text.includes("DIFF")) {
@@ -135,6 +150,8 @@ input.on("line", (line) => {
       state.news += 1;
       sessions.set(sessionId, { cwd: params.cwd, turns: 0, servers: params.mcpServers.length });
       send({ id, result: { sessionId, modes } });
+      // After the reply, as claude-agent-acp does: the list can beat the client's own bookkeeping.
+      setTimeout(() => update(sessionId, { sessionUpdate: "available_commands_update", availableCommands: commands }), 0);
       break;
     }
     case "session/load":

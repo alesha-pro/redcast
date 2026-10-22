@@ -54,6 +54,8 @@ struct AIChatDetailView: View {
                     }
                 }
                 .notePicker(chat: chat, chats: coordinator, editor: editor)
+                // Fork: an ACP agent's slash commands, offered while the draft is typing one.
+                .acpCommands(chat: chat, chats: coordinator, editor: editor)
             VStack(alignment: .leading, spacing: Theme.Spacing.md) {
                 if !suggestions.isEmpty, chat.draft.isEmpty {
                     ChatSuggestionChips(choices: suggestions) { coordinator.send($0, in: chat) }

@@ -90,6 +90,10 @@ in root search or on a schedule: see [background and scheduled agents](backgroun
   is saved: at most 12 KB a row. It is saved in its own table, `message_tool_content`, keyed like
   `message_tools` and deleted with its message, so `message_tools` keeps its columns and a chat this
   build saved opens unchanged, without the content, in a build from before it.
+- **A slash command list lives with its session.** `available_commands_update` is kept per live
+  session in `AgentACPHost` and mirrored to the coordinator like the modes; it goes when the agent's
+  process does, and nothing is written down. The composer's list exists only while the draft is
+  typing a command name in an ACP chat, and so does the key monitor behind it.
 
 ## ACP agents
 
@@ -122,7 +126,8 @@ They run on the user's own logins and subscriptions; Tinycast never sees a key.
   instructions when switched on, skills by name and `SKILL.md` path, notes and the agent's own
   instructions — leads the first prompt of a new session, with the chat's earlier turns (newest
   first, 24 KB, a cut said) when the chat began before this session did. A reloaded session needs
-  neither.
+  neither. A slash command's turn carries neither and leaves them for the session's next ordinary
+  turn; that wait is kept in memory, so it holds across an idle stop but not a relaunch.
 - **Tinycast offers no fs or terminal of its own.** `initialize` declares both off, so the agent uses
   its own tools and asks about them with `session/request_permission`; any `fs/*`, `terminal/*` or
   other request is answered with method-not-found. The permission dialog lists the agent's own
@@ -146,6 +151,20 @@ They run on the user's own logins and subscriptions; Tinycast never sees a key.
   command its last 60, anything else its first 60. The row is collapsed until clicked, the unfolded
   text wraps in a card like a code block and copies with Copy Output, and nothing is streamed per
   chunk: `_meta.terminal_output` is not asked for. Images inside tool content are not shown.
+- **Slash commands are the session's.** Claude Code, Codex and Hermes send
+  `available_commands_update` just after `session/new` and `session/load` — Claude Code's adapter
+  before Tinycast has read the session's reply — so the host keeps the list per session and hands it
+  to the chat once the session is bound; the coordinator falls back to the agent's last list for a
+  chat whose session has not started. A list holds 200 commands, names of up to 64 characters
+  without spaces or `/`, one-line descriptions of 200. While the draft is `/` and a name with no
+  space yet, a card over the composer lists the matches, names starting with the text first: ↑ and ↓
+  move, Tab completes to `/name ` through the text view, so ⌘Z undoes it, Return completes too
+  unless the draft already names the selected command, when it sends, and Esc hides the card until
+  the draft changes. Keys reach it only while the composer is first responder and no input method
+  is composing. A command goes as plain text, as ACP says, and its turn leads with it, because the
+  adapters read only the first block (Codex) or the joined text (Hermes): attachments follow, the
+  briefing waits. A text is a command when its name is one the session offered, or, before any list
+  arrived, any name without a `/`, so `/Users/me` stays text. Other chats never show the card.
 - **Modes are the agent's.** The modes a session offers (Claude Code's plan, Codex's read-only…)
   replace the model and reasoning pickers in the composer. The choice is stored on the agent as
   `acpMode`, applied with `session/set_mode` to a live session and to each new one, and the menu
@@ -173,10 +192,12 @@ They run on the user's own logins and subscriptions; Tinycast never sees a key.
 | `Model/ACPProtocol.swift` | Framing, `session/update` decoding, permissions, prompt blocks, modes, `ACPEventMapper` |
 | `Model/ChatToolContent.swift` | A tool row's compacted diffs and output as saved; the only fork type upstream's chat model names |
 | `Model/ACPToolContent.swift` | The compaction: line diff, folds, output cleaning, the per-row budget |
+| `Model/ACPCommand.swift` | Slash commands: decoding, matching a draft, completion, what a turn's text invokes |
 | `Service/ACPConnection.swift` | One agent process: launch, `initialize`, requests, permission routing, exit |
 | `Service/ProcessTree.swift` | Descendants by pid and start time, and their SIGTERM then SIGKILL |
-| `Service/AgentACPHost.swift` | Processes per agent, sessions per chat, load/new, modes; `ACPAgentProvider` |
+| `Service/AgentACPHost.swift` | Processes per agent, sessions per chat, load/new, modes, commands; `ACPAgentProvider` |
 | `UI/ChatToolContentView.swift` | `.toolContent(_:)`: a transcript row's fold and its diff or output card |
+| `UI/ACPCommandPicker.swift` | `.acpCommands(chat:chats:editor:)`: the composer's command card and its keys |
 | `Settings/AgentsSettingsSection.swift`, `AgentEditorPanel.swift` | The AI pane's list, its schedules and the editor |
 
 Background runs and schedules add their own files, listed in
@@ -279,16 +300,25 @@ prompt edit.
   context, or to the command's output without colour codes or a `console` fence; Copy Output copies
   it. Quit and reopen the chat: the rows open the same. Ask for a 500-line file: the row shows 60
   lines and a count. Repeat with Codex (`apply_patch` hunks, command output at its end).
+- ACP commands: in a Claude Code chat type `/`: the card lists its commands with descriptions;
+  type `/rev`, ↓, Tab: the draft is `/review ` and ⌘Z restores `/rev`. Type `/compact` and Return:
+  it sends at once, and the agent compacts. Esc hides the card until the next keystroke; Japanese
+  input's Return confirms the composition, not the card. A new chat with the same agent offers the
+  commands before its first message; a chat on an API model or with no agent never shows the card.
+  With Codex, `/status` answers with its status; in a fresh chat it is the first block (its reply is
+  the command's, not a model's).
 - Harnesses: `acp-test` (framing, updates, permissions, prompts, modes, tool content compaction,
-  and a scripted agent process in `Tests/acp-fixtures/fake-agent.mjs`: streaming, consent, reuse,
-  refusal, cancel, reload, lost sessions, a missing command, two agents sharing a session id, diffs
-  and output reaching their rows once); `ai-chat-test`'s fork case (content on its row, saved beside
-  it, unreadable or absent content, a store from before the table, the cascade); `agent-test` (skills, catalog, path policy, tool sets, specs, consent
-  policy and per-agent rules, toolset order and routing, batches, budget, elision, the prompt and the
-  rules it states, persistence); `agent-tools-test` (the executor against a real folder: reads,
-  writes with consent, link escapes, commands, timeouts and Stop, memory, skills, HTML; the built-ins
-  through a toolset, with and without an agent's own rules; every refused effect); and
-  `agent-loop-test` (the fork's loop and upstream's on the same scripts under 128 KB; routing,
-  signals, Stop, parallel batches, a long turn that elides); `web-search-test` covers the search
-  provider through a toolset and the loop; and `agent-schedule-test` covers background runs and
-  schedules (see [background-agents.md](background-agents.md#manual-sweep)).
+  slash commands, and a scripted agent process in `Tests/acp-fixtures/fake-agent.mjs`: streaming,
+  consent, reuse, refusal, cancel, reload, lost sessions, a missing command, two agents sharing a
+  session id, commands that beat the session's binding, a command turn and the briefing after it,
+  diffs and output reaching their rows once); `ai-chat-test`'s fork case (content on its row, saved
+  beside it, unreadable or absent content, a store from before the table, the cascade); `agent-test`
+  (skills, catalog, path policy, tool sets, specs, consent policy and per-agent rules, toolset order
+  and routing, batches, budget, elision, the prompt and the rules it states, persistence);
+  `agent-tools-test` (the executor against a real folder: reads, writes with consent, link escapes,
+  commands, timeouts and Stop, memory, skills, HTML; the built-ins through a toolset, with and
+  without an agent's own rules; every refused effect); and `agent-loop-test` (the fork's loop and
+  upstream's on the same scripts under 128 KB; routing, signals, Stop, parallel batches, a long turn
+  that elides); `web-search-test` covers the search provider through a toolset and the loop; and
+  `agent-schedule-test` covers background runs and schedules (see
+  [background-agents.md](background-agents.md#manual-sweep)).
