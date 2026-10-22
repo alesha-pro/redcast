@@ -22,8 +22,9 @@ the launcher's fallback files, `CommandID`, `AISettingsView` and `AppCore`.
 - **Nothing exists until something needs it.** With no enabled schedule and no agent asking for
   banners, `AgentCoordinator` makes no `AgentBackgroundCoordinator` at all; `AgentBackgroundNeeds`
   decides, and `agent-schedule-test` proves that agents alone, a switched-off schedule or AI off need
-  nothing, and that a scheduler with no enabled schedule holds neither a task nor an observer. A
-  launcher run makes the coordinator, and it is dropped again once nothing runs, shows or waits.
+  nothing, and that a scheduler with no enabled schedule holds neither a task nor an observer; the
+  coordinator's own guard is in the manual sweep. A launcher run makes the coordinator, and it is
+  dropped again once nothing runs, shows or waits.
 - **One sleeping task, no heartbeat.** `AgentScheduler` sleeps until the next due time with a 30 s
   tolerance, drops that task when the Mac is about to sleep and re-arms on wake, clock and time-zone
   changes: four observers, kept only while some schedule is enabled. A run in flight adds one
@@ -46,6 +47,10 @@ the launcher's fallback files, `CommandID`, `AISettingsView` and `AppCore`.
   its turn behind any open dialog and puts Return on Don't Allow, so typing elsewhere can never
   approve anything. When nobody is there, or under **Decline**, the request is refused at once and
   counted on the run's row. A rule of Always Allow still allows, and Never Allow still refuses.
+  `AgentConsentPlan` says how a request is put, and `AgentConsentGate.ask` decides it again when its
+  turn in the queue comes, so someone who left during the wait is not asked and a Stop shows nothing.
+  An ACP refusal nobody chose picks the agent's refuse-once option, or cancels the request when it
+  offers none, so it never leaves an "always" behind.
 - **Agent questions queue.** `AgentConsentGate` asks one at a time and only once no dialog is up,
   observed rather than polled, so a foreground and a background ask no longer refuse each other.
 - **Only Always-trusted MCP servers ride an unattended turn.** Servers set to Ask are excluded through
@@ -126,11 +131,11 @@ other is written on disk and re-listed the next time Notes opens. With Notes off
 | --- | --- |
 | `Model/AgentTaskAddress.swift` | Handles and `@handle task` parsing |
 | `Model/AgentSchedule.swift` | The rule, the schedule, its errors, and `AgentSchedulePolicy`: occurrences, verdicts, summaries |
-| `Model/AgentRun.swift` | A run and the ledger behind the indicator, `AgentConsentMode`, `AgentBackgroundNeeds`, the note block, the briefing |
+| `Model/AgentRun.swift` | A run, how it ended and the ledger behind the indicator, `AgentConsentMode`, `AgentConsentPlan`, `AgentBackgroundNeeds`, the note block, the briefing |
 | `Service/AgentScheduler.swift` | The one sleeping task, its four observers and the sleep meter |
 | `Service/AgentRunNotifier.swift` | Opt-in Notification Center banners |
 | `UI/AgentBackgroundCoordinator.swift` | Starting, watching and finishing runs; consent mode; the item, the notifier and the scheduler |
-| `UI/AgentConsentGate.swift` | One agent question at a time, never over another dialog |
+| `UI/AgentConsentGate.swift` | One agent question at a time, never over another dialog, put as its plan says |
 | `UI/AgentRunsStatusItem.swift` | The transient menu-bar item and its menu |
 | `UI/AgentTaskLauncher.swift` | Root search's claim, ↵, ⌘↵, Run Agent Task and the rows' ⌘K menu |
 | `UI/AgentNoteWriter.swift` | Appending to a note, through the store or on disk; in `UI/` because it needs `NotesStore` |
@@ -169,13 +174,18 @@ other is written on disk and re-listed the next time Notes opens. With Notes off
 - Change the time zone: the next run follows local time. Disable for two days and re-enable: no
   catch-up run. Agent busy at the due time: the run starts when the current one ends.
 - No schedules: `sample` shows no `AgentScheduler` task and Activity Monitor no idle wake-ups from it.
+  Agents with no schedule and no **Notify**: Xcode's memory graph shows no `AgentBackgroundCoordinator`.
 - **Notify** on: macOS asks once, on the toggle. A finished run posts a banner without the answer;
   clicking it opens the chat. Off: no banner and no `UNUserNotificationCenter` delegate.
-- ACP: a Claude Code agent run from `@cc …` asks with Claude's own options; **Decline** picks a reject
-  option. When the run ends, the `npx`/adapter/CLI tree leaves Activity Monitor at once.
+- ACP: a Claude Code agent run from `@cc …` asks with Claude's own options; **Decline** picks its
+  refuse-once option. When the run ends, the `npx`/adapter/CLI tree leaves Activity Monitor at once.
+  Two Claude Code agents asking at once: each dialog names its own agent and run.
 - AI off mid-run: the run ends "Cancelled", and the item and the scheduler go away.
 
 Harness: `agent-schedule-test` — handles and addresses, occurrences across weekends and daylight
-saving, verdicts and catch-up, the ledger and its indicator, consent modes and a counted unattended
-refusal, note blocks, persistence and its refusals, the scheduler's arming and its settle after
-sleep, and the consent gate waiting for a dialog in order.
+saving, verdicts and catch-up, the ledger and its indicator, consent modes and plans, the gate's
+whole ask (in front, quiet with Return on refusal, refused unseen when nobody is left after the wait,
+nothing shown after Stop, what is counted) and a counted unattended refusal, how a run ends and its
+limit, note blocks and the append on disk and through an open note's store, persistence and its
+refusals, the scheduler's arming and its settle after sleep, and the consent gate waiting for a
+dialog in order. `acp-test` covers the refusal option and two agents sharing a session id.

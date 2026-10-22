@@ -112,9 +112,7 @@ final class AgentBackgroundCoordinator {
         }
         ai.chats.park(chat)
         chats[id] = chat
-        let minutes = min(
-            max(agent.backgroundPolicy.minutes, AgentBackgroundPolicy.minuteRange.lowerBound),
-            AgentBackgroundPolicy.minuteRange.upperBound)
+        let minutes = agent.backgroundPolicy.limitMinutes
         watchdogs[id] = Task { [weak self] in
             try? await Task.sleep(for: .seconds(minutes * 60))
             guard !Task.isCancelled else { return }
@@ -274,9 +272,8 @@ final class AgentBackgroundCoordinator {
             return settle()
         }
         let last = session.messages.last { $0.role == .assistant }
-        let stopped = stoppedAfter.map { String(localized: "Stopped after \($0) minutes") }
-        let state: AgentRun.State =
-            last?.state == .complete ? .done : .failed(stopped ?? Self.reason(last?.text))
+        let state = AgentRun.endState(
+            complete: last?.state == .complete, reply: last?.text, stoppedAfter: stoppedAfter)
         let ai = core.aiChatCoordinator
         let watched =
             NSApp.keyWindow?.identifier == AIChatWindowChrome.windowIdentifier
@@ -335,15 +332,6 @@ final class AgentBackgroundCoordinator {
             self?.ledger.update(run) { $0.problem = problem }
             self?.refreshIndicator()
         }
-    }
-
-    /// The reply's last line, which is where a failure says what went wrong.
-    private static func reason(_ text: String?) -> String {
-        let line =
-            text?.split(whereSeparator: \.isNewline).last
-            .map { String($0).trimmingCharacters(in: .whitespaces) } ?? ""
-        guard !line.isEmpty else { return String(localized: "The response ended unexpectedly.") }
-        return line.count > 120 ? String(line.prefix(119)) + "…" : line
     }
 
     // MARK: - Indicator and teardown
