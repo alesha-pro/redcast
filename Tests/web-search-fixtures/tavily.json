@@ -1,0 +1,23 @@
+{
+  "query": "SearXNG JSON API",
+  "answer": null,
+  "images": [],
+  "results": [
+    {
+      "title": "Search API - SearXNG Documentation",
+      "url": "https://docs.searxng.org/dev/search_api.html",
+      "content": "SearXNG supports querying via a simple HTTP API. Requesting an unset format will return a 403 Forbidden error.",
+      "score": 0.91,
+      "raw_content": null,
+      "published_date": "2026-10-16"
+    },
+    {
+      "title": "JSON Engine - SearXNG Documentation",
+      "url": "https://docs.searxng.org/dev/engines/json_engine.html",
+      "content": "The JSON engine is a generic engine with which it is possible to configure engines in the settings.",
+      "score": 0.74,
+      "raw_content": null
+    }
+  ],
+  "response_time": 1.12
+}
