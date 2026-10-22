@@ -114,7 +114,8 @@ enum ClaudeTranscriptDecoder {
             guard let end = prefix[valueStart...].firstIndex(of: UInt8(ascii: "\"")),
                 let type = String(bytes: prefix[valueStart..<end], encoding: .utf8)
             else { return .other }
-            return .meta(type)
+            // A turn written with `type` first is still a turn, whatever an older client's key order.
+            if type != "user" && type != "assistant" { return .meta(type) }
         }
         if contains(prefix, "\"type\":\"user\"") || contains(prefix, "\"role\":\"user\"") {
             let isTool = contains(prefix, "\"tool_use_id\"") || contains(prefix, "\"type\":\"tool_result\"")
