@@ -35,6 +35,9 @@ Scripts/fork/install.sh --self-check    # resolve and list; build, quit, move an
 | `TINYCAST_INSTALL_PATH` | `/Applications/Tinycast.app` | where the app is installed |
 | `DEVELOPER_DIR` | `/Applications/Xcode.app/Contents/Developer` | as `build-dmg.sh` |
 
+`TINYCAST_LSREGISTER` replaces the `lsregister` binary, so the swap, rollback and detach can be
+rehearsed on a scratch `TINYCAST_INSTALL_PATH` without touching LaunchServices.
+
 Exit codes: 0 installed · 1 build or verification failed · 2 refused (a foreign bundle, a changed
 identity, an ambiguous certificate) · 3 the app did not quit · 4 the swap failed and was rolled back ·
 64 usage. Working files live in `build/fork/` (`DerivedData/`, `build.log`, `install.log`,
@@ -131,8 +134,9 @@ remote when it is missing.
    docs, lines added to `docs/not-planned.md`, entitlement or usage-string changes, new harnesses);
    upstream's commits grouped by area with their PR links; the top 30 files by churn.
 
-`TINYCAST_SYNC_XCODEGEN` replaces the `xcodegen` command (the self-test sets it to `true`), and
-`TINYCAST_UPSTREAM_URL` the upstream URL.
+`TINYCAST_SYNC_XCODEGEN` replaces the `xcodegen` command (the self-test sets it to `true`),
+`TINYCAST_UPSTREAM_URL` the upstream URL, and `TINYCAST_SYNC_KEEP=1` keeps the self-test's throwaway
+repositories for a look after a failure.
 
 ### `Scripts/fork/merge-xcstrings.mjs`
 
