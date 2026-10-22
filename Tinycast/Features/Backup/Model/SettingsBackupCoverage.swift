@@ -165,6 +165,12 @@ enum SettingsBackupCoverage {
         AppSettingsKey.quickActionsEnabled.rawValue:
             "Grants keystroke delivery into other apps through the Accessibility permission, and a "
             + "flag that grants a capability is never carried by a backup.",
+        AppSettingsKey.screenAwarenessEnabled.rawValue:
+            "Lets a shortcut read whatever window is frontmost into an AI chat through the "
+            + "Accessibility permission; a flag that grants a capability is never carried by a backup.",
+        AppSettingsKey.screenAwarenessScreenshot.rawValue:
+            "Sends a picture of the frontmost window to an AI destination; an import must not decide "
+            + "that this Mac's screen leaves it.",
         AppSettingsKey.quickActionModel.rawValue:
             "Names an external AI destination for text taken from whatever app is frontmost; an "
             + "import must not choose one.",

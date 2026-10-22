@@ -16117,6 +16117,58 @@
         }
       }
     },
+    "A capture is saved with the chat like any attachment. Tinycast never captures its own windows, password fields or text typed under secure input." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eine Aufnahme wird wie jeder Anhang mit dem Chat gespeichert. Tinycast erfasst nie seine eigenen Fenster, Passwortfelder oder Text, der unter sicherer Eingabe getippt wird."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Una captura se guarda con el chat como cualquier adjunto. Tinycast nunca captura sus propias ventanas, campos de contraseña ni texto escrito con entrada segura."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Une capture est enregistrée avec la discussion comme toute pièce jointe. Tinycast ne capture jamais ses propres fenêtres, les champs de mot de passe ni le texte saisi en mode de saisie sécurisée."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "キャプチャは他の添付ファイルと同じくチャットと一緒に保存されます。Tinycastは自身のウインドウ、パスワード欄、セキュア入力中に入力されたテキストを取り込みません。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "캡처는 다른 첨부 파일처럼 채팅과 함께 저장됩니다. Tinycast는 자체 윈도우, 암호 필드, 보안 입력 중에 입력한 텍스트를 캡처하지 않습니다."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uma captura é guardada com o chat como qualquer anexo. O Tinycast nunca captura as próprias janelas, campos de senha nem texto digitado com entrada segura."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Снимок сохраняется в чате, как любое вложение. Tinycast никогда не снимает свои окна, поля паролей и текст, набранный в режиме защищённого ввода."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "捕获内容会像其他附件一样随聊天保存。Tinycast 从不捕获自己的窗口、密码栏或在安全输入下键入的文本。"
+          }
+        }
+      }
+    },
     "A custom command with this name already exists." : {
       "localizations" : {
         "de" : {
@@ -21888,6 +21940,58 @@
         }
       }
     },
+    "App" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "App"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "App"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "App"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "App"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "앱"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "App"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Приложение"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "App"
+          }
+        }
+      }
+    },
     "App Launcher" : {
       "localizations" : {
         "de" : {
@@ -23988,6 +24092,162 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "在它们启动时。"
+          }
+        }
+      }
+    },
+    "Ask About Screen" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zum Bildschirm fragen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Preguntar sobre la pantalla"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Interroger sur l’écran"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "画面について質問"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "화면에 대해 묻기"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Perguntar sobre a tela"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Спросить об экране"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "询问屏幕内容"
+          }
+        }
+      }
+    },
+    "Ask About Screen attaches the window in front of you to Quick AI." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "„Zum Bildschirm fragen“ hängt das vorderste Fenster an Quick AI an."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Preguntar sobre la pantalla adjunta la ventana que tienes delante a Quick AI."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Interroger sur l’écran joint la fenêtre au premier plan à Quick AI."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "「画面について質問」は、手前のウインドウをQuick AIに添付します。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "화면에 대해 묻기는 앞에 있는 윈도우를 Quick AI에 첨부합니다."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Perguntar sobre a tela anexa a janela à sua frente ao Quick AI."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "«Спросить об экране» прикрепляет окно перед вами к Quick AI."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "“询问屏幕内容”会把你面前的窗口附加到 Quick AI。"
+          }
+        }
+      }
+    },
+    "Ask About Screen reads the window in front of you — its text, the field you are typing in and, if you allow it, a screenshot — and attaches it to Quick AI. Nothing is read until you run the command." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "„Zum Bildschirm fragen“ liest das vorderste Fenster – seinen Text, das Feld, in dem du tippst, und, wenn du es erlaubst, ein Bildschirmfoto – und hängt es an Quick AI an. Nichts wird gelesen, bevor du den Befehl ausführst."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Preguntar sobre la pantalla lee la ventana que tienes delante (su texto, el campo en el que escribes y, si lo permites, una captura) y la adjunta a Quick AI. No se lee nada hasta que ejecutas el comando."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Interroger sur l’écran lit la fenêtre au premier plan (son texte, le champ où vous tapez et, si vous l’autorisez, une capture d’écran) et la joint à Quick AI. Rien n’est lu avant que vous lanciez la commande."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "「画面について質問」は、手前のウインドウ（テキスト、入力中のフィールド、許可した場合はスクリーンショット）を読み取り、Quick AIに添付します。コマンドを実行するまで何も読み取りません。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "화면에 대해 묻기는 앞에 있는 윈도우(텍스트, 입력 중인 필드, 허용한 경우 스크린샷)를 읽어 Quick AI에 첨부합니다. 명령을 실행하기 전에는 아무것도 읽지 않습니다."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Perguntar sobre a tela lê a janela à sua frente (o texto, o campo em que você digita e, se permitir, uma captura de tela) e a anexa ao Quick AI. Nada é lido até você executar o comando."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "«Спросить об экране» читает окно перед вами — его текст, поле, в котором вы печатаете, и, если разрешите, скриншот — и прикрепляет это к Quick AI. Пока вы не запустите команду, ничего не читается."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "“询问屏幕内容”会读取你面前的窗口（其中的文本、你正在输入的栏位，以及在你允许时的截图），并附加到 Quick AI。在你运行该命令之前不会读取任何内容。"
           }
         }
       }
@@ -49064,6 +49324,110 @@
         }
       }
     },
+    "Enable Screen Awareness" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bildschirmerkennung aktivieren"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Activar Screen Awareness"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Activer la reconnaissance de l’écran"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "画面認識を有効にする"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "화면 인식 켜기"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ativar reconhecimento da tela"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Включить Screen Awareness"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "启用屏幕感知"
+          }
+        }
+      }
+    },
+    "Enable Screen Awareness?" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bildschirmerkennung aktivieren?"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "¿Activar Screen Awareness?"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Activer la reconnaissance de l’écran ?"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "画面認識を有効にしますか？"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "화면 인식을 켜시겠습니까?"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ativar reconhecimento da tela?"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Включить Screen Awareness?"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "启用屏幕感知？"
+          }
+        }
+      }
+    },
     "Enable System Actions" : {
       "localizations" : {
         "de" : {
@@ -62853,6 +63217,58 @@
         }
       }
     },
+    "Include a screenshot" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bildschirmfoto beifügen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Incluir una captura de pantalla"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inclure une capture d’écran"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "スクリーンショットを含める"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "스크린샷 포함"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Incluir uma captura de tela"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Прикладывать скриншот"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "包含截图"
+          }
+        }
+      }
+    },
     "Incorrect passphrase, or the file is corrupted." : {
       "localizations" : {
         "de" : {
@@ -74812,6 +75228,58 @@
         }
       }
     },
+    "Needed to read the window." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nötig, um das Fenster zu lesen."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Necesario para leer la ventana."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nécessaire pour lire la fenêtre."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ウインドウを読み取るために必要です。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "윈도우를 읽는 데 필요합니다."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Necessário para ler a janela."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Нужно, чтобы читать окно."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "读取窗口时需要。"
+          }
+        }
+      }
+    },
     "Needed to read your selection." : {
       "localizations" : {
         "de" : {
@@ -75016,6 +75484,58 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "需要完全磁盘访问权限，而 Tinycast 不会请求该权限。请在“系统设置”›“隐私与安全性”中授予，以包含此项目。"
+          }
+        }
+      }
+    },
+    "Needs Screen Recording. Only models that read images receive it." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Benötigt Bildschirmaufnahme. Nur Modelle, die Bilder lesen, erhalten es."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Requiere Grabación de pantalla. Solo la reciben los modelos que leen imágenes."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nécessite l’enregistrement de l’écran. Seuls les modèles qui lisent les images la reçoivent."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "画面収録が必要です。画像を読み取れるモデルだけが受け取ります。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "화면 기록 권한이 필요합니다. 이미지를 읽을 수 있는 모델만 받습니다."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Requer Gravação de Tela. Só os modelos que leem imagens a recebem."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Нужна запись экрана. Получают только модели, которые читают изображения."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "需要屏幕录制权限。只有能读取图像的模型才会收到。"
           }
         }
       }
@@ -79697,6 +80217,58 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "无结果"
+          }
+        }
+      }
+    },
+    "No screenshot: allow Screen Recording for Tinycast in System Settings." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kein Bildschirmfoto: Erlaube Tinycast die Bildschirmaufnahme in den Systemeinstellungen."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sin captura: permite la Grabación de pantalla para Tinycast en Ajustes del Sistema."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pas de capture d’écran : autorisez l’enregistrement de l’écran pour Tinycast dans Réglages Système."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "スクリーンショットなし：システム設定でTinycastに画面収録を許可してください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "스크린샷 없음: 시스템 설정에서 Tinycast의 화면 기록을 허용하세요."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sem captura de tela: permita a Gravação de Tela para o Tinycast nos Ajustes do Sistema."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Без скриншота: разрешите Tinycast запись экрана в Системных настройках."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "没有截图：请在系统设置中允许 Tinycast 进行屏幕录制。"
           }
         }
       }
@@ -100705,6 +101277,162 @@
         }
       }
     },
+    "Screen Awareness" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bildschirmerkennung"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Screen Awareness"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reconnaissance de l’écran"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "画面認識"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "화면 인식"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reconhecimento da tela"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Screen Awareness"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "屏幕感知"
+          }
+        }
+      }
+    },
+    "Screen Awareness can't read this window" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Bildschirmerkennung kann dieses Fenster nicht lesen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Screen Awareness no puede leer esta ventana"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La reconnaissance de l’écran ne peut pas lire cette fenêtre"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "画面認識でこのウインドウを読み取れません"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "화면 인식이 이 윈도우를 읽을 수 없습니다"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O reconhecimento da tela não consegue ler esta janela"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Screen Awareness не может прочитать это окно"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "屏幕感知无法读取此窗口"
+          }
+        }
+      }
+    },
+    "Screen Recording permission required" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Berechtigung für Bildschirmaufnahme erforderlich"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Se requiere permiso de Grabación de pantalla"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Autorisation d’enregistrement de l’écran requise"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "画面収録の許可が必要です"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "화면 기록 권한이 필요합니다"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "É necessária a permissão de Gravação de Tela"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Нужно разрешение на запись экрана"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "需要屏幕录制权限"
+          }
+        }
+      }
+    },
     "Screen locking is unavailable on this Mac." : {
       "localizations" : {
         "de" : {
@@ -112138,6 +112866,58 @@
         }
       }
     },
+    "Switch to the window you want to ask about first." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wechsle zuerst zu dem Fenster, zu dem du fragen möchtest."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Primero cambia a la ventana sobre la que quieres preguntar."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Passez d’abord à la fenêtre sur laquelle vous voulez poser une question."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "まず質問したいウインドウに切り替えてください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "먼저 묻고 싶은 윈도우로 전환하세요."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Primeiro mude para a janela sobre a qual quer perguntar."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сначала перейдите в окно, о котором хотите спросить."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请先切换到你想询问的窗口。"
+          }
+        }
+      }
+    },
     "Switch windows and search menu bar items." : {
       "localizations" : {
         "de" : {
@@ -121737,6 +122517,58 @@
         }
       }
     },
+    "This model can't see images, so only the window's text is attached." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dieses Modell kann keine Bilder sehen, daher ist nur der Text des Fensters angehängt."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Este modelo no puede ver imágenes, así que solo se adjunta el texto de la ventana."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ce modèle ne voit pas les images : seul le texte de la fenêtre est joint."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このモデルは画像を扱えないため、ウインドウのテキストだけを添付しました。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "이 모델은 이미지를 볼 수 없어 윈도우의 텍스트만 첨부했습니다."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Este modelo não vê imagens, por isso só o texto da janela foi anexado."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Эта модель не видит изображения, поэтому прикреплён только текст окна."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此模型无法查看图像，因此只附加了窗口中的文本。"
+          }
+        }
+      }
+    },
     "This model has no reasoning setting" : {
       "localizations" : {
         "de" : {
@@ -123661,6 +124493,58 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Tinycast 需要辅助功能权限才能读取并替换你在其他 App 中选择的文本。按下快捷键之前不会读取任何内容。"
+          }
+        }
+      }
+    },
+    "Tinycast needs the Accessibility permission to read the window in front of you. If Tinycast is already listed, switch it off and on again — a rebuilt app keeps a stale entry." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tinycast benötigt die Bedienungshilfen-Berechtigung, um das vorderste Fenster zu lesen. Wenn Tinycast bereits aufgeführt ist, schalte es aus und wieder ein – eine neu erstellte App behält einen veralteten Eintrag."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tinycast necesita el permiso de Accesibilidad para leer la ventana que tienes delante. Si Tinycast ya aparece en la lista, desactívalo y vuelve a activarlo: una app recompilada conserva una entrada obsoleta."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tinycast a besoin de l’autorisation Accessibilité pour lire la fenêtre au premier plan. Si Tinycast figure déjà dans la liste, désactivez-le puis réactivez-le : une app recompilée garde une entrée périmée."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "手前のウインドウを読み取るには、Tinycastにアクセシビリティの許可が必要です。Tinycastがすでに一覧にある場合は、一度オフにしてからオンにしてください。再ビルドしたアプリは古い項目が残ります。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "앞에 있는 윈도우를 읽으려면 Tinycast에 손쉬운 사용 권한이 필요합니다. Tinycast가 이미 목록에 있다면 껐다가 다시 켜세요. 다시 빌드한 앱은 오래된 항목이 남습니다."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O Tinycast precisa da permissão de Acessibilidade para ler a janela à sua frente. Se o Tinycast já estiver na lista, desative-o e ative-o novamente: um app recompilado mantém uma entrada desatualizada."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Чтобы читать окно перед вами, Tinycast нужно разрешение Универсального доступа. Если Tinycast уже есть в списке, выключите и снова включите его: у пересобранного приложения остаётся устаревшая запись."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tinycast 需要辅助功能权限才能读取你面前的窗口。如果 Tinycast 已在列表中，请将其关闭再打开——重新构建的应用会保留过时的条目。"
           }
         }
       }
@@ -132355,6 +133239,58 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "使用逗号作为小数分隔符时，以 ; 分隔参数。"
+          }
+        }
+      }
+    },
+    "Without it, captures carry text only." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ohne sie enthalten Aufnahmen nur Text."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sin él, las capturas solo llevan texto."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sans elle, les captures ne contiennent que du texte."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "許可がない場合、キャプチャはテキストのみになります。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "권한이 없으면 캡처에는 텍스트만 포함됩니다."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sem ela, as capturas levam só texto."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Без него в снимок попадает только текст."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "没有该权限时，捕获内容只包含文本。"
           }
         }
       }

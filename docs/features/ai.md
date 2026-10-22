@@ -856,7 +856,9 @@ is why documents are *not* assumed the way images are. An attachment is never dr
 out: answering a question about a document the model never received is the one outcome this must
 not produce.
 
-In Quick AI attachments arrive by ⌘V; the window also takes a drop and the paperclip. They come in
+In Quick AI attachments arrive by ⌘V, or from Ask About Screen through
+`QuickAICoordinator.showStaging` (see [Screen Awareness](screen-awareness.md)); the window also takes a
+drop and the paperclip. They come in
 three kinds: an **image**, a **PDF** sent as a native document block,
 and a **text-ish file** whose contents are inlined as fenced, named text.
 `PaletteWindowController`'s command-shortcut hook gives chat the chord first; a pasteboard holding

@@ -430,6 +430,17 @@ final class AppSettings {
         didSet { defaults.set(quickActionsEnabled, forKey: Key.quickActionsEnabled.rawValue) }
     }
 
+    /// Off out of the box: on means a shortcut may read the frontmost window into a chat.
+    var screenAwarenessEnabled: Bool {
+        didSet { defaults.set(screenAwarenessEnabled, forKey: Key.screenAwarenessEnabled.rawValue) }
+    }
+
+    var screenAwarenessScreenshot: Bool {
+        didSet {
+            defaults.set(screenAwarenessScreenshot, forKey: Key.screenAwarenessScreenshot.rawValue)
+        }
+    }
+
     var snippetsShowInLauncher: Bool {
         didSet { defaults.set(snippetsShowInLauncher, forKey: Key.snippetsShowInLauncher.rawValue) }
     }
@@ -797,6 +808,8 @@ final class AppSettings {
             || defaults.bool(forKey: Key.customCommandsShowInLauncher.rawValue)
         snippetsEnabled = defaults.bool(forKey: Key.snippetsEnabled.rawValue)
         quickActionsEnabled = defaults.bool(forKey: Key.quickActionsEnabled.rawValue)
+        screenAwarenessEnabled = defaults.bool(forKey: Key.screenAwarenessEnabled.rawValue)
+        screenAwarenessScreenshot = defaults.bool(forKey: Key.screenAwarenessScreenshot.rawValue)
         snippetsShowInLauncher =
             defaults.object(forKey: Key.snippetsShowInLauncher.rawValue) == nil
             || defaults.bool(forKey: Key.snippetsShowInLauncher.rawValue)

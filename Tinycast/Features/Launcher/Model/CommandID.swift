@@ -4,6 +4,7 @@ enum CommandID: String, CaseIterable, Sendable {
     /// The palette's chat keeps the id it shipped with, so its hotkeys and fallback still reach it.
     case quickAI = "command:ai-chat"
     case aiChat = "command:ai-chat-window"
+    case askAboutScreen = "command:ask-about-screen"
     case fixGrammar = "command:fix-grammar"
     case rewrite = "command:rewrite"
     case translate = "command:translate"
@@ -57,6 +58,7 @@ enum CommandID: String, CaseIterable, Sendable {
         switch self {
         case .quickAI: return "Quick AI"
         case .aiChat: return "AI Chat"
+        case .askAboutScreen: return "Ask About Screen"
         case .fixGrammar: return BuiltInQuickAction.fixGrammar.titleResource
         case .rewrite: return BuiltInQuickAction.rewrite.titleResource
         case .translate: return BuiltInQuickAction.translate.titleResource
@@ -108,6 +110,7 @@ enum CommandID: String, CaseIterable, Sendable {
         switch self {
         case .quickAI: return "sparkles"
         case .aiChat: return "bubble.left.and.bubble.right"
+        case .askAboutScreen: return "macwindow.and.cursorarrow"
         case .fixGrammar: return BuiltInQuickAction.fixGrammar.symbol
         case .rewrite: return BuiltInQuickAction.rewrite.symbol
         case .translate: return BuiltInQuickAction.translate.symbol
@@ -179,6 +182,7 @@ enum CommandID: String, CaseIterable, Sendable {
         switch self {
         case .quickAI: ["ai"]
         case .aiChat: ["chat"]
+        case .askAboutScreen: ["screen"]
         default: []
         }
     }
