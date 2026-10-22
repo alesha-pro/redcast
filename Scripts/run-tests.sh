@@ -922,6 +922,8 @@ run usage-dashboard-test   Tinycast/Features/AI/Model/AIRequest.swift \
                            Tinycast/Features/AI/Model/AIRequestBody.swift \
                            Tinycast/Features/AI/Model/AIConnection.swift \
                            Tinycast/Features/AI/Model/AppleIntelligence.swift \
+                           Tinycast/Features/AI/Model/ChatGPTSubscription.swift \
+                           Tinycast/Features/AI/Model/InstalledAI.swift \
                            Tinycast/Features/AI/Model/AIAttachmentPolicy.swift \
                            Tinycast/Features/AI/Model/AITool.swift \
                            Tinycast/Features/AI/Model/JSONValue.swift \
@@ -933,7 +935,10 @@ run usage-dashboard-test   Tinycast/Features/AI/Model/AIRequest.swift \
                            Tinycast/Features/AI/Service/AIToolLoopProvider.swift \
                            Tinycast/Features/WebSearch/Model/*.swift \
                            Tinycast/Features/UsageDashboard/Model/*.swift \
-                           Tinycast/Features/UsageDashboard/Service/UsageQuery.swift
+                           Tinycast/Features/UsageDashboard/Service/UsageQuery.swift \
+                           Tinycast/Features/UsageDashboard/Service/UsageLedger.swift \
+                           Tinycast/Features/UsageDashboard/Service/UsageRecordingProvider.swift \
+                           Tinycast/Platform/AppPaths.swift
 AS=Tinycast/Features/AgentSessions
 run slow agent-sessions-test $L/SearchRelevance.swift $AS/Model/*.swift \
                            $AS/Service/AgentSessionsScanner.swift $AS/Service/AgentTranscriptSearch.swift \

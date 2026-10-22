@@ -45,6 +45,11 @@ selectable Markdown renderer with AI Chat.
 - **Quick Actions route themselves.** `quickActionModel` is a second routing decision, defaulting to
   Apple Intelligence and falling back to chat's model. A shortcut pressed all day should not bill an
   API every time, and that is not a choice chat's default can make on its behalf.
+- **What a run cost is logged, nothing else.** `AppCore.quickActionProvider` wraps every route but
+  Apple Intelligence in the fork's `UsageRecordingProvider`, which appends the reply's reported
+  tokens and cost — never the selection or the result — to the usage log Settings → AI → Usage reads
+  (see [usage-dashboard.md](usage-dashboard.md)). Apple Intelligence stays unwrapped, so
+  `QuickActionRunner`'s type test still caps its output.
 - **An action may override that route, and only by choice.** `quickActionModelOverrides` is keyed by
   `QuickAction.id`, so the built-in four and custom actions share one lookup,
   `QuickActionSettingsStore.model(for:)`. An absent entry follows `quickActionModel`, so nothing

@@ -263,12 +263,14 @@ final class AIChatCoordinator {
                 subscription: core.chatGPTSubscription, installedAI: core.installedAI,
                 toolServers: servers)
         else { return nil }
+        // Fork: a title is a side request no message keeps, so the usage log records it.
+        let recorded = UsageRecordingProvider.wrapping(provider, for: selection, as: .chatTitle)
         let request = AIRequest(
             instructions: ChatTitle.instructions,
             messages: [AIMessage(role: .user, text: description)])
         var text = ""
         do {
-            for try await event in provider.stream(request) {
+            for try await event in recorded.stream(request) {
                 if case .text(let delta) = event { text += delta }
                 if case .finished = event { break }
             }
