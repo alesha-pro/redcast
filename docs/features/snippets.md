@@ -111,7 +111,8 @@ lines, CR/LF choices, Unicode, and later lines containing `---` are preserved ex
 ## Template tokens
 
 The template engine is **shared with [Quicklinks](quicklinks.md#placeholders)**, which expands a bare
-string rather than a snippet record and asks for automatic percent-encoding. It is Foundation-only and
+string rather than a snippet record and asks for automatic percent-encoding, and with custom
+[Quick Actions](quick-actions.md#placeholders), whose prompts expand the same way. It is Foundation-only and
 receives one captured expansion context: clipboard
 history, selected text, clock, calendar, locale, time zone, and a UUID source. Everything the engine
 needs is injected, so the whole placeholder surface is covered by the standalone harness. If arguments

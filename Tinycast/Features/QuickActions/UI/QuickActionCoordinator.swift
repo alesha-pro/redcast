@@ -28,6 +28,7 @@ final class QuickActionCoordinator {
     private let ranking: LauncherRankingStore
     private let aliases: AliasStore
     private let paletteCoordinator: PaletteCoordinator
+    private let clipboardHistory: @MainActor () -> [String]
     private let panels = QuickActionPanelController()
     private unowned let core: AppCore
 
@@ -44,7 +45,8 @@ final class QuickActionCoordinator {
         customActions: CustomQuickActionStore, injector: TextInjector,
         appIndex: AppIndex, hotKeys: HotKeyManager, favorites: FavoritesStore,
         visibility: VisibilityStore, ranking: LauncherRankingStore, aliases: AliasStore,
-        paletteCoordinator: PaletteCoordinator, core: AppCore
+        paletteCoordinator: PaletteCoordinator,
+        clipboardHistory: @escaping @MainActor () -> [String], core: AppCore
     ) {
         self.settings = settings
         self.store = store
@@ -57,6 +59,7 @@ final class QuickActionCoordinator {
         self.ranking = ranking
         self.aliases = aliases
         self.paletteCoordinator = paletteCoordinator
+        self.clipboardHistory = clipboardHistory
         self.core = core
     }
 
@@ -170,9 +173,24 @@ final class QuickActionCoordinator {
         ranking.reset(itemKey: action.entryID)
     }
 
-    func run(id: UUID) {
-        guard let action = customActions.action(id: id) else { return }
-        run(.custom(action))
+    /// Placeholders resolve here, so a launcher row and a shortcut ask for the same values.
+    func run(id: UUID, values: [String: String] = [:]) {
+        guard settings.quickActionsEnabled, running == nil,
+            let action = customActions.action(id: id)
+        else { return }
+        switch QuickActionTemplate.resolve(action, context: expansionContext(), values: values) {
+        case .ready(let resolved):
+            run(.custom(resolved))
+        case .needsArguments:
+            paletteCoordinator.showArguments(of: AppEntry(action), values: values)
+        }
+    }
+
+    /// The selection is read later by the run itself, so the template never sees it.
+    private func expansionContext() -> SnippetTemplateEngine.ExpansionContext {
+        SnippetTemplateEngine.ExpansionContext(
+            clipboardHistory: clipboardHistory(), selection: "", now: Date(),
+            calendar: .current, locale: .current, timeZone: .current)
     }
 
     func run(_ action: QuickAction) {

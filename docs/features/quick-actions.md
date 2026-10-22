@@ -7,7 +7,8 @@ Apple's own translator. The result either replaces the selection or arrives in a
 action.
 
 A **custom Quick Action** is a name, a glyph and a prompt, run through the same provider. It takes a
-shortcut and a launcher row like any other.
+shortcut and a launcher row like any other. Its prompt reads the snippet placeholders — `{clipboard}`,
+`{date}`, `{argument}` and the rest — resolved once as the run starts.
 
 Quick Actions is the provider layer's second consumer. It shares the provider connections and
 selectable Markdown renderer with AI Chat.
@@ -74,6 +75,14 @@ selectable Markdown renderer with AI Chat.
   Summarize opens a sheet prefilled with the exact built-in prompt and the action's model. Saving
   replaces both for only that action; Use Default restores the prompt. Translate has no editor because no model handles translation. The same
   pencil on a custom action opens its editor, which owns the name and glyph too.
+- **The selection never enters the instructions.** `QuickActionTemplate.resolve` expands a custom
+  prompt with `selection` set to `selectionReference`, so `{selection}` names the text rather than
+  pasting it above the boundary. The text itself still arrives as the user message, framed as
+  material, and the boundary is prepended after expansion, never inside it.
+- **Arguments resolve at the one funnel.** `QuickActionCoordinator.run(id:values:)` expands the
+  template for a shortcut and a launcher row alike; a required `{argument}` without a value opens
+  root search on that row through `PaletteCoordinator.showArguments`, and ↵ there runs it again with
+  the typed values. The palette remembers the app behind it, so the selection is still read there.
 - **A custom action never travels in a backup.** Neither the record, its shortcut nor its route, for
   the reason `quickActionInstructions` already doesn't: an import must never change what a shortcut
   does to somebody's documents. Its JSON sits outside `UserDefaults`, so no settings key can sweep it
@@ -112,6 +121,26 @@ prompt, because importing them would change results without the reader seeing th
 `CustomQuickActionStore` keeps them as JSON in Application Support, ordered by `createdAt`, under an
 injected directory so the harness gets a throwaway one. Name and instructions must be non-empty;
 nothing else is rejected, including a name a shipped action already uses.
+
+### Placeholders
+
+The prompt goes through `SnippetTemplateEngine`, shared with [Snippets](snippets.md#template-tokens)
+and [Quicklinks](quicklinks.md#placeholders), so the token set, its modifiers and Raycast's spellings
+are theirs. The context is captured as the run starts: clipboard history from the same source
+snippets use, the clock, calendar, locale and time zone. A prompt without tokens reads exactly as it
+did before.
+
+| Token | In a custom action |
+| --- | --- |
+| `{selection}` · `{selectedText}` | `the text below` — the selection itself is the user message |
+| `{clipboard}` · `{clipboard offset=1}` | the clipboard, or an older entry |
+| `{date}` · `{time}` · `{datetime}` · `{day}` | the moment the run started |
+| `{argument name="Tone" options="formal, casual"}` | an inline field on the launcher row |
+| `{argument default="English"}` | optional; the default fills it without asking |
+
+`QuickActionArgumentsAccessory` draws the fields in root search, keyed by argument name like a
+quicklink's, with an `options=` field chosen from the palette menu. ↵ on a row that still owes a
+required field moves into that field instead of running.
 
 **Replace / Preview rides the record.** `QuickActionSettings` keys on `BuiltInQuickAction`, which
 cannot hold a UUID, and a parallel dictionary would outlive what it described. On the record, a delete
@@ -288,6 +317,11 @@ failure handler, so automatic expansion stays silent as before.
 - Uncheck an action's launcher checkbox: the row leaves ⌘Space, and its shortcut still works.
 - Add a custom action, bind a shortcut, run it from the shortcut and from ⌘Space, then rename it and
   confirm the shortcut, the Replace choice and the checkbox all survived.
+- Write a custom action as `Rewrite in a {argument name="Tone" options="formal, casual"} tone.`,
+  select text in another app and press its shortcut: the launcher opens on the row with the Tone
+  field focused, choosing a tone and pressing ↵ transforms the selection in the original app.
+- Run a custom action that uses `{clipboard}` with something copied: the reply reflects the
+  clipboard, and the selection is still what gets replaced.
 - Delete a custom action with a shortcut bound: the dialog asks first, the row leaves both Settings
   and ⌘Space, and the chord is free for something else to take.
 - Type "quick actions" in ⌘Space: the section lists the shipped four beside the custom ones.
@@ -309,6 +343,6 @@ failure handler, so automatic expansion stays silent as before.
 - Translate Korean text with Korean not downloaded and the target language installed: the panel names
   Korean, the language that is actually missing.
 - Revoke Accessibility while enabled: a HUD explains instead of failing silently.
-- Harnesses: `quick-action-test` (action metadata, prompt boundaries, preview choices, routes and
-  their repair) and
+- Harnesses: `quick-action-test` (action metadata, prompt boundaries, placeholders and arguments,
+  preview choices, routes and their repair) and
   `text-diff-test` (exact chunks, coalescing, Unicode, ties, token boundaries and fast paths).

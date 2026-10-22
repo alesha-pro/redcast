@@ -90,7 +90,7 @@ final class LauncherCoordinator {
                 return
             }
             guard let id = CustomQuickAction.id(fromEntryID: app.id) else { return }
-            core.quickActionCoordinator.run(id: id)
+            core.quickActionCoordinator.run(id: id, values: arguments)
             return
         }
         if app.kind == .customCommand {

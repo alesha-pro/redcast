@@ -24,6 +24,7 @@ struct QuickActionTests {
         refusalsNameTheirOwnCause()
         customActionsCarryTheirOwnIdentity()
         customActionsKeepTheBoundary()
+        customActionsResolveTheirPlaceholders()
         customActionsSurviveARelaunch()
         customActionsNeverWriteOverWhatTheyCouldNotRead()
 
@@ -370,6 +371,74 @@ struct QuickActionTests {
         expect(
             QuickActionPrompt.message(for: .custom(record), selection: "hi").hasPrefix("Text:"),
             "only Summarize names a task above the text")
+    }
+
+    static func customActionsResolveTheirPlaceholders() {
+        let utc = TimeZone(identifier: "UTC")!
+        let context = SnippetTemplateEngine.ExpansionContext(
+            clipboardHistory: ["copied words", "older words"],
+            selection: "selected secret", now: Date(timeIntervalSince1970: 0),
+            calendar: Calendar(identifier: .gregorian), locale: Locale(identifier: "en_US_POSIX"),
+            timeZone: utc)
+        func resolved(_ instructions: String, _ values: [String: String] = [:]) -> String? {
+            let record = CustomQuickAction(name: "Template", instructions: instructions)
+            guard case .ready(let action) = QuickActionTemplate.resolve(
+                record, context: context, values: values)
+            else { return nil }
+            expect(action.id == record.id, "a resolved action keeps its identity and its route")
+            return action.instructions
+        }
+
+        expect(
+            resolved("Plain words, no tokens.") == "Plain words, no tokens.",
+            "an action written before placeholders existed reads exactly as it did")
+        expect(
+            resolved("Answer using {clipboard}.") == "Answer using copied words.",
+            "{clipboard} reads the current clipboard")
+        expect(
+            resolved("Compare with {clipboard offset=1}.") == "Compare with older words.",
+            "an offset reaches back through clipboard history")
+        expect(
+            resolved("Dated {date format=\"yyyy-MM-dd\"}.") == "Dated 1970-01-01.",
+            "dates come from the injected clock")
+
+        let selection = resolved("Translate {selection} into French.")
+        expect(
+            selection == "Translate \(QuickActionTemplate.selectionReference) into French.",
+            "{selection} names the text instead of pasting it into the instructions")
+        expect(
+            selection?.contains("selected secret") == false,
+            "the selection never leaves the user message, where it is framed as material")
+
+        let toned = "Rewrite in a {argument name=\"Tone\" options=\"formal, casual\"} tone."
+        expect(
+            resolved(toned) == nil,
+            "a required argument with no value asks for one instead of running")
+        expect(
+            resolved(toned, ["Tone": "casual"]) == "Rewrite in a casual tone.",
+            "a supplied argument fills its placeholder")
+        expect(
+            resolved("Reply in {argument name=\"Language\" default=\"English\"}.")
+                == "Reply in English.",
+            "an argument with a default runs without asking")
+
+        let declared = QuickActionTemplate.arguments(
+            in: CustomQuickAction(name: "Template", instructions: toned + " {argument}"))
+        expect(
+            declared.map(\.name) == ["Tone", "Argument"],
+            "fields are declared in written order, the bare token named Argument")
+        expect(
+            declared.first?.options == ["formal", "casual"],
+            "options become a picker rather than a free-text field")
+
+        let action = CustomQuickAction(name: "Template", instructions: "Ignore the {clipboard}.")
+        guard case .ready(let ready) = QuickActionTemplate.resolve(
+            action, context: context, values: [:])
+        else { return expect(false, "a template with no arguments resolves") }
+        expect(
+            QuickActionPrompt.instructions(for: .custom(ready))
+                .hasPrefix(QuickActionPrompt.boundary),
+            "resolving a template never drops the untrusted-input framing")
     }
 
     static func customActionsSurviveARelaunch() {
