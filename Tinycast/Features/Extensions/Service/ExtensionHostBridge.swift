@@ -8,6 +8,8 @@ protocol ExtensionHostContext: AnyObject {
     var activeExtensionName: String? { get }
     /// Background runs report no UI: toasts, HUDs and dialogs would fire on a timer.
     var activeLaunchType: ExtensionLaunchType { get }
+    /// False for a background run and anything it launches, however that launch was typed.
+    var isOpenedByUser: Bool { get }
     var storage: ExtensionStorage { get }
     /// The app a paste would land in — the palette's recorded `previousApp`.
     var pasteTarget: NSRunningApplication? { get }
@@ -30,9 +32,10 @@ protocol ExtensionHostContext: AnyObject {
     func openWithPicker(path: String) async
     func launch(
         command: String, extensionName: String?, arguments: [String: String],
-        fallbackText: String?, launchType: ExtensionLaunchType, launchContext: [String: RenderValue]
+        fallbackText: String?, launchType: ExtensionLaunchType, launchContext: [String: RenderValue],
+        openedByUser: Bool
     ) throws
-    func launch(_ link: ExtensionDeepLink) throws
+    func launch(_ link: ExtensionDeepLink, openedByUser: Bool) throws
 }
 
 struct ExtensionToast: Sendable, Equatable, Identifiable {
@@ -125,7 +128,7 @@ final class ExtensionHostBridge: ExtensionHostAPI {
     private let clipboardStore: ClipboardStore
     private let fetcher: ExtensionFetcher
     private let sockets = ExtensionWebSocketBridge()
-    /// The fork's AI host; menu bridges never get one, so a status item cannot spend tokens.
+    /// The fork's AI host; menu-bar bridges never get one, so nothing on that lane spends tokens.
     weak var ai: (any ExtensionAIHost)?
     private var reportedSocketFailures: Set<String> = []
     /// One browser sign-in at a time; the palette keeps its command alive while it is out.
@@ -204,10 +207,12 @@ final class ExtensionHostBridge: ExtensionHostAPI {
 
     private func askAI(method: String, arguments: [RenderValue]) async throws -> Any? {
         let (context, name) = try requireContext()
-        guard let ai else { throw ExtensionHostError.unsupported("AI in menu-bar commands") }
+        guard let ai else {
+            throw ExtensionHostError.unsupported("AI in menu-bar commands and background launches")
+        }
         return try await ai.perform(
             method: method, arguments: arguments, extensionName: name,
-            launchType: context.activeLaunchType, owner: ObjectIdentifier(self))
+            openedByUser: context.isOpenedByUser, owner: ObjectIdentifier(self))
     }
 
     /// Called wherever a command's context is discarded: nothing left open outlives its session.
@@ -514,7 +519,8 @@ final class ExtensionHostBridge: ExtensionHostAPI {
             try context?.launch(
                 command: name, extensionName: options["extensionName"]?.stringValue,
                 arguments: launchArguments, fallbackText: options["fallbackText"]?.stringValue,
-                launchType: launchType, launchContext: options["context"]?.objectValue ?? [:])
+                launchType: launchType, launchContext: options["context"]?.objectValue ?? [:],
+                openedByUser: context?.isOpenedByUser == true)
             return nil
 
         case "updateCommandMetadata":
@@ -560,7 +566,9 @@ final class ExtensionHostBridge: ExtensionHostAPI {
 
     /// A command URL runs it when installed; every other Raycast URL just brings the palette back.
     private func openRaycastURL(_ url: URL) {
-        if let link = ExtensionDeepLink.parse(url: url), (try? context?.launch(link)) != nil {
+        if let link = ExtensionDeepLink.parse(url: url),
+            (try? context?.launch(link, openedByUser: context?.isOpenedByUser == true)) != nil
+        {
             return
         }
         context?.reopenPalette()

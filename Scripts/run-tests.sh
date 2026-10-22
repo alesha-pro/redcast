@@ -653,6 +653,20 @@ run ext-accessory-test     $E/Model/RenderNode.swift \
 run slow ext-test          -parse-as-library \
                            Tests/ext-menu-bar-test.swift \
                            Tests/ext-fetch-test.swift \
+                           Tests/ext-ai-bridge-test.swift \
+                           $E/Service/ExtensionHostBridge.swift \
+                           $E/Service/ExtensionSignInSession.swift \
+                           Tinycast/Features/ExtensionAI/Service/ExtensionAIHost.swift \
+                           Tinycast/Features/Launcher/Service/AppLauncher.swift \
+                           Tinycast/Platform/AccessibilityText.swift \
+                           Tinycast/Platform/PasteboardFiles.swift \
+                           Tinycast/Platform/Images/ImageDerivative.swift \
+                           Tinycast/Features/Clipboard/Model/ClipboardStore.swift \
+                           Tinycast/Features/Clipboard/Model/ClipboardFilter.swift \
+                           Tinycast/Features/Clipboard/Model/ClipboardFileKind.swift \
+                           Tinycast/Features/Clipboard/Model/ColorFormat.swift \
+                           Tinycast/Features/Clipboard/Service/ClipboardManager.swift \
+                           Tinycast/Features/Clipboard/Service/Paster.swift \
                            $E/Model/ExtensionLaunchError.swift \
                            $E/Model/ExtensionMenuBarSnapshot.swift \
                            $E/Service/ExtensionStorage.swift \

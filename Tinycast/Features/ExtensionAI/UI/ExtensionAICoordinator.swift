@@ -18,17 +18,17 @@ final class ExtensionAICoordinator: ExtensionAIHost {
     // MARK: - ExtensionAIHost
 
     func perform(
-        method: String, arguments: [RenderValue], extensionName: String,
-        launchType: ExtensionLaunchType, owner: ObjectIdentifier
+        method: String, arguments: [RenderValue], extensionName: String, openedByUser: Bool,
+        owner: ObjectIdentifier
     ) async throws -> Any? {
         switch method {
         case "start":
             let prompt = arguments.first?.objectValue?["prompt"]?.stringValue ?? ""
             return try await start(
-                prompt: prompt, extensionName: extensionName, launchType: launchType, owner: owner)
+                prompt: prompt, extensionName: extensionName, openedByUser: openedByUser, owner: owner)
         case "read":
             let id = streamID(arguments)
-            if case .refused(let refusal) = access(extensionName, launchType: launchType) {
+            if case .refused(let refusal) = access(extensionName, openedByUser: openedByUser) {
                 bridge.cancel(id, owner: owner)
                 throw refusal
             }
@@ -43,7 +43,7 @@ final class ExtensionAICoordinator: ExtensionAIHost {
 
     /// Runs at every launch, so it only reads: a dangling pick is repaired by the Settings section.
     func canAccess(extensionName: String) -> Bool {
-        if case .refused = access(extensionName, launchType: .userInitiated) { return false }
+        if case .refused = access(extensionName, openedByUser: true) { return false }
         return selection() != nil
     }
 
@@ -77,17 +77,16 @@ final class ExtensionAICoordinator: ExtensionAIHost {
     // MARK: - Asking
 
     private func start(
-        prompt raw: String, extensionName name: String, launchType: ExtensionLaunchType,
-        owner: ObjectIdentifier
+        prompt raw: String, extensionName name: String, openedByUser: Bool, owner: ObjectIdentifier
     ) async throws -> Int {
         let prompt = try ExtensionAIPolicy.prompt(from: raw)
-        let gate = access(name, launchType: launchType)
+        let gate = access(name, openedByUser: openedByUser)
         if case .refused(let refusal) = gate { throw refusal }
         guard selection() != nil else { throw ExtensionAIRefusal.noModel }
         if gate == .ask {
             guard await consent(for: name) else { throw ExtensionAIRefusal.denied }
             try Task.checkCancellation()
-            if case .refused(let refusal) = access(name, launchType: launchType) { throw refusal }
+            if case .refused(let refusal) = access(name, openedByUser: openedByUser) { throw refusal }
         }
         guard let selection = selection() else { throw ExtensionAIRefusal.noModel }
         let provider = try AIProviderFactory.make(
@@ -99,9 +98,9 @@ final class ExtensionAICoordinator: ExtensionAIHost {
         return bridge.start(ExtensionAIPolicy.request(prompt: prompt), on: provider, owner: owner)
     }
 
-    private func access(_ name: String, launchType: ExtensionLaunchType) -> ExtensionAIAccess {
+    private func access(_ name: String, openedByUser: Bool) -> ExtensionAIAccess {
         ExtensionAIPolicy.access(
-            featureOn: settings.isEnabled, aiOn: core.settings.aiEnabled, launchType: launchType,
+            featureOn: settings.isEnabled, aiOn: core.settings.aiEnabled, openedByUser: openedByUser,
             grant: settings.grants[name])
     }
 

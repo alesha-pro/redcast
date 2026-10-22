@@ -54658,54 +54658,54 @@
         }
       }
     },
-    "Extensions can't use AI during a background refresh." : {
+    "Extensions can use AI only in a command you open." : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Erweiterungen können während einer Hintergrundaktualisierung keine KI nutzen."
+            "value" : "Erweiterungen können KI nur in einem Befehl nutzen, den du öffnest."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Las extensiones no pueden usar la IA durante una actualización en segundo plano."
+            "value" : "Las extensiones solo pueden usar la IA en un comando que abras tú."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Les extensions ne peuvent pas utiliser l’IA pendant une actualisation en arrière-plan."
+            "value" : "Les extensions ne peuvent utiliser l’IA que dans une commande que vous ouvrez."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "バックグラウンド更新中は、拡張機能でAIを使用できません。"
+            "value" : "拡張機能がAIを使用できるのは、ユーザーが開いたコマンドの中だけです。"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "백그라운드 새로 고침 중에는 확장 프로그램이 AI를 사용할 수 없습니다."
+            "value" : "확장 프로그램은 사용자가 연 명령에서만 AI를 사용할 수 있습니다."
           }
         },
         "pt" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "As extensões não podem usar a IA durante uma atualização em segundo plano."
+            "value" : "As extensões só podem usar a IA em um comando que você abrir."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Расширения не могут использовать ИИ во время фонового обновления."
+            "value" : "Расширения могут использовать ИИ только в команде, которую вы открыли."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "扩展在后台刷新期间无法使用 AI。"
+            "value" : "扩展只能在你打开的命令中使用 AI。"
           }
         }
       }

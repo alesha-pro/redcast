@@ -20,7 +20,7 @@ OpenCode, Goose, Hermes, local models — on the subscriptions and machines you 
 | Screen Awareness | Double-tap right ⌘: the window in front — title, URL, selection, focused field, readable text, screenshot — attached to AI Chat | [screen-awareness](docs/features/screen-awareness.md) |
 | Agents | A chat that lives in a folder: its `AGENTS.md`, project and global `.agents/skills`, notes, and built-in tools (files, terminal, web, memory) on any tool-calling API model, every change and command asked first | [agents](docs/features/agents.md) |
 | ACP agents | An agent can run as its own CLI over the Agent Client Protocol — Claude Code, Codex, Gemini CLI, OpenCode, Goose, Hermes or any command — on your own logins, with its permission requests, tool rows, plans and modes in AI Chat, and sessions that survive a relaunch | [agents](docs/features/agents.md#acp-agents) |
-| Raycast AI for extensions | `AI.ask`, `useAI` and `canAccess(AI)` answered by your own model, asked once per extension, off until you allow it; never from a menu-bar command or a background refresh | [extension-ai](docs/features/extension-ai.md) |
+| Raycast AI for extensions | `AI.ask`, `useAI` and `canAccess(AI)` answered by your own model, off until you allow it and asked once per extension; only in a command you open, never in a menu-bar command, a background refresh or anything one launches | [extension-ai](docs/features/extension-ai.md) |
 | Extension runtime fixes | Google sign-in without a client secret (`querystring` coerces like Node), and extensions that bundle undici (`buffer.Blob`/`File`, undici's requests sent through the `fetch` bridge); ported from sermelipharo/tinycast-space | [extensions](docs/features/extensions.md) |
 
 Builds of this fork use the bundle id `com.tinycast.app.fork`: they never update themselves from
@@ -84,7 +84,8 @@ Sizes are focused working days. Waves are ordered by leverage, not by size.
    (upstream #1610). *1–2 days.*
 8. **Raycast AI for extensions — shipped** (see above). Next on it: honour the requested `AI.Model`
    (an Anthropic id to an Anthropic connection), `creativity` as temperature where a route takes one,
-   `AI.experimental_decide`, and extension model providers.
+   `AI.experimental_decide`, extension model providers, and AI from a menu-bar item's own action, where
+   the click is the gesture (the menu-bar lane has no AI host today).
 9. **Model arena.** One prompt to two to four models side by side, streaming in columns; keep the best
    answer and continue with that model. *3 days.*
 
