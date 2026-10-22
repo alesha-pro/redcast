@@ -10,6 +10,7 @@ struct AgentEditorPanel: View {
     @State private var failure: String?
     @State private var showingIconPicker = false
     @State private var found: (project: [AgentSkill], global: [AgentSkill]) = ([], [])
+    @State private var argumentsText = ""
 
     private static let iconSymbols = [
         AgentProfile.sfSymbol, "person.crop.circle", "brain", "terminal", "hammer", "wrench.and.screwdriver",
@@ -24,6 +25,10 @@ struct AgentEditorPanel: View {
             initialValue: request.agent
                 ?? AgentProfile(
                     name: "", directory: FileManager.default.homeDirectoryForCurrentUser.path))
+        _argumentsText = State(
+            initialValue: request.agent?.runtime.map { runtime in
+                runtime.arguments.map { $0.contains(" ") ? "\"\($0)\"" : $0 }.joined(separator: " ")
+            } ?? "")
     }
 
     var body: some View {
@@ -42,22 +47,29 @@ struct AgentEditorPanel: View {
                         iconField
                     }
                     folderField
+                    runtimeField
                     field("Instructions") {
                         TextEditor(text: $draft.instructions)
                             .font(.body)
                             .settingsEditorTextArea(height: Theme.Size.editorTextHeight * 1.5)
                     }
-                    AIModelSelectionRows(
-                        selection: draft.model,
-                        inheritedTitle: String(localized: "Same as AI Chat"),
-                        select: { draft.model = $0 },
-                        modelLabel: { Text("Model") },
-                        effortLabel: { Text("Reasoning effort") })
-                    Text("Tools run on API connections. On Codex and Claude the agent's context is sent, its tools are not yet.")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                    accessField
-                    toolsField
+                    if draft.runtime == nil {
+                        AIModelSelectionRows(
+                            selection: draft.model,
+                            inheritedTitle: String(localized: "Same as AI Chat"),
+                            select: { draft.model = $0 },
+                            modelLabel: { Text("Model") },
+                            effortLabel: { Text("Reasoning effort") })
+                        Text(
+                            """
+                            Tools run on API connections. For Codex or Claude with their own tools, \
+                            choose them under Runs on.
+                            """)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        accessField
+                        toolsField
+                    }
                     contextField
                     skillsField
                 }
@@ -130,6 +142,55 @@ struct AgentEditorPanel: View {
                 Button("Choose…", action: chooseFolder)
             }
         }
+    }
+
+    private var runtimeField: some View {
+        field("Runs on") {
+            Picker("Runs on", selection: runtimeKind) {
+                Text("Tinycast, on the chat's model").tag(AgentRuntime.Kind?.none)
+                Divider()
+                ForEach(AgentRuntime.Kind.allCases) { kind in
+                    Text(kind.title).tag(AgentRuntime.Kind?.some(kind))
+                }
+            }
+            .labelsHidden()
+            if draft.runtime != nil {
+                HStack(spacing: Theme.Spacing.md) {
+                    TextField("Command", text: runtimeCommand)
+                        .settingsEditorTextField()
+                        .frame(width: 140)
+                    TextField("Arguments", text: $argumentsText)
+                        .settingsEditorTextField()
+                        .onChange(of: argumentsText) {
+                            draft.runtime?.arguments = AgentRuntime.arguments(parsing: argumentsText)
+                        }
+                }
+                Text(
+                    """
+                    It runs over the Agent Client Protocol with its own login, model and tools, \
+                    in the agent's folder, and asks here before each action. Claude Code and Codex \
+                    adapters download through npx on first use.
+                    """
+                )
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            }
+        }
+    }
+
+    private var runtimeKind: Binding<AgentRuntime.Kind?> {
+        Binding(
+            get: { draft.runtime?.kind },
+            set: { kind in
+                draft.runtime = kind.map(AgentRuntime.preset)
+                argumentsText = draft.runtime?.arguments.joined(separator: " ") ?? ""
+            })
+    }
+
+    private var runtimeCommand: Binding<String> {
+        Binding(
+            get: { draft.runtime?.command ?? "" },
+            set: { draft.runtime?.command = $0 })
     }
 
     private var accessField: some View {

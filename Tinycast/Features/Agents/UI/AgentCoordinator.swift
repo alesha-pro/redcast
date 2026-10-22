@@ -14,6 +14,23 @@ final class AgentCoordinator {
     /// "Allow for This Chat", per kind of request; never written down.
     @ObservationIgnored private var chatGrants: [UUID: Set<AgentConsentRequest.Kind>] = [:]
 
+    @ObservationIgnored private(set) lazy var acpHost: AgentACPHost = {
+        let host = AgentACPHost(
+            store: store,
+            permit: { [weak self] agent, request in await self?.permit(request, by: agent) },
+            context: { [weak self] agent in self?.context(for: agent).briefing() })
+        host.onModes = { [weak self] chatID, agentID, modes in
+            self?.chatModes[chatID] = modes
+            self?.agentModes[agentID] = modes.available
+        }
+        return host
+    }()
+
+    /// Observed: the composer's mode menu follows the session, including the agent's own moves.
+    private(set) var chatModes: [UUID: ACPModes] = [:]
+    /// What the agent offered last time, so a new chat can pick a mode before its first message.
+    private(set) var agentModes: [UUID: [ACPModes.Mode]] = [:]
+
     init(store: AgentStore, core: AppCore) {
         self.store = store
         self.core = core
@@ -26,9 +43,53 @@ final class AgentCoordinator {
     }
 
     func setAgent(_ agent: AgentProfile?, for chat: AIChatState) {
+        guard store.agent(forChat: chat.session.id)?.id != agent?.id else { return }
         store.setAgent(agent?.id, forChat: chat.session.id)
         chatGrants[chat.session.id] = nil
+        acpHost.forget(chatID: chat.session.id)
         if let agent { refresh(agent) }
+    }
+
+    /// A chat whose agent brings its own CLI: the model picker has nothing to say about it.
+    func runsOwnRuntime(_ chat: AIChatState) -> Bool {
+        agent(for: chat)?.runtime != nil
+    }
+
+    func acpProvider(
+        for chat: AIChatState, servers: @escaping @Sendable () async -> [AIToolServer]
+    ) -> (any AIProvider)? {
+        guard let agent = agent(for: chat), agent.runtime != nil else { return nil }
+        return ACPAgentProvider(host: acpHost, agent: agent, servers: servers)
+    }
+
+    func stopAll() {
+        acpHost.stopAll()
+    }
+
+    func modes(for chat: AIChatState) -> ACPModes? {
+        guard let agent = agent(for: chat), agent.runtime != nil else { return nil }
+        if let live = chatModes[chat.session.id] { return live }
+        guard let offered = agentModes[agent.id] else { return nil }
+        return ACPModes(current: agent.acpMode, available: offered)
+    }
+
+    /// Remembered on the agent for every new session, and applied now to a live one.
+    func setMode(_ modeID: String, for chat: AIChatState) {
+        guard var agent = agent(for: chat) else { return }
+        agent.acpMode = modeID
+        try? store.update(agent)
+        let chatID = chat.session.id
+        if var live = chatModes[chatID] {
+            live.current = modeID
+            chatModes[chatID] = live
+        }
+        Task { [weak self] in
+            do {
+                try await self?.acpHost.setMode(modeID, chatID: chatID)
+            } catch {
+                self?.core.showMessage(error.localizedDescription, tone: .danger)
+            }
+        }
     }
 
     /// A fresh AI Chat that already belongs to the agent, ready for the first message.
@@ -113,6 +174,25 @@ final class AgentCoordinator {
         }
     }
 
+    /// The agent's own options, allows first; the last is the dialog's cancel and refuses once.
+    private func permit(_ request: ACPPermissionRequest, by agent: AgentProfile) async -> String? {
+        let options = request.dialogOptions
+        guard !options.isEmpty else { return nil }
+        let title = request.toolCall.title ?? request.toolCall.kind ?? String(localized: "Use a tool")
+        let summary = request.toolCall.summary
+        NSApp.activate(ignoringOtherApps: true)
+        let answer = await core.choose(
+            title: String(localized: "\(agent.name): \(title)"),
+            message: summary.isEmpty ? nil : summary, symbol: agent.symbol,
+            options: options.enumerated().map { index, option in
+                DialogAction(
+                    title: option.name,
+                    role: index == options.count - 1 && !option.allows
+                        ? .cancel : option.allows ? .standard : .destructive)
+            }, defaultIndex: 0)
+        return options.indices.contains(answer) ? options[answer].id : nil
+    }
+
     // MARK: - Editing
 
     func add(_ draft: AgentProfile) throws(AgentProfileError) {
@@ -121,8 +201,15 @@ final class AgentCoordinator {
     }
 
     func update(_ draft: AgentProfile) throws(AgentProfileError) {
+        let previous = store.agent(id: draft.id)
         try store.update(draft)
         contexts[draft.id] = nil
+        // A different program or folder is a different agent: its old sessions mean nothing.
+        if previous?.runtime != draft.runtime || previous?.directory != draft.directory {
+            for (chat, agent) in store.chatAgents where agent == draft.id {
+                acpHost.forget(chatID: chat)
+            }
+        }
         if let agent = store.agent(id: draft.id) { refresh(agent) }
     }
 

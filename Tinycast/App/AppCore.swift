@@ -592,6 +592,7 @@ final class AppCore {
         snippetListener.stop()
         snippetsStore.stop()
         aiChats.reset()
+        agentCoordinator.stopAll()
         chatGPTSubscription.stop()
         mcpOAuth.stop()
         mcp.stop()

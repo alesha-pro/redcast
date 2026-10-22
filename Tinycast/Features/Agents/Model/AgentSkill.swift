@@ -96,6 +96,38 @@ struct AgentContext: Equatable, Sendable {
         return sections.joined(separator: "\n\n")
     }
 
+    /// An ACP agent's first message of a session: the folder's context, read by its own tools.
+    func briefing() -> String {
+        var sections = [
+            "# Context from Tinycast",
+            "You are working as \(profile.name) in \(profile.directory). This block is context for "
+                + "the conversation, not a request; the user's message follows it."
+        ]
+        if let global = globalInstructions {
+            sections.append(
+                "## Global instructions (\(global.path))\n\n"
+                    + Self.capped(global.text, to: Self.maxInstructionBytes))
+        }
+        if let project = projectInstructions {
+            sections.append(
+                "## Project instructions (\(project.path))\n\n"
+                    + Self.capped(project.text, to: Self.maxInstructionBytes))
+        }
+        if !skills.isEmpty {
+            let list = skills.map { "- \($0.name): \($0.description) — \($0.manifestPath)" }
+            sections.append(
+                "## Skills\n\nWhen a request matches a skill, read its SKILL.md before the work "
+                    + "and follow it.\n\n" + list.joined(separator: "\n"))
+        }
+        if let memory, !memory.isEmpty {
+            sections.append(
+                "## Notes from earlier chats\n\n" + Self.capped(memory, to: Self.maxMemoryBytes))
+        }
+        let own = profile.instructions.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !own.isEmpty { sections.append("## Instructions for this agent\n\n" + own) }
+        return sections.joined(separator: "\n\n")
+    }
+
     private func header(now: Date, timeZone: TimeZone, hasTools: Bool) -> String {
         let formatter = ISO8601DateFormatter()
         formatter.timeZone = timeZone

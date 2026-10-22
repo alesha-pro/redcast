@@ -9,6 +9,10 @@ stays in `Features/Agents/` plus the few lines in `AIChatCoordinator`, `AIChatDe
 
 ## Invariants
 
+- **An agent runs either on the chat's model or as its own CLI.** `AgentProfile.runtime` nil is the
+  built-in agent below; set, the agent is an [ACP](#acp-agents) process — Claude Code, Codex, Gemini
+  CLI, OpenCode, Goose, Hermes or any command — and `AIChatCoordinator.provider(for:scopedTo:)` hands
+  the chat to `ACPAgentProvider` before any model route is considered.
 - **Any route with tool calling runs the tools.** The built-in tools are ordinary `AITool`s added in
   `AIChatCoordinator.tools(for:scopedTo:)`, so every route `AIToolLoopProvider` wraps — OpenAI,
   Anthropic, Gemini, OpenRouter and any OpenAI-compatible endpoint — runs them. The loop routes a
@@ -40,6 +44,43 @@ stays in `Features/Agents/` plus the few lines in `AIChatCoordinator`, `AIChatDe
   `agent-chats.json` beside `agents.json` in Application Support, so upstream's SQLite schema is
   untouched. Deleting an agent frees its chats, which stay as plain AI chats, and deletes its notes.
 
+## ACP agents
+
+An agent whose `runtime` is set runs over the [Agent Client Protocol](https://agentclientprotocol.com):
+newline-delimited JSON-RPC 2.0 on the agent's stdio. `AgentRuntime.preset` gives the commands —
+`npx -y @agentclientprotocol/claude-agent-acp`, `npx -y @agentclientprotocol/codex-acp`, `gemini
+--acp`, `opencode acp`, `goose acp`, `hermes acp` — and the editor lets either half be rewritten.
+They run on the user's own logins and subscriptions; Tinycast never sees a key.
+
+- **One process per agent, one session per chat.** `AgentACPHost` launches the process in the agent's
+  folder through `ExecutableLocator`, so `npx`, `node` and Homebrew tools resolve as in Terminal;
+  `initialize` allows four minutes, because an adapter's first `npx` run downloads it. A chat's
+  session id is kept in `agent-acp-sessions.json`; after a relaunch or an idle stop (fifteen minutes)
+  the next turn sends `session/load` when the agent supports it and drops the replay, since no turn is
+  listening, and starts a fresh session when the agent has lost it.
+- **Context goes once, to a fresh session.** `AgentContext.briefing` — global and project
+  instructions when switched on, skills by name and `SKILL.md` path, notes and the agent's own
+  instructions — leads the first prompt of a new session, with the chat's earlier turns (newest
+  first, 24 KB, a cut said) when the chat began before this session did. A reloaded session needs
+  neither.
+- **Tinycast offers no fs or terminal of its own.** `initialize` declares both off, so the agent uses
+  its own tools and asks about them with `session/request_permission`; any `fs/*`, `terminal/*` or
+  other request is answered with method-not-found. The permission dialog lists the agent's own
+  options, allows first and the least committal refusal last, where the dialog keeps its cancel; the
+  agent remembers an "always" itself. Stop sends `session/cancel` and answers every open permission
+  request as cancelled.
+- **Updates map onto the transcript.** Message chunks are text, thought chunks reasoning, a plan a
+  reasoning block when it changes, tool calls rows that close exactly once — a call still open when
+  the turn ends is closed as failed — and one usage at the end from the prompt's result, with the
+  window from the last `usage_update`. Attachments go as image blocks and embedded resources when the
+  agent declared it takes them, else inlined. A `refusal` stop reason is an error.
+- **Modes are the agent's.** The modes a session offers (Claude Code's plan, Codex's read-only…)
+  replace the model and reasoning pickers in the composer. The choice is stored on the agent as
+  `acpMode`, applied with `session/set_mode` to a live session and to each new one, and the menu
+  follows `current_mode_update` when the agent moves itself.
+- **The chat's MCP servers ride `session/new`.** Command servers always, HTTP ones when the agent
+  declares `mcpCapabilities.http`, narrowed by the chat's tools menu like any other route.
+
 ## Layout
 
 | File | Holds |
@@ -51,6 +92,10 @@ stays in `Features/Agents/` plus the few lines in `AIChatCoordinator`, `AIChatDe
 | `Service/AgentContextLoader.swift` | Reads `AGENTS.md` (or a lone `CLAUDE.md`), `~/.agents/AGENTS.md`, skills, notes |
 | `Service/AgentToolExecutor.swift` | Runs each call; ripgrep search, terminal with timeout, web fetch, HTML to text |
 | `UI/AgentCoordinator.swift` | Bindings, cached context, the turn's prompt, tools and consent |
+| `Model/AgentRuntime.swift` | ACP presets and the command/arguments an agent runs |
+| `Model/ACPProtocol.swift` | Framing, `session/update` decoding, permissions, prompt blocks, modes, `ACPEventMapper` |
+| `Service/ACPConnection.swift` | One agent process: launch, `initialize`, requests, permission routing, exit |
+| `Service/AgentACPHost.swift` | Processes per agent, sessions per chat, load/new, modes; `ACPAgentProvider` |
 | `Settings/AgentsSettingsSection.swift`, `AgentEditorPanel.swift` | The AI pane's list and the editor |
 
 The composer's agent menu is `AIAgentPicker` in `AIChatDetailView.swift`, beside the model picker,
@@ -86,6 +131,14 @@ stripped and only the output's tail is kept. `search_files` prefers ripgrep and 
 - Tell it to remember something, start a new chat with the same agent, ask about it.
 - A read-only agent is never offered the terminal or writes; a chat without an agent is unchanged.
 - Delete the agent: its chats remain as plain chats and the composer shows No Agent.
-- Harnesses: `agent-test` (skills, catalog, path policy, tool sets, prompt, persistence) and
+- ACP: make an agent on Claude Code in a project folder; ask it to read and change a file. The first
+  turn may wait while npx fetches the adapter; then the dialog lists Claude's own options, the
+  transcript shows its tool rows, and the composer shows its modes instead of the model picker.
+  Switch to Plan and ask again; Stop mid-turn; quit Tinycast and continue the chat — the session
+  reloads. Repeat with Codex and with `hermes acp`, and with a command that does not exist (an error
+  names it).
+- Harnesses: `acp-test` (framing, updates, permissions, prompts, modes and a scripted agent process
+  in `Tests/acp-fixtures/fake-agent.mjs`: streaming, consent, reuse, refusal, cancel, reload, lost
+  sessions, a missing command), `agent-test` (skills, catalog, path policy, tool sets, prompt, persistence) and
   `agent-tools-test` (the executor against a real folder: reads, writes with consent, link escapes,
   commands and timeouts, memory, skills, HTML).

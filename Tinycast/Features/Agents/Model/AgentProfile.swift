@@ -52,6 +52,10 @@ struct AgentProfile: Codable, Hashable, Identifiable, Sendable {
     var disabledSkills: Set<String>
     var readsProjectInstructions: Bool
     var readsGlobalInstructions: Bool
+    /// Nil runs the agent on the chat's model with Tinycast's own tools; set, its CLI runs it.
+    var runtime: AgentRuntime?
+    /// The ACP mode new sessions start in, by the agent's own id for it; nil keeps its default.
+    var acpMode: String?
     var createdAt: Date
 
     init(
@@ -60,7 +64,8 @@ struct AgentProfile: Codable, Hashable, Identifiable, Sendable {
         tools: Set<AgentToolKind> = Set(AgentToolKind.allCases),
         skillSources: Set<AgentSkillSource> = Set(AgentSkillSource.allCases),
         disabledSkills: Set<String> = [], readsProjectInstructions: Bool = true,
-        readsGlobalInstructions: Bool = false, createdAt: Date = Date()
+        readsGlobalInstructions: Bool = false, runtime: AgentRuntime? = nil,
+        createdAt: Date = Date()
     ) {
         self.id = id
         self.name = name
@@ -74,6 +79,7 @@ struct AgentProfile: Codable, Hashable, Identifiable, Sendable {
         self.disabledSkills = disabledSkills
         self.readsProjectInstructions = readsProjectInstructions
         self.readsGlobalInstructions = readsGlobalInstructions
+        self.runtime = runtime
         self.createdAt = createdAt
     }
 
