@@ -1,11 +1,12 @@
 // A scripted ACP agent for acp-test: newline-delimited JSON-RPC on stdio, no dependencies.
 import readline from "node:readline";
+import { spawn } from "node:child_process";
 
 const sessions = new Map();
 let nextSession = 1;
 let nextRequest = 1000;
 const waiting = new Map();
-const state = { loads: [], cancels: [], news: 0, modes: [] };
+const state = { loads: [], cancels: [], news: 0, modes: [], grandchild: null };
 const modes = {
   currentModeId: "default",
   availableModes: [
@@ -141,6 +142,13 @@ input.on("line", (line) => {
       state.cancels.push(params.sessionId);
       const session = sessions.get(params.sessionId);
       if (session) session.cancelled = true;
+      break;
+    }
+    case "_fake/spawn": {
+      // A descendant that ignores SIGTERM, as a stuck tool would.
+      const child = spawn(process.execPath, ["-e", "process.on('SIGTERM',()=>{});setInterval(()=>{},1000)"], { stdio: "ignore" });
+      state.grandchild = child.pid;
+      send({ id, result: { pid: child.pid } });
       break;
     }
     case "_fake/state":

@@ -55,9 +55,17 @@ They run on the user's own logins and subscriptions; Tinycast never sees a key.
 - **One process per agent, one session per chat.** `AgentACPHost` launches the process in the agent's
   folder through `ExecutableLocator`, so `npx`, `node` and Homebrew tools resolve as in Terminal;
   `initialize` allows four minutes, because an adapter's first `npx` run downloads it. A chat's
-  session id is kept in `agent-acp-sessions.json`; after a relaunch or an idle stop (fifteen minutes)
+  session id is kept in `agent-acp-sessions.json`; after a relaunch or an idle stop (two minutes)
   the next turn sends `session/load` when the agent supports it and drops the replay, since no turn is
   listening, and starts a fresh session when the agent has lost it.
+- **Nothing outlives the agent.** An ACP agent is a tree — `npx`, the adapter, the vendor CLI it
+  spawns (Claude Code's is about 380 MB together) — and closing stdin lets the top go while a
+  grandchild lingers, orphaned to launchd. `ProcessTree` reads the descendants by `proc_listchildpids`
+  before a stop and after every turn, keyed by pid and start time so a reused pid is never
+  signalled; a stop closes stdin, sends SIGTERM to every survivor a second later and SIGKILL two
+  seconds after that, and an agent that exits on its own has its last-known tree reaped the same way.
+  An idle agent is stopped after two minutes; `AgentACPHost.release` stops it as soon as a run that
+  nobody is watching ends.
 - **Context goes once, to a fresh session.** `AgentContext.briefing` — global and project
   instructions when switched on, skills by name and `SKILL.md` path, notes and the agent's own
   instructions — leads the first prompt of a new session, with the chat's earlier turns (newest

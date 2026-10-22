@@ -1,3 +1,4 @@
+import Darwin
 import Foundation
 
 /// One running ACP agent process: JSON-RPC over its stdio, the agent's questions routed out.
@@ -46,6 +47,8 @@ final class ACPConnection {
     private var nextID = 1
     private var pending: [Int: CheckedContinuation<JSONValue, Error>] = [:]
     private var permissions: [ACPProtocol.RequestID: (sessionID: String, task: Task<Void, Never>)] = [:]
+    /// The agent's children, read while they still hang off it; an exit orphans them to launchd.
+    private var lastTree: [ProcessTree.Member] = []
 
     /// The first launch of an `npx` adapter downloads it, which can take a minute or more.
     private static let initializeTimeout: Duration = .seconds(240)
@@ -166,15 +169,19 @@ final class ACPConnection {
         }
     }
 
-    /// Closing stdin is the polite exit; SIGTERM a second later is the backstop.
+    /// Re-read after each turn, so an agent that later exits on its own leaves nothing behind.
+    func rememberTree() {
+        guard let process, process.isRunning else { return }
+        lastTree = ProcessTree.members(under: process.processIdentifier)
+    }
+
+    /// Closing stdin is the polite exit; then the whole tree gets SIGTERM, and SIGKILL after that.
     func stop() {
         guard let process else { return }
+        let tree = ProcessTree.members(under: process.processIdentifier) + lastTree
         process.terminationHandler = nil
         cleanup(error: ConnectionError.exited(String(localized: "The agent stopped.")))
-        Task.detached {
-            try? await Task.sleep(for: .seconds(1))
-            if process.isRunning { process.terminate() }
-        }
+        ProcessTree.reap(tree, root: process)
     }
 
     // MARK: - Private
@@ -282,8 +289,10 @@ final class ACPConnection {
     private func didExit(_ exited: Process, status: Int32) {
         guard exited === process else { return }
         let message = exitMessage
+        let orphans = lastTree
         onExit?(message)
         cleanup(error: ConnectionError.exited(message))
+        ProcessTree.reap(orphans, root: nil)
     }
 
     private func cleanup(error: Error) {
@@ -293,11 +302,65 @@ final class ACPConnection {
         try? input?.close()
         process = nil
         input = nil
+        lastTree = []
         outputBuffer.removeAll(keepingCapacity: false)
         for entry in permissions.values { entry.task.cancel() }
         permissions.removeAll()
         let requests = pending
         pending.removeAll()
         for continuation in requests.values { continuation.resume(throwing: error) }
+    }
+}
+
+/// An agent's descendants, identified by pid and start time so a reused pid is never signalled.
+nonisolated enum ProcessTree {
+    struct Member: Equatable, Sendable {
+        let pid: pid_t
+        let started: UInt64
+    }
+
+    /// A cap that no real agent reaches; a runaway tree is still walked no further than this.
+    private static let maxMembers = 512
+
+    static func members(under root: pid_t) -> [Member] {
+        var found: [Member] = []
+        var queue = [root]
+        while let parent = queue.popLast(), found.count < maxMembers {
+            var buffer = [pid_t](repeating: 0, count: 256)
+            let count = buffer.withUnsafeMutableBytes {
+                proc_listchildpids(parent, $0.baseAddress, Int32($0.count))
+            }
+            guard count > 0 else { continue }
+            for pid in buffer.prefix(Int(min(count, 256))) where pid > 0 {
+                guard let started = startTime(of: pid) else { continue }
+                found.append(Member(pid: pid, started: started))
+                queue.append(pid)
+            }
+        }
+        return found
+    }
+
+    /// SIGTERM after a second's grace, SIGKILL two seconds later; only members still the same.
+    static func reap(_ members: [Member], root: Process?) {
+        guard !members.isEmpty || root != nil else { return }
+        Task.detached {
+            try? await Task.sleep(for: .seconds(1))
+            if let root, root.isRunning { root.terminate() }
+            for member in members where isAlive(member) { kill(member.pid, SIGTERM) }
+            try? await Task.sleep(for: .seconds(2))
+            if let root, root.isRunning { kill(root.processIdentifier, SIGKILL) }
+            for member in members where isAlive(member) { kill(member.pid, SIGKILL) }
+        }
+    }
+
+    static func isAlive(_ member: Member) -> Bool {
+        startTime(of: member.pid) == member.started
+    }
+
+    private static func startTime(of pid: pid_t) -> UInt64? {
+        var info = proc_bsdinfo()
+        let size = Int32(MemoryLayout<proc_bsdinfo>.size)
+        guard proc_pidinfo(pid, PROC_PIDTBSDINFO, 0, &info, size) == size else { return nil }
+        return info.pbi_start_tvsec * 1_000_000 + info.pbi_start_tvusec
     }
 }
