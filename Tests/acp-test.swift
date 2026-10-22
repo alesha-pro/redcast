@@ -20,6 +20,7 @@ struct ACPTests {
         updatesDecode()
         permissionsOfferAllowsFirst()
         promptsCarryContextOnlyWhenFresh()
+        theBriefingSaysNobodyMayAnswer()
         eventsSettleEachCallOnce()
         runtimesParseTheirArguments()
         await aRealProcessStreamsATurn()
@@ -128,6 +129,15 @@ struct ACPTests {
         expect(allowsOnly?.refusalIndex == nil, "an agent that offers no refusal has no cancel to put on Return")
     }
 
+    static func theBriefingSaysNobodyMayAnswer() {
+        let briefing = AgentBackgroundBriefing.acp
+        expect(briefing.hasPrefix("# Running unattended"), "the briefing is its own section")
+        expect(
+            briefing.contains("declined unless someone at the Mac answers them"),
+            "it says permission requests are declined unless someone answers")
+        expect(briefing.contains("final message"), "and that the result is the final message")
+    }
+
     static func promptsCarryContextOnlyWhenFresh() {
         let message = AIMessage(
             role: .user, text: "Fix it",
@@ -224,13 +234,15 @@ struct ACPTests {
         let asked = Asked()
         let answer = Answer()
         let seen = SeenModes()
+        let unattended = UUID()
         let host = AgentACPHost(
             store: store,
             permit: { _, request in
                 asked.requests.append(request)
                 return answer.choice ?? request.dialogOptions.first?.id
             },
-            context: { _ in "# Context from Tinycast\nYou are Fake." })
+            context: { _ in "# Context from Tinycast\nYou are Fake." },
+            briefing: { $0 == unattended ? AgentBackgroundBriefing.acp : nil })
         host.onModes = { _, _, modes in seen.modes.append(modes) }
         let server = AIToolServer(
             handle: "files", title: "Files", transport: .command(path: "/bin/echo", arguments: [], environment: [:]))
@@ -262,6 +274,7 @@ struct ACPTests {
         expect(reply.contains("turn 1 in \(root.path)"), "in the agent's folder, got \(reply)")
         expect(reply.contains("once"), "the dialog's first answer, Allow once, reached the agent")
         expect(reply.contains("with context") && reply.contains("with history"), "a fresh session hears both")
+        expect(!reply.contains("briefed"), "a chat someone started is not told it runs unattended")
         expect(reply.contains("images 1"), "the image went to an agent that takes one")
         expect(reply.contains("servers 1"), "and the chat's MCP servers went with the session")
         expect(asked.requests.first?.toolCall.summary.contains("/tmp/notes.md") == true, "the dialog saw the diff")
@@ -287,6 +300,15 @@ struct ACPTests {
         expect(
             again.contains("turn 3") && again.contains("without context") && again.contains("no history"),
             "the next turn reuses the session without repeating context, got \(again)")
+
+        let alone = text(await turn("Alone", chat: unattended, host: host).events)
+        expect(
+            alone.contains("with context") && alone.contains("briefed"),
+            "an unattended turn leads with its context, then the briefing, got \(alone)")
+        let aloneAgain = text(await turn("Alone again", chat: unattended, host: host).events)
+        expect(
+            aloneAgain.contains("without context") && aloneAgain.contains("briefed"),
+            "the briefing rides every unattended turn, even on a session that knows the context")
 
         answer.choice = "reject"
         let rejected = await turn("Once more", chat: chat, host: host)

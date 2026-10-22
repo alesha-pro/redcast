@@ -8,6 +8,8 @@ final class AgentACPHost {
     private let permit: (AgentProfile, ACPPermissionRequest) async -> String?
     /// What a fresh session is told about the agent: its notes, skills and instructions.
     private let context: (AgentProfile) -> String?
+    /// What a turn nobody is watching is told about itself; nil for a chat someone started.
+    private let briefing: (_ chatID: UUID) -> String?
 
     /// A session's modes changed: on creation, on a reload, or by the agent's own move.
     var onModes: ((_ chatID: UUID, _ agentID: UUID, ACPModes) -> Void)?
@@ -40,11 +42,13 @@ final class AgentACPHost {
     init(
         store: AgentStore,
         permit: @escaping (AgentProfile, ACPPermissionRequest) async -> String?,
-        context: @escaping (AgentProfile) -> String?
+        context: @escaping (AgentProfile) -> String?,
+        briefing: @escaping (_ chatID: UUID) -> String? = { _ in nil }
     ) {
         self.store = store
         self.permit = permit
         self.context = context
+        self.briefing = briefing
     }
 
     func run(
@@ -68,9 +72,10 @@ final class AgentACPHost {
             let history = session.isFresh ? request.messages.dropLast().filter {
                 $0.role == .user || $0.role == .assistant
             } : []
+            let preamble = [session.isFresh ? context(agent) : nil, briefing(chatID)].compactMap(\.self)
             let blocks = ACPPrompt.blocks(
-                for: message, context: session.isFresh ? context(agent) : nil, history: Array(history),
-                capabilities: connection.capabilities.prompt)
+                for: message, context: preamble.isEmpty ? nil : preamble.joined(separator: "\n\n"),
+                history: Array(history), capabilities: connection.capabilities.prompt)
             let turn = Turn(continuation: continuation, mapper: ACPEventMapper(origin: agent.name))
             turns[key] = turn
             defer { turns[key] = nil }

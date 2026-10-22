@@ -22,7 +22,10 @@ final class AgentCoordinator {
         let host = AgentACPHost(
             store: store,
             permit: { [weak self] agent, request in await self?.permit(request, by: agent) },
-            context: { [weak self] agent in self?.context(for: agent).briefing() })
+            context: { [weak self] agent in self?.context(for: agent).briefing() },
+            briefing: { [weak self] chatID in
+                self?.backgroundRuns?.isUnattended(chatID) == true ? AgentBackgroundBriefing.acp : nil
+            })
         host.onModes = { [weak self] chatID, agentID, modes in
             self?.chatModes[chatID] = modes
             self?.agentModes[agentID] = modes.available

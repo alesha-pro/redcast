@@ -262,4 +262,15 @@ enum AgentBackgroundBriefing {
         did, what you found, and what is left for the user. A refused request means the user was \
         not asked; say what you would have done.
         """
+
+    /// An ACP agent's equivalent, leading each prompt of an unattended turn after its context.
+    static let acp = """
+        # Running unattended
+
+        This turn runs in the background, started by Tinycast rather than typed by the user: nobody \
+        may be at the Mac, and nobody can answer a question until it ends. Permission requests are \
+        declined unless someone at the Mac answers them, so do what you can without them. Finish \
+        with the result as your final message: what you did, what you found, and what is left for \
+        the user. If a request was declined, say what you would have done.
+        """
 }

@@ -117,7 +117,8 @@ They run on the user's own logins and subscriptions; Tinycast never sees a key.
   instructions when switched on, skills by name and `SKILL.md` path, notes and the agent's own
   instructions — leads the first prompt of a new session, with the chat's earlier turns (newest
   first, 24 KB, a cut said) when the chat began before this session did. A reloaded session needs
-  neither.
+  neither. A turn nobody is watching adds the unattended briefing after it, on every such turn
+  ([background agents](background-agents.md#while-and-after-a-run)).
 - **Tinycast offers no fs or terminal of its own.** `initialize` declares both off, so the agent uses
   its own tools and asks about them with `session/request_permission`; any `fs/*`, `terminal/*` or
   other request is answered with method-not-found. The permission dialog lists the agent's own
