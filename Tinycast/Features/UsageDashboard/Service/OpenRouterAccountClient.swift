@@ -16,18 +16,47 @@ enum OpenRouterAccountClient {
             throw .unreadableKey
         }
         guard let key = stored, !key.isEmpty else { throw .missingKey }
+        let managementKey = storedManagementKey(for: connection.id)
         let session = URLSession(configuration: configuration)
         defer { session.finishTasksAndInvalidate() }
-        func get(_ path: String) async throws(OpenRouterAccount.Failure) -> Data {
-            try await body(of: OpenRouterAccount.request(path, baseURL: baseURL, key: key), on: session)
+        let status = try OpenRouterAccount.decodeKey(
+            try await body(of: OpenRouterAccount.request("key", baseURL: baseURL, key: key), on: session))
+        let credits: OpenRouterBalance.Credits
+        switch managementKey {
+        case .failure(let failure):
+            credits = .failed(failure)
+        case .success(let managed?):
+            credits = await self.credits(
+                OpenRouterAccount.creditsRequest(managementKey: managed), managementKey: true, on: session)
+        case .success(nil) where status.isManagementKey == true:
+            credits = await self.credits(
+                OpenRouterAccount.request("credits", baseURL: baseURL, key: key), managementKey: false,
+                on: session)
+        case .success(nil):
+            credits = .needsManagementKey
         }
-        let status = try OpenRouterAccount.decodeKey(try await get("key"))
-        guard status.isManagementKey == true else {
-            return OpenRouterBalance(key: status, credits: nil)
-        }
-        // Only a management key reads the account: a refusal here is no balance, not a failure.
-        let credits = try? OpenRouterAccount.decodeCredits(try await get("credits"))
         return OpenRouterBalance(key: status, credits: credits)
+    }
+
+    private static func storedManagementKey(for id: UUID) -> Result<String?, OpenRouterAccount.Failure> {
+        do {
+            let stored = try KeychainSecretStore.openRouterManagementKeys.secret(for: id)
+            return .success(stored?.isEmpty == false ? stored : nil)
+        } catch {
+            return .failure(.unreadableKey)
+        }
+    }
+
+    /// The account's credits are a line of their own, so failing them never hides the key's spend.
+    private static func credits(
+        _ request: URLRequest, managementKey: Bool, on session: URLSession
+    ) async -> OpenRouterBalance.Credits {
+        do throws(OpenRouterAccount.Failure) {
+            let data = try await body(of: request, on: session, managementKey: managementKey)
+            return .loaded(try OpenRouterAccount.decodeCredits(data))
+        } catch {
+            return .failed(error)
+        }
     }
 
     /// Per call rather than static: a check made this rarely keeps no session alive.
@@ -40,7 +69,7 @@ enum OpenRouterAccountClient {
     }
 
     private static func body(
-        of request: URLRequest, on session: URLSession
+        of request: URLRequest, on session: URLSession, managementKey: Bool = false
     ) async throws(OpenRouterAccount.Failure) -> Data {
         let result: (Data, URLResponse)
         do {
@@ -49,7 +78,9 @@ enum OpenRouterAccountClient {
             throw .unavailable
         }
         let status = (result.1 as? HTTPURLResponse)?.statusCode ?? 0
-        guard status == 200 else { throw OpenRouterAccount.failure(forStatus: status) }
+        guard status == 200 else {
+            throw OpenRouterAccount.failure(forStatus: status, managementKey: managementKey)
+        }
         return result.0
     }
 }

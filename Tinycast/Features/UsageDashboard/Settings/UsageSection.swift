@@ -195,6 +195,7 @@ private struct OpenRouterBalanceRow: View {
 
     @State private var state = BalanceState.idle
     @State private var check: Task<Void, Never>?
+    @State private var editsManagementKey = false
 
     private enum BalanceState: Equatable {
         case idle
@@ -209,12 +210,22 @@ private struct OpenRouterBalanceRow: View {
             title: showsName ? "\(brand) (\(connection.title))" : brand, subtitle: subtitle,
             subtitleLineLimit: 3
         ) {
-            Button("Check Balance", action: start)
-                .disabled(state == .checking)
+            HStack(spacing: Theme.Spacing.md) {
+                Button("Management Key…") { editsManagementKey = true }
+                Button("Check Balance", action: start)
+                    .disabled(state == .checking)
+            }
         }
         .onDisappear {
             check?.cancel()
             if state == .checking { state = .idle }
+        }
+        .settingsEditorPanel(isPresented: $editsManagementKey) {
+            OpenRouterManagementKeyPanel(connection: connection) { changed in
+                editsManagementKey = false
+                // A balance shown with the old key would now describe an account it may not be.
+                if changed, state != .checking { state = .idle }
+            }
         }
     }
 
@@ -256,12 +267,15 @@ private struct OpenRouterBalanceRow: View {
         } else {
             lines.append(String(localized: "No spending limit on this key"))
         }
-        if let credits = balance.credits {
+        switch balance.credits {
+        case .loaded(let credits):
             let left = UsageFormat.cost(credits.remaining)
             let total = UsageFormat.cost(credits.totalCredits)
             lines.append(String(localized: "\(left) of \(total) credits left"))
-        } else {
+        case .needsManagementKey:
             lines.append(String(localized: "The account balance needs an OpenRouter management key."))
+        case .failed(let failure):
+            lines.append(failure.message)
         }
         return lines
     }
@@ -307,5 +321,85 @@ private struct UsageTrendStrip: View {
             .help(label)
             .accessibilityElement()
             .accessibilityLabel(Text(verbatim: label))
+    }
+}
+
+/// Sets or removes one connection's management key; the key is checked for, never read back.
+private struct OpenRouterManagementKeyPanel: View {
+    let connection: AIConnection
+    let onDone: (_ changed: Bool) -> Void
+
+    @State private var key = ""
+    @State private var isStored = false
+    @State private var failure: String?
+
+    private let keychain = KeychainSecretStore.openRouterManagementKeys
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: Theme.Spacing.xl) {
+            SettingsEditorHeader(
+                title: "OpenRouter Management Key",
+                subtitle: """
+                    Used only to read your account's credits when you press Check Balance, and sent \
+                    only to OpenRouter. Create one in OpenRouter's settings under Management Keys.
+                    """)
+            RevealableSecureField(
+                title: String(localized: "Management Key"), text: $key,
+                prompt: isStored ? Text("Stored in Keychain") : Text(verbatim: "sk-or-v1-…"))
+                .settingsEditorTextField()
+            if let failure {
+                Text(failure)
+                    .font(.callout)
+                    .foregroundStyle(Theme.Colors.destructive)
+            }
+            HStack(spacing: Theme.Spacing.md) {
+                if isStored {
+                    Button("Remove", role: .destructive, action: remove)
+                        .buttonStyle(.modalAction(.destructive, fillsWidth: false))
+                }
+                Spacer()
+                Button("Cancel") { onDone(false) }
+                    .buttonStyle(.modalAction(.cancel))
+                    .keyboardShortcut(.cancelAction)
+                Button("Save", action: save)
+                    .buttonStyle(.modalAction(.primary))
+                    .keyboardShortcut(.defaultAction)
+                    .disabled(trimmed.isEmpty)
+            }
+        }
+        .padding(Theme.Spacing.dialogInset)
+        .frame(width: Theme.Size.editorSheetWidth)
+        .settingsEditorPanelSurface(controlsOnGlass: false)
+        .onAppear(perform: checkStored)
+    }
+
+    private var trimmed: String {
+        key.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private func checkStored() {
+        do {
+            isStored = try keychain.hasSecret(for: connection.id)
+        } catch {
+            failure = String(localized: "Tinycast couldn't read the keys from the Keychain.")
+        }
+    }
+
+    private func save() {
+        do {
+            try keychain.setSecret(trimmed, for: connection.id)
+            onDone(true)
+        } catch {
+            failure = String(localized: "Tinycast couldn't save the key to the Keychain.")
+        }
+    }
+
+    private func remove() {
+        do {
+            try keychain.removeSecret(for: connection.id)
+            onDone(true)
+        } catch {
+            failure = String(localized: "Tinycast couldn't save the key to the Keychain.")
+        }
     }
 }

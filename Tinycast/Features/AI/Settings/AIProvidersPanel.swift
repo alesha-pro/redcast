@@ -846,6 +846,8 @@ struct AIProvidersPanel: View {
         do {
             try keyStore.removeSecret(for: connection.id)
             try headerStore.removeSecret(for: connection.id)
+            // Fork: the Usage section's OpenRouter management key goes with its connection.
+            try KeychainSecretStore.openRouterManagementKeys.removeSecret(for: connection.id)
             settings.removeConnection(id: connection.id)
             pendingRemoval = nil
             loadKeyStatuses()

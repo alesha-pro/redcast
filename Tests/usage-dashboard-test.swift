@@ -36,6 +36,7 @@ struct UsageDashboardTests {
         ledgerFilesAppendReadAndTrim()
         await ledgerEntriesJoinTheirModelsLine()
         await theRecorderPassesRepliesThroughAndLogsOnce()
+        managementKeysGoOnlyToOpenRouterCredits()
 
         print("\(passes) passed, \(failures) failed")
         if failures > 0 { exit(1) }
@@ -833,6 +834,22 @@ extension UsageDashboardTests {
             try? await Task.sleep(for: .milliseconds(20))
         }
         return (try? UsageLedger.entries(at: url, in: all)) ?? []
+    }
+
+    static func managementKeysGoOnlyToOpenRouterCredits() {
+        let request = OpenRouterAccount.creditsRequest(managementKey: "sk-or-mgmt")
+        expect(request.url?.absoluteString == "https://openrouter.ai/api/v1/credits", "only OpenRouter's own endpoint")
+        expect(request.httpMethod == "GET", "a read")
+        expect(request.value(forHTTPHeaderField: "Authorization") == "Bearer sk-or-mgmt", "with the management key")
+        expect(request.timeoutInterval == 15, "and the same 15-second limit")
+        expect(
+            OpenRouterAccount.failure(forStatus: 403, managementKey: true) == .rejectedManagementKey,
+            "a refusal names the management key")
+        expect(OpenRouterAccount.failure(forStatus: 401, managementKey: true) == .rejectedManagementKey, "401 too")
+        expect(OpenRouterAccount.failure(forStatus: 503, managementKey: true) == .unavailable, "a 5xx is OpenRouter's")
+        expect(
+            OpenRouterAccount.Failure.rejectedManagementKey.message != OpenRouterAccount.Failure.rejectedKey.message,
+            "and says which key was refused")
     }
 }
 
