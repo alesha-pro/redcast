@@ -27,6 +27,14 @@ final class HotKeyManager {
     /// Commands that hear their chord's release, for hold-to-talk; set before `start`.
     var releasedCommands: Set<CommandID> = []
     var onCommandReleased: ((CommandID) -> Void)?
+    /// Fork: commands held to talk on a single modifier too, as Dictation is in its hold mode.
+    var heldCommands: Set<CommandID> = [] {
+        didSet {
+            guard heldCommands != oldValue else { return }
+            syncModifierTaps()
+        }
+    }
+    var onCommandCancelled: ((CommandID) -> Void)?
     var onRunCustomCommand: ((UUID) -> Void)?
     var onRunSystemAction: ((SystemAction.ID) -> Void)?
     var onRunWindowCommand: ((WindowCommand.ID) -> Void)?
@@ -67,6 +75,7 @@ final class HotKeyManager {
     private let defaults: UserDefaults
     private let center = HotKeyCenter()
     private var modifierTaps: [HotKeyBinding: HotKeyAction] = [:]
+    private var heldKeys: [ModifierKey: HotKeyAction] = [:]
     /// Include Shift for the chord whose combos also answer to ⌃+key; nil when none should.
     private var secureInputEquivalentsIncludeShift: Bool?
     private var secureInputEquivalentIDs: [String] = []
@@ -121,9 +130,22 @@ final class HotKeyManager {
             guard let self, let action = modifierTaps[binding] else { return }
             perform(action)
         }
-        modifierTapMonitor.onHoldPressed = { [weak self] in self?.perform(.dictation) }
-        modifierTapMonitor.onHoldReleased = { [weak self] in self?.onDictationReleased?() }
-        modifierTapMonitor.onHoldCancelled = { [weak self] in self?.onDictationCancelled?() }
+        // Fork: a held key reaches whichever action holds it, Dictation or a voice command.
+        modifierTapMonitor.onHoldPressed = { [weak self] key in
+            guard let self, let action = heldKeys[key] else { return }
+            perform(action)
+        }
+        modifierTapMonitor.onHoldReleased = { [weak self] key in
+            guard let self, let action = heldKeys[key] else { return }
+            releaseHandler(for: action)?()
+        }
+        modifierTapMonitor.onHoldCancelled = { [weak self] key in
+            switch self?.heldKeys[key] {
+            case .dictation?: self?.onDictationCancelled?()
+            case .command(let id)?: self?.onCommandCancelled?(id)
+            default: break
+            }
+        }
         modifierTapMonitor.start()
         syncModifierTaps()
     }
@@ -328,15 +350,22 @@ final class HotKeyManager {
     func conflictOwner(of binding: HotKeyBinding, excluding action: HotKeyAction) -> String? {
         for candidate in candidateActions where candidate != action {
             guard let other = self.binding(for: candidate) else { continue }
-            let holdsModifier =
-                dictationHoldToTalk
-                && (action == .dictation && binding.holdKey != nil
-                    || candidate == .dictation && other.holdKey != nil)
+            let holdsModifier = holds(action, binding) || holds(candidate, other)
             if binding.conflicts(with: other, holdsModifier: holdsModifier) {
                 return displayName(of: candidate)
             }
         }
         return nil
+    }
+
+    /// Fork: whether this binding is held to talk, Dictation's or a held command's.
+    private func holds(_ action: HotKeyAction, _ binding: HotKeyBinding) -> Bool {
+        guard binding.holdKey != nil else { return false }
+        switch action {
+        case .dictation: return dictationHoldToTalk
+        case .command(let id): return heldCommands.contains(id)
+        default: return false
+        }
     }
 
     /// Every action that could hold a binding: the search space for conflicts and the map.
@@ -417,21 +446,22 @@ final class HotKeyManager {
     /// Rebuilt wholesale, so the map can't drift from what is on disk.
     private func syncModifierTaps() {
         modifierTaps = [:]
-        let dictationBinding = binding(for: .dictation)
-        let holdKey = dictationHoldToTalk ? dictationBinding?.holdKey : nil
+        var held: [ModifierKey: HotKeyAction] = [:]
         for action in candidateActions {
             guard let binding = binding(for: action), binding.usesModifierTapMonitor else { continue }
             if action == .dictation, !dictationEnabled { continue }
-            if action == .dictation, dictationHoldToTalk {
-                guard holdKey != nil, conflictOwner(of: binding, excluding: action) == nil else {
-                    continue
-                }
+            if action == .dictation, dictationHoldToTalk, binding.holdKey == nil { continue }
+            if holds(action, binding) {
+                guard let key = binding.holdKey, conflictOwner(of: binding, excluding: action) == nil
+                else { continue }
+                held[key] = action
             }
             modifierTaps[binding] = action
         }
-        modifierTapMonitor.update(
-            bound: Set(modifierTaps.keys),
-            holdKey: dictationBinding.flatMap { modifierTaps[$0] == .dictation ? holdKey : nil })
+        held = held.filter { modifierTaps[$0.key.singleBinding] == $0.value }
+        // Fork: after the update, so a hold it cancels still reaches the action that held it.
+        modifierTapMonitor.update(bound: Set(modifierTaps.keys), holdKeys: Set(held.keys))
+        heldKeys = held
     }
 
     private func perform(_ action: HotKeyAction) {

@@ -67211,54 +67211,54 @@
         }
       }
     },
-    "Hold to talk needs a key combination. Double taps and single modifiers start and stop instead." : {
+    "Hold to talk needs a key combination or a single modifier. A double tap starts and stops instead." : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Zum Sprechen halten braucht eine Tastenkombination. Doppeltipps und einzelne Sondertasten starten und stoppen stattdessen."
+            "value" : "„Zum Sprechen halten“ benötigt eine Tastenkombination oder eine einzelne Sondertaste. Ein Doppeltipp startet und stoppt stattdessen."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Mantener para hablar necesita una combinación de teclas. Las dobles pulsaciones y los modificadores sueltos inician y detienen en su lugar."
+            "value" : "Mantener para hablar necesita una combinación de teclas o una sola tecla modificadora. Una doble pulsación inicia y detiene en su lugar."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Maintenir pour parler nécessite une combinaison de touches. Les doubles frappes et les modificateurs seuls démarrent et arrêtent à la place."
+            "value" : "« Maintenir pour parler » nécessite une combinaison de touches ou une seule touche de modification. Une double frappe démarre et arrête à la place."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "押している間だけ話すにはキーの組み合わせが必要です。ダブルタップや単独の修飾キーでは開始と停止を切り替えます。"
+            "value" : "「押している間だけ話す」には、キーの組み合わせまたは単一の修飾キーが必要です。ダブルタップでは開始と停止を切り替えます。"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "누르고 말하기에는 키 조합이 필요합니다. 두 번 탭하기와 단일 보조 키는 대신 시작과 중지를 전환합니다."
+            "value" : "누르고 말하기에는 키 조합 또는 보조 키 하나가 필요합니다. 두 번 탭하면 대신 시작과 중지를 전환합니다."
           }
         },
         "pt" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Segurar para falar precisa de uma combinação de teclas. Toques duplos e modificadores isolados iniciam e param em vez disso."
+            "value" : "Segurar para falar requer uma combinação de teclas ou uma única tecla modificadora. Um toque duplo inicia e para em vez disso."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Для удержания нужно сочетание клавиш. Двойное нажатие и одиночные модификаторы вместо этого запускают и останавливают запись."
+            "value" : "Для режима «Удерживайте, чтобы говорить» нужно сочетание клавиш или одна клавиша-модификатор. Двойное нажатие вместо этого запускает и останавливает запись."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "按住说话需要组合键。连按两下和单个修饰键则改为开始和停止。"
+            "value" : "“按住说话”需要使用组合键或单个修饰键。连按两下则改为开始和停止。"
           }
         }
       }

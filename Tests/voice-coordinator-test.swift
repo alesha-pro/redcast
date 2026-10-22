@@ -429,6 +429,21 @@ struct VoiceCoordinatorTests {
 
         Network.streams[0].finish()
         try await wait { !world.core.messages.isEmpty }
+        world.ask.applyHoldMode()
+        expect(world.hotKeys.heldCommands == [.askByVoice], "Hold mode lends a single modifier to the command")
+        world.hotKeys.bindings[.command(.askByVoice)] = .init(shortcut: nil, holdKey: 1)
+        expect(world.ask.holdShortcutIssue == nil, "A single modifier can be held")
+        world.ask.pressed()
+        try await wait { world.recorder?.isRecording == true }
+        world.ask.released()
+        try await wait { Network.streams.count == 2 }
+        Network.streams[1].finish()
+        try await wait { world.core.messages.count == 2 }
+        world.hotKeys.conflict = "Dictation"
+        expect(
+            world.ask.holdShortcutIssue == "This shortcut is also used by Dictation. Record another shortcut.",
+            "A modifier another hold reserves is named")
+        world.hotKeys.conflict = nil
         world.hotKeys.bindings[.command(.askByVoice)] = .init(shortcut: nil)
         expect(world.ask.holdShortcutIssue != nil, "A double tap in hold mode says it acts as a toggle")
         world.ask.pressed()
@@ -437,7 +452,10 @@ struct VoiceCoordinatorTests {
         try await settle()
         expect(world.recorder?.isRecording == true, "and its release does not end the recording")
         world.ask.pressed()
-        try await wait { Network.streams.count == 2 }
+        try await wait { Network.streams.count == 3 }
+        world.voice.askMode = .toggle
+        world.ask.applyHoldMode()
+        expect(world.hotKeys.heldCommands.isEmpty, "and toggle mode takes it back")
     }
 
     static func askDismissAndSwitchOff() async throws {
@@ -648,9 +666,13 @@ enum HotKeyAction: Hashable {
 final class HotKeyManager {
     struct Binding {
         var shortcut: Int?
+        var holdKey: Int?
     }
     var bindings: [HotKeyAction: Binding] = [:]
+    var heldCommands: Set<CommandID> = []
+    var conflict: String?
     func binding(for action: HotKeyAction) -> Binding? { bindings[action] }
+    func conflictOwner(of binding: Binding, excluding action: HotKeyAction) -> String? { conflict }
 }
 
 @MainActor
