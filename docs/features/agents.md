@@ -43,6 +43,13 @@ stays in `Features/Agents/` plus the few lines in `AIChatCoordinator`, `AIChatDe
   ask. A declined call returns a result telling the model to ask what the user wants instead. Stop
   voids an answer given after it and stops a running command, so neither a late Allow nor the
   command's next step acts once the turn is gone.
+- **Each agent may set its own rules.** The editor's Permissions rows — Changes, Commands and Web,
+  each shown while the agent can reach that risk — pick Ask Each Chat, Always Allow or Never Allow
+  for it, stored as `AgentProfile.consent` in `agents.json` and only where they differ from the
+  default, so an untouched agent stores none. Reading and the agent's own notes always run. Always
+  Allow also covers runs nobody is watching. `agents.json` has no `SettingsFileKey` and is not in
+  `SettingsBackupCoverage`, and it must stay out of both while it carries rules, so an import can
+  never grant an agent a capability.
 - **Paths are checked after links are followed.** `AgentPathPolicy` resolves `~` and relative paths
   against the folder and standardizes `..` away; the executor then resolves symlinks on both the path
   and the folder before asking. Reading reaches the folder and the granted skills' folders; writing
@@ -118,12 +125,12 @@ They run on the user's own logins and subscriptions; Tinycast never sees a key.
 
 | File | Holds |
 | --- | --- |
-| `Model/AgentProfile.swift` | The profile: folder, access, tool families, skill sources, instructions sources, model |
+| `Model/AgentProfile.swift` | The profile: folder, access, tool families, permissions, skill sources, instructions sources, model |
 | `Model/AgentStore.swift` | Agents and chat bindings as JSON; the notes' location |
 | `Model/AgentSkill.swift` | `SKILL.md` front matter, the merged catalog, and `AgentContext.prompt` |
 | `Model/AgentToolbox.swift` | `AgentPathPolicy`, the tool definitions per profile, and what each reaches (`spec(for:)`) |
 | `Model/AgentTool.swift` | `AgentToolProvider`, `AgentToolSpec`, `AgentToolRisk`, `AgentTurn`, `AgentRunMode`, the call's context |
-| `Model/AgentConsentPolicy.swift` | Rules (ask, always, never), `AgentGrant`, and the verdict per rule and mode |
+| `Model/AgentConsentPolicy.swift` | Rules (ask, always, never), an agent's own (`AgentConsentRules`), `AgentGrant`, the verdict per rule and mode |
 | `Model/AgentToolset.swift` | One turn's offered tools in a stable order, and where each call goes |
 | `Model/AgentTurnBudget.swift` | The per-result, per-turn and history limits; `AgentBatchPolicy` |
 | `Service/AgentContextLoader.swift` | Reads `AGENTS.md` (or a lone `CLAUDE.md`), `~/.agents/AGENTS.md`, skills, notes |
@@ -141,15 +148,15 @@ because the composer's label and menu styles are private to that file.
 
 ## Tools
 
-| Tool | Family | Risk | Access | Asks |
-| --- | --- | --- | --- | --- |
-| `list_dir`, `read_file`, `search_files` | files | read | any | no |
-| `write_file`, `edit_file` | files | change | workspace, full | yes |
-| `run_command` | terminal | execute | workspace, full | yes |
-| `web_fetch` | web | network | any | no |
-| `memory_read` | memory | read | any | no |
-| `memory_write` | memory | own | any | no |
-| `load_skill` | — (when skills exist) | read | any | no |
+| Tool | Family | Risk | Access | Default | Permissions row |
+| --- | --- | --- | --- | --- | --- |
+| `list_dir`, `read_file`, `search_files` | files | read | any | always | — |
+| `write_file`, `edit_file` | files | change | workspace, full | ask | Changes |
+| `run_command` | terminal | execute | workspace, full | ask | Commands |
+| `web_fetch` | web | network | any | always | Web |
+| `memory_read` | memory | read | any | always | — |
+| `memory_write` | memory | own | any | always | — |
+| `load_skill` | — (when skills exist) | read | any | always | — |
 
 `run_command` runs through `ShellCommandRunner.stream` with the login shell's environment in the
 agent's folder, stopped after its timeout (120 s by default, 600 s at most); escape sequences are
@@ -203,6 +210,9 @@ changes: no router edit, no upstream line, no prompt edit.
 - Ask it to run `sleep 30`, then Stop: `ps` shows no `sleep`. Ask for a change, Stop while the dialog
   is up, then click Allow: the file is untouched.
 - Turn an MCP server on in an agent chat: the server's tool still asks per its trust and runs.
+- In the editor set Changes to Always Allow: the agent writes without a dialog. Set Web to Never
+  Allow: the transcript shows no `web_fetch`, and asking it to fetch a page gets no tool row. Set Web
+  to Ask Each Chat: a fetch raises "wants to use web_fetch". Reopen the editor: the choices stuck.
 - Delete the agent: its chats remain as plain chats and the composer shows No Agent.
 - ACP: make an agent on Claude Code in a project folder; ask it to read and change a file. The first
   turn may wait while npx fetches the adapter; then the dialog lists Claude's own options, the
@@ -212,9 +222,10 @@ changes: no router edit, no upstream line, no prompt edit.
   names it).
 - Harnesses: `acp-test` (framing, updates, permissions, prompts, modes and a scripted agent process
   in `Tests/acp-fixtures/fake-agent.mjs`: streaming, consent, reuse, refusal, cancel, reload, lost
-  sessions, a missing command), `agent-test` (skills, catalog, path policy, tool sets, specs, consent
-  policy, toolset order and routing, batches, budget, elision, prompt, persistence), `agent-tools-test` (the
-  executor against a real folder: reads, writes with consent, link escapes, commands, timeouts and
-  Stop, memory, skills, HTML; the built-ins through a toolset; every refused effect) and
-  `agent-loop-test` (the fork's loop and upstream's on the same scripts under 128 KB; routing,
-  signals, Stop, parallel batches, a long turn that elides).
+  sessions, a missing command); `agent-test` (skills, catalog, path policy, tool sets, specs, consent
+  policy and per-agent rules, toolset order and routing, batches, budget, elision, prompt,
+  persistence); `agent-tools-test` (the executor against a real folder: reads, writes with consent,
+  link escapes, commands, timeouts and Stop, memory, skills, HTML; the built-ins through a toolset,
+  with and without an agent's own rules; every refused effect); and `agent-loop-test` (the fork's
+  loop and upstream's on the same scripts under 128 KB; routing, signals, Stop, parallel batches, a
+  long turn that elides).

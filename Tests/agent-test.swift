@@ -30,6 +30,8 @@ struct AgentTests {
         budgetCutsLikeUpstream()
         elisionKeepsTheNewestRound()
         newFamiliesStartOff()
+        anAgentsOwnRulesDecide()
+        consentRulesSurviveARelaunch()
         thePromptCarriesTheFoldersContext()
         agentsAndTheirChatsSurviveARelaunch()
 
@@ -236,7 +238,7 @@ struct AgentTests {
         }
         for risk in [AgentToolRisk.read, .own] {
             expect(
-                AgentConsentPolicy.rule(for: spec("x", nil, risk)) == .always,
+                AgentConsentPolicy.rule(for: risk, of: profile()) == .always,
                 "reading and the agent's own notes never ask")
         }
     }
@@ -378,6 +380,56 @@ struct AgentTests {
         expect(
             again[2].toolResult?.content == messages[2].toolResult?.content,
             "a stub is never stubbed again, so it keeps the size it reported")
+    }
+
+    static func anAgentsOwnRulesDecide() {
+        var agent = profile()
+        agent.consent = AgentConsentRules(risks: [.read: .never, .change: .always, .network: .never])
+        expect(
+            AgentConsentPolicy.rule(for: .read, of: agent) == .always,
+            "reading never asks, whatever is stored")
+        expect(AgentConsentPolicy.rule(for: .change, of: agent) == .always, "an agent's own rule wins")
+        expect(AgentConsentPolicy.rule(for: .execute, of: agent) == .ask, "and the rest keep the default")
+        let toolset = AgentToolset(
+            turn: turn(agent),
+            providers: [
+                FakeProvider(offered: [spec("fetch", .web, .network), spec("write", .files, .change)])
+            ],
+            mcpTools: [], mcp: { .failure($0.id, "mcp") }, ask: { _, _ in false })
+        expect(toolset.tools.map(\.name) == ["write"], "a tool whose rule is Never Allow is never offered")
+
+        let set = AgentConsentRules.setting(.never, for: .network, in: nil)
+        expect(set?.risks == [.network: .never], "a rule that differs from the default is kept")
+        expect(
+            AgentConsentRules.setting(.always, for: .network, in: set) == nil,
+            "and setting the default back leaves no rules at all")
+        expect(
+            AgentConsentRules.setting(.ask, for: .change, in: set)?.risks == [.network: .never],
+            "choosing a default never stores it")
+    }
+
+    static func consentRulesSurviveARelaunch() {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("AgentConsentTests-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let store = AgentStore(directory: directory)
+        let rules = AgentConsentRules(risks: [.change: .always, .network: .never])
+        let draft = AgentProfile(name: "Ruled", directory: folder, consent: rules)
+        guard let agent = try? store.add(draft) else { return expect(false, "an agent with rules is saved") }
+        let reloaded = AgentStore(directory: directory)
+        reloaded.load()
+        expect(reloaded.agent(id: agent.id)?.consent == rules, "an agent's rules survive a relaunch")
+        let file = directory.appendingPathComponent("agents.json")
+        let text = (try? String(contentsOf: file, encoding: .utf8)) ?? ""
+        expect(text.contains(#""change":"always""#), "as a readable object keyed by risk")
+
+        guard let data = try? JSONEncoder().encode(agent),
+            var object = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any]
+        else { return expect(false, "a profile encodes") }
+        object["consent"] = nil
+        let older = (try? JSONSerialization.data(withJSONObject: object))
+            .flatMap { try? JSONDecoder().decode(AgentProfile.self, from: $0) }
+        expect(older != nil && older?.consent == nil, "an agents.json written before rules still reads")
     }
 
     static func newFamiliesStartOff() {

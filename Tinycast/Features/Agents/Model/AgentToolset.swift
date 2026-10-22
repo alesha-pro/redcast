@@ -26,7 +26,7 @@ struct AgentToolset: Sendable {
                 guard spec.family.map({ turn.profile.tools.contains($0) }) ?? true,
                     spec.risk.isOffered(to: turn.profile.access)
                 else { continue }
-                let rule = AgentConsentPolicy.rule(for: spec)
+                let rule = AgentConsentPolicy.rule(for: spec.risk, of: turn.profile)
                 guard rule != .never else { continue }
                 tools.append(spec.tool)
                 routes[spec.tool.name] = .agent(provider, spec, rule)

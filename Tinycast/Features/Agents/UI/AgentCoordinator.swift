@@ -176,9 +176,11 @@ final class AgentCoordinator {
     ) async -> Bool {
         if chatGrants[chatID]?.contains(spec.grant) == true { return true }
         let title =
-            spec.risk == .execute
-            ? String(localized: "\(agent.name) wants to run a command")
-            : String(localized: "\(agent.name) wants to change a file")
+            switch (spec.family, spec.risk) {
+            case (_, .execute): String(localized: "\(agent.name) wants to run a command")
+            case (.files?, .change): String(localized: "\(agent.name) wants to change a file")
+            default: String(localized: "\(agent.name) wants to use \(spec.tool.title)")
+            }
         NSApp.activate(ignoringOtherApps: true)
         let answer = await core.choose(
             title: title,
