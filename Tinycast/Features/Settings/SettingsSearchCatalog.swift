@@ -312,6 +312,10 @@ enum SettingsSearchCatalog {
             .aiScreenAwareness, "Include a screenshot",
             keywords: ["screen recording", "image", "capture", "picture"]),
         .init(
+            .aiAskByVoice, "Enable Ask by Voice",
+            keywords: ["voice", "speak", "microphone", "question", "gemini"]),
+        .init(.aiAskByVoice, "Shortcut behavior", keywords: ["hold", "toggle", "push to talk"]),
+        .init(
             .aiConversations, "Opens to",
             keywords: ["new chat", "last", "summon", "resume", "window", "quick ai"]),
         .init(
@@ -367,7 +371,14 @@ enum SettingsSearchCatalog {
         .init(.dictationOutput, "Microphone"),
         .init(.dictationOutput, "When finished"),
         .init(.dictationOutput, "Adapt capitalization", keywords: ["uppercase", "lowercase", "sentence"]),
-        .init(.dictationOutput, "Insert while recording", keywords: ["live", "streaming", "chunk", "pause"])
+        .init(.dictationOutput, "Insert while recording", keywords: ["live", "streaming", "chunk", "pause"]),
+        .init(
+            .dictationCloudTranscription, "Transcribe in the cloud",
+            keywords: ["gemini", "openrouter", "wispr", "online", "ai"]),
+        .init(.dictationCloudTranscription, "Clean up speech", keywords: ["filler", "verbatim"]),
+        .init(
+            .dictationCloudTranscription, "Words to spell exactly",
+            keywords: ["vocabulary", "names", "dictionary"])
     ]
 
     private static let fileSearch: [SettingsSearchEntry] = [

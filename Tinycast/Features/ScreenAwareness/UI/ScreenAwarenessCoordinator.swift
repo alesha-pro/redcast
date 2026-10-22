@@ -80,9 +80,31 @@ final class ScreenAwarenessCoordinator {
         if enabled, !ScreenRecordingAccess.isGranted { ScreenRecordingAccess.request() }
     }
 
+    /// What one read of a window found, shared with Ask by Voice.
+    struct Capture: Sendable {
+        let context: ScreenContext
+        let screenshot: Data?
+    }
+
     func askAboutScreen() {
-        guard isActive, capturing == nil else { return }
-        // Behind the palette when it is open, so a launcher row reads the app it was opened over.
+        guard isActive, capturing == nil, let target = captureTarget() else { return }
+        guard Permissions.isAccessibilityTrusted() else {
+            reportMissingAccessibility()
+            return
+        }
+        let wantsScreenshot = settings.screenAwarenessScreenshot
+        capturing = Task { [weak self] in
+            guard let self else { return }
+            let capture = await self.capture(target, screenshot: wantsScreenshot)
+            guard !Task.isCancelled else { return }
+            self.capturing = nil
+            guard let capture else { return }
+            self.present(capture.context, screenshot: capture.screenshot, wantedScreenshot: wantsScreenshot)
+        }
+    }
+
+    /// Behind the palette when it is open; Tinycast itself is refused with a HUD.
+    func captureTarget() -> NSRunningApplication? {
         let target =
             paletteCoordinator.isVisible
             ? paletteCoordinator.targetApp : NSWorkspace.shared.frontmostApplication
@@ -90,34 +112,34 @@ final class ScreenAwarenessCoordinator {
             core.showMessage(
                 String(localized: "Switch to the window you want to ask about first."),
                 tone: .neutral)
-            return
+            return nil
         }
-        guard Permissions.isAccessibilityTrusted() else {
-            reportMissingAccessibility()
-            return
-        }
+        return target
+    }
+
+    /// nil when cancelled or refused; a refusal has shown its dialog by then.
+    func capture(_ target: NSRunningApplication, screenshot wantsScreenshot: Bool) async -> Capture? {
         let selection = AccessibilityText.selection(in: target)
         let pid = target.processIdentifier
         let name = target.localizedName ?? target.bundleIdentifier ?? String(localized: "App")
         let bundleID = target.bundleIdentifier
-        let wantsScreenshot = settings.screenAwarenessScreenshot
-        capturing = Task { [weak self] in
-            let reading = await Task.detached(priority: .userInitiated) {
-                ScreenContextReader.read(
-                    pid: pid, appName: name, bundleID: bundleID, selection: selection, now: Date())
-            }.value
-            let screenshot =
-                wantsScreenshot
-                ? await WindowScreenshotter.capture(pid: pid, frame: reading.windowFrame) : nil
-            guard let self, !Task.isCancelled else { return }
-            self.capturing = nil
-            guard !reading.accessibilityRefused else {
-                // Trusted yet refused: the app remembers a refusal from before the grant, not us.
-                return Permissions.isAccessibilityTrusted()
-                    ? self.reportRefusal(by: name) : self.reportMissingAccessibility()
+        let reading = await Task.detached(priority: .userInitiated) {
+            ScreenContextReader.read(
+                pid: pid, appName: name, bundleID: bundleID, selection: selection, now: Date())
+        }.value
+        let screenshot =
+            wantsScreenshot ? await WindowScreenshotter.capture(pid: pid, frame: reading.windowFrame) : nil
+        guard !Task.isCancelled else { return nil }
+        guard !reading.accessibilityRefused else {
+            // Trusted yet refused: the app remembers a refusal from before the grant, not us.
+            if Permissions.isAccessibilityTrusted() {
+                reportRefusal(by: name)
+            } else {
+                reportMissingAccessibility()
             }
-            self.present(reading.context, screenshot: screenshot, wantedScreenshot: wantsScreenshot)
+            return nil
         }
+        return Capture(context: reading.context, screenshot: screenshot)
     }
 
     private func present(_ context: ScreenContext, screenshot: Data?, wantedScreenshot: Bool) {
@@ -171,7 +193,7 @@ final class ScreenAwarenessCoordinator {
         }
     }
 
-    private func reportMissingAccessibility() {
+    func reportMissingAccessibility() {
         NSApp.activate(ignoringOtherApps: true)
         Task {
             guard

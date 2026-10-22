@@ -9,6 +9,7 @@ final class QuickActionPanelController: NSObject, NSWindowDelegate {
     private var onReplace: ((String) -> Void)?
     private var onRetranslate: ((Locale.Language) -> Void)?
     private var onContinueInChat: ((String) -> Void)?
+    private var onDismiss: (() -> Void)?
 
     /// Clear of the pointer, so the panel never opens under the hand that summoned it.
     private static let cursorOffset: CGFloat = 12
@@ -21,13 +22,15 @@ final class QuickActionPanelController: NSObject, NSWindowDelegate {
         languages: [Locale.Language],
         onRetranslate: @escaping (Locale.Language) -> Void,
         onReplace: @escaping (String) -> Void,
-        onContinueInChat: ((String) -> Void)?
+        onContinueInChat: ((String) -> Void)?,
+        onDismiss: (() -> Void)? = nil
     ) {
         dismiss()
         self.state = state
         self.onReplace = onReplace
         self.onRetranslate = onRetranslate
         self.onContinueInChat = onContinueInChat
+        self.onDismiss = onDismiss
 
         let hosting = NSHostingView(
             rootView: QuickActionResultView(
@@ -68,6 +71,8 @@ final class QuickActionPanelController: NSObject, NSWindowDelegate {
 
     func dismiss() {
         guard let closing = panel else { return }
+        let ended = onDismiss
+        onDismiss = nil
         panel = nil
         state = nil
         onReplace = nil
@@ -76,6 +81,7 @@ final class QuickActionPanelController: NSObject, NSWindowDelegate {
         closing.delegate = nil
         closing.onKey = nil
         closing.orderOut(nil)
+        ended?()
     }
 
     private func copyOutput() {

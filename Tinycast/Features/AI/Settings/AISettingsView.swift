@@ -38,6 +38,7 @@ struct AISettingsView: View {
                 chatSection
                 AgentsSettingsSection()
                 ScreenAwarenessSettingsSection()
+                VoiceAskSettingsSection()
                 conversationsSection
                 systemPromptSection
                 MCPSettingsSection()

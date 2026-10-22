@@ -792,6 +792,22 @@ run mcp-test               Tinycast/Features/Settings/AppSettingsKey.swift \
 run -O text-diff-test      Tinycast/Features/QuickActions/Model/TextDiffEngine.swift
 run index text-diff-performance Tinycast/Features/QuickActions/Model/TextDiffEngine.swift
 run screen-awareness-test  Tinycast/Features/ScreenAwareness/Model/*.swift
+run voice-ai-test          Tinycast/Features/VoiceAI/Model/*.swift \
+                           Tinycast/Features/Settings/AppSettingsKey.swift \
+                           Tinycast/Features/AI/Model/*.swift \
+                           Tinycast/Features/AI/Settings/AISettingsStore.swift
+run voice-coordinator-test Tinycast/Features/VoiceAI/Model/*.swift \
+                           Tinycast/Features/VoiceAI/Service/VoiceCloudTranscriber.swift \
+                           Tinycast/Features/VoiceAI/Service/VoiceMediaEncoder.swift \
+                           Tinycast/Features/VoiceAI/Settings/VoiceAISettings.swift \
+                           Tinycast/Features/VoiceAI/UI/VoiceAskCoordinator.swift \
+                           Tinycast/Features/Settings/AppSettingsKey.swift \
+                           Tinycast/Features/AI/Model/*.swift \
+                           Tinycast/Features/AI/Service/AIProvider.swift \
+                           Tinycast/Features/AI/Settings/AISettingsStore.swift \
+                           Tinycast/Features/Dictation/Model/DictationMode.swift \
+                           Tinycast/Features/ScreenAwareness/Model/*.swift \
+                           Tinycast/Features/QuickActions/Model/CustomQuickAction.swift
 run acp-test               Tinycast/Features/Agents/Model/*.swift \
                            Tinycast/Features/Agents/Service/*.swift \
                            Tinycast/Platform/NotificationToken.swift \

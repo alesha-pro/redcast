@@ -15,6 +15,8 @@ final class DictationCoordinator {
     private let injector: TextInjector
     private let showMessage: (String, DialogTone) -> Void
     private let confirmEnable: () async -> Bool
+    private let cloudIsOn: @MainActor () -> Bool
+    private let cloudTranscribe: @MainActor ([Float], String?) async throws -> String
     @ObservationIgnored private var phase: Phase = .idle
     @ObservationIgnored private var token = UUID()
     @ObservationIgnored private var enableTask: Task<Void, Never>?
@@ -34,7 +36,9 @@ final class DictationCoordinator {
         settings: AppSettings, hotKeys: HotKeyManager, models: DictationModelStore,
         injector: TextInjector, audioDucker: DictationAudioDucker,
         confirmEnable: @escaping () async -> Bool,
-        showMessage: @escaping (String, DialogTone) -> Void
+        showMessage: @escaping (String, DialogTone) -> Void,
+        cloudIsOn: @escaping @MainActor () -> Bool = { false },
+        cloudTranscribe: @escaping @MainActor ([Float], String?) async throws -> String = { _, _ in "" }
     ) {
         self.settings = settings
         self.hotKeys = hotKeys
@@ -43,6 +47,8 @@ final class DictationCoordinator {
         self.audioDucker = audioDucker
         self.confirmEnable = confirmEnable
         self.showMessage = showMessage
+        self.cloudIsOn = cloudIsOn
+        self.cloudTranscribe = cloudTranscribe
         panel.onAccept = { [weak self] in self?.accept() }
         panel.onCancel = { [weak self] in self?.cancel() }
         capture.onLevels = { [weak self] in self?.panel.state.levels = $0 }
@@ -115,7 +121,8 @@ final class DictationCoordinator {
     }
 
     var isEnabled: Bool { settings.dictationEnabled }
-    var hasModel: Bool { models.isInstalled(settings.dictationModel) }
+    var hasModel: Bool { cloudIsOn() || models.isInstalled(settings.dictationModel) }
+    var isBusy: Bool { phase != .idle }
 
     /// A field's own mic: click to start and click to finish, whatever the shortcut's mode or focus.
     func toggle(into editor: any InjectableTextView) {
@@ -137,7 +144,7 @@ final class DictationCoordinator {
     }
 
     private func begin(target: InjectionTarget?) {
-        guard models.isInstalled(settings.dictationModel) else {
+        guard cloudIsOn() || models.isInstalled(settings.dictationModel) else {
             field = nil
             showMessage(String(localized: "Download the dictation model in Settings first"), .danger)
             return
@@ -208,9 +215,7 @@ final class DictationCoordinator {
                 return
             }
             do {
-                let transcript = try await models.transcribe(
-                    tail, model: model,
-                    language: language)
+                let transcript = try await transcribe(tail, model: model, language: language)
                 guard token == current else { return }
                 // A mic belongs to its field: the text goes in there, never to the clipboard.
                 let context = destination.pastes ? insertionContext() : nil
@@ -278,7 +283,7 @@ final class DictationCoordinator {
     }
 
     private func startLiveInsertion(token current: UUID) {
-        guard insertionPastes, settings.dictationLiveInsertion else { return }
+        guard insertionPastes, settings.dictationLiveInsertion, !cloudIsOn() else { return }
         liveTask = Task { [weak self] in
             guard let self else { return }
             while !Task.isCancelled {
@@ -329,6 +334,14 @@ final class DictationCoordinator {
         } catch {
             // The final pass starts at liveOffset, so it covers what this chunk left behind.
         }
+    }
+
+    /// The cloud engine replaces only this call: capture, panel and insertion stay the same.
+    private func transcribe(
+        _ samples: [Float], model: DictationModel, language: String?
+    ) async throws -> String {
+        if cloudIsOn() { return try await cloudTranscribe(samples, language) }
+        return try await models.transcribe(samples, model: model, language: language)
     }
 
     func cancel(in editor: any InjectableTextView) {
