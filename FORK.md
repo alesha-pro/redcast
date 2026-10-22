@@ -29,6 +29,9 @@ upstream's feed, and they keep their settings apart from an installed upstream T
 - `origin` is this fork, `upstream` is abue-ammar/tinycast. Upstream lands almost daily.
 - Fork features live in their own `Features/<Name>/` folders and touch shared files in as few lines as
   possible, so `git fetch upstream && git merge upstream/main` stays a mechanical merge.
+- Agent chats run the fork's `AgentLoopProvider`; `agent-loop-test` runs it and upstream's
+  `AIToolLoopProvider` on the same script, so a merge that changes upstream's loop fails a harness
+  until the fork follows.
 - `Tinycast.xcodeproj` is generated: after a merge, resolve `project.yml` and run `xcodegen generate`
   rather than hand-merging `project.pbxproj`. `Localizable.xcstrings` entries are inserted by hand in
   catalog order (a local `sync-strings.sh` reorders hundreds of unrelated entries).

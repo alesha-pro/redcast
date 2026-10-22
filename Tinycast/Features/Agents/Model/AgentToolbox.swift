@@ -68,11 +68,6 @@ enum AgentToolbox {
     static let writeMemory = "memory_write"
     static let loadSkill = "load_skill"
 
-    static let allNames: Set<String> = [
-        listDirectory, readFile, searchFiles, writeFile, editFile, runCommand, webFetch, readMemory,
-        writeMemory, loadSkill
-    ]
-
     static func tools(for profile: AgentProfile, hasSkills: Bool) -> [AITool] {
         var tools: [AITool] = []
         let origin = profile.name
