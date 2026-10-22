@@ -7,7 +7,7 @@ struct VoiceCloudDictationSection: View {
 
     var body: some View {
         @Bindable var voice = core.voiceSettings
-        let available = core.voiceCloud.selection != nil
+        let available = core.voiceCloud.proposal != nil
         return Section {
             Toggle(isOn: enabledBinding) {
                 SettingsRowTitle(.dictationCloudTranscription, "Transcribe in the cloud")
@@ -20,7 +20,8 @@ struct VoiceCloudDictationSection: View {
                     .foregroundStyle(.secondary)
             }
             if voice.cloudDictation {
-                VoiceModelRow(use: .dictation, selection: $voice.dictationModel)
+                VoiceModelRow(
+                    use: .dictation, selection: voice.dictationModel, choose: core.voiceCloud.choose)
                 Toggle(isOn: $voice.cleanup) {
                     SettingsRowTitle(.dictationCloudTranscription, "Clean up speech")
                     Text("Leave out fillers and false starts. Off keeps every word.")

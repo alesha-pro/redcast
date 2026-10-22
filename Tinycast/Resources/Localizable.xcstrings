@@ -17001,54 +17001,60 @@
         }
       }
     },
-    "A shortcut records your question and sends it, with the window in front of you, to %@. Nothing is recorded or read until you press it." : {
+    "A shortcut records your question and sends it, with the window in front of you, to %@ to be answered by %@. Nothing is recorded or read until you press it." : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ein Kurzbefehl nimmt deine Frage auf und sendet sie mit dem Fenster vor dir an %@. Nichts wird aufgenommen oder gelesen, bevor du ihn drückst."
+            "value" : "Ein Kurzbefehl nimmt deine Frage auf und sendet sie mit dem Fenster vor dir an %1$@, wo %2$@ sie beantwortet. Nichts wird aufgenommen oder gelesen, bevor du ihn drückst."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A shortcut records your question and sends it, with the window in front of you, to %1$@ to be answered by %2$@. Nothing is recorded or read until you press it."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Un atajo graba tu pregunta y la envía, junto con la ventana que tienes delante, a %@. No se graba ni se lee nada hasta que lo pulses."
+            "value" : "Un atajo graba tu pregunta y la envía, junto con la ventana que tienes delante, a %1$@ para que %2$@ la responda. No se graba ni se lee nada hasta que lo pulses."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Un raccourci enregistre votre question et l’envoie, avec la fenêtre au premier plan, à %@. Rien n’est enregistré ni lu tant que vous ne l’utilisez pas."
+            "value" : "Un raccourci enregistre votre question et l’envoie, avec la fenêtre au premier plan, à %1$@ pour que %2$@ y réponde. Rien n’est enregistré ni lu tant que vous ne l’utilisez pas."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "ショートカットで質問を録音し、前面のウインドウと一緒に%@へ送信します。押すまでは何も録音・読み取りされません。"
+            "value" : "ショートカットで質問を録音し、前面のウインドウと一緒に%1$@へ送信して%2$@が回答します。押すまでは何も録音・読み取りされません。"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "단축키로 질문을 녹음해 앞에 있는 윈도우와 함께 %@(으)로 보냅니다. 누르기 전에는 아무것도 녹음하거나 읽지 않습니다."
+            "value" : "단축키로 질문을 녹음해 앞에 있는 윈도우와 함께 %1$@(으)로 보내면 %2$@이(가) 답합니다. 누르기 전에는 아무것도 녹음하거나 읽지 않습니다."
           }
         },
         "pt" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Um atalho grava sua pergunta e a envia, com a janela à sua frente, para %@. Nada é gravado nem lido até você pressioná-lo."
+            "value" : "Um atalho grava sua pergunta e a envia, com a janela à sua frente, para %1$@, onde %2$@ a responde. Nada é gravado nem lido até você pressioná-lo."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Сочетание клавиш записывает ваш вопрос и отправляет его вместе с окном перед вами в %@. Пока вы его не нажмёте, ничего не записывается и не читается."
+            "value" : "Сочетание клавиш записывает ваш вопрос и отправляет его вместе с окном перед вами в %1$@, где на него ответит %2$@. Пока вы его не нажмёте, ничего не записывается и не читается."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "快捷键会录下你的问题，并连同你面前的窗口一起发送到 %@。在你按下之前，不会录制或读取任何内容。"
+            "value" : "快捷键会录下你的问题，并连同你面前的窗口一起发送到 %1$@，由 %2$@ 回答。在你按下之前，不会录制或读取任何内容。"
           }
         }
       }
@@ -107525,6 +107531,110 @@
         }
       }
     },
+    "Send Ask by Voice to %@?" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "„Per Sprache fragen“ an %@ senden?"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "¿Enviar Preguntar por voz a %@?"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Envoyer Demander à voix haute à %@ ?"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "「音声で質問」を%@に送信しますか？"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "음성으로 묻기를 %@(으)로 보내시겠습니까?"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enviar Perguntar por Voz para %@?"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Отправлять «Спросить голосом» в %@?"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "要将语音提问发送到 %@ 吗？"
+          }
+        }
+      }
+    },
+    "Send Dictation to %@?" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diktat an %@ senden?"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "¿Enviar el dictado a %@?"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Envoyer la dictée à %@ ?"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "音声入力を%@に送信しますか？"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "받아쓰기를 %@(으)로 보내시겠습니까?"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enviar o Ditado para %@?"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Отправлять диктовку в %@?"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "要将听写发送到 %@ 吗？"
+          }
+        }
+      }
+    },
     "Send a message" : {
       "localizations" : {
         "de" : {
@@ -119135,6 +119245,58 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "无法导出该聊天。"
+          }
+        }
+      }
+    },
+    "The chosen connection was removed or turned off. Nothing is sent until you choose one." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die gewählte Verbindung wurde entfernt oder ausgeschaltet. Bis du eine wählst, wird nichts gesendet."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La conexión elegida se eliminó o se desactivó. No se envía nada hasta que elijas una."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La connexion choisie a été supprimée ou désactivée. Rien n’est envoyé tant que vous n’en choisissez pas une."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "選択した接続は削除されたかオフになっています。接続を選ぶまで何も送信されません。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "선택한 연결이 삭제되었거나 꺼져 있습니다. 연결을 선택할 때까지 아무것도 보내지 않습니다."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A conexão escolhida foi removida ou desativada. Nada é enviado até você escolher uma."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Выбранное подключение удалено или выключено. Пока вы не выберете другое, ничего не отправляется."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "所选连接已被移除或关闭。在你选择一个连接之前，不会发送任何内容。"
           }
         }
       }

@@ -7,7 +7,7 @@ final class VoiceCloudTranscriber {
     private let voice: VoiceAISettings
     private let aiSettings: AISettingsStore
     private let confirm: (_ title: String, _ message: String) async -> Bool
-    private var enableTask: Task<Void, Never>?
+    private var consentTask: Task<Void, Never>?
 
     init(
         settings: AppSettings, voice: VoiceAISettings, aiSettings: AISettingsStore,
@@ -21,29 +21,54 @@ final class VoiceCloudTranscriber {
 
     var isOn: Bool { settings.dictationEnabled && voice.cloudDictation }
 
-    /// nil while no connection can hear audio, which is what keeps the switch disabled.
-    var selection: AIModelSelection? {
-        VoiceRoutePolicy.resolve(
+    /// The only destination a recording goes to: the one consented to, never a substitute.
+    var route: AIModelSelection? {
+        VoiceRoutePolicy.route(
             voice.dictationModel, use: .dictation, connections: aiSettings.connections,
-            isEnabled: { [aiSettings] in aiSettings.isRouteEnabled(.api($0)) })
+            isEnabled: isRouteEnabled)
     }
 
-    /// Turning it on is consent: the dialog names where the audio goes before any is sent.
+    /// What the switch's dialog names; nil while no connection hears audio, keeping it disabled.
+    var proposal: AIModelSelection? {
+        VoiceRoutePolicy.proposal(
+            voice.dictationModel, use: .dictation, connections: aiSettings.connections,
+            isEnabled: isRouteEnabled)
+    }
+
+    /// Turning it on is consent: the dialog names the destination, and approval saves that one.
     func setEnabled(_ enabled: Bool) {
         guard enabled != voice.cloudDictation else { return }
         guard enabled else {
-            enableTask?.cancel()
+            consentTask?.cancel()
             voice.cloudDictation = false
             return
         }
-        guard enableTask == nil, case .api(let id, let model, _) = selection,
+        guard let proposal else { return }
+        askConsent(to: proposal, switching: false)
+    }
+
+    /// Another connection is another destination, so while on it is asked for like the switch.
+    func choose(_ selection: AIModelSelection) {
+        guard voice.cloudDictation, selection.source != route?.source else {
+            voice.dictationModel = selection
+            return
+        }
+        askConsent(to: selection, switching: true)
+    }
+
+    private func askConsent(to selection: AIModelSelection, switching: Bool) {
+        guard consentTask == nil, case .api(let id, let model, _) = selection,
             let connection = aiSettings.connection(id: id)
         else { return }
-        enableTask = Task { [weak self] in
+        let title =
+            switching
+            ? String(localized: "Send Dictation to \(connection.title)?")
+            : String(localized: "Transcribe Dictation in the Cloud?")
+        consentTask = Task { [weak self] in
             guard let self else { return }
-            defer { enableTask = nil }
+            defer { consentTask = nil }
             let approved = await confirm(
-                String(localized: "Transcribe Dictation in the Cloud?"),
+                title,
                 String(
                     localized: """
                         Each finished recording goes to \(connection.title) to be transcribed by \
@@ -51,12 +76,13 @@ final class VoiceCloudTranscriber {
                         applies.
                         """))
             guard approved, !Task.isCancelled else { return }
+            voice.dictationModel = selection
             voice.cloudDictation = true
         }
     }
 
     func transcribe(_ samples: [Float], language: String?) async throws -> String {
-        guard let selection else { throw VoiceAIFailure.noDictationModel }
+        guard let selection = route else { throw VoiceAIFailure.noDictationModel }
         let provider = try VoiceAIRoute.provider(for: selection, settings: aiSettings)
         guard let wav = await VoiceMediaEncoder.wav(samples) else { throw VoiceAIFailure.noSpeech }
         try Task.checkCancellation()
@@ -71,4 +97,6 @@ final class VoiceCloudTranscriber {
         guard let transcript = VoiceTranscript.cleaned(text) else { throw VoiceAIFailure.noSpeech }
         return transcript
     }
+
+    private func isRouteEnabled(_ id: UUID) -> Bool { aiSettings.isRouteEnabled(.api(id)) }
 }

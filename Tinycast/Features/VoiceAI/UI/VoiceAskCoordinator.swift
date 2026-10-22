@@ -31,6 +31,7 @@ final class VoiceAskCoordinator {
     private let hotKeys: HotKeyManager
     private let injector: TextInjector
     private let audioDucker: DictationAudioDucker
+    private let requestMicrophone: @MainActor () async -> Bool
     private unowned let core: AppCore
 
     /// Built on the first press, so no capture session, panel or view exists before one.
@@ -44,12 +45,15 @@ final class VoiceAskCoordinator {
     private var work: Task<Void, Never>?
     /// Every start waits for the last stop: one recorder must never run two sessions at once.
     private var stopping: Task<Void, Never>?
-    private var enableTask: Task<Void, Never>?
+    private var consentTask: Task<Void, Never>?
 
     init(
         settings: AppSettings, voice: VoiceAISettings, aiSettings: AISettingsStore,
         appIndex: AppIndex, hotKeys: HotKeyManager, injector: TextInjector,
-        audioDucker: DictationAudioDucker, core: AppCore
+        audioDucker: DictationAudioDucker, core: AppCore,
+        requestMicrophone: @escaping @MainActor () async -> Bool = {
+            await AVCaptureDevice.requestAccess(for: .audio)
+        }
     ) {
         self.settings = settings
         self.voice = voice
@@ -58,15 +62,22 @@ final class VoiceAskCoordinator {
         self.hotKeys = hotKeys
         self.injector = injector
         self.audioDucker = audioDucker
+        self.requestMicrophone = requestMicrophone
         self.core = core
     }
 
     var isActive: Bool { settings.aiEnabled && settings.screenAwarenessEnabled && voice.askEnabled }
 
-    var selection: AIModelSelection? {
-        VoiceRoutePolicy.resolve(
-            voice.askModel, use: .ask, connections: aiSettings.connections,
-            isEnabled: { [aiSettings] in aiSettings.isRouteEnabled(.api($0)) })
+    /// The only destination a question goes to: the one consented to, never a substitute.
+    var route: AIModelSelection? {
+        VoiceRoutePolicy.route(
+            voice.askModel, use: .ask, connections: aiSettings.connections, isEnabled: isRouteEnabled)
+    }
+
+    /// What enabling names; nil while no connection hears audio, which keeps the switch disabled.
+    var proposal: AIModelSelection? {
+        VoiceRoutePolicy.proposal(
+            voice.askModel, use: .ask, connections: aiSettings.connections, isEnabled: isRouteEnabled)
     }
 
     /// Carbon reports a release only for a key combination; any other binding acts as a toggle.
@@ -95,31 +106,15 @@ final class VoiceAskCoordinator {
     func setEnabled(_ enabled: Bool) {
         guard enabled != voice.askEnabled else { return }
         guard enabled else {
-            enableTask?.cancel()
+            consentTask?.cancel()
             voice.askEnabled = false
             return
         }
-        guard enableTask == nil, case .api(let id, _, _) = selection,
-            let connection = aiSettings.connection(id: id)
-        else { return }
+        guard let proposal else { return }
         NSApp.activate()
-        enableTask = Task { [weak self] in
+        askConsent(to: proposal, switching: false) { [weak self] in
             guard let self else { return }
-            defer { enableTask = nil }
-            guard
-                await core.confirm(
-                    title: String(localized: "Enable Ask by Voice?"),
-                    message: String(
-                        localized: """
-                            A shortcut records your question and sends it, with the window in front \
-                            of you, to \(connection.title). Nothing is recorded or read until you \
-                            press it.
-                            """),
-                    symbol: CommandID.askByVoice.sfSymbol, confirmTitle: String(localized: "Continue"),
-                    tone: .neutral, confirmRole: .standard),
-                !Task.isCancelled
-            else { return }
-            let granted = await AVCaptureDevice.requestAccess(for: .audio)
+            let granted = await requestMicrophone()
             guard !Task.isCancelled else { return }
             guard granted else {
                 core.showMessage(
@@ -127,8 +122,50 @@ final class VoiceAskCoordinator {
                     tone: .danger)
                 return
             }
+            voice.askModel = proposal
             voice.askEnabled = true
             Permissions.ensureAccessibility()
+        }
+    }
+
+    /// Another connection is another destination, so while on it is asked for like the switch.
+    func choose(_ selection: AIModelSelection) {
+        guard voice.askEnabled, selection.source != route?.source else {
+            voice.askModel = selection
+            return
+        }
+        askConsent(to: selection, switching: true) { [voice] in voice.askModel = selection }
+    }
+
+    /// The dialog names the connection and model; only an approval still current runs `approved`.
+    private func askConsent(
+        to selection: AIModelSelection, switching: Bool,
+        then approved: @escaping @MainActor () async -> Void
+    ) {
+        guard consentTask == nil, case .api(let id, let model, _) = selection,
+            let connection = aiSettings.connection(id: id)
+        else { return }
+        let title =
+            switching
+            ? String(localized: "Send Ask by Voice to \(connection.title)?")
+            : String(localized: "Enable Ask by Voice?")
+        consentTask = Task { [weak self] in
+            guard let self else { return }
+            defer { consentTask = nil }
+            guard
+                await core.confirm(
+                    title: title,
+                    message: String(
+                        localized: """
+                            A shortcut records your question and sends it, with the window in front \
+                            of you, to \(connection.title) to be answered by \(model). Nothing is \
+                            recorded or read until you press it.
+                            """),
+                    symbol: CommandID.askByVoice.sfSymbol, confirmTitle: String(localized: "Continue"),
+                    tone: .neutral, confirmRole: .standard),
+                !Task.isCancelled
+            else { return }
+            await approved()
         }
     }
 
@@ -163,7 +200,7 @@ final class VoiceAskCoordinator {
     }
 
     func prepareForTermination() {
-        enableTask?.cancel()
+        consentTask?.cancel()
         let recording = phase == .starting || phase == .listening
         cancel()
         if recording { audioDucker.restoreImmediately() }
@@ -182,7 +219,7 @@ final class VoiceAskCoordinator {
             screenAwareness.reportMissingAccessibility()
             return
         }
-        guard let selection else {
+        guard let selection = route else {
             core.showMessage(VoiceAIFailure.noAskModel.localizedDescription, tone: .danger)
             return
         }
@@ -390,6 +427,8 @@ final class VoiceAskCoordinator {
         finishWhenStarted = false
         capsule?.close()
     }
+
+    private func isRouteEnabled(_ id: UUID) -> Bool { aiSettings.isRouteEnabled(.api(id)) }
 
     private func takesImages(_ selection: AIModelSelection) -> Bool {
         guard case .api(let id, let model, _) = selection, let connection = aiSettings.connection(id: id)
