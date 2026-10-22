@@ -220,8 +220,10 @@ Non-activating, so the target app keeps its selection while the panel holds key.
 `sendEvent`: `↵` replaces, `⌘C` copies, `⌘J` continues in AI Chat, `esc` dismisses; click-away
 dismisses like every other borderless surface.
 
-The panel also hosts [Ask by Voice](voice-ai.md#ask-by-voice) answers, through its own
-`QuickActionPanelController` and a synthetic custom action titled with the spoken question. `present`'s
+The panel also hosts [Ask by Voice](voice-ai.md#ask-by-voice) answers and the edits of [Edit
+Selection by Voice](voice-ai.md#edit-selection-by-voice) it may not apply unseen, through its own
+`QuickActionPanelController` and a synthetic custom action titled with what was said. An edit reads
+the selection with `QuickActionRunner.selection`, as Quick Actions do. `present`'s
 optional `onDismiss` runs once on every dismissal, Replace and Continue included, after the panel is
 gone, so its owner can stop a reply still streaming; `QuickActionCoordinator` passes none.
 

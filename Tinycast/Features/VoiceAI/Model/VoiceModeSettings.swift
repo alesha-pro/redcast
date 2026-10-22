@@ -49,7 +49,7 @@ struct VoiceModeSettings: Codable, Equatable, Sendable {
         return mode(id: UUID(uuidString: entry))
     }
 
-    /// Tab's order: the plain transcript, then every mode not hidden; an unlisted current starts it.
+    /// Tab's order: no mode, then each mode not hidden; a current one not listed starts over.
     func next(after current: UUID?, backward: Bool = false) -> VoiceMode? {
         let cycle: [VoiceMode?] = [nil] + all.filter { !hidden.contains($0.id) }
         let index = cycle.firstIndex { $0?.id == current } ?? 0

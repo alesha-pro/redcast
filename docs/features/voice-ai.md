@@ -12,6 +12,8 @@ Gemini connection:
   Awareness reads the window in front, sends the audio, the window's text and, when allowed, a
   screenshot in one request, and streams the answer into the Quick Action panel — or types it into the
   focused field when the question asked for that.
+- **Edit Selection by Voice** comes with it: select text, press its shortcut, say "make this
+  shorter", and the selection is rewritten in place — or, if it moved meanwhile, shown in the panel.
 
 Upstream declined voice control (#1550), so this lives in `Features/VoiceAI/` plus a few lines in
 `AIRequest`, `AIRequestBody`, `DictationCoordinator`, `ScreenAwarenessCoordinator`,
@@ -47,6 +49,11 @@ Upstream declined voice control (#1550), so this lives in `Features/VoiceAI/` pl
   only when the capture found a focused text field, the text is at most 4,000 characters and the app
   is not a terminal (`VoiceInsertPolicy`); otherwise the panel shows it and ↵ types it. A delivery that
   fails shows the panel too.
+- **An edit replaces only the selection it was given.** The selection is read again just before
+  replacing, with the same reader, and the edit lands only if it is the same text (line endings
+  aside), Accessibility says the focused element's selected text can be written, and the app is not a
+  terminal; otherwise the panel shows the edit for ↵, so it never lands nowhere. A selection that
+  cannot be read refuses the press and stops the recording at once, so nothing is sent.
 - **The capture is material, not instructions.** The Ask instructions say so, the screen Markdown
   opens by saying so, and the spoken request travels last, after the text and the picture.
 - **Only a body Tinycast writes with `input_audio` hears audio.** `VoiceRoutePolicy.accepts` takes
@@ -82,14 +89,16 @@ Upstream declined voice control (#1550), so this lives in `Features/VoiceAI/` pl
 | `Model/VoiceReply.swift` | `VoiceReplyParser` (the streamed ANSWER/INSERT header), `VoiceTranscript.cleaned` |
 | `Model/VoiceReplySession.swift` | One Ask reply: when the panel opens, what streams into it, and what it ends as |
 | `Model/VoiceRoutePolicy.swift` | Defaults, eligible connections, the consented route and the proposal, effort, images |
-| `Model/VoiceInsertPolicy.swift` | When an INSERT reply may be typed without review |
+| `Model/VoiceInsertPolicy.swift` | When an INSERT reply may be typed, or an edit replace its selection, without review |
+| `Model/VoiceEditReply.swift` | One edit's reply: the instruction from its header, the text fitted to the selection |
 | `Model/VoiceMode.swift` | `VoiceMode`, and `VoiceModeCatalog`: the three built-ins with fixed ids and their symbols |
 | `Model/VoiceModeSettings.swift` | Custom modes, rewritten built-in instructions, hidden modes, the default and each app's mode |
 | `Model/VoiceAIFailure.swift` | The feature's own errors |
 | `Service/VoiceAIRoute.swift` | A selection to an `HTTPAIProvider`: Keychain key and headers, endpoint policy |
 | `Service/VoiceMediaEncoder.swift` | Off the main actor: samples to WAV, the window's PNG to a bounded JPEG |
+| `Service/VoiceSelectionAccess.swift` | Whether the focused element's selected text can be written in place |
 | `Service/VoiceCloudTranscriber.swift` | The engine `DictationCoordinator` calls, its consent dialogs and the active mode |
-| `UI/VoiceAskCoordinator.swift` | The Ask by Voice funnel: shortcut, launcher row, capsule keys and panel |
+| `UI/VoiceAskCoordinator.swift` | The funnel for both voice commands: shortcuts, launcher rows, capsule keys and panel |
 | `UI/VoiceModeCaption.swift` | The chip above the dictation capsule naming the active mode |
 | `Settings/VoiceAISettings.swift` | The fork's own `@Observable` store over `AppSettingsKey` keys |
 | `Settings/VoiceModelRow.swift` | Connection and model, the catalog loaded on a click; a new connection goes through `choose` |
@@ -183,6 +192,33 @@ The screenshot follows **Include a screenshot** and is re-encoded as a JPEG of a
 long edge before upload. A model the connection's own catalog marks text-only gets none, and a missing
 Screen Recording grant is one HUD line, as in Screen Awareness.
 
+## Edit Selection by Voice
+
+`CommandID.editByVoice` is a second command under the same switch, route, consent and Shortcut
+behavior; the AI pane lists its recorder beside Ask by Voice's, and its launcher row comes and goes
+with Ask by Voice's. The consent dialog names the text you selected beside the window in front.
+
+A press takes the app in front, or behind the palette, and starts the microphone and the capsule
+while `QuickActionRunner.selection` reads the selection exactly as Quick Actions do: Accessibility
+first, a borrowed ⌘C second. A refusal ("Select some text first.", an app that shares no text, a
+missing Accessibility grant) cancels the recording as soon as it is known, with its message. A second
+press of either voice command, a release in hold mode or Return finishes the recording.
+
+One request goes to Ask by Voice's route: the edit rules, the words to spell, the selection as
+`Text:`, then the spoken instruction. The reply opens with the Ask header (`INSERT`, `Q:` and the
+instruction transcribed), parsed by `VoiceReplyParser`; a reply without it is the edit whole.
+`VoiceEditReply` keeps the selection's own leading and trailing whitespace and drops wrapping quotes
+or a code fence only when the selection had none. The capsule's processing wave stays until the
+reply is complete, then:
+
+- if the app is not a terminal and Accessibility says the focused element's selected text can be
+  written (`VoiceSelectionAccess`; a web page or a label cannot), the selection is read again, and
+  if it is the same text the edit replaces it through `TextInjector.replaceSelection`;
+- otherwise the panel shows the edit, titled with the instruction ("The selection changed, so the
+  result is shown instead."): ↵ types it over whatever is selected now, ⌘C copies, ⌘J continues in
+  AI Chat with the instruction and the original text;
+- a replacement that fails shows the panel too, with a HUD.
+
 ## Routes and models
 
 `VoiceRoutePolicy.route` is the saved choice while its connection exists, hears audio and is enabled,
@@ -228,6 +264,12 @@ whether a text field is focused and the vocabulary, then the JPEG, then the audi
 the `ANSWER`/`INSERT` and `Q:` header, INSERT only for a request to write into the focused field, the
 field's text alone in the conversation's language and tone, and otherwise a brief Markdown answer in
 the language the reader spoke. Silence is `ANSWER`, an empty `Q:` and `[[NO_SPEECH]]`.
+
+**Edit** sends its rules as the system message, then one user message: "Spell these as written when
+you hear them: …" when there is a vocabulary, `Text:` and the selection, then the audio. The rules ask
+for the `INSERT` and `Q:` header, then the edited text alone, in the text's own language and format
+unless the instruction says otherwise, and treat the selection as material whatever it asks for.
+Silence is `INSERT`, an empty `Q:` and `[[NO_SPEECH]]`.
 
 ## Costs
 
@@ -286,6 +328,15 @@ ends.
 - **Hold-mode edge cases.** Bind a double tap in hold mode: the settings caption appears, and it acts
   as a toggle. Run it from the launcher row: recording starts over the app behind the palette, and
   Return finishes. Hold a combination briefly: a recording too short is "No speech was recorded".
+- **Edit Selection by Voice.** Bind it and select a paragraph in TextEdit; press, say "сделай короче",
+  press again: the paragraph is replaced by a shorter one, its trailing newline kept, and ⌘Z undoes
+  it. Say "translate this to English" over a Russian sentence: English replaces it. Select text, press,
+  and click elsewhere in the document before the reply lands: the panel shows the edit titled with
+  what you said, with a HUD; ↵ types it at the new selection. Select text in Terminal: the panel
+  always shows it, as does a selection on a web page, which cannot be written. In Slack or another
+  Electron field, note whether it replaces in place or shows the panel. With nothing selected: "Select
+  some text first." at once and the recording stops. Hold its single-modifier shortcut in Hold to
+  talk: release finishes.
 - **Refusals.** Ask while Dictation records: a HUD refuses. With Tinycast in front: refused. Without
   Screen Recording: text only plus a HUD. Escape in the panel mid-stream: the stream stops (a proxy
   shows it cancelled).
@@ -318,5 +369,6 @@ ends.
   proposal, the insert policy); `voice-coordinator-test` (the shipped `VoiceCloudTranscriber` and
   `VoiceAskCoordinator` against recorded effects: consent saving exactly what it named and asking
   again for another connection, no rerouting, the session token through capture, delivery, supersede
-  and dismissal, and the recorder's start and stop order); `dictation-field-test` (the cloud seam in
+  and dismissal, and the recorder's start and stop order; dictation modes on the capsule; Edit Selection
+  by Voice replacing an unchanged selection, showing a moved one, refusing an unreadable one); `dictation-field-test` (the cloud seam in
   `DictationCoordinator`); `hotkey-dispatch-test` (a command's release, Secure Input's included).

@@ -821,7 +821,8 @@ run voice-coordinator-test Tinycast/Features/VoiceAI/Model/*.swift \
                            Tinycast/Features/AI/Settings/AISettingsStore.swift \
                            Tinycast/Features/Dictation/Model/DictationMode.swift \
                            Tinycast/Features/ScreenAwareness/Model/*.swift \
-                           Tinycast/Features/QuickActions/Model/CustomQuickAction.swift
+                           Tinycast/Features/QuickActions/Model/CustomQuickAction.swift \
+                           Tinycast/Features/QuickActions/Model/QuickActionFailure.swift
 run alias-actions-test     Tinycast/Features/AliasActions/Model/*.swift
 run acp-test               Tinycast/Features/Agents/Model/*.swift \
                            Tinycast/Features/Agents/Service/*.swift \

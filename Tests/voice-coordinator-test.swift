@@ -19,6 +19,9 @@ struct VoiceCoordinatorTests {
         try await askStartAndStopOrder()
         try await askHoldToTalk()
         try await askDismissAndSwitchOff()
+        try await editReplaces()
+        try await editSelectionMoved()
+        try await editRefusalsAndFailures()
         print("ALL PASSED")
     }
 
@@ -526,7 +529,9 @@ struct VoiceCoordinatorTests {
         Network.streams[0].finish()
         try await wait { !world.core.messages.isEmpty }
         world.ask.applyHoldMode()
-        expect(world.hotKeys.heldCommands == [.askByVoice], "Hold mode lends a single modifier to the command")
+        expect(
+            world.hotKeys.heldCommands == [.askByVoice, .editByVoice],
+            "Hold mode lends a single modifier to both voice commands")
         world.hotKeys.bindings[.command(.askByVoice)] = .init(shortcut: nil, holdKey: 1)
         expect(world.ask.holdShortcutIssue == nil, "A single modifier can be held")
         world.ask.pressed()
@@ -583,6 +588,98 @@ struct VoiceCoordinatorTests {
         expect(Network.streams.count == 2 && world.ducker.begins == world.ducker.ends, "sending nothing")
         world.ask.pressed()
         expect(world.recorder?.starts == 3, "and its shortcut does nothing")
+    }
+
+    // MARK: - Edit Selection by Voice
+
+    static func editReplaces() async throws {
+        let world = try await World.editing(selected: "  Hello, world.\n")
+        defer { world.tearDown() }
+        try await world.editAndReply("INSERT\nQ: Короче\n\n«Hi.»")
+        let request = Network.requests[0]
+        expect(request.instructions == VoicePrompt.editInstructions, "An edit carries its own rules")
+        expect(
+            request.messages.first?.text == "Text:\n  Hello, world.\n" && request.messages.first?.audio.count == 1,
+            "with the selection as material and the spoken instruction")
+        try await wait { world.injector.queued == 1 }
+        world.injector.drain()
+        expect(world.injector.replaced == ["  Hi.\n"], "The unchanged selection is replaced, keeping its outer space")
+        expect(QuickActionRunner.reads == 2 && world.panel == nil, "after reading it again, with no panel")
+        expect(world.ducker.begins == world.ducker.ends, "and the volume is back")
+
+        world.voice.vocabulary = "Tinycast"
+        try await world.editAndReply("Shorter.", stream: 1)
+        let spelled = Network.requests[1].messages.first?.text ?? ""
+        expect(
+            spelled.hasPrefix("Spell these as written when you hear them: Tinycast.\n\nText:\n"),
+            "The vocabulary comes before the selection")
+        try await wait { world.injector.queued == 1 }
+        world.injector.drain()
+        expect(world.injector.replaced.last == "  Shorter.\n", "A reply without its header is the edit whole")
+    }
+
+    static func editSelectionMoved() async throws {
+        let world = try await World.editing(selected: "Hello, world.")
+        defer { world.tearDown() }
+        try await world.editAndReply("INSERT\nQ: Короче\n\nHi.", finishing: false)
+        QuickActionRunner.selected = "Something else"
+        Network.streams[0].finish()
+        try await wait { world.panel?.state?.finished != nil }
+        let panel = world.panel!.state!
+        expect(
+            panel.title == "Короче" && panel.finished == "Hi." && world.injector.queued == 0,
+            "A selection that moved is never replaced: the panel shows the edit, titled by the instruction")
+        expect(
+            world.core.messages.last == "The selection changed, so the result is shown instead.",
+            "and says why")
+        world.panel?.onContinueInChat?("Hi.")
+        expect(
+            world.core.aiChatCoordinator.continued.last?.prompt == "Короче\n\nHello, world."
+                && world.core.aiChatCoordinator.continued.last?.model == routerAsk,
+            "⌘J seeds a chat with the instruction and the original text")
+        world.panel?.onReplace?("Hi.")
+        world.injector.drain()
+        expect(world.injector.delivered == ["Hi."], "↵ types it over whatever is selected now")
+    }
+
+    static func editRefusalsAndFailures() async throws {
+        let world = try await World.editing(selected: "Hello")
+        defer { world.tearDown() }
+        QuickActionRunner.failure = .noSelection
+        world.ask.pressed(.editByVoice)
+        try await wait { world.core.messages.last == "Select some text first." }
+        try await wait { world.recorder?.isRecording == false }
+        try await settle()
+        expect(Network.requests.isEmpty && world.ducker.begins == world.ducker.ends, "Nothing selected: nothing is sent")
+        QuickActionRunner.failure = nil
+
+        try await world.editAndReply("INSERT\nQ:\n\n[[NO_SPEECH]]")
+        try await wait { world.core.messages.last == "No speech was recorded" }
+        expect(world.panel == nil && world.injector.queued == 0, "Silence edits nothing")
+
+        world.injector.fails = true
+        try await world.editAndReply("INSERT\nQ: Короче\n\nHi", stream: 1)
+        try await wait { world.injector.queued == 1 }
+        world.injector.drain()
+        try await wait { world.panel?.state?.finished == "Hi" }
+        expect(
+            world.core.messages.last == "Couldn't replace the selection — the result is shown instead.",
+            "A replacement that fails shows the edit and says so")
+        world.injector.fails = false
+
+        VoiceSelectionAccess.writable = false
+        try await world.editAndReply("INSERT\nQ: Короче\n\nRead-only", stream: 2)
+        try await wait { world.panel?.state?.finished == "Read-only" }
+        expect(
+            world.injector.queued == 0 && QuickActionRunner.reads == 5,
+            "A selection that cannot be written is shown, not pasted where it would land nowhere")
+        VoiceSelectionAccess.writable = true
+
+        world.core.paletteCoordinator.targetApp = nil
+        world.ask.pressed(.editByVoice)
+        expect(
+            world.core.messages.last == "Select text in another app first." && Network.requests.count == 3,
+            "Without an app to edit nothing starts")
     }
 
     // MARK: - Helpers
@@ -652,6 +749,8 @@ final class World {
         voice = VoiceAISettings(defaults: defaults)
         connections.forEach(ai.save)
         Network.reset()
+        QuickActionRunner.reset()
+        VoiceSelectionAccess.writable = true
         DictationCapture.latest = nil
         DictationPanelController.latest = nil
         VoiceModeCaption.latest = nil
@@ -668,6 +767,27 @@ final class World {
         world.core.dialogs = []
         world.core.messages = []
         return world
+    }
+
+    /// Ask by Voice on, with `selected` selected in an app behind the palette.
+    static func editing(selected: String) async throws -> World {
+        let world = try await asking()
+        world.core.paletteCoordinator.isVisible = true
+        world.core.paletteCoordinator.targetApp = NSRunningApplication.runningApplications(
+            withBundleIdentifier: "com.apple.dock"
+        ).first
+        QuickActionRunner.selected = selected
+        return world
+    }
+
+    /// One spoken edit, recorded and sent, then `reply` streamed back on stream number `stream`.
+    func editAndReply(_ reply: String, stream: Int = 0, finishing: Bool = true) async throws {
+        ask.pressed(.editByVoice)
+        try await VoiceCoordinatorTests.wait { recorder?.isRecording == true }
+        ask.pressed(.editByVoice)
+        try await VoiceCoordinatorTests.wait { Network.streams.count == stream + 1 }
+        Network.streams[stream].yield(.text(reply))
+        if finishing { Network.streams[stream].finish() }
     }
 
     /// One question, recorded and sent, then `reply` streamed back on stream number `stream`.
@@ -753,8 +873,34 @@ final class AppSettings {
 
 enum CommandID: Hashable {
     case askByVoice
-    var name: String { "Ask by Voice" }
-    var sfSymbol: String { "waveform" }
+    case editByVoice
+    var name: String { self == .askByVoice ? "Ask by Voice" : "Edit Selection by Voice" }
+    var sfSymbol: String { self == .askByVoice ? "waveform" : "pencil.and.scribble" }
+}
+
+@MainActor
+enum VoiceSelectionAccess {
+    static var writable = true
+    static func isWritable(in app: NSRunningApplication) -> Bool { writable }
+}
+
+@MainActor
+enum QuickActionRunner {
+    static var selected = ""
+    static var failure: QuickActionFailure?
+    static var reads = 0
+
+    static func reset() {
+        selected = ""
+        failure = nil
+        reads = 0
+    }
+
+    static func selection(in app: NSRunningApplication?, using injector: TextInjector) async throws -> String {
+        reads += 1
+        if let failure { throw failure }
+        return selected
+    }
 }
 
 enum HotKeyAction: Hashable {
@@ -826,7 +972,8 @@ final class DictationCoordinator {
 
 @MainActor
 final class PaletteCoordinator {
-    let isVisible = false
+    var isVisible = false
+    var targetApp: NSRunningApplication?
     func hidePalette(restoreFocus: Bool) {}
 }
 
@@ -1069,6 +1216,20 @@ final class TextInjector {
             guard let self, isValid() else { return }
             guard !fails else { return onFailed() }
             delivered.append(injected.text)
+            onDelivered()
+        }
+    }
+
+    var replaced: [String] = []
+
+    func replaceSelection(
+        with text: String, in targetApp: NSRunningApplication?,
+        onDelivered: @escaping @MainActor () -> Void = {}, onFailed: @escaping @MainActor () -> Void = {}
+    ) {
+        pending.append { [weak self] in
+            guard let self else { return }
+            guard !fails else { return onFailed() }
+            replaced.append(text)
             onDelivered()
         }
     }
