@@ -23,6 +23,7 @@ struct AgentLoopTests {
         await signalsLandBetweenACallsRows()
         await stopReachesTheRunningCall()
         await aTurnWithoutCallsPassesThrough()
+        await aLongTurnElidesInsteadOfStopping()
         await callsThatMayShareARoundDo()
         await aCallThatMayNotRunsAlone()
         await aRoundIsNeverWiderThanFour()
@@ -47,7 +48,9 @@ struct AgentLoopTests {
                 profile: AgentProfile(name: "Loop", directory: "/tmp"), skills: [],
                 memoryURL: URL(fileURLWithPath: "/tmp/memory.md"), mode: .chat(UUID())),
             providers: providers,
-            mcpTools: [AITool(name: "srv__read", description: "", parameters: .object([:]), origin: "Server")],
+            mcpTools: [
+                AITool(name: "srv__read", description: "", parameters: .object([:]), origin: "Server")
+            ],
             mcp: { await invoker.invoke($0) }, ask: { _, _ in false })
     }
 
@@ -69,7 +72,8 @@ struct AgentLoopTests {
         answer: @escaping @Sendable (AIToolCall) -> String = { _ in "contents" }
     ) async {
         let invoker = RecordingInvoker(result: "from the server")
-        let tools = toolset([FakeTools(names: ["fs_read", "fs_list"]) { call, _ in answer(call) }], mcp: invoker)
+        let files = FakeTools(names: ["fs_read", "fs_list"]) { call, _ in answer(call) }
+        let tools = toolset([files], mcp: invoker)
         let upstreamBase = ScriptedProvider(rounds: rounds)
         let forkBase = ScriptedProvider(rounds: rounds)
         let upstream = await collect(
@@ -78,7 +82,8 @@ struct AgentLoopTests {
             })
         let fork = await collect(AgentLoopProvider(base: forkBase, toolset: tools, maxRounds: maxRounds))
         expect(fork.events == upstream.events, "\(name): both loops emit the same events")
-        expect(fork.failure == upstream.failure, "\(name): and end the same way, \(fork.failure ?? "finished")")
+        expect(
+            fork.failure == upstream.failure, "\(name): and end the same way, \(fork.failure ?? "finished")")
         expect(forkBase.requests == upstreamBase.requests, "\(name): and send the model the same requests")
         expect(!forkBase.requests.isEmpty, "\(name): the script ran")
     }
@@ -96,11 +101,6 @@ struct AgentLoopTests {
             "a 40 KB result", rounds: [[call("c1")], [.text("ok"), .finished]], maxRounds: 25
         ) { _ in String(repeating: "x", count: 40 * 1_024) }
         await differential(
-            "the turn budget used up",
-            rounds: [(1...5).map { call("c\($0)") }, [call("c6")], [.text("ok"), .finished]],
-            maxRounds: 25
-        ) { _ in String(repeating: "y", count: 30 * 1_024) }
-        await differential(
             "unlimited rounds", rounds: forever + [[.text("done"), .finished]], maxRounds: nil)
         let heavy = String(repeating: "z", count: AgentTurnBudget.historyBytes / 16)
         await differential(
@@ -108,7 +108,10 @@ struct AgentLoopTests {
             maxRounds: nil)
         await differential(
             "reasoning, searches and usage", rounds: [
-                [.thinking, .reasoning("plan"), .usage(AIUsage(inputTokens: 10, outputTokens: 2)), call("c1")],
+                [
+                    .thinking, .reasoning("plan"), .usage(AIUsage(inputTokens: 10, outputTokens: 2)),
+                    call("c1")
+                ],
                 [.searching("q"), .searched("q"), .text("ok"), .usage(AIUsage(inputTokens: 20)), .finished]
             ], maxRounds: 25)
     }
@@ -118,8 +121,8 @@ struct AgentLoopTests {
             AgentTurnBudget.resultBytes == AIToolLoopProvider.maxResultBytes,
             "a result is cut where upstream cuts it")
         expect(
-            AgentTurnBudget.turnResultBytes == AIToolLoopProvider.maxTurnResultBytes,
-            "a turn's results stop where upstream's do")
+            AgentTurnBudget.turnResultBytes == 4 * AIToolLoopProvider.maxTurnResultBytes,
+            "a turn's results may run to four times upstream's, since old ones are elided")
         expect(
             AgentTurnBudget.historyBytes == AIToolLoopProvider.maxTurnHistoryBytes,
             "and an unlimited turn hits the same wall")
@@ -192,6 +195,29 @@ struct AgentLoopTests {
         expect(base.requests.count == 1, "a turn that calls nothing is one request")
         expect(base.requests.first?.tools == tools.tools, "armed with the turn's tools")
         expect(events == script, "and its events pass through unchanged")
+    }
+}
+
+// MARK: - Long turns
+
+extension AgentLoopTests {
+    /// Past upstream's 128 KB a turn keeps going, and resends stubs for its oldest results.
+    static func aLongTurnElidesInsteadOfStopping() async {
+        let page = FakeTools(names: ["fs_read"]) { _, _ in String(repeating: "p", count: 30 * 1_024) }
+        let base = ScriptedProvider(rounds: (1...8).map { [call("p\($0)")] } + [[.text("ok"), .finished]])
+        let outcome = await collect(AgentLoopProvider(base: base, toolset: toolset([page]), maxRounds: 25))
+        expect(
+            outcome.failure == nil && outcome.events.last == .finished, "eight 30 KB pages finish the turn")
+        expect(
+            !outcome.events.contains(.toolResult(id: "p5", isError: true)),
+            "where upstream's budget would have refused the fifth")
+        let last = base.requests.last?.messages.compactMap(\.toolResult?.content) ?? []
+        expect(
+            last.count == 8 && last.first?.hasPrefix("[Earlier fs_read result elided") == true,
+            "old pages are stubbed")
+        expect(
+            last.reduce(0) { $0 + $1.utf8.count } <= AgentTurnBudget.elideAbove,
+            "so what each round resends stays under the watermark")
     }
 }
 

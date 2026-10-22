@@ -57,8 +57,14 @@ stays in `Features/Agents/` plus the few lines in `AIChatCoordinator`, `AIChatDe
   is left out by name, so one added later is in until switched off.
 - **What tools return is material, and bounded three times.** The agent's prompt says so. A
   provider cuts its own output first, under 28 KB, so the cut can say where to continue;
-  `AgentTurnBudget` then holds each result to 32 KB and a turn's results to 128 KB, as upstream's
-  loop does; and a turn with unlimited rounds stops at the 1 MB history wall.
+  `AgentTurnBudget` then holds each result to 32 KB, as upstream's loop does, and a turn's results to
+  512 KB, four times upstream's; and a turn with unlimited rounds stops at the 1 MB history wall.
+- **A long turn elides, it does not stop.** Once this turn's results in the resent history pass
+  160 KB, `AgentTurnBudget.elide` replaces the oldest ones before the newest round with a stub that
+  names the tool and the size and says to call it again, until they fit in 96 KB. Call ids and the
+  pairing of calls and results are never touched, a stub is never stubbed again, and the gap between
+  the two marks means the prefix changes rarely, so a provider's prompt cache keeps hitting. Elided
+  bytes stop counting toward the history wall.
 - **The binding is the fork's, not the chat history's.** Which chat has which agent is
   `agent-chats.json` beside `agents.json` in Application Support, so upstream's SQLite schema is
   untouched. Deleting an agent frees its chats, which stay as plain AI chats, and deletes its notes.
@@ -207,8 +213,8 @@ changes: no router edit, no upstream line, no prompt edit.
 - Harnesses: `acp-test` (framing, updates, permissions, prompts, modes and a scripted agent process
   in `Tests/acp-fixtures/fake-agent.mjs`: streaming, consent, reuse, refusal, cancel, reload, lost
   sessions, a missing command), `agent-test` (skills, catalog, path policy, tool sets, specs, consent
-  policy, toolset order and routing, batches, budget, prompt, persistence), `agent-tools-test` (the
+  policy, toolset order and routing, batches, budget, elision, prompt, persistence), `agent-tools-test` (the
   executor against a real folder: reads, writes with consent, link escapes, commands, timeouts and
   Stop, memory, skills, HTML; the built-ins through a toolset; every refused effect) and
-  `agent-loop-test` (the fork's loop and upstream's on the same scripts; routing, signals, Stop,
-  parallel batches).
+  `agent-loop-test` (the fork's loop and upstream's on the same scripts under 128 KB; routing,
+  signals, Stop, parallel batches, a long turn that elides).

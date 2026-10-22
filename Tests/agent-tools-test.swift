@@ -168,7 +168,9 @@ struct AgentToolsTests {
                     profile: AgentProfile(name: "T", directory: folder, access: access), skills: [],
                     memoryURL: memory, mode: mode),
                 providers: [AgentBuiltInTools()],
-                mcpTools: [AITool(name: "srv__tool", description: "", parameters: .object([:]), origin: "srv")],
+                mcpTools: [
+                    AITool(name: "srv__tool", description: "", parameters: .object([:]), origin: "srv")
+                ],
                 mcp: { await mcp.invoke($0) },
                 ask: { spec, _ in await asks.record(spec, answer: allowing) })
         }
@@ -264,9 +266,9 @@ extension AgentToolsTests {
                     return false
                 },
                 signal: { _ in })
+            let name = spec.tool.name
             let result = await AgentBuiltInTools().run(
-                AIToolCall(id: spec.tool.name, name: spec.tool.name, arguments: calls[spec.tool.name] ?? "{}"),
-                in: context)
+                AIToolCall(id: name, name: name, arguments: calls[name] ?? "{}"), in: context)
             let asked = await refusals.last != nil
             expect(asked && result.isError, "\(spec.tool.name) asks before it acts, and reports a refusal")
         }
