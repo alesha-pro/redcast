@@ -657,6 +657,7 @@ final class AIChatCoordinator {
     }
 
     var agents: AgentCoordinator { core.agentCoordinator }
+    var notes: NotesAICoordinator { core.notesAI }
 
     /// A route removed in Settings falls back to the default rather than failing the chat.
     private func isReachable(_ selection: AIModelSelection) -> Bool {

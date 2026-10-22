@@ -6,6 +6,7 @@ struct AIChatDetailView: View {
     @Environment(ChatFindState.self) private var find
     @State private var isDropTargeted = false
     @State private var showsContext = false
+    @State private var editor = ComposerTextViewHandle()
 
     private var chat: AIChatState { coordinator.chats.window }
 
@@ -52,6 +53,7 @@ struct AIChatDetailView: View {
                         .allowsHitTesting(false)
                     }
                 }
+                .notePicker(chat: chat, chats: coordinator, editor: editor)
             VStack(alignment: .leading, spacing: Theme.Spacing.md) {
                 if !suggestions.isEmpty, chat.draft.isEmpty {
                     ChatSuggestionChips(choices: suggestions) { coordinator.send($0, in: chat) }
@@ -59,7 +61,7 @@ struct AIChatDetailView: View {
                 }
                 AIChatComposer(
                     chat: chat, coordinator: coordinator, settings: coordinator.aiSettings,
-                    maximumTextHeight: composerHeight, showsContext: $showsContext,
+                    maximumTextHeight: composerHeight, editor: editor, showsContext: $showsContext,
                     isDropTargeted: $isDropTargeted)
             }
             .frame(maxWidth: Theme.Size.aiChatReadingWidth)
@@ -123,9 +125,9 @@ private struct AIChatComposer: View {
     let coordinator: AIChatCoordinator
     let settings: AISettingsStore
     let maximumTextHeight: CGFloat
+    let editor: ComposerTextViewHandle
     @Binding var showsContext: Bool
     @Binding var isDropTargeted: Bool
-    @State private var editor = ComposerTextViewHandle()
 
     private var canSend: Bool {
         !chat.draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
@@ -343,6 +345,11 @@ private struct AIAddMenu: View {
         Menu {
             Button("Attach Files…", systemImage: "paperclip") { coordinator.chooseFiles(for: chat) }
                 .help(attachHelp)
+            if coordinator.notes.isAvailable {
+                Button("Attach Note…", systemImage: "note.text") {
+                    coordinator.notes.presentPicker(for: chat)
+                }
+            }
             Divider()
             if offersSearch {
                 Toggle("Web Search", systemImage: "globe", isOn: $settings.webSearchEnabled)

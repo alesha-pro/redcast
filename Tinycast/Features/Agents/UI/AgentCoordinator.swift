@@ -147,6 +147,7 @@ final class AgentCoordinator {
         if agent.tools.contains(.web) {
             providers.append(WebSearchAgentTools(runner: core.webSearch.runner(canFetch: true)))
         }
+        if core.settings.notesEnabled { providers.append(core.notesAI.agentTools) }
         return providers
     }
 
@@ -189,6 +190,7 @@ final class AgentCoordinator {
             switch (spec.family, spec.risk) {
             case (_, .execute): String(localized: "\(agent.name) wants to run a command")
             case (.files?, .change): String(localized: "\(agent.name) wants to change a file")
+            case (.notes?, .change): String(localized: "\(agent.name) wants to add to a note")
             default: String(localized: "\(agent.name) wants to use \(spec.tool.title)")
             }
         NSApp.activate(ignoringOtherApps: true)

@@ -542,8 +542,8 @@ and the Actions menu's own chords, and dies with the window.
   `insertNewline:` only outside input-method composition, so Return sends and ⇧↩ or ⌥↩ breaks the
   line without Return ever stealing an IME's confirm. It grows with its text to 15 lines or 30% of
   the pane's height, whichever is fewer, in whole lines, then scrolls; resizing the window recomputes
-  the cap. The row: a `+` menu (Attach Files…, an `NSOpenPanel`; Web Search when the route offers it;
-  the Tools submenu), an accent Search pill while web search is on, whose click turns it off, then
+  the cap. The row: a `+` menu (Attach Files…, an `NSOpenPanel`; Attach Note… while Notes is on, see
+  [notes and AI](notes-ai.md); Web Search when the route offers it; the Tools submenu), an accent Search pill while web search is on, whose click turns it off, then
   the model menu, the reasoning menu (a word with no glyph, always shown, disabled for a model with no
   efforts, so the row never changes shape), the context ring, the mic while Dictation is on, and
   Send/Stop. Every control is `aiChatComposerControl` tall with one `aiChatComposerGlyph` slot and
