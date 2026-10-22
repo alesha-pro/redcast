@@ -51,7 +51,8 @@ dependencies, cycles, failed-load retries and the extension-root boundary. `oaut
 through a stand-in for the hosted redirect page and confirms that a callback whose `state` is absent,
 repeated, stale or wrong is refused, for each redirect method and for custom `{ url }` requests.
 `ai-fixtures` drives `AI.ask` against a scripted host: streaming, aborts, refusals, `canAccess(AI)`, the
-named model and `creativity` it forwards, and `useAI`'s abort-then-ask pattern. The runtime fixture suite runs all three as well.
+named model and `creativity` it forwards, `AI.experimental_decide`'s prompt and the answers it rebuilds,
+and `useAI`'s abort-then-ask pattern. The runtime fixture suite runs all three as well.
 
 The suite runs four harnesses at a time by default to reduce CPU usage. `TINYCAST_TEST_JOBS` overrides
 that limit; `TINYCAST_TEST_JOBS=1` runs one at a time. Each result is numbered
