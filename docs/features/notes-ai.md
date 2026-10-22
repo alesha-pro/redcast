@@ -23,8 +23,9 @@ the menu item and modifier in `AIChatDetailView`, `NotesStore.amendDraft`, and t
   refused with the text-file message, never cut. A chat cleared while the note loads drops it with the
   "still loading" message.
 - **The picker never touches the Notes switcher.** It searches through its own `NotesRepository`
-  value, so an open switcher's query and results are unaffected. It flushes the open draft first, and
-  the open note attaches as the editor shows it.
+  value, so an open switcher's query and results are unaffected. It flushes the open draft first; a
+  draft still unsaved after that attaches as the editor shows it, and any other note is read from
+  its file, which a hidden window's clean draft may lag.
 - **`@note` is a trigger, not syntax.** Exactly one typed space after `@note` at the end of the draft,
   at a word boundary, removes the token and opens the picker; a paste or any other edit never does,
   and Esc or a click away puts `@note ` back. At the draft's start an MCP server slugged `note` keeps
@@ -38,9 +39,11 @@ the menu item and modifier in `AIChatDetailView`, `NotesStore.amendDraft`, and t
   so it asks by default, is never offered to a read-only agent or under Never Allow, is refused when
   nobody is there to ask, and its description says which. Allow for This Chat records
   `AgentGrant(family: .notes, risk: .change)`, so it never covers a file write.
-- **The open note is amended through the store, never on disk.** `NotesStore` is the only writer while
-  a note is open, so an append to the active note goes through `NotesStore.amendDraft`, which starts a
-  new editor epoch and autosaves; any other note is written by the repository and a loaded store
+- **A current or unsaved draft takes the append, a stale one never.** An append to the store's
+  active note goes through `NotesStore.amendDraft`, which starts a new editor epoch and autosaves,
+  only while the draft holds unsaved text or matches the file. A clean draft the file has moved past
+  — the window hid, the file was edited — refuses, so the repository writes the file and the loaded
+  store reloads it, keeping the edit. Any other note is written by the repository and a loaded store
   re-lists. Notes switched off while the dialog was up refuses the write.
 - **Tool results stay under 28 KB** and say how to continue: search lists at most 30 notes with one
   line each, read pages by line with an offset to continue from. What the tools say is English, as
@@ -97,8 +100,11 @@ the menu item and modifier in `AIChatDetailView`, `NotesStore.amendDraft`, and t
 - Ask for a report in Notes: the dialog reads "wants to add to a note" with the text. Don't Allow
   leaves the note as it was; Allow adds it. With that note open in the Notes window, the text appears
   in the editor, survives the next keystroke and is saved.
+- Open a note in Notes and hide the window. Edit its file in another editor, then have the agent add
+  to it: the file keeps the edit and the addition, and showing Notes shows both.
 - Set Changes to Always Allow: the append runs without a dialog. A read-only agent is never offered
   `notes_append`.
 - Harness: `notes-ai-test` (definitions and specs, the toolset's offer and consent, `@note`, joining,
   resolution, search, paging and the 28 KB cut, append with consent, refusal, creation and limits, the
-  open-draft route, the attachment budget, and `NotesStore.amendDraft` end to end).
+  open-draft route, the attachment budget, and `NotesStore.amendDraft` end to end, a stale clean
+  draft and an unsaved one included).

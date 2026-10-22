@@ -97,8 +97,9 @@ final class NotesStore {
     }
 
     /// Text added from outside the editor joins the draft, so the next autosave cannot drop it.
-    func amendDraft(of id: NoteID, _ change: (String) -> String) -> Bool {
-        guard isLoaded, id == activeID else { return false }
+    func amendDraft(of id: NoteID, onDisk: String, _ change: (String) -> String) -> Bool {
+        // A clean draft the file has moved past is stale; the file and a reload take the change.
+        guard isLoaded, id == activeID, isDirty || source == onDisk else { return false }
         source = change(source)
         sourceRevision &+= 1
         // A new epoch reinstalls the editor's string and drops undo steps that no longer fit it.

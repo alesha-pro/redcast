@@ -26,8 +26,9 @@ commands and global shortcuts can show, search, or extend the collection.
 - **Tinycast is the only writer while editing.** There is no watcher or disk revision check: a save
   replaces the file with what is in the editor. Every show re-lists the folder and reloads the clean
   active note; an unsaved draft is retained, including after a failed save. An agent's append to the
-  open note goes through `NotesStore.amendDraft`, which joins the draft and starts a new editor epoch
-  ([notes and AI](notes-ai.md)).
+  active note joins an unsaved or current draft through `NotesStore.amendDraft`, which starts a new
+  editor epoch; a clean draft the file has moved past refuses it, so the file takes the append and
+  the store reloads ([notes and AI](notes-ai.md)).
 - **Search is on demand and unindexed.** An empty switcher query reads metadata plus the head of every
   unnamed note; a nonempty query reads bodies sequentially off-main and retains no collection-sized
   source cache.

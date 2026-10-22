@@ -9,18 +9,18 @@ struct NoteToolConsent: Sendable, Equatable {
 
 /// Where an append lands when the editor has that note open, so the next autosave cannot drop it.
 struct NoteToolWriter: Sendable {
-    /// True when the open note's draft took the change; false sends it to the file.
-    var amendOpenDraft: @Sendable (NoteID, @escaping @Sendable (String) -> String) async -> Bool
+    /// Given the file's text; true when the open note's draft took the change, false sends it on.
+    var amendOpenDraft: @Sendable (NoteID, String, @escaping @Sendable (String) -> String) async -> Bool
     /// After a file write, so a loaded store re-lists and an open clean note reloads.
     var didWrite: @Sendable (NoteID) async -> Void
 
-    static let fileOnly = NoteToolWriter(amendOpenDraft: { _, _ in false }, didWrite: { _ in })
+    static let fileOnly = NoteToolWriter(amendOpenDraft: { _, _, _ in false }, didWrite: { _ in })
 
-    /// The store owns the open note's draft, so a note it has open is amended there, never on disk.
+    /// The store owns an unsaved or current draft, so such a note is amended there, never on disk.
     static func through(_ store: NotesStore) -> NoteToolWriter {
         NoteToolWriter(
-            amendOpenDraft: { @MainActor [weak store] id, change in
-                store?.amendDraft(of: id, change) ?? false
+            amendOpenDraft: { @MainActor [weak store] id, onDisk, change in
+                store?.amendDraft(of: id, onDisk: onDisk, change) ?? false
             },
             didWrite: { @MainActor [weak store] _ in
                 guard let store, store.isLoaded else { return }
@@ -211,11 +211,16 @@ nonisolated struct NoteToolRunner: Sendable {
         let size = Self.size(text.utf8.count)
         guard let target else { return await create(title, text: text) }
         let change: @Sendable (String) -> String = { NoteToolFormat.appending(text, to: $0) }
-        if await writer.amendOpenDraft(target.id, change) {
+        let current: String
+        do {
+            current = try repository.load(target.id).source
+        } catch {
+            return .failure(Failure(error))
+        }
+        if await writer.amendOpenDraft(target.id, current, change) {
             return .success("Added \(size) to “\(title)”.")
         }
         do {
-            let current = try repository.load(target.id).source
             try repository.save(id: target.id, source: change(current))
         } catch {
             return .failure(Failure(error))
