@@ -94,6 +94,8 @@ in root search or on a schedule: see [background and scheduled agents](backgroun
   session in `AgentACPHost` and mirrored to the coordinator like the modes; it goes when the agent's
   process does, and nothing is written down. The composer's list exists only while the draft is
   typing a command name in an ACP chat, and so does the key monitor behind it.
+- **Tinycast lends an ACP agent no file system and no terminal.** `initialize` declares `fs` and
+  `terminal` off and every such request is refused; [why](#tinycasts-own-fs-and-terminal).
 
 ## ACP agents
 
@@ -128,13 +130,14 @@ They run on the user's own logins and subscriptions; Tinycast never sees a key.
   first, 24 KB, a cut said) when the chat began before this session did. A reloaded session needs
   neither. A slash command's turn carries neither and leaves them for the session's next ordinary
   turn; that wait is kept in memory, so it holds across an idle stop but not a relaunch.
-- **Tinycast offers no fs or terminal of its own.** `initialize` declares both off, so the agent uses
-  its own tools and asks about them with `session/request_permission`; any `fs/*`, `terminal/*` or
-  other request is answered with method-not-found. The permission dialog lists the agent's own
-  options, allows first and the least committal refusal last, where the dialog keeps its cancel; the
-  agent remembers an "always" itself. Stop sends `session/cancel` and answers every open permission
-  request as cancelled. A dialog closed unanswered picks the agent's refuse-once option, or cancels
-  when it offers none, so no "always" comes from a choice nobody made.
+- **Tinycast offers no fs or terminal of its own.** `initialize` declares both off, so the agent
+  uses its own tools and asks about them with `session/request_permission`; any `fs/*`, `terminal/*`
+  or other request is answered with method-not-found ([why](#tinycasts-own-fs-and-terminal)). The
+  permission dialog lists the agent's own options, allows first and the least committal refusal
+  last, where the dialog keeps its cancel; the agent remembers an "always" itself. Stop sends
+  `session/cancel` and answers every open permission request as cancelled. A dialog closed
+  unanswered picks the agent's refuse-once option, or cancels when it offers none, so no "always"
+  comes from a choice nobody made.
 - **Updates map onto the transcript.** Message chunks are text, thought chunks reasoning, a plan a
   reasoning block when it changes, tool calls rows that close exactly once — a call still open when
   the turn ends is closed as failed — and one usage at the end from the prompt's result, with the
@@ -171,6 +174,28 @@ They run on the user's own logins and subscriptions; Tinycast never sees a key.
   follows `current_mode_update` when the agent moves itself.
 - **The chat's MCP servers ride `session/new`.** Command servers always, HTTP ones when the agent
   declares `mcpCapabilities.http`, narrowed by the chat's tools menu like any other route.
+
+### Tinycast's own fs and terminal
+
+ACP lets a client offer `fs/read_text_file`, `fs/write_text_file` and `terminal/*`, so that an
+editor can serve unsaved buffers, see each write and run commands in its own terminal. Tinycast
+offers none of them, by decision rather than omission:
+
+- **No adapter in the presets needs them.** `claude-agent-acp` (0.94) and `codex-acp` (2.2) carry
+  the SDK's request specs but never send `fs/*` or `terminal/*`; Hermes has neither. Claude Code and
+  Codex edit and run with their own tools, ask with `session/request_permission`, and report diffs
+  and output as tool content, which the rows above already show.
+- **The one that would use `fs/*` gains nothing.** Gemini CLI routes its file tools through the
+  client when offered. Tinycast has no editor buffer to serve, and its diffs already arrive, so the
+  offer would only move Gemini's writes into Tinycast, a second write path that would need its own
+  folder boundary beside the agent's.
+- **A client terminal would run an agent's commands as Tinycast's children.** They would run outside
+  Codex's sandbox, and Tinycast would own their lifetimes, output buffers and teardown for agents
+  whose own runners already do this. That is the opposite of the lightweight posture: no resident
+  process, nothing left running.
+
+If an adapter ever needs `fs/*` to work at all, the place is `ACPConnection.handle`'s request branch,
+off by default per agent, bounded by `AgentPathPolicy` and asked through the agent's own rules.
 
 ## Layout
 
