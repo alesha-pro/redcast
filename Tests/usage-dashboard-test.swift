@@ -29,7 +29,7 @@ struct UsageDashboardTests {
         openRouterKeyStatusDecodes()
         openRouterRequestsAndStatuses()
         await aToolLoopTurnCostsEveryRound()
-        onlyOpenAIIsAskedForStreamUsage()
+        onlyOpenAIsOwnAPIIsAskedForStreamUsage()
 
         print("\(passes) passed, \(failures) failed")
         if failures > 0 { exit(1) }
@@ -494,17 +494,26 @@ struct UsageDashboardTests {
         return usages
     }
 
-    static func onlyOpenAIIsAskedForStreamUsage() {
-        func options(_ provider: AIProviderKind) -> [String: Bool]? {
+    static func onlyOpenAIsOwnAPIIsAskedForStreamUsage() {
+        func options(_ provider: AIProviderKind, at base: String? = nil) -> [String: Bool]? {
             let body = AIRequestBody.make(
                 AIRequest(messages: [AIMessage(role: .user, text: "hi")]),
                 configuration: AIHTTPConfiguration(
-                    provider: provider, baseURL: URL(string: provider.defaultBaseURL)!, model: "m"))
+                    provider: provider, baseURL: URL(string: base ?? provider.defaultBaseURL)!,
+                    model: "m"))
             return body["stream_options"] as? [String: Bool]
         }
         expect(options(.openAI) == ["include_usage": true], "OpenAI is asked to stream its usage")
+        expect(
+            options(.openAI, at: "https://gateway.example/v1") == nil,
+            "an OpenAI preset pointed at a gateway is never sent a field it may refuse")
         expect(options(.openRouter) == nil, "OpenRouter reports usage unasked")
-        expect(options(.openAICompatible) == nil, "an unknown server is never sent a field it may refuse")
+        expect(
+            options(.openAICompatible, at: "https://llm.example/v1") == nil,
+            "nor is an unknown server")
+        expect(
+            options(.openAICompatible) == ["include_usage": true],
+            "a compatible preset left on OpenAI's own endpoint is OpenAI")
     }
 }
 
