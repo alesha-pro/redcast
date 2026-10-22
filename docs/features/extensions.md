@@ -721,7 +721,8 @@ and removes the listener before invoking it; bundled duplex streams rely on that
 
 `querystring.stringify` coerces like Node: `undefined`, `null` and a non-finite number become an
 empty value, so google-auth-library sends a client without a secret as `client_secret=`, which Google
-accepts, rather than `client_secret=undefined`, which it answers with `invalid_client`.
+accepts, rather than `client_secret=undefined`, which it answers with `invalid_client`. `buffer`
+hands out the global `Blob` and `File`, as Node's does: undici subclasses them as it loads.
 
 **WebAssembly** — `compile`, `instantiate` and their streaming forms run through the synchronous
 `Module` and `Instance` constructors. JavaScriptCore settles the promise forms from a run-loop timer on
