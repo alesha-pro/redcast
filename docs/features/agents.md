@@ -86,6 +86,21 @@ in root search or on a schedule: see [background and scheduled agents](backgroun
   own), so every agent on Tinycast's loop has it and it never asks. The model sends the whole checklist
   each time; `AgentPlanTools` shows it as a reasoning fold with the same lines `ACPEventMapper` draws for
   an ACP agent's plan (`AgentPlan.checklist`), and stores nothing.
+- **A sub-agent only reads, on its parent's model, inside its parent's turn.** Sub-agents
+  (`AgentToolKind.delegate`, off until ticked) offers `delegate`, which runs one nested
+  `AgentLoopProvider` per call over the turn's own route. The child is the agent made read-only with
+  Sub-agents removed, so it has no `delegate` of its own and stops at one level; its toolset offers only
+  `AgentToolRisk.reads` (read, network, personal: no change, command, `memory_write` or plan), no MCP,
+  and runs unattended, so anything whose rule would ask is refused. It gets the agent's context prompt for
+  that read-only profile and a sub-task briefing, never the parent's conversation. It stops after 12
+  rounds; its answer is the text after its last call, cut to 16 KB. What it spent comes back as
+  `AgentToolSignal.spent` and is billed into the parent's reply. Its own calls never show; the parent's
+  row reads "delegate: <name>" through `AgentToolProvider.title(for:)`. One runs at a time, and Stop
+  cancels the parent's task group, which ends the child's stream and its task.
+- **A newer family never breaks the previous build.** `AgentProfile` writes `tools` with only the
+  families the build before Screen and Sub-agents could decode, and those two under `addedTools`, a key
+  that build ignores; reading merges both and drops a family name it does not know. A family added later
+  joins `AgentToolKind.unknownToOlderBuilds`.
 - **The binding is the fork's, not the chat history's.** Which chat has which agent is
   `agent-chats.json` beside `agents.json` in Application Support, so upstream's SQLite schema is
   untouched. Deleting an agent frees its chats, which stay as plain AI chats, and deletes its notes.
@@ -159,6 +174,7 @@ They run on the user's own logins and subscriptions; Tinycast never sees a key.
 | `Service/AgentToolExecutor.swift` | `AgentBuiltInTools`, the first provider; the executor runs each call: ripgrep search, terminal with timeout, web fetch, HTML to text |
 | `Service/AgentLoopProvider.swift` | The agent chats' tool loop: rounds, batches, budget, Stop |
 | `Service/AgentPlanTools.swift` | `update_plan`: shows the checklist it is sent |
+| `Service/AgentDelegateTools.swift` | `delegate`: one read-only sub-agent per call, its answer bounded and its cost billed |
 | `UI/AgentCoordinator.swift` | Bindings, cached context, the turn's prompt, its loop and provider registry, consent |
 | `Model/AgentRuntime.swift` | ACP presets and the command/arguments an agent runs |
 | `Model/ACPProtocol.swift` | Framing, `session/update` decoding, permissions, prompt blocks, modes, `ACPEventMapper` |
@@ -186,11 +202,12 @@ because the composer's label and menu styles are private to that file.
 | `memory_write` | memory | own | any | always | — |
 | `load_skill` | — (when skills exist) | read | any | always | — |
 | `update_plan` | — | own | any | always | — |
+| `delegate` | sub-agents | read (each of its calls meets its own rule) | any | always | — |
 | `notes_search`, `notes_read` | notes | personal | any | always | — |
 | `notes_append` | notes | change | workspace, full | ask | — (always asks) |
 
 The notes family is off for every agent until ticked, and offered only while Notes is on; see
-[notes and AI](notes-ai.md).
+[notes and AI](notes-ai.md). Sub-agents is off until ticked too.
 
 `run_command` runs through `ShellCommandRunner.stream` with the login shell's environment in the
 agent's folder, stopped after its timeout (120 s by default, 600 s at most); escape sequences are
@@ -245,6 +262,10 @@ prompt edit.
 - Ask a question a skill covers: the transcript shows `load_skill` before the work.
 - Ask for a task of several steps: a reasoning fold opens with `Plan:` and ✓, → and · lines, and a later
   call shows the list again with steps ticked.
+- Tick Sub-agents and ask the agent to have a sub-agent find where something is defined: one row reads
+  "delegate: <name>", none of the sub-agent's own calls show, and the reply's cost is above what its own
+  rounds cost. Ask for a sub-agent to change a file: it reports that it cannot. Stop while the sub-agent
+  works: the turn ends at once. Untick it: the agent no longer offers to delegate.
 - Tell it to remember something, start a new chat with the same agent, ask about it.
 - A read-only agent is never offered the terminal or writes; a chat without an agent is unchanged.
 - Ask it to run `sleep 30`, then Stop: `ps` shows no `sleep`. Ask for a change, Stop while the dialog
@@ -269,10 +290,12 @@ prompt edit.
   in `Tests/acp-fixtures/fake-agent.mjs`: streaming, consent, reuse, refusal, cancel, reload, lost
   sessions, a missing command, two agents sharing a session id); `agent-test` (skills, catalog, path policy, tool sets, specs, consent
   policy and per-agent rules, toolset order and routing, batches, budget, elision, the prompt and the
-  rules it states, persistence, the plan checklist shared with ACP); `agent-tools-test` (the executor against a real folder: reads,
+  rules it states, persistence, the plan checklist shared with ACP, newer families kept out of the
+  previous build's way, a reading-only toolset and per-call row titles); `agent-tools-test` (the executor against a real folder: reads,
   writes with consent, link escapes, commands, timeouts and Stop, memory, skills, HTML; the built-ins
   through a toolset, with and without an agent's own rules; every refused effect; `update_plan`); and
   `agent-loop-test` (the fork's loop and upstream's on the same scripts under 128 KB; routing,
-  signals, Stop, parallel batches, a long turn that elides); `web-search-test` covers the search
+  signals, Stop, parallel batches, a long turn that elides; a sub-agent's request, tools, answer, cost,
+  bounds and Stop); `web-search-test` covers the search
   provider through a toolset and the loop; and `agent-schedule-test` covers background runs and
   schedules (see [background-agents.md](background-agents.md#manual-sweep)).

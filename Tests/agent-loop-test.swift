@@ -28,6 +28,9 @@ struct AgentLoopTests {
         await callsThatMayShareARoundDo()
         await aCallThatMayNotRunsAlone()
         await aRoundIsNeverWiderThanFour()
+        await aSubAgentAnswersInsideItsParentsTurn()
+        await aSubAgentIsBounded()
+        await stopReachesASubAgent()
 
         print("\(passes) passed, \(failures) failed")
         if failures > 0 { exit(1) }
@@ -42,11 +45,12 @@ struct AgentLoopTests {
     }
 
     static func toolset(
-        _ providers: [any AgentToolProvider], mcp invoker: RecordingInvoker = RecordingInvoker(result: "mcp")
+        _ providers: [any AgentToolProvider], mcp invoker: RecordingInvoker = RecordingInvoker(result: "mcp"),
+        families: Set<AgentToolKind> = AgentToolKind.defaults
     ) -> AgentToolset {
         AgentToolset(
             turn: AgentTurn(
-                profile: AgentProfile(name: "Loop", directory: "/tmp"), skills: [],
+                profile: AgentProfile(name: "Loop", directory: "/tmp", tools: families), skills: [],
                 memoryURL: URL(fileURLWithPath: "/tmp/memory.md"), mode: .chat(UUID())),
             providers: providers,
             mcpTools: [
@@ -315,6 +319,149 @@ extension AgentLoopTests {
         let base = ScriptedProvider(rounds: [(1...6).map { call("r\($0)") }, [.text("ok"), .finished]])
         _ = await collect(AgentLoopProvider(base: base, toolset: toolset([reader]), maxRounds: 25))
         expect(gauge.peak == AgentLoopProvider.width, "at most four calls run at once, got \(gauge.peak)")
+    }
+}
+
+// MARK: - Sub-agents
+
+extension AgentLoopTests {
+    static func delegateCall(_ id: String, name: String = "Find config", task: String = "Where is X?")
+        -> AIStreamEvent
+    {
+        call(id, AgentDelegateTools.name, #"{"name":"\#(name)","task":"\#(task)"}"#)
+    }
+
+    /// The child's toolset as the coordinator builds it: read-only, no MCP, nobody to ask.
+    static func childTools(_ providers: [any AgentToolProvider]) -> AgentToolset {
+        AgentToolset(
+            turn: AgentTurn(
+                profile: AgentProfile(name: "Loop", directory: "/tmp", access: .readOnly), skills: [],
+                memoryURL: URL(fileURLWithPath: "/tmp/memory.md"), mode: .unattended(UUID())),
+            providers: providers, mcpTools: [], offering: AgentToolRisk.reads,
+            mcp: { .failure($0.id, "mcp") }, ask: { _, _ in false })
+    }
+
+    static func aSubAgentAnswersInsideItsParentsTurn() async {
+        let base = ScriptedProvider(rounds: [
+            [.usage(AIUsage(inputTokens: 10, costUSD: 0.01)), delegateCall("d1")],
+            [.text("Looking."), call("c1"), .usage(AIUsage(inputTokens: 5, costUSD: 0.002))],
+            [.text("X lives in a.txt."), .usage(AIUsage(inputTokens: 6, costUSD: 0.003)), .finished],
+            [.text("Done."), .usage(AIUsage(inputTokens: 20, costUSD: 0.02)), .finished]
+        ])
+        let child = childTools([
+            FakeTools(names: ["fs_read"]) { _, _ in "a.txt: X" },
+            FakeTools(names: ["fs_write"], risk: .change) { _, _ in "wrote" },
+            FakeTools(names: ["notes_keep"], risk: .own) { _, _ in "kept" }
+        ])
+        let delegate = AgentDelegateTools(base: base, toolset: child, instructions: "Be a sub-agent.")
+        let parent = toolset([delegate], families: [.delegate])
+        let outcome = await collect(AgentLoopProvider(base: base, toolset: parent, maxRounds: 25))
+        expect(outcome.failure == nil && outcome.events.last == .finished, "the parent's turn finishes")
+        expect(
+            outcome.events.contains(.toolCall(id: "d1", origin: "Loop", title: "delegate: Find config"))
+                && outcome.events.contains(.toolResult(id: "d1", isError: false)),
+            "its row names the sub-task, got \(outcome.events)")
+        expect(
+            !outcome.events.contains { if case .toolCall(id: "c1", _, _) = $0 { true } else { false } },
+            "and the sub-agent's own calls stay out of the transcript")
+        expect(base.requests.count == 4, "two rounds of the child sit between the parent's two")
+        guard base.requests.count == 4 else {
+            return expect(false, "the script ran to its end, got \(base.requests.count): \(outcome)")
+        }
+        let request = base.requests[1]
+        expect(
+            request.instructions == "Be a sub-agent."
+                && request.messages == [AIMessage(role: .user, text: "Where is X?")],
+            "the child starts from its own prompt and the task alone")
+        expect(
+            request.tools.map(\.name) == ["fs_read"],
+            "and is offered reading only: no change, nothing of its own to write, no delegate")
+        expect(
+            base.requests[3].messages.last?.toolResult?.content == "X lives in a.txt.",
+            "its answer is what it said after its last call")
+        let usages = outcome.events.compactMap { event -> AIUsage? in
+            if case .usage(let usage) = event { usage } else { nil }
+        }
+        expect(
+            abs((usages.last?.costUSD ?? 0) - 0.035) < 1e-12,
+            "and what it spent is billed into the parent's reply, got \(usages.last?.costUSD ?? 0)")
+        expect(usages.last?.inputTokens == 20, "while the tokens stay the parent's last round's")
+
+        let flat = AgentToolset(
+            turn: AgentTurn(
+                profile: AgentProfile(name: "Loop", directory: "/tmp", tools: [.files]), skills: [],
+                memoryURL: URL(fileURLWithPath: "/tmp/memory.md"), mode: .chat(UUID())),
+            providers: [delegate], mcpTools: [], mcp: { .failure($0.id, "mcp") }, ask: { _, _ in false })
+        expect(flat.tools.isEmpty, "an agent without Sub-agents ticked, as every child is, has no delegate")
+        expect(
+            !AgentToolKind.defaults.contains(.delegate)
+                && !AgentProfile(name: "New", directory: "/tmp").tools.contains(.delegate),
+            "Sub-agents is off for a new agent")
+    }
+
+    static func aSubAgentIsBounded() async {
+        let long = String(repeating: "é", count: 20 * 1_024)
+        let talker = ScriptedProvider(rounds: [[.text(long), .finished]])
+        let delegate = AgentDelegateTools(
+            base: talker, toolset: childTools([FakeTools(names: ["fs_read"]) { _, _ in "x" }]),
+            instructions: "")
+        let context = AgentToolContext(
+            turn: AgentTurn(
+                profile: AgentProfile(name: "Loop", directory: "/tmp"), skills: [],
+                memoryURL: URL(fileURLWithPath: "/tmp/memory.md"), mode: .chat(UUID())),
+            consent: { _ in false }, signal: { _ in })
+        let cut = await delegate.run(
+            AIToolCall(id: "d", name: AgentDelegateTools.name, arguments: #"{"name":"n","task":"t"}"#),
+            in: context)
+        expect(
+            !cut.isError && cut.content.utf8.count <= AgentDelegateTools.maxAnswerBytes + 64
+                && cut.content.hasSuffix("…cut: the sub-agent's answer was longer."),
+            "a long answer is cut under the executor's 28 KB and says so")
+        expect(
+            AgentDelegateTools.maxAnswerBytes < AgentTurnBudget.resultBytes,
+            "so the parent's budget never cuts it again")
+
+        let looping = ScriptedProvider(rounds: Array(repeating: [call("c")], count: 20))
+        let lost = AgentDelegateTools(
+            base: looping, toolset: childTools([FakeTools(names: ["fs_read"]) { _, _ in "x" }]),
+            instructions: "")
+        let stopped = await lost.run(
+            AIToolCall(id: "d", name: AgentDelegateTools.name, arguments: #"{"name":"n","task":"t"}"#),
+            in: context)
+        expect(
+            stopped.isError && stopped.content.contains("Stopped after 12 rounds")
+                && looping.requests.count == AgentDelegateTools.maxRounds,
+            "a child that keeps calling stops at its own round cap, got \(stopped.content)")
+
+        let idle = ScriptedProvider(rounds: [])
+        let malformed = await AgentDelegateTools(base: idle, toolset: childTools([]), instructions: "").run(
+            AIToolCall(id: "d", name: AgentDelegateTools.name, arguments: #"{"name":"","task":"t"}"#),
+            in: context)
+        expect(malformed.isError && idle.requests.isEmpty, "a call with no name or task starts no child")
+    }
+
+    static func stopReachesASubAgent() async {
+        let sleeper = Sleeper()
+        let base = ScriptedProvider(rounds: [[delegateCall("d1")], [call("z1")], [.text("never"), .finished]])
+        let child = childTools([FakeTools(names: ["fs_read"]) { _, _ in await sleeper.sleep() }])
+        let parent = toolset(
+            [AgentDelegateTools(base: base, toolset: child, instructions: "")], families: [.delegate])
+        let loop = AgentLoopProvider(base: base, toolset: parent, maxRounds: nil)
+        let consumer = Task {
+            do {
+                for try await _ in loop.stream(turn) {}
+            } catch {}
+        }
+        while !sleeper.started { try? await Task.sleep(for: .milliseconds(10)) }
+        let stopped = ContinuousClock.now
+        consumer.cancel()
+        await consumer.value
+        while sleeper.noticed == nil { try? await Task.sleep(for: .milliseconds(10)) }
+        try? await Task.sleep(for: .milliseconds(200))
+        expect(
+            (sleeper.noticed ?? .now) - stopped < .milliseconds(100),
+            "Stop reaches the sub-agent's running call at once")
+        expect(base.requests.count == 2, "and neither the child nor the parent asks the model again")
     }
 }
 
