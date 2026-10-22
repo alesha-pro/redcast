@@ -66,6 +66,7 @@ They run on the user's own logins and subscriptions; Tinycast never sees a key.
   before a stop and after every turn, keyed by pid and start time so a reused pid is never
   signalled; a stop closes stdin, sends SIGTERM to every survivor a second later and SIGKILL two
   seconds after that, and an agent that exits on its own has its last-known tree reaped the same way.
+  `Process.terminate` alone reaches only the child's process group, which a detached child has left.
   An idle agent is stopped after two minutes; `AgentACPHost.release` stops it as soon as a run that
   nobody is watching ends.
 - **Context goes once, to a fresh session.** `AgentContext.briefing` — global and project

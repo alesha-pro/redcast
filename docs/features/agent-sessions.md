@@ -67,8 +67,8 @@ in `Features/AgentSessions/`, plus the few lines that wire it in.
 | `Service/AgentTranscriptSearch.swift` | Search inside transcripts on request |
 | `Service/AgentTerminalRunner.swift` | Opens a command or folder in a terminal; focuses a tab by tty |
 | `Service/AgentProcessHost.swift` | Host app and tty from a pid, by a `sysctl` walk up the parents |
-| `Service/AgentHookRepository.swift` | Snapshots, revision-checked writes, backups, `live-status.json` |
-| `Service/ClaudeLiveSessionsProbe.swift` | `claude agents --json` |
+| `Service/AgentHookRepository.swift` | Snapshots, every file re-read before any is written, backups, `live-status.json` |
+| `Service/ClaudeLiveSessionsProbe.swift` | `claude agents --json`; its tree is reaped through `Agents/Service/ProcessTree.swift` |
 | `UI/AgentSessionsCoordinator.swift` | The action surface: screen, resume, jump, events, HUDs, live status |
 | `UI/AgentSessionIndex.swift` | The loaded sessions, their keys and live state while the screen is open |
 | `UI/AgentActivityState.swift` | What the hooks reported |
