@@ -824,18 +824,18 @@ transport code at all.
 | Grok command | never | never | never | the global config still loads — `--deny *` refuses the call |
 | OpenCode command | never | a private file per picture, through `--file`, only for models whose catalog lists `image` input | never | the global config still loads — the `tinycast` agent's deny-all rule drops every tool |
 | Cursor command | never | never | never | the global config still loads — ask mode and withheld approval refuse the call |
-| OpenRouter | `plugins: [{id: "web"}]` — OpenRouter's own layer, any model | `image_url` part, only for models whose catalog lists the `image` modality | never yet — its catalog publishes a `file` modality Tinycast does not read | `tools` + `role: "tool"` turns |
-| OpenAI | not offered | `image_url` part, assumed supported | `file` part with `filename` and a `file_data` data URL | `tools` + `role: "tool"` turns |
-| Gemini / compatible | not offered | `image_url` part, assumed supported | never — a gateway that has not implemented the part bills the upload before rejecting it | `tools` + `role: "tool"` turns; a call's `extra_content.google.thought_signature` goes back unchanged, or Gemini 3 rejects the next turn |
-| Anthropic | not offered | base64 `image` block | base64 `document` block, ahead of the text block | `tools` + `tool_use` / `tool_result` blocks |
+| OpenRouter | Tinycast's `web_search` tool ([web search](web-search.md)) | `image_url` part, only for models whose catalog lists the `image` modality | never yet — its catalog publishes a `file` modality Tinycast does not read | `tools` + `role: "tool"` turns |
+| OpenAI | Tinycast's `web_search` tool ([web search](web-search.md)) | `image_url` part, assumed supported | `file` part with `filename` and a `file_data` data URL | `tools` + `role: "tool"` turns |
+| Gemini / compatible | Tinycast's `web_search` tool ([web search](web-search.md)) | `image_url` part, assumed supported | never — a gateway that has not implemented the part bills the upload before rejecting it | `tools` + `role: "tool"` turns; a call's `extra_content.google.thought_signature` goes back unchanged, or Gemini 3 rejects the next turn |
+| Anthropic | Tinycast's `web_search` tool ([web search](web-search.md)) | base64 `image` block | base64 `document` block, ahead of the text block | `tools` + `tool_use` / `tool_result` blocks |
 
 A search is part of the reply, not a status: `item/started` for a `webSearch` item appends a
 `ChatSearch` to the streaming message pinned at the text length so far, `item/completed` (or the
 next text delta, or the turn ending) marks it finished and fills in the query if the start didn't
 carry it. `ChatMessage.segments` splits the text around its searches so the transcript renders
 text, a search row (spinner → globe, "Searching web" → "Searched web · query"), then the rest, in
-the order it happened. Searches persist in `message_searches`. OpenRouter's web plugin is invisible
-to the stream, so it shows none. The web-search instructions ask for citations linked by the
+the order it happened. Searches persist in `message_searches`. Tinycast's own `web_search` tool emits
+the same rows from the tool loop. The web-search instructions ask for citations linked by the
 publication's name — the model otherwise labels them "Read more".
 
 `AIModelCapabilities` says what the footer may offer for the selected model. OpenRouter is the only
@@ -845,7 +845,8 @@ model added by hand is assumed text-only. A vendor API is assumed to take images
 doesn't simply returns the provider's error.
 
 Web search is a Settings → AI toggle, `aiWebSearch`, off by default: a prompt reaches a search engine
-only once the user has opted in.
+only once the user has opted in. On API routes it attaches Tinycast's `web_search` tool; the engines
+are chosen under Search engines.
 It's still excluded from backups — which Mac may send prompts to a search engine is that Mac's call.
 Nothing *guesses* at a capability: images ride on what the model's own catalog said, and a vendor
 API that does not take one simply returns its error. What is gated is only what a route provably

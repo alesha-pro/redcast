@@ -150,6 +150,12 @@ final class AgentCoordinator {
         return providers
     }
 
+    /// Whether this chat's agent is offered `web_search`: Web ticked, and not Never Allow.
+    func searchesTheWeb(_ chat: AIChatState) -> Bool {
+        guard let agent = agent(for: chat), agent.runtime == nil else { return false }
+        return AgentConsentPolicy.rule(for: .network, in: .web, of: agent) != .never
+    }
+
     /// The cached reading when there is one; the first ever is read in place, the rest refresh.
     private func context(for agent: AgentProfile) -> AgentContext {
         defer { refresh(agent) }

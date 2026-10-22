@@ -313,8 +313,10 @@ final class AIChatCoordinator {
         }
     }
 
+    /// Codex's own search; an API route searches through Tinycast's `web_search` tool instead.
     private func webSearch(for chat: AIChatState) -> Bool {
-        core.aiSettings.webSearchEnabled && capabilities(for: chat).webSearch
+        if case .api? = model(for: chat) { return false }
+        return core.aiSettings.webSearchEnabled && capabilities(for: chat).webSearch
     }
 
     private var instructions: String? {
@@ -373,13 +375,30 @@ final class AIChatCoordinator {
         if capabilities(for: chat).tools,
             let agent = core.agentCoordinator.loop(over: provider, mcpTools: tools, in: chat)
         { return agent }
-        guard capabilities(for: chat).tools, !tools.isEmpty else { return provider }
+        let search = searchTool(for: chat)
+        guard capabilities(for: chat).tools, !(search + tools).isEmpty else { return provider }
         let chatID = chat.session.id
+        let runner = search.isEmpty ? nil : core.webSearch.runner(canFetch: false)
         return AIToolLoopProvider(
-            base: provider, tools: tools, maxRounds: core.aiSettings.toolRounds.limit
+            base: provider, tools: search + tools, maxRounds: core.aiSettings.toolRounds.limit
         ) { [mcp = core.mcpCoordinator] call in
-            await mcp.invoke(call, in: chatID)
+            if let runner, call.name == WebSearchTool.name { return await runner.run(call) }
+            return await mcp.invoke(call, in: chatID)
         }
+    }
+
+    /// A chat without an agent searches through Tinycast while Web search is on.
+    private func searchTool(for chat: AIChatState) -> [AITool] {
+        guard case .api? = model(for: chat), core.aiSettings.webSearchEnabled,
+            capabilities(for: chat).webSearch
+        else { return [] }
+        return [WebSearchTool.definition(origin: String(localized: "Web search"))]
+    }
+
+    /// An agent's Web family on a route Tinycast's loop runs: it searches, and it can fetch.
+    private func agentSearches(_ chat: AIChatState) -> Bool {
+        guard case .api? = model(for: chat) else { return false }
+        return core.agentCoordinator.searchesTheWeb(chat)
     }
 
     /// `@server` narrows a turn further, but never past what the chat's tools menu switched off.
@@ -440,6 +459,7 @@ final class AIChatCoordinator {
             return .none
         case .api(let connection, let model, _)?:
             return core.aiSettings.connection(id: connection)?.capabilities(for: model)
+                .searchingWithTinycast(agentDecides: core.agentCoordinator.agent(for: chat) != nil)
                 ?? AIModelCapabilities.none
         case nil: return AIModelCapabilities.none
         }
@@ -466,7 +486,7 @@ final class AIChatCoordinator {
             stagedBytes: chat.pendingAttachments.reduce(0) { $0 + $1.payload.byteCount },
             usage: chat.usage,
             systemPrompt: core.aiSettings.systemPromptEnabled,
-            webSearch: core.aiSettings.webSearchEnabled && can.webSearch,
+            webSearch: core.aiSettings.webSearchEnabled && can.webSearch || agentSearches(chat),
             toolServers: can.tools && scope.isEnabled
                 ? mcpServers.count { scope.allows($0.slug) } : 0)
     }

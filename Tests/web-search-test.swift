@@ -26,6 +26,7 @@ struct WebSearchTests {
         answersStayBounded()
         configurationSurvivesOtherBuilds()
         await theChainFallsThrough()
+        await theLoopShowsASearchRow()
         searchingFollowsTheRoute()
         await agentsSearchThroughTheirWebFamily()
 
@@ -471,6 +472,42 @@ struct WebSearchTests {
     }
 
     // MARK: - Presentation
+
+    static func theLoopShowsASearchRow() async {
+        let fetch = AITool(name: "web_fetch", description: "", parameters: .object([:]), origin: "Agent")
+        let base = ScriptedProvider(rounds: [
+            [
+                .toolCallRequested(AIToolCall(id: "s1", name: "web_search", arguments: #"{"query":"q"}"#)),
+                .toolCallRequested(AIToolCall(id: "f1", name: "web_fetch", arguments: "{}"))
+            ],
+            [.text("ok"), .finished]
+        ])
+        let loop = AIToolLoopProvider(
+            base: base, tools: [WebSearchTool.definition(origin: "Web search"), fetch], maxRounds: 5
+        ) { AIToolResult(callID: $0.id, content: "done", isError: false) }
+        let events = await collect(loop)
+        expect(events.contains(.searching("q")) && events.contains(.searched("q")), "a search is a search row")
+        expect(
+            !events.contains { if case .toolCall(id: "s1", _, _) = $0 { true } else { false } },
+            "not a tool row")
+        expect(
+            events.contains(.toolCall(id: "f1", origin: "Agent", title: "web_fetch"))
+                && events.contains(.toolResult(id: "f1", isError: false)),
+            "web_fetch keeps its row")
+
+        let unoffered = ScriptedProvider(rounds: [
+            [.toolCallRequested(AIToolCall(id: "s2", name: "web_search", arguments: #"{"query":"q"}"#))],
+            [.text("ok"), .finished]
+        ])
+        let plain = AIToolLoopProvider(base: unoffered, tools: [fetch], maxRounds: 5) {
+            .failure($0.id, "There is no tool called \($0.name).")
+        }
+        let unofferedEvents = await collect(plain)
+        expect(
+            unofferedEvents.contains(.toolCall(id: "s2", origin: "", title: "web_search"))
+                && !unofferedEvents.contains(.searching("q")),
+            "a search nobody offered is an ordinary failed row")
+    }
 
     static func searchingFollowsTheRoute() {
         let vendor = AIModelCapabilities(images: true, documents: true, webSearch: false, tools: true)

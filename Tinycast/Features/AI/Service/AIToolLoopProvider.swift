@@ -61,11 +61,16 @@ struct AIToolLoopProvider: AIProvider {
             for call in round.calls {
                 try Task.checkCancellation()
                 let tool = tools.first { $0.name == call.name }
+                // An offered web search shows as the transcript's search row, as Codex's do.
+                let search = tool == nil ? nil : WebSearchTool.query(in: call)
                 continuation.yield(
-                    .toolCall(
-                        id: call.id, origin: tool?.origin ?? "", title: tool?.title ?? call.name))
+                    search.map { AIStreamEvent.searching($0) }
+                        ?? .toolCall(
+                            id: call.id, origin: tool?.origin ?? "", title: tool?.title ?? call.name))
                 let result = await bounded(invoke(call), spent: &spent)
-                continuation.yield(.toolResult(id: call.id, isError: result.isError))
+                continuation.yield(
+                    search.map { AIStreamEvent.searched($0) }
+                        ?? .toolResult(id: call.id, isError: result.isError))
                 carried += result.content.utf8.count
                 messages.append(AIMessage(role: .tool, text: "", toolResult: result))
             }
