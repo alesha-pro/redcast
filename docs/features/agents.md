@@ -336,9 +336,9 @@ this way, as one provider. Nothing else changes: no router edit, no upstream lin
   writes with consent, link escapes, commands, timeouts and Stop, memory, skills, HTML; the built-ins
   through a toolset, with and without an agent's own rules; every refused effect; `update_plan`); and
   `agent-loop-test` (the fork's loop and upstream's on the same scripts under 128 KB; routing,
-  signals, Stop, parallel batches, a long turn that elides; a sub-agent's request, tools, answer, cost,
-  bounds and Stop; compaction with nothing dropped, made once then reused then grown, a failed summary
-  and Stop while it is made); `web-search-test` covers the search
+  signals, Stop, parallel batches, a long turn that elides; `delegate`'s spec and name, a sub-agent's
+  request, tools, answer, cost, bounds and Stop; compaction with nothing dropped, made once then
+  reused then grown, a failed summary and Stop while it is made); `web-search-test` covers the search
   provider through a toolset and the loop; `ai-provider-test` pins which routes are asked to cache and
   where the marks go; and `agent-schedule-test` covers background runs and
   schedules (see [background-agents.md](background-agents.md#manual-sweep)).

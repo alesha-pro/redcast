@@ -28,6 +28,7 @@ struct AgentLoopTests {
         await callsThatMayShareARoundDo()
         await aCallThatMayNotRunsAlone()
         await aRoundIsNeverWiderThanFour()
+        theDelegateToolOnlyReadsAndRunsAlone()
         await aSubAgentAnswersInsideItsParentsTurn()
         await aSubAgentIsBounded()
         await stopReachesASubAgent()
@@ -343,6 +344,25 @@ extension AgentLoopTests {
                 memoryURL: URL(fileURLWithPath: "/tmp/memory.md"), mode: .unattended(UUID())),
             providers: providers, mcpTools: [], offering: AgentToolRisk.reads,
             mcp: { .failure($0.id, "mcp") }, ask: { _, _ in false })
+    }
+
+    static func theDelegateToolOnlyReadsAndRunsAlone() {
+        let full = AgentProfile(
+            name: "Loop", directory: "/tmp", access: .fullAccess, tools: Set(AgentToolKind.allCases))
+        let delegate = AgentDelegateTools(
+            base: ScriptedProvider(rounds: []), toolset: childTools([]), instructions: "")
+        let specs = delegate.specs(
+            for: AgentTurn(
+                profile: full, skills: [], memoryURL: URL(fileURLWithPath: "/tmp/memory.md"),
+                mode: .chat(UUID())))
+        expect(
+            specs.map(\.tool.name) == [AgentDelegateTools.name] && specs.first?.family == .delegate
+                && specs.first?.risk == .read && specs.first?.concurrent == false,
+            "delegate is the Sub-agents family's, changes nothing itself, and one child runs at a time")
+        let others =
+            AgentToolbox.tools(for: full, hasSkills: true).map(\.name)
+            + [AgentPlan.name, WebSearchTool.name, "screen_context"]
+        expect(!others.contains(AgentDelegateTools.name), "and its name is nobody else's")
     }
 
     static func aSubAgentAnswersInsideItsParentsTurn() async {
