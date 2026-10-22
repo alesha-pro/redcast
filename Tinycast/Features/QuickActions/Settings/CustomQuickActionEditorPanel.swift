@@ -140,6 +140,14 @@ struct CustomQuickActionEditorPanel: View {
             )
             .font(.caption)
             .foregroundStyle(.secondary)
+            Text(
+                """
+                Use {clipboard}, {date} or {argument name="Tone"} for values filled in when the \
+                action runs. An argument is asked for in the launcher.
+                """
+            )
+            .font(.caption)
+            .foregroundStyle(.secondary)
         }
     }
 

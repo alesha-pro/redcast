@@ -168,6 +168,12 @@ struct LauncherScreen: PaletteScreen {
                 placement: .afterQuery, onOpenOptions: openArgumentOptions,
                 onSubmit: { activate(at: selection) })
         }
+        if entry.kind == .quickAction {
+            return QuickActionArgumentsAccessory.make(
+                action: customQuickAction(for: entry), vm: vm,
+                metrics: core.settings.interfaceSize.metrics, focus: focus,
+                onOpenOptions: openArgumentOptions, onSubmit: { activate(at: selection) })
+        }
         if entry.kind == .customCommand {
             return CustomCommandArgumentsAccessory.make(
                 command: core.customCommands.command(entryID: entry.id), vm: vm,
@@ -191,6 +197,10 @@ struct LauncherScreen: PaletteScreen {
             guard let quicklink = quicklink(for: entry) else { return [:] }
             return QuicklinkArgumentsAccessory.values(for: quicklink, vm: vm)
         }
+        if entry.kind == .quickAction {
+            guard let action = customQuickAction(for: entry) else { return [:] }
+            return QuickActionArgumentsAccessory.values(for: action, vm: vm)
+        }
         if entry.kind == .customCommand {
             guard let command = core.customCommands.command(entryID: entry.id) else { return [:] }
             return CustomCommandArgumentsAccessory.values(for: command, vm: vm)
@@ -201,6 +211,10 @@ struct LauncherScreen: PaletteScreen {
             if !typed.isEmpty { values[argument.name] = typed }
         }
         return values
+    }
+
+    private func customQuickAction(for entry: AppEntry) -> CustomQuickAction? {
+        CustomQuickAction.id(fromEntryID: entry.id).flatMap(core.customQuickActions.action)
     }
 
     private func quicklink(for entry: AppEntry) -> Quicklink? {
