@@ -823,8 +823,14 @@ run usage-dashboard-test   Tinycast/Features/AI/Model/AIRequest.swift \
                            Tinycast/Features/AI/Model/AIAttachmentPolicy.swift \
                            Tinycast/Features/AI/Model/AITool.swift \
                            Tinycast/Features/AI/Model/JSONValue.swift \
+                           Tinycast/Features/AI/Model/ChatMessage.swift \
+                           Tinycast/Features/AI/Model/ChatSession.swift \
+                           Tinycast/Features/AI/Model/ChatChoices.swift \
                            Tinycast/Features/AI/Service/AIProvider.swift \
-                           Tinycast/Features/AI/Service/AIToolLoopProvider.swift
+                           Tinycast/Features/AI/Service/ChatHistoryStore.swift \
+                           Tinycast/Features/AI/Service/AIToolLoopProvider.swift \
+                           Tinycast/Features/UsageDashboard/Model/*.swift \
+                           Tinycast/Features/UsageDashboard/Service/UsageQuery.swift
 run quick-action-test      Tinycast/Features/Settings/AppSettingsKey.swift \
                            Tinycast/Features/AI/Model/AIConnection.swift \
                            Tinycast/Features/AI/Model/AppleIntelligence.swift \
