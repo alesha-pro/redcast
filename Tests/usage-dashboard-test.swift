@@ -1,4 +1,5 @@
 import Foundation
+import SQLite3
 
 @main
 @MainActor
@@ -16,11 +17,306 @@ struct UsageDashboardTests {
     }
 
     static func main() async {
+        await theQuerySumsRepliesWithUsageInsideThePeriod()
+        await theQueryNeverCreatesTheDatabase()
+        await theQueryReadsBesideTheWriterAndAfterItCloses()
+        await modelsMergeWhateverTheirKeyOrderAndEffort()
+        linesSortByCostThenTokens()
+        periodsFollowTheCalendar()
+        periodTitlesNameTheRecentOnes()
+        formatsAreCompactAndKeepSmallCosts()
         await aToolLoopTurnCostsEveryRound()
         onlyOpenAIIsAskedForStreamUsage()
 
         print("\(passes) passed, \(failures) failed")
         if failures > 0 { exit(1) }
+    }
+
+    // MARK: - Query
+
+    private static let periodStart = Date(timeIntervalSince1970: 1_790_000_000)
+    private static let period = DateInterval(start: periodStart, duration: 86_400)
+    private static let connection = UUID()
+
+    private static func scratch(_ name: String) -> URL {
+        let directory = FileManager.default.temporaryDirectory
+            .appending(path: "usage-\(name)-\(UUID().uuidString)", directoryHint: .isDirectory)
+        try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        return directory
+    }
+
+    private static func reply(
+        at offset: TimeInterval, _ usage: AIUsage?, toolScope: String? = nil
+    ) -> ChatMessage {
+        ChatMessage(
+            role: .assistant, text: "answer", sentAt: periodStart.addingTimeInterval(offset),
+            usage: usage, toolScope: toolScope)
+    }
+
+    private static func question(at offset: TimeInterval, toolScope: String? = nil) -> ChatMessage {
+        ChatMessage(
+            role: .user, text: "question", sentAt: periodStart.addingTimeInterval(offset),
+            toolScope: toolScope)
+    }
+
+    private static func session(
+        _ messages: [ChatMessage], model: AIModelSelection?
+    ) -> ChatSession {
+        var session = ChatSession(createdAt: periodStart, model: model)
+        for message in messages { session.append(message) }
+        return session
+    }
+
+    static func theQuerySumsRepliesWithUsageInsideThePeriod() async {
+        let directory = scratch("sums")
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let store = ChatHistoryStore(directory: directory)
+        let priced = session(
+            [
+                question(at: 10, toolScope: "github"),
+                reply(
+                    at: 11,
+                    AIUsage(
+                        inputTokens: 100, outputTokens: 20, cachedInputTokens: 5, reasoningTokens: 3,
+                        costUSD: 0.01)),
+                question(at: 20),
+                reply(at: 21, AIUsage(inputTokens: 200, outputTokens: 40)),
+                question(at: 30),
+                reply(at: 31, nil),
+                reply(at: 32, AIUsage(contextWindow: 200_000))
+            ],
+            model: .api(connection: connection, model: "deepseek/v4", effort: "high"))
+        let edges = session(
+            [
+                question(at: -5),
+                reply(at: -1, AIUsage(inputTokens: 7, outputTokens: 7, costUSD: 1)),
+                reply(at: 0, AIUsage(inputTokens: 1, outputTokens: 2, costUSD: 0)),
+                reply(at: 86_399, AIUsage(inputTokens: 3, outputTokens: 4)),
+                reply(at: 86_400, AIUsage(inputTokens: 9, outputTokens: 9, costUSD: 9))
+            ],
+            model: .claude(model: "sonnet", effort: nil))
+        store.save(priced)
+        store.save(edges)
+
+        let rows: [UsageRow]
+        do {
+            rows = try UsageQuery.rows(databaseURL: store.databaseURL, in: period)
+        } catch {
+            expect(false, "the query reads a real history: \(error)")
+            return
+        }
+        expect(rows.count == 2, "one row per conversation active in the period")
+        let first = rows.first { $0.conversationID == priced.id }?.totals
+        expect(first?.replies == 2, "only assistant replies that reported tokens or cost count")
+        expect(
+            first?.input == 300 && first?.output == 60 && first?.cached == 5 && first?.reasoning == 3,
+            "token columns sum per conversation")
+        expect(first?.cost == 0.01 && first?.pricedReplies == 1, "a reply without cost adds none")
+        expect(first?.promptTokens == 305, "prompt tokens count the cached ones Anthropic keeps apart")
+        let second = rows.first { $0.conversationID == edges.id }?.totals
+        expect(second?.replies == 2, "the period's start is in and its end is out")
+        expect(second?.input == 4 && second?.output == 6, "a reply on either side of it is not summed")
+        expect(second?.cost == 0 && second?.pricedReplies == 1, "a cost of zero is still a reported cost")
+        let stored = rows.first { $0.conversationID == priced.id }?.modelJSON
+        expect(
+            UsageSubject.of(modelJSON: stored) == .model(source: .api(connection), model: "deepseek/v4"),
+            "the row carries the conversation's model as stored")
+
+        let unpriced = session(
+            [question(at: 40), reply(at: 41, AIUsage(inputTokens: 1, outputTokens: 1))], model: nil)
+        store.save(unpriced)
+        let again = (try? UsageQuery.rows(databaseURL: store.databaseURL, in: period)) ?? []
+        let third = again.first { $0.conversationID == unpriced.id }
+        expect(third?.totals.cost == nil, "a conversation with no priced reply has no cost, not zero")
+        expect(third?.modelJSON == nil, "a chat that never picked a model has none to report")
+
+        let report = try? await UsageQuery.report(
+            databaseURL: store.databaseURL, in: period, agents: [:])
+        expect(report?.total.replies == 5, "the report off-main sums the same rows")
+    }
+
+    static func theQueryNeverCreatesTheDatabase() async {
+        let directory = scratch("absent")
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let url = directory.appending(path: "ai-chats.sqlite3")
+        let rows = try? UsageQuery.rows(databaseURL: url, in: period)
+        expect(rows == [], "a Mac that never chatted has no usage")
+        let left = (try? FileManager.default.contentsOfDirectory(atPath: directory.path)) ?? ["?"]
+        expect(left.isEmpty, "and reading it creates nothing")
+    }
+
+    static func theQueryReadsBesideTheWriterAndAfterItCloses() async {
+        let directory = scratch("wal")
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let store = ChatHistoryStore(directory: directory)
+        store.save(session([question(at: 1), reply(at: 2, AIUsage(outputTokens: 5))], model: nil))
+        let beside = try? UsageQuery.rows(databaseURL: store.databaseURL, in: period)
+        expect(beside?.first?.totals.output == 5, "a reader works beside the store's open writer")
+        store.save(session([question(at: 3), reply(at: 4, AIUsage(outputTokens: 6))], model: nil))
+        let fresh = try? UsageQuery.rows(databaseURL: store.databaseURL, in: period)
+        expect(fresh?.count == 2, "and sees what the writer committed since")
+        store.close()
+        let closed = try? UsageQuery.rows(databaseURL: store.databaseURL, in: period)
+        expect(closed?.count == 2, "a history whose writer closed still reads")
+    }
+
+    // MARK: - Report
+
+    static func modelsMergeWhateverTheirKeyOrderAndEffort() async {
+        let directory = scratch("merge")
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let store = ChatHistoryStore(directory: directory)
+        let high = session(
+            [question(at: 1), reply(at: 2, AIUsage(inputTokens: 10, outputTokens: 1, costUSD: 0.5))],
+            model: .api(connection: connection, model: "m", effort: "high"))
+        let reordered = session(
+            [question(at: 3), reply(at: 4, AIUsage(inputTokens: 20, outputTokens: 2, costUSD: 0.25))],
+            model: .api(connection: connection, model: "m", effort: nil))
+        let agentChat = session(
+            [question(at: 5), reply(at: 6, AIUsage(inputTokens: 30, outputTokens: 3))],
+            model: .api(connection: connection, model: "m", effort: nil))
+        let unknown = session(
+            [question(at: 7), reply(at: 8, AIUsage(inputTokens: 40, outputTokens: 4))], model: nil)
+        for chat in [high, reordered, agentChat, unknown] { store.save(chat) }
+
+        let json = #"{"api":{"model":"m","connection":"\#(connection.uuidString)"}}"#
+        var database: OpaquePointer?
+        sqlite3_open(store.databaseURL.path, &database)
+        let update = """
+            UPDATE conversation_details SET model = '\(json)'
+            WHERE conversation_id = '\(reordered.id.uuidString)';
+            """
+        expect(sqlite3_exec(database, update, nil, nil, nil) == SQLITE_OK, "the fixture row is rewritten")
+        sqlite3_close(database)
+
+        let agent = UUID()
+        guard
+            let report = try? await UsageQuery.report(
+                databaseURL: store.databaseURL, in: period, agents: [agentChat.id: agent])
+        else {
+            expect(false, "the merge fixture reads")
+            return
+        }
+        let model = report.lines.first { $0.subject == .model(source: .api(connection), model: "m") }
+        expect(model?.totals.replies == 2, "key order and effort never split a model into two lines")
+        expect(model?.totals.cost == 0.75, "and its costs add up")
+        expect(
+            report.lines.contains { $0.subject == .agent(agent) && $0.totals.input == 30 },
+            "a chat an ACP agent ran is the agent's, whatever the picker held")
+        expect(
+            report.lines.contains { $0.subject == .unknown && $0.totals.input == 40 },
+            "a chat with no model reads as unknown")
+        expect(report.lines.count == 3, "three subjects, three lines")
+        expect(report.lines.first?.subject == model?.subject, "the priced line leads")
+        var summed = UsageTotals()
+        for line in report.lines { summed.add(line.totals) }
+        expect(report.total == summed, "the total is the sum of its lines")
+        expect(report.total.cost == 0.75 && report.total.pricedReplies == 2, "and keeps what was priced")
+    }
+
+    static func linesSortByCostThenTokens() {
+        func row(_ model: String, cost: Double?, input: Int) -> UsageRow {
+            let json = #"{"codex":{"model":"\#(model)"}}"#
+            return UsageRow(
+                conversationID: UUID(), modelJSON: json,
+                totals: UsageTotals(
+                    replies: 1, input: input, cost: cost, pricedReplies: cost == nil ? 0 : 1))
+        }
+        let report = UsageReport(rows: [
+            row("small", cost: nil, input: 10),
+            row("cheap", cost: 0.1, input: 1),
+            row("big", cost: nil, input: 900),
+            row("dear", cost: 2, input: 1),
+            row("free", cost: 0, input: 5)
+        ])
+        let order = report.lines.map {
+            if case .model(_, let model) = $0.subject { return model }
+            return "?"
+        }
+        expect(
+            order == ["dear", "cheap", "free", "big", "small"],
+            "dearest first, a zero cost before no cost, then by tokens")
+        let tied = UsageReport(rows: [row("b", cost: nil, input: 1), row("a", cost: nil, input: 1)])
+        let tiedAgain = UsageReport(rows: [row("a", cost: nil, input: 1), row("b", cost: nil, input: 1)])
+        expect(tied.lines == tiedAgain.lines, "equal lines keep one order whatever the row order")
+        expect(UsageReport(rows: []).total == UsageTotals(), "no rows, nothing reported")
+        expect(UsageSubject.of(modelJSON: "{not json") == .unknown, "an unreadable model is unknown")
+    }
+
+    // MARK: - Periods
+
+    private static let berlin: Calendar = {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "Europe/Berlin")!
+        calendar.firstWeekday = 2
+        return calendar
+    }()
+
+    private static func date(_ year: Int, _ month: Int, _ day: Int, _ hour: Int = 12) -> Date {
+        berlin.date(from: DateComponents(year: year, month: month, day: day, hour: hour))!
+    }
+
+    static func periodsFollowTheCalendar() {
+        let thursday = date(2026, 10, 22, 15)
+        let day = UsagePeriod.day.interval(containing: thursday, calendar: berlin)
+        expect(day.start == date(2026, 10, 22, 0) && day.duration == 86_400, "a day is local midnight to midnight")
+        let spring = UsagePeriod.day.interval(containing: date(2026, 3, 29), calendar: berlin)
+        expect(spring.duration == 23 * 3_600, "the day clocks go forward lasts 23 hours")
+
+        let week = UsagePeriod.week.interval(containing: thursday, calendar: berlin)
+        expect(week.start == date(2026, 10, 19, 0), "a week starts on the calendar's first weekday")
+        expect(week.end == date(2026, 10, 26, 0), "and ends at the next one, DST and all")
+
+        let month = UsagePeriod.month.interval(containing: thursday, calendar: berlin)
+        expect(
+            month.start == date(2026, 10, 1, 0) && month.end == date(2026, 11, 1, 0),
+            "a month is its first day to the next month's")
+
+        let back = UsagePeriod.month.step(date(2026, 1, 15), by: -1, calendar: berlin)
+        let december = UsagePeriod.month.interval(containing: back, calendar: berlin)
+        expect(december.start == date(2025, 12, 1, 0), "stepping back crosses into last year")
+        let weekBack = UsagePeriod.week.step(date(2026, 1, 2), by: -1, calendar: berlin)
+        expect(
+            UsagePeriod.week.interval(containing: weekBack, calendar: berlin).start
+                == date(2025, 12, 22, 0),
+            "and so does a week")
+
+        expect(UsagePeriod.day.isCurrent(day, now: thursday), "the period holding now is current")
+        expect(!UsagePeriod.day.isCurrent(day, now: day.end), "its end belongs to the next one")
+        let yesterday = UsagePeriod.day.interval(
+            containing: UsagePeriod.day.step(thursday, by: -1, calendar: berlin), calendar: berlin)
+        expect(!UsagePeriod.day.isCurrent(yesterday, now: thursday), "an earlier period is not")
+    }
+
+    static func periodTitlesNameTheRecentOnes() {
+        let now = date(2026, 10, 22, 15)
+        let locale = Locale(identifier: "en_US")
+        func title(_ period: UsagePeriod, stepping count: Int) -> String {
+            let anchor = period.step(now, by: count, calendar: berlin)
+            return period.title(
+                of: period.interval(containing: anchor, calendar: berlin), now: now,
+                calendar: berlin, locale: locale)
+        }
+        expect(title(.day, stepping: 0) == "Today", "today is named")
+        expect(title(.day, stepping: -1) == "Yesterday", "and so is yesterday")
+        expect(title(.day, stepping: -2) == "Oct 20, 2026", "an older day shows its date")
+        expect(title(.week, stepping: 0) == "This Week", "the current week is named")
+        let lastWeek = title(.week, stepping: -1)
+        expect(
+            lastWeek.contains("Oct 12") && lastWeek.contains("18"),
+            "an older week shows its first and last day: \(lastWeek)")
+        expect(title(.month, stepping: 0) == "This Month", "the current month is named")
+        expect(title(.month, stepping: -1) == "September 2026", "an older month shows its name and year")
+    }
+
+    static func formatsAreCompactAndKeepSmallCosts() {
+        let locale = Locale(identifier: "en_US")
+        expect(UsageFormat.cost(0.0042, locale: locale) == "$0.0042", "a fraction of a cent keeps two digits")
+        expect(UsageFormat.cost(12.34, locale: locale) == "$12.34", "dollars keep cents")
+        expect(UsageFormat.cost(0.5, locale: locale) == "$0.50", "under a dollar reads as cents")
+        expect(UsageFormat.cost(0, locale: locale) == "$0.00", "nothing spent reads as zero dollars")
+        expect(UsageFormat.tokens(1_234_567, locale: locale) == "1.2M", "tokens are compact")
+        expect(UsageFormat.tokens(812, locale: locale) == "812", "small counts stay whole")
     }
 
     // MARK: - Accuracy fixes
