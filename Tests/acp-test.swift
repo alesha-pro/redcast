@@ -110,6 +110,22 @@ struct ACPTests {
             "no choice answers as cancelled")
         let selected = ACPPermissionRequest.result(selecting: "o")
         expect((selected["outcome"] as? [String: String])?["optionId"] == "o", "a choice names its option")
+        expect(request.refusalIndex == 3, "the dialog's cancel, and Return in the background, is refuse once")
+        expect(request.optionID(answering: 0) == "o" && request.optionID(answering: 3) == "r", "an answer is its option")
+        expect(request.optionID(answering: nil) == "r", "no answer refuses once, never always")
+        expect(request.optionID(answering: 9) == nil, "an answer out of range picks nothing")
+        func offering(_ options: String) -> ACPPermissionRequest? {
+            let json = #"{"sessionId":"s","toolCall":{"toolCallId":"c"},"options":["# + options + "]}"
+            return ACPPermissionRequest(JSONValue(data: Data(json.utf8)) ?? .null)
+        }
+        let neverOnly = offering(
+            #"{"optionId":"ra","name":"Never","kind":"reject_always"},"#
+                + #"{"optionId":"o","name":"Once","kind":"allow_once"}"#)
+        expect(
+            neverOnly?.refusalIndex == 1 && neverOnly?.optionID(answering: nil) == nil,
+            "with no refuse-once, no answer cancels rather than leave a rule nobody chose")
+        let allowsOnly = offering(#"{"optionId":"o","name":"Once","kind":"allow_once"}"#)
+        expect(allowsOnly?.refusalIndex == nil, "an agent that offers no refusal has no cancel to put on Return")
     }
 
     static func promptsCarryContextOnlyWhenFresh() {

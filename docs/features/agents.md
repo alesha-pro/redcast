@@ -116,7 +116,8 @@ They run on the user's own logins and subscriptions; Tinycast never sees a key.
   other request is answered with method-not-found. The permission dialog lists the agent's own
   options, allows first and the least committal refusal last, where the dialog keeps its cancel; the
   agent remembers an "always" itself. Stop sends `session/cancel` and answers every open permission
-  request as cancelled.
+  request as cancelled. A dialog closed unanswered picks the agent's refuse-once option, or cancels
+  when it offers none, so no "always" comes from a choice nobody made.
 - **Updates map onto the transcript.** Message chunks are text, thought chunks reasoning, a plan a
   reasoning block when it changes, tool calls rows that close exactly once — a call still open when
   the turn ends is closed as failed — and one usage at the end from the prompt's result, with the
@@ -235,7 +236,7 @@ changes: no router edit, no upstream line, no prompt edit.
   names it).
 - Harnesses: `acp-test` (framing, updates, permissions, prompts, modes and a scripted agent process
   in `Tests/acp-fixtures/fake-agent.mjs`: streaming, consent, reuse, refusal, cancel, reload, lost
-  sessions, a missing command); `agent-test` (skills, catalog, path policy, tool sets, specs, consent
+  sessions, a missing command, two agents sharing a session id); `agent-test` (skills, catalog, path policy, tool sets, specs, consent
   policy and per-agent rules, toolset order and routing, batches, budget, elision, the prompt and the
   rules it states, persistence); `agent-tools-test` (the executor against a real folder: reads,
   writes with consent, link escapes, commands, timeouts and Stop, memory, skills, HTML; the built-ins

@@ -51,6 +51,18 @@ struct AgentRun: Identifiable, Equatable, Sendable {
         return true
     }
 
+    /// Done only with a complete answer; otherwise why it ended, in the words its row shows.
+    static func endState(complete: Bool, reply: String?, stoppedAfter minutes: Int?) -> State {
+        if complete { return .done }
+        if let minutes { return .failed(String(localized: "Stopped after \(minutes) minutes")) }
+        // The reply's last line is where a failure says what went wrong.
+        let line =
+            reply?.split(whereSeparator: \.isNewline).last
+            .map { String($0).trimmingCharacters(in: .whitespaces) } ?? ""
+        guard !line.isEmpty else { return .failed(String(localized: "The response ended unexpectedly.")) }
+        return .failed(line.count > 120 ? String(line.prefix(119)) + "…" : line)
+    }
+
     static let maxTitleLength = 80
 
     /// The first non-empty line, so a long task reads as a name in a menu row.
@@ -146,6 +158,41 @@ enum AgentConsentMode: Equatable, Sendable {
         guard isUnattended else { return .foreground }
         guard consent == .ask, idleSeconds < presenceWindow else { return .decline }
         return .ask
+    }
+}
+
+/// How one agent question is put; decided when it is asked and again when its turn comes.
+enum AgentConsentPlan: Equatable, Sendable {
+    /// A chat someone started: Tinycast comes forward and Return allows, as it always has.
+    case inFront
+    /// A run nobody started, with someone at the Mac: nothing comes forward, and Return refuses.
+    case quiet(refusal: Int)
+    /// Refused unasked, and counted on the run's row.
+    case refused
+
+    init(mode: AgentConsentMode, refusal: Int?) {
+        switch mode {
+        case .foreground: self = .inFront
+        case .ask: self = refusal.map { .quiet(refusal: $0) } ?? .refused
+        case .decline: self = .refused
+        }
+    }
+
+    var activates: Bool { self == .inFront }
+
+    /// The answer Return picks.
+    var defaultIndex: Int {
+        guard case .quiet(let refusal) = self else { return 0 }
+        return refusal
+    }
+
+    /// An unattended question left unanswered or refused counts; a chat's own never does.
+    func countsDecline(answer: Int?) -> Bool {
+        switch self {
+        case .inFront: false
+        case .quiet(let refusal): answer == nil || answer == refusal
+        case .refused: true
+        }
     }
 }
 

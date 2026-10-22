@@ -243,19 +243,16 @@ final class AgentCoordinator {
         guard !options.isEmpty else { return nil }
         let title = request.toolCall.title ?? request.toolCall.kind ?? String(localized: "Use a tool")
         let summary = request.toolCall.summary
+        let refusal = request.refusalIndex
         let answer = await choose(
             in: acpHost.chatID(forSession: request.sessionID, of: agent.id),
             title: String(localized: "\(agent.name): \(title)"), message: summary, symbol: agent.symbol,
             options: options.enumerated().map { index, option in
                 DialogAction(
                     title: option.name,
-                    role: index == options.count - 1 && !option.allows
-                        ? .cancel : option.allows ? .standard : .destructive)
-            }, refusal: options.last?.allows == false ? options.count - 1 : nil)
-        guard let answer else {
-            return options.first { $0.kind == .rejectOnce }?.id ?? options.last { !$0.allows }?.id
-        }
-        return options.indices.contains(answer) ? options[answer].id : nil
+                    role: index == refusal ? .cancel : option.allows ? .standard : .destructive)
+            }, refusal: refusal)
+        return request.optionID(answering: answer)
     }
 
     /// One question at a time; an unattended one reaches only someone at the Mac. Nil: refused.
@@ -263,33 +260,30 @@ final class AgentCoordinator {
         in chatID: UUID?, title: String, message: String, symbol: String, options: [DialogAction],
         refusal: Int?
     ) async -> Int? {
-        let unattended = chatID.map { backgroundRuns?.isUnattended($0) == true } ?? false
-        guard let chatID, unattended else {
-            return await consentGate.run(dialogIsUp: { [core] in core.isShowingDialog }) {
-                NSApp.activate(ignoringOtherApps: true)
-                return await core.choose(
-                    title: title, message: message.isEmpty ? nil : message, symbol: symbol,
-                    options: options, defaultIndex: 0)
-            }
-        }
         let runs = { [weak self] in self?.backgroundRuns }
-        guard let refusal, runs()?.consentMode(forChat: chatID) == .ask else {
-            runs()?.noteDeclined(chatID)
-            return nil
-        }
-        runs()?.waiting(chatID, true)
-        defer { runs()?.waiting(chatID, false) }
-        let answer = await consentGate.run(dialogIsUp: { [core] in core.isShowingDialog }) { () -> Int? in
-            // Asked again after its wait: whoever was at the Mac may have left meanwhile.
-            guard !Task.isCancelled, runs()?.consentMode(forChat: chatID) == .ask else { return nil }
-            let run = runs()?.ledger.run(chatID)?.title ?? ""
-            let origin = String(localized: "From a background run: “\(run)”")
-            return await core.choose(
-                title: title, message: [message, origin].filter { !$0.isEmpty }.joined(separator: "\n\n"),
-                symbol: symbol, options: options, defaultIndex: refusal)
-        }
-        if !Task.isCancelled, answer == nil || answer == refusal { runs()?.noteDeclined(chatID) }
-        return answer
+        return await consentGate.ask(
+            refusal: refusal,
+            mode: { chatID.flatMap { runs()?.consentMode(forChat: $0) } ?? .foreground },
+            dialogIsUp: { [core] in core.isShowingDialog },
+            waiting: { isWaiting in
+                if let chatID { runs()?.waiting(chatID, isWaiting) }
+            },
+            declined: {
+                if let chatID { runs()?.noteDeclined(chatID) }
+            },
+            present: { [core] plan in
+                var lines = [message]
+                if plan.activates {
+                    NSApp.activate(ignoringOtherApps: true)
+                } else {
+                    let run = chatID.flatMap { runs()?.ledger.run($0)?.title } ?? ""
+                    lines.append(String(localized: "From a background run: “\(run)”"))
+                }
+                let text = lines.filter { !$0.isEmpty }.joined(separator: "\n\n")
+                return await core.choose(
+                    title: title, message: text.isEmpty ? nil : text, symbol: symbol, options: options,
+                    defaultIndex: plan.defaultIndex)
+            })
     }
 
     // MARK: - Editing

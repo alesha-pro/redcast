@@ -28,8 +28,12 @@ struct AgentScheduleTests {
         ledgerIndicator()
         runTitles()
         consentModes()
+        consentPlans()
+        await consentIsPutAsTheRunAllows()
         await anUnattendedRefusalIsReported()
+        runEndings()
         noteBlocks()
+        await aScheduledAnswerLandsInItsNote()
         schedulesPersist()
         profilesWithoutBackgroundDecode()
         nothingIsResidentWithoutASchedule()
@@ -305,6 +309,96 @@ struct AgentScheduleTests {
             "and a chat is a chat")
     }
 
+    static func consentPlans() {
+        let chat = AgentConsentPlan(mode: .foreground, refusal: 2)
+        expect(chat == .inFront && chat.activates && chat.defaultIndex == 0, "a chat's ask comes forward on Allow")
+        expect(!chat.countsDecline(answer: 2) && !chat.countsDecline(answer: nil), "and is never counted")
+        let quiet = AgentConsentPlan(mode: .ask, refusal: 2)
+        expect(
+            quiet == .quiet(refusal: 2) && !quiet.activates && quiet.defaultIndex == 2,
+            "an unattended ask stays behind the app in front, with Return on Don't Allow")
+        expect(
+            quiet.countsDecline(answer: 2) && quiet.countsDecline(answer: nil) && !quiet.countsDecline(answer: 0),
+            "a refusal or no answer counts; an Allow does not")
+        expect(AgentConsentPlan(mode: .ask, refusal: nil) == .refused, "nothing to put on Return: refused unasked")
+        expect(AgentConsentPlan(mode: .decline, refusal: 2) == .refused, "decline refuses unasked")
+        expect(AgentConsentPlan.refused.countsDecline(answer: nil), "and counts")
+    }
+
+    @MainActor
+    final class ConsentProbe {
+        var mode = AgentConsentMode.ask
+        var answer: Int? = 2
+        var presented: [AgentConsentPlan] = []
+        var waiting: [Bool] = []
+        var declined = 0
+
+        func ask(_ gate: AgentConsentGate, refusal: Int? = 2, dialog: DialogFlag? = nil) async -> Int? {
+            await gate.ask(
+                refusal: refusal, mode: { self.mode }, dialogIsUp: { dialog?.isUp ?? false },
+                waiting: { self.waiting.append($0) }, declined: { self.declined += 1 },
+                present: { plan in
+                    self.presented.append(plan)
+                    return self.answer
+                })
+        }
+    }
+
+    /// The gate's whole ask: what is shown, when it is refused unseen, and what the row counts.
+    static func consentIsPutAsTheRunAllows() async {
+        let gate = AgentConsentGate()
+        let inFront = ConsentProbe()
+        inFront.mode = .foreground
+        let chatAnswer = await inFront.ask(gate)
+        expect(
+            chatAnswer == 2 && inFront.presented == [.inFront] && inFront.declined == 0 && inFront.waiting.isEmpty,
+            "a chat's ask is shown in front, and its refusal is the user's own, not counted")
+
+        let quiet = ConsentProbe()
+        var answer = await quiet.ask(gate)
+        expect(quiet.presented == [.quiet(refusal: 2)], "an unattended ask is shown quietly, Return on refusal")
+        expect(answer == 2 && quiet.declined == 1, "a refusal is counted on the run's row")
+        expect(quiet.waiting == [true, false], "and the row waits only while it is asked")
+        quiet.answer = 0
+        answer = await quiet.ask(gate)
+        expect(answer == 0 && quiet.declined == 1, "an Allow is not counted")
+
+        let declining = ConsentProbe()
+        declining.mode = .decline
+        answer = await declining.ask(gate)
+        expect(
+            answer == nil && declining.presented.isEmpty && declining.declined == 1 && declining.waiting.isEmpty,
+            "decline refuses without a dialog, and counts it")
+        let noRefusal = ConsentProbe()
+        answer = await noRefusal.ask(gate, refusal: nil)
+        expect(answer == nil && noRefusal.presented.isEmpty && noRefusal.declined == 1, "no refusal to offer: refused")
+
+        let flag = DialogFlag()
+        let leaving = ConsentProbe()
+        let queued = Task { @MainActor in await leaving.ask(gate, dialog: flag) }
+        try? await Task.sleep(for: .milliseconds(30))
+        expect(leaving.presented.isEmpty && leaving.waiting == [true], "queued behind a dialog, the row waits")
+        leaving.mode = .decline
+        flag.isUp = false
+        answer = await queued.value
+        expect(
+            answer == nil && leaving.presented.isEmpty && leaving.declined == 1,
+            "whoever was at the Mac left during the wait: refused unseen, and counted")
+        expect(leaving.waiting == [true, false], "and the row stops waiting")
+
+        flag.isUp = true
+        let stopped = ConsentProbe()
+        let cancelled = Task { @MainActor in await stopped.ask(gate, dialog: flag) }
+        try? await Task.sleep(for: .milliseconds(30))
+        cancelled.cancel()
+        flag.isUp = false
+        answer = await cancelled.value
+        expect(
+            answer == nil && stopped.presented.isEmpty && stopped.declined == 0,
+            "Stop during the wait shows nothing and counts nothing")
+        expect(gate.isIdle, "and the gate holds nothing afterwards")
+    }
+
     /// What a run nobody watched refused is counted, and nothing was asked or done.
     static func anUnattendedRefusalIsReported() async {
         struct Writer: AgentToolProvider {
@@ -336,6 +430,32 @@ struct AgentScheduleTests {
         expect(refusals.value == 1 && asks.value == 0, "and reported as refused, without asking anyone")
     }
 
+    static func runEndings() {
+        expect(AgentRun.endState(complete: true, reply: "ok", stoppedAfter: nil) == .done, "a complete answer is done")
+        expect(
+            AgentRun.endState(complete: false, reply: "Working\nError: rate limited\n", stoppedAfter: nil)
+                == .failed("Error: rate limited"),
+            "a broken reply fails with its last line")
+        expect(
+            AgentRun.endState(complete: false, reply: "Working", stoppedAfter: 15)
+                == .failed("Stopped after 15 minutes"),
+            "the watchdog's stop says so")
+        expect(
+            AgentRun.endState(complete: false, reply: nil, stoppedAfter: nil)
+                == .failed("The response ended unexpectedly."),
+            "no reply at all still says something")
+        if case .failed(let reason) = AgentRun.endState(
+            complete: false, reply: String(repeating: "x", count: 300), stoppedAfter: nil)
+        {
+            expect(reason.count == 120 && reason.hasSuffix("…"), "a long line is cut for the row")
+        } else {
+            expect(false, "a long line fails")
+        }
+        expect(AgentBackgroundPolicy(minutes: 0).limitMinutes == 5, "a hand-edited limit can't go under five minutes")
+        expect(AgentBackgroundPolicy(minutes: 999).limitMinutes == 60, "nor over an hour")
+        expect(AgentBackgroundPolicy().limitMinutes == 15, "and the default is a quarter of an hour")
+    }
+
     // MARK: - Notes
 
     static func noteBlocks() {
@@ -355,6 +475,37 @@ struct AgentScheduleTests {
         let body = huge.components(separatedBy: "\n\n").dropFirst().joined(separator: "\n\n")
         expect(body.utf8.count <= AgentNoteEntry.maxAnswerBytes, "an answer is capped at 64 KB")
         expect(huge.hasSuffix("… The full answer is in AI Chat."), "and the cut says where the rest is")
+    }
+
+    /// The note on disk, or the one open in Notes through its store, which keeps the user's edit.
+    static func aScheduledAnswerLandsInItsNote() async {
+        let directory = scratch()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let repository = NotesRepository(notesDirectory: directory, trashOperation: { _ in })
+        guard let digest = try? repository.create(title: "Digest"),
+            (try? repository.save(id: digest.id, source: "Yesterday\n")) != nil
+        else { return expect(false, "the fixture note is written") }
+        func read(_ title: String) -> String? {
+            try? String(contentsOf: directory.appendingPathComponent(title + ".md"), encoding: .utf8)
+        }
+        let closed = NotesStore(repository: repository, loadSelection: { digest.id })
+        var problem = await AgentNoteWriter.append("## Today", toNoteTitled: "Digest", store: closed)
+        expect(problem == nil && read("Digest") == "Yesterday\n\n## Today\n", "a closed note gets the section on disk")
+        problem = await AgentNoteWriter.append("## Today", toNoteTitled: "Fresh", store: closed)
+        expect(problem == nil && read("Fresh") == "## Today\n", "a missing note is made for it")
+        problem = await AgentNoteWriter.append("## Today", toNoteTitled: "a/b", store: closed)
+        expect(problem != nil, "a title no file can carry is reported for the run's row")
+
+        let open = NotesStore(repository: repository, loadSelection: { digest.id })
+        guard await open.start(), open.activeID == digest.id else { return expect(false, "Notes opens the digest") }
+        open.updateSource(open.source + "typed by hand\n")
+        problem = await AgentNoteWriter.append("## Later", toNoteTitled: "Digest", store: open)
+        expect(problem == nil, "the open note takes the section")
+        expect(
+            open.source == "Yesterday\n\n## Today\ntyped by hand\n\n## Later\n",
+            "through its editor, after the user's unsaved edit")
+        _ = await open.flush()
+        expect(read("Digest") == open.source, "and the editor's save writes both")
     }
 
     // MARK: - Persistence

@@ -116,6 +116,9 @@ struct AgentBackgroundPolicy: Codable, Hashable, Sendable {
     var minutes = 15
 
     static let minuteRange = 5...60
+
+    /// The limit a run is held to, inside the range even when a hand-edited file says otherwise.
+    var limitMinutes: Int { min(max(minutes, Self.minuteRange.lowerBound), Self.minuteRange.upperBound) }
 }
 
 enum AgentProfileError: Error, LocalizedError, Equatable {

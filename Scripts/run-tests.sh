@@ -821,6 +821,11 @@ run agent-test             Tinycast/Features/Agents/Model/*.swift \
 run agent-schedule-test    Tinycast/Features/Agents/Model/*.swift \
                            Tinycast/Features/Agents/Service/AgentScheduler.swift \
                            Tinycast/Features/Agents/UI/AgentConsentGate.swift \
+                           Tinycast/Features/Agents/UI/AgentNoteWriter.swift \
+                           Tinycast/Platform/Signposts.swift \
+                           $L/SearchRelevance.swift \
+                           Tinycast/Features/Notes/Model/*.swift \
+                           Tinycast/Features/Notes/Service/*.swift \
                            Tinycast/Platform/NotificationToken.swift \
                            Tinycast/Features/AI/Model/AIRequest.swift \
                            Tinycast/Features/Settings/AppSettingsKey.swift \
