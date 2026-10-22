@@ -1104,6 +1104,7 @@ struct RootPaletteView: View {
         vm.menuQuery = ""
         // Stated here rather than mirrored later: the window delegate reads it during this turn.
         vm.menuOpen = false
+        core.inlineEntryEditor.end(core: core)
     }
 
     private func openInputOptions(
@@ -1140,6 +1141,7 @@ struct RootPaletteView: View {
     }
 
     private func handleMenuPanelKey(_ event: NSEvent) -> Bool {
+        if core.inlineEntryEditor.handleMenuKey(event, core: core) { return true }
         let modifiers = event.modifierFlags
         let navigationModifiers = modifiers.intersection([.command, .control, .option, .shift])
         if event.charactersIgnoringModifiers == "\u{1B}" {
@@ -1332,6 +1334,7 @@ struct RootPaletteView: View {
     private func activateMenuItem(_ index: Int) {
         guard let content = menuContent, (0..<content.rowCount).contains(index) else { return }
         guard content.isSelectable(index) else { return }
+        if content.keepsOpen(index) { return content.activate(index) }
         // Close first: an action opening a window must find the palette key, or nothing hides it.
         closeMenus()
         // A mouse click on a row takes the caret with it; menus close back into the field.

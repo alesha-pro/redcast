@@ -23,6 +23,8 @@ struct AliasActionsTests {
         appsAndSettingsKeepSearching()
         argumentsAreAskedForFirst()
         aViewCommandOpensToSearchInside()
+        theDraftEditsLikeAField()
+        theDraftCommitsTrimmedOrNotAtAll()
 
         print("\(passes) passed, \(failures) failed")
         if failures > 0 { exit(1) }
@@ -112,5 +114,31 @@ struct AliasActionsTests {
         expect(
             AliasJump.target(for: .init(kind: .extensionCommand, argumentCount: 1)) == .pendingArguments,
             "a no-view command with an optional argument still asks for it")
+    }
+
+    static func theDraftEditsLikeAField() {
+        var draft = InlineAliasDraft(saved: "s")
+        expect(draft.text == "s", "editing starts from the saved alias")
+        _ = draft.apply(.text("gh"))
+        expect(draft.apply(.deleteBackward) == .editing, "Delete keeps editing")
+        expect(draft.text == "sg", "typed, then one character removed, got \(draft.text)")
+        _ = draft.apply(.text("\u{F700}\u{7F}\u{1B}"))
+        expect(draft.text == "sg", "arrow keys, DEL and Escape type nothing, got \(draft.text)")
+        var empty = InlineAliasDraft(saved: nil)
+        expect(empty.apply(.deleteBackward) == .editing && empty.text.isEmpty, "Delete on nothing")
+        expect(InlineAliasDraft.printable("é1 ") == "é1 ", "printable text passes untouched")
+    }
+
+    static func theDraftCommitsTrimmedOrNotAtAll() {
+        var draft = InlineAliasDraft(saved: nil)
+        _ = draft.apply(.text(" g h "))
+        expect(draft.apply(.commit) == .committed("g h"), "Return commits trimmed, inner space kept")
+        var cancelled = InlineAliasDraft(saved: "gh")
+        _ = cancelled.apply(.text("x"))
+        expect(cancelled.apply(.cancel) == .cancelled, "Escape commits nothing")
+        var blank = InlineAliasDraft(saved: "gh")
+        _ = blank.apply(.deleteBackward)
+        _ = blank.apply(.deleteBackward)
+        expect(blank.apply(.commit) == .committed(""), "a blank commit clears the alias")
     }
 }
