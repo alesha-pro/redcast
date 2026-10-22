@@ -15,22 +15,25 @@ struct ScreenAwarenessTests {
         }
     }
 
-    static func main() {
+    static func main() async {
         aCaptureReadsTopToBottom()
         theWindowTextGivesWayFirst()
         aCutIsAlwaysSaid()
         aWindowTitleCannotForgeAHeader()
         passwordsAreNeverContext()
         linesAreNormalized()
+        theAgentToolIsPersonalAndOptIn()
+        await theAgentToolReadsOnlyWhenAllowed()
+        await theAgentToolStaysUnderItsCut()
 
         print("\(passes) passed, \(failures) failed")
         if failures > 0 { exit(1) }
     }
 
     static let utc = TimeZone(identifier: "UTC")!
-    static let moment = Date(timeIntervalSince1970: 1_800_000_000)
+    nonisolated static let moment = Date(timeIntervalSince1970: 1_800_000_000)
 
-    static func context(windowText: [String] = []) -> ScreenContext {
+    nonisolated static func context(windowText: [String] = []) -> ScreenContext {
         ScreenContext(
             appName: "Safari", bundleID: "com.apple.Safari", windowTitle: "Release notes",
             url: "https://example.com/notes", selection: "the chosen words",
@@ -130,5 +133,155 @@ struct ScreenAwarenessTests {
             ScreenTextPolicy.normalized(["  Save ", "Save", "", " \n", "Cancel", "Save"])
                 == ["Save", "Cancel", "Save"],
             "blank lines go, a repeated run is kept once, a later repeat stays")
+    }
+}
+
+// MARK: - The agent tool
+
+extension ScreenAwarenessTests {
+    nonisolated static let target = ScreenAgentTools.Target(pid: 4_242, name: "Safari", bundleID: "com.apple.Safari")
+
+    static func turn(_ agent: AgentProfile, mode: AgentRunMode = .chat(UUID())) -> AgentTurn {
+        AgentTurn(
+            profile: agent, skills: [], memoryURL: URL(fileURLWithPath: "/tmp/memory.md"), mode: mode)
+    }
+
+    static func agent(screen: Bool = true, rules: AgentConsentRules? = nil) -> AgentProfile {
+        var agent = AgentProfile(name: "Reader", directory: "/tmp", access: .readOnly, consent: rules)
+        if screen { agent.tools.insert(.screen) }
+        return agent
+    }
+
+    /// Records each read, so a refusal can be shown to have read nothing.
+    final class Reads: @unchecked Sendable {
+        private let lock = NSLock()
+        private var count = 0
+        var made: Int { lock.withLock { count } }
+
+        func read(_ windowText: [String]) -> ScreenContextReader.Reading {
+            lock.withLock { count += 1 }
+            return ScreenContextReader.Reading(context: context(windowText: windowText), windowFrame: nil)
+        }
+    }
+
+    static func tools(
+        _ reads: Reads, enabled: Bool = true, trusted: Bool = true, windowText: [String] = ["Body"]
+    ) -> ScreenAgentTools {
+        var tools = ScreenAgentTools(isEnabled: { enabled })
+        tools.isTrusted = { trusted }
+        tools.target = { target }
+        tools.read = { _ in reads.read(windowText) }
+        return tools
+    }
+
+    static func theAgentToolIsPersonalAndOptIn() {
+        let specs = ScreenAgentTools(isEnabled: { true }).specs(for: turn(agent()))
+        expect(
+            specs.map(\.tool.name) == ["screen_context"] && specs.first?.family == .screen
+                && specs.first?.risk == .personal && specs.first?.concurrent == true,
+            "screen_context is the Screen family's, personal data, and has no effect to keep it alone")
+        let others =
+            AgentToolbox.tools(for: AgentProfile(name: "A", directory: "/tmp", access: .fullAccess), hasSkills: true)
+            .map(\.name) + [AgentPlan.name, "delegate"]
+        expect(!others.contains(ScreenAgentTools.name), "and its name is nobody else's")
+        expect(
+            !AgentToolKind.defaults.contains(.screen)
+                && !AgentProfile(name: "New", directory: "/tmp").tools.contains(.screen),
+            "Screen is off for a new agent until ticked")
+        func offered(_ agent: AgentProfile) -> [String] {
+            AgentToolset(
+                turn: turn(agent), providers: [ScreenAgentTools(isEnabled: { true })], mcpTools: [],
+                mcp: { .failure($0.id, "mcp") }, ask: { _, _ in false }
+            ).tools.map(\.name)
+        }
+        expect(offered(agent(screen: false)).isEmpty, "unticked, it is not offered")
+        expect(offered(agent()) == ["screen_context"], "ticked, even a read-only agent may read the screen")
+        expect(
+            offered(agent(rules: AgentConsentRules(risks: [.personal: .never]))).isEmpty,
+            "and Never Allow on personal data withholds it")
+    }
+
+    static func theAgentToolReadsOnlyWhenAllowed() async {
+        let call = AIToolCall(id: "s1", name: ScreenAgentTools.name, arguments: "{}")
+        func context(_ answer: Bool, asked: Flag) -> AgentToolContext {
+            AgentToolContext(
+                turn: turn(agent()),
+                consent: { request in
+                    asked.set(request.summary)
+                    return answer
+                },
+                signal: { _ in })
+        }
+        let refusing = Reads()
+        let askedNo = Flag()
+        let refused = await tools(refusing).run(call, in: context(false, asked: askedNo))
+        expect(
+            refused.isError && refusing.made == 0 && askedNo.value == "Read the window of Safari",
+            "a refused read asks first, names the app, and reads nothing")
+
+        let off = Reads()
+        let askedOff = Flag()
+        let disabled = await tools(off, enabled: false).run(call, in: context(true, asked: askedOff))
+        expect(
+            disabled.isError && off.made == 0 && askedOff.value == nil,
+            "with Screen Awareness off it neither asks nor reads")
+        let untrusted = Reads()
+        let blind = await tools(untrusted, trusted: false).run(call, in: context(true, asked: Flag()))
+        expect(
+            blind.isError && blind.content.contains("Accessibility") && untrusted.made == 0,
+            "without Accessibility it says so instead of reading")
+        var alone = tools(Reads())
+        alone.target = { nil }
+        let empty = await alone.run(call, in: context(true, asked: Flag()))
+        expect(empty.isError, "with no other app's window there is nothing to read")
+
+        let allowing = Reads()
+        let read = await tools(allowing).run(call, in: context(true, asked: Flag()))
+        expect(
+            !read.isError && allowing.made == 1 && read.content.contains("- App: Safari")
+                && read.content.contains("Body") && !read.content.contains("screenshot"),
+            "allowed, it reads the window once, as text with no picture")
+
+        let unattended = AgentToolset(
+            turn: turn(agent(rules: AgentConsentRules(risks: [.personal: .ask])), mode: .unattended(UUID())),
+            providers: [tools(Reads())], mcpTools: [], mcp: { .failure($0.id, "mcp") },
+            ask: { _, _ in true })
+        let nobody = await unattended.run(call, signal: { _ in })
+        expect(nobody.isError, "a rule of ask with nobody there refuses the read")
+
+        var refusedApp = tools(Reads())
+        refusedApp.read = { _ in
+            var reading = ScreenContextReader.Reading(context: Self.context(), windowFrame: nil)
+            reading.accessibilityRefused = true
+            return reading
+        }
+        let stale = await refusedApp.run(call, in: context(true, asked: Flag()))
+        expect(stale.isError && stale.content.contains("Safari"), "an app that refuses is named")
+    }
+
+    static func theAgentToolStaysUnderItsCut() async {
+        let lines = (0..<4_000).map { "Line \($0) " + String(repeating: "ж", count: 20) }
+        let result = await tools(Reads(), windowText: lines).run(
+            AIToolCall(id: "s2", name: ScreenAgentTools.name, arguments: "{}"),
+            in: AgentToolContext(turn: turn(agent()), consent: { _ in true }, signal: { _ in }))
+        expect(
+            result.content.utf8.count <= ScreenAgentTools.maxBytes
+                && result.content.contains("[Window text cut here"),
+            "a long window is cut under 24 KB, and the cut says so")
+        expect(
+            ScreenAgentTools.maxBytes < 28 * 1_024 && ScreenAgentTools.maxBytes < AgentTurnBudget.resultBytes,
+            "so the loop never cuts it again")
+    }
+}
+
+/// Remembers the last thing it was told, from any task.
+final class Flag: @unchecked Sendable {
+    private let lock = NSLock()
+    private var seen: String?
+
+    var value: String? { lock.withLock { seen } }
+
+    func set(_ text: String) {
+        lock.withLock { seen = text }
     }
 }

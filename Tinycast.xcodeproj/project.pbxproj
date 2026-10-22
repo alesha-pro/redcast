@@ -295,6 +295,7 @@
 		4DA03A170E95F0D08E3569F9 /* ExtensionColors.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0266BAF4643A4B5C41B600DE /* ExtensionColors.swift */; };
 		4DA8F1EC8F78B6CF2DFD5673 /* AgentBackgroundCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58C114B66B59206D00D2C7EB /* AgentBackgroundCoordinator.swift */; };
 		4E1BFE20BD4308D1EF05A5F2 /* ClipDrag.swift in Sources */ = {isa = PBXBuildFile; fileRef = DB74C73EB33F368E0890E839 /* ClipDrag.swift */; };
+		4E33AFB57AF9D0255941D579 /* ScreenAgentTools.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A2040349184CB98DB3173B8 /* ScreenAgentTools.swift */; };
 		4E5F73461C417BE2B3472E6E /* WindowChrome.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D61199EE7B60E91ACBDE2E2 /* WindowChrome.swift */; };
 		4EBFBA1CC7DA9B22C396DBEC /* CommandArgumentsRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1590A8769EF787763DE189B7 /* CommandArgumentsRow.swift */; };
 		4F231B3551269815753B8C4C /* BackupCategory.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6DA4145CFBB855DF1699C744 /* BackupCategory.swift */; };
@@ -1477,6 +1478,7 @@
 		787059DAE8AB67FFE684C0D9 /* AboutView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AboutView.swift; sourceTree = "<group>"; };
 		7945C129A685FC29FBA70EE4 /* BackupCategorySelection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackupCategorySelection.swift; sourceTree = "<group>"; };
 		79BC68E042182F7068220BB3 /* QuicklinksSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuicklinksSettingsView.swift; sourceTree = "<group>"; };
+		7A2040349184CB98DB3173B8 /* ScreenAgentTools.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenAgentTools.swift; sourceTree = "<group>"; };
 		7A660CA7A22E900E0EE2B90F /* ExtensionDeepLink.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExtensionDeepLink.swift; sourceTree = "<group>"; };
 		7B42664C60B760276FBAAD61 /* EmojiSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmojiSettingsView.swift; sourceTree = "<group>"; };
 		7B711492A6DA473E6DC9646C /* RaycastImportSelection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RaycastImportSelection.swift; sourceTree = "<group>"; };
@@ -2066,6 +2068,7 @@
 		09C6A0D4A9AE7E2C7399EBFA /* Service */ = {
 			isa = PBXGroup;
 			children = (
+				7A2040349184CB98DB3173B8 /* ScreenAgentTools.swift */,
 				B429F11F5F1AB1C249A3C132 /* ScreenContextReader.swift */,
 				A760D2D29688BF2ACC07672F /* WindowScreenshotter.swift */,
 			);
@@ -5376,6 +5379,7 @@
 				9A80D2997DCF835AF225A586 /* RunningAppsMonitor.swift in Sources */,
 				30C5B58F3876A5B85BFBBDDF /* ScheduleScreen.swift in Sources */,
 				BAD4BEF8041665ACCF1CE460 /* ScheduleView.swift in Sources */,
+				4E33AFB57AF9D0255941D579 /* ScreenAgentTools.swift in Sources */,
 				630EFCC8E20964FDA6BE925C /* ScreenAwarenessCoordinator.swift in Sources */,
 				BDD28684ED96722A6E08DABF /* ScreenAwarenessDestination.swift in Sources */,
 				C81F984BA10CCA48D7EB6251 /* ScreenAwarenessSettingsSection.swift in Sources */,
