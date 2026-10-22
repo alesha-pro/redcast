@@ -2,6 +2,7 @@ import Foundation
 
 enum CommandID: String, CaseIterable, Sendable {
     case sample
+    case other
     var name: String { rawValue }
     var hotKeyAction: HotKeyAction? { .command(self) }
 }

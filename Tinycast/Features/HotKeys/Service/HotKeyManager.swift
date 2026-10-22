@@ -294,9 +294,9 @@ final class HotKeyManager {
                 },
                 onKeyUp: { [weak self] in
                     isPressed = false
-                    if self?.secureInputPressedActions.removeValue(forKey: id) == .dictation {
-                        self?.onDictationReleased?()
-                    }
+                    guard let released = self?.secureInputPressedActions.removeValue(forKey: id)
+                    else { return }
+                    self?.releaseHandler(for: released)?()
                 })
             secureInputEquivalentIDs.append(id)
         }

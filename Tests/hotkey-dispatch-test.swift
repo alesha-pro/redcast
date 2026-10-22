@@ -13,7 +13,10 @@ struct HotKeyDispatchTest {
     }
 
     static func main() {
-        for includesShift in [false, true] { dispatch(includesShift: includesShift) }
+        for includesShift in [false, true] {
+            dispatch(includesShift: includesShift)
+            commandRelease(includesShift: includesShift)
+        }
         print("\(checks) dispatch checks; \(failures) failures")
         if failures > 0 { exit(1) }
     }
@@ -119,5 +122,51 @@ struct HotKeyDispatchTest {
         check(
             "Hyper selects the other action in a shared registration",
             palette == 3 && presses == beforePress + 1)
+    }
+
+    static func commandRelease(includesShift: Bool) {
+        let domain = "tinycast.hotkey-dispatch-test.\(UUID())"
+        let defaults = UserDefaults(suiteName: domain)!
+        defer { defaults.removePersistentDomain(forName: domain) }
+        let manager = HotKeyManager(defaults: defaults)
+        let center = HotKeyCenter.current!
+        var ran: [CommandID] = []
+        var released: [CommandID] = []
+        var dictationReleases = 0
+        manager.onRunCommand = { ran.append($0) }
+        manager.onCommandReleased = { released.append($0) }
+        manager.onDictationReleased = { dictationReleases += 1 }
+        manager.dictationEnabled = true
+        manager.dictationHoldToTalk = true
+        manager.releasedCommands = [.sample]
+        func combo(_ key: Int) -> HotKeyBinding {
+            .combo(KeyShortcut(carbonKeyCode: key, carbonModifiers: controlKey | optionKey))
+        }
+        manager.setBinding(combo(kVK_ANSI_H), for: .command(.sample))
+        manager.setBinding(combo(kVK_ANSI_J), for: .command(.other))
+        manager.setBinding(combo(kVK_ANSI_K), for: .dictation)
+        let held = center.entries[HotKeyAction.command(.sample).defaultsKey]!
+        held.onKeyDown(0)
+        check("a released command runs on its press", ran == [.sample] && released.isEmpty)
+        held.onKeyUp?()
+        check("and hears its own release", released == [.sample])
+        let other = center.entries[HotKeyAction.command(.other).defaultsKey]!
+        check("any other command registers no key-up", other.onKeyUp == nil)
+        other.onKeyDown(0)
+        check("and still runs on its press", ran == [.sample, .other] && released == [.sample])
+        center.entries[HotKeyAction.dictation.defaultsKey]?.onKeyUp?()
+        check("dictation's release is its own", dictationReleases == 1 && released == [.sample])
+
+        let chord = KeyShortcut.hyperChord(includesShift: includesShift)
+        let hyper = KeyShortcut(carbonKeyCode: kVK_ANSI_L, carbonModifiers: KeyShortcut.carbonModifiers(from: chord))
+        manager.setBinding(.combo(hyper), for: .command(.sample))
+        manager.setSecureInputEquivalents(includesShift: includesShift)
+        let secure = center.entries["secureInputEquivalent." + HotKeyAction.command(.sample).defaultsKey]!
+        secure.onKeyDown(CGEventFlags.maskControl.rawValue | 0x2000)
+        secure.onKeyUp?()
+        check(
+            "under Secure Input a Hyper command still hears its release",
+            ran.last == .sample && released == [.sample, .sample])
+        manager.setSecureInputEquivalents(includesShift: nil)
     }
 }

@@ -99,8 +99,9 @@ is still speaking.
 
 A recording ends on release of a held key combination, a second press in either mode, Return in the
 capsule, or the five-minute cap. Hold to talk needs a combination, because `HotKeyManager` reports a
-command's release only from Carbon; a double tap or single modifier in hold mode acts as a toggle and
-the settings say so. Every start waits for the previous stop, so one recorder never runs two sessions.
+command's release only from Carbon, Secure Input's equivalents included; a double tap or single
+modifier in hold mode acts as a toggle and the settings say so. Every start waits for the previous
+stop, so one recorder never runs two sessions.
 
 The reply's first two lines are a header, read by `VoiceReplyParser` as they stream; a reply without
 one is an answer:
