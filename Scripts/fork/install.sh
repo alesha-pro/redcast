@@ -21,6 +21,7 @@ usage() {
 Usage: Scripts/fork/install.sh [--no-launch] [--force-quit] [--accept-new-identity]
        Scripts/fork/install.sh --rollback [--no-launch] [--force-quit]
        Scripts/fork/install.sh --self-check
+       Scripts/fork/install.sh --self-test     # stubbed installs into \$TMPDIR, one from a fake app
 
 Builds the fork in Release for this Mac, signs it with the one Apple Development identity,
 verifies it, quits the installed copy gracefully and swaps the new one into place by rename.
@@ -54,21 +55,18 @@ MODE=install
 LAUNCH=1
 FORCE_QUIT=0
 ACCEPT_NEW=0
-FLAGS=()
+DETACHED=0
+ARGS=("$@")
 STAGE=""
 while [ $# -gt 0 ]; do
     case "$1" in
-    --no-launch) LAUNCH=0 && FLAGS+=("$1") ;;
-    --force-quit) FORCE_QUIT=1 && FLAGS+=("$1") ;;
-    --accept-new-identity) ACCEPT_NEW=1 && FLAGS+=("$1") ;;
+    --no-launch) LAUNCH=0 ;;
+    --force-quit) FORCE_QUIT=1 ;;
+    --accept-new-identity) ACCEPT_NEW=1 ;;
     --rollback) MODE=rollback ;;
     --self-check) MODE=self-check ;;
-    --finish)
-        [ $# -ge 2 ] || die 64 "--finish needs the staged copy"
-        MODE=finish
-        STAGE="$2"
-        shift
-        ;;
+    --self-test) MODE=self-test ;;
+    --detached) DETACHED=1 ;;
     -h | --help)
         usage
         exit 0
@@ -83,7 +81,8 @@ done
 
 plist() { /usr/libexec/PlistBuddy -c "Print :$2" "$1/Contents/Info.plist" 2>/dev/null; }
 bundle_id() { plist "$1" CFBundleIdentifier; }
-designated() { codesign -d -r- "$1" 2>&1 | sed -n 's/^designated => //p'; }
+# An ad hoc signature prints its requirement, the cdhash, as a comment.
+designated() { codesign -d -r- "$1" 2>&1 | sed -nE 's/^(# )?designated => //p'; }
 app_running() { pgrep -f "^$DEST/Contents/MacOS/" >/dev/null; }
 # The Dictation, clipboard-text and file-index helpers run from inside the bundle too.
 bundle_running() { pgrep -f "^$DEST/Contents/" >/dev/null; }
@@ -97,6 +96,13 @@ refuse_foreign() {
     com.tinycast.app.dev) owner="a Debug build, not a fork install" ;;
     esac
     die 2 "$DEST is ${found:-unreadable}, $owner. Point TINYCAST_INSTALL_PATH elsewhere."
+}
+
+check_installed() {
+    [ -e "$DEST" ] || return 0
+    local found
+    found="$(bundle_id "$DEST" || true)"
+    [ "$found" = "$BUNDLE_ID" ] || refuse_foreign "$found"
 }
 
 # Every path LaunchServices has registered under the fork's ids, the helper's included.
@@ -200,7 +206,7 @@ preflight() {
     return 0
 }
 
-# Steps 6 and 7: the build is the fork's, it verifies, and it keeps the installed requirement.
+# The build is the fork's, it verifies, and it keeps the installed copy's requirement.
 verify_build() {
     [ "$(bundle_id "$BUILT")" = "$BUNDLE_ID" ] ||
         die 1 "$BUILT is $(bundle_id "$BUILT"), expected $BUNDLE_ID."
@@ -209,9 +215,8 @@ verify_build() {
     [ -n "$NEW_DR" ] || die 1 "$BUILT has no designated requirement."
     DR_NOTE="new install"
     [ -e "$DEST" ] || return 0
-    local found old_dr
-    found="$(bundle_id "$DEST" || true)"
-    [ "$found" = "$BUNDLE_ID" ] || refuse_foreign "$found"
+    check_installed
+    local old_dr
     old_dr="$(designated "$DEST")"
     if [ "$old_dr" = "$NEW_DR" ]; then
         DR_NOTE="unchanged"
@@ -224,10 +229,9 @@ verify_build() {
 }
 
 build() {
-    resolve_identity
     resolve_version
     mkdir -p "$WORK"
-    say "Building $BUNDLE_ID $VERSION ($BUILD) for $(uname -m), signed by $IDENTITY…"
+    say "Building $BUNDLE_ID $VERSION ($BUILD) for $(uname -m), signed by ${IDENTITY}…"
     if ! xcodebuild -project Tinycast.xcodeproj -scheme Tinycast -configuration Release \
         -derivedDataPath "$WORK/DerivedData" ARCHS="$(uname -m)" ONLY_ACTIVE_ARCH=YES \
         TINYCAST_BUNDLE_IDENTIFIER="$BUNDLE_ID" \
@@ -255,28 +259,24 @@ stage() {
     codesign --verify --deep --strict "$STAGE" || die 1 "the staged copy does not verify."
 }
 
-# Step 9: a new session outlives Tinycast's quit, which reaps its agents' process trees.
-hand_off() {
-    if started_by_tinycast; then
-        export TINYCAST_INSTALL_DR_NOTE="$DR_NOTE"
-        mkdir -p "$WORK"
-        xcrun python3 -c 'import os,sys
+# Before the build: a command's watchdog and Tinycast's quit both signal the group it started.
+detach() {
+    if [ "$DETACHED" -eq 1 ] || ! started_by_tinycast; then return 0; fi
+    mkdir -p "$WORK"
+    xcrun python3 -c 'import os,sys
 if os.fork(): os._exit(0)
 os.setsid(); os.execv(sys.argv[1], sys.argv[1:])' \
-            /bin/bash "$SELF" --finish "$STAGE" ${FLAGS[@]+"${FLAGS[@]}"} \
-            </dev/null >"$WORK/install.log" 2>&1 &
-        STAGE=""
-        say "finishing outside Tinycast — see $WORK/install.log"
-        exit 0
-    fi
-    finish
+        /bin/bash "$SELF" --detached ${ARGS[@]+"${ARGS[@]}"} </dev/null >"$WORK/install.log" 2>&1 &
+    say "Started from Tinycast: the install goes on in a session of its own, $WORK/install.log"
+    note "Tinycast quits and comes back once it is installed; a failed build leaves it running."
+    exit 0
 }
 
 quit_app() {
     bundle_running || return 0
     # Asked only while it runs: AppleScript would launch a quit app just to quit it.
     if app_running; then
-        say "Quitting $NAME…"
+        say "Quitting ${NAME}…"
         osascript -e "tell application id \"$BUNDLE_ID\" to quit" >/dev/null 2>&1 || true
     fi
     local _
@@ -343,13 +343,12 @@ relaunch() {
     ok "Installed $NAME $(plist "$DEST" CFBundleShortVersionString || echo "?")" \
         "($(plist "$DEST" CFBundleVersion || echo "?"))"
     note "identity:    ${authority:-ad hoc}"
-    note "requirement: ${DR_NOTE:-${TINYCAST_INSTALL_DR_NOTE:-unknown}}"
+    note "requirement: $DR_NOTE"
     note "path:        $DEST ($(du -sh "$DEST" | awk '{ print $1 }'))"
     note "If a Screen Awareness capture says Accessibility is refused while other apps work,"
     note "quit and reopen the app you captured."
 }
 
-# Steps 10–13, run in place or from the detached session.
 finish() {
     quit_app
     swap
@@ -368,11 +367,10 @@ self_check() {
     note "bundle id:   $BUNDLE_ID"
     note "install to:  $DEST"
     if [ -e "$DEST" ]; then
-        local found
-        found="$(bundle_id "$DEST" || true)"
-        note "installed:   ${found:-unreadable} $(plist "$DEST" CFBundleShortVersionString || true)"
+        note "installed:   $(bundle_id "$DEST" || echo unreadable)" \
+            "$(plist "$DEST" CFBundleShortVersionString || true)"
         note "requirement: $(designated "$DEST")"
-        [ "$found" = "$BUNDLE_ID" ] || refuse_foreign "$found"
+        check_installed
     else
         note "installed:   nothing yet"
     fi
@@ -388,6 +386,164 @@ self_check() {
     ok "self-check passed; nothing was built, moved or registered"
 }
 
+# A fake build verify-signature.sh accepts; quit, open and lsregister never reach the system.
+stub_tools() {
+    local bin=$1
+    xcrun clang -O1 -o "$bin/launcher" -x c - <<'EOF'
+#include <errno.h>
+#include <spawn.h>
+#include <sys/wait.h>
+extern char **environ;
+int main(int argc, char **argv) {
+    pid_t pid;
+    int status = 0;
+    if (argc < 2 || posix_spawn(&pid, argv[1], NULL, NULL, argv + 1, environ) != 0) return 127;
+    while (waitpid(pid, &status, 0) < 0 && errno == EINTR) {}
+    return WIFEXITED(status) ? WEXITSTATUS(status) : 128 + WTERMSIG(status);
+}
+EOF
+    {
+        printf '#!/bin/bash\nset -eu\nLAUNCHER=%q PGID=%q\n' "$bin/launcher" "$TEST_ROOT/build.pgid"
+        cat <<'EOF'
+data="" id="" version=""
+while [ $# -gt 0 ]; do
+    case "$1" in
+    -derivedDataPath) data="$2" && shift ;;
+    TINYCAST_BUNDLE_IDENTIFIER=*) id="${1#*=}" ;;
+    MARKETING_VERSION=*) version="${1#*=}" ;;
+    esac
+    shift
+done
+ps -o pgid= -p $$ | tr -d ' ' >>"$PGID"
+info() {
+    printf '<?xml version="1.0" encoding="UTF-8"?>\n<plist version="1.0"><dict>\n'
+    printf '<key>%s</key><string>%s</string>\n' CFBundleIdentifier "$1" \
+        CFBundleExecutable "$2" CFBundlePackageType APPL CFBundleShortVersionString "$version"
+    printf '</dict></plist>\n'
+}
+app="${data:?}/Build/Products/Release/Tinycast.app"
+helper="$app/Contents/Helpers/Tinycast Dictation.app"
+rm -rf "$app"
+mkdir -p "$app/Contents/MacOS" "$helper/Contents/MacOS"
+cp "$LAUNCHER" "$app/Contents/MacOS/Tinycast"
+cp "$LAUNCHER" "$app/Contents/Helpers/ClipboardTextHelper"
+cp "$LAUNCHER" "$helper/Contents/MacOS/Tinycast Dictation"
+info "$id" Tinycast >"$app/Contents/Info.plist"
+info "$id.dictation" "Tinycast Dictation" >"$helper/Contents/Info.plist"
+for code in "$app/Contents/Helpers/ClipboardTextHelper" "$helper" "$app"; do
+    codesign -s - -o runtime -f "$code" 2>/dev/null
+done
+EOF
+    } >"$bin/xcodebuild"
+    local tool
+    for tool in osascript open lsregister; do
+        printf '#!/bin/sh\necho "$*" >>%q\n' "$TEST_ROOT/$tool.log" >"$bin/$tool"
+    done
+    chmod +x "$bin/"*
+}
+
+check() {
+    local message=$1
+    shift
+    if "$@"; then
+        PASSES=$((PASSES + 1))
+    else
+        FAILURES=$((FAILURES + 1))
+        printf 'FAIL: %s\n' "$message"
+        sed 's/^/    /' "$TEST_ROOT/out.log" "$TEST_ROOT/repo/build/fork/install.log" 2>/dev/null ||
+            true
+    fi
+}
+
+version() { plist "$1" CFBundleShortVersionString 2>/dev/null || echo none; }
+
+# Every build the stub ran wrote its process group; none may be the caller's.
+built_outside() { [ -s "$TEST_ROOT/build.pgid" ] && ! grep -qx "$1" "$TEST_ROOT/build.pgid"; }
+
+fake_app() {
+    "$TEST_ROOT/bin/xcodebuild" -derivedDataPath "$TEST_ROOT/seed" \
+        TINYCAST_BUNDLE_IDENTIFIER="$2" MARKETING_VERSION="$3" build
+    mkdir -p "$(dirname "$1")"
+    ditto "$TEST_ROOT/seed/Build/Products/Release/Tinycast.app" "$1"
+    rm -f "$TEST_ROOT/build.pgid"
+}
+
+# Starts the copied script the way an agent's command does: as a child of the installed app.
+from_app() {
+    local status=0
+    "$1/Contents/MacOS/Tinycast" /bin/bash "$TEST_ROOT/repo/Scripts/fork/install.sh" "${@:2}" \
+        >"$TEST_ROOT/out.log" 2>&1 || status=$?
+    printf '%s' "$status"
+}
+
+# Done once the log has its last word and the detached script has exited.
+finished() {
+    local _
+    for _ in $(seq 150); do
+        if grep -q '^✓ Installed\|^✗' "$1" 2>/dev/null &&
+            ! pgrep -f "$TEST_ROOT/repo/Scripts/fork/install.sh --detached" >/dev/null; then
+            return 0
+        fi
+        sleep 0.2
+    done
+    return 1
+}
+
+self_test() {
+    TEST_ROOT="${TMPDIR:-/tmp}"
+    TEST_ROOT="${TEST_ROOT%/}/tinycast-install-selftest-$(uuidgen)"
+    local repo="$TEST_ROOT/repo" app="$TEST_ROOT/Applications/Tinycast.app" status own
+    local log="$TEST_ROOT/repo/build/fork/install.log" id=com.tinycast.app.fork.selftest
+    mkdir -p "$repo/Scripts/fork" "$TEST_ROOT/bin"
+    [ -n "${TINYCAST_INSTALL_KEEP:-}" ] || trap 'rm -rf "$TEST_ROOT"' EXIT
+    cp "$SELF" "$repo/Scripts/fork/install.sh"
+    cp "$ROOT/Scripts/verify-signature.sh" "$repo/Scripts/"
+    export GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1
+    git -C "$repo" init -q && git -C "$repo" add -A
+    git -C "$repo" -c user.name=Test -c user.email=test@example.invalid commit -q -m Base
+    git -C "$repo" tag v2.0.0
+    stub_tools "$TEST_ROOT/bin"
+    export PATH="$TEST_ROOT/bin:$PATH" TINYCAST_LSREGISTER="$TEST_ROOT/bin/lsregister" \
+        TINYCAST_SIGN_IDENTITY=- TINYCAST_FORK_BUNDLE_ID="$id" TINYCAST_INSTALL_PATH="$app"
+    PASSES=0 FAILURES=0
+    own="$(ps -o pgid= -p $$ | tr -d ' ')"
+
+    fake_app "$app" "$id" 1.0
+    status=0
+    "$repo/Scripts/fork/install.sh" --no-launch >"$TEST_ROOT/out.log" 2>&1 || status=$?
+    check "an ad hoc build, whose requirement always changes, is refused (exit $status)" \
+        [ "$status" = 2 ]
+    check "with both requirements printed" [ "$(grep -c 'cdhash H' "$TEST_ROOT/out.log")" = 2 ]
+    check "and the installed copy left alone" [ "$(version "$app")" = 1.0 ]
+    rm -f "$TEST_ROOT/build.pgid"
+
+    status="$(from_app "$app" --no-launch --accept-new-identity)"
+    check "started from the app, it returns at once (exit $status)" [ "$status" = 0 ]
+    check "saying where the install goes on" grep -q "session of its own" "$TEST_ROOT/out.log"
+    check "the detached install finishes" finished "$log"
+    check "having built outside the caller's process group" built_outside "$own"
+    check "the new build is installed" [ "$(version "$app")" = 2.0.0 ]
+    check "and the old one kept for --rollback" \
+        [ "$(version "$repo/build/fork/Tinycast.previous")" = 1.0 ]
+    check "--no-launch opens nothing" [ ! -e "$TEST_ROOT/open.log" ]
+
+    status=0
+    "$repo/Scripts/fork/install.sh" --rollback --no-launch >"$TEST_ROOT/out.log" 2>&1 || status=$?
+    check "started elsewhere, --rollback runs in place (exit $status)" [ "$status" = 0 ]
+    check "and puts the old build back" [ "$(version "$app")" = 1.0 ]
+
+    rm -f "$log"
+    fake_app "$TEST_ROOT/Other/Tinycast.app" com.example.other 9.0
+    export TINYCAST_INSTALL_PATH="$TEST_ROOT/Other/Tinycast.app"
+    status="$(from_app "$TINYCAST_INSTALL_PATH" --no-launch)"
+    check "a foreign app is refused to the caller (exit $status)" [ "$status" = 2 ]
+    check "before anything detaches or builds" test ! -e "$log" -a ! -e "$TEST_ROOT/build.pgid"
+
+    printf '%d passed, %d failed\n' "$PASSES" "$FAILURES"
+    [ "$FAILURES" -eq 0 ] || exit 1
+    ok "install self-test passed"
+}
+
 # A failing command in an EXIT trap would replace the exit code the script chose.
 cleanup() { if [ -n "$STAGE" ] && [ -e "$STAGE" ]; then rm -rf "$STAGE" 2>/dev/null || true; fi; }
 
@@ -395,31 +551,30 @@ case "$MODE" in
 self-check)
     self_check
     ;;
+self-test)
+    self_test
+    ;;
 install)
     preflight
+    # Refusals that need no build answer the caller before anything detaches.
+    resolve_identity
+    check_installed
+    detach
     trap cleanup EXIT
     build
     stage "$BUILT"
-    hand_off
+    finish
     ;;
 rollback)
     preflight
     [ -e "$PREVIOUS" ] || die 1 "nothing to roll back to: $PREVIOUS does not exist."
     [ "$(bundle_id "$PREVIOUS")" = "$BUNDLE_ID" ] || die 2 "$PREVIOUS is not a $BUNDLE_ID build."
-    if [ -e "$DEST" ]; then
-        found="$(bundle_id "$DEST" || true)"
-        [ "$found" = "$BUNDLE_ID" ] || refuse_foreign "$found"
-    fi
+    check_installed
+    detach
     DR_NOTE="rolled back"
     trap cleanup EXIT
     # Staged on the destination volume, so the swap stays two renames.
     stage "$PREVIOUS"
-    hand_off
-    ;;
-finish)
-    case "$STAGE" in "$PARENT/.$NAME-staged-"*) ;; *) die 64 "--finish takes a staged copy" ;; esac
-    [ "$(bundle_id "$STAGE")" = "$BUNDLE_ID" ] || die 2 "$STAGE is not a $BUNDLE_ID build."
-    trap cleanup EXIT
     finish
     ;;
 esac
