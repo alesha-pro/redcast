@@ -1,8 +1,9 @@
 # Extension AI
 
-Raycast extensions call `AI.ask`, `useAI` from `@raycast/utils`, and `environment.canAccess(AI)` to
-reach Raycast's models. This fork answers them with the model you chose for extensions, through the
-same provider layer as AI Chat (`AIProviderFactory`), once you allow each extension. The feature lives in `Features/ExtensionAI/` and `Scripts/raycast-runtime/src/api/ai.js`;
+Raycast extensions call `AI.ask`, `useAI` from `@raycast/utils`, `AI.experimental_decide` and
+`environment.canAccess(AI)` to reach Raycast's models. This fork answers them with the model you chose
+for extensions, through the same provider layer as AI Chat (`AIProviderFactory`), once you allow each
+extension. The feature lives in `Features/ExtensionAI/` and `Scripts/raycast-runtime/src/api/ai.js`;
 upstream code only routes `ai` host calls to it and carries a temperature.
 
 ## Invariants
@@ -117,6 +118,18 @@ Claude's, Codex's and the other CLIs take no temperature. OpenAI's reasoning mod
 default, so a failure that names `temperature` before any text is asked again once without it; a 400
 costs nothing.
 
+### `AI.experimental_decide`
+
+It runs in JS on the same `ai.start`/`ai.read` loop as `AI.ask`, so the switches, the dialog, the
+origin, the rate limit and an abort apply unchanged. No route returns logprobs, so one prompt at
+`creativity: 0` asks the model to state, as one JSON object, a probability for each `noul`, each
+option of a `choice` and each level of a `score`; the questions and the state (a string as is,
+anything else as JSON) go with it. The reply's first `{` to its last `}` is read back: a `noul` is
+held to 0–1, a `choice` is normalised to its options with the likeliest as `choice` and its share as
+`confidence`, and a `score` is normalised to its levels with the expected level as `score`, the
+likeliest level's share as `confidence` and the criteria as `legend`. These are the model's own
+estimates, not calibrated probabilities. Malformed questions reject before any host call.
+
 ## Errors
 
 The message is what the extension's `Error.message` reads.
@@ -132,6 +145,8 @@ The message is what the extension's `Error.message` reads.
 | blank prompt | The prompt is empty. |
 | over 256 KB of UTF-8 | The prompt is too long: … KB, where the limit is 256 KB. |
 | rate limit | This extension reached its AI limit of 10 requests a minute and 100 an hour. Try again in … s. |
+| `experimental_decide` without questions, or one with no type or criteria | a `TypeError` naming the question (English, from the runtime) |
+| a decision reply that isn't the JSON asked for, or lacks a question | The model's answer was not the JSON a decision needs. / … has no probabilities for "…". (English) |
 
 A route that is off, a missing key and a failed request pass through as `AIProviderError` messages,
 already redacted by the route.
@@ -142,7 +157,7 @@ already redacted by the route.
 | --- | --- |
 | `AI.ask(prompt, { model, creativity, signal })` | the extension model answers, or a named vendor's closest model with the switch on; `creativity` is a temperature; `signal` cancels |
 | `useAI` | works unchanged on top of `AI.ask` |
-| `AI.experimental_decide` | rejects as not supported: no route returns calibrated probabilities |
+| `AI.experimental_decide` | one prompt at `creativity: 0`, the reply rebuilt into `noul`, `choice` and `score` answers |
 | `environment.canAccess(AI)` | the `aiAccess` launch flag |
 | `AI.Model` | a Proxy: any capitalised name reads back as itself; `Object.entries` lists one `Tinycast` entry |
 | a `{ id }` model and `AI.refreshModels()` | the extension model; resolves and does nothing: extension model providers are not surfaced |
@@ -168,7 +183,7 @@ not a small step, and a resident runtime the rest of Tinycast avoids.
 | `Settings/ExtensionAISettingsStore.swift` | The two switches, the model and the answers in `UserDefaults` |
 | `Settings/ExtensionAISettingsSection.swift` | Settings → Extensions → AI |
 | `UI/ExtensionAICoordinator.swift` | The gate's wiring, the consent dialog and the Settings actions |
-| `Scripts/raycast-runtime/src/api/ai.js` | The `AI` namespace: `ask`, the pull loop, `Model`, `refreshModels` |
+| `Scripts/raycast-runtime/src/api/ai.js` | The `AI` namespace: `ask`, the pull loop, `experimental_decide`, `Model`, `refreshModels` |
 
 Upstream lines: `ExtensionHostBridge` (the `ai` property, one `case`, `askAI`, one line in
 `sessionEnded`, `isOpenedByUser` and `isActingForUser` on `ExtensionHostContext` and `openedByUser` on
@@ -190,7 +205,7 @@ in flight is one `Task`, the route's own stream and the unread text, all release
 session end; a refused temperature costs one more request, once. Routing a named model is a pure pass
 over the connections already in memory, per ask. The menu-bar lane holds one flag and one closure per
 running command, and a refresh never touches the AI settings. The rate limiter holds at most 100 dates
-per extension that asked. The runtime grew by about 1 KB in all. CLI routes spawn a process per answer
+per extension that asked. The runtime grew by about 3 KB in all. CLI routes spawn a process per answer
 only when you pick a CLI model, as Quick Actions do; a named model never reaches one.
 
 ## Manual sweep
@@ -235,6 +250,9 @@ Install from the store and turn on Settings → Extensions → AI.
     Anthropic connection (its usage page, or a proxy); the dialog for a new extension mentions the
     closest model among your API connections. Switch the Anthropic connection off: the OpenAI model
     answers, silently. With an Anthropic extension model the same ask stays on it.
+14. A local development extension calling `AI.experimental_decide` with a `noul`, a `choice` and a
+    `score` question gets typed answers whose probabilities sum to 1; on Apple Intelligence a reply
+    that strays from JSON fails with "The model's answer was not the JSON a decision needs."
 
 ## Harnesses
 
@@ -262,6 +280,8 @@ Install from the store and turn on Settings → Extensions → AI.
 - `node Scripts/raycast-runtime/ai-fixtures.mjs` (also run by `fixtures.mjs`): `canAccess`, streaming,
   late listeners, failures, refusals, abort, an abort while `ai.start` waits on the dialog, timeout, a
   throwing listener, the named model and creativity that cross (and the `{ id }` and junk that don't),
-  `AI.Model`, `refreshModels`, `experimental_decide` and `useAI`'s abort-then-ask pattern.
+  `AI.Model`, `refreshModels`, `experimental_decide` (a fenced reply into all three answer types, one
+  ask at creativity 0 with the questions and state, a bare `noul` clamped, malformed replies, malformed
+  questions and an aborted signal before any host call) and `useAI`'s abort-then-ask pattern.
 - `node Scripts/raycast-runtime/test.mjs <extension> <command>` with `TEST_AI=1` lets a real
   extension see `canAccess(AI)`; the stub answers each `AI.ask` with `TEST_AI_REPLY` or a fixed line.
