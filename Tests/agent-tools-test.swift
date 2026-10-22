@@ -151,6 +151,7 @@ struct AgentToolsTests {
 
         await throughTheToolset(folder: folder, memory: memory)
         await aRefusalLeavesNoEffect(folder: folder, memory: memory)
+        await thePlanToolOnlyShows(folder: folder, memory: memory)
 
         print("\(passes) passed, \(failures) failed")
         if failures > 0 { exit(1) }
@@ -295,6 +296,75 @@ extension AgentToolsTests {
         expect(
             ((try? String(contentsOf: memory, encoding: .utf8)) ?? "") == notes,
             "and the agent's notes are untouched")
+    }
+}
+
+/// `update_plan` changes nothing: it shows the checklist it was sent, whoever the agent is.
+extension AgentToolsTests {
+    static func thePlanToolOnlyShows(folder: String, memory: URL) async {
+        let turn = AgentTurn(
+            profile: AgentProfile(name: "T", directory: folder, access: .readOnly), skills: [],
+            memoryURL: memory, mode: .unattended(UUID()))
+        let specs = AgentPlanTools().specs(for: turn)
+        expect(
+            specs.map(\.tool.name) == [AgentPlan.name] && specs.first?.family == nil
+                && specs.first?.risk == .own && specs.first?.concurrent == false,
+            "update_plan is switch-free, the agent's own, and never shares a round")
+        let builtIns = AgentBuiltInTools().specs(
+            for: AgentTurn(
+                profile: AgentProfile(name: "T", directory: folder, access: .fullAccess), skills: [],
+                memoryURL: memory, mode: .chat(UUID())))
+        expect(
+            Set(builtIns.map(\.tool.name)).isDisjoint(with: specs.map(\.tool.name)),
+            "and its name is no built-in's")
+
+        let shown = SignalLog()
+        let asked = Asked()
+        let context = AgentToolContext(
+            turn: turn,
+            consent: { request in
+                await asked.record(request)
+                return false
+            },
+            signal: { shown.append($0) })
+        let arguments = #"{"plan":[{"step":"Look","status":"completed"},{"step":"Fix","status":"in_progress"}]}"#
+        let result = await AgentPlanTools().run(
+            AIToolCall(id: "p1", name: AgentPlan.name, arguments: arguments), in: context)
+        let consulted = await asked.last != nil
+        expect(
+            result == AIToolResult(callID: "p1", content: "Plan updated.", isError: false) && !consulted,
+            "a plan is taken without asking anyone, even with nobody there")
+        expect(
+            shown.texts == ["Plan:\n✓ Look\n→ Fix\n"],
+            "and shown once, as a checklist, got \(shown.texts)")
+        let malformed = await AgentPlanTools().run(
+            AIToolCall(id: "p2", name: AgentPlan.name, arguments: #"{"plan":"soon"}"#), in: context)
+        expect(
+            malformed.isError && malformed.content == AgentPlan.malformed && shown.texts.count == 1,
+            "a list that is not one is refused, and nothing shows")
+        let toolset = AgentToolset(
+            turn: turn, providers: [AgentPlanTools()], mcpTools: [],
+            mcp: { .failure($0.id, "mcp") }, ask: { _, _ in false })
+        expect(
+            toolset.tools.map(\.name) == [AgentPlan.name] && !toolset.isConcurrent(AgentPlan.name),
+            "a read-only agent is offered the plan too, one call at a time")
+    }
+}
+
+/// Collects the reasoning a call signals.
+final class SignalLog: @unchecked Sendable {
+    private let lock = NSLock()
+    private var seen: [String] = []
+
+    var texts: [String] { lock.withLock { seen } }
+
+    func append(_ signal: AgentToolSignal) {
+        lock.withLock {
+            switch signal {
+            case .reasoning(let text): seen.append(text)
+            default: break
+            }
+        }
     }
 }
 

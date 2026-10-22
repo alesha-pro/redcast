@@ -435,11 +435,11 @@ struct ACPEventMapper: Sendable {
         case .plan(let entries):
             guard entries != lastPlan, !entries.isEmpty else { return [] }
             lastPlan = entries
-            let lines = entries.map { entry in
-                (entry.status == "completed" ? "✓ " : entry.status == "in_progress" ? "→ " : "· ")
-                    + entry.content
+            let items = entries.map { entry in
+                AgentPlan.Item(
+                    step: entry.content, status: AgentPlan.Status(rawValue: entry.status) ?? .pending)
             }
-            return [.reasoning("Plan:\n" + lines.joined(separator: "\n") + "\n")]
+            return [.reasoning(AgentPlan.checklist(items))]
         case .usage(let used, let size, let cost):
             // Held for the turn's end, where the prompt's own result has the finer counts.
             lastUsage = (used, size, cost ?? lastUsage?.costUSD)
