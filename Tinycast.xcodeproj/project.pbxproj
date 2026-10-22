@@ -55,6 +55,7 @@
 		0DD808F80666846F4E74BAD8 /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23591B301A183579098AA019 /* OnboardingView.swift */; };
 		0DD8A17796AE752342B7C26C /* AIProvidersPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 574A658F2503AA5BAED39903 /* AIProvidersPanel.swift */; };
 		0E2C10EDA6444D3ACF8F6F71 /* Fallback.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0437C802C1F3E33E8532A7E3 /* Fallback.swift */; };
+		0F435A3102C222C871847B32 /* AliasJump.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1057187B2CDBA541DB8B15AD /* AliasJump.swift */; };
 		0F667981DF990EF41626F052 /* CalcDateFormatters.swift in Sources */ = {isa = PBXBuildFile; fileRef = 955FBE410967A64A05A2DA3D /* CalcDateFormatters.swift */; };
 		0F6F56C49B3D2CBA233F12F3 /* CodexAppServerClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7355ACD6D1BE7BC7FCA26BD2 /* CodexAppServerClient.swift */; };
 		0FC4608F65D69D465EFBBCE0 /* CalcFormatter.swift in Sources */ = {isa = PBXBuildFile; fileRef = E582B93EFB1A2AA85B048A87 /* CalcFormatter.swift */; };
@@ -968,6 +969,7 @@
 		0F7F40DAD48109685138513E /* InstalledAILaunch.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InstalledAILaunch.swift; sourceTree = "<group>"; };
 		102B53830D247FAE19479BCA /* ThumbnailCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThumbnailCache.swift; sourceTree = "<group>"; };
 		1037A76A7501EA4BCCD545B5 /* CustomCommandListScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomCommandListScreen.swift; sourceTree = "<group>"; };
+		1057187B2CDBA541DB8B15AD /* AliasJump.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AliasJump.swift; sourceTree = "<group>"; };
 		106F9FEF3F0C36E0C5686DA7 /* AIRequest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIRequest.swift; sourceTree = "<group>"; };
 		1095A5EC0F5CE50ADB8C5D03 /* RoomParking.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoomParking.swift; sourceTree = "<group>"; };
 		10A05EA2484C7E9EC8B05A69 /* MCPOAuthHTTP.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MCPOAuthHTTP.swift; sourceTree = "<group>"; };
@@ -1872,6 +1874,14 @@
 			path = Service;
 			sourceTree = "<group>";
 		};
+		0AECFD7756757608FB27270F /* Model */ = {
+			isa = PBXGroup;
+			children = (
+				1057187B2CDBA541DB8B15AD /* AliasJump.swift */,
+			);
+			path = Model;
+			sourceTree = "<group>";
+		};
 		0ED457107377ECF8147C6B9D /* Onboarding */ = {
 			isa = PBXGroup;
 			children = (
@@ -2411,6 +2421,14 @@
 				D558FDBE73563E4292E388DD /* DictationVolumeSnapshot.swift */,
 			);
 			path = Model;
+			sourceTree = "<group>";
+		};
+		592B90F4238ED620E5853B33 /* AliasActions */ = {
+			isa = PBXGroup;
+			children = (
+				0AECFD7756757608FB27270F /* Model */,
+			);
+			path = AliasActions;
 			sourceTree = "<group>";
 		};
 		59348494CE88256DFDCC6C22 /* Service */ = {
@@ -3045,6 +3063,7 @@
 			children = (
 				9E3F07A1651ABD288A764C78 /* Agents */,
 				87070A80E9E3AB3E4B0A9E54 /* AI */,
+				592B90F4238ED620E5853B33 /* AliasActions */,
 				6E106BD79223C45E7D102798 /* AppleShortcuts */,
 				4852DB90D637B9D8E0B2556C /* Backup */,
 				356F452DB0F8F9834817455B /* Calculator */,
@@ -4177,6 +4196,7 @@
 				69E69D7C1333FF4ADAA58FFA /* AgentToolExecutor.swift in Sources */,
 				EE97792E4F478247EF8E8947 /* AgentToolbox.swift in Sources */,
 				B18F7D6F27C1A9E9B81E3CAD /* AgentsSettingsSection.swift in Sources */,
+				0F435A3102C222C871847B32 /* AliasJump.swift in Sources */,
 				D68E7585496722BEC72E788C /* AliasStore.swift in Sources */,
 				EA89498DA03BDFA3858144BF /* AppActionsMenu.swift in Sources */,
 				5E7ABF41CE97983E05653D69 /* AppAppearance.swift in Sources */,
