@@ -99,6 +99,30 @@ struct AIProviderTests {
             "a document-only turn still sends, as content parts")
     }
 
+    /// The fork's extension `creativity`: sent only when asked, within Anthropic's narrower range.
+    static func temperatureIsSentOnlyWhenAsked() {
+        func body(_ provider: AIProviderKind, _ temperature: Double?) -> [String: Any] {
+            AIRequestBody.make(
+                AIRequest(messages: [AIMessage(role: .user, text: "hi")], temperature: temperature),
+                configuration: AIHTTPConfiguration(
+                    provider: provider, baseURL: URL(string: provider.defaultBaseURL)!, model: "m"))
+        }
+        expect(
+            body(.openAI, 1.5)["temperature"] as? Double == 1.5
+                && body(.gemini, 0.4)["temperature"] as? Double == 0.4
+                && body(.openRouter, 0)["temperature"] as? Double == 0,
+            "OpenAI-shaped bodies carry the temperature as given")
+        expect(
+            body(.anthropic, 1.5)["temperature"] as? Double == 1
+                && body(.anthropic, 0.4)["temperature"] as? Double == 0.4,
+            "Anthropic's is held to its 0–1 range")
+        expect(
+            [AIProviderKind.openAI, .anthropic, .gemini].allSatisfy { body($0, nil)["temperature"] == nil },
+            "no temperature is sent unless asked, so every route keeps its default")
+        let turn = AIRequest(messages: [], temperature: 0.7)
+        expect(turn.continuing(with: [], tools: []).temperature == 0.7, "a continued turn keeps it")
+    }
+
     static func main() {
         instructionsFollowTheSetting()
         providerPresetsResolveEndpoints()
@@ -118,6 +142,7 @@ struct AIProviderTests {
         refusalsShowTheProvidersOwnWords()
         brandsResolveFromModelIDs()
         requestBodiesCarryDocuments()
+        temperatureIsSentOnlyWhenAsked()
         codexProtocolFramesRoundTrip()
         installedCLIStreamsDecode()
         settingsPersistAndRepairSelections()
