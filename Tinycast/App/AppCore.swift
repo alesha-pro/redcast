@@ -31,6 +31,14 @@ final class AppCore {
     @ObservationIgnored private(set) lazy var hyperKey = HyperKeyManager(
         settings: settings, hotKeys: hotKeys)
     @ObservationIgnored private lazy var dictationKey = DictationKeyManager(hotKeys: hotKeys)
+    @ObservationIgnored private(set) lazy var voiceSettings = VoiceAISettings()
+    @ObservationIgnored private(set) lazy var voiceCloud = VoiceCloudTranscriber(
+        settings: settings, voice: voiceSettings, aiSettings: aiSettings,
+        confirm: { [unowned self] in
+            await self.confirm(
+                title: $0, message: $1, symbol: "waveform", confirmTitle: String(localized: "Continue"),
+                tone: .neutral, confirmRole: .standard)
+        })
     let windowMover = WindowMover()
     let spaceSwitcher = SpaceSwitcher()
     let inputSourceSwitcher = InputSourceSwitcher()
@@ -107,7 +115,9 @@ final class AppCore {
                 symbol: "waveform", confirmTitle: String(localized: "Continue"), tone: .neutral,
                 confirmRole: .standard)
         },
-        showMessage: { [unowned self] in self.showMessage($0, tone: $1) })
+        showMessage: { [unowned self] in self.showMessage($0, tone: $1) },
+        cloudIsOn: { [unowned self] in self.voiceCloud.isOn },
+        cloudTranscribe: { [unowned self] in try await self.voiceCloud.transcribe($0, language: $1) })
     @ObservationIgnored private(set) lazy var quicklinkCoordinator = QuicklinkCoordinator(
         store: quicklinks, settings: settings,
         appIndex: appIndex, injector: textInjector, hotKeys: hotKeys, favorites: favorites,
@@ -233,6 +243,9 @@ final class AppCore {
         ScreenAwarenessCoordinator(
             settings: settings, appIndex: appIndex, hotKeys: hotKeys,
             paletteCoordinator: paletteCoordinator, core: self)
+    @ObservationIgnored private(set) lazy var voiceAskCoordinator = VoiceAskCoordinator(
+        settings: settings, voice: voiceSettings, aiSettings: aiSettings, appIndex: appIndex,
+        hotKeys: hotKeys, injector: textInjector, audioDucker: dictationAudioDucker, core: self)
     @ObservationIgnored private(set) lazy var agentCoordinator = AgentCoordinator(
         store: agentStore, core: self)
     @ObservationIgnored private(set) lazy var webSearch = WebSearchSettingsStore()
@@ -317,6 +330,7 @@ final class AppCore {
             agentStore.load()
             agentCoordinator.applyBackground()
             screenAwarenessCoordinator.applyEnabled()
+            voiceAskCoordinator.applyEnabled()
             mcpCoordinator.applyEnabled()
             customQuickActions.onChange = { [weak self] _ in
                 self?.quickActionCoordinator.applyCustomQuickActionsPresence()
@@ -382,6 +396,10 @@ final class AppCore {
             hotKeys.onDictationReleased = { [weak self] in self?.dictationCoordinator.released() }
             hotKeys.onDictationCancelled = { [weak self] in self?.dictationCoordinator.cancel() }
             hotKeys.onRunCommand = { [weak self] id in self?.launcherCoordinator.runCommand(id) }
+            hotKeys.releasedCommands = [.askByVoice]
+            hotKeys.onCommandReleased = { [weak self] id in
+                if id == .askByVoice { self?.voiceAskCoordinator.released() }
+            }
             hotKeys.onRunCustomCommand = { [weak self] id in
                 self?.customCommandCoordinator.runCustomCommand(id: id)
             }
@@ -540,6 +558,7 @@ final class AppCore {
 
     func stopDictationForTermination() async {
         if settings.dictationEnabled { dictationCoordinator.prepareForTermination() }
+        voiceAskCoordinator.prepareForTermination()
         dictationAudioDucker.restoreImmediately()
         await dictationAudioDucker.waitForTransition()
         await dictationModels.stop()
@@ -584,6 +603,7 @@ final class AppCore {
 
     func prepareForTermination() {
         if settings.dictationEnabled { dictationCoordinator.prepareForTermination() }
+        voiceAskCoordinator.prepareForTermination()
         settingsFile?.flush()
         clipboardTextIndexer?.stop()
         // HID remaps first: they outlive the process.
@@ -741,7 +761,12 @@ final class AppCore {
             {
                 _ = $0.aiEnabled
                 _ = $0.screenAwarenessEnabled
-            }, reproject: { $0.screenAwarenessCoordinator.applyEnabled() })
+            },
+            reproject: {
+                $0.screenAwarenessCoordinator.applyEnabled()
+                $0.voiceAskCoordinator.applyEnabled()
+            })
+        track(voiceSettings, { _ = $0.askEnabled }, reproject: { $0.voiceAskCoordinator.applyEnabled() })
         track({ _ = $0.calendarEnabled }, reproject: { $0.calendarCoordinator.applyEnabled() })
         track(
             {

@@ -24,6 +24,7 @@ OpenCode, Goose, Hermes, local models — on the subscriptions and machines you 
 | Notes ↔ AI | Attach Note… in the composer or `@note` picks a note to send with the next message; agents with the Notes tools search and read your notes and add reports to them, every addition asked first whatever the agent's other rules say | [notes-ai](docs/features/notes-ai.md) |
 | Background and scheduled agents | `@agent do X` in root search runs a turn with no window: a transient menu-bar item shows it working, a HUD (and an opt-in banner) says when it ended, and the result is a chat. Schedules run an agent daily, on working days or every few hours while Tinycast is open, with one sleeping task, a catch-up rule and an optional note. Unattended requests ask only someone at the Mac, with Return on Don't Allow | [background-agents](docs/features/background-agents.md) |
 | ACP agents | An agent can run as its own CLI over the Agent Client Protocol — Claude Code, Codex, Gemini CLI, OpenCode, Goose, Hermes or any command — on your own logins, with its permission requests, tool rows, plans and modes in AI Chat, and sessions that survive a relaunch | [agents](docs/features/agents.md#acp-agents) |
+| Voice AI | Cloud dictation through Gemini Flash on your own OpenRouter, Gemini or OpenAI-compatible connection, and Ask by Voice: speak a question about the window in front, get the answer beside it or typed into the field. Audio goes only to the connection you approved | [voice-ai](docs/features/voice-ai.md) |
 
 Builds of this fork use the bundle id `com.tinycast.app.fork`: they never update themselves from
 upstream's feed, and they keep their settings apart from an installed upstream Tinycast.
@@ -70,10 +71,11 @@ Sizes are focused working days. Waves are ordered by leverage, not by size.
    list of running agents fed by Claude Code hooks and Codex `notify`: a HUD and menu-bar badge when an
    agent finishes or waits for approval, one key to jump to it. *3–4 days.* The menu-bar badge
    reuses the background agents' `AgentRunsStatusItem`.
-3. **Voice to AI.** On top of the existing on-device dictation: dictation *modes* that pass the
-   transcript through a prompt before it is typed (speak Russian, get an English post; per-app tone),
-   a *voice command* over the selection ("make this shorter"), and hold-to-talk into AI Chat or an
-   agent with the screen attached. Upstream declined voice control (#1550). *3 days.*
+3. **Voice to AI — partly shipped** (see Voice AI above): cloud dictation, and hold-to-talk with the
+   screen attached as Ask by Voice. Next on it: dictation *modes* that pass the transcript through a
+   prompt before it is typed (speak Russian, get an English post; per-app tone), a *voice command*
+   over the selection ("make this shorter"), hold-to-talk on a single modifier, and asking an agent
+   by voice. Upstream declined voice control (#1550). *2 days.*
 4. **Tinycast as an MCP server.** A bundled stdio helper that lets Claude Code, Codex and any MCP
    client use the launcher's hands: clipboard history, the frontmost window's context, notes,
    snippets, calendar, opening apps and URLs, a native `notify`, and `ask_user` — a Tinycast dialog an
