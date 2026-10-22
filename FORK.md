@@ -27,7 +27,7 @@ OpenCode, Goose, Hermes, local models — on the subscriptions and machines you 
 | Voice AI | Cloud dictation through Gemini Flash on your own OpenRouter, Gemini or OpenAI-compatible connection, and Ask by Voice: speak a question about the window in front, get the answer beside it or typed into the field. Audio goes only to the connection you approved | [voice-ai](docs/features/voice-ai.md) |
 | Raycast AI for extensions | `AI.ask`, `useAI` and `canAccess(AI)` answered by your own model, off until you allow it and asked once per extension (a dismissed question asks again); only in a command you open, never in a menu-bar command, a background refresh or anything one launches | [extension-ai](docs/features/extension-ai.md) |
 | Extension runtime fixes | Google sign-in without a client secret (`querystring` coerces like Node), and extensions that bundle undici (`buffer.Blob`/`File`, undici's requests sent through the `fetch` bridge); ported from sermelipharo/tinycast-space | [extensions](docs/features/extensions.md) |
-| AI usage | Settings → AI → Usage: tokens and cost per model or ACP agent for a day, week or month, read from the chats on this Mac; an OpenRouter key's UTC spend and limit on Check Balance. An ACP reply counts what its session's running total rose; a tool-loop reply now costs its whole turn, and OpenAI's own API records tokens | [usage-dashboard](docs/features/usage-dashboard.md) |
+| AI usage | Settings → AI → Usage: tokens and cost per model or ACP agent for a day, week or month, read from the chats on this Mac; an OpenRouter key's UTC spend and limit on Check Balance. An ACP reply counts what its session's running total rose; a tool-loop reply, a chat's or an agent's, costs its whole turn, and OpenAI's own API records tokens | [usage-dashboard](docs/features/usage-dashboard.md) |
 | Agent Sessions | Search every past Claude Code, Codex and Tinycast session from the launcher — titles, prompts, folder and branch, a preview, and text inside transcripts on request — and resume it in its folder and terminal with one key; live sessions show their status and Jump to Agent brings a waiting one forward. Opt-in live status adds reviewed hooks to Claude Code and Codex for a HUD and a menu-bar item when an agent finishes or waits | [agent-sessions](docs/features/agent-sessions.md) |
 | Alias + Space | Type an entry's alias exactly and press Space: it opens, or its first field takes the caret; `\`␣ types a space, and apps keep searching. From `sermelipharo/tinycast-space`, after `mSarheed/pipcast` | [alias actions](docs/features/alias-actions.md) |
 | Change Alias / Change Shortcut | Edit an entry's alias in place, or record its global shortcut, from its ⌘K menu. From `jhasubhash/tinycast`, as reshaped in `sermelipharo/tinycast-space` | [alias actions](docs/features/alias-actions.md#change-alias--change-shortcut) |
@@ -123,8 +123,9 @@ Sizes are focused working days. Waves are ordered by leverage, not by size.
 
 ### Wave 2 — context and power
 
-5. ~~**Background and scheduled agents.**~~ Shipped (see above). Next on it: a per-agent launcher
-   row and hotkey, the unattended briefing for ACP agents, and a spend cap for schedules.
+5. **Background and scheduled agents — shipped** (see above). Next on it: a per-agent launcher row
+   and hotkey, the unattended briefing for ACP agents, a spend cap for schedules, and one "Agents"
+   menu-bar item shared with Agent Sessions' live status (item 2).
 6. **Screen Awareness+ and Capture.** Area and full-screen capture, Vision OCR when an app exposes no
    Accessibility text (canvas apps, games), Finder's selected files, a `{screen}` placeholder for
    Quick Actions ("reply to this" in one key), a `screen_context` agent tool, and a searchable
