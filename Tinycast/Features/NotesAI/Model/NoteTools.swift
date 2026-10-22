@@ -15,8 +15,7 @@ enum NoteTools {
     static let maxAppendBytes = 64 * 1_024
     static let snippetLength = 160
 
-    /// `appendAsks` is the rule the toolset runs, so the description never promises a check.
-    static func definitions(canWrite: Bool, appendAsks: Bool, origin: String) -> [AITool] {
+    static func definitions(canWrite: Bool, origin: String) -> [AITool] {
         var tools = [
             tool(
                 search,
@@ -38,16 +37,12 @@ enum NoteTools {
                 required: ["note"], origin: origin)
         ]
         guard canWrite else { return tools }
-        let review =
-            appendAsks
-            ? "The user is asked first."
-            : "Nobody reviews it before it is added, so add only what the user asked for."
         tools.append(
             tool(
                 append,
                 "Add Markdown to the end of one of the user's Tinycast Notes, creating it when no note "
                     + "has that title. Use it for reports and summaries the user asked you to keep. "
-                    + review,
+                    + "The user is asked first.",
                 [
                     "note": string(
                         "Title of the note to add to, as notes_search shows it. A new note with this "

@@ -34,11 +34,13 @@ the menu item and modifier in `AIChatDetailView`, `NotesStore.amendDraft`, and t
   `AgentToolKind.defaults`, so no agent has it until its editor's Notes box is ticked, and only an
   agent on the chat's model (`runtime == nil`) runs Tinycast's tools at all. `agents.json` carries
   the family and is in no backup and no settings file.
-- **Reading is personal, adding is a change.** `notes_search` and `notes_read` are
-  `AgentToolRisk.personal` and do not ask; `notes_append` is `.change` under the agent's Changes rule,
-  so it asks by default, is never offered to a read-only agent or under Never Allow, is refused when
-  nobody is there to ask, and its description says which. Allow for This Chat records
-  `AgentGrant(family: .notes, risk: .change)`, so it never covers a file write.
+- **Reading is personal, adding always asks.** `notes_search` and `notes_read` are
+  `AgentToolRisk.personal` and do not ask. `notes_append` is `.change`, and `AgentConsentPolicy` gives
+  `(notes, change)` the rule ask whatever the agent's Changes rule says: note text can carry an
+  injected prompt, so no rule makes an addition silent. It is never offered to a read-only agent, is
+  refused when nobody is there to ask, and Allow for This Chat records
+  `AgentGrant(family: .notes, risk: .change)`, so it never covers a file write, nor a file grant an
+  append.
 - **A current or unsaved draft takes the append, a stale one never.** An append to the store's
   active note goes through `NotesStore.amendDraft`, which starts a new editor epoch and autosaves,
   only while the draft holds unsaved text or matches the file. A clean draft the file has moved past
@@ -69,7 +71,7 @@ the menu item and modifier in `AIChatDetailView`, `NotesStore.amendDraft`, and t
 | --- | --- | --- | --- | --- |
 | `notes_search` | notes | personal | any | always |
 | `notes_read` | notes | personal | any | always |
-| `notes_append` | notes | change | workspace, full | ask (Changes) |
+| `notes_append` | notes | change | workspace, full | ask, fixed |
 
 - `notes_search` takes `query` and `limit` (10, at most 30). It lists the folder, reads each body once
   for the match and its first matching line, ranks with the Notes switcher's own `NoteSearch`, and
@@ -106,9 +108,10 @@ the menu item and modifier in `AIChatDetailView`, `NotesStore.amendDraft`, and t
   to it: the file keeps the edit and the addition, and showing Notes shows both.
 - Make a note in Notes without naming it. Ask the agent to find it and add to it: it reads and adds
   to that `Untitled N` note, and no note named after its first line appears.
-- Set Changes to Always Allow: the append runs without a dialog. A read-only agent is never offered
-  `notes_append`.
-- Harness: `notes-ai-test` (definitions and specs, the toolset's offer and consent, `@note`, joining,
-  resolution and its printed names read back, search, paging and the 28 KB cut, append with consent,
-  refusal, creation and limits, the open-draft route, the attachment budget, and
-  `NotesStore.amendDraft` end to end, a stale clean draft and an unsaved one included).
+- With Files ticked, set Changes to Always Allow: a file write runs without a dialog, an append still
+  asks. Set it to Never Allow: no file write is offered, an append still asks. A read-only agent is
+  never offered `notes_append`.
+- Harness: `notes-ai-test` (definitions and specs, the toolset's offer and consent whatever Changes
+  says, `@note`, joining, resolution and its printed names read back, search, paging and the 28 KB
+  cut, append with consent, refusal, creation and limits, the open-draft route, the attachment budget,
+  and `NotesStore.amendDraft` end to end, a stale clean draft and an unsaved one included).

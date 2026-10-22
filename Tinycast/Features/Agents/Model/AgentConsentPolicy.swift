@@ -65,6 +65,8 @@ enum AgentConsentPolicy {
         guard family.map(profile.tools.contains) ?? true, risk.isOffered(to: profile.access) else {
             return .never
         }
+        // Note text may carry an injected prompt, so Changes never makes a Notes addition silent.
+        if family == .notes, risk == .change { return .ask }
         return rule(for: risk, of: profile)
     }
 
