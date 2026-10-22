@@ -5,7 +5,8 @@ An **agent** lives in one folder. A chat given an agent works there: its turns r
 instructions, and its built-in tools — files, terminal, web and memory — act there. Agents are this
 fork's; upstream lists AI-assistant features under [not planned](../not-planned.md), so the feature
 stays in `Features/Agents/` plus the few lines in `AIChatCoordinator`, `AIChatDetailView`,
-`AISettingsView` and `AppCore` that wire it in.
+`AISettingsView` and `AppCore` that wire it in. An agent can also work with no window, from `@handle`
+in root search or on a schedule: see [background and scheduled agents](background-agents.md).
 
 ## Invariants
 
@@ -146,7 +147,10 @@ They run on the user's own logins and subscriptions; Tinycast never sees a key.
 | `Model/ACPProtocol.swift` | Framing, `session/update` decoding, permissions, prompt blocks, modes, `ACPEventMapper` |
 | `Service/ACPConnection.swift` | One agent process: launch, `initialize`, requests, permission routing, exit |
 | `Service/AgentACPHost.swift` | Processes per agent, sessions per chat, load/new, modes; `ACPAgentProvider` |
-| `Settings/AgentsSettingsSection.swift`, `AgentEditorPanel.swift` | The AI pane's list and the editor |
+| `Settings/AgentsSettingsSection.swift`, `AgentEditorPanel.swift` | The AI pane's list, its schedules and the editor |
+
+Background runs and schedules add their own files, listed in
+[background-agents.md](background-agents.md#layout).
 
 The composer's agent menu is `AIAgentPicker` in `AIChatDetailView.swift`, beside the model picker,
 because the composer's label and menu styles are private to that file.
@@ -235,4 +239,5 @@ changes: no router edit, no upstream line, no prompt edit.
   writes with consent, link escapes, commands, timeouts and Stop, memory, skills, HTML; the built-ins
   through a toolset, with and without an agent's own rules; every refused effect); and
   `agent-loop-test` (the fork's loop and upstream's on the same scripts under 128 KB; routing,
-  signals, Stop, parallel batches, a long turn that elides).
+  signals, Stop, parallel batches, a long turn that elides); and `agent-schedule-test` for background
+  runs and schedules (see [background-agents.md](background-agents.md#manual-sweep)).

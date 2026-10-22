@@ -131,7 +131,8 @@ store starts the helper on demand and reaps it after the selected idle delay or 
 only two `MenuBarExtra` scenes — Tinycast's own item and the
 calendar's, each inserted by one preference and independent of the other; everything else visible is
 driven imperatively from AppKit. Extension menu extras are dynamic `NSStatusItem`s owned entirely by
-`Features/Extensions/`, through `ExtensionManager`, with no scene or lifecycle wiring in the core.
+`Features/Extensions/`, through `ExtensionManager`, with no scene or lifecycle wiring in the core, and
+the agents' run indicator is a transient `NSStatusItem` owned by `Features/Agents/` in the same way.
 
 - **Command palette** — a borderless floating `NSPanel` (`Palette/PalettePanel.swift`) hosting SwiftUI
   via `NSHostingView`, managed by `PaletteWindowController`. It toggles between a compact bar and the
