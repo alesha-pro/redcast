@@ -12,10 +12,18 @@ final class AgentStore {
     private(set) var acpSessions: [UUID: String] = [:]
     /// False when the file wouldn't read; every mutation then refuses rather than pretends.
     private(set) var isAvailable = true
+    private(set) var schedules: [AgentSchedule] = []
+    /// Schedule id to its baseline; the next run is the first occurrence after it.
+    private(set) var scheduleBaselines: [UUID: Date] = [:]
+    /// The schedules file's own `isAvailable`: authored data, never written over unread.
+    private(set) var schedulesAvailable = true
 
     private let agentsURL: URL
     private let bindingsURL: URL
     private let acpSessionsURL: URL
+    private let schedulesURL: URL
+    /// Kept apart from the schedules, so a run never rewrites what the user wrote.
+    private let scheduleBaselinesURL: URL
     let directory: URL
 
     init(directory: URL? = nil) {
@@ -24,6 +32,8 @@ final class AgentStore {
         agentsURL = base.appendingPathComponent("agents.json")
         bindingsURL = base.appendingPathComponent("agent-chats.json")
         acpSessionsURL = base.appendingPathComponent("agent-acp-sessions.json")
+        schedulesURL = base.appendingPathComponent("agent-schedules.json")
+        scheduleBaselinesURL = base.appendingPathComponent("agent-schedule-runs.json")
         try? FileManager.default.createDirectory(at: base, withIntermediateDirectories: true)
     }
 
@@ -62,6 +72,26 @@ final class AgentStore {
             let decoded = try? JSONDecoder().decode([UUID: String].self, from: data)
         {
             acpSessions = decoded.filter { chatAgents[$0.key] != nil }
+        }
+        loadSchedules()
+    }
+
+    private func loadSchedules() {
+        if FileManager.default.fileExists(atPath: schedulesURL.path) {
+            guard let data = try? Data(contentsOf: schedulesURL),
+                let decoded = try? JSONDecoder().decode([AgentSchedule].self, from: data)
+            else {
+                schedulesAvailable = false
+                return
+            }
+            let known = Set(agents.map(\.id))
+            schedules = decoded.filter { known.contains($0.agentID) }
+        }
+        if let data = try? Data(contentsOf: scheduleBaselinesURL),
+            let decoded = try? JSONDecoder().decode([UUID: Date].self, from: data)
+        {
+            let known = Set(schedules.map(\.id))
+            scheduleBaselines = decoded.filter { known.contains($0.key) }
         }
     }
 
@@ -103,6 +133,88 @@ final class AgentStore {
         let chats = chatAgents.filter { $0.value == id }.map(\.key)
         bind(chats, to: nil)
         for chat in chats { setACPSession(nil, forChat: chat) }
+        let orphaned = schedules.filter { $0.agentID == id }.map(\.id)
+        guard !orphaned.isEmpty else { return }
+        // An unreadable file is filtered by agent on the next load, so it is left as it is.
+        try? commitSchedules(schedules.filter { $0.agentID != id })
+        dropBaselines(orphaned)
+    }
+
+    // MARK: - Schedules
+
+    func schedules(forAgent id: UUID) -> [AgentSchedule] {
+        schedules.filter { $0.agentID == id }
+    }
+
+    func schedule(id: UUID) -> AgentSchedule? {
+        schedules.first { $0.id == id }
+    }
+
+    /// When the next run is counted from: its last run, or since it last started counting.
+    func baseline(for schedule: AgentSchedule) -> Date {
+        scheduleBaselines[schedule.id] ?? schedule.createdAt
+    }
+
+    /// Adds or replaces; a new, re-enabled or re-timed schedule starts counting from `now`.
+    @discardableResult
+    func saveSchedule(_ draft: AgentSchedule, now: Date) throws(AgentScheduleError) -> AgentSchedule {
+        var value = draft
+        value.name = draft.name.trimmingCharacters(in: .whitespacesAndNewlines)
+        value.prompt = draft.prompt.trimmingCharacters(in: .whitespacesAndNewlines)
+        value.noteTitle = draft.noteTitle?.trimmingCharacters(in: .whitespacesAndNewlines)
+        if value.noteTitle?.isEmpty == true { value.noteTitle = nil }
+        guard !value.name.isEmpty else { throw .emptyName }
+        guard !value.prompt.isEmpty else { throw .emptyPrompt }
+        guard value.rule.isValid else { throw .invalidRule }
+        let previous = schedule(id: value.id)
+        var updated = schedules
+        if let index = updated.firstIndex(where: { $0.id == value.id }) {
+            updated[index] = value
+        } else {
+            updated.append(value)
+        }
+        try commitSchedules(updated)
+        let restarts =
+            previous == nil || previous?.rule != value.rule
+            || (previous?.isEnabled == false && value.isEnabled)
+        if restarts { setBaseline(now, forSchedule: value.id) }
+        return value
+    }
+
+    func removeSchedule(id: UUID) throws(AgentScheduleError) {
+        try commitSchedules(schedules.filter { $0.id != id })
+        dropBaselines([id])
+    }
+
+    func setBaseline(_ date: Date, forSchedule id: UUID) {
+        guard schedule(id: id) != nil, scheduleBaselines[id] != date else { return }
+        scheduleBaselines[id] = date
+        writeBaselines()
+    }
+
+    private func dropBaselines(_ ids: [UUID]) {
+        let kept = scheduleBaselines.filter { !ids.contains($0.key) }
+        guard kept.count != scheduleBaselines.count else { return }
+        scheduleBaselines = kept
+        writeBaselines()
+    }
+
+    /// Runtime state, so a failed write only costs a catch-up run, never a schedule.
+    private func writeBaselines() {
+        guard let data = try? JSONEncoder().encode(scheduleBaselines) else { return }
+        try? data.write(to: scheduleBaselinesURL, options: .atomic)
+    }
+
+    private func commitSchedules(_ updated: [AgentSchedule]) throws(AgentScheduleError) {
+        guard isAvailable, schedulesAvailable,
+            let data = try? JSONEncoder().encode(updated)
+        else { throw .storageUnavailable }
+        do {
+            try data.write(to: schedulesURL, options: .atomic)
+        } catch {
+            throw .storageUnavailable
+        }
+        schedules = updated
     }
 
     /// A chat's agent; nil takes the chat back to plain AI.

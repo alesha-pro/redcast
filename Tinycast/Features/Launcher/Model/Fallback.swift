@@ -22,17 +22,33 @@ enum Fallback: Hashable, Sendable {
 
     case builtin(Builtin)
     case quicklink(UUID)
+    /// `@handle task` in root search; never in `available`, so Settings never lists it.
+    case agent(UUID)
+    case agentPick(UUID)
+
+    static let agentPrefix = "agent:"
+    static let agentPickPrefix = "agent-pick:"
 
     /// The row's `AppEntry` id, so a stored order outlives a rename and survives a reinstall.
     var id: String {
         switch self {
         case .builtin(let builtin): return builtin.command.rawValue
         case .quicklink(let id): return Quicklink.entryIDPrefix + id.uuidString.lowercased()
+        case .agent(let id): return Self.agentPrefix + id.uuidString.lowercased()
+        case .agentPick(let id): return Self.agentPickPrefix + id.uuidString.lowercased()
         }
     }
 
     init?(id: String) {
-        if let command = CommandID(rawValue: id),
+        if id.hasPrefix(Self.agentPrefix),
+            let agent = UUID(uuidString: String(id.dropFirst(Self.agentPrefix.count)))
+        {
+            self = .agent(agent)
+        } else if id.hasPrefix(Self.agentPickPrefix),
+            let agent = UUID(uuidString: String(id.dropFirst(Self.agentPickPrefix.count)))
+        {
+            self = .agentPick(agent)
+        } else if let command = CommandID(rawValue: id),
             let builtin = Builtin.allCases.first(where: { $0.command == command })
         {
             self = .builtin(builtin)
@@ -50,6 +66,8 @@ enum Fallback: Hashable, Sendable {
         case .builtin(.runShellCommand): return String(localized: "Run Shell Command")
         case .builtin(.define): return String(localized: "Define Word")
         case .quicklink: return String(localized: "Open Quicklink")
+        case .agent: return String(localized: "Run in Background")
+        case .agentPick: return String(localized: "Choose Agent")
         }
     }
 

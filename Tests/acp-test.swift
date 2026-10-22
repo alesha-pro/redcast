@@ -24,6 +24,7 @@ struct ACPTests {
         runtimesParseTheirArguments()
         await aRealProcessStreamsATurn()
         await stoppingLeavesNoProcessBehind()
+        await twoAgentsSharingASessionIDStayApart()
 
         print("\(passes) passed, \(failures) failed")
         if failures > 0 { exit(1) }
@@ -109,6 +110,22 @@ struct ACPTests {
             "no choice answers as cancelled")
         let selected = ACPPermissionRequest.result(selecting: "o")
         expect((selected["outcome"] as? [String: String])?["optionId"] == "o", "a choice names its option")
+        expect(request.refusalIndex == 3, "the dialog's cancel, and Return in the background, is refuse once")
+        expect(request.optionID(answering: 0) == "o" && request.optionID(answering: 3) == "r", "an answer is its option")
+        expect(request.optionID(answering: nil) == "r", "no answer refuses once, never always")
+        expect(request.optionID(answering: 9) == nil, "an answer out of range picks nothing")
+        func offering(_ options: String) -> ACPPermissionRequest? {
+            let json = #"{"sessionId":"s","toolCall":{"toolCallId":"c"},"options":["# + options + "]}"
+            return ACPPermissionRequest(JSONValue(data: Data(json.utf8)) ?? .null)
+        }
+        let neverOnly = offering(
+            #"{"optionId":"ra","name":"Never","kind":"reject_always"},"#
+                + #"{"optionId":"o","name":"Once","kind":"allow_once"}"#)
+        expect(
+            neverOnly?.refusalIndex == 1 && neverOnly?.optionID(answering: nil) == nil,
+            "with no refuse-once, no answer cancels rather than leave a rule nobody chose")
+        let allowsOnly = offering(#"{"optionId":"o","name":"Once","kind":"allow_once"}"#)
+        expect(allowsOnly?.refusalIndex == nil, "an agent that offers no refusal has no cancel to put on Return")
     }
 
     static func promptsCarryContextOnlyWhenFresh() {
@@ -366,6 +383,74 @@ extension ACPTests {
             expect(false, "the teardown check runs, got \(error)")
         }
     }
+}
+
+extension ACPTests {
+    /// Two copies of one CLI both call their first session `sess_1`: turns and asks still stay apart.
+    static func twoAgentsSharingASessionIDStayApart() async {
+        guard let node = await ExecutableLocator.locate("node") else { return }
+        let fixture = FileManager.default.currentDirectoryPath + "/Tests/acp-fixtures/fake-agent.mjs"
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent("ACPTests-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: root) }
+        func agent(_ name: String) -> AgentProfile {
+            let folder = root.appendingPathComponent(name)
+            try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+            return AgentProfile(
+                name: name, directory: folder.path,
+                runtime: AgentRuntime(kind: .custom, command: node.path, arguments: [fixture]))
+        }
+        let first = agent("First")
+        let second = agent("Second")
+        let routed = Routed()
+        let host = AgentACPHost(
+            store: AgentStore(directory: root.appendingPathComponent("support")),
+            permit: { agent, request in
+                routed.sessions[agent.id] = request.sessionID
+                routed.chats[agent.id] = routed.host?.chatID(forSession: request.sessionID, of: agent.id)
+                // Both turns stay in flight until both have asked, so their sessions coexist.
+                for _ in 0..<100 where routed.chats.count < 2 { try? await Task.sleep(for: .milliseconds(50)) }
+                return request.dialogOptions.first?.id
+            },
+            context: { _ in nil })
+        routed.host = host
+        defer { host.stopAll() }
+        func turn(_ agent: AgentProfile, chat: UUID) async -> String {
+            let provider = ACPAgentProvider(host: host, agent: agent, servers: { [] })
+            var text = ""
+            let request = AIRequest(messages: [AIMessage(role: .user, text: "Hi")], conversationID: chat)
+            do {
+                for try await event in provider.stream(request) {
+                    if case .text(let chunk) = event { text += chunk }
+                }
+            } catch {
+                return "error: \(error)"
+            }
+            return text
+        }
+        let firstChat = UUID()
+        let secondChat = UUID()
+        async let firstReply = turn(first, chat: firstChat)
+        async let secondReply = turn(second, chat: secondChat)
+        let replies = await (firstReply, secondReply)
+        expect(
+            routed.sessions[first.id] == routed.sessions[second.id] && routed.sessions[first.id] != nil,
+            "both agents named their session alike, got \(routed.sessions)")
+        expect(
+            routed.chats[first.id] == firstChat && routed.chats[second.id] == secondChat,
+            "each permission request maps back to its own agent's chat")
+        expect(
+            replies.0.contains(first.directory) && !replies.0.contains(second.directory)
+                && replies.1.contains(second.directory) && !replies.1.contains(first.directory),
+            "and each turn streams only its own agent's reply, got \(replies)")
+    }
+}
+
+@MainActor
+final class Routed {
+    weak var host: AgentACPHost?
+    var sessions: [UUID: String] = [:]
+    var chats: [UUID: UUID] = [:]
 }
 
 @MainActor

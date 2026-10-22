@@ -794,6 +794,7 @@ run index text-diff-performance Tinycast/Features/QuickActions/Model/TextDiffEng
 run screen-awareness-test  Tinycast/Features/ScreenAwareness/Model/*.swift
 run acp-test               Tinycast/Features/Agents/Model/*.swift \
                            Tinycast/Features/Agents/Service/*.swift \
+                           Tinycast/Platform/NotificationToken.swift \
                            Tinycast/Features/Settings/AppSettingsKey.swift \
                            Tinycast/Features/AI/Model/AITool.swift \
                            Tinycast/Features/AI/Model/AIRequest.swift \
@@ -814,6 +815,7 @@ run agent-tools-test       Tinycast/Features/Agents/Model/*.swift \
                            Tinycast/Features/AI/Service/AIProvider.swift \
                            Tinycast/Platform/ExecutableLocator.swift \
                            Tinycast/Features/Agents/Service/*.swift \
+                           Tinycast/Platform/NotificationToken.swift \
                            Tinycast/Features/Settings/AppSettingsKey.swift \
                            Tinycast/Features/AI/Model/AITool.swift \
                            Tinycast/Features/AI/Model/JSONValue.swift \
@@ -825,6 +827,23 @@ run agent-tools-test       Tinycast/Features/Agents/Model/*.swift \
                            Tinycast/Platform/ProcessExit.swift \
                            Tinycast/Features/CustomCommands/Service/ShellCommandRunner.swift
 run agent-test             Tinycast/Features/Agents/Model/*.swift \
+                           Tinycast/Features/AI/Model/AIRequest.swift \
+                           Tinycast/Features/Settings/AppSettingsKey.swift \
+                           Tinycast/Features/AI/Model/AITool.swift \
+                           Tinycast/Features/AI/Model/JSONValue.swift \
+                           Tinycast/Features/AI/Model/AIConnection.swift \
+                           Tinycast/Features/AI/Model/AppleIntelligence.swift \
+                           Tinycast/Features/AI/Model/ChatGPTSubscription.swift \
+                           Tinycast/Features/AI/Model/InstalledAI.swift
+run agent-schedule-test    Tinycast/Features/Agents/Model/*.swift \
+                           Tinycast/Features/Agents/Service/AgentScheduler.swift \
+                           Tinycast/Features/Agents/UI/AgentConsentGate.swift \
+                           Tinycast/Features/Agents/UI/AgentNoteWriter.swift \
+                           Tinycast/Platform/Signposts.swift \
+                           $L/SearchRelevance.swift \
+                           Tinycast/Features/Notes/Model/*.swift \
+                           Tinycast/Features/Notes/Service/*.swift \
+                           Tinycast/Platform/NotificationToken.swift \
                            Tinycast/Features/AI/Model/AIRequest.swift \
                            Tinycast/Features/Settings/AppSettingsKey.swift \
                            Tinycast/Features/AI/Model/AITool.swift \

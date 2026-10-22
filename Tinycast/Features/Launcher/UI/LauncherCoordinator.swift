@@ -172,6 +172,8 @@ final class LauncherCoordinator {
             core.aiChatCoordinator.toggleWindow()
         case .askAboutScreen:
             core.screenAwarenessCoordinator.askAboutScreen()
+        case .runAgentTask:
+            core.agentCoordinator.showTaskPrompt()
         case .fixGrammar:
             core.quickActionCoordinator.run(.fixGrammar)
         case .rewrite:

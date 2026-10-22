@@ -315,6 +315,7 @@ final class AppCore {
             chatGPTSubscription.launchSettings = { [aiSettings] in aiSettings.launch(for: .codex) }
             aiChatCoordinator.applyEnabled()
             agentStore.load()
+            agentCoordinator.applyBackground()
             screenAwarenessCoordinator.applyEnabled()
             mcpCoordinator.applyEnabled()
             customQuickActions.onChange = { [weak self] _ in
@@ -708,7 +709,12 @@ final class AppCore {
                 $0.menuSearchCoordinator.applyEnabled()
             })
         track({ _ = $0.notesEnabled }, reproject: { $0.notesCoordinator.applyEnabled() })
-        track({ _ = $0.aiEnabled }, reproject: { $0.aiChatCoordinator.applyEnabled() })
+        track(
+            { _ = $0.aiEnabled },
+            reproject: {
+                $0.aiChatCoordinator.applyEnabled()
+                $0.agentCoordinator.applyBackground()
+            })
         track(
             { _ = $0.dictationIdleRelease },
             reproject: {

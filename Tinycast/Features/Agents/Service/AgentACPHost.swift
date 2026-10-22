@@ -14,12 +14,18 @@ final class AgentACPHost {
 
     private var connections: [UUID: ACPConnection] = [:]
     private var modes: [UUID: ACPModes] = [:]
-    private var sessions: [UUID: (agentID: UUID, sessionID: String)] = [:]
-    private var turns: [String: Turn] = [:]
+    private var sessions: [UUID: Session] = [:]
+    private var turns: [Session: Turn] = [:]
     private var idleStops: [UUID: Task<Void, Never>] = [:]
 
     /// An agent left alone this long is stopped; its sessions reload on the next turn.
     private static let idleLifetime: Duration = .seconds(2 * 60)
+
+    /// A session id is the agent's own, so two agents can both say `sess_1`; the pair is unique.
+    private struct Session: Hashable {
+        let agentID: UUID
+        let id: String
+    }
 
     private final class Turn {
         let continuation: AIProviderStream.Continuation
@@ -58,6 +64,7 @@ final class AgentACPHost {
             let connection = try await connection(for: agent)
             let session = try await session(for: chatID, agent: agent, on: connection, servers: servers)
             sessionID = session.id
+            let key = Session(agentID: agent.id, id: session.id)
             let history = session.isFresh ? request.messages.dropLast().filter {
                 $0.role == .user || $0.role == .assistant
             } : []
@@ -65,8 +72,8 @@ final class AgentACPHost {
                 for: message, context: session.isFresh ? context(agent) : nil, history: Array(history),
                 capabilities: connection.capabilities.prompt)
             let turn = Turn(continuation: continuation, mapper: ACPEventMapper(origin: agent.name))
-            turns[session.id] = turn
-            defer { turns[session.id] = nil }
+            turns[key] = turn
+            defer { turns[key] = nil }
             let result = try await connection.request(
                 "session/prompt", params: ["sessionId": session.id, "prompt": blocks], timeout: nil)
             connection.rememberTree()
@@ -93,13 +100,16 @@ final class AgentACPHost {
         store.setACPSession(nil, forChat: chatID)
     }
 
+    /// A permission request names its session, never its chat; this is the only map back.
+    func chatID(forSession id: String, of agentID: UUID) -> UUID? {
+        let wanted = Session(agentID: agentID, id: id)
+        return sessions.first { $0.value == wanted }?.key
+    }
+
     /// For a run nobody is watching: the agent goes as soon as no turn of its is left.
     func release(agentID: UUID) {
         guard let connection = connections[agentID] else { return }
-        let busy = turns.keys.contains { session in
-            sessions.values.contains { $0.agentID == agentID && $0.sessionID == session }
-        }
-        guard !busy else { return }
+        guard !turns.keys.contains(where: { $0.agentID == agentID }) else { return }
         idleStops.removeValue(forKey: agentID)?.cancel()
         connections[agentID] = nil
         sessions = sessions.filter { $0.value.agentID != agentID }
@@ -127,7 +137,9 @@ final class AgentACPHost {
             throw ACPConnection.ConnectionError.launchFailed("This agent runs on the chat's model.")
         }
         let connection = ACPConnection(runtime: runtime, directory: agent.directory)
-        connection.onUpdate = { [weak self] sessionID, update in self?.route(update, to: sessionID) }
+        connection.onUpdate = { [weak self] sessionID, update in
+            self?.route(update, to: Session(agentID: agent.id, id: sessionID))
+        }
         connection.onPermission = { [weak self] request in
             await self?.permit(agent, request)
         }
@@ -150,7 +162,7 @@ final class AgentACPHost {
     private func session(
         for chatID: UUID, agent: AgentProfile, on connection: ACPConnection, servers: [AIToolServer]
     ) async throws -> (id: String, isFresh: Bool) {
-        if let live = sessions[chatID], live.agentID == agent.id { return (live.sessionID, false) }
+        if let live = sessions[chatID], live.agentID == agent.id { return (live.id, false) }
         let mcpServers = servers.compactMap { Self.mcpServer($0, http: connection.capabilities.mcpHTTP) }
         // A reload replays the history as updates no turn is listening for, so they are dropped.
         if let stored = store.acpSession(forChat: chatID), connection.capabilities.loadSession,
@@ -159,7 +171,7 @@ final class AgentACPHost {
                 params: ["sessionId": stored, "cwd": agent.directory, "mcpServers": mcpServers],
                 timeout: .seconds(120))
         {
-            sessions[chatID] = (agent.id, stored)
+            sessions[chatID] = Session(agentID: agent.id, id: stored)
             await adopt(ACPModes(result: loaded), session: stored, chatID: chatID, agent: agent, on: connection)
             return (stored, false)
         }
@@ -170,7 +182,7 @@ final class AgentACPHost {
             throw ACPConnection.ConnectionError.requestFailed(
                 String(localized: "The agent didn't start a session."))
         }
-        sessions[chatID] = (agent.id, id)
+        sessions[chatID] = Session(agentID: agent.id, id: id)
         store.setACPSession(id, forChat: chatID)
         await adopt(ACPModes(result: result), session: id, chatID: chatID, agent: agent, on: connection)
         return (id, true)
@@ -199,22 +211,22 @@ final class AgentACPHost {
             var current = modes[chatID]
         else { return }
         _ = try await connection.request(
-            "session/set_mode", params: ["sessionId": live.sessionID, "modeId": modeID])
+            "session/set_mode", params: ["sessionId": live.id, "modeId": modeID])
         current.current = modeID
         modes[chatID] = current
         onModes?(chatID, live.agentID, current)
     }
 
-    private func route(_ update: ACPUpdate, to sessionID: String) {
+    private func route(_ update: ACPUpdate, to session: Session) {
         if case .mode(let mode) = update,
-            let (chatID, live) = sessions.first(where: { $0.value.sessionID == sessionID }),
+            let chatID = sessions.first(where: { $0.value == session })?.key,
             var current = modes[chatID]
         {
             current.current = mode
             modes[chatID] = current
-            onModes?(chatID, live.agentID, current)
+            onModes?(chatID, session.agentID, current)
         }
-        guard let turn = turns[sessionID] else { return }
+        guard let turn = turns[session] else { return }
         for event in turn.mapper.events(for: update) { turn.continuation.yield(event) }
     }
 

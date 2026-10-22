@@ -50,6 +50,16 @@ struct FallbackTests {
         let ids = Set(Fallback.Builtin.allCases.map { Fallback.builtin($0).id })
         check("built-in ids are distinct", ids.count == Fallback.Builtin.allCases.count)
 
+        // An agent's rows round-trip, and no prefix reads as another's or as a quicklink.
+        let agentID = UUID()
+        check("an agent row round-trips", Fallback(id: Fallback.agent(agentID).id) == .agent(agentID))
+        check(
+            "an agent pick round-trips", Fallback(id: Fallback.agentPick(agentID).id) == .agentPick(agentID))
+        check("a malformed agent id is nothing", Fallback(id: "agent:not-a-uuid") == nil)
+        check("an agent is not a quicklink", Quicklink.id(fromEntryID: Fallback.agent(agentID).id) == nil)
+        check("a quicklink is not an agent", Fallback(id: quicklink.id) == quicklink)
+        check("the two agent rows differ", Fallback.agent(agentID).id != Fallback.agentPick(agentID).id)
+
         // A command with no fallback of its own must not resolve to one.
         check("a plain command is not a fallback", Fallback(id: CommandID.about.rawValue) == nil)
         check("nonsense is not a fallback", Fallback(id: "banana") == nil)
