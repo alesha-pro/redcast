@@ -32,6 +32,9 @@ struct AgentScheduleTests {
         await consentIsPutAsTheRunAllows()
         await anUnattendedRefusalIsReported()
         runEndings()
+        spendPolicy()
+        cappedRunsAreCounted()
+        spendPersists()
         noteBlocks()
         await aScheduledAnswerLandsInItsNote()
         schedulesPersist()
@@ -454,6 +457,103 @@ struct AgentScheduleTests {
         expect(AgentBackgroundPolicy(minutes: 0).limitMinutes == 5, "a hand-edited limit can't go under five minutes")
         expect(AgentBackgroundPolicy(minutes: 999).limitMinutes == 60, "nor over an hour")
         expect(AgentBackgroundPolicy().limitMinutes == 15, "and the default is a quarter of an hour")
+    }
+
+    // MARK: - Spend cap
+
+    static func spendPolicy() {
+        let utc = calendar()
+        let today = AgentSpendPolicy.day(of: at("2026-10-22T23:59:00Z"), calendar: utc)
+        expect(today == "2026-10-22", "a day is the local calendar's, got \(today)")
+        expect(
+            AgentSpendPolicy.day(of: at("2026-10-22T23:59:00Z"), calendar: calendar("Asia/Tokyo")) == "2026-10-23",
+            "so it turns at the Mac's own midnight")
+        let none = AgentScheduleSpend()
+        expect(AgentSpendPolicy.allowsStart(none, on: today), "no cap holds nothing")
+        expect(!AgentSpendPolicy.isOver(none, on: today, running: 1_000), "and stops nothing")
+        let five = AgentScheduleSpend(capUSD: 5, day: today, spentUSD: 4.99)
+        expect(AgentSpendPolicy.allowsStart(five, on: today), "below the cap a due run starts")
+        expect(!AgentSpendPolicy.isOver(five, on: today, running: 0.01), "reaching the cap exactly is not past it")
+        expect(AgentSpendPolicy.isOver(five, on: today, running: 0.02), "a running turn past it is")
+        let spent = AgentSpendPolicy.adding(0.01, to: five, on: today)
+        expect(!AgentSpendPolicy.allowsStart(spent, on: today), "at the cap the next due run does not start")
+        expect(AgentSpendPolicy.allowsStart(spent, on: "2026-10-23"), "and the next day starts afresh")
+        expect(AgentSpendPolicy.spent(spent, on: "2026-10-23") == 0, "yesterday's total counts for nothing")
+        let tomorrow = AgentSpendPolicy.adding(0.5, to: spent, on: "2026-10-23")
+        expect(
+            tomorrow.day == "2026-10-23" && tomorrow.spentUSD == 0.5 && tomorrow.capUSD == 5,
+            "a cost on a new day starts its total and keeps the cap")
+        expect(AgentSpendPolicy.adding(-3, to: none, on: today).spentUSD == 0, "a negative cost adds nothing")
+        expect(AgentSpendPolicy.adding(.nan, to: none, on: today).spentUSD == 0, "nor does a broken one")
+        let zero = AgentScheduleSpend(capUSD: 0)
+        expect(!AgentSpendPolicy.allowsStart(zero, on: today), "a cap of zero holds every schedule")
+        expect(AgentSpendPolicy.cap(-1) == nil && AgentSpendPolicy.cap(.infinity) == nil, "a nonsense cap is none")
+        expect(AgentSpendPolicy.cap(2.5) == 2.5 && AgentSpendPolicy.cap(nil) == nil, "a real one is kept")
+        let posix = Locale(identifier: "en_US")
+        expect(AgentSpendPolicy.amount(5, locale: posix) == "$5.00", "dollars in the reader's style")
+        expect(
+            AgentSpendPolicy.notStarted(cap: 5, locale: posix)
+                == "Not started: scheduled runs reached today's cap of $5.00",
+            "a held run says why it never ran")
+        expect(
+            AgentSpendPolicy.stopped(cap: 5, locale: posix) == "Stopped at today's spend cap of $5.00",
+            "and a stopped one why it stopped")
+        let partial = try? JSONDecoder().decode(AgentScheduleSpend.self, from: Data(#"{"capUSD":3}"#.utf8))
+        expect(partial == AgentScheduleSpend(capUSD: 3), "every field of the file is optional")
+    }
+
+    static func cappedRunsAreCounted() {
+        let scheduled = UUID()
+        expect(AgentRun.Origin.schedule(scheduled, manual: false).isCapped, "a schedule's own run is capped")
+        expect(!AgentRun.Origin.schedule(scheduled, manual: true).isCapped, "Run Now is a gesture, not capped")
+        expect(!AgentRun.Origin.launcher.isCapped, "and neither is an @handle run")
+        var ledger = AgentRunLedger()
+        var capped = run(origin: .schedule(scheduled, manual: false))
+        capped.cost = 0.4
+        var manual = run(origin: .schedule(scheduled, manual: true))
+        manual.cost = 9
+        var finished = run(state: .done, origin: .schedule(UUID(), manual: false))
+        finished.cost = 7
+        ledger.begin(capped)
+        ledger.begin(manual)
+        ledger.begin(finished)
+        expect(abs(ledger.cappedSpend - 0.4) < 1e-12, "only capped runs still going count as running spend")
+        expect(
+            AgentRun.endState(complete: false, reply: "Working", stoppedAfter: 15, capped: "Stopped at the cap")
+                == .failed("Stopped at the cap"),
+            "a run the cap stopped says so, ahead of any other reason")
+        expect(
+            AgentRun.endState(complete: true, reply: "ok", stoppedAfter: nil, capped: "Stopped at the cap") == .done,
+            "an answer that completed before the stop landed is still done")
+    }
+
+    static func spendPersists() {
+        let directory = scratch()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let store = AgentStore(directory: directory)
+        store.load()
+        expect(store.scheduleSpend == AgentScheduleSpend(), "no file: no cap, nothing spent")
+        expect((try? store.setScheduleCap(5)) != nil, "a cap saves")
+        store.recordScheduledSpend(1.25, on: "2026-10-22")
+        let reloaded = AgentStore(directory: directory)
+        reloaded.load()
+        expect(
+            reloaded.scheduleSpend == AgentScheduleSpend(capUSD: 5, day: "2026-10-22", spentUSD: 1.25),
+            "the cap and the day's spend survive a relaunch")
+        expect((try? reloaded.setScheduleCap(-2)) != nil, "clearing the cap saves")
+        expect(reloaded.scheduleSpend.capUSD == nil && reloaded.scheduleSpend.spentUSD == 1.25, "and keeps the spend")
+
+        let file = directory.appendingPathComponent("agent-schedule-spend.json")
+        try? Data("not json".utf8).write(to: file)
+        let broken = AgentStore(directory: directory)
+        broken.load()
+        expect(broken.scheduleSpend.capUSD == 0, "a file that won't read caps at zero, so nothing scheduled starts")
+        broken.recordScheduledSpend(1, on: "2026-10-22")
+        expect((try? Data(contentsOf: file)) == Data("not json".utf8), "and a run never writes over it")
+        expect((try? broken.setScheduleCap(3)) != nil, "setting the cap again is the user's gesture")
+        let fixed = AgentStore(directory: directory)
+        fixed.load()
+        expect(fixed.scheduleSpend.capUSD == 3, "and it writes a file that reads")
     }
 
     // MARK: - Notes

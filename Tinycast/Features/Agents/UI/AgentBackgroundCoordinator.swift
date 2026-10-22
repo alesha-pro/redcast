@@ -12,6 +12,8 @@ final class AgentBackgroundCoordinator {
         case busy(String)
         case full
         case failed(String)
+        /// A schedule's due run past the day's spend cap.
+        case capped
     }
 
     private(set) var ledger = AgentRunLedger()
@@ -23,6 +25,8 @@ final class AgentBackgroundCoordinator {
     @ObservationIgnored private var watchdogs: [UUID: Task<Void, Never>] = [:]
     /// Runs the watchdog stopped, with the limit it stopped them at.
     @ObservationIgnored private var timedOut: [UUID: Int] = [:]
+    /// Runs the spend cap stopped, with the cap they passed.
+    @ObservationIgnored private var cappedAt: [UUID: Double] = [:]
     @ObservationIgnored private var scheduleOf: [UUID: AgentSchedule] = [:]
     @ObservationIgnored private var activity: (any NSObjectProtocol)?
     @ObservationIgnored private var statusItem: AgentRunsStatusItem?
@@ -74,6 +78,10 @@ final class AgentBackgroundCoordinator {
         chatTitle: String?
     ) -> Result<UUID, Refusal> {
         guard core.settings.aiEnabled else { return .failure(.aiOff) }
+        if origin.isCapped, !AgentSpendPolicy.allowsStart(store.scheduleSpend, on: Self.today()) {
+            hold(title, of: agent, origin: origin)
+            return .failure(.capped)
+        }
         guard ledger.activeCount < Self.maxConcurrent else {
             if origin.announces {
                 core.showMessage(String(localized: "Three agents are already running"), tone: .neutral)
@@ -131,6 +139,21 @@ final class AgentBackgroundCoordinator {
         return .success(id)
     }
 
+    /// A due run the cap holds back still gets a row, so the menu bar says why nothing ran.
+    private func hold(_ title: String, of agent: AgentProfile, origin: AgentRun.Origin) {
+        let now = Date()
+        let reason = AgentSpendPolicy.notStarted(cap: store.scheduleSpend.capUSD ?? 0, locale: .current)
+        ledger.begin(
+            AgentRun(
+                id: UUID(), agentID: agent.id, agentName: agent.name, symbol: agent.symbol, title: title,
+                origin: origin, startedAt: now, endedAt: now, state: .failed(reason), hasChat: false))
+        refreshIndicator()
+    }
+
+    private static func today() -> String {
+        AgentSpendPolicy.day(of: Date(), calendar: .current)
+    }
+
     /// The scheduler's entry: a busy agent or a full house waits for a run to end.
     private func startScheduled(_ schedule: AgentSchedule) -> AgentScheduler.Start {
         switch start(schedule, manual: false) {
@@ -164,6 +187,23 @@ final class AgentBackgroundCoordinator {
         return .turn(in: id, isUnattended: true, consent: consent)
     }
 
+    /// Whether this chat's turn is held to the spend cap, so its route is metered.
+    func isCapped(_ chatID: UUID) -> Bool {
+        ledger.run(chatID).map { $0.isActive && $0.origin.isCapped } ?? false
+    }
+
+    /// A capped run's cost so far; once the day's total passes the cap the run is stopped.
+    func reportCost(_ cost: Double, forChat id: UUID) {
+        guard let run = ledger.run(id), run.isActive, run.origin.isCapped, let chat = chats[id] else { return }
+        ledger.update(id) { $0.cost = cost }
+        let spend = store.scheduleSpend
+        guard cappedAt[id] == nil, let cap = spend.capUSD,
+            AgentSpendPolicy.isOver(spend, on: Self.today(), running: ledger.cappedSpend)
+        else { return }
+        cappedAt[id] = cap
+        chat.cancel()
+    }
+
     func noteDeclined(_ chatID: UUID) {
         ledger.update(chatID) { $0.declined += 1 }
         refreshIndicator()
@@ -178,8 +218,12 @@ final class AgentBackgroundCoordinator {
     // MARK: - Indicator
 
     func open(_ runID: UUID) {
-        core.aiChatCoordinator.openChat(id: runID)
-        core.aiChatCoordinator.showWindow()
+        if ledger.run(runID)?.hasChat == false {
+            showSettings()
+        } else {
+            core.aiChatCoordinator.openChat(id: runID)
+            core.aiChatCoordinator.showWindow()
+        }
         ledger.update(runID) { $0.isSeen = true }
         notifier?.withdraw(runID)
         refreshIndicator()
@@ -225,6 +269,7 @@ final class AgentBackgroundCoordinator {
         watchdogs = [:]
         chats = [:]
         timedOut = [:]
+        cappedAt = [:]
         scheduleOf = [:]
         for chat in running { chat.cancel() }
         scheduler?.stop()
@@ -262,6 +307,7 @@ final class AgentBackgroundCoordinator {
         guard chats.removeValue(forKey: id) != nil else { return }
         watchdogs.removeValue(forKey: id)?.cancel()
         let stoppedAfter = timedOut.removeValue(forKey: id)
+        let capped = cappedAt.removeValue(forKey: id)
         let schedule = scheduleOf.removeValue(forKey: id)
         core.aiChatCoordinator.chats.unpark(id: id)
         if chats.isEmpty { releaseActivity() }
@@ -272,8 +318,12 @@ final class AgentBackgroundCoordinator {
             return settle()
         }
         let last = session.messages.last { $0.role == .assistant }
+        if run.origin.isCapped, let cost = last?.usage?.costUSD ?? run.cost {
+            store.recordScheduledSpend(cost, on: Self.today())
+        }
         let state = AgentRun.endState(
-            complete: last?.state == .complete, reply: last?.text, stoppedAfter: stoppedAfter)
+            complete: last?.state == .complete, reply: last?.text, stoppedAfter: stoppedAfter,
+            capped: capped.map { AgentSpendPolicy.stopped(cap: $0, locale: .current) })
         let ai = core.aiChatCoordinator
         let watched =
             NSApp.keyWindow?.identifier == AIChatWindowChrome.windowIdentifier

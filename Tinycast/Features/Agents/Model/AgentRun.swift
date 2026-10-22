@@ -19,6 +19,12 @@ struct AgentRun: Identifiable, Equatable, Sendable {
             case .schedule(_, let manual): manual
             }
         }
+
+        /// Held to the daily spend cap: only what a schedule starts on its own, never a gesture.
+        var isCapped: Bool {
+            guard case .schedule(_, let manual) = self else { return false }
+            return !manual
+        }
     }
 
     enum State: Equatable, Sendable {
@@ -43,6 +49,10 @@ struct AgentRun: Identifiable, Equatable, Sendable {
     /// What went wrong after the answer itself, such as a note that would not take it.
     var problem: String?
     var isSeen = false
+    /// What its route reported the turn has cost so far, in US dollars.
+    var cost: Double?
+    /// False for a due run the spend cap held back: there is no chat to open.
+    var hasChat = true
 
     var isActive: Bool { state == .running || state == .waiting }
 
@@ -52,8 +62,11 @@ struct AgentRun: Identifiable, Equatable, Sendable {
     }
 
     /// Done only with a complete answer; otherwise why it ended, in the words its row shows.
-    static func endState(complete: Bool, reply: String?, stoppedAfter minutes: Int?) -> State {
+    static func endState(
+        complete: Bool, reply: String?, stoppedAfter minutes: Int?, capped: String? = nil
+    ) -> State {
         if complete { return .done }
+        if let capped { return .failed(capped) }
         if let minutes { return .failed(String(localized: "Stopped after \(minutes) minutes")) }
         // The reply's last line is where a failure says what went wrong.
         let line =
@@ -122,6 +135,11 @@ struct AgentRunLedger: Equatable, Sendable {
     }
 
     var activeCount: Int { runs.count(where: \.isActive) }
+
+    /// What the capped runs still going have reported so far.
+    var cappedSpend: Double {
+        runs.reduce(0) { $1.isActive && $1.origin.isCapped ? $0 + ($1.cost ?? 0) : $0 }
+    }
 
     /// Waiting beats running beats an unseen failure beats an unseen success.
     var indicator: Indicator {

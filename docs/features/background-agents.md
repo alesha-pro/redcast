@@ -59,9 +59,18 @@ the launcher's fallback files, `CommandID`, `AISettingsView` and `AppCore`.
   observed rather than polled, so a foreground and a background ask no longer refuse each other.
 - **Only Always-trusted MCP servers ride an unattended turn.** Servers set to Ask are excluded through
   the run chat's tools menu, so MCP's own dialog, which allows on Return, never appears for one.
-- **Nothing here travels in a backup or `settings.json`.** The policy, the banner opt-in and the
-  schedules live in `agents.json`, `agent-schedules.json` and `agent-schedule-runs.json` beside the
-  other agent files, which are in no backup category and have no `SettingsFileKey`.
+- **Nothing here travels in a backup or `settings.json`.** The policy, the banner opt-in, the
+  schedules and the spend cap live in `agents.json`, `agent-schedules.json`,
+  `agent-schedule-runs.json` and `agent-schedule-spend.json` beside the other agent files, which are
+  in no backup category and have no `SettingsFileKey`.
+- **Schedules spend only up to the day's cap.** With a **Daily spend cap**, a run a schedule starts
+  on its own is not started once the local day's finished scheduled runs cost the cap or more: it
+  gets a failed row saying so instead of a chat, and its occurrence is spent. A capped run whose
+  reported cost, with the day's total and the other capped runs in flight, passes the cap is stopped
+  and its row says why. Costs are only what routes report (`AgentSpendMeter` over a native turn,
+  `AgentACPHost.onCost` for each ACP `usage_update`); a route that reports none counts nothing.
+  Run Now and `@handle` runs are a person's gesture: never held, never counted. A cap file that will
+  not read counts as $0, so nothing scheduled starts until the cap is set again.
 - **Notification Center only on opt-in, and never with the answer.** A banner names the agent, the
   run and whether it finished; the answer stays in the chat. `AgentRunNotifier` and its delegate
   exist only while some agent opts in, and macOS asks for permission on the toggle's own click.
@@ -133,15 +142,28 @@ cut at 64 KB with a pointer to the chat, one blank line below what the note held
 the Notes editor is changed through `NotesStore`, which stays its only writer while editing; any
 other is written on disk and re-listed the next time Notes opens. With Notes off, nothing is written.
 
+### Daily spend cap
+
+**Daily spend cap** under the agents takes US dollars, empty for none; its subtitle adds what
+scheduled runs spent today. `agent-schedule-spend.json` holds the cap, the local day last counted and
+that day's total (`AgentScheduleSpend`, every field optional); `AgentSpendPolicy` decides, and a new
+day starts at zero. A run is checked as it is due — at or past the cap it is held and its row reads
+"Not started: scheduled runs reached today's cap of $5.00", and opening that row shows the cap — and
+again on every cost its route reports while it runs, which ACP agents send mid-turn and the native
+loop after each round. When the turn ends, its last reported cost joins the day's total. The cap is
+local to the Mac's day and time zone, like the schedules.
+
 ## Layout
 
 | File | Holds |
 | --- | --- |
 | `Model/AgentTaskAddress.swift` | Handles and `@handle task` parsing |
 | `Model/AgentSchedule.swift` | The rule, the schedule, its errors, and `AgentSchedulePolicy`: occurrences, verdicts, summaries |
-| `Model/AgentRun.swift` | A run, how it ended and the ledger behind the indicator, `AgentConsentMode`, `AgentConsentPlan`, `AgentBackgroundNeeds`, the note block, the briefing |
+| `Model/AgentRun.swift` | A run, how it ended and the ledger behind the indicator, `AgentConsentMode`, `AgentConsentPlan`, `AgentBackgroundNeeds`, the note block, both briefings |
+| `Model/AgentScheduleSpend.swift` | The cap file's shape and `AgentSpendPolicy`: days, starts, stops, totals and the rows' reasons |
 | `Service/AgentScheduler.swift` | The one sleeping task, its four observers and the sleep meter |
 | `Service/AgentRunNotifier.swift` | Opt-in Notification Center banners |
+| `Service/AgentSpendMeter.swift` | A capped native turn's route, passed through, its reported costs heard |
 | `UI/AgentBackgroundCoordinator.swift` | Starting, watching and finishing runs; consent mode; the item, the notifier and the scheduler |
 | `UI/AgentConsentGate.swift` | One agent question at a time, never over another dialog, put as its plan says |
 | `UI/AgentRunsStatusItem.swift` | The transient menu-bar item and its menu |
@@ -187,8 +209,15 @@ other is written on disk and re-listed the next time Notes opens. With Notes off
   clicking it opens the chat. Off: no banner and no `UNUserNotificationCenter` delegate.
 - ACP: a Claude Code agent run from `@cc …` asks with Claude's own options; **Decline** picks its
   refuse-once option. Its transcript (`~/.claude/projects/…`) shows the prompt opening with the
-  context, then `# Running unattended`; a follow-up typed in the window afterwards has neither. When the run ends, the `npx`/adapter/CLI tree leaves Activity Monitor at once.
-  Two Claude Code agents asking at once: each dialog names its own agent and run.
+  context, then `# Running unattended`; a follow-up typed in the window afterwards has neither. When
+  the run ends, the `npx`/adapter/CLI tree leaves Activity Monitor at once. Two Claude Code agents
+  asking at once: each dialog names its own agent and run.
+- **Daily spend cap** of 0.01 with a schedule on an OpenRouter model (or Claude Code) two minutes
+  ahead: the run starts, is stopped once its reported cost passes a cent, and its row says "Stopped at
+  today's spend cap of $0.01"; the subtitle shows what was spent today. The next due run does not
+  start: an unseen ✗ appears and its row says "Not started…"; clicking it opens Settings › AI ›
+  Agents. Run Now and `@handle` still run. Empty the field: the next due run starts. Quit, set the
+  file to `garbage` and relaunch: the field reads 0 and nothing scheduled starts until it is set.
 - AI off mid-run: the run ends "Cancelled", and the item and the scheduler go away.
 
 Harness: `agent-schedule-test` — handles and addresses, occurrences across weekends and daylight
@@ -197,5 +226,9 @@ whole ask (in front, quiet with Return on refusal, refused unseen when nobody is
 nothing shown after Stop, what is counted) and a counted unattended refusal, how a run ends and its
 limit, note blocks and the append on disk and through an open note's store, persistence and its
 refusals, the scheduler's arming and its settle after sleep, and the consent gate waiting for a
-dialog in order. `acp-test` covers the refusal option, two agents sharing a session id, and the
-briefing: on an unattended chat's every turn, after the context, never on a chat someone started.
+dialog in order, and the spend cap: days, starts at and below the cap, stops past it, a new day,
+nonsense costs and caps, the capped origin and its running spend, its end state, the file's
+persistence and an unreadable file failing closed. `acp-test` covers the refusal option, two agents
+sharing a session id, and the briefing: on an unattended chat's every turn, after the context, never
+on a chat someone started. `agent-loop-test` runs `AgentSpendMeter` over the loop: unchanged events
+and a growing cost after each round.

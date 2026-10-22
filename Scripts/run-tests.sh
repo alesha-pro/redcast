@@ -885,6 +885,7 @@ run agent-schedule-test    Tinycast/Features/Agents/Model/*.swift \
                            Tinycast/Features/AI/Model/InstalledAI.swift
 run agent-loop-test        Tinycast/Features/Agents/Model/*.swift \
                            Tinycast/Features/Agents/Service/AgentLoopProvider.swift \
+                           Tinycast/Features/Agents/Service/AgentSpendMeter.swift \
                            Tinycast/Features/AI/Model/AIRequest.swift \
                            Tinycast/Features/Settings/AppSettingsKey.swift \
                            Tinycast/Features/AI/Model/AITool.swift \

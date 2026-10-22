@@ -13,6 +13,8 @@ final class AgentACPHost {
 
     /// A session's modes changed: on creation, on a reload, or by the agent's own move.
     var onModes: ((_ chatID: UUID, _ agentID: UUID, ACPModes) -> Void)?
+    /// The session's running cost as each `usage_update` mid-turn reports it, for the spend cap.
+    var onCost: ((_ chatID: UUID, _ costUSD: Double) -> Void)?
 
     private var connections: [UUID: ACPConnection] = [:]
     private var modes: [UUID: ACPModes] = [:]
@@ -30,10 +32,12 @@ final class AgentACPHost {
     }
 
     private final class Turn {
+        let chatID: UUID
         let continuation: AIProviderStream.Continuation
         var mapper: ACPEventMapper
 
-        init(continuation: AIProviderStream.Continuation, mapper: ACPEventMapper) {
+        init(chatID: UUID, continuation: AIProviderStream.Continuation, mapper: ACPEventMapper) {
+            self.chatID = chatID
             self.continuation = continuation
             self.mapper = mapper
         }
@@ -76,7 +80,8 @@ final class AgentACPHost {
             let blocks = ACPPrompt.blocks(
                 for: message, context: preamble.isEmpty ? nil : preamble.joined(separator: "\n\n"),
                 history: Array(history), capabilities: connection.capabilities.prompt)
-            let turn = Turn(continuation: continuation, mapper: ACPEventMapper(origin: agent.name))
+            let turn = Turn(
+                chatID: chatID, continuation: continuation, mapper: ACPEventMapper(origin: agent.name))
             turns[key] = turn
             defer { turns[key] = nil }
             let result = try await connection.request(
@@ -232,6 +237,7 @@ final class AgentACPHost {
             onModes?(chatID, session.agentID, current)
         }
         guard let turn = turns[session] else { return }
+        if case .usage(_, _, let cost?) = update { onCost?(turn.chatID, cost) }
         for event in turn.mapper.events(for: update) { turn.continuation.yield(event) }
     }
 

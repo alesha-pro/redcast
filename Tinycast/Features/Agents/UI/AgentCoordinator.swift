@@ -30,6 +30,7 @@ final class AgentCoordinator {
             self?.chatModes[chatID] = modes
             self?.agentModes[agentID] = modes.available
         }
+        host.onCost = { [weak self] chatID, cost in self?.backgroundRuns?.reportCost(cost, forChat: chatID) }
         return host
     }()
 
@@ -148,8 +149,12 @@ final class AgentCoordinator {
         let chatID = chat.session.id
         let mcp = core.mcpCoordinator
         let mode = backgroundRuns?.runMode(forChat: chatID) ?? .chat(chatID)
-        return loop(for: agent, over: base, mode: mode, mcpTools: mcpTools) { call in
+        let turn = loop(for: agent, over: base, mode: mode, mcpTools: mcpTools) { call in
             await mcp.invoke(call, in: chatID)
+        }
+        guard let turn, backgroundRuns?.isCapped(chatID) == true else { return turn }
+        return AgentSpendMeter(base: turn) { [weak self] cost in
+            Task { @MainActor in self?.backgroundRuns?.reportCost(cost, forChat: chatID) }
         }
     }
 
@@ -371,5 +376,13 @@ final class AgentCoordinator {
     /// Run Now: announced like a launcher run; the schedule's next time stays where it was.
     func runNow(_ schedule: AgentSchedule) {
         background.start(schedule, manual: true)
+    }
+
+    func setScheduleCap(_ cap: Double?) {
+        do {
+            try store.setScheduleCap(cap)
+        } catch {
+            core.showMessage(error.localizedDescription, tone: .danger)
+        }
     }
 }
