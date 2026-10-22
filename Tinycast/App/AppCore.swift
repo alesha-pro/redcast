@@ -78,6 +78,7 @@ final class AppCore {
     @ObservationIgnored private(set) lazy var mcp = MCPServerManager(oauth: mcpOAuth)
     let quickActionSettings = QuickActionSettingsStore()
     let customQuickActions = CustomQuickActionStore()
+    let agentStore = AgentStore()
     let chatGPTSubscription = ChatGPTSubscriptionManager()
     let installedAI = InstalledAIManager()
     @ObservationIgnored private var appliedLaunchRevisions: [InstalledAIKind: Int] = [:]
@@ -232,6 +233,8 @@ final class AppCore {
         ScreenAwarenessCoordinator(
             settings: settings, appIndex: appIndex, hotKeys: hotKeys,
             paletteCoordinator: paletteCoordinator, core: self)
+    @ObservationIgnored private(set) lazy var agentCoordinator = AgentCoordinator(
+        store: agentStore, core: self)
     @ObservationIgnored private(set) lazy var mcpCoordinator = MCPCoordinator(
         settings: settings, store: mcpSettings, manager: mcp, core: self)
     /// Its own window and lifecycle, like Settings; Quick AI is the palette's half of the feature.
@@ -308,6 +311,7 @@ final class AppCore {
             installedAI.launchSettings = { [aiSettings] in aiSettings.launch(for: $0) }
             chatGPTSubscription.launchSettings = { [aiSettings] in aiSettings.launch(for: .codex) }
             aiChatCoordinator.applyEnabled()
+            agentStore.load()
             screenAwarenessCoordinator.applyEnabled()
             mcpCoordinator.applyEnabled()
             customQuickActions.onChange = { [weak self] _ in

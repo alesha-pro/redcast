@@ -204,6 +204,10 @@ private struct AIChatComposer: View {
                     .transition(.opacity.combined(with: .scale(scale: 0.9)))
             }
             Spacer(minLength: Theme.Spacing.md)
+            if !coordinator.agents.agents.isEmpty {
+                AIAgentPicker(chat: chat, agents: coordinator.agents, coordinator: coordinator)
+                    .layoutPriority(-1)
+            }
             AIModelPicker(chat: chat, selected: coordinator.model(for: chat), coordinator: coordinator)
                 .layoutPriority(-1)
             AIReasoningPicker(chat: chat, coordinator: coordinator)
@@ -428,6 +432,47 @@ private struct WebSearchPill: View {
         .composerControl()
         .help("Web search is on; click to turn it off")
         .accessibilityLabel("Web search is on")
+    }
+}
+
+/// The chat's agent: the folder, context and tools its turns run with. Fork-only.
+private struct AIAgentPicker: View {
+    let chat: AIChatState
+    let agents: AgentCoordinator
+    let coordinator: AIChatCoordinator
+
+    var body: some View {
+        let current = agents.agent(for: chat)
+        Menu {
+            Toggle(
+                isOn: Binding(
+                    get: { current == nil },
+                    set: { if $0 { agents.setAgent(nil, for: chat) } })
+            ) {
+                Text("No Agent")
+            }
+            Section("Agents") {
+                ForEach(agents.agents) { agent in
+                    Toggle(
+                        isOn: Binding(
+                            get: { current?.id == agent.id },
+                            set: { if $0 { agents.setAgent(agent, for: chat) } })
+                    ) {
+                        Label(agent.name, systemImage: agent.symbol)
+                    }
+                }
+            }
+            Divider()
+            Button("Manage Agents…", action: coordinator.showSettings)
+        } label: {
+            ComposerControlLabel(title: current?.name ?? String(localized: "Agent")) {
+                Image(systemName: current?.symbol ?? "person.crop.circle")
+                    .font(Theme.Typography.composerSymbol)
+                    .foregroundStyle(current == nil ? Theme.Colors.textTertiary : Theme.Colors.textPrimary)
+            }
+        }
+        .composerMenu()
+        .help("Choose this chat's agent")
     }
 }
 
