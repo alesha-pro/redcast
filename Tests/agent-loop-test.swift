@@ -23,6 +23,7 @@ struct AgentLoopTests {
         await signalsLandBetweenACallsRows()
         await stopReachesTheRunningCall()
         await aTurnWithoutCallsPassesThrough()
+        await anAgentTurnCostsEveryRound()
         await aLongTurnElidesInsteadOfStopping()
         await callsThatMayShareARoundDo()
         await aCallThatMayNotRunsAlone()
@@ -114,6 +115,12 @@ struct AgentLoopTests {
                 ],
                 [.searching("q"), .searched("q"), .text("ok"), .usage(AIUsage(inputTokens: 20)), .finished]
             ], maxRounds: 25)
+        await differential(
+            "a priced turn", rounds: [
+                [.usage(AIUsage(inputTokens: 10, costUSD: 0.01)), call("c1")],
+                [.usage(AIUsage(inputTokens: 15)), call("c2")],
+                [.text("ok"), .usage(AIUsage(inputTokens: 20, costUSD: 0.02)), .finished]
+            ], maxRounds: 25)
     }
 
     static func constantsMatchUpstream() {
@@ -195,6 +202,20 @@ struct AgentLoopTests {
         expect(base.requests.count == 1, "a turn that calls nothing is one request")
         expect(base.requests.first?.tools == tools.tools, "armed with the turn's tools")
         expect(events == script, "and its events pass through unchanged")
+    }
+
+    static func anAgentTurnCostsEveryRound() async {
+        let base = ScriptedProvider(rounds: [
+            [.usage(AIUsage(inputTokens: 10, costUSD: 0.01)), call("c1")],
+            [.text("ok"), .usage(AIUsage(inputTokens: 30, costUSD: 0.02)), .finished]
+        ])
+        let tools = toolset([FakeTools(names: ["fs_read"]) { _, _ in "x" }])
+        let events = await collect(AgentLoopProvider(base: base, toolset: tools, maxRounds: 25)).events
+        let usages = events.compactMap { event -> AIUsage? in
+            if case .usage(let usage) = event { usage } else { nil }
+        }
+        expect(abs((usages.last?.costUSD ?? 0) - 0.03) < 1e-12, "an agent reply costs its whole turn")
+        expect(usages.last?.inputTokens == 30, "while its tokens stay the last round's")
     }
 }
 
