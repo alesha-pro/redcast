@@ -91,9 +91,10 @@ in root search or on a schedule: see [background and scheduled agents](backgroun
   `message_tools` and deleted with its message, so `message_tools` keeps its columns and a chat this
   build saved opens unchanged, without the content, in a build from before it.
 - **A slash command list lives with its session.** `available_commands_update` is kept per live
-  session in `AgentACPHost` and mirrored to the coordinator like the modes; it goes when the agent's
-  process does, and nothing is written down. The composer's list exists only while the draft is
-  typing a command name in an ACP chat, and so does the key monitor behind it.
+  session in `AgentACPHost` and mirrored to the coordinator like the modes; a chat's copy goes when
+  its session or the agent's process does, leaving one list per agent, and nothing is written down.
+  The composer's list exists only while the draft is typing a command name in an ACP chat, and so
+  does the key monitor behind it.
 - **Tinycast lends an ACP agent no file system and no terminal.** `initialize` declares `fs` and
   `terminal` off and every such request is refused; [why](#tinycasts-own-fs-and-terminal).
 
