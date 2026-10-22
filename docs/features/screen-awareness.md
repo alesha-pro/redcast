@@ -19,8 +19,10 @@ plus the few lines that wire it in.
   without that grant a capture simply carries no picture and one HUD line says why.
 - **A stale grant is reported, not captured.** After a reinstall macOS can keep Tinycast listed and
   `AXIsProcessTrusted` true while every call answers `kAXErrorAPIDisabled`. The reader stops at the
-  first such answer from all three window lookups and the coordinator raises the same dialog a missing
-  grant gets — switch it off and on — rather than staging a capture that holds only the app's name.
+  first such answer from all three window lookups rather than staging a capture that holds only the
+  app's name. With `AXIsProcessTrusted` true the refusal is the target's own — Chrome keeps refusing a
+  client it was asked about while the grant was stale, until it is relaunched — so the dialog names
+  that app and says to reopen it; otherwise it is the missing-grant dialog.
 - **Only on a gesture, and never Tinycast itself.** Nothing is read until the command runs. With the
   palette open the target is the app behind it (`PaletteCoordinator.targetApp`); with it closed, the
   frontmost app. Tinycast's own bundle is refused with a HUD rather than captured.

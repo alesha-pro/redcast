@@ -111,7 +111,11 @@ final class ScreenAwarenessCoordinator {
                 ? await WindowScreenshotter.capture(pid: pid, frame: reading.windowFrame) : nil
             guard let self, !Task.isCancelled else { return }
             self.capturing = nil
-            guard !reading.accessibilityRefused else { return self.reportMissingAccessibility() }
+            guard !reading.accessibilityRefused else {
+                // Trusted yet refused: the app remembers a refusal from before the grant, not us.
+                return Permissions.isAccessibilityTrusted()
+                    ? self.reportRefusal(by: name) : self.reportMissingAccessibility()
+            }
             self.present(reading.context, screenshot: screenshot, wantedScreenshot: wantsScreenshot)
         }
     }
@@ -144,6 +148,26 @@ final class ScreenAwarenessCoordinator {
             core.showMessage(
                 String(localized: "No screenshot: allow Screen Recording for Tinycast in System Settings."),
                 tone: .neutral)
+        }
+    }
+
+    private func reportRefusal(by app: String) {
+        NSApp.activate(ignoringOtherApps: true)
+        Task {
+            guard
+                await core.reportFailure(
+                    title: String(localized: "\(app) isn't answering Screen Awareness"),
+                    message: String(
+                        localized: """
+                            \(app) refused Tinycast's Accessibility requests, usually because it \
+                            remembers a refusal from before the permission was granted. Quit and \
+                            reopen \(app). If it still refuses, switch Tinycast off and on in \
+                            Accessibility.
+                            """),
+                    symbol: CommandID.askAboutScreen.sfSymbol,
+                    recovery: String(localized: "Open System Settings"))
+            else { return }
+            Permissions.openAccessibilitySettings()
         }
     }
 
