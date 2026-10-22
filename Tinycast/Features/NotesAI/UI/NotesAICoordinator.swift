@@ -47,7 +47,8 @@ final class NotesAICoordinator {
     func attach(_ summary: NoteSummary, to chat: AIChatState, via chats: AIChatCoordinator) {
         let generation = chat.stagingGeneration
         let repository = NotesRepository(notesDirectory: store.notesDirectory)
-        let open = store.activeID == summary.id ? store.source : nil
+        // Only an unsaved draft outranks the file; a clean one may predate edits made while hidden.
+        let open = store.isDirty && store.activeID == summary.id ? store.source : nil
         Task { [weak self, weak chat] in
             let source = await Task.detached(priority: .userInitiated) {
                 () -> Result<String, NotesRepository.Failure> in

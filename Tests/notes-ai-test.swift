@@ -429,18 +429,19 @@ struct NotesAITests {
         write([("Open.md", "draft")], in: root)
         let writes = WriteLog()
         let open = NoteToolWriter(
-            amendOpenDraft: { id, change in await writes.amend(id, change("draft")) },
+            amendOpenDraft: { id, onDisk, change in await writes.amend(id, onDisk, change(onDisk)) },
             didWrite: { await writes.wrote($0) })
         let result = await runner(root, writer: open).run(
             call(NoteTools.append, #"{"note":"Open","text":"agent"}"#))
         let amended = await writes.amended
         let wrote = await writes.written
         expect(
-            !result.isError && amended == ["draft\n\nagent\n"] && wrote.isEmpty
+            !result.isError && amended == ["draft → draft\n\nagent\n"] && wrote.isEmpty
                 && text("Open.md", in: root) == "draft",
             "an open draft takes the text and the file is left to its autosave")
 
-        let closed = NoteToolWriter(amendOpenDraft: { _, _ in false }, didWrite: { await writes.wrote($0) })
+        let closed = NoteToolWriter(
+            amendOpenDraft: { _, _, _ in false }, didWrite: { await writes.wrote($0) })
         _ = await runner(root, writer: closed).run(call(NoteTools.append, #"{"note":"Open","text":"x"}"#))
         _ = await runner(root, writer: closed).run(call(NoteTools.append, #"{"note":"New","text":"y"}"#))
         let after = await writes.written
@@ -480,13 +481,16 @@ struct NotesAITests {
         defer { try? FileManager.default.removeItem(at: root) }
         let store = NotesStore(repository: NotesRepository(notesDirectory: root))
         expect(
-            !store.amendDraft(of: NoteID(rawValue: "Untitled.md")) { $0 }, "an unloaded store takes nothing")
+            !store.amendDraft(of: NoteID(rawValue: "Untitled.md"), onDisk: "") { $0 },
+            "an unloaded store takes nothing")
         _ = await store.create()
         guard let active = store.activeID else { return expect(false, "the store opens a note") }
         store.updateSource("typed")
         _ = await store.flush()
         let epoch = store.editorEpoch
-        expect(!store.amendDraft(of: NoteID(rawValue: "Other.md")) { $0 + "!" }, "another note is not amended")
+        expect(
+            !store.amendDraft(of: NoteID(rawValue: "Other.md"), onDisk: "typed") { $0 + "!" },
+            "another note is not amended")
         let runner = runner(root, writer: .through(store))
         let result = await runner.run(call(NoteTools.append, #"{"note":"Untitled.md","text":"agent"}"#))
         expect(
@@ -503,6 +507,32 @@ struct NotesAITests {
         expect(
             store.summaries.contains { $0.id.rawValue == "Elsewhere.md" } && store.activeID == active,
             "a note written on disk is listed by the open store, which keeps its note")
+
+        // The Notes window hides without unloading the store, so its clean draft can fall behind.
+        let file = root.appendingPathComponent(active.rawValue)
+        try? Data("typed\n\nagent\nedited while hidden\n".utf8).write(to: file)
+        let behind = await runner.run(call(NoteTools.append, #"{"note":"Untitled.md","text":"later"}"#))
+        let joined = "typed\n\nagent\nedited while hidden\n\nlater\n"
+        expect(
+            !behind.isError && text(active.rawValue, in: root) == joined,
+            "a clean draft the file moved past leaves the append to the file, which keeps the edit")
+        _ = await waitUntil { store.source == joined }
+        expect(
+            store.source == joined && !store.isDirty && store.activeID == active,
+            "and the store reloads that note from the file")
+        try? await Task.sleep(for: .milliseconds(400))
+        expect(text(active.rawValue, in: root) == joined, "and no stale autosave follows")
+
+        store.updateSource(joined + "typing")
+        let typing = await runner.run(call(NoteTools.append, #"{"note":"Untitled.md","text":"mid"}"#))
+        expect(
+            !typing.isError && store.source == joined + "typing\n\nmid\n"
+                && text(active.rawValue, in: root) == joined,
+            "an unsaved draft takes the append though the file differs")
+        _ = await waitUntil { !store.isDirty }
+        expect(
+            text(active.rawValue, in: root) == joined + "typing\n\nmid\n",
+            "and its autosave writes both")
     }
 
     static func waitUntil(_ condition: @escaping @MainActor () -> Bool) async -> Bool {
@@ -544,8 +574,8 @@ actor WriteLog {
     private(set) var amended: [String] = []
     private(set) var written: [NoteID] = []
 
-    func amend(_ id: NoteID, _ joined: String) -> Bool {
-        amended.append(joined)
+    func amend(_ id: NoteID, _ onDisk: String, _ joined: String) -> Bool {
+        amended.append("\(onDisk) → \(joined)")
         return true
     }
 
