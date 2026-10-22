@@ -692,7 +692,7 @@ extension ACPTests {
             try? FileManager.default.removeItem(at: root)
         }
         let listed = Listed()
-        host.onCommands = { chat, _, commands in listed.events.append((chat, commands.map(\.name))) }
+        host.onCommands = { chat, _, commands in listed.events.append((chat, commands?.map(\.name))) }
         let chat = UUID()
         let command = replyText(await stream("/review the diff", chat: chat, agent: agent, host: host))
         expect(
@@ -708,6 +708,10 @@ extension ACPTests {
         expect(
             other.contains("turn 1") && other.contains("with context"),
             "a name the agent never offered is an ordinary first turn, got \(other)")
+        host.release(agentID: agent.id)
+        expect(
+            listed.events.last.map { $0.chat != nil && $0.names == nil } == true,
+            "a chat's list goes with its agent's process, so only the agent's last one is kept")
     }
 
     private static func fakeAgent() async -> (AgentProfile, AgentACPHost, URL)? {
@@ -747,5 +751,5 @@ extension ACPTests {
 
 @MainActor
 final class Listed {
-    var events: [(chat: UUID?, names: [String])] = []
+    var events: [(chat: UUID?, names: [String]?)] = []
 }

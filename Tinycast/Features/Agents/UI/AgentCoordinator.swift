@@ -29,7 +29,7 @@ final class AgentCoordinator {
         }
         host.onCommands = { [weak self] chatID, agentID, commands in
             if let chatID { self?.chatCommands[chatID] = commands }
-            self?.agentCommands[agentID] = commands
+            if let commands { self?.agentCommands[agentID] = commands }
         }
         return host
     }()
@@ -38,7 +38,7 @@ final class AgentCoordinator {
     private(set) var chatModes: [UUID: ACPModes] = [:]
     /// What the agent offered last time, so a new chat can pick a mode before its first message.
     private(set) var agentModes: [UUID: [ACPModes.Mode]] = [:]
-    /// Observed like the modes: a chat's own session's slash commands, then the agent's last list.
+    /// Observed like the modes: a live session's slash commands, then the agent's last list.
     private(set) var chatCommands: [UUID: [ACPCommand]] = [:]
     private(set) var agentCommands: [UUID: [ACPCommand]] = [:]
 
@@ -57,7 +57,6 @@ final class AgentCoordinator {
         guard store.agent(forChat: chat.session.id)?.id != agent?.id else { return }
         store.setAgent(agent?.id, forChat: chat.session.id)
         chatGrants[chat.session.id] = nil
-        chatCommands[chat.session.id] = nil
         acpHost.forget(chatID: chat.session.id)
         if let agent { refresh(agent) }
     }
@@ -328,7 +327,6 @@ final class AgentCoordinator {
         if previous?.runtime != draft.runtime || previous?.directory != draft.directory {
             agentCommands[draft.id] = nil
             for (chat, agent) in store.chatAgents where agent == draft.id {
-                chatCommands[chat] = nil
                 acpHost.forget(chatID: chat)
             }
         }

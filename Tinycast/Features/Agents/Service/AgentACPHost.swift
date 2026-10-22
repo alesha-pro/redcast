@@ -11,8 +11,8 @@ final class AgentACPHost {
 
     /// A session's modes changed: on creation, on a reload, or by the agent's own move.
     var onModes: ((_ chatID: UUID, _ agentID: UUID, ACPModes) -> Void)?
-    /// A session listed its slash commands; the chat is nil while the session is not yet bound.
-    var onCommands: ((_ chatID: UUID?, _ agentID: UUID, [ACPCommand]) -> Void)?
+    /// A session listed its slash commands, or nil once it is gone; the chat is nil until bound.
+    var onCommands: ((_ chatID: UUID?, _ agentID: UUID, [ACPCommand]?) -> Void)?
 
     private var connections: [UUID: ACPConnection] = [:]
     private var modes: [UUID: ACPModes] = [:]
@@ -106,8 +106,8 @@ final class AgentACPHost {
     /// A chat's session ends with its agent: the next turn starts or reloads one.
     func forget(chatID: UUID) {
         if let live = sessions.removeValue(forKey: chatID) {
-            commands[live] = nil
             unbriefed.remove(live)
+            if commands.removeValue(forKey: live) != nil { onCommands?(chatID, live.agentID, nil) }
         }
         store.setACPSession(nil, forChat: chatID)
     }
@@ -174,6 +174,9 @@ final class AgentACPHost {
 
     /// The process is gone or going; a pending briefing stays, as a reload still needs it.
     private func dropSessions(of agentID: UUID) {
+        for (chatID, live) in sessions where live.agentID == agentID && commands[live] != nil {
+            onCommands?(chatID, agentID, nil)
+        }
         sessions = sessions.filter { $0.value.agentID != agentID }
         commands = commands.filter { $0.key.agentID != agentID }
     }
