@@ -306,6 +306,7 @@ enum SettingsSearchCatalog {
             .aiAgentSessions, "Search agent sessions",
             keywords: ["claude code", "codex", "gemini", "opencode", "resume", "history", "sessions", "transcripts"]),
         .init(.aiAgentSessions, "Resume in", keywords: ["terminal", "iterm", "ghostty", "warp", "zap"]),
+        // Fork: Agent Sessions' folder overrides.
         .init(
             .aiAgentSessions, "Claude Code folder",
             keywords: ["claude_config_dir", "config dir", "history", "folder", "path"]),

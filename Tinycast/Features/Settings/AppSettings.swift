@@ -470,12 +470,12 @@ final class AppSettings {
         didSet { defaults.set(agentStatusMenuBar, forKey: Key.agentStatusMenuBar.rawValue) }
     }
 
-    /// Where `CLAUDE_CONFIG_DIR` points; empty reads `~/.claude`.
+    /// Fork: where `CLAUDE_CONFIG_DIR` points, which Tinycast can't see; empty reads `~/.claude`.
     var agentSessionsClaudeFolder: String {
         didSet { defaults.set(agentSessionsClaudeFolder, forKey: Key.agentSessionsClaudeFolder.rawValue) }
     }
 
-    /// Where `CODEX_HOME` points; empty reads `~/.codex`.
+    /// Fork: where `CODEX_HOME` points, which Tinycast can't see; empty reads `~/.codex`.
     var agentSessionsCodexFolder: String {
         didSet { defaults.set(agentSessionsCodexFolder, forKey: Key.agentSessionsCodexFolder.rawValue) }
     }
@@ -859,6 +859,7 @@ final class AppSettings {
             || defaults.bool(forKey: Key.agentSessionsEnabled.rawValue)
         agentSessionsTerminal = defaults.string(forKey: Key.agentSessionsTerminal.rawValue) ?? ""
         agentStatusMenuBar = defaults.bool(forKey: Key.agentStatusMenuBar.rawValue)
+        // Fork: Agent Sessions' folder overrides; empty means the agent's default folder.
         agentSessionsClaudeFolder = defaults.string(forKey: Key.agentSessionsClaudeFolder.rawValue) ?? ""
         agentSessionsCodexFolder = defaults.string(forKey: Key.agentSessionsCodexFolder.rawValue) ?? ""
         snippetsShowInLauncher =
