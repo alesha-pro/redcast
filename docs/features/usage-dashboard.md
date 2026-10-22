@@ -24,10 +24,17 @@ ACP agent, for a day, a week or a month — from the chat history kept on this M
   model picker held. Otherwise `conversation_details.model` is decoded as `AIModelSelection` and keyed
   by source and model id, so neither effort nor JSON key order (Swift does not sort keys) splits one
   model into two lines. A missing or unreadable model is **Unknown model**.
-- **Costs are what each route reported, never estimates.** A line's cost is the sum of `cost_usd`
-  over its replies. No price table exists: OpenRouter's figure is what it billed, Claude Code's and
+- **Costs are what each route reported, never estimates.** A line's cost is the sum of what its
+  replies cost. No price table exists: OpenRouter's figure is what it billed, Claude Code's and
   OpenCode's are their own estimates. A reply with no cost stays unpriced and is told apart from one
   that cost 0; the summary says "Cost reported for 12 of 30 replies" when only some were priced.
+- **An ACP reply costs what its session's total rose.** ACP reports cost as the session's running
+  total (`usage_update.cost`), and each ACP reply stores it as it came. So in a chat bound to an ACP
+  agent a reply counts its `cost_usd` minus the last priced reply's before it in that chat — taken
+  from before the period too, so a day or week never inherits earlier spend — and counts whole when
+  the total drops, which is the agent counting afresh (Claude Code does after a relaunch, and a new
+  agent always does). Every other reply counts its `cost_usd` as stored. The same statement does
+  both, with a `LAG` window over the bound chats alone.
 - **A balance is fetched on a press, on a session made for it.** **Check Balance** reads the
   connection's key from Keychain off-main, checks the base URL with `AIEndpointPolicy`, and sends
   `GET /key` — then `GET /credits` only when the key says it is a management key — on a per-call
@@ -52,6 +59,12 @@ ACP agent, for a day, a week or a month — from the chat history kept on this M
 - **The model is the conversation's last.** A chat that switched model mid-way is counted under the
   one it ended on; a per-message model would need a column in upstream's schema.
 - **Tool turns count the last round's tokens** (their cost is the whole turn's, above).
+- **A chat's ACP binding is read as it is now.** Upstream's schema has no per-reply route, so a chat
+  moved onto or off an ACP agent mid-way, or whose agent was deleted (which unbinds its chats), has
+  every reply read by its present binding: earlier running totals summed as they stand, or earlier
+  per-reply costs read as a running total.
+- **A fresh ACP count is seen only as a drop.** When the first total after a reset is already above
+  the one before it, only the difference counts, so up to that earlier total goes uncounted.
 - **Quick Actions and chat titles record nothing**, since neither writes to chat history; the
   footer says Quick Actions are not counted.
 - **Deleted and pruned chats take their usage with them** (`ON DELETE CASCADE`, retention), which is
@@ -70,14 +83,17 @@ ACP agent, for a day, a week or a month — from the chat history kept on this M
 | `Model/UsagePeriod.swift` | Day, week and month intervals from an injected `Calendar`, stepping, titles |
 | `Model/UsageReport.swift` | `UsageTotals`, `UsageRow`, `UsageSubject`, the merged and sorted `UsageReport`, `UsageFormat` |
 | `Model/OpenRouterAccount.swift` | `/key` and `/credits` requests and decoding, what a status means, the binding limit |
-| `Service/UsageQuery.swift` | The read-only aggregate, and the report built from it off-main |
+| `Service/UsageQuery.swift` | The read-only aggregate, ACP running totals turned into rises, and the report built from it off-main |
 | `Service/OpenRouterAccountClient.swift` | The Keychain read and the per-call fetch |
 | `Settings/UsageSection.swift` | The section, a row per model or agent, a balance row per OpenRouter connection |
 
 The aggregate scans `message_details` (replies with usage) first: `CROSS JOIN` pins that order, so
 `messages` is searched by its primary key rather than scanned whole, and the result is one row per
-conversation active in the period. Period bounds are computed in Swift with the injected `Calendar`,
-so day, week and month boundaries and DST are Foundation's, not SQLite's `localtime`.
+conversation active in the period. The ACP chats' running totals come from a `running` CTE that
+looks those chats up through `messages_by_conversation`, their ids bound as one JSON array
+(`json_each`), so a Mac with no ACP agent pays nothing for it. Period bounds are computed in Swift
+with the injected `Calendar`, so day, week and month boundaries and DST are Foundation's, not
+SQLite's `localtime`.
 
 ## Manual sweep
 
@@ -88,7 +104,9 @@ so day, week and month boundaries and DST are Foundation's, not SQLite's `localt
   Today, Yesterday, This Week, This Month, then dates.
 - A chat on OpenRouter adds its cost; a five-round agent turn on OpenRouter shows the turn's summed
   cost in the context card and here; an OpenAI API chat now records tokens.
-- A chat run by an ACP agent is listed under the agent's name and runtime.
+- A chat run by an ACP agent is listed under the agent's name and runtime. After three turns with
+  Claude Code, its line's cost is the session's total (the context card's Cost on the last reply),
+  not the sum of the three totals; on Day, yesterday's turns in the same chat are not added again.
 - Delete a chat: its usage leaves the section the next time it shows.
 - Check Balance on an OpenRouter connection: UTC spend today, this week and this month, the key's
   limit or "No spending limit on this key", and the management-key caption. A wrong key reads
@@ -103,8 +121,10 @@ per conversation, user messages and replies without usage left out, exact `[star
 cost NULL against 0, a missing database left uncreated, reads beside the open writer and after it
 closes. It merges models whose stored JSON differs only in key order and effort, puts an ACP-bound
 chat under its agent and a chat with no model under Unknown model, and checks the sort and the
-totals. Periods use a Berlin Gregorian calendar with Monday weeks (a 23-hour DST day, a week across
-the clock change, stepping back across a year); formats use `en_US`. OpenRouter's documented `/key`
-and `/credits` bodies, an error body and status mapping are decoded without a network. It also
-holds the two accuracy fixes: a two-round tool turn's cost is both rounds', and only `.openAI` is
-sent `stream_options`.
+totals. ACP running totals go through the same store: 0.1, 0.3 and 0.6 cost 0.6, a period counts
+only the rise inside it, a drop starts counting afresh, an unpriced reply keeps the last total, and a
+chat no ACP agent ran sums as stored. Periods use a Berlin Gregorian calendar with Monday weeks (a
+23-hour DST day, a week across the clock change, stepping back across a year); formats use `en_US`.
+OpenRouter's documented `/key` and `/credits` bodies, an error body and status mapping are decoded
+without a network. It also holds the two accuracy fixes: a two-round tool turn's cost is both
+rounds', and only `.openAI` is sent `stream_options`.

@@ -21,6 +21,7 @@ struct UsageDashboardTests {
         await theQueryNeverCreatesTheDatabase()
         await theQueryReadsBesideTheWriterAndAfterItCloses()
         await modelsMergeWhateverTheirKeyOrderAndEffort()
+        await acpRepliesCountWhatTheirSessionTotalRose()
         linesSortByCostThenTokens()
         periodsFollowTheCalendar()
         periodTitlesNameTheRecentOnes()
@@ -214,6 +215,53 @@ struct UsageDashboardTests {
         for line in report.lines { summed.add(line.totals) }
         expect(report.total == summed, "the total is the sum of its lines")
         expect(report.total.cost == 0.75 && report.total.pricedReplies == 2, "and keeps what was priced")
+    }
+
+    static func acpRepliesCountWhatTheirSessionTotalRose() async {
+        let directory = scratch("running")
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let store = ChatHistoryStore(directory: directory)
+        func turns(_ costs: [(TimeInterval, Double?)]) -> ChatSession {
+            let messages = costs.flatMap { offset, cost in
+                [question(at: offset - 1), reply(at: offset, AIUsage(inputTokens: 1, costUSD: cost))]
+            }
+            return session(messages, model: .claude(model: "sonnet", effort: nil))
+        }
+        let rising = turns([(10, 0.1), (20, 0.3), (30, 0.6)])
+        let straddling = turns([(-20, 0.1), (-10, 0.3), (10, 0.6), (86_410, 1)])
+        let relaunched = turns([(10, 0.1), (20, 0.3), (30, 0.05), (40, 0.15)])
+        let gapped = turns([(10, 0.1), (20, nil), (30, 0.3)])
+        let plain = turns([(10, 0.1), (20, 0.3), (30, 0.6)])
+        for chat in [rising, straddling, relaunched, gapped, plain] { store.save(chat) }
+
+        let running: Set = [rising.id, straddling.id, relaunched.id, gapped.id]
+        guard
+            let rows = try? UsageQuery.rows(
+                databaseURL: store.databaseURL, in: period, runningCostChats: running)
+        else {
+            expect(false, "the running-total fixture reads")
+            return
+        }
+        func cost(_ chat: ChatSession) -> Double? {
+            rows.first { $0.conversationID == chat.id }?.totals.cost
+        }
+        func near(_ value: Double?, _ expected: Double) -> Bool {
+            value.map { abs($0 - expected) < 1e-9 } ?? false
+        }
+        expect(near(cost(rising), 0.6), "running totals of 0.1, 0.3 and 0.6 cost 0.6, not 1.0")
+        expect(near(cost(straddling), 0.3), "a period counts only the rise inside it")
+        expect(near(cost(relaunched), 0.3 + 0.15), "a total that drops starts a new session")
+        expect(near(cost(gapped), 0.3), "an unpriced reply leaves the last total standing")
+        expect(near(cost(plain), 1.0), "a chat no ACP agent ran sums its replies as stored")
+        let gappedRow = rows.first { $0.conversationID == gapped.id }?.totals
+        expect(gappedRow?.replies == 3 && gappedRow?.pricedReplies == 2, "and replies still count once")
+
+        let agent = UUID()
+        let report = try? await UsageQuery.report(
+            databaseURL: store.databaseURL, in: period, agents: [rising.id: agent])
+        let line = report?.lines.first { $0.subject == .agent(agent) }
+        expect(near(line?.totals.cost, 0.6), "an ACP agent's line counts what its sessions rose")
+        expect(near(report?.total.cost, 0.6 + 0.6 + 0.6 + 0.4 + 1.0), "and chats it never ran sum as stored")
     }
 
     static func linesSortByCostThenTokens() {

@@ -80,8 +80,9 @@ They run on the user's own logins and subscriptions; Tinycast never sees a key.
 - **Updates map onto the transcript.** Message chunks are text, thought chunks reasoning, a plan a
   reasoning block when it changes, tool calls rows that close exactly once — a call still open when
   the turn ends is closed as failed — and one usage at the end from the prompt's result, with the
-  window from the last `usage_update`. Attachments go as image blocks and embedded resources when the
-  agent declared it takes them, else inlined. A `refusal` stop reason is an error.
+  window and cost from the last `usage_update` (ACP's cost is the session's running total, stored as
+  it came). Attachments go as image blocks and embedded resources when the agent declared it takes
+  them, else inlined. A `refusal` stop reason is an error.
 - **Modes are the agent's.** The modes a session offers (Claude Code's plan, Codex's read-only…)
   replace the model and reasoning pickers in the composer. The choice is stored on the agent as
   `acpMode`, applied with `session/set_mode` to a live session and to each new one, and the menu
