@@ -203,6 +203,7 @@ struct ExtensionTests {
         await webAssemblyChecks()
         await asyncComponentChecks()
         await extensionAIChecks()
+        await hostBridgeAIChecks()
         await menuBarRuntimeChecks()
         await menuBarHostChecks()
         await ExtensionFetchTests.runChecks()

@@ -4,7 +4,7 @@ import Foundation
 enum ExtensionAIRefusal: LocalizedError, Equatable, Sendable {
     case featureOff
     case aiOff
-    case background
+    case unattended
     case denied
     case noModel
     case emptyPrompt
@@ -17,8 +17,8 @@ enum ExtensionAIRefusal: LocalizedError, Equatable, Sendable {
             return String(localized: "Extensions can't use AI. Turn it on in Settings \u{2192} Extensions.")
         case .aiOff:
             return String(localized: "AI is off. Turn it on in Settings \u{2192} AI to let extensions use it.")
-        case .background:
-            return String(localized: "Extensions can't use AI during a background refresh.")
+        case .unattended:
+            return String(localized: "Extensions can use AI only in a command you open.")
         case .denied:
             return String(
                 localized: """

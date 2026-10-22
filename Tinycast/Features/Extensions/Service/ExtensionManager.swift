@@ -55,6 +55,7 @@ final class ExtensionManager: ExtensionRuntimeDelegate, ExtensionHostContext {
     }
 
     @ObservationIgnored private var sessionID: String?
+    @ObservationIgnored private var runningOpenedByUser = false
     @ObservationIgnored private var backgroundSessionID: String?
     @ObservationIgnored private var backgroundRef: ExtensionCommandRef?
     @ObservationIgnored private var backgroundContinuation: CheckedContinuation<Bool, Never>?
@@ -394,12 +395,14 @@ final class ExtensionManager: ExtensionRuntimeDelegate, ExtensionHostContext {
     func run(
         _ owner: InstalledExtension, command: ExtensionCommand, arguments: [String: String] = [:],
         fallbackText: String? = nil, launchType: ExtensionLaunchType = .userInitiated,
-        launchContext: [String: RenderValue] = [:]
+        launchContext: [String: RenderValue] = [:], openedByUser: Bool = true
     ) async {
         guard isEnabled else { return }
         if command.mode == .menuBar || (command.mode == .noView && launchType == .background) {
+            // That lane's only record of the user is its launch type, so a timer cannot claim it.
             menuBars?.run(
-                owner, command: command, arguments: arguments, type: launchType, context: launchContext)
+                owner, command: command, arguments: arguments,
+                type: openedByUser ? launchType : .background, context: launchContext)
             return
         }
         await stop()
@@ -421,6 +424,7 @@ final class ExtensionManager: ExtensionRuntimeDelegate, ExtensionHostContext {
         }
 
         running = ExtensionCommandRef(extensionName: owner.manifest.name, commandName: command.name)
+        runningOpenedByUser = openedByUser
         navigationDepth = 1
         state = .launching
 
@@ -460,7 +464,7 @@ final class ExtensionManager: ExtensionRuntimeDelegate, ExtensionHostContext {
             owner: owner, command: command, arguments: arguments, supportPath: supportPath,
             fallbackText: fallbackText,
             launchType: command.mode == .view ? .userInitiated : launchType,
-            launchContext: launchContext)
+            launchContext: launchContext, openedByUser: openedByUser)
 
         await runtime.start(
             session: session, code: code, file: bundle, mode: command.mode, context: context)
@@ -469,7 +473,7 @@ final class ExtensionManager: ExtensionRuntimeDelegate, ExtensionHostContext {
     private func makeLaunchContext(
         owner: InstalledExtension, command: ExtensionCommand, arguments: [String: String],
         supportPath: URL, fallbackText: String? = nil, launchType: ExtensionLaunchType,
-        launchContext: [String: RenderValue] = [:]
+        launchContext: [String: RenderValue] = [:], openedByUser: Bool = false
     ) -> ExtensionLaunchContext {
         let schemas = owner.manifest.preferences + command.preferences
         return ExtensionLaunchContext(
@@ -487,8 +491,7 @@ final class ExtensionManager: ExtensionRuntimeDelegate, ExtensionHostContext {
             launchType: launchType,
             isDarkAppearance: NSApp.effectiveAppearance.isDark,
             launchContext: launchContext,
-            aiAccess: launchType != .background
-                && bridge.ai?.canAccess(extensionName: owner.manifest.name) == true)
+            aiAccess: openedByUser && bridge.ai?.canAccess(extensionName: owner.manifest.name) == true)
     }
 
     func stop() async {
@@ -507,6 +510,7 @@ final class ExtensionManager: ExtensionRuntimeDelegate, ExtensionHostContext {
     private func resetSessionState() {
         state = .idle
         running = nil
+        runningOpenedByUser = false
         toasts = []
         navigationDepth = 1
         accessoryValues = [:]
@@ -890,6 +894,7 @@ final class ExtensionManager: ExtensionRuntimeDelegate, ExtensionHostContext {
     var activeLaunchType: ExtensionLaunchType {
         backgroundSessionID != nil ? .background : .userInitiated
     }
+    var isOpenedByUser: Bool { backgroundSessionID == nil && runningOpenedByUser }
     var pasteTarget: NSRunningApplication? { coordinator?.pasteTarget }
     var applicationURLs: [URL] { coordinator?.applicationURLs ?? [] }
 
@@ -993,7 +998,8 @@ final class ExtensionManager: ExtensionRuntimeDelegate, ExtensionHostContext {
     /// `launchCommand` from a running command: same extension unless it names another.
     func launch(
         command name: String, extensionName: String?, arguments: [String: String],
-        fallbackText: String?, launchType: ExtensionLaunchType, launchContext: [String: RenderValue]
+        fallbackText: String?, launchType: ExtensionLaunchType, launchContext: [String: RenderValue],
+        openedByUser: Bool
     ) throws {
         let owningName = extensionName ?? activeExtensionName
         guard let owningName, let owner = extensionNamed(owningName),
@@ -1005,15 +1011,15 @@ final class ExtensionManager: ExtensionRuntimeDelegate, ExtensionHostContext {
         }
         coordinator?.runExtensionCommand(
             entry(for: command, in: owner), arguments: arguments, fallbackText: fallbackText,
-            launchType: launchType, launchContext: launchContext)
+            launchType: launchType, launchContext: launchContext, openedByUser: openedByUser)
     }
 
-    func launch(_ link: ExtensionDeepLink) throws {
+    func launch(_ link: ExtensionDeepLink, openedByUser: Bool) throws {
         guard let (owner, command) = resolve(link) else {
             throw ExtensionLaunchError.unknownCommand(link.commandName)
         }
         coordinator?.runExtensionCommand(
             entry(for: command, in: owner), arguments: link.arguments,
-            fallbackText: link.fallbackText, launchType: link.launchType)
+            fallbackText: link.fallbackText, launchType: link.launchType, openedByUser: openedByUser)
     }
 }

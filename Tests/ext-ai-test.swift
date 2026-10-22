@@ -90,20 +90,18 @@ struct ExtensionAITests {
     // MARK: - Policy
 
     static func gatesApplyInOrder() {
-        func access(
-            _ featureOn: Bool, _ aiOn: Bool, _ launchType: ExtensionLaunchType, _ grant: Bool?
-        ) -> ExtensionAIAccess {
-            ExtensionAIPolicy.access(featureOn: featureOn, aiOn: aiOn, launchType: launchType, grant: grant)
+        func access(_ featureOn: Bool, _ aiOn: Bool, _ openedByUser: Bool, _ grant: Bool?) -> ExtensionAIAccess {
+            ExtensionAIPolicy.access(featureOn: featureOn, aiOn: aiOn, openedByUser: openedByUser, grant: grant)
         }
-        expect(access(false, true, .userInitiated, true) == .refused(.featureOff), "the switch comes first")
-        expect(access(false, false, .background, false) == .refused(.featureOff), "the switch beats every gate")
-        expect(access(true, false, .userInitiated, true) == .refused(.aiOff), "AI off is refused next")
-        expect(access(true, false, .background, true) == .refused(.aiOff), "AI off beats background")
-        expect(access(true, true, .background, true) == .refused(.background), "background beats an allowance")
-        expect(access(true, true, .background, nil) == .refused(.background), "background never asks")
-        expect(access(true, true, .userInitiated, false) == .refused(.denied), "a refusal is kept")
-        expect(access(true, true, .userInitiated, nil) == .ask, "a first use asks")
-        expect(access(true, true, .userInitiated, true) == .allowed, "an allowance is kept")
+        expect(access(false, true, true, true) == .refused(.featureOff), "the switch comes first")
+        expect(access(false, false, false, false) == .refused(.featureOff), "the switch beats every gate")
+        expect(access(true, false, true, true) == .refused(.aiOff), "AI off is refused next")
+        expect(access(true, false, false, true) == .refused(.aiOff), "AI off beats an unattended run")
+        expect(access(true, true, false, true) == .refused(.unattended), "an unattended run beats an allowance")
+        expect(access(true, true, false, nil) == .refused(.unattended), "an unattended run never asks")
+        expect(access(true, true, true, false) == .refused(.denied), "a refusal is kept")
+        expect(access(true, true, true, nil) == .ask, "a first use asks")
+        expect(access(true, true, true, true) == .allowed, "an allowance is kept")
     }
 
     static func promptsAreBounded() {
@@ -165,7 +163,7 @@ struct ExtensionAITests {
 
     static func refusalsExplainThemselves() {
         let all: [ExtensionAIRefusal] = [
-            .featureOff, .aiOff, .background, .denied, .noModel, .emptyPrompt,
+            .featureOff, .aiOff, .unattended, .denied, .noModel, .emptyPrompt,
             .promptTooLong(kilobytes: 300), .rateLimited(seconds: 42)
         ]
         let messages = all.compactMap(\.errorDescription)
