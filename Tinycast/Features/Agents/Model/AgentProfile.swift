@@ -4,9 +4,9 @@ import Foundation
 enum AgentAccess: String, Codable, CaseIterable, Identifiable, Sendable {
     /// Reads its folder and its skills; writes nothing, runs nothing.
     case readOnly
-    /// Writes inside its folder and runs commands there, each asking first.
+    /// Writes inside its folder and runs commands there; its consent rules say which ask first.
     case workspaceWrite
-    /// Reads and writes anywhere the account can; commands still ask first.
+    /// Reads and writes anywhere the account can, and runs commands; the same rules apply.
     case fullAccess
 
     var id: String { rawValue }

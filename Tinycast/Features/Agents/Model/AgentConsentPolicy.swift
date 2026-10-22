@@ -58,6 +58,16 @@ enum AgentConsentPolicy {
         }
     }
 
+    /// What a family's tool runs under: a tool the agent is not offered is as good as never.
+    static func rule(
+        for risk: AgentToolRisk, in family: AgentToolKind?, of profile: AgentProfile
+    ) -> AgentConsentRule {
+        guard family.map(profile.tools.contains) ?? true, risk.isOffered(to: profile.access) else {
+            return .never
+        }
+        return rule(for: risk, of: profile)
+    }
+
     static func decide(_ rule: AgentConsentRule, mode: AgentRunMode) -> Verdict {
         switch (rule, mode) {
         case (.never, _): .refuse
