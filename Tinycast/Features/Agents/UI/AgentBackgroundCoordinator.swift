@@ -29,7 +29,6 @@ final class AgentBackgroundCoordinator {
     @ObservationIgnored private var cappedAt: [UUID: Double] = [:]
     @ObservationIgnored private var scheduleOf: [UUID: AgentSchedule] = [:]
     @ObservationIgnored private var activity: (any NSObjectProtocol)?
-    @ObservationIgnored private var statusItem: AgentRunsStatusItem?
     @ObservationIgnored private var notifier: AgentRunNotifier?
     @ObservationIgnored private var scheduler: AgentScheduler?
     /// Called once nothing runs, shows or waits for a due time, so the owner can let this go.
@@ -43,8 +42,10 @@ final class AgentBackgroundCoordinator {
         self.core = core
     }
 
+    /// Kept while the Agents item shows a run, or its open menu could still act on one.
     var isIdle: Bool {
-        chats.isEmpty && statusItem == nil && scheduler == nil && notifier == nil
+        chats.isEmpty && scheduler == nil && notifier == nil && ledger.indicator == .hidden
+            && !core.agentCoordinator.isMenuBarOpen
     }
 
     // MARK: - Starting
@@ -276,8 +277,7 @@ final class AgentBackgroundCoordinator {
         scheduler = nil
         notifier = nil
         ledger = AgentRunLedger()
-        statusItem?.remove()
-        statusItem = nil
+        refreshIndicator()
         releaseActivity()
     }
 
@@ -386,35 +386,13 @@ final class AgentBackgroundCoordinator {
 
     // MARK: - Indicator and teardown
 
+    /// The Agents menu-bar item opened: every finished run counts as seen.
+    func markFinishedSeen() {
+        ledger.markFinishedSeen()
+    }
+
     private func refreshIndicator() {
-        let indicator = ledger.indicator
-        guard indicator != .hidden else {
-            // An open menu keeps its item; closing it comes back here.
-            guard statusItem?.isMenuOpen != true else { return }
-            statusItem?.remove()
-            statusItem = nil
-            return
-        }
-        let item =
-            statusItem
-            ?? AgentRunsStatusItem(
-                actions: AgentRunsStatusItem.Actions(
-                    open: { [weak self] in self?.open($0) },
-                    stop: { [weak self] in self?.stop($0) },
-                    settings: { [weak self] in self?.showSettings() },
-                    viewed: { [weak self] in
-                        self?.ledger.markFinishedSeen()
-                        self?.refreshIndicator()
-                    },
-                    closed: { [weak self] in
-                        // After the chosen row's action, which AppKit sends once the menu closed.
-                        Task { @MainActor in
-                            self?.refreshIndicator()
-                            self?.releaseIfIdle()
-                        }
-                    }))
-        statusItem = item
-        item.show(indicator, runs: ledger.runs)
+        core.agentCoordinator.refreshMenuBar()
     }
 
     private func showSettings() {
@@ -427,7 +405,7 @@ final class AgentBackgroundCoordinator {
         self.activity = nil
     }
 
-    private func releaseIfIdle() {
+    func releaseIfIdle() {
         if isIdle { onIdle?() }
     }
 }

@@ -28,8 +28,14 @@ the launcher's fallback files, `CommandID`, `AISettingsView` and `AppCore`.
 - **One sleeping task, no heartbeat.** `AgentScheduler` sleeps until the next due time with a 30 s
   tolerance, drops that task when the Mac is about to sleep and re-arms on wake, clock and time-zone
   changes: four observers, kept only while some schedule is enabled. A run in flight adds one
-  watchdog task, one transient `NSStatusItem` and one `ProcessInfo` activity that keeps the Mac from
-  idle-sleeping, all released when the run ends.
+  watchdog task and one `ProcessInfo` activity that keeps the Mac from idle-sleeping, both released
+  when the run ends, and shows in the one transient Agents `NSStatusItem`.
+- **One Agents menu-bar item, and only while it has something to show.** `AgentsStatusItem` lists
+  background runs and Agent Sessions' live sessions together; `AgentCoordinator.refreshMenuBar`
+  makes it when either source has a run working, waiting or finished unseen, or a session working,
+  waiting or finished unseen, and removes it when neither has. Each half keeps its own switch: the
+  sessions appear only while AI, the hub and its **Show running agents in the menu bar** are on.
+  There is no timer and no observer; rows are built as the menu opens.
 - **After sleep, every due run waits out the settle.** The wake, a clock change and a run's end can
   reach the scheduler in any order. Each compares the continuous clock, which counts sleep, with the
   suspending one, which does not; any gap over a second means the Mac slept, so the first of them
@@ -103,11 +109,16 @@ Settings › AI › Commands, where its hotkey and alias come free, while AI is 
 
 ## While and after a run
 
-The menu-bar item appears with the first run and goes once nothing is running and every finished run
-has been seen. It shows, in order of priority, a run waiting for an answer, runs in flight (with a
-count past one), an unseen failure or an unseen success. Its menu is built only when opened: one row
-per run, newest first, with ⌥ turning a running row into **Stop**; opening it marks finished runs
-seen. A launcher run and Run Now show a HUD at the start and the end; a schedule's own runs show none,
+The Agents menu-bar item appears with the first run and goes once nothing is running and every
+finished run has been seen, unless Agent Sessions still has a live session to show in it. It shows,
+in order of priority, a run or session waiting for an answer, runs and sessions at work (with a
+count past one), an unseen failure or an unseen success (`AgentRunLedger.Indicator.of` and
+`merged(with:)`). Its menu is built only when opened: **Background Runs**, one row per run, newest
+first, with ⌥ turning a running row into **Stop**; then **Agent Sessions**, one row per live session,
+which jumps to it; then Search Agent Sessions and Clear Finished while the hub's half is on, and
+Agent Settings…. Opening it marks finished runs and sessions seen. The work its closing does waits a
+turn of the main queue, because AppKit sends the chosen row's action after `menuDidClose`, and the
+background coordinator is not let go while the menu is open. A launcher run and Run Now show a HUD at the start and the end; a schedule's own runs show none,
 so nothing pops up at 3 a.m. A run whose chat is on screen in a key AI Chat window is marked seen
 with no HUD and no banner. A run still going after the agent's limit (15 minutes by default, 5 to
 60) is stopped.
@@ -166,7 +177,8 @@ local to the Mac's day and time zone, like the schedules.
 | `Service/AgentSpendMeter.swift` | A capped native turn's route, passed through, its reported costs heard |
 | `UI/AgentBackgroundCoordinator.swift` | Starting, watching and finishing runs; consent mode; the item, the notifier and the scheduler |
 | `UI/AgentConsentGate.swift` | One agent question at a time, never over another dialog, put as its plan says |
-| `UI/AgentRunsStatusItem.swift` | The transient menu-bar item and its menu |
+| `UI/AgentsStatusItem.swift` | The one transient Agents menu-bar item and its menu, runs and sessions |
+| `UI/AgentsMenuBar.swift` | `AgentCoordinator.refreshMenuBar`: when the item exists, what it shows, what its rows do |
 | `UI/AgentTaskLauncher.swift` | Root search's claim, ↵, ⌘↵, Run Agent Task and the rows' ⌘K menu |
 | `UI/AgentNoteWriter.swift` | Appending to a note, through the store or on disk; in `UI/` because it needs `NotesStore` |
 | `Settings/AgentScheduleEditorPanel.swift` | The schedule editor |
@@ -219,6 +231,11 @@ local to the Mac's day and time zone, like the schedules.
   Agents. Run Now and `@handle` still run. Empty the field: the next due run starts. Quit, set the
   file to `garbage` and relaunch: the field reads 0 and nothing scheduled starts until it is set.
 - AI off mid-run: the run ends "Cancelled", and the item and the scheduler go away.
+- With live status and **Show running agents in the menu bar** on, start a Claude CLI session and a
+  `@rig` run: one item shows both under their headers and counts them. Let the run finish while the
+  session waits: the item keeps the waiting symbol. Turn the hub's menu-bar switch off: the session
+  rows, Search Agent Sessions and Clear Finished leave the menu, and the item goes once the run is
+  seen. No run and no live session: no item at all.
 
 Harness: `agent-schedule-test` — handles and addresses, occurrences across weekends and daylight
 saving, verdicts and catch-up, the ledger and its indicator, consent modes and plans, the gate's

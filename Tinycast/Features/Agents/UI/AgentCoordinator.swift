@@ -14,7 +14,9 @@ final class AgentCoordinator {
     /// "Allow for This Chat", per family and risk; never written down.
     @ObservationIgnored private var chatGrants: [UUID: Set<AgentGrant>] = [:]
     /// Made on first need and dropped once idle, so a Mac with no schedule holds none of it.
-    private var backgroundRuns: AgentBackgroundCoordinator?
+    private(set) var backgroundRuns: AgentBackgroundCoordinator?
+    /// The one Agents menu-bar item, made only while a run or a live session has something to show.
+    @ObservationIgnored var menuBarItem: AgentsStatusItem?
     /// Every agent question queues here, a chat's and an unattended run's alike.
     @ObservationIgnored let consentGate = AgentConsentGate()
 
@@ -81,6 +83,7 @@ final class AgentCoordinator {
         made.onIdle = { [weak self, weak made] in
             guard let self, let made, self.backgroundRuns === made else { return }
             self.backgroundRuns = nil
+            self.refreshMenuBar()
         }
         backgroundRuns = made
         return made

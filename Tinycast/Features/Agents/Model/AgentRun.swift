@@ -90,12 +90,40 @@ struct AgentRun: Identifiable, Equatable, Sendable {
 
 /// Recent unattended runs, newest first; finished ones are kept only until there are ten.
 struct AgentRunLedger: Equatable, Sendable {
+    /// What the Agents menu-bar item shows, for background runs and live sessions alike.
     enum Indicator: Equatable, Sendable {
         case hidden
-        case waiting
+        case waiting(Int)
         case running(Int)
         case failed
         case done
+
+        /// Waiting beats running beats an unseen failure beats an unseen success.
+        static func of(waiting: Int, running: Int, failed: Bool, done: Bool) -> Self {
+            if waiting > 0 { return .waiting(waiting) }
+            if running > 0 { return .running(running) }
+            if failed { return .failed }
+            return done ? .done : .hidden
+        }
+
+        /// Two sources in one item: the more urgent wins, and counts of the same state add up.
+        func merged(with other: Self) -> Self {
+            switch (self, other) {
+            case (.waiting(let a), .waiting(let b)): .waiting(a + b)
+            case (.running(let a), .running(let b)): .running(a + b)
+            default: rank <= other.rank ? self : other
+            }
+        }
+
+        private var rank: Int {
+            switch self {
+            case .waiting: 0
+            case .running: 1
+            case .failed: 2
+            case .done: 3
+            case .hidden: 4
+            }
+        }
     }
 
     static let keptFinished = 10
@@ -141,14 +169,13 @@ struct AgentRunLedger: Equatable, Sendable {
         runs.reduce(0) { $1.isActive && $1.origin.isCapped ? $0 + ($1.cost ?? 0) : $0 }
     }
 
-    /// Waiting beats running beats an unseen failure beats an unseen success.
+    /// A waiting run counts as waiting, not running; finished ones only until they are seen.
     var indicator: Indicator {
-        if runs.contains(where: { $0.state == .waiting }) { return .waiting }
-        let active = activeCount
-        if active > 0 { return .running(active) }
-        if runs.contains(where: { $0.isFailed && !$0.isSeen }) { return .failed }
-        if runs.contains(where: { $0.state == .done && !$0.isSeen }) { return .done }
-        return .hidden
+        let waiting = runs.count { $0.state == .waiting }
+        return .of(
+            waiting: waiting, running: activeCount - waiting,
+            failed: runs.contains { $0.isFailed && !$0.isSeen },
+            done: runs.contains { $0.state == .done && !$0.isSeen })
     }
 
     /// Active runs are never dropped; the oldest finished ones go first.

@@ -40,8 +40,9 @@ in `Features/AgentSessions/`, plus the few lines that wire it in.
 - **Capabilities stay off and never travel.** Live status is off by default and is a capability: it is
   `live-status.json` plus the hooks, outside `AppSettings`, so no backup or `settings.json` carries it.
   `agentSessionsEnabled`, `agentSessionsTerminal` and `agentStatusMenuBar` are excluded from backups;
-  only `agentSessionsEnabled` has a settings-file key (`ai.agentSessions`). The menu-bar item is off
-  by default and exists only while an agent works, waits or finished unseen.
+  only `agentSessionsEnabled` has a settings-file key (`ai.agentSessions`). Its menu-bar rows are
+  off by default and show in the one Agents item only while an agent works, waits or finished
+  unseen ([background agents](background-agents.md#while-and-after-a-run)).
 - **Tinycast's own ACP sessions show once.** A Claude or Codex session whose id is in
   `AgentStore.acpSessions` is a Tinycast chat and is listed only as that chat; Codex threads with the
   `tinycast` originator are dropped for the same reason.
@@ -74,7 +75,6 @@ in `Features/AgentSessions/`, plus the few lines that wire it in.
 | `UI/AgentActivityState.swift` | What the hooks reported |
 | `UI/AgentSessionsScreen.swift` | The palette screen and its ⌘K menu |
 | `UI/AgentSessionsList.swift`, `UI/AgentSessionPreview.swift` | The list and the preview |
-| `UI/AgentStatusItem.swift` | The opt-in menu-bar item |
 | `Settings/AgentSessionsSettingsSection.swift`, `Settings/AgentHooksPanel.swift` | The AI pane's section and the diff panel |
 
 ## What is read
@@ -153,9 +153,11 @@ shown only for finished, waiting or failed; never for a Claude app or Codex app 
 is in front, an unchanged status, or a repeat within 10 s. Activity keeps at most 32 entries, drops
 an ended one after 10 minutes and anything after 12 hours.
 
-The menu-bar item builds its rows as it opens and marks the finished ones seen; the work its closing
-does (which may remove the item) waits a turn of the main queue, because AppKit delivers the chosen
-row's action after `menuDidClose` and a menu item holds its target weakly.
+With **Show running agents in the menu bar** on, the hub's live sessions are a section of the one
+Agents menu-bar item that background runs use (`Agents/UI/AgentsStatusItem.swift`): the hub gives it
+`menuBarIndicator` and `menuBarRows`, built as the menu opens, and the item's opening marks finished
+sessions seen. Rows jump to their session; Search Agent Sessions and Clear Finished sit below. With
+the switch off, the item shows no session, row or hub action at all.
 
 ## Manual sweep
 
@@ -186,10 +188,11 @@ Run in `Tinycast Dev.app` with AI on.
     session. `claude -p`, `codex exec`, an AI Chat turn on the Codex route and an agent chat in
     Tinycast give no HUD, no menu-bar row and are never a Jump to Agent target. Check `$PPID`
     resolves the host for both agents.
-14. The menu-bar item (opt-in) appears while an agent works and leaves after Clear Finished; its rows
-    jump. With only one finished agent left, open the menu and click its row: the terminal comes
-    forward and the item then leaves. When another agent finishes, choose Search Agent Sessions from
-    the menu instead: the screen opens.
+14. The Agents menu-bar item (opt-in for sessions) appears while an agent works and leaves after
+    Clear Finished; its Agent Sessions rows jump. With only one finished agent left, open the menu
+    and click its row: the terminal comes forward and the item then leaves. When another agent
+    finishes, choose Search Agent Sessions from the menu instead: the screen opens. A background run
+    at the same time shares the item, under Background Runs.
 15. Quit Tinycast and run an agent: nothing launches, and the transcript shows no hook error.
 16. **Turn Off…** restores the original bytes (`diff` against the backup). Edit `settings.json` while
     the panel is open: Turn On refuses and shows the new diff.
