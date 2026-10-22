@@ -732,6 +732,7 @@ run ai-chat-test           Tinycast/Features/AI/Model/AIRequest.swift \
                            Tinycast/Features/AI/Service/AIProvider.swift \
                            Tinycast/Features/AI/Service/ChatHistoryStore.swift \
                            Tinycast/Features/AI/Service/AIToolLoopProvider.swift \
+                           Tinycast/Features/WebSearch/Model/*.swift \
                            Tinycast/Features/AI/UI/AIChatState.swift \
                            Tinycast/Features/AI/UI/AIChatSurfacesState.swift \
                            Tinycast/Features/AI/UI/ChatFindState.swift
@@ -817,6 +818,21 @@ run agent-test             Tinycast/Features/Agents/Model/*.swift \
                            Tinycast/Features/AI/Model/ChatGPTSubscription.swift \
                            Tinycast/Features/AI/Model/InstalledAI.swift
 run agent-loop-test        Tinycast/Features/Agents/Model/*.swift \
+                           Tinycast/Features/Agents/Service/AgentLoopProvider.swift \
+                           Tinycast/Features/AI/Model/AIRequest.swift \
+                           Tinycast/Features/Settings/AppSettingsKey.swift \
+                           Tinycast/Features/AI/Model/AITool.swift \
+                           Tinycast/Features/AI/Model/JSONValue.swift \
+                           Tinycast/Features/AI/Model/AIConnection.swift \
+                           Tinycast/Features/AI/Model/AppleIntelligence.swift \
+                           Tinycast/Features/AI/Model/ChatGPTSubscription.swift \
+                           Tinycast/Features/AI/Model/InstalledAI.swift \
+                           Tinycast/Features/AI/Service/AIProvider.swift \
+                           Tinycast/Features/AI/Service/AIToolLoopProvider.swift \
+                           Tinycast/Features/WebSearch/Model/*.swift
+run web-search-test        Tinycast/Features/WebSearch/Model/*.swift \
+                           Tinycast/Features/WebSearch/Service/*.swift \
+                           Tinycast/Features/Agents/Model/*.swift \
                            Tinycast/Features/Agents/Service/AgentLoopProvider.swift \
                            Tinycast/Features/AI/Model/AIRequest.swift \
                            Tinycast/Features/Settings/AppSettingsKey.swift \

@@ -124,8 +124,9 @@ struct AISettingsView: View {
         return Section {
             Toggle(isOn: $settings.webSearchEnabled) {
                 SettingsRowTitle(.aiChat, "Web search")
-                Text("Codex and OpenRouter only. Prompts go to a search engine.")
+                Text("Prompts go to a search engine: Codex's own, or the engines below on API models.")
             }
+            WebSearchEnginesRow()
             Toggle(isOn: $settings.choicesEnabled) {
                 SettingsRowTitle(.aiChat, "Suggested replies")
                 Text("Next steps the model offers as buttons after a reply.")

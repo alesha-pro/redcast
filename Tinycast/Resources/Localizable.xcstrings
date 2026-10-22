@@ -12524,6 +12524,184 @@
         }
       }
     },
+    "%lld results in %@ s" : {
+      "localizations" : {
+        "de" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%1$lld Ergebnis in %2$@ s"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%1$lld Ergebnisse in %2$@ s"
+                }
+              }
+            }
+          }
+        },
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%1$lld result in %2$@ s"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%1$lld results in %2$@ s"
+                }
+              }
+            }
+          }
+        },
+        "es" : {
+          "variations" : {
+            "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%1$lld resultados en %2$@ s"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%1$lld resultado en %2$@ s"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%1$lld resultados en %2$@ s"
+                }
+              }
+            }
+          }
+        },
+        "fr" : {
+          "variations" : {
+            "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%1$lld de résultats en %2$@ s"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%1$lld résultat en %2$@ s"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%1$lld résultats en %2$@ s"
+                }
+              }
+            }
+          }
+        },
+        "ja" : {
+          "variations" : {
+            "plural" : {
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%2$@秒で%1$lld件の結果"
+                }
+              }
+            }
+          }
+        },
+        "ko" : {
+          "variations" : {
+            "plural" : {
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%2$@초 만에 결과 %1$lld개"
+                }
+              }
+            }
+          }
+        },
+        "pt" : {
+          "variations" : {
+            "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%1$lld de resultados em %2$@ s"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%1$lld resultado em %2$@ s"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%1$lld resultados em %2$@ s"
+                }
+              }
+            }
+          }
+        },
+        "ru" : {
+          "variations" : {
+            "plural" : {
+              "few" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%1$lld результата за %2$@ с"
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%1$lld результатов за %2$@ с"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%1$lld результат за %2$@ с"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%1$lld результата за %2$@ с"
+                }
+              }
+            }
+          }
+        },
+        "zh-Hans" : {
+          "variations" : {
+            "plural" : {
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%2$@ 秒内返回 %1$lld 条结果"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "%lld rooms" : {
       "localizations" : {
         "de" : {
@@ -17892,6 +18070,58 @@
         }
       }
     },
+    "API key (optional)" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "API-Schlüssel (optional)"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clave de API (opcional)"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clé API (facultative)"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "APIキー（任意）"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "API 키(선택 사항)"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chave de API (opcional)"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ключ API (необязательно)"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "API 密钥（可选）"
+          }
+        }
+      }
+    },
     "API key rejected — check it in Settings." : {
       "localizations" : {
         "de" : {
@@ -20231,6 +20461,58 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "添加到每条信息"
+          }
+        }
+      }
+    },
+    "Address" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Adresse"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dirección"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Adresse"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "アドレス"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "주소"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Endereço"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Адрес"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "地址"
           }
         }
       }
@@ -22618,6 +22900,110 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "另一个登录仍在等待中。请先完成它。"
+          }
+        }
+      }
+    },
+    "Answered HTTP %lld." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Antwort: HTTP %lld."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Respondió HTTP %lld."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Réponse HTTP %lld."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "HTTP %lldが返されました。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "HTTP %lld 응답을 받았습니다."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Respondeu HTTP %lld."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ответ: HTTP %lld."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "返回了 HTTP %lld。"
+          }
+        }
+      }
+    },
+    "Answered in a shape Tinycast can't read." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Antwort hat ein Format, das Tinycast nicht lesen kann."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Respondió en un formato que Tinycast no puede leer."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A répondu dans un format que Tinycast ne sait pas lire."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tinycastが読み取れない形式で応答しました。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tinycast가 읽을 수 없는 형식으로 응답했습니다."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Respondeu em um formato que o Tinycast não consegue ler."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ответ в формате, который Tinycast не может прочитать."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "返回的格式 Tinycast 无法读取。"
           }
         }
       }
@@ -28008,6 +28394,58 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "右下四分之一"
+          }
+        }
+      }
+    },
+    "Brave's independent index. Needs a key; about 1,000 searches a month are free, with a card on file." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Braves unabhängiger Index. Benötigt einen Schlüssel; etwa 1.000 Suchen pro Monat sind kostenlos, mit hinterlegter Karte."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El índice independiente de Brave. Necesita una clave; unas 1.000 búsquedas al mes son gratis, con una tarjeta registrada."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L’index indépendant de Brave. Nécessite une clé ; environ 1 000 recherches par mois sont gratuites, avec une carte enregistrée."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Braveの独自インデックス。キーが必要です。カードを登録すると月約1,000回まで無料です。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Brave의 독립 인덱스입니다. 키가 필요하며, 카드를 등록하면 매월 약 1,000회 검색이 무료입니다."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O índice independente do Brave. Requer uma chave; cerca de 1.000 buscas por mês são gratuitas, com um cartão cadastrado."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Независимый индекс Brave. Нужен ключ; около 1000 запросов в месяц бесплатно, если привязана карта."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Brave 的独立索引。需要密钥；绑定银行卡后每月约 1,000 次搜索免费。"
           }
         }
       }
@@ -35902,58 +36340,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Codex API 密钥"
-          }
-        }
-      }
-    },
-    "Codex and OpenRouter only. Prompts go to a search engine." : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Nur Codex und OpenRouter. Prompts werden an eine Suchmaschine gesendet."
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Solo Codex y OpenRouter. Las instrucciones se envían a un motor de búsqueda."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Codex et OpenRouter uniquement. Les requêtes sont envoyées à un moteur de recherche."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "CodexとOpenRouterのみ。プロンプトは検索エンジンに送信されます。"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Codex와 OpenRouter에서만 사용할 수 있습니다. 프롬프트가 검색 엔진으로 전송됩니다."
-          }
-        },
-        "pt" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Somente Codex e OpenRouter. Os prompts vão para um mecanismo de busca."
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Только Codex и OpenRouter. Запросы отправляются в поисковую систему."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "仅限 Codex 和 OpenRouter。提示词会发送给搜索引擎。"
           }
         }
       }
@@ -52084,6 +52470,58 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "请输入启动此服务器的命令。"
+          }
+        }
+      }
+    },
+    "Enter the server's address, like https://search.example.com." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gib die Adresse des Servers ein, etwa https://search.example.com."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Introduce la dirección del servidor, como https://search.example.com."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Saisissez l’adresse du serveur, par exemple https://search.example.com."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "https://search.example.com のように、サーバのアドレスを入力してください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "https://search.example.com과 같이 서버 주소를 입력하십시오."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Digite o endereço do servidor, como https://search.example.com."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Введите адрес сервера, например https://search.example.com."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请输入服务器地址，例如 https://search.example.com。"
           }
         }
       }
@@ -77054,6 +77492,110 @@
         }
       }
     },
+    "Needs a key." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Benötigt einen Schlüssel."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Necesita una clave."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nécessite une clé."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "キーが必要です。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "키가 필요합니다."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Requer uma chave."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Нужен ключ."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "需要密钥。"
+          }
+        }
+      }
+    },
+    "Needs an address." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Benötigt eine Adresse."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Necesita una dirección."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nécessite une adresse."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "アドレスが必要です。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "주소가 필요합니다."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Requer um endereço."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Нужен адрес."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "需要地址。"
+          }
+        }
+      }
+    },
     "Needs confirmation" : {
       "localizations" : {
         "de" : {
@@ -81839,6 +82381,58 @@
         }
       }
     },
+    "No results." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keine Ergebnisse."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sin resultados."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aucun résultat."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "結果はありません。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "결과가 없습니다."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nenhum resultado."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Нет результатов."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无结果。"
+          }
+        }
+      }
+    },
     "No screenshot: allow Screen Recording for Tinycast in System Settings." : {
       "localizations" : {
         "de" : {
@@ -82824,6 +83418,58 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "其窗口均未打开。请先打开它们，然后重新选取。"
+          }
+        }
+      }
+    },
+    "None switched on" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keine eingeschaltet"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ninguno activado"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aucun activé"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "オンのものはありません"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "켜진 항목 없음"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nenhum ativado"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ни одна не включена"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "均未开启"
           }
         }
       }
@@ -93112,6 +93758,58 @@
         }
       }
     },
+    "Private results with short snippets, read from its web page. Unofficial, and may refuse when busy." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Private Ergebnisse mit kurzen Auszügen, von seiner Webseite gelesen. Inoffiziell und lehnt bei hoher Last eventuell ab."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Resultados privados con fragmentos breves, leídos de su página web. No es oficial y puede rechazar consultas cuando está saturado."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Résultats privés avec de courts extraits, lus depuis sa page web. Non officiel, et peut refuser en cas d’affluence."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "短いスニペット付きのプライベートな結果を、Webページから読み取ります。非公式のため、混雑時は拒否されることがあります。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "짧은 발췌문이 포함된 비공개 결과를 웹 페이지에서 읽어 옵니다. 비공식 방식이며, 혼잡할 때는 요청을 거부할 수 있습니다."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Resultados privados com trechos curtos, lidos da página web dele. Não oficial, e pode recusar quando estiver sobrecarregado."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Приватные результаты с короткими фрагментами, считываются с его веб-страницы. Неофициально; при нагрузке может отказать."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "带简短摘要的私密结果，从其网页读取。非官方方式，繁忙时可能拒绝请求。"
+          }
+        }
+      }
+    },
     "Probably %@." : {
       "localizations" : {
         "de" : {
@@ -93264,6 +93962,58 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : ".agents/skills 中的项目技能"
+          }
+        }
+      }
+    },
+    "Prompts go to a search engine: Codex's own, or the engines below on API models." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prompts werden an eine Suchmaschine gesendet: die von Codex oder, bei API-Modellen, die unten gewählten."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Las instrucciones se envían a un motor de búsqueda: el propio de Codex o, en los modelos de API, los de abajo."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Les requêtes sont envoyées à un moteur de recherche : celui de Codex, ou ceux ci-dessous pour les modèles API."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "プロンプトは検索エンジンに送信されます。CodexではCodex自身の検索、APIモデルでは下のエンジンを使います。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "프롬프트가 검색 엔진으로 전송됩니다. Codex는 자체 검색을, API 모델은 아래 엔진을 사용합니다."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Os prompts vão para um mecanismo de busca: o do próprio Codex ou, nos modelos de API, os mecanismos abaixo."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Запросы отправляются в поисковую систему: собственную у Codex или указанные ниже — у моделей API."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "提示词会发送给搜索引擎：Codex 使用自己的搜索，API 模型使用下方的引擎。"
           }
         }
       }
@@ -95126,6 +95876,58 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Достигнут лимит запросов — повторите попытку позже."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已达到速率限制，请稍后重试。"
+          }
+        }
+      }
+    },
+    "Rate limited; try again later." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ratenlimit erreicht; versuche es später erneut."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Límite de frecuencia alcanzado; inténtalo más tarde."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Limite de requêtes atteinte ; réessayez plus tard."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "レート制限中です。しばらくしてからもう一度お試しください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "요청 한도에 도달했습니다. 나중에 다시 시도하십시오."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Limite de requisições atingido; tente novamente mais tarde."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Превышен лимит запросов; повторите позже."
           }
         },
         "zh-Hans" : {
@@ -97033,6 +97835,58 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "在后台刷新"
+          }
+        }
+      }
+    },
+    "Refused the request." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Anfrage wurde abgelehnt."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rechazó la solicitud."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A refusé la requête."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "リクエストが拒否されました。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "요청이 거부되었습니다."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recusou a solicitação."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Запрос отклонён."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请求被拒绝。"
           }
         }
       }
@@ -103467,6 +104321,58 @@
         }
       }
     },
+    "SearXNG setup" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "SearXNG einrichten"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Configurar SearXNG"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Installer SearXNG"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "SearXNGのセットアップ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "SearXNG 설정"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Configurar o SearXNG"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Настройка SearXNG"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "设置 SearXNG"
+          }
+        }
+      }
+    },
     "Search" : {
       "comment" : "Web-search pill in the chat composer; also a search placeholder",
       "localizations" : {
@@ -103620,6 +104526,58 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "搜索表情与符号"
+          }
+        }
+      }
+    },
+    "Search Engines" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Suchmaschinen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Motores de búsqueda"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Moteurs de recherche"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "検索エンジン"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "검색 엔진"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mecanismos de busca"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Поисковые системы"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "搜索引擎"
           }
         }
       }
@@ -104300,6 +105258,58 @@
         }
       }
     },
+    "Search built for agents, with page excerpts. Free without a key at a lower rate limit." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Für Agenten gebaute Suche mit Seitenauszügen. Ohne Schlüssel kostenlos, mit niedrigerem Ratenlimit."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Búsqueda pensada para agentes, con extractos de las páginas. Gratis sin clave, con un límite de frecuencia más bajo."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recherche conçue pour les agents, avec des extraits de pages. Gratuite sans clé, avec une limite de requêtes plus basse."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "エージェント向けの検索で、ページの抜粋付きです。キーなしでも無料ですが、レート制限は低めです。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "에이전트용으로 만든 검색으로, 페이지 발췌문을 제공합니다. 키 없이 무료이며 요청 한도가 더 낮습니다."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Busca feita para agentes, com trechos das páginas. Gratuita sem chave, com limite de requisições menor."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Поиск для агентов, с выдержками со страниц. Бесплатно без ключа, с более низким лимитом запросов."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "专为智能体打造的搜索，附带网页摘录。无需密钥即可免费使用，但速率限制较低。"
+          }
+        }
+      }
+    },
     "Search by model or company" : {
       "localizations" : {
         "de" : {
@@ -104664,6 +105674,58 @@
         }
       }
     },
+    "Search engines" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Suchmaschinen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Motores de búsqueda"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Moteurs de recherche"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "検索エンジン"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "검색 엔진"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mecanismos de busca"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Поисковые системы"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "搜索引擎"
+          }
+        }
+      }
+    },
     "Search extensions" : {
       "localizations" : {
         "de" : {
@@ -104868,6 +105930,58 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "搜索操作…"
+          }
+        }
+      }
+    },
+    "Search for agents. Needs a key; 1,000 searches a month are free, no card." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Suche für Agenten. Benötigt einen Schlüssel; 1.000 Suchen pro Monat sind kostenlos, ohne Karte."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Búsqueda para agentes. Necesita una clave; 1.000 búsquedas al mes son gratis, sin tarjeta."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recherche pour les agents. Nécessite une clé ; 1 000 recherches par mois sont gratuites, sans carte."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "エージェント向けの検索。キーが必要です。月1,000回まで無料で、カードは不要です。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "에이전트용 검색입니다. 키가 필요하며, 매월 1,000회 검색이 무료이고 카드는 필요 없습니다."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Busca para agentes. Requer uma chave; 1.000 buscas por mês são gratuitas, sem cartão."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Поиск для агентов. Нужен ключ; 1000 запросов в месяц бесплатно, без карты."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "面向智能体的搜索。需要密钥；每月 1,000 次搜索免费，无需银行卡。"
           }
         }
       }
@@ -105652,6 +106766,58 @@
         }
       }
     },
+    "Search the web for “%@”" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Im Web nach „%@“ suchen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Buscar «%@» en la web"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rechercher « %@ » sur le web"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Webで「%@」を検索"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "웹에서 ‘%@’ 검색"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Buscar “%@” na web"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Искать в интернете «%@»"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在网页上搜索“%@”"
+          }
+        }
+      }
+    },
     "Search windows, or type an app to add…" : {
       "localizations" : {
         "de" : {
@@ -105700,6 +106866,58 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "搜索窗口，或输入 App 名称以添加…"
+          }
+        }
+      }
+    },
+    "Search with page excerpts. Free without a key at a shared rate limit; a free key adds monthly credit." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Suche mit Seitenauszügen. Ohne Schlüssel kostenlos mit geteiltem Ratenlimit; ein kostenloser Schlüssel bringt monatliches Guthaben."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Búsqueda con extractos de las páginas. Gratis sin clave con un límite de frecuencia compartido; una clave gratuita añade crédito mensual."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recherche avec des extraits de pages. Gratuite sans clé, avec une limite de requêtes partagée ; une clé gratuite ajoute un crédit mensuel."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ページの抜粋付きで検索します。キーなしでも共有のレート制限内で無料です。無料のキーを使うと毎月のクレジットが追加されます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "페이지 발췌문과 함께 검색합니다. 키 없이 공유 요청 한도 내에서 무료이며, 무료 키를 사용하면 매월 크레딧이 추가됩니다."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Busca com trechos das páginas. Gratuita sem chave, com limite de requisições compartilhado; uma chave gratuita adiciona crédito mensal."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Поиск с выдержками со страниц. Бесплатно без ключа с общим лимитом запросов; бесплатный ключ добавляет ежемесячный кредит."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "附带网页摘录的搜索。无需密钥即可在共享速率限制内免费使用；免费密钥可增加每月额度。"
           }
         }
       }
@@ -105804,6 +107022,58 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "已搜索网页"
+          }
+        }
+      }
+    },
+    "Searches send only the query, with no cookies and no cache. DuckDuckGo is read from its web page, not an official API." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Suchen senden nur die Anfrage, ohne Cookies und ohne Cache. DuckDuckGo wird von seiner Webseite gelesen, nicht über eine offizielle API."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Las búsquedas solo envían la consulta, sin cookies ni caché. DuckDuckGo se lee de su página web, no de una API oficial."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Les recherches n’envoient que la requête, sans cookies ni cache. DuckDuckGo est lu depuis sa page web, pas via une API officielle."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "検索で送信されるのはクエリのみで、Cookieもキャッシュも使いません。DuckDuckGoは公式APIではなく、Webページから読み取ります。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "검색은 쿠키나 캐시 없이 검색어만 전송합니다. DuckDuckGo는 공식 API가 아닌 웹 페이지에서 읽어 옵니다."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "As buscas enviam só a consulta, sem cookies e sem cache. O DuckDuckGo é lido da página web dele, não de uma API oficial."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "При поиске отправляется только запрос, без cookie и без кеша. DuckDuckGo считывается с веб-страницы, а не через официальный API."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "搜索只发送查询词，不带 Cookie，也不缓存。DuckDuckGo 读取自其网页，而非官方 API。"
           }
         }
       }
@@ -115995,6 +117265,58 @@
         }
       }
     },
+    "Test" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Testen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Probar"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tester"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "テスト"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "테스트"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Testar"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Проверить"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "测试"
+          }
+        }
+      }
+    },
     "Test Connection" : {
       "localizations" : {
         "de" : {
@@ -116043,6 +117365,58 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "测试连接"
+          }
+        }
+      }
+    },
+    "Testing…" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wird getestet …"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Probando…"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Test en cours…"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "テスト中…"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "테스트 중…"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Testando…"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Проверка…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在测试…"
           }
         }
       }
@@ -119505,6 +120879,58 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "无法将密钥存储到钥匙串。"
+          }
+        }
+      }
+    },
+    "The key was not accepted." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der Schlüssel wurde nicht akzeptiert."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La clave no fue aceptada."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La clé n’a pas été acceptée."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "キーが受け付けられませんでした。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "키가 승인되지 않았습니다."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A chave não foi aceita."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ключ не принят."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "密钥未被接受。"
           }
         }
       }
@@ -126479,6 +127905,110 @@
         }
       }
     },
+    "Tinycast couldn't read the keys from the Keychain." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tinycast konnte die Schlüssel nicht aus dem Schlüsselbund lesen."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tinycast no pudo leer las claves del llavero."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tinycast n’a pas pu lire les clés dans le trousseau."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tinycastはキーチェーンからキーを読み取れませんでした。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tinycast가 키체인에서 키를 읽을 수 없습니다."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O Tinycast não conseguiu ler as chaves no Acesso às Chaves."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tinycast не смог прочитать ключи из связки ключей."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tinycast 无法从钥匙串中读取密钥。"
+          }
+        }
+      }
+    },
+    "Tinycast couldn't save the key to the Keychain." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tinycast konnte den Schlüssel nicht im Schlüsselbund speichern."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tinycast no pudo guardar la clave en el llavero."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tinycast n’a pas pu enregistrer la clé dans le trousseau."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tinycastはキーをキーチェーンに保存できませんでした。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tinycast가 키체인에 키를 저장할 수 없습니다."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O Tinycast não conseguiu salvar a chave no Acesso às Chaves."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tinycast не смог сохранить ключ в связке ключей."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tinycast 无法将密钥存储到钥匙串。"
+          }
+        }
+      }
+    },
     "Tinycast couldn't save to its actions file." : {
       "localizations" : {
         "de" : {
@@ -129711,6 +131241,58 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "旅行与地点"
+          }
+        }
+      }
+    },
+    "Tried in order: when one fails or is busy, the next one answers. Only the query leaves this Mac." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der Reihe nach versucht: Schlägt eine fehl oder ist sie ausgelastet, antwortet die nächste. Nur die Anfrage verlässt diesen Mac."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Se prueban en orden: si uno falla o está saturado, responde el siguiente. Solo la consulta sale de este Mac."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Essayés dans l’ordre : si l’un échoue ou est saturé, le suivant répond. Seule la requête quitte ce Mac."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "上から順に試します。失敗したり混雑したりしている場合は次のエンジンが応答します。このMacから送信されるのはクエリのみです。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "순서대로 시도합니다. 하나가 실패하거나 혼잡하면 다음 엔진이 응답합니다. 이 Mac에서는 검색어만 전송됩니다."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tentados em ordem: quando um falha ou está ocupado, o próximo responde. Só a consulta sai deste Mac."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Опрашиваются по порядку: если одна не отвечает или перегружена, отвечает следующая. Этот Mac покидает только запрос."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "按顺序尝试：一个失败或繁忙时，由下一个响应。只有查询词会离开这台 Mac。"
           }
         }
       }
@@ -132977,6 +134559,58 @@
         }
       }
     },
+    "Use HTTPS, or a name on your network such as llm-server.local." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verwende HTTPS oder einen Namen in deinem Netzwerk wie llm-server.local."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usa HTTPS o un nombre de tu red, como llm-server.local."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Utilisez HTTPS, ou un nom de votre réseau comme llm-server.local."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "HTTPS、またはllm-server.localのようなネットワーク上の名前を使用してください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "HTTPS 또는 llm-server.local과 같은 네트워크상의 이름을 사용하십시오."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Use HTTPS ou um nome da sua rede, como llm-server.local."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Используйте HTTPS или имя в вашей сети, например llm-server.local."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请使用 HTTPS，或你网络中的名称，例如 llm-server.local。"
+          }
+        }
+      }
+    },
     "Use Original Icon" : {
       "localizations" : {
         "de" : {
@@ -134700,6 +136334,58 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "网页搜索"
+          }
+        }
+      }
+    },
+    "Web reads pages and searches with the engines in Settings → AI → Chat." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Web liest Seiten und sucht mit den Suchmaschinen unter „Einstellungen → KI → Chat“."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Web lee páginas y busca con los motores de Ajustes → IA → Chat."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Web lit des pages et cherche avec les moteurs de Réglages → IA → Conversation."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Webはページを読み、設定 → AI → チャットのエンジンで検索します。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "웹은 페이지를 읽고 설정 → AI → 채팅의 엔진으로 검색합니다."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Web lê páginas e busca com os mecanismos em Ajustes → IA → Chat."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "«Веб» читает страницы и ищет с помощью систем из раздела «Настройки» → «ИИ» → «Чат»."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "“网页”可读取页面，并使用“设置”→“AI”→“聊天”中的引擎进行搜索。"
           }
         }
       }
@@ -136890,6 +138576,58 @@
         }
       }
     },
+    "Your own SearXNG with JSON output switched on. Unlimited and private." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dein eigenes SearXNG mit eingeschalteter JSON-Ausgabe. Unbegrenzt und privat."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tu propio SearXNG con la salida JSON activada. Sin límites y privado."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Votre propre SearXNG avec la sortie JSON activée. Illimité et privé."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "JSON出力を有効にした自分のSearXNG。無制限でプライベートです。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "JSON 출력을 켠 나만의 SearXNG입니다. 무제한이며 비공개입니다."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Seu próprio SearXNG com a saída JSON ativada. Ilimitado e privado."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ваш собственный SearXNG с включённым выводом JSON. Без ограничений и приватно."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你自己的 SearXNG，需开启 JSON 输出。无限制且私密。"
+          }
+        }
+      }
+    },
     "Zoom In" : {
       "localizations" : {
         "de" : {
@@ -138911,6 +140649,58 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "布局“%@”"
+          }
+        }
+      }
+    },
+    "macOS blocks plain HTTP to an IP address. Use the server's name, like llm-server.local, or HTTPS." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "macOS blockiert unverschlüsseltes HTTP zu einer IP-Adresse. Verwende den Namen des Servers, etwa llm-server.local, oder HTTPS."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "macOS bloquea HTTP sin cifrar a una dirección IP. Usa el nombre del servidor, como llm-server.local, o HTTPS."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "macOS bloque le HTTP non chiffré vers une adresse IP. Utilisez le nom du serveur, comme llm-server.local, ou HTTPS."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "macOSはIPアドレスへの暗号化されていないHTTP接続をブロックします。llm-server.localのようなサーバ名か、HTTPSを使用してください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "macOS는 IP 주소로의 암호화되지 않은 HTTP 연결을 차단합니다. llm-server.local과 같은 서버 이름이나 HTTPS를 사용하십시오."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O macOS bloqueia HTTP sem criptografia para um endereço IP. Use o nome do servidor, como llm-server.local, ou HTTPS."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "macOS блокирует незашифрованный HTTP к IP-адресу. Используйте имя сервера, например llm-server.local, или HTTPS."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "macOS 会阻止通过明文 HTTP 访问 IP 地址。请使用服务器名称（例如 llm-server.local）或 HTTPS。"
           }
         }
       }

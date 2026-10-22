@@ -1,0 +1,38 @@
+{
+  "query": "SearXNG JSON API",
+  "number_of_results": 0,
+  "results": [
+    {
+      "url": "https://docs.searxng.org/dev/search_api.html",
+      "title": "Search API — SearXNG Documentation",
+      "content": "SearXNG supports querying via a simple HTTP API. Two endpoints, <code>/</code> and <code>/search</code>, are supported &amp; documented.",
+      "engine": "duckduckgo",
+      "engines": [
+        "duckduckgo",
+        "brave"
+      ],
+      "publishedDate": null,
+      "score": 4.0,
+      "category": "general"
+    },
+    {
+      "url": "https://github.com/searxng/searxng/discussions/1789",
+      "title": "Get results in JSON format?",
+      "content": "JSON needs to be activated in the formats settings in the search section.",
+      "engine": "google",
+      "engines": [
+        "google"
+      ],
+      "publishedDate": "2022-09-20T00:00:00",
+      "score": 2.0,
+      "category": "general"
+    }
+  ],
+  "answers": [],
+  "corrections": [],
+  "infoboxes": [],
+  "suggestions": [
+    "searxng api"
+  ],
+  "unresponsive_engines": []
+}
