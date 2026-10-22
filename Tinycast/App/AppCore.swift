@@ -235,6 +235,9 @@ final class AppCore {
             paletteCoordinator: paletteCoordinator, core: self)
     @ObservationIgnored private(set) lazy var agentCoordinator = AgentCoordinator(
         store: agentStore, core: self)
+    @ObservationIgnored private(set) lazy var agentSessionsCoordinator = AgentSessionsCoordinator(
+        settings: settings, appIndex: appIndex, paletteCoordinator: paletteCoordinator,
+        chatHistory: chatHistory, agentStore: agentStore, core: self)
     @ObservationIgnored private(set) lazy var mcpCoordinator = MCPCoordinator(
         settings: settings, store: mcpSettings, manager: mcp, core: self)
     /// Its own window and lifecycle, like Settings; Quick AI is the palette's half of the feature.
@@ -313,6 +316,7 @@ final class AppCore {
             aiChatCoordinator.applyEnabled()
             agentStore.load()
             screenAwarenessCoordinator.applyEnabled()
+            agentSessionsCoordinator.applyEnabled()
             mcpCoordinator.applyEnabled()
             customQuickActions.onChange = { [weak self] _ in
                 self?.quickActionCoordinator.applyCustomQuickActionsPresence()
@@ -486,6 +490,7 @@ final class AppCore {
     }
 
     func handleOpenURL(_ url: URL) {
+        if agentSessionsCoordinator.handleOpenURL(url) { return }
         guard ExtensionDeepLink.claims(url) else { return }
         guard let route = ExtensionDeepLink.route(url: url) else {
             paletteCoordinator.showPalette(mode: .launcher, restoreAnyMode: true)
@@ -733,6 +738,11 @@ final class AppCore {
                 _ = $0.aiEnabled
                 _ = $0.screenAwarenessEnabled
             }, reproject: { $0.screenAwarenessCoordinator.applyEnabled() })
+        track(
+            {
+                _ = $0.aiEnabled
+                _ = $0.agentSessionsEnabled
+            }, reproject: { $0.agentSessionsCoordinator.applyEnabled() })
         track({ _ = $0.calendarEnabled }, reproject: { $0.calendarCoordinator.applyEnabled() })
         track(
             {

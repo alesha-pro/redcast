@@ -20,6 +20,7 @@ OpenCode, Goose, Hermes, local models — on the subscriptions and machines you 
 | Screen Awareness | Double-tap right ⌘: the window in front — title, URL, selection, focused field, readable text, screenshot — attached to AI Chat | [screen-awareness](docs/features/screen-awareness.md) |
 | Agents | A chat that lives in a folder: its `AGENTS.md`, project and global `.agents/skills`, notes, and built-in tools (files, terminal, web, memory) on any tool-calling API model, every change and command asked first | [agents](docs/features/agents.md) |
 | ACP agents | An agent can run as its own CLI over the Agent Client Protocol — Claude Code, Codex, Gemini CLI, OpenCode, Goose, Hermes or any command — on your own logins, with its permission requests, tool rows, plans and modes in AI Chat, and sessions that survive a relaunch | [agents](docs/features/agents.md#acp-agents) |
+| Agent Sessions | Search every past Claude Code, Codex and Tinycast session from the launcher — titles, prompts, folder and branch, a preview, and text inside transcripts on request — and resume it in its folder and terminal with one key; live sessions show their status and Jump to Agent brings a waiting one forward. Opt-in live status adds reviewed hooks to Claude Code and Codex for a HUD and a menu-bar item when an agent finishes or waits | [agent-sessions](docs/features/agent-sessions.md) |
 
 Builds of this fork use the bundle id `com.tinycast.app.fork`: they never update themselves from
 upstream's feed, and they keep their settings apart from an installed upstream Tinycast.
@@ -55,10 +56,10 @@ Sizes are focused working days. Waves are ordered by leverage, not by size.
 1. **ACP agents — shipped** (see above). Next on it: render diffs and command output inside tool
    rows, expose the agent's slash commands (`available_commands_update`) in the composer, a launcher
    row and hotkey per agent, and Tinycast's own `fs/*` / `terminal/*` so edits can show in an editor.
-2. **Agent Sessions hub.** Search every past Codex, Claude Code and Tinycast session from the launcher
-   (titles, first prompts, full text), preview it, and resume it in its folder and terminal. A live
-   list of running agents fed by Claude Code hooks and Codex `notify`: a HUD and menu-bar badge when an
-   agent finishes or waits for approval, one key to jump to it. *3–4 days.*
+2. **Agent Sessions hub — shipped** (see above). Live status uses Codex hooks rather than `notify`,
+   which Computer Use already holds. Next on it: Gemini CLI and OpenCode histories as sources, one
+   merged "Agents" menu-bar item with background agents (item 5), `claude://code/continue` for Claude
+   app sessions once the route is confirmed, and `CLAUDE_CONFIG_DIR` / `CODEX_HOME` overrides.
 3. **Voice to AI.** On top of the existing on-device dictation: dictation *modes* that pass the
    transcript through a prompt before it is typed (speak Russian, get an English post; per-app tone),
    a *voice command* over the selection ("make this shorter"), and hold-to-talk into AI Chat or an

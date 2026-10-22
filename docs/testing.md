@@ -878,6 +878,20 @@ caches, TCC grants and login item, so this cannot disturb an installed copy.
 - **`snippetsEnabled` is not in the exported file**, and importing does not enable snippets
 - Nothing in the extracted tree names a Keychain item, an extension, or an AI conversation
 
+### Agent Sessions
+
+Seventeen steps, from search and resume in each terminal to the live-status diff, the HUDs, the
+menu-bar item and a spoofed event: [agent-sessions.md](features/agent-sessions.md#manual-sweep).
+In short:
+
+- Search Agent Sessions lists Claude Code, Codex and Tinycast rows, fast again after a relaunch
+- ↵ resumes in Terminal, iTerm2, Ghostty, Warp and Zap (Zap must *run* the `.command`); ⌃⌘↵ forks;
+  ⌘↵ copies the command; a deleted folder copies it and says so
+- A waiting Claude CLI session shows **Needs you** and Jump to Agent brings its tab forward
+- Turn On… shows only the inserted hook lines, writes them with a backup, and Turn Off… restores the
+  original bytes; a file edited while the panel is open is re-diffed, never overwritten
+- With Tinycast quit an agent runs normally, and a URL with a wrong token does nothing
+
 ### Clean install
 
 The realistic storage failure is a store that crashes on an absent file rather than starting empty.

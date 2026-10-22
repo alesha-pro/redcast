@@ -175,6 +175,12 @@ enum SettingsBackupCoverage {
             "Only means something beside screenAwarenessEnabled, which never travels in a backup.",
         AppSettingsKey.screenAwarenessShortcutOffered.rawValue:
             "Records that this Mac was offered a gesture; shortcuts never travel, so neither does it.",
+        AppSettingsKey.agentSessionsEnabled.rawValue:
+            "Belongs to the AI pane, none of whose settings travel; it reads this Mac's own agent histories.",
+        AppSettingsKey.agentSessionsTerminal.rawValue:
+            "Names a terminal installed on this Mac; another Mac may not have it.",
+        AppSettingsKey.agentStatusMenuBar.rawValue:
+            "Only means something beside live status, which is installed per Mac and never travels.",
         AppSettingsKey.quickActionModel.rawValue:
             "Names an external AI destination for text taken from whatever app is frontmost; an "
             + "import must not choose one.",
