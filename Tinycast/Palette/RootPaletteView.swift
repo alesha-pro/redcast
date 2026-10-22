@@ -599,6 +599,7 @@ struct RootPaletteView: View {
                 if !menuOpen { advanceTabFocus(backwards: press.modifiers.contains(.shift)) }
                 return .handled
             }
+            .onKeyPress(keys: [.space], phases: .down) { aliasSpacePress($0) }
             .modifier(
                 ExtensionShortcutKeys(
                     screen: { menuOpen ? nil : screen as? ExtensionCommandScreen }, selection: sel)
@@ -1107,6 +1108,7 @@ struct RootPaletteView: View {
         vm.menuQuery = ""
         // Stated here rather than mirrored later: the window delegate reads it during this turn.
         vm.menuOpen = false
+        core.inlineEntryEditor.end(core: core)
     }
 
     private func openInputOptions(
@@ -1143,6 +1145,7 @@ struct RootPaletteView: View {
     }
 
     private func handleMenuPanelKey(_ event: NSEvent) -> Bool {
+        if core.inlineEntryEditor.handleMenuKey(event, core: core) { return true }
         let modifiers = event.modifierFlags
         let navigationModifiers = modifiers.intersection([.command, .control, .option, .shift])
         if event.charactersIgnoringModifiers == "\u{1B}" {
@@ -1335,6 +1338,7 @@ struct RootPaletteView: View {
     private func activateMenuItem(_ index: Int) {
         guard let content = menuContent, (0..<content.rowCount).contains(index) else { return }
         guard content.isSelectable(index) else { return }
+        if content.keepsOpen(index) { return content.activate(index) }
         // Close first: an action opening a window must find the palette key, or nothing hides it.
         closeMenus()
         // A mouse click on a row takes the caret with it; menus close back into the field.
@@ -1408,7 +1412,7 @@ struct RootPaletteView: View {
     /// The palette was opened to fill one row's fields, so the caret starts in the first empty one.
     private func focusPendingArgument() {
         guard vm.pendingArgumentEntryID != nil,
-            let field = headerAccessory?.firstIncompleteField
+            let field = headerAccessory?.firstIncompleteField ?? headerAccessory?.fieldNames.first
         else { return }
         argumentFocused = field
         searchFocused = false
@@ -1473,6 +1477,87 @@ struct RootPaletteView: View {
         screen.activate(at: selection(in: screen))
     }
 
+}
+
+extension RootPaletteView {
+    /// Alias + Space; `AliasJump` decides, and this applies it to the palette's private state.
+    fileprivate func aliasSpacePress(_ press: KeyPress) -> KeyPress.Result {
+        guard vm.mode == .launcher, searchFocused, argumentFocused == nil, !menuOpen,
+            !vm.isComposing, !vm.isControlListOpen, !isCollapsed,
+            press.modifiers.subtracting(.capsLock).isEmpty
+        else { return .ignored }
+        switch AliasJump.decide(
+            query: vm.query, caretAtEnd: searchCaretAtEnd, aliases: core.aliases.aliases)
+        {
+        case .ignore:
+            return .ignored
+        case .escapeSpace(let query):
+            vm.query = query
+            return .handled
+        case .jump(let entryKey):
+            return jumpToAlias(of: entryKey) ? .handled : .ignored
+        }
+    }
+
+    private func jumpToAlias(of entryKey: String) -> Bool {
+        guard let launcher = screen as? LauncherScreen,
+            let index = launcher.rows.firstIndex(where: {
+                if case .entry(let app) = $0 { app.preferenceKey == entryKey } else { false }
+            }),
+            case .entry(let app) = launcher.rows[index]
+        else { return false }
+        let accessory = launcher.headerAccessory(at: index, focus: $argumentFocused)
+        let entry = aliasEntry(app, headerFieldsBuilt: accessory?.fieldNames.isEmpty == false)
+        guard let target = AliasJump.target(for: entry) else { return false }
+        vm.selection = index
+        scroll = ScrollIntent(kind: .follow)
+        switch target {
+        case .pendingArguments:
+            vm.pendingArgumentEntryID = app.id
+        case .firstField:
+            argumentFocused = accessory?.fieldNames.first
+            searchFocused = false
+        case .activate:
+            launcher.activate(at: index)
+        }
+        return true
+    }
+
+    private func aliasEntry(_ app: AppEntry, headerFieldsBuilt: Bool) -> AliasJump.Entry {
+        var entry = AliasJump.Entry(kind: .other, headerFieldsBuilt: headerFieldsBuilt)
+        switch app.kind {
+        case .application:
+            entry.kind = .application
+        case .systemSettings:
+            entry.kind = .systemSettings
+        case .quicklink:
+            entry.kind = .quicklink
+            entry.argumentCount =
+                core.quicklinks.quicklink(entryID: app.id).map {
+                    SnippetTemplateEngine.declaredArguments(in: $0.link).count
+                } ?? 0
+        case .customCommand:
+            entry.kind = .customCommand
+            entry.argumentCount = core.customCommands.command(entryID: app.id)?.arguments.count ?? 0
+        case .extensionCommand:
+            entry.kind = .extensionCommand
+            let command = extensions.resolve(app)?.1
+            entry.argumentCount = command?.arguments.count ?? 0
+            entry.hasRequiredArgument = command?.arguments.contains(where: \.required) ?? false
+            entry.isViewCommand = command?.mode == .view
+        default:
+            break
+        }
+        return entry
+    }
+
+    /// Only where typing would append: never with a selection or a caret inside the query.
+    private var searchCaretAtEnd: Bool {
+        guard let editor = NSApp.keyWindow?.firstResponder as? NSTextView, editor.isFieldEditor
+        else { return false }
+        let range = editor.selectedRange()
+        return range.length == 0 && range.location == (editor.string as NSString).length
+    }
 }
 
 /// The palette's in-window menus. One optional of these is the whole "only one is open" invariant.

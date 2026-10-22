@@ -15,6 +15,7 @@ contradicts the code is a defect, so fix it in the commit that made it wrong.
 | [release.md](release.md) | How a build reaches a user: packaging, PR review, releases, the Homebrew tap | the pipeline changes |
 | [signing.md](signing.md) | The self-signed identity and the two CI secrets | the signing setup changes |
 | [ui.md](ui.md) | The design system: tokens, panel chrome, row grammar, glass, dialogs and HUDs | a token or a presentation rule changes |
+| [fork-tooling.md](fork-tooling.md) | This fork's scripts: installing a build, syncing upstream | a script in `Scripts/fork/` changes |
 
 ## Features
 
@@ -34,6 +35,7 @@ open with an `## Invariants` section; read it before changing anything in that a
 [background agents](features/background-agents.md) ·
 [AI usage](features/usage-dashboard.md) ·
 [agent sessions](features/agent-sessions.md) ·
+[alias actions](features/alias-actions.md) ·
 [clipboard](features/clipboard.md) ·
 [calculator](features/calculator.md) ·
 [calendar](features/calendar.md) ·
