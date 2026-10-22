@@ -24,6 +24,7 @@ struct ExtensionTests {
         var calls: [String] = []
         var toasts: [String] = []
         var huds: [String] = []
+        var aiChunks = ["Hel", "lo"]
         private let fetcher = ExtensionFetcher()
         private let sockets = ExtensionWebSocketBridge()
 
@@ -62,6 +63,10 @@ struct ExtensionTests {
                     #"{"name":"Finder","path":"/System/Library/CoreServices/Finder.app","bundleId":"com.apple.finder"}"#
             case "system.applications":
                 return "[]"
+            case "ai.start":
+                return "1"
+            case "ai.read":
+                return aiChunks.isEmpty ? "" : ExtensionRuntime.jsonString(from: aiChunks.removeFirst())
             default:
                 return ""
             }
@@ -197,12 +202,61 @@ struct ExtensionTests {
         await bufferEventChecks()
         await webAssemblyChecks()
         await asyncComponentChecks()
+        await extensionAIChecks()
+        await hostBridgeAIChecks()
         await menuBarRuntimeChecks()
         await menuBarHostChecks()
         await ExtensionFetchTests.runChecks()
 
         print("\n\(passes) passed, \(failures) failed")
         exit(failures == 0 ? 0 : 1)
+    }
+
+    /// `AI.ask` streams through the pull loop, and `canAccess(AI)` reads the injected launch field.
+    @MainActor
+    static func extensionAIChecks() async {
+        let (runtime, host, recorder) = makeRuntime()
+        defer { runtime.shutdown() }
+        do {
+            try await runtime.boot(config: .current(supportDirectory: FileManager.default.temporaryDirectory))
+        } catch {
+            check("AI runtime boots", false, error.localizedDescription)
+            return
+        }
+        let command = #"""
+            const React = require("react");
+            const { AI, Detail, environment } = require("@raycast/api");
+            module.exports.default = function Command() {
+              const [answer, setAnswer] = React.useState("");
+              React.useEffect(() => {
+                AI.ask("hi").then(setAnswer, (error) => setAnswer(error.message));
+              }, []);
+              const access = environment.canAccess(AI) ? "yes" : "no";
+              return React.createElement(Detail, { markdown: access + "|" + answer });
+            };
+            """#
+        let file = URL(fileURLWithPath: "/tmp/ai.js")
+        await runtime.start(session: "ai", code: command, file: file, mode: .view, context: launchContext())
+        await settle(until: { recorder.trees.last?.activeRoot?.string("markdown") == "no|Hello" })
+        check(
+            "AI.ask streams its answer in JavaScriptCore",
+            recorder.trees.last?.activeRoot?.string("markdown") == "no|Hello",
+            recorder.trees.last?.activeRoot?.string("markdown") ?? recorder.failures.joined())
+        check(
+            "an answer is pulled one read at a time until the end",
+            host.calls.filter { $0 == "ai.read" }.count == 3, host.calls.joined(separator: ","))
+        await runtime.stop(session: "ai")
+
+        host.aiChunks = ["Hel", "lo"]
+        var granted = launchContext()
+        granted.aiAccess = true
+        await runtime.start(session: "granted", code: command, file: file, mode: .view, context: granted)
+        await settle(until: { recorder.trees.last?.activeRoot?.string("markdown") == "yes|Hello" })
+        check(
+            "canAccess(AI) reads the launch context's aiAccess",
+            recorder.trees.last?.activeRoot?.string("markdown") == "yes|Hello",
+            recorder.trees.last?.activeRoot?.string("markdown") ?? "nil")
+        await runtime.stop(session: "granted")
     }
 
     @MainActor

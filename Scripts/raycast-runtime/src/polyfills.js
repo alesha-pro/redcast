@@ -819,3 +819,103 @@ if (!g.TextDecoder) {
     }
   };
 }
+
+// ─── undici's global dispatcher ─────────────────────────────────────
+
+// A bundled undici dispatches through this slot, and builds a socket Agent only when it is empty.
+const kUndiciGlobalDispatcher = Symbol.for("undici.globalDispatcher.1");
+
+function undiciHeaders(raw) {
+  const pairs = [];
+  if (Array.isArray(raw)) {
+    const flat = raw.flat();
+    for (let i = 0; i + 1 < flat.length; i += 2) pairs.push([String(flat[i]), String(flat[i + 1])]);
+  } else if (raw && typeof raw === "object") {
+    for (const [name, value] of Object.entries(raw)) {
+      if (value === undefined || value === null) continue;
+      for (const item of Array.isArray(value) ? value : [value]) pairs.push([name, String(item)]);
+    }
+  }
+  return pairs;
+}
+
+async function undiciBody(body) {
+  if (body === undefined || body === null) return undefined;
+  if (typeof body === "string" || body instanceof Uint8Array || body instanceof ArrayBuffer) return body;
+  if (typeof body[Symbol.asyncIterator] !== "function" && typeof body[Symbol.iterator] !== "function") {
+    return String(body);
+  }
+  const chunks = [];
+  for await (const chunk of body) chunks.push(typeof chunk === "string" ? utf8Encode(chunk) : new Uint8Array(chunk));
+  return concatBytes(chunks);
+}
+
+// Replays each request through the fetch bridge and its answer through undici's handler, whole.
+class TinycastUndiciDispatcher {
+  dispatch(options, handler) {
+    const controller = new g.AbortController();
+    let done = false;
+    const fail = (error) => {
+      if (done) return;
+      done = true;
+      controller.abort(error);
+      handler.onError?.(error instanceof Error ? error : new Error(String(error)));
+    };
+    try {
+      handler.onConnect?.((reason) => fail(reason ?? abortError()));
+    } catch (error) {
+      fail(error);
+    }
+    if (done) return true;
+    (async () => {
+      const method = (options.method || "GET").toUpperCase();
+      // The bridge itself, not `g.fetch`: an extension that installs undici's fetch would loop.
+      const response = await tinycastFetch(new URL(options.path || "/", options.origin).href, {
+        method,
+        headers: undiciHeaders(options.headers),
+        body: method === "GET" || method === "HEAD" ? undefined : await undiciBody(options.body),
+        signal: controller.signal,
+      });
+      if (done) return;
+      const rawHeaders = [];
+      response.headers.forEach((value, name) => rawHeaders.push(g.Buffer.from(name), g.Buffer.from(value)));
+      handler.onHeaders?.(response.status, rawHeaders, () => {}, response.statusText || "");
+      const body = await response.bytes();
+      if (done) return;
+      if (body.length) handler.onData?.(g.Buffer.from(body));
+      done = true;
+      handler.onComplete?.([]);
+    })().catch(fail);
+    return true;
+  }
+  close(callback) {
+    callback?.();
+    return Promise.resolve();
+  }
+  destroy(error, callback) {
+    (typeof error === "function" ? error : callback)?.();
+    return Promise.resolve();
+  }
+  on() {
+    return this;
+  }
+  once() {
+    return this;
+  }
+  off() {
+    return this;
+  }
+  emit() {
+    return false;
+  }
+}
+
+// Writable, as undici's own setGlobalDispatcher leaves it, so an extension can still install one.
+if (!g[kUndiciGlobalDispatcher]) {
+  Object.defineProperty(g, kUndiciGlobalDispatcher, {
+    value: new TinycastUndiciDispatcher(),
+    writable: true,
+    enumerable: false,
+    configurable: false,
+  });
+}

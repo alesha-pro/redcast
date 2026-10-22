@@ -612,4 +612,7 @@ export const bufferModule = {
   kMaxLength: 0x7fffffff,
   isEncoding: (encoding) => Buffer.isEncoding(encoding),
   isBuffer: (value) => Buffer.isBuffer(value),
+  // undici subclasses them as it loads: `class File extends require("buffer").Blob`.
+  Blob: globalThis.Blob,
+  File: globalThis.File,
 };

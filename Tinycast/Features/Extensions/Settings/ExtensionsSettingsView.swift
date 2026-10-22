@@ -36,6 +36,7 @@ struct ExtensionsSettingsView: View {
             Group {
                 install
                 library
+                ExtensionAISettingsSection()
                 compatibility
             }
             .settingsEnabled(settings.extensionsEnabled)
@@ -105,7 +106,7 @@ struct ExtensionsSettingsView: View {
             }
             SettingsRow(
                 title: String(localized: "What doesn't, yet"),
-                subtitle: String(localized: "Raycast's AI, browser and window services."),
+                subtitle: String(localized: "Raycast's browser and window services."),
                 subtitleLineLimit: 2
             ) {
                 ExtensionSettingsIcon(systemName: "xmark.circle")

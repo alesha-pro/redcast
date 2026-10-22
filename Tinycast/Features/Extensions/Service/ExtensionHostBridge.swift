@@ -8,6 +8,8 @@ protocol ExtensionHostContext: AnyObject {
     var activeExtensionName: String? { get }
     /// Background runs report no UI: toasts, HUDs and dialogs would fire on a timer.
     var activeLaunchType: ExtensionLaunchType { get }
+    /// False for a background run and anything it launches, however that launch was typed.
+    var isOpenedByUser: Bool { get }
     var storage: ExtensionStorage { get }
     /// The app a paste would land in — the palette's recorded `previousApp`.
     var pasteTarget: NSRunningApplication? { get }
@@ -30,9 +32,10 @@ protocol ExtensionHostContext: AnyObject {
     func openWithPicker(path: String) async
     func launch(
         command: String, extensionName: String?, arguments: [String: String],
-        fallbackText: String?, launchType: ExtensionLaunchType, launchContext: [String: RenderValue]
+        fallbackText: String?, launchType: ExtensionLaunchType, launchContext: [String: RenderValue],
+        openedByUser: Bool
     ) throws
-    func launch(_ link: ExtensionDeepLink) throws
+    func launch(_ link: ExtensionDeepLink, openedByUser: Bool) throws
 }
 
 struct ExtensionToast: Sendable, Equatable, Identifiable {
@@ -125,6 +128,8 @@ final class ExtensionHostBridge: ExtensionHostAPI {
     private let clipboardStore: ClipboardStore
     private let fetcher: ExtensionFetcher
     private let sockets = ExtensionWebSocketBridge()
+    /// The fork's AI host; menu-bar bridges never get one, so nothing on that lane spends tokens.
+    weak var ai: (any ExtensionAIHost)?
     private var reportedSocketFailures: Set<String> = []
     /// One browser sign-in at a time; the palette keeps its command alive while it is out.
     private(set) var isSigningIn = false
@@ -157,6 +162,7 @@ final class ExtensionHostBridge: ExtensionHostAPI {
         case "oauth": return try await oauth(method: method, arguments: arguments)
         case "fetch": return try await fetch(arguments.first)
         case "websocket": return try await sockets.perform(method: method, arguments: arguments)
+        case "ai": return try await askAI(method: method, arguments: arguments)
         case "dns": return await ExtensionNameResolver.resolve(arguments.first)
         case "proc" where method == "read": return try await ExtensionAsyncProcess.read(arguments)
         case "proc": return try await ExtensionAsyncProcess.wait(arguments.first)
@@ -199,10 +205,21 @@ final class ExtensionHostBridge: ExtensionHostAPI {
         return (context, name)
     }
 
+    private func askAI(method: String, arguments: [RenderValue]) async throws -> Any? {
+        let (context, name) = try requireContext()
+        guard let ai else {
+            throw ExtensionHostError.unsupported("AI in menu-bar commands and background launches")
+        }
+        return try await ai.perform(
+            method: method, arguments: arguments, extensionName: name,
+            openedByUser: context.isOpenedByUser, owner: ObjectIdentifier(self))
+    }
+
     /// Called wherever a command's context is discarded: nothing left open outlives its session.
     func sessionEnded() {
         sockets.closeAll()
         reportedSocketFailures.removeAll()
+        ai?.sessionEnded(owner: ObjectIdentifier(self))
     }
 
     // MARK: - Clipboard
@@ -502,7 +519,8 @@ final class ExtensionHostBridge: ExtensionHostAPI {
             try context?.launch(
                 command: name, extensionName: options["extensionName"]?.stringValue,
                 arguments: launchArguments, fallbackText: options["fallbackText"]?.stringValue,
-                launchType: launchType, launchContext: options["context"]?.objectValue ?? [:])
+                launchType: launchType, launchContext: options["context"]?.objectValue ?? [:],
+                openedByUser: context?.isOpenedByUser == true)
             return nil
 
         case "updateCommandMetadata":
@@ -548,7 +566,9 @@ final class ExtensionHostBridge: ExtensionHostAPI {
 
     /// A command URL runs it when installed; every other Raycast URL just brings the palette back.
     private func openRaycastURL(_ url: URL) {
-        if let link = ExtensionDeepLink.parse(url: url), (try? context?.launch(link)) != nil {
+        if let link = ExtensionDeepLink.parse(url: url),
+            (try? context?.launch(link, openedByUser: context?.isOpenedByUser == true)) != nil
+        {
             return
         }
         context?.reopenPalette()
