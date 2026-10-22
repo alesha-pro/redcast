@@ -46349,6 +46349,58 @@
         }
       }
     },
+    "Double-tap right ⌘ to capture, or set another shortcut under Commands." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tippe zweimal auf die rechte ⌘-Taste, um aufzunehmen, oder lege unter „Befehle“ ein anderes Tastenkürzel fest."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pulsa dos veces ⌘ derecha para capturar, o define otro atajo en Comandos."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Appuyez deux fois sur ⌘ droite pour capturer, ou définissez un autre raccourci dans Commandes."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "右⌘を2回押すとキャプチャします。別のショートカットは「コマンド」で設定できます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "오른쪽 ⌘를 두 번 눌러 캡처하거나 명령에서 다른 단축키를 지정하세요."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Toque duas vezes em ⌘ direita para capturar, ou defina outro atalho em Comandos."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Дважды нажмите правый ⌘, чтобы сделать снимок, или задайте другое сочетание в разделе «Команды»."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "连按两下右侧 ⌘ 即可捕获，或在“命令”中设置其他快捷键。"
+          }
+        }
+      }
+    },
     "Download" : {
       "localizations" : {
         "de" : {
@@ -86311,6 +86363,58 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "打开一个窗口，显示命令输出的全部内容。"
+          }
+        }
+      }
+    },
+    "Open captures in" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aufnahmen öffnen in"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abrir capturas en"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ouvrir les captures dans"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "キャプチャを開く場所"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "캡처를 열 위치"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abrir capturas em"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Открывать снимки в"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "捕获内容打开位置"
           }
         }
       }

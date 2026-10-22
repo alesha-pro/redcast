@@ -857,7 +857,7 @@ out: answering a question about a document the model never received is the one o
 not produce.
 
 In Quick AI attachments arrive by ⌘V, or from Ask About Screen through
-`QuickAICoordinator.showStaging` (see [Screen Awareness](screen-awareness.md)); the window also takes a
+`QuickAICoordinator.showStaging` — the window takes one through `AIChatCoordinator.showStaging` (see [Screen Awareness](screen-awareness.md)); the window also takes a
 drop and the paperclip. They come in
 three kinds: an **image**, a **PDF** sent as a native document block,
 and a **text-ish file** whose contents are inlined as fenced, named text.

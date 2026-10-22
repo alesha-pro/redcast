@@ -471,6 +471,36 @@ final class AIChatCoordinator {
         return true
     }
 
+    /// A capture made elsewhere, staged as if pasted; a picture the route cannot see stays behind.
+    func stage(_ items: [ChatAttachmentReader.Staged], into chat: AIChatState) {
+        let seesImages = capabilities(for: chat).images
+        var leftImageBehind = false
+        for item in items {
+            if case .image = item.payload, !seesImages {
+                leftImageBehind = true
+                continue
+            }
+            let attachment = ChatAttachment(
+                payload: item.payload, name: item.name, preview: item.preview)
+            if let refusal = chat.attach(attachment) {
+                core.showMessage(refusal.message, tone: .neutral)
+                return
+            }
+        }
+        if leftImageBehind {
+            core.showMessage(
+                String(localized: "This model can't see images, so only the window's text is attached."),
+                tone: .neutral)
+        }
+    }
+
+    /// The window comes forward on the chat its open policy picks, with the capture staged in it.
+    func showStaging(_ items: [ChatAttachmentReader.Staged]) {
+        guard settings.aiEnabled else { return }
+        showWindow(applyingOpenPolicy: true)
+        stage(items, into: chats.window)
+    }
+
     /// A drop or the paperclip: the same refusals as a paste, since the route is what decides.
     func attach(files: [URL], to chat: AIChatState) {
         let files = files.filter(\.isFileURL)

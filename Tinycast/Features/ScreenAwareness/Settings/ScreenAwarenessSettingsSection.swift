@@ -22,6 +22,15 @@ struct ScreenAwarenessSettingsSection: View {
                     "Accessibility permission required", detail: "Needed to read the window.",
                     open: Permissions.openAccessibilitySettings)
             }
+            Picker(selection: destinationBinding) {
+                ForEach(ScreenAwarenessDestination.allCases) { destination in
+                    Text(title(of: destination)).tag(destination)
+                }
+            } label: {
+                SettingsRowTitle(.aiScreenAwareness, "Open captures in")
+                Text("Double-tap right ⌘ to capture, or set another shortcut under Commands.")
+            }
+            .disabled(!appSettings.screenAwarenessEnabled)
             Toggle(isOn: screenshotBinding) {
                 SettingsRowTitle(.aiScreenAwareness, "Include a screenshot")
                 Text("Needs Screen Recording. Only models that read images receive it.")
@@ -74,6 +83,19 @@ struct ScreenAwarenessSettingsSection: View {
         Binding(
             get: { appSettings.screenAwarenessEnabled },
             set: { core.screenAwarenessCoordinator.setEnabled($0) })
+    }
+
+    private var destinationBinding: Binding<ScreenAwarenessDestination> {
+        Binding(
+            get: { appSettings.screenAwarenessDestination },
+            set: { appSettings.screenAwarenessDestination = $0 })
+    }
+
+    private func title(of destination: ScreenAwarenessDestination) -> String {
+        switch destination {
+        case .aiChat: CommandID.aiChat.name
+        case .quickAI: CommandID.quickAI.name
+        }
     }
 
     private var screenshotBinding: Binding<Bool> {

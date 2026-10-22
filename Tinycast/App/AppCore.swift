@@ -230,8 +230,8 @@ final class AppCore {
         core: self)
     @ObservationIgnored private(set) lazy var screenAwarenessCoordinator =
         ScreenAwarenessCoordinator(
-            settings: settings, appIndex: appIndex, paletteCoordinator: paletteCoordinator,
-            core: self)
+            settings: settings, appIndex: appIndex, hotKeys: hotKeys,
+            paletteCoordinator: paletteCoordinator, core: self)
     @ObservationIgnored private(set) lazy var mcpCoordinator = MCPCoordinator(
         settings: settings, store: mcpSettings, manager: mcp, core: self)
     /// Its own window and lifecycle, like Settings; Quick AI is the palette's half of the feature.
