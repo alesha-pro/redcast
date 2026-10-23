@@ -175,8 +175,11 @@ optional chord: see [background and scheduled agents](background-agents.md).
   `AgentToolSignal.spent` after each of its rounds and raises the reply's cost at once, so a capped
   run hears it before the parent's next round and a turn cut short still counts it; the tokens stay
   the parent's last round's. Its own calls never show; the parent's row reads "delegate: <name>"
-  through `AgentToolProvider.title(for:)`. One runs at a time, and Stop cancels the parent's task
-  group, which ends the child's stream and its task.
+  through `AgentToolProvider.title(for:)`. A round's sub-agents run side by side, as many as the
+  batch's width, and a run starts no more than its effort allows (`AgentSubAgentAllowance`: 2 at
+  Balanced, 4 at Thorough, and Quick offers no `delegate`); one past that is refused and the model is
+  told to do the rest itself. Stop cancels the parent's task group, which ends every child's stream
+  and task.
 - **A newer family never breaks the previous build, and survives its save.** `AgentProfile` writes
   `tools` with only the families the build before Screen and Sub-agents could decode, and those two
   under `addedTools`, a key that build ignores; reading merges both and drops a family name it does
@@ -483,8 +486,8 @@ rule and shows a search row between its own row's opening and closing.
 
 Neighbouring calls that may share a round run together, four at most (`AgentLoopProvider.width`),
 which bounds memory to four 2 MB fetch buffers and processes to four ripgreps: reads, `web_fetch`,
-`web_search` and `load_skill` (`AgentToolSpec.concurrent`). Every row of a batch opens first, each
-closes as its call ends, and the model reads the results in the order it asked. A call whose rule
+`web_search`, `load_skill` and `delegate` (`AgentToolSpec.concurrent`). Every row of a batch opens
+first, each closes as its call ends, and the model reads the results in the order it asked. A call whose rule
 can ask, an MCP call (a second dialog would be refused while the first is up), `memory_write` (two
 appends would race on `memory.md`) and any change or command run alone, in their place. Two
 concurrent searches' rows complete together, since `AIChatState` closes every open search row on

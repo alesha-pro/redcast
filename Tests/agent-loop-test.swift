@@ -41,11 +41,12 @@ struct AgentLoopTests {
         await callsThatMayShareARoundDo()
         await aCallThatMayNotRunsAlone()
         await aRoundIsNeverWiderThanFour()
-        theDelegateToolOnlyReadsAndRunsAlone()
+        theDelegateToolOnlyReadsAndMayShareARound()
         await aSubAgentAnswersInsideItsParentsTurn()
         await aSubAgentIsBounded()
         await stopReachesASubAgent()
         await aSubAgentsSpendIsHeardAsItLands()
+        await subAgentsRunSideBySideWithinTheirAllowance()
         retriesWaitAsThePolicySays()
         await aBusyRouteIsAskedAgain()
         await retriesEndAndAnAnswerIsNeverRepeated()
@@ -500,7 +501,7 @@ extension AgentLoopTests {
             mcp: { .failure($0.id, "mcp") }, ask: { _, _ in false })
     }
 
-    static func theDelegateToolOnlyReadsAndRunsAlone() {
+    static func theDelegateToolOnlyReadsAndMayShareARound() {
         let full = AgentProfile(
             name: "Loop", directory: "/tmp", access: .fullAccess, tools: Set(AgentToolKind.allCases))
         let delegate = AgentDelegateTools(
@@ -511,8 +512,8 @@ extension AgentLoopTests {
                 mode: .chat(UUID())))
         expect(
             specs.map(\.tool.name) == [AgentDelegateTools.name] && specs.first?.family == .delegate
-                && specs.first?.risk == .read && specs.first?.concurrent == false,
-            "delegate is the Sub-agents family's, changes nothing itself, and one child runs at a time")
+                && specs.first?.risk == .read && specs.first?.concurrent == true,
+            "delegate is the Sub-agents family's, changes nothing itself, and children of a round run together")
         let others =
             AgentToolbox.tools(for: full, hasSkills: true).map(\.name)
             + [AgentPlan.name, WebSearchTool.name, "screen_context"]
@@ -1460,5 +1461,48 @@ extension AgentLoopTests {
             outcome.failure == "Invalid model"
                 && texts(outcome.events) == "\n\nThe run stopped before the task was done.\n\nPlan:\n✓ Read\n→ Write\n",
             "a run that fails after working says where its plan stood, then fails, got \(texts(outcome.events))")
+    }
+
+    /// A round's sub-agents run at once, up to the batch's width, and no more than the run allows.
+    static func subAgentsRunSideBySideWithinTheirAllowance() async {
+        let children = SlowAnswerer()
+        let delegate = AgentDelegateTools(
+            base: children, toolset: childTools([FakeTools(names: ["fs_read"]) { _, _ in "x" }]), instructions: "",
+            allowance: AgentSubAgentAllowance(2))
+        let base = ScriptedProvider(rounds: [
+            [delegateCall("d1", task: "A"), delegateCall("d2", task: "B"), delegateCall("d3", task: "C")],
+            [.text("Merged."), .finished]
+        ])
+        let started = ContinuousClock.now
+        let outcome = await collect(
+            AgentLoopProvider(base: base, toolset: toolset([delegate], families: [.delegate]), budget: .roomy))
+        let results = base.requests.last?.messages.compactMap(\.toolResult) ?? []
+        expect(outcome.failure == nil && results.count == 3, "the round's three calls all answer")
+        expect(
+            children.gauge.peak == 2 && ContinuousClock.now - started < .milliseconds(390),
+            "two children ran side by side, got a peak of \(children.gauge.peak)")
+        expect(
+            results.map(\.content).prefix(2) == ["Found: A", "Found: B"] && results[2].isError
+                && results[2].content.hasPrefix("This run may start no more sub-agents (2 used)"),
+            "in the order they were asked, and the one past the run's allowance is refused, got \(results)")
+    }
+}
+
+/// A child's route that takes a while and answers with its task, so overlap can be measured.
+final class SlowAnswerer: AIProvider, @unchecked Sendable {
+    let gauge = Gauge()
+
+    func stream(_ request: AIRequest) -> AIProviderStream {
+        let gauge = gauge
+        let task = request.messages.last?.text ?? ""
+        return AIProviderStream { continuation in
+            let work = Task {
+                _ = await gauge.hold(.milliseconds(200))
+                continuation.yield(.text("Found: " + task))
+                continuation.yield(.finished)
+                continuation.finish()
+            }
+            continuation.onTermination = { _ in work.cancel() }
+        }
     }
 }

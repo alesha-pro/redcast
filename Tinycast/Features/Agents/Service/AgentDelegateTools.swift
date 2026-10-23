@@ -1,4 +1,5 @@
 import Foundation
+import Synchronization
 
 /// `delegate`: one read-only sub-agent per call on the turn's own model; its findings are the result.
 struct AgentDelegateTools: AgentToolProvider {
@@ -20,13 +21,25 @@ struct AgentDelegateTools: AgentToolProvider {
     let base: any AIProvider
     let toolset: AgentToolset
     let instructions: String
+    /// How many children the parent's run may still start, shared by every call of the run.
+    let allowance: AgentSubAgentAllowance
+
+    init(
+        base: any AIProvider, toolset: AgentToolset, instructions: String,
+        allowance: AgentSubAgentAllowance = AgentSubAgentAllowance(AgentEffort.thorough.budget.subAgents)
+    ) {
+        self.base = base
+        self.toolset = toolset
+        self.instructions = instructions
+        self.allowance = allowance
+    }
 
     func specs(for turn: AgentTurn) -> [AgentToolSpec] {
-        // The call changes nothing itself; each of the child's calls meets its own rule.
+        // The call changes nothing itself and never asks, so children of one round run side by side.
         [
             AgentToolSpec(
                 tool: Self.definition(origin: turn.profile.name), family: .delegate, risk: .read,
-                concurrent: false)
+                concurrent: true)
         ]
     }
 
@@ -37,6 +50,11 @@ struct AgentDelegateTools: AgentToolProvider {
     func run(_ call: AIToolCall, in context: AgentToolContext) async -> AIToolResult {
         guard let task = Self.task(in: call.arguments) else {
             return .failure(call.id, "delegate takes a name and a task, both non-empty text.")
+        }
+        guard allowance.take() else {
+            return .failure(
+                call.id,
+                "This run may start no more sub-agents (\(allowance.limit) used). Do the rest of the work yourself.")
         }
         // At its budget the child is asked for its findings once more, tools off, so none are lost.
         let child = AgentLoopProvider(
@@ -80,8 +98,10 @@ struct AgentDelegateTools: AgentToolProvider {
             description:
                 "Hand one self-contained task to a read-only sub-agent with your folder and your "
                 + "reading tools. It works on its own and returns only its findings, which keeps long "
-                + "searches and reading out of this conversation. It cannot change files, run commands "
-                + "or ask the user, and it does not see this conversation, so give it everything it needs.",
+                + "searches and reading out of this conversation. Several calls in one reply run at once, "
+                + "so split a broad task into independent parts; do not delegate a step you can do in a "
+                + "call or two. It cannot change files, run commands or ask the user, and it does not see "
+                + "this conversation, so give it everything it needs.",
             parameters: .object([
                 "type": .string("object"),
                 "properties": .object([
@@ -119,5 +139,24 @@ struct AgentDelegateTools: AgentToolProvider {
             return used <= maxAnswerBytes
         }
         return String(kept) + "\n…cut: the sub-agent's answer was longer."
+    }
+}
+
+/// The sub-agents a run may still start; its delegate calls may run at once, so it locks.
+final class AgentSubAgentAllowance: Sendable {
+    let limit: Int
+    private let used = Mutex(0)
+
+    init(_ limit: Int) {
+        self.limit = limit
+    }
+
+    /// False once the run's children are spent.
+    func take() -> Bool {
+        used.withLock { used in
+            guard used < limit else { return false }
+            used += 1
+            return true
+        }
     }
 }

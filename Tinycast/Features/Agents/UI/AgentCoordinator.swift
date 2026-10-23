@@ -255,8 +255,10 @@ final class AgentCoordinator {
         let turn = AgentTurn(
             profile: agent, skills: context.skills, memoryURL: store.memoryURL(for: agent.id),
             mode: mode, isBackground: backgroundRuns?.isUnattended(mode.chatID) == true)
+        let run = backgroundRuns?.effort(forChat: mode.chatID)
+        let budget = (run ?? agent.effortLevel).budget
         let toolset = AgentToolset(
-            turn: turn, providers: providers(for: agent, in: context, over: base, mode: mode),
+            turn: turn, providers: providers(for: agent, in: context, over: base, mode: mode, budget: budget),
             mcpTools: mcpTools, mcp: mcp,
             refused: { [weak self] _ in
                 guard case .unattended(let chatID) = mode else { return }
@@ -267,8 +269,6 @@ final class AgentCoordinator {
             return await self?.ask(spec, request, by: agent, in: chatID) ?? false
         }
         guard !toolset.tools.isEmpty else { return nil }
-        let run = backgroundRuns?.effort(forChat: mode.chatID)
-        let budget = (run ?? agent.effortLevel).budget
         return AgentLoopProvider(
             base: base, toolset: toolset, budget: budget, compaction: compaction,
             outputCap: AgentTurnBudget.outputTokens, origin: agent.name, lead: lead,
@@ -277,12 +277,17 @@ final class AgentCoordinator {
 
     /// The registry: one line per family, built per turn so nothing stays resident between turns.
     private func providers(
-        for agent: AgentProfile, in context: AgentContext, over base: any AIProvider, mode: AgentRunMode
+        for agent: AgentProfile, in context: AgentContext, over base: any AIProvider, mode: AgentRunMode,
+        budget: AgentRunBudget
     ) -> [any AgentToolProvider] {
         var providers = familyProviders(for: agent)
         providers.append(AgentPlanTools())
-        if agent.tools.contains(.delegate) {
-            providers.append(delegate(for: agent, in: context, over: base, parent: mode.chatID))
+        // An effort with no sub-agents does not offer delegate at all, rather than refuse it.
+        if agent.tools.contains(.delegate), budget.subAgents > 0 {
+            providers.append(
+                delegate(
+                    for: agent, in: context, over: base, parent: mode.chatID,
+                    allowance: AgentSubAgentAllowance(budget.subAgents)))
         }
         return providers
     }
@@ -306,7 +311,8 @@ final class AgentCoordinator {
 
     /// A read-only copy of the agent with no delegate of its own, so sub-agents stop at one level.
     private func delegate(
-        for agent: AgentProfile, in context: AgentContext, over base: any AIProvider, parent: UUID
+        for agent: AgentProfile, in context: AgentContext, over base: any AIProvider, parent: UUID,
+        allowance: AgentSubAgentAllowance
     ) -> AgentDelegateTools {
         var reader = agent
         reader.access = .readOnly
@@ -330,7 +336,8 @@ final class AgentCoordinator {
             globalInstructions: context.globalInstructions, skills: context.skills, memory: context.memory
         ).prompt(now: Date(), timeZone: .current, hasTools: true)
         return AgentDelegateTools(
-            base: base, toolset: toolset, instructions: prompt + "\n\n" + AgentDelegateTools.briefing)
+            base: base, toolset: toolset, instructions: prompt + "\n\n" + AgentDelegateTools.briefing,
+            allowance: allowance)
     }
 
     /// Whether this chat's agent is offered `web_search`: Web ticked, and not Never Allow.
