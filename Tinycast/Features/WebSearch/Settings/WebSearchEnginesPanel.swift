@@ -238,7 +238,7 @@ struct WebSearchEnginesPanel: View {
         testTasks[source]?.cancel()
         let keys = rawKeys
         let runner = WebSearchRunner(
-            chain: [source], searxng: searxngURL, canFetch: false, keys: { keys })
+            chain: [source], searxng: searxngURL, reader: nil, keys: { keys })
         tests[source] = .running
         testTasks[source] = Task {
             let clock = ContinuousClock()

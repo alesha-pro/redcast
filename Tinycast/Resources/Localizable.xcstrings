@@ -103860,54 +103860,54 @@
         }
       }
     },
-    "Prompts go to a search engine: Codex's own, or the engines below on API models." : {
+    "Prompts go to a search engine: Codex's own, or the engines below on API models, where the model may also read a page you linked or a search found." : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Prompts werden an eine Suchmaschine gesendet: die von Codex oder, bei API-Modellen, die unten gewählten."
+            "value" : "Prompts werden an eine Suchmaschine gesendet: die von Codex oder, bei API-Modellen, die unten gewählten; dort kann das Modell auch eine Seite lesen, die du verlinkt hast oder die eine Suche gefunden hat."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Las instrucciones se envían a un motor de búsqueda: el propio de Codex o, en los modelos de API, los de abajo."
+            "value" : "Las instrucciones se envían a un motor de búsqueda: el propio de Codex o, en los modelos de API, los de abajo, donde el modelo también puede leer una página que enlazaste o que encontró una búsqueda."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Les requêtes sont envoyées à un moteur de recherche : celui de Codex, ou ceux ci-dessous pour les modèles API."
+            "value" : "Les requêtes sont envoyées à un moteur de recherche : celui de Codex, ou ceux ci-dessous pour les modèles API, où le modèle peut aussi lire une page dont vous avez donné le lien ou qu’une recherche a trouvée."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "プロンプトは検索エンジンに送信されます。CodexではCodex自身の検索、APIモデルでは下のエンジンを使います。"
+            "value" : "プロンプトは検索エンジンに送信されます。CodexではCodex自身の検索、APIモデルでは下のエンジンを使い、モデルはリンクしたページや検索で見つかったページを読むこともあります。"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "프롬프트가 검색 엔진으로 전송됩니다. Codex는 자체 검색을, API 모델은 아래 엔진을 사용합니다."
+            "value" : "프롬프트가 검색 엔진으로 전송됩니다. Codex는 자체 검색을, API 모델은 아래 엔진을 사용하며, 이때 모델은 링크한 페이지나 검색으로 찾은 페이지를 읽을 수도 있습니다."
           }
         },
         "pt" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Os prompts vão para um mecanismo de busca: o do próprio Codex ou, nos modelos de API, os mecanismos abaixo."
+            "value" : "Os prompts vão para um mecanismo de busca: o do próprio Codex ou, nos modelos de API, os mecanismos abaixo, e aí o modelo também pode ler uma página que você vinculou ou que uma busca encontrou."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Запросы отправляются в поисковую систему: собственную у Codex или указанные ниже — у моделей API."
+            "value" : "Запросы отправляются в поисковую систему: собственную у Codex или указанные ниже — у моделей API, и тогда модель может прочитать страницу, на которую вы дали ссылку или которую нашёл поиск."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "提示词会发送给搜索引擎：Codex 使用自己的搜索，API 模型使用下方的引擎。"
+            "value" : "提示词会发送给搜索引擎：Codex 使用自己的搜索，API 模型使用下方的引擎，此时模型还可能读取你提供链接的页面或搜索找到的页面。"
           }
         }
       }

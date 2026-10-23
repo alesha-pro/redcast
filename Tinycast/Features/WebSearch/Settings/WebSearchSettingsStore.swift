@@ -43,13 +43,23 @@ final class WebSearchSettingsStore {
     }
 
     /// A value for one turn: the chain and address now, the keys only if a keyed engine is reached.
-    func runner(canFetch: Bool) -> WebSearchRunner {
+    func runner(reader: String?) -> WebSearchRunner {
         let keychain = keychain
         return WebSearchRunner(
             chain: configuration.chain,
             searxng: try? WebSearchEndpoint.searxngURL(configuration.searxngAddress).get(),
-            canFetch: canFetch,
+            reader: reader,
             keys: { (try? keychain.values(for: WebSearchSource.keychainAccount)) ?? [:] })
+    }
+
+    /// A chat without an agent: these engines, and `read_page` through `web_fetch`'s own read.
+    func chatTools() -> WebChatTools {
+        WebChatTools(search: runner(reader: WebPageTool.name)) { url in
+            switch await AgentToolExecutor.readPage(url) {
+            case .success(let text): (text, false)
+            case .failure(let failure): (failure.message, true)
+            }
+        }
     }
 
     private func persist() {
