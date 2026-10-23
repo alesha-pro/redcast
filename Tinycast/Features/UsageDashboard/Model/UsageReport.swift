@@ -26,12 +26,21 @@ struct UsageTotals: Equatable, Sendable {
     }
 }
 
-/// One conversation's replies inside a period, as the aggregate query returns them.
+/// One conversation's replies inside one slice of a period, as the aggregate query returns them.
 struct UsageRow: Equatable, Sendable {
     let conversationID: UUID
     /// `conversation_details.model` as stored: `JSONEncoder` output, keys in no fixed order.
     let modelJSON: String?
     let totals: UsageTotals
+    /// Which of the period's slices the replies fell in: an hour of a day, or a day.
+    let slice: Int
+
+    init(conversationID: UUID, modelJSON: String?, totals: UsageTotals, slice: Int = 0) {
+        self.conversationID = conversationID
+        self.modelJSON = modelJSON
+        self.totals = totals
+        self.slice = slice
+    }
 }
 
 /// Who a report line is about: an ACP agent by its binding, else the chat's model.
@@ -66,12 +75,24 @@ struct UsageReport: Equatable, Sendable {
         var id: UsageSubject { subject }
     }
 
+    /// One bar of the trend: what replies reported from `start` until the next slice begins.
+    struct Slice: Identifiable, Equatable, Sendable {
+        let start: Date
+        var totals = UsageTotals()
+        var id: Date { start }
+    }
+
     let lines: [Line]
     let total: UsageTotals
+    let slices: [Slice]
 
     /// `agents` maps a chat to its ACP agent, whose CLI ran it whatever the model picker held.
-    init(rows: [UsageRow], agents: [UUID: UUID] = [:]) {
+    init(
+        rows: [UsageRow], ledger: [UsageLedgerEntry] = [], slices starts: [Date] = [],
+        agents: [UUID: UUID] = [:]
+    ) {
         var sums: [UsageSubject: UsageTotals] = [:]
+        var trend = starts.map { Slice(start: $0) }
         var decoded: [String: UsageSubject] = [:]
         for row in rows {
             let subject: UsageSubject
@@ -84,9 +105,16 @@ struct UsageReport: Equatable, Sendable {
                 subject = .unknown
             }
             sums[subject, default: UsageTotals()].add(row.totals)
+            if trend.indices.contains(row.slice) { trend[row.slice].totals.add(row.totals) }
+        }
+        for entry in ledger {
+            let totals = entry.totals
+            sums[entry.subject, default: UsageTotals()].add(totals)
+            if let index = starts.lastIndex(where: { $0 <= entry.at }) { trend[index].totals.add(totals) }
         }
         lines = sums.map { Line(subject: $0.key, totals: $0.value) }.sorted(by: Self.precedes)
         total = lines.reduce(into: UsageTotals()) { $0.add($1.totals) }
+        slices = trend
     }
 
     /// Dearest first and every priced line before an unpriced one, then by tokens.

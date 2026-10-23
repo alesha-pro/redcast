@@ -30,6 +30,13 @@ struct UsageDashboardTests {
         openRouterRequestsAndStatuses()
         await aToolLoopTurnCostsEveryRound()
         onlyOpenAIsOwnAPIIsAskedForStreamUsage()
+        periodsSliceIntoHoursAndDays()
+        await theTrendSumsEachSliceOfThePeriod()
+        ledgerLinesRoundTrip()
+        ledgerFilesAppendReadAndTrim()
+        await ledgerEntriesJoinTheirModelsLine()
+        await theRecorderPassesRepliesThroughAndLogsOnce()
+        managementKeysGoOnlyToOpenRouterCredits()
 
         print("\(passes) passed, \(failures) failed")
         if failures > 0 { exit(1) }
@@ -514,6 +521,351 @@ struct UsageDashboardTests {
         expect(
             options(.openAICompatible) == ["include_usage": true],
             "a compatible preset left on OpenAI's own endpoint is OpenAI")
+    }
+}
+
+// MARK: - Trend
+
+extension UsageDashboardTests {
+    static func periodsSliceIntoHoursAndDays() {
+        let thursday = date(2026, 10, 22, 15)
+        let day = UsagePeriod.day.interval(containing: thursday, calendar: berlin)
+        let hours = UsagePeriod.day.slices(of: day, calendar: berlin)
+        expect(hours.count == 24 && hours.first == day.start, "a day is sliced into its hours")
+        expect(hours[14] == date(2026, 10, 22, 14), "each slice starts on the hour")
+        let spring = UsagePeriod.day.interval(containing: date(2026, 3, 29), calendar: berlin)
+        expect(UsagePeriod.day.slices(of: spring, calendar: berlin).count == 23, "a 23-hour day has 23 bars")
+        let autumn = UsagePeriod.day.interval(containing: date(2026, 10, 25), calendar: berlin)
+        expect(UsagePeriod.day.slices(of: autumn, calendar: berlin).count == 25, "and a 25-hour day 25")
+
+        let week = UsagePeriod.week.interval(containing: thursday, calendar: berlin)
+        let days = UsagePeriod.week.slices(of: week, calendar: berlin)
+        expect(days.count == 7, "a week is sliced into its days")
+        expect(days.last == date(2026, 10, 25, 0), "each at local midnight, across the clock change")
+        let october = UsagePeriod.month.interval(containing: thursday, calendar: berlin)
+        expect(UsagePeriod.month.slices(of: october, calendar: berlin).count == 31, "October has 31 bars")
+        let february = UsagePeriod.month.interval(containing: date(2026, 2, 10), calendar: berlin)
+        expect(UsagePeriod.month.slices(of: february, calendar: berlin).count == 28, "February 28")
+
+        let locale = Locale(identifier: "en_US")
+        let hour = UsagePeriod.day.sliceTitle(of: hours[14], calendar: berlin, locale: locale)
+        expect(hour.hasPrefix("2") && hour.hasSuffix("PM"), "an hour's bar is named by its hour: \(hour)")
+        expect(
+            UsagePeriod.month.sliceTitle(of: days[2], calendar: berlin, locale: locale) == "Oct 21",
+            "a day's bar by its date")
+    }
+
+    static func theTrendSumsEachSliceOfThePeriod() async {
+        let directory = scratch("trend")
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let store = ChatHistoryStore(directory: directory)
+        let early = session(
+            [
+                question(at: 5), reply(at: 10, AIUsage(inputTokens: 1, outputTokens: 1, costUSD: 0.1)),
+                question(at: 3_650), reply(at: 3_700, AIUsage(inputTokens: 2, outputTokens: 2)),
+                question(at: 3_750), reply(at: 3_800, AIUsage(inputTokens: 3, outputTokens: 3))
+            ],
+            model: .api(connection: connection, model: "m", effort: nil))
+        let late = session(
+            [question(at: 86_000), reply(at: 86_399, AIUsage(inputTokens: 4, outputTokens: 4))],
+            model: .codex(model: "c", effort: nil))
+        let running = session(
+            [
+                question(at: 20), reply(at: 30, AIUsage(inputTokens: 1, costUSD: 0.1)),
+                question(at: 3_690), reply(at: 3_700, AIUsage(inputTokens: 1, costUSD: 0.3))
+            ],
+            model: .claude(model: "sonnet", effort: nil))
+        for chat in [early, late, running] { store.save(chat) }
+        let slices = (0..<24).map { periodStart.addingTimeInterval(TimeInterval($0) * 3_600) }
+
+        let rows = (try? UsageQuery.rows(databaseURL: store.databaseURL, in: period, slices: slices)) ?? []
+        let earlyRows = rows.filter { $0.conversationID == early.id }
+        expect(earlyRows.count == 2, "a chat active in two slices returns a row for each")
+        expect(
+            earlyRows.first { $0.slice == 1 }?.totals.replies == 2,
+            "the slice is the last one starting at or before the reply")
+        expect(rows.first { $0.conversationID == late.id }?.slice == 23, "the period's last second is its last slice")
+
+        let agent = UUID()
+        guard
+            let report = try? await UsageQuery.report(
+                databaseURL: store.databaseURL, in: period, slices: slices, agents: [running.id: agent])
+        else {
+            expect(false, "the trend fixture reads")
+            return
+        }
+        expect(report.slices.map(\.start) == slices, "one bar per slice, in order")
+        expect(
+            report.slices[0].totals.replies == 2 && report.slices[1].totals.replies == 3,
+            "replies land in their hour")
+        expect(report.slices[23].totals.tokens == 8, "and so do their tokens")
+        expect(
+            abs((report.slices[1].totals.cost ?? 0) - 0.2) < 1e-9,
+            "an ACP session's rise is counted in the slice it rose in")
+        var summed = UsageTotals()
+        for slice in report.slices { summed.add(slice.totals) }
+        expect(
+            summed.tokens == report.total.tokens && summed.replies == report.total.replies,
+            "bars add up to the total")
+        let model = report.lines.first { $0.subject == .model(source: .api(connection), model: "m") }
+        expect(model?.totals.replies == 3, "slicing never splits a line")
+    }
+}
+
+// MARK: - Ledger
+
+extension UsageDashboardTests {
+    private static let ledgerNow = Date(timeIntervalSince1970: 1_790_100_000)
+
+    private static func entry(
+        _ offset: TimeInterval, route: String = "codex", model: String = "gpt", cost: Double? = 0.01
+    ) -> UsageLedgerEntry {
+        UsageLedgerEntry(
+            at: ledgerNow.addingTimeInterval(offset), origin: .quickAction, route: route, model: model,
+            usage: AIUsage(inputTokens: 10, outputTokens: 2, costUSD: cost))
+    }
+
+    static func ledgerLinesRoundTrip() {
+        let full = UsageLedgerEntry(
+            at: ledgerNow.addingTimeInterval(0.7), origin: .voice,
+            selection: .api(connection: connection, model: "g", effort: "low"),
+            usage: AIUsage(
+                inputTokens: 100, outputTokens: 20, cachedInputTokens: 5, reasoningTokens: 3, costUSD: 0.000_12))
+        let line = full.line
+        expect(line.hasSuffix("\n") && line.filter { $0 == "\n" }.count == 1, "one entry is one line")
+        expect(line.hasPrefix("1790100000\tvoice\tapi:\(connection.uuidString)\tg\t"), "date first, whole seconds")
+        expect(UsageLedgerEntry(line: String(line.dropLast())) == full, "a line reads back as written")
+        expect(full.subject == .model(source: .api(connection), model: "g"), "effort is not part of the subject")
+        expect(full.totals.promptTokens == 105 && full.totals.pricedReplies == 1, "an entry is one priced reply")
+
+        let bare = UsageLedgerEntry(
+            at: ledgerNow, origin: .chatTitle, route: "claude", model: "s\tx\ny", usage: AIUsage())
+        let bareLine = bare.line
+        expect(bareLine.split(separator: "\t", omittingEmptySubsequences: false).count == 9, "nine fields")
+        let read = UsageLedgerEntry(line: String(bareLine.dropLast()))
+        expect(read?.model == "s x y", "a tab or newline in a model id cannot break the line")
+        expect(read?.usage == AIUsage() && read?.totals.cost == nil, "unreported figures stay unreported")
+        expect(read?.subject == .model(source: .claude, model: "s x y"), "an installed tool's route reads back")
+
+        let later = UsageLedgerEntry(line: "1790100000\tmeeting\tcodex\tgpt\t1\t2\t\t\t0.5\tnew\tfields")
+        expect(later?.origin == nil && later?.usage.outputTokens == 2, "a later build's origin and fields are ignored")
+        expect(later?.usage.costUSD == 0.5, "the cost column still reads")
+        let short = UsageLedgerEntry(line: "1790100000\tvoice\tgrok\tm")
+        expect(short?.usage == AIUsage(), "missing figures are unreported")
+        let unknown = UsageLedgerEntry(line: "1790100000\tvoice\tgemini\tm")
+        expect(unknown?.subject == .unknown, "an unknown route is unknown")
+        expect(UsageLedgerEntry(line: "1790100000\tvoice\tapi:nope\tm")?.subject == .unknown, "and so is a bad id")
+        for garbage in ["", "abc", "1790100000", "1790100000\tvoice\t\tm", "x\tvoice\tcodex\tm"] {
+            expect(UsageLedgerEntry(line: garbage) == nil, "an unreadable line is no entry: \(garbage)")
+        }
+        expect(
+            UsageLedgerEntry(line: "1790100000\tvoice\tcodex\tm\t1\t1\t\t\tnan")?.usage.costUSD == nil,
+            "a cost that is not a number is not a cost")
+    }
+
+    static func ledgerFilesAppendReadAndTrim() {
+        let directory = scratch("ledger")
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let url = directory.appending(path: "ai-usage.tsv")
+        let all = DateInterval(start: .distantPast, end: .distantFuture)
+        expect((try? UsageLedger.entries(at: url, in: all)) == [], "no log is no usage")
+        expect(!FileManager.default.fileExists(atPath: url.path), "and reading it creates nothing")
+
+        for offset in [-10.0, -5, 0] { UsageLedger.append(entry(offset * 86_400), to: url) }
+        let recent = DateInterval(
+            start: ledgerNow.addingTimeInterval(-6 * 86_400), end: ledgerNow.addingTimeInterval(1))
+        expect((try? UsageLedger.entries(at: url, in: recent))?.count == 2, "a period reads only its own lines")
+        expect((try? UsageLedger.entries(at: url, in: all))?.count == 3, "every append is one line")
+
+        let handle = try? FileHandle(forWritingTo: url)
+        _ = try? handle?.seekToEnd()
+        try? handle?.write(contentsOf: Data("1790100001\tvoice\tco".utf8))
+        try? handle?.close()
+        expect((try? UsageLedger.entries(at: url, in: all))?.count == 3, "a line still being written is not read")
+        UsageLedger.append(entry(1), to: url)
+        let afterCut = (try? UsageLedger.entries(at: url, in: all)) ?? []
+        expect(afterCut.count == 4 && afterCut.last == entry(1), "a cut-short line never swallows the next one")
+
+        func write(_ offsetsInDays: [Double], garbage: Bool = false) {
+            let lines = offsetsInDays.map { entry($0 * 86_400).line }.joined()
+            try? Data(((garbage ? "garbage\n" : "") + lines).utf8).write(to: url)
+        }
+        write([-500, -450, -420, -10])
+        UsageLedger.append(entry(0), to: url)
+        let trimmed = ((try? UsageLedger.entries(at: url, in: all)) ?? []).map(\.at)
+        expect(
+            trimmed == [entry(-10 * 86_400).at, entry(0).at],
+            "past 430 days the log is rewritten without what is older than 400")
+
+        write([-420, -10])
+        UsageLedger.append(entry(0), to: url)
+        expect((try? UsageLedger.entries(at: url, in: all))?.count == 3, "inside the slack nothing is rewritten")
+
+        write([-10], garbage: true)
+        UsageLedger.append(entry(0), to: url)
+        let cleaned = (try? String(contentsOf: url, encoding: .utf8)) ?? ""
+        expect(
+            !cleaned.contains("garbage") && cleaned.split(separator: "\n").count == 2,
+            "an unreadable head is trimmed away")
+    }
+
+    static func ledgerEntriesJoinTheirModelsLine() async {
+        let directory = scratch("ledger-report")
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let store = ChatHistoryStore(directory: directory)
+        store.save(
+            session(
+                [question(at: 1), reply(at: 2, AIUsage(inputTokens: 10, outputTokens: 1, costUSD: 0.25))],
+                model: .api(connection: connection, model: "m", effort: "high")))
+        let ledger = directory.appending(path: "ai-usage.tsv")
+        let route = AIModelSource.api(connection).storageKey
+        let quick = UsageLedgerEntry(
+            at: periodStart.addingTimeInterval(7_300), origin: .quickAction, route: route, model: "m",
+            usage: AIUsage(inputTokens: 5, outputTokens: 5, costUSD: 0.5))
+        let stray = UsageLedgerEntry(
+            at: periodStart.addingTimeInterval(90), origin: .extensionAI, route: "gone", model: "x",
+            usage: AIUsage(inputTokens: 1))
+        let outside = UsageLedgerEntry(
+            at: periodStart.addingTimeInterval(-1), origin: .voice, route: route, model: "m",
+            usage: AIUsage(inputTokens: 99, costUSD: 9))
+        for entry in [quick, stray, outside] { UsageLedger.append(entry, to: ledger) }
+
+        let slices = [periodStart, periodStart.addingTimeInterval(3_600), periodStart.addingTimeInterval(7_200)]
+        guard
+            let report = try? await UsageQuery.report(
+                databaseURL: store.databaseURL, ledgerURL: ledger, in: period, slices: slices, agents: [:])
+        else {
+            expect(false, "the ledger fixture reads")
+            return
+        }
+        let model = report.lines.first { $0.subject == .model(source: .api(connection), model: "m") }
+        expect(model?.totals.replies == 2 && model?.totals.cost == 0.75, "a Quick Action adds to its model's line")
+        expect(report.lines.contains { $0.subject == .unknown && $0.totals.input == 1 }, "an unknown route is unknown")
+        expect(report.total.replies == 3, "an entry outside the period is left out")
+        expect(
+            report.slices[2].totals.replies == 1 && report.slices[0].totals.replies == 2,
+            "entries land in their slice")
+
+        let noHistory = directory.appending(path: "never.sqlite3")
+        let onlyLog = try? await UsageQuery.report(
+            databaseURL: noHistory, ledgerURL: ledger, in: period, agents: [:])
+        expect(onlyLog?.total.replies == 2, "a Mac that never chatted still counts its Quick Actions")
+    }
+}
+
+// MARK: - Recording
+
+extension UsageDashboardTests {
+    static func theRecorderPassesRepliesThroughAndLogsOnce() async {
+        let directory = scratch("recorder")
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let ledger = directory.appending(path: "ai-usage.tsv")
+        let selection = AIModelSelection.api(connection: connection, model: "m", effort: nil)
+        let first = AIUsage(inputTokens: 1, outputTokens: 1)
+        let last = AIUsage(inputTokens: 7, outputTokens: 3, costUSD: 0.02)
+        let script: [AIStreamEvent] = [.text("a"), .usage(first), .thinking, .text("b"), .usage(last), .finished]
+        let recorder = UsageRecordingProvider.wrapping(
+            Rounds([script]), for: selection, as: .quickAction, ledger: ledger)
+        var seen: [AIStreamEvent] = []
+        do {
+            for try await event in recorder.stream(AIRequest(messages: [])) { seen.append(event) }
+        } catch {
+            expect(false, "the recorded stream finishes: \(error)")
+        }
+        expect(seen == script, "every event passes through, unchanged and in order")
+        let entries = await logged(at: ledger, count: 1)
+        expect(entries.count == 1 && entries.first?.usage == last, "one line, with the last usage reported")
+        expect(
+            entries.first?.origin == .quickAction && entries.first?.route == selection.source.storageKey,
+            "named by its origin and route")
+
+        let silentLedger = directory.appending(path: "silent.tsv")
+        let silent = UsageRecordingProvider.wrapping(
+            Rounds([[.text("x"), .finished]]), for: selection, as: .voice, ledger: silentLedger)
+        await drain(silent)
+        try? await Task.sleep(for: .milliseconds(100))
+        expect(!FileManager.default.fileExists(atPath: silentLedger.path), "a reply that reported nothing logs nothing")
+
+        let local = UsageRecordingProvider.wrapping(
+            Rounds([]), for: .appleIntelligence, as: .quickAction, ledger: ledger)
+        expect(local is Rounds, "Apple Intelligence is passed back as it was, so its type still caps it")
+
+        let stoppedLedger = directory.appending(path: "stopped.tsv")
+        let stopped = UsageRecordingProvider.wrapping(
+            Rounds([[.usage(last), .finished, .text("never read")]]), for: selection, as: .chatTitle,
+            ledger: stoppedLedger)
+        do {
+            for try await event in stopped.stream(AIRequest(messages: [])) {
+                if case .finished = event { break }
+            }
+        } catch {
+            expect(false, "the stopped stream reads: \(error)")
+        }
+        let stoppedEntries = await logged(at: stoppedLedger, count: 1)
+        expect(stoppedEntries.count == 1, "a reader that stops early still has it logged")
+
+        let failedLedger = directory.appending(path: "failed.tsv")
+        let failing = UsageRecordingProvider.wrapping(
+            FailsAfter([.usage(last)]), for: selection, as: .extensionAI, ledger: failedLedger)
+        var thrown: Error?
+        do {
+            for try await _ in failing.stream(AIRequest(messages: [])) {}
+        } catch {
+            thrown = error
+        }
+        expect(thrown as? AIProviderError == .malformedResponse, "a failure reaches the reader as it was thrown")
+        let failedEntries = await logged(at: failedLedger, count: 1)
+        expect(failedEntries.count == 1, "and a reply billed before it failed is logged")
+    }
+
+    private static func drain(_ provider: any AIProvider) async {
+        do {
+            for try await _ in provider.stream(AIRequest(messages: [])) {}
+        } catch {
+            expect(false, "the scripted stream finishes: \(error)")
+        }
+    }
+
+    /// The append lands on the stream's own task, after the reader has its last event.
+    private static func logged(at url: URL, count: Int) async -> [UsageLedgerEntry] {
+        let all = DateInterval(start: .distantPast, end: .distantFuture)
+        for _ in 0..<100 {
+            if let entries = try? UsageLedger.entries(at: url, in: all), entries.count >= count { return entries }
+            try? await Task.sleep(for: .milliseconds(20))
+        }
+        return (try? UsageLedger.entries(at: url, in: all)) ?? []
+    }
+
+    static func managementKeysGoOnlyToOpenRouterCredits() {
+        let request = OpenRouterAccount.creditsRequest(managementKey: "sk-or-mgmt")
+        expect(request.url?.absoluteString == "https://openrouter.ai/api/v1/credits", "only OpenRouter's own endpoint")
+        expect(request.httpMethod == "GET", "a read")
+        expect(request.value(forHTTPHeaderField: "Authorization") == "Bearer sk-or-mgmt", "with the management key")
+        expect(request.timeoutInterval == 15, "and the same 15-second limit")
+        expect(
+            OpenRouterAccount.failure(forStatus: 403, managementKey: true) == .rejectedManagementKey,
+            "a refusal names the management key")
+        expect(OpenRouterAccount.failure(forStatus: 401, managementKey: true) == .rejectedManagementKey, "401 too")
+        expect(OpenRouterAccount.failure(forStatus: 503, managementKey: true) == .unavailable, "a 5xx is OpenRouter's")
+        expect(
+            OpenRouterAccount.Failure.rejectedManagementKey.message != OpenRouterAccount.Failure.rejectedKey.message,
+            "and says which key was refused")
+    }
+}
+
+/// A route that streams some events and then fails, as a dropped connection does.
+struct FailsAfter: AIProvider {
+    let events: [AIStreamEvent]
+
+    init(_ events: [AIStreamEvent]) {
+        self.events = events
+    }
+
+    func stream(_ request: AIRequest) -> AIProviderStream {
+        AIProviderStream { continuation in
+            for event in events { continuation.yield(event) }
+            continuation.finish(throwing: AIProviderError.malformedResponse)
+        }
     }
 }
 

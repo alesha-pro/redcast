@@ -70,8 +70,15 @@ struct OpenRouterCredits: Decodable, Equatable, Sendable {
 }
 
 struct OpenRouterBalance: Equatable, Sendable {
+    enum Credits: Equatable, Sendable {
+        case loaded(OpenRouterCredits)
+        /// No management key is stored, and the chat's own key is not one.
+        case needsManagementKey
+        case failed(OpenRouterAccount.Failure)
+    }
+
     let key: OpenRouterKeyStatus
-    let credits: OpenRouterCredits?
+    let credits: Credits
 }
 
 /// The pure half of the balance check: requests, decoding and what a status means.
@@ -81,6 +88,7 @@ enum OpenRouterAccount {
         case missingKey
         case unreadableKey
         case rejectedKey
+        case rejectedManagementKey
         case unavailable
         case malformed
 
@@ -90,6 +98,7 @@ enum OpenRouterAccount {
             case .missingKey: String(localized: "Add an API key in Settings.")
             case .unreadableKey: String(localized: "The API key could not be read from Keychain.")
             case .rejectedKey: String(localized: "OpenRouter rejected the key.")
+            case .rejectedManagementKey: String(localized: "OpenRouter rejected the management key.")
             case .unavailable, .malformed: String(localized: "OpenRouter didn't answer. Try again.")
             }
         }
@@ -101,8 +110,21 @@ enum OpenRouterAccount {
 
     static let timeout: TimeInterval = 15
 
+    /// Fixed rather than the connection's base URL: a proxy in between never sees an account key.
+    static let creditsURL = URL(string: "https://openrouter.ai/api/v1/credits")!
+
+    /// The one request a management key is ever sent with.
+    static func creditsRequest(managementKey: String) -> URLRequest {
+        authorized(URLRequest(url: creditsURL, timeoutInterval: timeout), key: managementKey)
+    }
+
     static func request(_ path: String, baseURL: URL, key: String) -> URLRequest {
-        var request = URLRequest(url: root(of: baseURL).appending(path: path), timeoutInterval: timeout)
+        authorized(
+            URLRequest(url: root(of: baseURL).appending(path: path), timeoutInterval: timeout), key: key)
+    }
+
+    private static func authorized(_ request: URLRequest, key: String) -> URLRequest {
+        var request = request
         request.httpMethod = "GET"
         request.setValue("Bearer \(key)", forHTTPHeaderField: "Authorization")
         request.setValue("application/json", forHTTPHeaderField: "Accept")
@@ -132,7 +154,8 @@ enum OpenRouterAccount {
     }
 
     /// Only the key's own refusal is the user's to fix; anything else is OpenRouter's.
-    static func failure(forStatus status: Int) -> Failure {
-        status == 401 || status == 403 ? .rejectedKey : .unavailable
+    static func failure(forStatus status: Int, managementKey: Bool = false) -> Failure {
+        guard status == 401 || status == 403 else { return .unavailable }
+        return managementKey ? .rejectedManagementKey : .rejectedKey
     }
 }

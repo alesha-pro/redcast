@@ -19586,6 +19586,58 @@
         }
       }
     },
+    "AI Usage" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "KI-Nutzung"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uso de IA"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Utilisation de l’IA"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AIの使用量"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AI 사용량"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uso de IA"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Использование ИИ"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AI 用量"
+          }
+        }
+      }
+    },
     "AI commands" : {
       "localizations" : {
         "de" : {
@@ -48035,54 +48087,54 @@
         }
       }
     },
-    "Counted from the chats kept on this Mac, so a deleted chat takes its usage with it, and Quick Actions are not counted. Costs are as each route reported them. Balances are fetched only when you ask." : {
+    "Counted from the chats kept on this Mac, so a deleted chat takes its usage with it, and from a log of the replies no chat keeps, such as Quick Actions. Costs are as each route reported them. Balances are fetched only when you ask." : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Gezählt aus den Chats auf diesem Mac: Ein gelöschter Chat nimmt seine Nutzung mit, und Schnellaktionen werden nicht gezählt. Kosten sind so angegeben, wie jeder Anbieter sie gemeldet hat. Guthaben werden nur abgerufen, wenn du danach fragst."
+            "value" : "Gezählt aus den Chats auf diesem Mac, sodass ein gelöschter Chat seine Nutzung mitnimmt, und aus einem Protokoll der Antworten, die kein Chat behält, etwa von Schnellaktionen. Kosten sind so angegeben, wie jeder Anbieter sie gemeldet hat. Guthaben werden nur abgerufen, wenn du danach fragst."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Se cuenta a partir de los chats guardados en este Mac, así que un chat eliminado se lleva su uso, y las Acciones rápidas no se cuentan. Los costos son los que informó cada proveedor. Los saldos solo se consultan cuando lo pides."
+            "value" : "Se cuenta a partir de los chats guardados en este Mac, así que un chat eliminado se lleva su uso, y de un registro de las respuestas que ningún chat guarda, como las de Acciones rápidas. Los costos son los que informó cada proveedor. Los saldos solo se consultan cuando lo pides."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Calculé à partir des discussions conservées sur ce Mac : une discussion supprimée emporte son utilisation, et les Actions rapides ne sont pas comptées. Les coûts sont ceux indiqués par chaque fournisseur. Les soldes ne sont récupérés que sur demande."
+            "value" : "Calculé à partir des discussions conservées sur ce Mac, si bien qu’une discussion supprimée emporte son utilisation, et d’un journal des réponses qu’aucune discussion ne conserve, comme celles des Actions rapides. Les coûts sont ceux indiqués par chaque fournisseur. Les soldes ne sont récupérés que sur demande."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "このMacに保存されているチャットから集計します。チャットを削除するとその使用量も消え、クイックアクションは集計されません。費用は各プロバイダが報告したとおりです。残高は確認を求めたときにだけ取得します。"
+            "value" : "このMacに保存されているチャット（チャットを削除するとその使用量も消えます）と、クイックアクションなどチャットに残らない応答の記録から集計します。費用は各プロバイダが報告したとおりです。残高は確認を求めたときにだけ取得します。"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "이 Mac에 보관된 채팅을 기준으로 집계하므로 채팅을 삭제하면 그 사용량도 사라지며, 빠른 동작은 집계되지 않습니다. 비용은 각 제공자가 보고한 그대로입니다. 잔액은 요청할 때만 가져옵니다."
+            "value" : "이 Mac에 보관된 채팅(채팅을 삭제하면 그 사용량도 사라집니다)과 빠른 동작처럼 채팅에 남지 않는 응답의 기록을 기준으로 집계합니다. 비용은 각 제공자가 보고한 그대로입니다. 잔액은 요청할 때만 가져옵니다."
           }
         },
         "pt" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Contado a partir das conversas guardadas neste Mac: uma conversa apagada leva o seu uso junto, e as Ações Rápidas não são contadas. Os custos são os informados por cada provedor. Os saldos só são consultados quando você pede."
+            "value" : "Contado a partir das conversas guardadas neste Mac, então uma conversa apagada leva o seu uso junto, e de um registro das respostas que nenhuma conversa guarda, como as das Ações Rápidas. Os custos são os informados por cada provedor. Os saldos só são consultados quando você pede."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Считается по чатам, сохранённым на этом Mac: удалённый чат забирает свой расход с собой, а быстрые действия не учитываются. Стоимость указана так, как её сообщил каждый провайдер. Баланс запрашивается только по вашей просьбе."
+            "value" : "Считается по чатам, сохранённым на этом Mac (удалённый чат забирает свой расход с собой), и по журналу ответов, которые не хранит ни один чат, например быстрых действий. Стоимость указана так, как её сообщил каждый провайдер. Баланс запрашивается только по вашей просьбе."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "根据这台 Mac 上保存的对话统计，删除对话会一并移除其用量，快速操作不计入。费用以各提供商报告的为准。余额只在你请求时获取。"
+            "value" : "根据这台 Mac 上保存的对话（删除对话会一并移除其用量），以及快速操作等不保存在对话中的回复记录统计。费用以各提供商报告的为准。余额只在你请求时获取。"
           }
         }
       }
@@ -80174,6 +80226,110 @@
         }
       }
     },
+    "Management Key" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verwaltungsschlüssel"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clave de gestión"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clé de gestion"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "管理キー"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "관리 키"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chave de gerenciamento"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Управляющий ключ"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "管理密钥"
+          }
+        }
+      }
+    },
+    "Management Key…" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verwaltungsschlüssel …"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clave de gestión…"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clé de gestion…"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "管理キー…"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "관리 키…"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chave de gerenciamento…"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Управляющий ключ…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "管理密钥…"
+          }
+        }
+      }
+    },
     "Manage…" : {
       "localizations" : {
         "de" : {
@@ -98369,6 +98525,58 @@
         }
       }
     },
+    "OpenRouter Management Key" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OpenRouter-Verwaltungsschlüssel"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clave de gestión de OpenRouter"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clé de gestion OpenRouter"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OpenRouterの管理キー"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OpenRouter 관리 키"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chave de gerenciamento do OpenRouter"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Управляющий ключ OpenRouter"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OpenRouter 管理密钥"
+          }
+        }
+      }
+    },
     "OpenRouter didn't answer. Try again." : {
       "localizations" : {
         "de" : {
@@ -98469,6 +98677,58 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "OpenRouter 拒绝了该密钥。"
+          }
+        }
+      }
+    },
+    "OpenRouter rejected the management key." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OpenRouter hat den Verwaltungsschlüssel abgelehnt."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OpenRouter rechazó la clave de gestión."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OpenRouter a refusé la clé de gestion."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OpenRouterが管理キーを拒否しました。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OpenRouter가 관리 키를 거부했습니다."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O OpenRouter recusou a chave de gerenciamento."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OpenRouter отклонил управляющий ключ."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OpenRouter 拒绝了该管理密钥。"
           }
         }
       }
@@ -149473,6 +149733,58 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "用以下方式使用“%@”…"
+          }
+        }
+      }
+    },
+    "Used only to read your account's credits when you press Check Balance, and sent only to OpenRouter. Create one in OpenRouter's settings under Management Keys." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wird nur verwendet, um beim Klick auf „Guthaben prüfen“ das Guthaben deines Kontos zu lesen, und nur an OpenRouter gesendet. Erstelle einen in den OpenRouter-Einstellungen unter „Management Keys“."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Solo se usa para leer los créditos de tu cuenta cuando pulsas Consultar saldo, y solo se envía a OpenRouter. Crea una en los ajustes de OpenRouter, en Management Keys."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Utilisée uniquement pour lire les crédits de votre compte lorsque vous cliquez sur Vérifier le solde, et envoyée uniquement à OpenRouter. Créez-en une dans les réglages d’OpenRouter, sous Management Keys."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "「残高を確認」を押したときにアカウントのクレジットを読み取るためだけに使われ、OpenRouterにのみ送信されます。OpenRouterの設定の「Management Keys」で作成してください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "잔액 확인을 누를 때 계정의 크레딧을 읽는 데만 쓰이며 OpenRouter로만 전송됩니다. OpenRouter 설정의 Management Keys에서 만드십시오."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usada só para ler os créditos da sua conta quando você clica em Verificar saldo, e enviada só ao OpenRouter. Crie uma nas configurações do OpenRouter, em Management Keys."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Используется только для того, чтобы узнать кредиты аккаунта по кнопке «Проверить баланс», и отправляется только в OpenRouter. Создайте его в настройках OpenRouter в разделе Management Keys."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "仅在你点按“查询余额”时用于读取账户的额度，并且只发送给 OpenRouter。请在 OpenRouter 设置的 Management Keys 中创建。"
           }
         }
       }

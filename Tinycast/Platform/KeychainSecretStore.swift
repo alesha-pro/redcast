@@ -15,6 +15,8 @@ struct KeychainSecretStore: Sendable {
     static let mcpSecrets = KeychainSecretStore(scope: "mcp-secrets")
     static let installedAIEnvironment = KeychainSecretStore(scope: "installed-ai-environment")
     static let webSearchKeys = KeychainSecretStore(scope: "web-search-keys")
+    // Fork: sent only to OpenRouter's /credits, by Check Balance in Settings → AI → Usage.
+    static let openRouterManagementKeys = KeychainSecretStore(scope: "openrouter-management-keys")
 
     init(scope: String, bundleIdentifier: String? = Bundle.main.bundleIdentifier) {
         service = "\(bundleIdentifier ?? "com.tinycast.app").\(scope)"
