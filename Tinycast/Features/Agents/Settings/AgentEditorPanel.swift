@@ -210,13 +210,14 @@ struct AgentEditorPanel: View {
 
     private var accessField: some View {
         field("Access") {
-            Picker("Access", selection: $draft.access) {
-                Text("Read only").tag(AgentAccess.readOnly)
-                Text("Change its folder").tag(AgentAccess.workspaceWrite)
-                Text("Full access").tag(AgentAccess.fullAccess)
-            }
-            .labelsHidden()
-            .pickerStyle(.segmented)
+            SteadySegmentedPicker(
+                title: String(localized: "Access"),
+                options: [
+                    .init(value: .readOnly, title: String(localized: "Read only")),
+                    .init(value: .workspaceWrite, title: String(localized: "Change its folder")),
+                    .init(value: .fullAccess, title: String(localized: "Full access"))
+                ],
+                selection: $draft.access)
         }
     }
 
@@ -300,12 +301,13 @@ struct AgentEditorPanel: View {
     /// A run nobody watches: what its requests get, whether it says it ended, and its time limit.
     private var backgroundField: some View {
         field("In the background") {
-            Picker("In the background", selection: background.consent) {
-                Text("Ask me").tag(AgentBackgroundConsent.ask)
-                Text("Decline").tag(AgentBackgroundConsent.decline)
-            }
-            .labelsHidden()
-            .pickerStyle(.segmented)
+            SteadySegmentedPicker(
+                title: String(localized: "In the background"),
+                options: [
+                    .init(value: .ask, title: String(localized: "Ask me")),
+                    .init(value: .decline, title: String(localized: "Decline"))
+                ],
+                selection: background.consent)
             Text(
                 """
                 Ask me shows the dialog only while you're at the Mac, with Don't Allow on Return. \
