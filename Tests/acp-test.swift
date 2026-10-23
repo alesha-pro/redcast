@@ -35,6 +35,7 @@ struct ACPTests {
         await toolContentReachesItsRows()
         await commandsReachTheChatAndLeadTheirTurn()
         await aFreshProcessWaitsForItsCommands()
+        await configOptionsApplyBeforeTheFirstPrompt()
 
         print("\(passes) passed, \(failures) failed")
         if failures > 0 { exit(1) }
@@ -253,7 +254,7 @@ struct ACPTests {
             runtime: AgentRuntime(kind: .custom, command: node.path, arguments: [fixture]))
         let asked = Asked()
         let answer = Answer()
-        let seen = SeenModes()
+        let seen = SeenOptions()
         let unattended = UUID()
         let host = AgentACPHost(
             store: store,
@@ -263,7 +264,7 @@ struct ACPTests {
             },
             context: { _ in "# Context from Tinycast\nYou are Fake." },
             briefing: { $0 == unattended ? AgentBackgroundBriefing.acp : nil })
-        host.onModes = { _, _, modes in seen.modes.append(modes) }
+        host.onOptions = { _, _, options in if let options { seen.options.append(options) } }
         let server = AIToolServer(
             handle: "files", title: "Files", transport: .command(path: "/bin/echo", arguments: [], environment: [:]))
         func turn(
@@ -306,14 +307,21 @@ struct ACPTests {
             "a call the agent never finished is settled when the turn ends")
         expect(first.events.last == .finished, "and the stream ends with finished")
 
+        let offered = seen.options.first
         expect(
-            seen.modes.first?.available.map(\.id) == ["default", "plan"]
-                && seen.modes.first?.current == "default",
+            offered?.mode?.choices.map(\.value) == ["default", "plan"] && offered?.mode?.current == "default"
+                && offered?.mode?.setter == .legacyMode,
             "a new session reports the modes it offers and the one it is in")
-        try? await host.setMode("plan", chatID: chat)
-        expect(seen.modes.last?.current == "plan", "switching a live session's mode reports it")
+        expect(
+            offered?.model?.choices.map(\.value) == ["m-small", "m-large"] && offered?.model?.current == "m-small"
+                && offered?.model?.setter == .legacyModel && offered?.reasoning == nil,
+            "and the older models as the model select, with no reasoning of its own")
+        try? await host.setOption("plan", for: .mode, chatID: chat)
+        expect(seen.options.last?.mode?.current == "plan", "switching a live session's mode reports it")
         _ = await turn("LEAVEPLAN", chat: chat, host: host)
-        expect(seen.modes.last?.current == "default", "and so does the agent moving itself")
+        expect(seen.options.last?.mode?.current == "default", "and so does the agent moving itself")
+        try? await host.setOption("m-large", for: .model, chatID: chat)
+        expect(seen.options.last?.model?.current == "m-large", "a live session switches model with set_model")
 
         let second = await turn("Again", chat: chat, host: host)
         let again = text(second.events)
@@ -370,18 +378,27 @@ struct ACPTests {
 
         var planner = agent
         planner.acpMode = "plan"
+        planner.acpModel = "m-large"
         let planned = ACPAgentProvider(host: relaunched, agent: planner, servers: { [] })
         let plannerChat = UUID()
-        seen.modes.removeAll()
-        relaunched.onModes = { _, _, modes in seen.modes.append(modes) }
+        seen.options.removeAll()
+        relaunched.onOptions = { _, _, options in if let options { seen.options.append(options) } }
+        var planReply = ""
         do {
-            for try await _ in planned.stream(
+            for try await event in planned.stream(
                 AIRequest(messages: [AIMessage(role: .user, text: "Hi")], conversationID: plannerChat))
-            {}
+            {
+                if case .text(let chunk) = event { planReply += chunk }
+            }
         } catch {
             expect(false, "a planner's turn completes, got \(error)")
         }
-        expect(seen.modes.last?.current == "plan", "an agent's chosen mode is applied as its session starts")
+        expect(
+            seen.options.last?.mode?.current == "plan" && seen.options.last?.model?.current == "m-large",
+            "an agent's chosen mode and model are applied as its session starts")
+        expect(
+            planReply.contains("on m-large; sets model=m-large,mode=plan"),
+            "through the older methods, model first, before the first prompt, got \(planReply)")
         relaunched.stopAll()
 
         let missing = AgentProfile(
@@ -501,8 +518,8 @@ final class Asked {
 }
 
 @MainActor
-final class SeenModes {
-    var modes: [ACPModes] = []
+final class SeenOptions {
+    var options: [ACPSessionOptions] = []
 }
 
 @MainActor
@@ -997,5 +1014,94 @@ extension ACPTests {
         ACPConfigOption(
             id: id, name: id, description: nil, category: category, setter: .configOption, current: current,
             groups: [.init(id: "", name: nil, choices: values.map { .init(value: $0, name: $0, description: nil) })])
+    }
+
+    /// A remembered model, level, mode and other select reach a new or reloaded session first.
+    static func configOptionsApplyBeforeTheFirstPrompt() async {
+        guard let node = await ExecutableLocator.locate("node") else { return }
+        let fixture = FileManager.default.currentDirectoryPath + "/Tests/acp-fixtures/fake-agent.mjs"
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent("ACPTests-\(UUID().uuidString)")
+        try? FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        let support = root.appendingPathComponent("support")
+        let store = AgentStore(directory: support)
+        var draft = AgentProfile(
+            name: "Configured", directory: root.path,
+            runtime: AgentRuntime(kind: .custom, command: node.path, arguments: [fixture, "config"]))
+        draft.acpModel = "large"
+        draft.acpReasoning = "high"
+        draft.acpMode = "plan"
+        draft.acpOptions = ["fast": "on"]
+        guard let agent = try? store.add(draft) else { return expect(false, "the agent saves") }
+        let unattended = UUID()
+        let seen = SeenOptions()
+        func host() -> AgentACPHost {
+            let made = AgentACPHost(
+                store: store, permit: { _, request in request.dialogOptions.first?.id },
+                context: { _ in "# Context from Tinycast" },
+                briefing: { $0 == unattended ? AgentBackgroundBriefing.acp : nil })
+            made.onOptions = { _, _, options in if let options { seen.options.append(options) } }
+            return made
+        }
+        let first = host()
+        defer {
+            first.stopAll()
+            try? FileManager.default.removeItem(at: root)
+        }
+
+        let chat = UUID()
+        let opened = replyText(await stream("Hello", chat: chat, agent: agent, host: first))
+        expect(
+            opened.contains("on large/high/plan/on; sets model=large,effort=high,mode=plan,fast=on"),
+            "every remembered choice reaches a new session before its first prompt, model first, got \(opened)")
+        let applied = seen.options.last
+        expect(
+            applied?.model?.current == "large" && applied?.reasoning?.choices.map(\.value) == ["low", "medium", "high"]
+                && applied?.others.map(\.id) == ["fast"] && applied?.mode?.setter == .configOption,
+            "the composer sees the list the last answer carried, got \(String(describing: applied))")
+
+        try? await first.setOption("small", for: .model, chatID: chat)
+        expect(
+            seen.options.last?.model?.current == "small" && seen.options.last?.reasoning?.current == "medium",
+            "a live switch shows the agent's answer, its level clamped by the agent")
+        let shownBefore = seen.options.count
+        do {
+            try await first.setOption("max", for: .reasoning, chatID: chat)
+            expect(false, "a level the model lacks is refused")
+        } catch {
+            expect(
+                seen.options.count == shownBefore + 1 && seen.options.last?.reasoning?.current == "medium",
+                "a refused pick puts the session's own state back in front of the composer")
+        }
+        _ = await stream("SWITCHMODEL", chat: chat, agent: agent, host: first)
+        expect(
+            seen.options.last?.model?.current == "huge" && seen.options.last?.reasoning?.current == "high",
+            "and the agent's own change arrives as config_option_update")
+
+        guard var stored = store.agent(id: agent.id) else { return expect(false, "the agent is stored") }
+        stored.acpModel = "retired"
+        stored.acpReasoning = "max"
+        try? store.update(stored)
+        let alone = replyText(await stream("Alone", chat: unattended, agent: agent, host: first))
+        expect(
+            alone.contains("briefed") && alone.contains("on small/low/plan/on; sets mode=plan,fast=on"),
+            "an unattended run starts the same way, values the agent no longer offers not sent, got \(alone)")
+        let kept = AgentStore(directory: support)
+        kept.load()
+        let reread = kept.agent(id: agent.id)
+        expect(
+            reread?.acpModel == nil && reread?.acpReasoning == nil && reread?.acpMode == "plan"
+                && reread?.acpOptions == ["fast": "on"],
+            "and they are forgotten on the agent, on disk, while the rest stays")
+
+        stored = store.agent(id: agent.id) ?? stored
+        stored.acpModel = "huge"
+        try? store.update(stored)
+        first.stopAll()
+        let relaunched = host()
+        defer { relaunched.stopAll() }
+        let reloaded = replyText(await stream("After relaunch", chat: chat, agent: agent, host: relaunched))
+        expect(
+            reloaded.contains("turn 11") && reloaded.contains("sets model=huge,mode=plan,fast=on"),
+            "a reloaded session is moved to them too, got \(reloaded)")
     }
 }

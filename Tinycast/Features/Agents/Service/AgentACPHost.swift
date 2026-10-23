@@ -11,15 +11,15 @@ final class AgentACPHost {
     /// What a turn nobody is watching is told about itself; nil for a chat someone started.
     private let briefing: (_ chatID: UUID) -> String?
 
-    /// A session's modes changed: on creation, on a reload, or by the agent's own move.
-    var onModes: ((_ chatID: UUID, _ agentID: UUID, ACPModes) -> Void)?
+    /// A session's selects as it starts, on a pick or on the agent's own move; nil once it goes.
+    var onOptions: ((_ chatID: UUID, _ agentID: UUID, ACPSessionOptions?) -> Void)?
     /// A session listed its slash commands, or nil once it is gone; the chat is nil until bound.
     var onCommands: ((_ chatID: UUID?, _ agentID: UUID, [ACPCommand]?) -> Void)?
     /// The session's running cost as each `usage_update` mid-turn reports it, for the spend cap.
     var onCost: ((_ chatID: UUID, _ costUSD: Double) -> Void)?
 
     private var connections: [UUID: ACPConnection] = [:]
-    private var modes: [UUID: ACPModes] = [:]
+    private var options: [UUID: ACPSessionOptions] = [:]
     private var sessions: [UUID: Session] = [:]
     private var turns: [Session: Turn] = [:]
     private var idleStops: [UUID: Task<Void, Never>] = [:]
@@ -138,7 +138,7 @@ final class AgentACPHost {
     /// A chat's session ends with its agent: the next turn starts or reloads one.
     func forget(chatID: UUID) {
         unbriefed[chatID] = nil
-        modes[chatID] = nil
+        options[chatID] = nil
         if let live = sessions.removeValue(forKey: chatID), commands.removeValue(forKey: live) != nil {
             onCommands?(chatID, live.agentID, nil)
         }
@@ -167,6 +167,7 @@ final class AgentACPHost {
         connections.removeAll()
         sessions.removeAll()
         commands.removeAll()
+        options.removeAll()
         for task in idleStops.values { task.cancel() }
         idleStops.removeAll()
     }
@@ -209,8 +210,9 @@ final class AgentACPHost {
     /// The process is gone or going; a pending briefing stays, as a reload still needs it.
     private func dropSessions(of agentID: UUID) {
         for key in listWaits.keys where key.agentID == agentID { endListWait(for: key) }
-        for (chatID, live) in sessions where live.agentID == agentID && commands[live] != nil {
-            onCommands?(chatID, agentID, nil)
+        for (chatID, live) in sessions where live.agentID == agentID {
+            if commands[live] != nil { onCommands?(chatID, agentID, nil) }
+            if options.removeValue(forKey: chatID) != nil { onOptions?(chatID, agentID, nil) }
         }
         sessions = sessions.filter { $0.value.agentID != agentID }
         commands = commands.filter { $0.key.agentID != agentID }
@@ -231,7 +233,8 @@ final class AgentACPHost {
                 timeout: .seconds(120))
         {
             bind(chatID, to: Session(agentID: agent.id, id: stored))
-            await adopt(ACPModes(result: loaded), session: stored, chatID: chatID, agent: agent, on: connection)
+            await adopt(
+                ACPSessionOptions(result: loaded), session: stored, chatID: chatID, agent: agent, on: connection)
             return stored
         }
         let result = try await connection.request(
@@ -245,7 +248,7 @@ final class AgentACPHost {
         unbriefed[chatID] = Briefing(session: fresh, earlier: ACPPrompt.transcript(of: Array(earlier)))
         bind(chatID, to: fresh)
         store.setACPSession(id, forChat: chatID)
-        await adopt(ACPModes(result: result), session: id, chatID: chatID, agent: agent, on: connection)
+        await adopt(ACPSessionOptions(result: result), session: id, chatID: chatID, agent: agent, on: connection)
         return id
     }
 
@@ -255,42 +258,64 @@ final class AgentACPHost {
         if let listed = commands[session] { onCommands?(chatID, session.agentID, listed) }
     }
 
-    /// The agent's chosen mode is applied as a session starts, when the agent still offers it.
+    /// The agent's remembered choices, model first, before the first prompt; a vanished one goes.
     private func adopt(
-        _ offered: ACPModes?, session: String, chatID: UUID, agent: AgentProfile,
+        _ offered: ACPSessionOptions?, session: String, chatID: UUID, agent: AgentProfile,
         on connection: ACPConnection
     ) async {
         guard var offered else { return }
-        if let wanted = agent.acpMode, wanted != offered.current,
-            offered.available.contains(where: { $0.id == wanted }),
-            (try? await connection.request(
-                "session/set_mode", params: ["sessionId": session, "modeId": wanted])) != nil
-        {
-            offered.current = wanted
+        let wanted = store.agent(id: agent.id) ?? agent
+        var vanished: [(slot: ACPChoiceSlot, value: String)] = []
+        for (slot, value) in wanted.acpWishes {
+            guard !Task.isCancelled else { break }
+            switch offered.step(for: slot, wanting: value) {
+            case .keep:
+                continue
+            case .forget:
+                vanished.append((slot, value))
+            case .send(let option):
+                guard let answer = try? await connection.set(value, for: option, sessionID: session) else {
+                    continue
+                }
+                offered.settle(value, in: option.id, answer: answer)
+            }
         }
-        modes[chatID] = offered
-        onModes?(chatID, agent.id, offered)
+        if sessions[chatID] == Session(agentID: agent.id, id: session) {
+            options[chatID] = offered
+            onOptions?(chatID, agent.id, offered)
+        }
+        // A pick made while the session started is the user's newer word, so it stays.
+        guard var stored = store.agent(id: agent.id) else { return }
+        let gone = vanished.filter { stored.acpChoice(for: $0.slot) == $0.value }
+        guard !gone.isEmpty else { return }
+        for (slot, _) in gone { stored.setACPChoice(nil, for: slot) }
+        try? store.update(stored)
     }
 
     /// A live session switches now; otherwise the choice waits for the next session to start.
-    func setMode(_ modeID: String, chatID: UUID) async throws {
+    func setOption(_ value: String, for slot: ACPChoiceSlot, chatID: UUID) async throws {
         guard let live = sessions[chatID], let connection = connections[live.agentID],
-            var current = modes[chatID]
+            let option = options[chatID]?.option(for: slot)
         else { return }
-        _ = try await connection.request(
-            "session/set_mode", params: ["sessionId": live.id, "modeId": modeID])
-        current.current = modeID
-        modes[chatID] = current
-        onModes?(chatID, live.agentID, current)
+        let answer: JSONValue
+        do {
+            answer = try await connection.set(value, for: option, sessionID: live.id)
+        } catch {
+            // The composer showed the pick at once; the session's own state goes back to it.
+            if sessions[chatID] == live, let shown = options[chatID] {
+                onOptions?(chatID, live.agentID, shown)
+            }
+            throw error
+        }
+        guard sessions[chatID] == live, var current = options[chatID] else { return }
+        current.settle(value, in: option.id, answer: answer)
+        options[chatID] = current
+        onOptions?(chatID, live.agentID, current)
     }
 
     private func route(_ update: ACPUpdate, to session: Session) {
         let chatID = sessions.first { $0.value == session }?.key
-        if case .mode(let mode) = update, let chatID, var current = modes[chatID] {
-            current.current = mode
-            modes[chatID] = current
-            onModes?(chatID, session.agentID, current)
-        }
+        if let chatID { follow(update, chatID: chatID, agentID: session.agentID) }
         if case .commands(let listed) = update {
             commands[session] = listed
             onCommands?(chatID, session.agentID, listed)
@@ -299,6 +324,19 @@ final class AgentACPHost {
         guard let turn = turns[session] else { return }
         if case .usage(_, _, let cost?) = update { onCost?(turn.chatID, cost) }
         for event in turn.mapper.events(for: update) { turn.continuation.yield(event) }
+    }
+
+    /// The agent moved a select itself, as Claude Code does when it leaves plan mode.
+    private func follow(_ update: ACPUpdate, chatID: UUID, agentID: UUID) {
+        var current = options[chatID] ?? ACPSessionOptions(options: [])
+        switch update {
+        case .mode(let mode): current.moveMode(to: mode)
+        case .options(let listed): current.replace(with: listed)
+        default: return
+        }
+        guard current != options[chatID], !current.options.isEmpty else { return }
+        options[chatID] = current
+        onOptions?(chatID, agentID, current)
     }
 
     /// A fresh process's first `/name` turn is told a command from a word only once the list is in.
