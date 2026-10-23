@@ -357,7 +357,8 @@ ends.
   Shift, let go of Fn first: the recording finishes as usual. Dictate "Какая сегодня погода?" in As a
   message: it is written as a message, not answered. Press Tab after Return, while the capsule
   processes: nothing changes. Leave Polish out of the Tab cycle: Tab skips it. Rewrite Polish's
-  instructions, then Reset to Default. Add a mode, choose it for an app, delete it: the app types the
+  instructions, then Reset to Default; in German, Spanish, Portuguese or Russian its label stays on
+  one line beside Cancel and Save. Add a mode, choose it for an app, delete it: the app types the
   plain transcript. With a local OpenAI-compatible model, a mode makes two requests (a proxy shows the
   audio then the text).
 - **Silence and cancelling.** Hold for 2 s in silence: "No speech was recorded", and a proxy shows no
