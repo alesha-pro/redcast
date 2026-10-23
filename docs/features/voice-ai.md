@@ -46,7 +46,9 @@ tables and `AppCore`.
 - **Audio stays in memory and is never stored.** The recording becomes a WAV `Data` in memory and the
   float samples are released once encoded; it is sent once on `HTTPAIProvider`'s private `.ephemeral`
   session with `urlCache = nil` and never written to disk, logged or put in chat history. A question
-  reaches chat history only if the reader continues it in AI Chat.
+  reaches chat history only if the reader continues it in AI Chat, or when an agent answers it: the
+  run's chat is saved like any `@handle` run's, with the transcribed request, the window's text and
+  any picture, and the **Answer with** caption and the section footer say so.
 - **Silence never leaves the Mac.** `VoiceAudio.speechRange` trims silence at both ends with 300 ms of
   padding and returns nil for a recording without 200 ms of speech; nil means "No speech was
   recorded" and no request. A `[[NO_SPEECH]]` reply covers what slips through, and is never shown.
@@ -255,6 +257,11 @@ gets the text alone and a HUD says so), then the send. From there it is an ordin
 its menu-bar item, its HUDs, its limit and its consent rules ([background
 agents](background-agents.md)). Escape while the request is being written down starts nothing.
 
+That chat is saved to AI Chat's history as it goes, like every background run's, so the request, the
+window's Markdown and the picture stay on disk until the reader deletes the chat. The caption under
+**Answer with** says so where the agent is chosen, and the section footer names the agent's run as
+the one place besides AI Chat where a question is kept. The recording itself is never saved.
+
 ## Routes and models
 
 `VoiceRoutePolicy.route` is the saved choice while its connection exists, hears audio and is enabled,
@@ -383,8 +390,9 @@ ends.
   press Ask by Voice, say "Сделай краткую выжимку этой страницы в заметку", press again: the capsule
   closes, "<agent> is working in the background" appears with the menu-bar item, and the run's chat
   shows the request as typed text, the window as `Screen — Safari.md` and, with Include a screenshot
-  on, the picture (a proxy shows the voice route got only the audio). Press again while it runs:
-  refused at once, with no recording. Stay silent: "No speech was recorded" and no run. Escape in the
+  on, the picture (a proxy shows the voice route got only the audio). AI Chat's history keeps that
+  chat with all three, as the Answer with caption says. Press again while it runs: refused at once,
+  with no recording. Stay silent: "No speech was recorded" and no run. Escape in the
   capsule while it processes: no run. Edit Selection by Voice still edits with the model. Delete the
   agent: Answer with shows the model, and a question opens the panel again.
 - **Refusals.** Ask while Dictation records: a HUD refuses. With Tinycast in front: refused. Without

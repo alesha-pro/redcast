@@ -49,8 +49,8 @@ struct VoiceAskSettingsSection: View {
             Text(
                 """
                 Set their shortcuts under Commands. Edit Selection by Voice rewrites the text you \
-                selected as you say. A recording is sent with what was read and never saved; it is \
-                kept only if you continue it in AI Chat.
+                selected as you say. A recording is never saved. A question and what was read are \
+                kept only if you continue in AI Chat, or as the chat of an agent's run.
                 """
             )
             .font(.caption)
@@ -69,7 +69,8 @@ struct VoiceAskSettingsSection: View {
             Text(
                 """
                 With an agent, the model above only writes down your request, and the agent works on \
-                it in the background with the window in front attached.
+                it in the background with the window in front attached. Each run is saved as a chat \
+                with the agent, including the window's text and any screenshot.
                 """)
         }
     }
