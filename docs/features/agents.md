@@ -155,10 +155,13 @@ optional chord: see [background and scheduled agents](background-agents.md).
   `AIUsage.inputTokens` for `cachedInputTokens`, as Anthropic's `cache_read_input_tokens` always did;
   an Anthropic cache write is new input billed above it, so it counts as input. Prompt = input +
   cached on every route, and the usage card's "cached" share is the hit rate.
-- **A plan is shown, never kept.** `update_plan` belongs to no family and is the agent's own (risk
+- **One plan for the whole run.** `update_plan` belongs to no family and is the agent's own (risk
   own), so every agent on Tinycast's loop has it and it never asks. The model sends the whole checklist
   each time; `AgentPlanTools` shows it as a reasoning fold with the same lines `ACPEventMapper` draws for
-  an ACP agent's plan (`AgentPlan.checklist`), and stores nothing.
+  an ACP agent's plan (`AgentPlan.checklist`) and answers with where it stands ("Plan updated: 1 of 3
+  steps done. Now: …"). The loop keeps the latest one for the rest of the run, nowhere on disk: a plan
+  untouched for six rounds is read back in one line on the round's newest result, the wrap-up and the
+  hand-over carry it, and a hand-over or a failure that leaves no words of the model's shows it.
 - **A sub-agent only reads, on its parent's model, inside its parent's turn.** Sub-agents
   (`AgentToolKind.delegate`, off until ticked) offers `delegate`, which runs one nested
   `AgentLoopProvider` per call over the turn's own route. The child is the agent made read-only with
@@ -412,7 +415,10 @@ off by default per agent, bounded by `AgentPathPolicy` and asked through the age
 | `Model/AgentTurnBudget.swift` | The per-result, per-turn and history limits, elision, an overflow's shedding and the thinking an edit voids; `AgentBatchPolicy` |
 | `Model/AgentRetryPolicy.swift` | Which failures a round tries again, the waits, a refused output cap |
 | `Model/AgentCompaction.swift` | Cross-turn notes: what was dropped, what they cover, when they grow, the request that makes them, `AgentChatSummary` |
-| `Model/AgentPlan.swift` | `update_plan`'s definition and arguments, and the checklist ACP plans share |
+| `Model/AgentPlan.swift` | `update_plan`'s definition, arguments and receipt, and the checklist ACP plans share |
+| `Model/AgentEffort.swift` | Quick, Balanced and Thorough, and the `AgentRunBudget` each sets |
+| `Model/AgentBudgetPolicy.swift` | When a run wraps up and hands over, the words the model reads, the plan's recital |
+| `Model/AgentTurnLead.swift` | What leads a turn's question: its facts, and a reply the last turn could not finish |
 | `Service/AgentContextLoader.swift` | Reads `AGENTS.md` (or a lone `CLAUDE.md`), `~/.agents/AGENTS.md`, skills, notes |
 | `Service/AgentToolExecutor.swift` | `AgentBuiltInTools`, the first provider; the executor runs each call: ripgrep search, terminal with timeout, web fetch, HTML to text |
 | `Service/AgentLoopProvider.swift` | The agent chats' tool loop: cross-turn notes, rounds, batches, budget, Stop |
@@ -518,7 +524,10 @@ this way, as one provider. Nothing else changes: no router edit, no upstream lin
 - Ask it to run `ls ..`: the command dialog appears; ask it to read `../something`: refused.
 - Ask a question a skill covers: the transcript shows `load_skill` before the work.
 - Ask for a task of several steps: a reasoning fold opens with `Plan:` and ✓, → and · lines, and a later
-  call shows the list again with steps ticked.
+  call shows the list again with steps ticked. Ask what 2 + 2 is: one reply, no plan, no tool row.
+- Set an agent to Quick and give it a long research task: after a handful of rounds the reply sums up
+  what it found, what is left and what to do next, with no "Stopped after" error. Run it in the
+  background: after five minutes the run ends done, with that hand-over.
 - Tick Sub-agents and ask the agent to have a sub-agent find where something is defined: one row reads
   "delegate: <name>", none of the sub-agent's own calls show, and the reply's cost is above what its own
   rounds cost. Ask for a sub-agent to change a file: it reports that it cannot. Stop while the sub-agent
