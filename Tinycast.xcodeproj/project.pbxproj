@@ -926,6 +926,7 @@
 		E8F17763955231BA46981BC7 /* AgentRuntime.swift in Sources */ = {isa = PBXBuildFile; fileRef = 946CCB75FDD3B2C9D4FD1C8F /* AgentRuntime.swift */; };
 		E8FFCAEE49AC44E4889DAF4D /* WindowSwitchList.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D469F0ACEE4F696616EA39B /* WindowSwitchList.swift */; };
 		E99765A5038912C283973F8F /* EmptyResults.swift in Sources */ = {isa = PBXBuildFile; fileRef = D3A6E15A480A4779ACCE259D /* EmptyResults.swift */; };
+		E9E1CD60101066F059C7DAEB /* AgentRetryPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = E69BA49FBE8B93465C405B2B /* AgentRetryPolicy.swift */; };
 		E9F8C3B16F7947BC41ADB080 /* WebSearchDecoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D46905960638AC99A92EC51 /* WebSearchDecoder.swift */; };
 		E9FBE3C5475A52EB7A3D57E3 /* RoomPreviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1709EB9609FE6A1037E36BE6 /* RoomPreviewView.swift */; };
 		EA077323DE71DAF8FE17693C /* CalendarCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8FC504A12A2D9CC00B502D9E /* CalendarCoordinator.swift */; };
@@ -2002,6 +2003,7 @@
 		E5C7F0C39D24F068A8F84864 /* CurrencyData.generated.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CurrencyData.generated.swift; sourceTree = "<group>"; };
 		E5CBCCE63360E4590CF5884A /* IconCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IconCache.swift; sourceTree = "<group>"; };
 		E5D1A8D93DEC49E4EA11C449 /* ExtensionFormMetrics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExtensionFormMetrics.swift; sourceTree = "<group>"; };
+		E69BA49FBE8B93465C405B2B /* AgentRetryPolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentRetryPolicy.swift; sourceTree = "<group>"; };
 		E6BBB22DFC9F53CCCCD8010C /* ExtensionSignInSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExtensionSignInSession.swift; sourceTree = "<group>"; };
 		E6F27259003BDECA2054FC67 /* WindowLayoutEntryPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowLayoutEntryPicker.swift; sourceTree = "<group>"; };
 		E73397884822CD8D0D79B760 /* CustomCommandEditorSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomCommandEditorSession.swift; sourceTree = "<group>"; };
@@ -3074,6 +3076,7 @@
 				6FDC8652F1D9FCE69AA5FF59 /* AgentConsentPolicy.swift */,
 				6A725E52DF7D7C73054BD72D /* AgentPlan.swift */,
 				353D7FF3ED2E1F07D0998910 /* AgentProfile.swift */,
+				E69BA49FBE8B93465C405B2B /* AgentRetryPolicy.swift */,
 				183C7001A9CECF786F2C4B4B /* AgentRun.swift */,
 				946CCB75FDD3B2C9D4FD1C8F /* AgentRuntime.swift */,
 				9E395E7C198455CF31F9AFCA /* AgentSchedule.swift */,
@@ -4984,6 +4987,7 @@
 				4FD2FE506EDAF01B77BBD01C /* AgentProcessHost.swift in Sources */,
 				85451239A15632062DE97E6F /* AgentProfile.swift in Sources */,
 				C7654233F06F99DEF8D9C00F /* AgentResumeCommand.swift in Sources */,
+				E9E1CD60101066F059C7DAEB /* AgentRetryPolicy.swift in Sources */,
 				195D743E6B92A4730F5C2AD0 /* AgentRun.swift in Sources */,
 				0AD61960BEF27AC5FF581E57 /* AgentRunNotifier.swift in Sources */,
 				E8F17763955231BA46981BC7 /* AgentRuntime.swift in Sources */,

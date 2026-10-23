@@ -262,7 +262,7 @@ final class AgentCoordinator {
         guard !toolset.tools.isEmpty else { return nil }
         return AgentLoopProvider(
             base: base, toolset: toolset, maxRounds: core.aiSettings.toolRounds.limit,
-            compaction: compaction, outputCap: AgentTurnBudget.outputTokens)
+            compaction: compaction, outputCap: AgentTurnBudget.outputTokens, origin: agent.name)
     }
 
     /// The registry: one line per family, built per turn so nothing stays resident between turns.

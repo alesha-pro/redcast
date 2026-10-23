@@ -120,6 +120,22 @@ optional chord: see [background and scheduled agents](background-agents.md).
   `max_tokens` on Anthropic and on OpenAI-shaped routes, `max_completion_tokens` on OpenAI's own API,
   where the shape else sends no cap and DeepSeek would stop at its 4K default. Plain chats send what
   they always sent.
+- **A provider's bad minute is waited out, inside the run.** `HTTPAIProvider` throws
+  `AIProviderRecoverableError` for what may pass on its own: 408, 409, 425, 429 and 5xx, a dropped or
+  unreachable network, a stream that closed early, OpenRouter's mid-stream 429 or 5xx (or, with no
+  code, a busy provider in its own words) before any answer, and Anthropic's `overloaded_error`,
+  `rate_limit_error` and `api_error`. It reads exactly as the failure it stands for, so a chat that
+  does not retry shows the same text. A spent quota or balance (`insufficient_quota`, billing,
+  credits) is a plain failure, since no wait fixes it. `AgentRetryPolicy` waits 2, 4, 8 and 16 s, a
+  tenth either way, or a `Retry-After` up to a minute (a longer one stands as a failure), and gives up
+  after four retries. A round is asked again only while it has shown no text, since an answer on
+  screen would show twice; what a failed attempt reported it spent is billed once and the retry on
+  top of it. A row, "Retrying after a provider error (1 of 4)", stays open while the round waits,
+  and Stop ends the wait at once. A context overflow (pi's patterns, or 413) is not retried as is:
+  once a run, the loop stubs every result of the turn before the newest round, or with none left
+  drops the older half of the history from a question on, and asks the round again. A route that
+  refuses the round's output cap by name (`max_tokens`…) is asked again without it, and the rest of
+  the turn goes without one. Plain chats and upstream's loop never retry.
 - **A cache hit is counted apart from input on every route.** OpenAI's and OpenRouter's
   `prompt_tokens_details.cached_tokens` and DeepSeek's `prompt_cache_hit_tokens` leave
   `AIUsage.inputTokens` for `cachedInputTokens`, as Anthropic's `cache_read_input_tokens` always did;
@@ -378,7 +394,8 @@ off by default per agent, bounded by `AgentPathPolicy` and asked through the age
 | `Model/AgentTool.swift` | `AgentToolProvider`, `AgentToolSpec`, `AgentToolRisk`, `AgentTurn`, `AgentRunMode`, the call's context |
 | `Model/AgentConsentPolicy.swift` | Rules (ask, always, never), an agent's own (`AgentConsentRules`), `AgentGrant`, the verdict per rule and mode |
 | `Model/AgentToolset.swift` | One turn's offered tools in a stable order, and where each call goes |
-| `Model/AgentTurnBudget.swift` | The per-result, per-turn and history limits; `AgentBatchPolicy` |
+| `Model/AgentTurnBudget.swift` | The per-result, per-turn and history limits, elision and an overflow's shedding; `AgentBatchPolicy` |
+| `Model/AgentRetryPolicy.swift` | Which failures a round tries again, the waits, a refused output cap |
 | `Model/AgentCompaction.swift` | Cross-turn notes: what was dropped, what they cover, when they grow, the request that makes them, `AgentChatSummary` |
 | `Model/AgentPlan.swift` | `update_plan`'s definition and arguments, and the checklist ACP plans share |
 | `Service/AgentContextLoader.swift` | Reads `AGENTS.md` (or a lone `CLAUDE.md`), `~/.agents/AGENTS.md`, skills, notes |

@@ -36,6 +36,12 @@ struct AgentLoopTests {
         await aSubAgentIsBounded()
         await stopReachesASubAgent()
         await aSubAgentsSpendIsHeardAsItLands()
+        retriesWaitAsThePolicySays()
+        await aBusyRouteIsAskedAgain()
+        await retriesEndAndAnAnswerIsNeverRepeated()
+        await stopEndsAWaitingRetry()
+        await anOverflowShedsTheWindowOnce()
+        await aRefusedOutputCapIsDropped()
         await compactionAddsNothingWhileNothingIsDropped()
         await compactionSummarisesOnceThenReuses()
         await aFailedSummaryLeavesTheTurnAsBuilt()
@@ -657,6 +663,200 @@ extension AgentLoopTests {
         expect(
             pair.requests.count == 4 && cents(both.values) == [0.01, 0.51, 0.76, 0.77],
             "two sub-agents of one round are heard one at a time, got \(both.values)")
+    }
+}
+
+// MARK: - Retries
+
+extension AgentLoopTests {
+    static let quick = AgentRetryPolicy(
+        delays: [10, 20, 40, 80].map { Duration.milliseconds($0) }, jitter: 0.1, longestWait: .seconds(60))
+    static let busy = AIProviderRecoverableError(
+        kind: .transient(retryAfter: nil), message: "The provider is temporarily unavailable (HTTP 503).")
+
+    static func retriesWaitAsThePolicySays() {
+        let policy = AgentRetryPolicy.standard
+        expect(
+            policy.delay(before: 1, after: busy, random: 0.5) == .seconds(2)
+                && policy.delay(before: 4, after: busy, random: 0.5) == .seconds(16),
+            "pi's backoff doubles from two seconds")
+        expect(
+            policy.delay(before: 5, after: busy, random: 0.5) == nil, "and gives up after four retries")
+        let low = policy.delay(before: 2, after: busy, random: 0) ?? .zero
+        let high = policy.delay(before: 2, after: busy, random: 1) ?? .zero
+        let near = { (value: Duration, target: Duration) in abs((value - target) / .milliseconds(1)) < 1 }
+        expect(
+            near(low, .milliseconds(3_600)) && near(high, .milliseconds(4_400)),
+            "a tenth either way, got \(low) \(high)")
+        let limited = AIProviderRecoverableError(kind: .transient(retryAfter: .seconds(7)), message: "429")
+        expect(
+            policy.delay(before: 1, after: limited, random: 0.5) == .seconds(7),
+            "a Retry-After longer than the backoff is waited out")
+        let closed = AIProviderRecoverableError(kind: .transient(retryAfter: .seconds(600)), message: "429")
+        expect(policy.delay(before: 1, after: closed, random: 0.5) == nil, "but not one past a minute")
+        expect(
+            policy.delay(before: 1, after: AIProviderError.responseFailed("API key rejected"), random: 0.5) == nil
+                && policy.delay(
+                    before: 1, after: AIProviderRecoverableError(kind: .overflow, message: "full"), random: 0.5)
+                    == nil,
+            "a refusal or a full window is never simply asked again")
+    }
+
+    /// 5xx, 429 and dropped connections before an answer are asked again, and billed once each.
+    static func aBusyRouteIsAskedAgain() async {
+        let base = FlakyProvider(
+            failures: [busy, busy], spentBeforeFailing: 0.004,
+            then: [
+                [.usage(AIUsage(inputTokens: 10, costUSD: 0.01)), call("c1")],
+                [.text("ok"), .usage(AIUsage(inputTokens: 20, costUSD: 0.02)), .finished]
+            ])
+        let tools = toolset([FakeTools(names: ["fs_read"]) { _, _ in "x" }])
+        let outcome = await collect(
+            AgentLoopProvider(base: base, toolset: tools, maxRounds: 25, retry: quick, origin: "Loop"))
+        expect(outcome.failure == nil && outcome.events.last == .finished, "two busy answers, then the turn ends")
+        expect(base.requests.count == 4, "the first round is asked three times, the second once")
+        let rows = outcome.events.filter {
+            switch $0 {
+            case .toolCall(let id, _, _), .toolResult(let id, _): id.hasPrefix("tinycast-retry-")
+            default: false
+            }
+        }
+        expect(
+            rows == [
+                .toolCall(id: "tinycast-retry-1-1", origin: "Loop", title: AgentRetryPolicy.title(1, of: 4)),
+                .toolResult(id: "tinycast-retry-1-1", isError: false),
+                .toolCall(id: "tinycast-retry-1-2", origin: "Loop", title: AgentRetryPolicy.title(2, of: 4)),
+                .toolResult(id: "tinycast-retry-1-2", isError: false)
+            ],
+            "each wait shows as a row that closes when the round is asked again, got \(rows)")
+        expect(
+            abs((lastCost(outcome.events) ?? 0) - 0.038) < 1e-12,
+            "what a failed attempt reported is billed once, beside the rounds that passed, got "
+                + "\(lastCost(outcome.events) ?? 0)")
+        expect(
+            base.requests[0] == base.requests[2], "the same request goes again, nothing of the failure in it")
+    }
+
+    static func retriesEndAndAnAnswerIsNeverRepeated() async {
+        let down = FlakyProvider(failures: Array(repeating: busy, count: 9), then: [])
+        let tools = toolset([FakeTools(names: ["fs_read"]) { _, _ in "x" }])
+        let gaveUp = await collect(AgentLoopProvider(base: down, toolset: tools, maxRounds: 25, retry: quick))
+        expect(
+            gaveUp.failure == busy.message && down.requests.count == 5,
+            "four retries, then the failure stands in its own words, got \(gaveUp.failure ?? "none")")
+
+        let halfway = FlakyProvider(failures: [busy], textBeforeFailing: "Half an ans", then: [[.text("x"), .finished]])
+        let said = await collect(AgentLoopProvider(base: halfway, toolset: tools, maxRounds: 25, retry: quick))
+        expect(
+            said.failure == busy.message && halfway.requests.count == 1,
+            "a round that already showed text is not asked again, or the text would show twice")
+
+        let refused = FlakyProvider(failures: [AIProviderError.responseFailed("API key rejected")], then: [])
+        let rejected = await collect(AgentLoopProvider(base: refused, toolset: tools, maxRounds: 25, retry: quick))
+        expect(
+            rejected.failure == "API key rejected" && refused.requests.count == 1,
+            "and a refusal is never retried")
+    }
+
+    static func stopEndsAWaitingRetry() async {
+        let slow = AgentRetryPolicy(delays: [.seconds(5)], jitter: 0, longestWait: .seconds(60))
+        let base = FlakyProvider(failures: [busy], then: [[.text("never"), .finished]])
+        let loop = AgentLoopProvider(
+            base: base, toolset: toolset([FakeTools(names: ["fs_read"]) { _, _ in "x" }]), maxRounds: 25,
+            retry: slow, origin: "Loop")
+        let log = EventLog()
+        let consumer = Task {
+            do {
+                for try await event in loop.stream(turn) { log.append(event) }
+            } catch {}
+        }
+        let deadline = ContinuousClock.now + .seconds(2)
+        while !log.events.contains(where: { if case .toolCall = $0 { true } else { false } }), .now < deadline {
+            try? await Task.sleep(for: .milliseconds(10))
+        }
+        let stopped = ContinuousClock.now
+        consumer.cancel()
+        await consumer.value
+        expect(ContinuousClock.now - stopped < .milliseconds(500), "Stop ends the wait at once")
+        try? await Task.sleep(for: .milliseconds(100))
+        expect(base.requests.count == 1, "and the round is never asked again")
+        expect(!log.events.contains(.finished), "nor does the turn claim to have finished")
+    }
+
+    /// dsh's rule: a full window is shed once, old results first, and the round asked again.
+    static func anOverflowShedsTheWindowOnce() async {
+        let full = AIProviderRecoverableError(kind: .overflow, message: "maximum context length is 8192 tokens")
+        let page = String(repeating: "p", count: 20 * 1_024)
+        let base = FlakyProvider(
+            failures: [], failAt: [3: full],
+            then: [[call("c1")], [call("c2")], [.text("ok"), .finished]])
+        let tools = toolset([FakeTools(names: ["fs_read"]) { _, _ in page }])
+        let outcome = await collect(AgentLoopProvider(base: base, toolset: tools, maxRounds: 25, retry: quick))
+        expect(outcome.failure == nil && outcome.events.last == .finished, "the turn goes on after an overflow")
+        let results = base.requests.last?.messages.compactMap(\.toolResult?.content) ?? []
+        expect(
+            base.requests.count == 4 && results.count == 2
+                && results[0].hasPrefix("[Earlier fs_read result elided") && results[1] == page,
+            "with the older round's result stubbed and the newest kept, got \(results.map(\.count))")
+
+        let first = FlakyProvider(failures: [full, full], then: [[.text("x"), .finished]])
+        let stuck = await collect(AgentLoopProvider(base: first, toolset: tools, maxRounds: 25, retry: quick))
+        expect(
+            stuck.failure == full.message && first.requests.count == 1,
+            "with nothing of the turn to shed and one question, the overflow stands")
+    }
+
+    static func aRefusedOutputCapIsDropped() async {
+        let refusal = AIProviderError.responseFailed(
+            "The provider rejected the model or request (HTTP 400).\n\nmax_tokens: 16384 > 8192")
+        let base = FlakyProvider(failures: [refusal], then: [[call("c1")], [.text("ok"), .finished]])
+        let tools = toolset([FakeTools(names: ["fs_read"]) { _, _ in "x" }])
+        let outcome = await collect(
+            AgentLoopProvider(base: base, toolset: tools, maxRounds: 25, outputCap: 16_384, retry: quick))
+        expect(outcome.failure == nil, "a model that takes less output is asked again without the cap")
+        expect(
+            base.requests.map(\.outputCap) == [16_384, nil, nil],
+            "and the rest of the turn goes without one, got \(base.requests.map(\.outputCap))")
+    }
+}
+
+/// Fails as a busy route would, a given number of times or at given requests, then plays a script.
+final class FlakyProvider: AIProvider, @unchecked Sendable {
+    private let script: ScriptedProvider
+    private let lock = NSLock()
+    private var failures: [any Error]
+    private let failAt: [Int: any Error]
+    private let spent: Double?
+    private let text: String?
+    private var seen: [AIRequest] = []
+
+    init(
+        failures: [any Error], failAt: [Int: any Error] = [:], spentBeforeFailing: Double? = nil,
+        textBeforeFailing: String? = nil, then rounds: [[AIStreamEvent]]
+    ) {
+        self.failures = failures
+        self.failAt = failAt
+        spent = spentBeforeFailing
+        text = textBeforeFailing
+        script = ScriptedProvider(rounds: rounds)
+    }
+
+    var requests: [AIRequest] { lock.withLock { seen } }
+
+    func stream(_ request: AIRequest) -> AIProviderStream {
+        let failure: (any Error)? = lock.withLock {
+            seen.append(request)
+            if let planned = failAt[seen.count] { return planned }
+            return failures.isEmpty ? nil : failures.removeFirst()
+        }
+        guard let failure else { return script.stream(request) }
+        let spent = spent
+        let text = text
+        return AIProviderStream { continuation in
+            if let text { continuation.yield(.text(text)) }
+            if let spent { continuation.yield(.usage(AIUsage(costUSD: spent))) }
+            continuation.finish(throwing: failure)
+        }
     }
 }
 
