@@ -226,8 +226,8 @@ They run on the user's own logins and subscriptions; Tinycast never sees a key.
   text wraps in a card like a code block and copies with Copy Output, and nothing is streamed per
   chunk: `_meta.terminal_output` is not asked for. Images inside tool content are not shown.
 - **Slash commands are the session's.** Claude Code, Codex and Hermes send
-  `available_commands_update` just after `session/new` and `session/load` — Claude Code's adapter
-  before Tinycast has read the session's reply — so the host keeps the list per session and hands it
+  `available_commands_update` just after `session/new` and `session/load` answer — after the first
+  turn would be classified — so the host keeps the list per session and hands it
   to the chat once the session is bound; the coordinator falls back to the agent's last list for a
   chat whose session has not started. A list holds 200 commands, names of up to 64 characters
   without spaces or `/`, one-line descriptions of 200. While the draft is `/` and a name with no
@@ -238,9 +238,12 @@ They run on the user's own logins and subscriptions; Tinycast never sees a key.
   card until the draft changes. Keys reach it only while the composer is first responder and no
   input method is composing. A command goes as plain text, as ACP says, and its turn leads with it,
   because the adapters read only the first block (Codex) or the joined text (Hermes): attachments
-  follow, the briefing waits. A text is a command when its name is one the session offered, or,
-  before any list arrived, any name without a `/`, so `/Users/me` stays text. Other chats never show
-  the card.
+  follow, the briefing waits. A `/name` turn while no session of the agent has listed anything (a
+  fresh process: the first chat, after an idle stop, a relaunch or a background run's release) first
+  waits up to 1.5 s (`AgentACPHost.commandListWait`) for the session's list; it arrives within
+  milliseconds, so the wait exists only for that turn and an agent that never lists pays it only on
+  such a turn. A text is then a command when its name is one the session offered, or, when no list
+  arrived, any name without a `/`, so `/Users/me` stays text. Other chats never show the card.
 - **Modes are the agent's.** The modes a session offers (Claude Code's plan, Codex's read-only…)
   replace the model and reasoning pickers in the composer. The choice is stored on the agent as
   `acpMode`, applied with `session/set_mode` to a live session and to each new one, and the menu
@@ -437,7 +440,8 @@ this way, as one provider. Nothing else changes: no router edit, no upstream lin
   slash commands, and a scripted agent process in `Tests/acp-fixtures/fake-agent.mjs`: streaming,
   consent, reuse, refusal, cancel, reload, lost sessions, a missing command, two agents sharing a
   session id, commands that beat the session's binding, a command turn and the briefing after it
-  with only the turns from before the session, diffs and output reaching their rows once);
+  with only the turns from before the session, a fresh process's `/word` turn waiting for the list
+  and going as an ordinary, briefed one, diffs and output reaching their rows once);
   `ai-chat-test`'s fork case (content on its row, saved beside it, unreadable or absent content, a
   store from before the table, the cascade); `agent-test` (skills, catalog, path policy, tool sets,
   specs, consent policy and per-agent rules, toolset order and routing, batches, budget, elision,

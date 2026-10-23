@@ -32,6 +32,7 @@ struct ACPTests {
         await twoAgentsSharingASessionIDStayApart()
         await toolContentReachesItsRows()
         await commandsReachTheChatAndLeadTheirTurn()
+        await aFreshProcessWaitsForItsCommands()
 
         print("\(passes) passed, \(failures) failed")
         if failures > 0 { exit(1) }
@@ -755,6 +756,29 @@ extension ACPTests {
         expect(
             listed.events.last.map { $0.chat != nil && $0.names == nil } == true,
             "a chat's list goes with its agent's process, so only the agent's last one is kept")
+    }
+
+    static func aFreshProcessWaitsForItsCommands() async {
+        guard let (agent, _, root) = await fakeAgent() else { return }
+        let unattended = UUID()
+        let host = AgentACPHost(
+            store: AgentStore(directory: root.appendingPathComponent("support")),
+            permit: { _, _ in nil }, context: { _ in "# Context from Tinycast" },
+            briefing: { $0 == unattended ? AgentBackgroundBriefing.acp : nil })
+        defer {
+            host.stopAll()
+            try? FileManager.default.removeItem(at: root)
+        }
+        let word = replyText(
+            await stream("/tmp is full, find what is big", chat: unattended, agent: agent, host: host))
+        expect(
+            word.contains("turn 1") && word.contains("with context") && word.contains("briefed"),
+            "on a fresh process, a name the agent does not offer is an ordinary, briefed turn, got \(word)")
+        host.release(agentID: agent.id)
+        let command = replyText(await stream("/review the diff", chat: UUID(), agent: agent, host: host))
+        expect(
+            command.contains("ran /review the diff; without context"),
+            "after a release, a command the new process offers still goes as typed, got \(command)")
     }
 
     private static func fakeAgent() async -> (AgentProfile, AgentACPHost, URL)? {

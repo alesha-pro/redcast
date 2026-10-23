@@ -64,7 +64,8 @@ row and chord, `AppIndex`, `LauncherList`, `LauncherCoordinator`, `AppActionsMen
   agent's prompt both carry the briefing while, and only while, the run is active; the ACP one goes
   on every such turn, not only a fresh session's first, so the agent's own loaded session cannot
   miss it. A slash command's turn is the exception: the agent must read the command first, so it
-  goes as typed. It is model-facing text, never localized, and names no tool and no file.
+  goes as typed. Since a run starts a fresh process, its first `/word` waits for the session's list
+  ([why](agents.md#acp-agents)), so a task such as `/tmp is full…` is briefed like any other. It is model-facing text, never localized, and names no tool and no file.
 - **Agent questions queue.** `AgentConsentGate` asks one at a time and only once no dialog is up,
   observed rather than polled, so a foreground and a background ask no longer refuse each other.
 - **Only Always-trusted MCP servers ride an unattended turn.** Servers set to Ask are excluded through
