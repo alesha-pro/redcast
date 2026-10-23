@@ -331,7 +331,7 @@ enum SettingsSearchCatalog {
             .aiAskByVoice, "Enable Ask by Voice",
             keywords: ["voice", "speak", "microphone", "question", "gemini"]),
         .init(.aiAskByVoice, "Shortcut behavior", keywords: ["hold", "toggle", "push to talk"]),
-        .init(.aiAskByVoice, "Answer with", keywords: ["agent", "background", "voice", "model"]),
+        .init(group: .aiAskByVoice, "Answer with", keywords: ["agent", "background", "voice", "model"]),
         .init(
             .aiConversations, "Opens to",
             keywords: ["new chat", "last", "summon", "resume", "window", "quick ai"]),
@@ -403,11 +403,13 @@ enum SettingsSearchCatalog {
         .init(
             .dictationCloudTranscription, "Words to spell exactly",
             keywords: ["vocabulary", "names", "dictionary"]),
+        // Fork: the modes show only with cloud transcription on, so a result lands on its switch.
         .init(
-            .dictationModes, "Default mode",
-            keywords: ["translate", "english", "polish", "message", "rewrite", "tone", "style", "prompt"]),
-        .init(.dictationModes, "Add Mode", keywords: ["custom", "prompt", "instructions"]),
-        .init(.dictationModesByApp, "Add Application…", keywords: ["per app", "app", "mode", "tab"])
+            group: .dictationCloudTranscription, "Dictation modes",
+            keywords: [
+                "translate", "english", "polish", "message", "rewrite", "tone", "style", "prompt",
+                "default mode", "add mode", "custom", "instructions", "per app", "add application", "tab"
+            ])
     ]
 
     private static let fileSearch: [SettingsSearchEntry] = [
@@ -673,7 +675,7 @@ enum SettingsSearchCatalog {
             keywords: ["raycast ai", "ai.ask", "useai", "model", "consent"]),
         // Fork: its own entry, so searching for the requested-model switch lands on the AI section.
         .init(
-            .extensionsAI, "Use the model an extension asks for",
+            group: .extensionsAI, "Use the model an extension asks for",
             keywords: ["ai.model", "requested model", "provider", "claude", "gemini", "openai"]),
         .init(
             group: .extensionsCompatibility, "Compatibility",
