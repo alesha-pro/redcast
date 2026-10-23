@@ -30,7 +30,7 @@ OpenCode, Goose, Hermes, local models — on the subscriptions and machines you 
 | Continue in AI Chat | ⌘J turns a Quick Action result into a chat that refines it | [quick-actions](docs/features/quick-actions.md#the-panel) |
 | Screen Awareness | Double-tap right ⌘: the window in front — title, URL, selection, focused field, readable text, screenshot — attached to AI Chat | [screen-awareness](docs/features/screen-awareness.md) |
 | Agents | A chat that lives in a folder: its `AGENTS.md`, project and global `.agents/skills`, notes, and built-in tools (files, terminal, web, memory) on any tool-calling API model, every change and command asked first unless the agent's permissions say otherwise. `read_file` reads PDFs by pages (scans by OCR), images, Word, RTF, ODT and saved pages through a [shared document reader](docs/features/document-text.md); `search_files` finds files through Spotlight, across the home folder and iCloud Drive with full access; once a run is unattended or its chat has read the user's files, notes, screen or attachments, `web_fetch` opens only eight pages a turn among links the user gave, search results and same-site links on pages it read | [agents](docs/features/agents.md) |
-| Native agent harness | Agent chats on API models run the fork's own tool loop. Tool families plug in as providers, each with a risk, and every change, command and fetch passes one consent policy. Read-only calls in a round run in parallel, and a long turn elides old results instead of stopping. A long chat keeps notes on the turns it no longer sends: made once, extended rarely, billed into the reply. `update_plan` shows a checklist the way ACP plans show. Opt-in Sub-agents hands a read-only task to a `delegate` copy of the agent on the same model. Opt-in Screen lets `screen_context` read the text of the window behind Tinycast, only on a turn the user sends from the chat and only after a dialog that names the app. On Anthropic's own API and on OpenRouter, Claude is asked to cache every request that will be sent again. Stop ends a running command, sub-agent or summary and voids a late Allow. A general-assistant prompt sizes the work to the task, and each agent's Effort (Quick, Balanced, Thorough) sets its run's rounds, tool output, background minutes and sub-agents: near the end the model is told to wrap up, and at it hands over the result, what is done and what is left instead of failing, with one plan kept for the run. Thinking models are sent their own reasoning back in the form each provider documents (DeepSeek, Qwen, Kimi, MiniMax, GLM, OpenRouter, Claude, Gemini), busy or rate-limited routes are waited out, and a reply the output cap cut runs none of its calls | [agents](docs/features/agents.md#adding-a-tool-family), [agent harness](docs/features/agent-harness.md) |
+| Native agent harness | Agent chats on API models run the fork's own tool loop, sized to the task: a simple question is one round with no tool or one, a task of several steps a short plan, the work, a check of the key facts and a short result. Tool families plug in as providers, each with a risk, and every change, command and fetch passes one consent policy; read-only calls in a round run four at a time. Each agent's Effort (Quick, Balanced, Thorough) sets its run's rounds, tool output, background minutes and sub-agents: near the end the model is told to wrap up, and at it hands over the result, what is done, what is not and what to do next, never an error, with one plan kept and read back for the run. Thinking models are sent their own reasoning back between tool rounds in the form each provider documents (DeepSeek, Qwen on DashScope and Qwen Cloud, Kimi, MiniMax, GLM, OpenRouter, Claude, Gemini, any other host as it came), never another model's, and a gateway that refuses the field loses only the field. Busy or rate-limited routes are waited out, an overflow sheds old results and then old history, a reply the output cap cut runs none of its calls, and cache hits are counted apart. A long turn elides old results; a long chat keeps notes on the turns it no longer sends. Opt-in Sub-agents hands read-only tasks to `delegate` copies of the agent on the same model, side by side. Opt-in Screen lets `screen_context` read the text of the window behind Tinycast, only on a turn the user sends from the chat and only after a dialog that names the app. On Anthropic's own API and on OpenRouter, Claude is asked to cache every request that will be sent again. Stop ends a running command, sub-agent, retry wait or summary and voids a late Allow. `agent-scenario-test` drives whole turns on each provider's wire | [agents](docs/features/agents.md#adding-a-tool-family), [agent harness](docs/features/agent-harness.md) |
 | Web search | A `web_search` tool for agents and every API model: Exa, Parallel and DuckDuckGo with no key, then your SearXNG, Brave or Tavily, tried in order; with Web search on, a plain chat can also `read_page` a page you linked or a search found. Pages read as compact Markdown with their links, long ones in parts, PDFs by pages; hidden text is dropped, and a page only its scripts would fill is said to be one, so the model reads another result | [web-search](docs/features/web-search.md) |
 | Quick AI tools | Quick AI's ⌘K turns Web Search on and off, the setting the composer's + menu toggles. Settings → AI → Agents → Quick AI answers with runs Quick AI's new chats on an agent of the chat's model, with its tools, folder, instructions and permissions, its name above the chat, and ⌘K → Answer with switches it for one chat; ACP agents stay in AI Chat. Every chat is told the local time to the quarter hour, and one without an agent which tools it has (MCP ones by pointer, since `@server` picks them per message), with live facts sent through `web_search` and then `read_page`, or in one line where Web Search is turned on | [quick-ai-tools](docs/features/quick-ai-tools.md) |
 | Notes ↔ AI | Attach Note… in the composer or Quick AI's ⌘K menu, or `@note`, picks a note to send with the next message; agents with the Notes tools search and read your notes and add reports to them, every addition asked first whatever the agent's other rules say | [notes-ai](docs/features/notes-ai.md) |
@@ -148,12 +148,41 @@ Declined items stay listed so the numbers other docs cite keep their meaning.
 - **Native agent harness — shipped** (see above), including cross-turn compaction, `update_plan`, a
   read-only `delegate` sub-agent, `screen_context` (chat turns only, never background runs or
   sub-agents) and prompt-cache markers for Claude on Anthropic's API and OpenRouter, then the balanced
-  general agent from the harness research: interleaved thinking on every major provider, Effort and
-  run budgets with a hand-over, retries, one plan per run, concurrent sub-agents and a cache-stable
-  prompt. Next on it: nothing agreed. Undecided: plain chats on the same loop (so `web_search` and compaction reach them
-  with no upstream edit), a sub-agent's tokens counted in Usage, and a Personal data row in an
-  agent's Permissions. The row needs Notes reads to ask too, so that Ask Each Chat means the same
-  thing for both.
+  general agent from the harness research (its plan's wave 0 and wave 1's budget, retries, reading,
+  plan and prompt): interleaved thinking on every major provider, Effort and run budgets with an
+  enforced hand-over, retries and an overflow ladder, the output cap, one plan per run, concurrent
+  sub-agents, a cache-stable prompt, and documents, Markdown pages and Spotlight for reading. Next on
+  it, in order of value for a balanced agent (sizes are the research's estimates):
+  - **Run journal and Continue**: every round written to SQLite as it ends, a failed or stopped run
+    resumed from it, a call with no result told its outcome is unknown. *3 days.*
+  - **Pages that need JavaScript**: `web_fetch` renders such a page in a WebKit view that lives only
+    for the call. *1.5 days.*
+  - **Verification and delivery**: the claims a result rests on checked against their sources
+    before it is done, files handed over and exported to PDF, DOCX or RTF. *4.5 days.*
+  - **Steering and ask-with-timeout**: a message sent mid-run joins the next round; one question to
+    the user waits a while, then the run goes on with the assumption it names. *2.5 days.*
+  - **Unattended safety**: `run_command` in a Seatbelt sandbox that writes only to the run's
+    folder, so a background run may run it unasked, and guards on what a run nobody watches does.
+    *5 days.*
+  - **The run's workspace**: a folder per run with findings and their sources, and large results
+    spilled to files, their head and tail in context. *2 days.*
+  - **In-run compaction**: a long run summarises its older rounds instead of only eliding them.
+    *3 days.*
+  - **Mac actions**: calendar, reminders, Shortcuts, opening files and apps, the clipboard, each
+    under consent and behind a plan the user approved. *6 days.*
+  - **Reminders and "only new"**: follow-ups the user confirms, and schedules that report only what
+    changed since their last run. *2.5 days.*
+  - **Search polish**: `web_search` with up to four queries merged, private addresses refused
+    before connecting, an honest User-Agent and Accept-Language. *1 day.*
+  - **Fresh and fork researchers**: parallel research tasks, fresh or forked from the run, with a
+    result schema. *2.5 days.*
+  - **Goal mode**: rounds toward a goal with criteria until it is met, blocked or out of budget.
+    *3 days.*
+
+  Undecided: plain chats on the same loop (so `web_search` and compaction reach them with no
+  upstream edit), a sub-agent's tokens counted in Usage, and a Personal data row in an agent's
+  Permissions. The row needs Notes reads to ask too, so that Ask Each Chat means the same thing for
+  both.
 
 1. **ACP agents — shipped** (see above). Diffs and command output unfold inside tool rows, the
    agent's slash commands are offered in the composer, and each agent has a launcher row and hotkey
