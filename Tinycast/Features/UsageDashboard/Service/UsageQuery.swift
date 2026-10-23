@@ -12,17 +12,21 @@ enum UsageQuery {
     /// Every chat in `agents` is ACP-bound, so its replies store their session's running cost.
     @concurrent
     static func report(
-        databaseURL: URL, in interval: DateInterval, agents: [UUID: UUID]
+        databaseURL: URL, ledgerURL: URL? = nil, in interval: DateInterval, slices: [Date] = [],
+        agents: [UUID: UUID]
     ) async throws -> UsageReport {
         let chats = Set(agents.keys)
-        return UsageReport(
-            rows: try rows(databaseURL: databaseURL, in: interval, runningCostChats: chats),
-            agents: agents)
+        let rows = try rows(
+            databaseURL: databaseURL, in: interval, slices: slices, runningCostChats: chats)
+        try Task.checkCancellation()
+        let ledger = try ledgerURL.map { try UsageLedger.entries(at: $0, in: interval) } ?? []
+        return UsageReport(rows: rows, ledger: ledger, slices: slices, agents: agents)
     }
 
     /// No `SQLITE_OPEN_CREATE`: a Mac that never chatted gets no rows and no file.
     nonisolated static func rows(
-        databaseURL: URL, in interval: DateInterval, runningCostChats: Set<UUID> = []
+        databaseURL: URL, in interval: DateInterval, slices: [Date] = [],
+        runningCostChats: Set<UUID> = []
     ) throws -> [UsageRow] {
         guard FileManager.default.fileExists(atPath: databaseURL.path) else { return [] }
         var database: OpaquePointer?
@@ -43,6 +47,8 @@ enum UsageQuery {
         sqlite3_bind_double(statement, 2, interval.end.timeIntervalSince1970)
         let chats = runningCostChats.map { "\"\($0.uuidString)\"" }.joined(separator: ",")
         sqlite3_bind_text(statement, 3, "[\(chats)]", -1, usageSQLiteTransient)
+        let starts = (slices.isEmpty ? [interval.start] : slices).map { "\($0.timeIntervalSince1970)" }
+        sqlite3_bind_text(statement, 4, "[\(starts.joined(separator: ","))]", -1, usageSQLiteTransient)
         var rows: [UsageRow] = []
         while true {
             let result = sqlite3_step(statement)
@@ -58,12 +64,13 @@ enum UsageQuery {
         guard let id = text(statement, 0).flatMap(UUID.init(uuidString:)) else { return nil }
         func count(_ column: Int32) -> Int { Int(sqlite3_column_int64(statement, column)) }
         let totals = UsageTotals(
-            replies: count(2), input: count(3), output: count(4), cached: count(5),
-            reasoning: count(6),
-            cost: sqlite3_column_type(statement, 7) == SQLITE_NULL
-                ? nil : sqlite3_column_double(statement, 7),
-            pricedReplies: count(8))
-        return UsageRow(conversationID: id, modelJSON: text(statement, 1), totals: totals)
+            replies: count(3), input: count(4), output: count(5), cached: count(6),
+            reasoning: count(7),
+            cost: sqlite3_column_type(statement, 8) == SQLITE_NULL
+                ? nil : sqlite3_column_double(statement, 8),
+            pricedReplies: count(9))
+        return UsageRow(
+            conversationID: id, modelJSON: text(statement, 1), totals: totals, slice: count(2))
     }
 
     private static func text(_ statement: OpaquePointer?, _ column: Int32) -> String? {
@@ -87,6 +94,7 @@ enum UsageQuery {
         WITH \(running)
         SELECT m.conversation_id,
                d.model,
+               (SELECT MAX(s.key) FROM json_each(?4) s WHERE s.value <= m.sent_at) AS slice,
                COUNT(*),
                SUM(COALESCE(x.input_tokens, 0)),
                SUM(COALESCE(x.output_tokens, 0)),
@@ -101,6 +109,6 @@ enum UsageQuery {
         WHERE m.role = 'assistant'
           AND m.sent_at >= ?1 AND m.sent_at < ?2
           AND (x.input_tokens IS NOT NULL OR x.output_tokens IS NOT NULL OR x.cost_usd IS NOT NULL)
-        GROUP BY m.conversation_id;
+        GROUP BY m.conversation_id, slice;
         """
 }

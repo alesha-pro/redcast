@@ -142,7 +142,8 @@ bottom with the model picker. ⌘J hands a Quick AI conversation to the window.
   `AgentLoopProvider` add each round's to the ones before — while its tokens stay the last round's.
   Requests to OpenAI's own endpoint (`api.openai.com`) ask for usage with
   `stream_options.include_usage`; no other server is sent the field, an OpenAI preset on a gateway
-  included.
+  included. A title request, which no message keeps, has its usage appended to the fork's usage log
+  instead (see [usage-dashboard.md](usage-dashboard.md)).
 - **The on-device route is configured by having a Mac.** `.appleIntelligence` takes no key, opens no
   socket and names no endpoint, so the Keychain, HTTPS and ephemeral-session rules below have nothing
   to bind to — the Settings pane must never grow a credential field for it. It is text-only and

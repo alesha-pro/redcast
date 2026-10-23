@@ -689,10 +689,12 @@ final class AppCore {
             throw AIProviderError.unavailable(
                 String(localized: "Choose a model in Settings \u{2192} Quick Actions."))
         }
-        return try AIProviderFactory.make(
+        let provider = try AIProviderFactory.make(
             selection: selection, settings: aiSettings, subscription: chatGPTSubscription,
             installedAI: installedAI,
             guardrails: .permissiveContentTransformations)
+        // Fork: no chat keeps a Quick Action's reply, so the usage log records what it reported.
+        return UsageRecordingProvider.wrapping(provider, for: selection, as: .quickAction)
     }
 
     // MARK: - Feature switches

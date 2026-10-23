@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Settings → AI → Usage: what this Mac's chats reported, and an OpenRouter key's spend on a press.
+/// Settings → AI → Usage: what replies on this Mac reported, and an OpenRouter key's spend.
 struct UsageSection: View {
     @Environment(AppCore.self) private var core
     @Environment(AppSettings.self) private var appSettings
@@ -12,6 +12,7 @@ struct UsageSection: View {
 
     private struct Request: Hashable {
         let interval: DateInterval
+        let slices: [Date]
         let isEnabled: Bool
     }
 
@@ -26,7 +27,9 @@ struct UsageSection: View {
     var body: some View {
         let now = Date()
         let interval = period.interval(containing: anchor, calendar: calendar)
-        let request = Request(interval: interval, isEnabled: appSettings.aiEnabled)
+        let request = Request(
+            interval: interval, slices: period.slices(of: interval, calendar: calendar),
+            isEnabled: appSettings.aiEnabled)
         let openRouter = aiSettings.connections.filter {
             $0.provider == .openRouter && aiSettings.isRouteEnabled(.api($0.id))
         }
@@ -36,8 +39,13 @@ struct UsageSection: View {
                 .task(id: request) { await load(request) }
             if let loaded, loaded.request == request {
                 if let report = loaded.report, !report.lines.isEmpty {
-                    SettingsRow(title: summary(report.total), subtitle: pricedNote(report.total)) {
+                    SettingsRow(title: Self.summary(report.total), subtitle: pricedNote(report.total)) {
                         EmptyView()
+                    }
+                    if report.slices.count > 1 {
+                        UsageTrendStrip(
+                            slices: report.slices, period: period, interval: interval, now: now,
+                            calendar: calendar)
                     }
                     ForEach(report.lines) { line in
                         UsageLineRow(
@@ -57,8 +65,8 @@ struct UsageSection: View {
             Text(
                 """
                 Counted from the chats kept on this Mac, so a deleted chat takes its usage with it, \
-                and Quick Actions are not counted. Costs are as each route reported them. Balances \
-                are fetched only when you ask.
+                and from a log of the replies no chat keeps, such as Quick Actions. Costs are as each \
+                route reported them. Balances are fetched only when you ask.
                 """
             )
             .font(.caption)
@@ -94,7 +102,8 @@ struct UsageSection: View {
     private func load(_ request: Request) async {
         guard request.isEnabled else { return }
         let report = try? await UsageQuery.report(
-            databaseURL: core.chatHistory.databaseURL, in: request.interval, agents: acpBindings())
+            databaseURL: core.chatHistory.databaseURL, ledgerURL: UsageLedger.url, in: request.interval,
+            slices: request.slices, agents: acpBindings())
         guard !Task.isCancelled else { return }
         loaded = Loaded(request: request, report: report)
     }
@@ -106,7 +115,7 @@ struct UsageSection: View {
         return store.chatAgents.filter { acp.contains($0.value) }
     }
 
-    private func summary(_ total: UsageTotals) -> String {
+    fileprivate static func summary(_ total: UsageTotals) -> String {
         let tokens = UsageFormat.tokens(total.tokens)
         guard let cost = total.cost else { return String(localized: "\(tokens) tokens") }
         return String(localized: "\(tokens) tokens · \(UsageFormat.cost(cost))")
@@ -186,6 +195,7 @@ private struct OpenRouterBalanceRow: View {
 
     @State private var state = BalanceState.idle
     @State private var check: Task<Void, Never>?
+    @State private var editsManagementKey = false
 
     private enum BalanceState: Equatable {
         case idle
@@ -200,12 +210,22 @@ private struct OpenRouterBalanceRow: View {
             title: showsName ? "\(brand) (\(connection.title))" : brand, subtitle: subtitle,
             subtitleLineLimit: 3
         ) {
-            Button("Check Balance", action: start)
-                .disabled(state == .checking)
+            HStack(spacing: Theme.Spacing.md) {
+                Button("Management Key…") { editsManagementKey = true }
+                Button("Check Balance", action: start)
+                    .disabled(state == .checking)
+            }
         }
         .onDisappear {
             check?.cancel()
             if state == .checking { state = .idle }
+        }
+        .settingsEditorPanel(isPresented: $editsManagementKey) {
+            OpenRouterManagementKeyPanel(connection: connection) { changed in
+                editsManagementKey = false
+                // A balance shown with the old key would now describe an account it may not be.
+                if changed, state != .checking { state = .idle }
+            }
         }
     }
 
@@ -247,13 +267,139 @@ private struct OpenRouterBalanceRow: View {
         } else {
             lines.append(String(localized: "No spending limit on this key"))
         }
-        if let credits = balance.credits {
+        switch balance.credits {
+        case .loaded(let credits):
             let left = UsageFormat.cost(credits.remaining)
             let total = UsageFormat.cost(credits.totalCredits)
             lines.append(String(localized: "\(left) of \(total) credits left"))
-        } else {
+        case .needsManagementKey:
             lines.append(String(localized: "The account balance needs an OpenRouter management key."))
+        case .failed(let failure):
+            lines.append(failure.message)
         }
         return lines
+    }
+}
+
+/// Tokens per hour of a day, or per day of a week or month, with the slice holding now tinted.
+private struct UsageTrendStrip: View {
+    let slices: [UsageReport.Slice]
+    let period: UsagePeriod
+    let interval: DateInterval
+    let now: Date
+    let calendar: Calendar
+
+    var body: some View {
+        let peak = slices.map(\.totals.tokens).max() ?? 0
+        let current = period.isCurrent(interval, now: now) ? slices.lastIndex { $0.start <= now } : nil
+        HStack(alignment: .bottom, spacing: Theme.Spacing.xxs) {
+            ForEach(Array(slices.enumerated()), id: \.element.id) { index, slice in
+                bar(slice, peak: peak, isCurrent: index == current)
+            }
+        }
+        .frame(height: Theme.Size.usageTrendHeight)
+    }
+
+    private func bar(_ slice: UsageReport.Slice, peak: Int, isCurrent: Bool) -> some View {
+        let tokens = slice.totals.tokens
+        let label = period.sliceTitle(of: slice.start, calendar: calendar) + "\n"
+            + UsageSection.summary(slice.totals)
+        let fill: Color =
+            tokens == 0 ? Theme.Colors.separator : isCurrent ? .accentColor : Theme.Colors.textTertiary
+        let height =
+            tokens == 0
+            ? Theme.Size.hairline
+            : max(Theme.Spacing.xxs, Theme.Size.usageTrendHeight * CGFloat(tokens) / CGFloat(max(peak, 1)))
+        return Color.clear
+            .overlay(alignment: .bottom) {
+                RoundedRectangle(cornerRadius: Theme.Radius.glyph)
+                    .fill(fill)
+                    .frame(height: height)
+            }
+            .frame(maxWidth: .infinity)
+            .contentShape(Rectangle())
+            .help(label)
+            .accessibilityElement()
+            .accessibilityLabel(Text(verbatim: label))
+    }
+}
+
+/// Sets or removes one connection's management key; the key is checked for, never read back.
+private struct OpenRouterManagementKeyPanel: View {
+    let connection: AIConnection
+    let onDone: (_ changed: Bool) -> Void
+
+    @State private var key = ""
+    @State private var isStored = false
+    @State private var failure: String?
+
+    private let keychain = KeychainSecretStore.openRouterManagementKeys
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: Theme.Spacing.xl) {
+            SettingsEditorHeader(
+                title: "OpenRouter Management Key",
+                subtitle: """
+                    Used only to read your account's credits when you press Check Balance, and sent \
+                    only to OpenRouter. Create one in OpenRouter's settings under Management Keys.
+                    """)
+            RevealableSecureField(
+                title: String(localized: "Management Key"), text: $key,
+                prompt: isStored ? Text("Stored in Keychain") : Text(verbatim: "sk-or-v1-…"))
+                .settingsEditorTextField()
+            if let failure {
+                Text(failure)
+                    .font(.callout)
+                    .foregroundStyle(Theme.Colors.destructive)
+            }
+            HStack(spacing: Theme.Spacing.md) {
+                if isStored {
+                    Button("Remove", role: .destructive, action: remove)
+                        .buttonStyle(.modalAction(.destructive, fillsWidth: false))
+                }
+                Spacer()
+                Button("Cancel") { onDone(false) }
+                    .buttonStyle(.modalAction(.cancel))
+                    .keyboardShortcut(.cancelAction)
+                Button("Save", action: save)
+                    .buttonStyle(.modalAction(.primary))
+                    .keyboardShortcut(.defaultAction)
+                    .disabled(trimmed.isEmpty)
+            }
+        }
+        .padding(Theme.Spacing.dialogInset)
+        .frame(width: Theme.Size.editorSheetWidth)
+        .settingsEditorPanelSurface(controlsOnGlass: false)
+        .onAppear(perform: checkStored)
+    }
+
+    private var trimmed: String {
+        key.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private func checkStored() {
+        do {
+            isStored = try keychain.hasSecret(for: connection.id)
+        } catch {
+            failure = String(localized: "Tinycast couldn't read the keys from the Keychain.")
+        }
+    }
+
+    private func save() {
+        do {
+            try keychain.setSecret(trimmed, for: connection.id)
+            onDone(true)
+        } catch {
+            failure = String(localized: "Tinycast couldn't save the key to the Keychain.")
+        }
+    }
+
+    private func remove() {
+        do {
+            try keychain.removeSecret(for: connection.id)
+            onDone(true)
+        } catch {
+            failure = String(localized: "Tinycast couldn't save the key to the Keychain.")
+        }
     }
 }

@@ -10,6 +10,7 @@ enum CommandID: String, CaseIterable, Sendable {
     case editByVoice = "command:edit-by-voice"
     case searchAgentSessions = "command:search-agent-sessions"
     case jumpToAgent = "command:jump-to-agent"
+    case aiUsage = "command:ai-usage"  // Fork: opens Settings → AI → Usage
     case fixGrammar = "command:fix-grammar"
     case rewrite = "command:rewrite"
     case translate = "command:translate"
@@ -69,6 +70,7 @@ enum CommandID: String, CaseIterable, Sendable {
         case .editByVoice: return "Edit Selection by Voice"
         case .searchAgentSessions: return "Search Agent Sessions"
         case .jumpToAgent: return "Jump to Agent"
+        case .aiUsage: return "AI Usage"  // Fork: the Usage section's launcher command
         case .fixGrammar: return BuiltInQuickAction.fixGrammar.titleResource
         case .rewrite: return BuiltInQuickAction.rewrite.titleResource
         case .translate: return BuiltInQuickAction.translate.titleResource
@@ -126,6 +128,7 @@ enum CommandID: String, CaseIterable, Sendable {
         case .editByVoice: return "pencil.and.scribble"
         case .searchAgentSessions: return "clock.arrow.2.circlepath"
         case .jumpToAgent: return "arrow.up.forward.app"
+        case .aiUsage: return "chart.bar.xaxis"  // Fork: the Usage section's launcher command
         case .fixGrammar: return BuiltInQuickAction.fixGrammar.symbol
         case .rewrite: return BuiltInQuickAction.rewrite.symbol
         case .translate: return BuiltInQuickAction.translate.symbol

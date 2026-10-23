@@ -57,7 +57,8 @@ extension SettingsTab {
         case .ai:
             [
                 .quickAI, .aiChat, .askAboutScreen, .runAgentTask, .askByVoice, .editByVoice,
-                .searchAgentSessions, .jumpToAgent
+                .searchAgentSessions, .jumpToAgent,
+                .aiUsage  // Fork: listed here, so its shortcut is bound in the AI pane's Commands
             ]
         case .quickActions: [.fixGrammar, .rewrite, .translate, .summarize]
         case .fileSearch: [.searchFiles]

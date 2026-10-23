@@ -39,12 +39,14 @@ enum VoiceAIRoute {
         guard AIEndpointPolicy.isLoopback(connection.baseURL) || !key.isEmpty || !values.isEmpty else {
             throw AIProviderError.unavailable(String(localized: "Add an API key in Settings."))
         }
-        return HTTPAIProvider(
+        let provider = HTTPAIProvider(
             configuration: AIHTTPConfiguration(
                 provider: connection.provider, baseURL: baseURL, model: model, effort: effort,
                 disablesThinking: effort == AIConnection.ReasoningOptions.noEffort
                     && connection.takesThinkingField,
                 headers: values),
             apiKey: key)
+        // Dictation and Ask by Voice both come through here, and neither reply is a chat's.
+        return UsageRecordingProvider.wrapping(provider, for: selection, as: .voice)
     }
 }

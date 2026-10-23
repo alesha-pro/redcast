@@ -341,9 +341,13 @@ enum SettingsSearchCatalog {
         .init(
             .aiConversations, "Keep conversations",
             keywords: ["retention", "delete", "history", "privacy"]),
+        // Fork: the trend, the Quick Actions log and the management key are found here too.
         .init(
             group: .aiUsage, "Usage",
-            keywords: ["tokens", "cost", "spend", "billing", "openrouter", "balance", "credits"]),
+            keywords: [
+                "tokens", "cost", "spend", "billing", "openrouter", "balance", "credits", "trend",
+                "quick actions", "management key", "provisioning key"
+            ]),
         .init(
             .aiSystemPrompt, "Send a system prompt",
             keywords: ["instructions", "persona"]),
