@@ -80,10 +80,10 @@ enum AIRequestBody {
         body.merge(AIReasoningReplayPolicy.openAIBody(input, configuration: configuration)) { $1 }
         // Fork: an extension's creativity; a route that refuses it is asked again without it.
         if let temperature = input.temperature { body["temperature"] = temperature }
-        // Fork: OpenAI's own API takes only the newer name; DeepSeek and gateways take the older.
-        if let cap = input.outputCap {
+        // Fork: only a route whose own default cut a reply is capped; OpenAI's takes the newer name.
+        if let cap = input.outputCap, cap.forced {
             let own = configuration.baseURL.host() == URL(string: AIProviderKind.openAI.defaultBaseURL)?.host()
-            body[own ? "max_completion_tokens" : "max_tokens"] = cap
+            body[own ? "max_completion_tokens" : "max_tokens"] = cap.tokens
         }
         if !input.tools.isEmpty {
             body["tools"] = input.tools.map {
@@ -95,6 +95,11 @@ enum AIRequestBody {
                     ]
                 ]
             }
+        }
+        // Fork: a hand-over round may call nothing; Z.ai documents only `auto`, MiniMax no choice at all.
+        let route = AIReasoningReplayPolicy.route(of: configuration)
+        if input.forbidsCalls, !input.tools.isEmpty, route != .zai, route != .miniMax {
+            body["tool_choice"] = "none"
         }
         return body
     }
@@ -109,7 +114,7 @@ enum AIRequestBody {
         var body: [String: Any] = [
             "model": configuration.model,
             "messages": anthropicMessages(input.messages, configuration),
-            "max_tokens": input.outputCap ?? input.maxOutputTokens,
+            "max_tokens": input.outputCap?.tokens ?? input.maxOutputTokens,
             "stream": true
         ]
         if !systemParts.isEmpty { body["system"] = systemParts.joined(separator: "\n\n") }
@@ -122,6 +127,8 @@ enum AIRequestBody {
                     "input_schema": $0.parameters.jsonObject
                 ]
             }
+            // Fork: a hand-over round may call nothing; the choice is outside the prefix Claude signs.
+            if input.forbidsCalls { body["tool_choice"] = ["type": "none"] }
         }
         return body
     }
@@ -189,6 +196,13 @@ enum AIRequestBody {
                 continue
             }
             if !results.isEmpty {
+                // Fork: a loop's note after a round's results joins them, after the results as Claude asks.
+                if message.role == .user, message.images.isEmpty, message.documents.isEmpty,
+                    !message.text.isEmpty
+                {
+                    results.append(["type": "text", "text": message.text])
+                    continue
+                }
                 encoded.append(["role": "user", "content": results])
                 results = []
             }

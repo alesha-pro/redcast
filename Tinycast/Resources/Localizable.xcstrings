@@ -136933,6 +136933,58 @@
         }
       }
     },
+    "The model reached its output limit before it answered." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Das Modell hat sein Ausgabelimit erreicht, bevor es geantwortet hat."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El modelo alcanzó su límite de salida antes de responder."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le modèle a atteint sa limite de sortie avant de répondre."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "モデルは回答する前に出力上限に達しました。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "모델이 답하기 전에 출력 한도에 도달했습니다."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O modelo atingiu o limite de saída antes de responder."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Модель исчерпала лимит вывода, не успев ответить."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "模型在作答前就达到了输出上限。"
+          }
+        }
+      }
+    },
     "The model returned nothing." : {
       "localizations" : {
         "de" : {
@@ -138149,6 +138201,58 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "无法打开快速链接数据库，因此无法存储更改。"
+          }
+        }
+      }
+    },
+    "The reply was cut off at the model's output limit." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Antwort wurde am Ausgabelimit des Modells abgeschnitten."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La respuesta se cortó al llegar al límite de salida del modelo."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La réponse a été coupée à la limite de sortie du modèle."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "応答はモデルの出力上限で途切れました。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "응답이 모델의 출력 한도에서 잘렸습니다."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A resposta foi cortada no limite de saída do modelo."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ответ оборвался на лимите вывода модели."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "回复在模型的输出上限处被截断。"
           }
         }
       }

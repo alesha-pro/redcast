@@ -272,11 +272,15 @@ final class AgentCoordinator {
         let run = backgroundRuns?.effort(forChat: mode.chatID)
         let effort = run ?? agent.effortLevel
         let budget = effort.budget
+        // One clock for the run and its sub-agents, so a child never outlasts its parent's limit.
+        let clock = run.map { _ in AgentRunClock(limit: .seconds(budget.minutes * 60)) }
         var lead = lead
         lead.opening = AgentTurnLead.opening(
             now: Date(), timeZone: .current, budget: budget, effort: effort.rawValue.capitalized + " effort")
         let toolset = AgentToolset(
-            turn: turn, providers: providers(for: agent, in: context, over: base, mode: mode, budget: budget),
+            turn: turn,
+            providers: providers(
+                for: agent, in: context, over: base, mode: mode, budget: budget, clock: clock),
             mcpTools: mcpTools, mcp: mcp,
             refused: { [weak self] _ in
                 guard case .unattended(let chatID) = mode else { return }
@@ -289,14 +293,13 @@ final class AgentCoordinator {
         guard !toolset.tools.isEmpty else { return nil }
         return AgentLoopProvider(
             base: base, toolset: toolset, budget: budget, compaction: compaction,
-            outputCap: AgentTurnBudget.outputTokens, origin: agent.name, lead: lead,
-            timeLimit: run.map { _ in .seconds(budget.minutes * 60) })
+            outputCap: AgentTurnBudget.outputTokens, origin: agent.name, lead: lead, clock: clock)
     }
 
     /// The registry: one line per family, built per turn so nothing stays resident between turns.
     private func providers(
         for agent: AgentProfile, in context: AgentContext, over base: any AIProvider, mode: AgentRunMode,
-        budget: AgentRunBudget
+        budget: AgentRunBudget, clock: AgentRunClock?
     ) -> [any AgentToolProvider] {
         var providers = familyProviders(for: agent)
         providers.append(AgentPlanTools())
@@ -305,7 +308,7 @@ final class AgentCoordinator {
             providers.append(
                 delegate(
                     for: agent, in: context, over: base, parent: mode.chatID,
-                    allowance: AgentSubAgentAllowance(budget.subAgents)))
+                    allowance: AgentSubAgentAllowance(budget.subAgents), clock: clock))
         }
         return providers
     }
@@ -330,7 +333,7 @@ final class AgentCoordinator {
     /// A read-only copy of the agent with no delegate of its own, so sub-agents stop at one level.
     private func delegate(
         for agent: AgentProfile, in context: AgentContext, over base: any AIProvider, parent: UUID,
-        allowance: AgentSubAgentAllowance
+        allowance: AgentSubAgentAllowance, clock: AgentRunClock?
     ) -> AgentDelegateTools {
         var reader = agent
         reader.access = .readOnly
@@ -357,7 +360,8 @@ final class AgentCoordinator {
             base: base, toolset: toolset, instructions: prompt + "\n\n" + AgentDelegateTools.briefing,
             allowance: allowance,
             opening: AgentTurnLead.opening(
-                now: Date(), timeZone: .current, budget: .subAgent, effort: "Sub-task"))
+                now: Date(), timeZone: .current, budget: .subAgent, effort: "Sub-task"),
+            clock: clock)
     }
 
     /// Whether this chat's agent is offered `web_search`: Web ticked, and not Never Allow.

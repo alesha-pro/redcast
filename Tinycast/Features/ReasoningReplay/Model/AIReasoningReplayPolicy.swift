@@ -49,14 +49,20 @@ enum AIReasoningReplayPolicy {
         }
         if let own, !configuration.disablesThinking, sends(own, on: route, configuration.reasoningReplay) {
             let form: AIReasoningReplay.Form? = route == .deepSeek ? .reasoningContent : own.form
+            // A shed round keeps only its field's place, where the field must be there at all.
+            let said = own.text.isEmpty ? nil : own.text
             switch form {
             case .details?:
-                encoded["reasoning_details"] =
-                    own.items.isEmpty ? [["type": "reasoning.text", "text": own.text]] : own.items.map(\.jsonObject)
+                if !own.items.isEmpty {
+                    encoded["reasoning_details"] = own.items.map(\.jsonObject)
+                } else if let said {
+                    encoded["reasoning_details"] = [["type": "reasoning.text", "text": said]]
+                }
             case .reasoningContent?: encoded["reasoning_content"] = own.text
-            case .reasoning?: encoded["reasoning"] = own.text
+            case .reasoning?: encoded["reasoning"] = said
             case .thinkTags?:
-                encoded["content"] = "<think>\(own.text)</think>\n\n" + (encoded["content"] as? String ?? "")
+                guard let said else { break }
+                encoded["content"] = "<think>\(said)</think>\n\n" + (encoded["content"] as? String ?? "")
             case .blocks?, nil: break
             }
         }

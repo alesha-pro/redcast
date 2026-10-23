@@ -101,6 +101,10 @@ struct ChatSession: Equatable, Sendable {
         }
         // The slice opens with the user turn that prompted it; an orphaned reply reads as noise.
         while head.last?.role == .assistant { head.removeLast() }
+        // Fork: replies keep their reasoning, newest first, only in what their text left of the budget.
+        var room = textBudget - (tail + head).reduce(0) { $0 + $1.text.utf8.count }
+        tail = tail.reversed().map { Self.fitting($0, in: &room) }.reversed()
+        head = head.map { Self.fitting($0, in: &room) }
         let prompt = messages[newest]
         let kept = AIAttachmentBudget.bounded(prompt.images, prompt.documents)
         // Inlined here, not in `ChatMessage.text`: the transcript's title is its first user text.
@@ -110,6 +114,17 @@ struct ChatSession: Equatable, Sendable {
             images: kept.images,
             documents: kept.documents.filter { $0.mimeType == AIAttachmentPolicy.pdfMIMEType })
         return head.reversed() + [bounded] + tail
+    }
+
+    // Fork: past the budget a reply goes without its reasoning, which a route then reads as none.
+    private static func fitting(_ message: AIMessage, in room: inout Int) -> AIMessage {
+        guard let reasoning = message.reasoning else { return message }
+        let size = reasoning.text.utf8.count
+        guard size > room else {
+            room -= size
+            return message
+        }
+        return AIMessage(role: message.role, text: message.text)
     }
 
     mutating func append(_ message: ChatMessage) {

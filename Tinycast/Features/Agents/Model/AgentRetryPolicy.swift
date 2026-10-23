@@ -36,11 +36,16 @@ struct AgentRetryPolicy: Sendable {
         (error as? AIProviderRecoverableError)?.kind == .overflow
     }
 
-    /// A route whose model takes less output than the round asked for names the field it refused.
+    /// A route that takes less output than the round asked for names the field, or the room it asked.
     static func refusesOutputCap(_ error: any Error) -> Bool {
-        guard !(error is AIProviderRecoverableError) else { return false }
+        if let failure = error as? AIProviderRecoverableError, failure.kind != .overflow { return false }
         let said = error.localizedDescription.lowercased()
-        return ["max_tokens", "max_completion_tokens", "max_output_tokens", "maximum allowed number of output"]
-            .contains(where: said.contains)
+        return capWords.contains(where: said.contains)
     }
+
+    /// vLLM's, SGLang's, OpenRouter's, OpenAI's and Anthropic's words for output that does not fit.
+    private static let capWords = [
+        "max_tokens", "max_completion_tokens", "max_output_tokens", "maximum allowed number of output",
+        "in the completion", "for the completion", "in the output"
+    ]
 }
