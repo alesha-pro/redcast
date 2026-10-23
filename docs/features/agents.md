@@ -183,9 +183,11 @@ optional chord: see [background and scheduled agents](background-agents.md).
   `AIStreamDecoder` keeps a reply's reasoning in the form it came (`reasoning_content`, `reasoning`,
   `reasoning_details`, `<think>`, Anthropic `thinking` blocks with their signatures), stamped with the
   route and model, and both loops send it back on the message with the reply's calls through
-  `AIReasoningReplayPolicy`: DeepSeek, Qwen, Kimi, MiniMax, GLM, OpenRouter, Anthropic and gateways,
-  Gemini's call signatures, nothing to OpenAI. The chat keeps the text for providers that read earlier
-  turns, and a connection can say Always or Never. The rules and their sources are in
+  `AIReasoningReplayPolicy`: DeepSeek, Qwen (DashScope and Qwen Cloud), Kimi, MiniMax, GLM,
+  OpenRouter, Anthropic and gateways, Gemini's call signatures, nothing to OpenAI, and any other host
+  as it came. The chat keeps the text for providers that read earlier turns, and a connection can say
+  Always or Never. A gateway that refuses a reasoning field by name is asked the round again without
+  any, and sent none for the rest of the run. The rules and their sources are in
   [agent harness](agent-harness.md#interleaved-thinking).
 - **A reply the output cap cut runs none of its calls.** Its arguments may stop mid-JSON and still
   parse, so a long report through `write_file` would be written cut. The decoder says `.outputLimit`

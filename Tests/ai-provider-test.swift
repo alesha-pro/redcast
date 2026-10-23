@@ -175,6 +175,7 @@ struct AIProviderTests {
         anthropicThinkingBlocksKeepTheirSignatures()
         signedCallsStampTheirReply()
         eachProviderIsSentItsOwnReasoningBack()
+        eachProviderIsKnownByItsHosts()
         aReplyTheCapCutSaysSo()
         anAgentRoundCarriesItsOwnCap()
         shedReasoningKeepsOnlyWhatARouteNeeds()
@@ -620,6 +621,40 @@ struct AIProviderTests {
     }
 
     /// Each provider's documented rules, pinned by the body they produce for one conversation.
+    /// Every endpoint each provider documents, its plans and regions included, reads as that provider.
+    static func eachProviderIsKnownByItsHosts() {
+        typealias Route = AIReasoningReplayPolicy.Route
+        let hosts: [(String, AIProviderKind, Route)] = [
+            ("https://api.deepseek.com", .openAICompatible, .deepSeek),
+            ("https://dashscope.aliyuncs.com/compatible-mode/v1", .openAICompatible, .qwen),
+            ("https://dashscope-intl.aliyuncs.com/compatible-mode/v1", .openAICompatible, .qwen),
+            ("https://coding-intl.dashscope.aliyuncs.com/v1", .openAICompatible, .qwen),
+            ("https://token-plan.ap-southeast-1.maas.aliyuncs.com/compatible-mode/v1", .openAICompatible, .qwen),
+            ("https://ap-southeast-1.maas.qwencloudapi.com/compatible-mode/v1", .openAICompatible, .qwen),
+            ("https://us-east-1.maas.qwencloudapi.com/compatible-mode/v1", .openAICompatible, .qwen),
+            ("https://api.moonshot.ai/v1", .openAICompatible, .moonshot),
+            ("https://api.moonshot.cn/v1", .openAICompatible, .moonshot),
+            ("https://api.kimi.com/coding/v1", .openAICompatible, .moonshot),
+            ("https://api.minimax.io/v1", .openAICompatible, .miniMax),
+            ("https://api.minimaxi.com/v1", .openAICompatible, .miniMax),
+            ("https://api.z.ai/api/paas/v4", .openAICompatible, .zai),
+            ("https://api.z.ai/api/coding/paas/v4", .openAICompatible, .zai),
+            ("https://open.bigmodel.cn/api/paas/v4", .openAICompatible, .zai),
+            ("https://openrouter.ai/api/v1", .openAICompatible, .openRouter),
+            ("https://gateway.example.com/v1", .openRouter, .openRouter),
+            ("https://api.anthropic.com", .anthropic, .anthropic),
+            ("https://generativelanguage.googleapis.com/v1beta/openai", .gemini, .gemini),
+            ("https://api.openai.com/v1", .openAI, .openAI),
+            ("http://192.168.1.3:8000/v1", .openAICompatible, .other),
+            ("https://api.groq.com/openai/v1", .openAICompatible, .other)
+        ]
+        for (base, provider, route) in hosts {
+            let configuration = AIHTTPConfiguration(provider: provider, baseURL: URL(string: base)!, model: "m")
+            let got = AIReasoningReplayPolicy.route(of: configuration)
+            expect(got == route, "\(base) is sent reasoning as \(route) documents it, got \(got)")
+        }
+    }
+
     static func eachProviderIsSentItsOwnReasoningBack() {
         guard
             let data = FileManager.default.contents(atPath: "Tests/ai-fixtures/reasoning-replay-bodies.json"),
