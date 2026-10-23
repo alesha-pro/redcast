@@ -151,7 +151,9 @@ optional chord: see [background and scheduled agents](background-agents.md).
   arrive, by `ChatToolContent(call:)`, and the compacted form is both what the row unfolds and what
   is saved: at most 12 KB a row. It is saved in its own table, `message_tool_content`, keyed like
   `message_tools` and deleted with its message, so `message_tools` keeps its columns and a chat this
-  build saved opens unchanged, without the content, in a build from before it.
+  build saved opens unchanged, without the content, in a build from before it. Continuing such a chat
+  there rewrites its last saved reply, and the cascade then takes that reply's diffs and output for
+  good.
 - **A slash command list lives with its session.** `available_commands_update` is kept per live
   session in `AgentACPHost` and mirrored to the coordinator like the modes; a chat's copy goes when
   its session or the agent's process does, leaving one list per agent, and nothing is written down.
