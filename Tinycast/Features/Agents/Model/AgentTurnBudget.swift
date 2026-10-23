@@ -10,6 +10,8 @@ struct AgentTurnBudget: Sendable {
     /// Past this a turn's results are elided down to `elideTo`; the gap keeps the prefix cacheable.
     static let elideAbove = 160 * 1_024
     static let elideTo = 96 * 1_024
+    /// Each round's output cap: a report sent through `write_file` must fit in one reply.
+    static let outputTokens = 16_384
 
     private(set) var spent = 0
     private(set) var carried = 0

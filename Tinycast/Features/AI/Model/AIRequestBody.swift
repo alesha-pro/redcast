@@ -96,6 +96,11 @@ enum AIRequestBody {
         }
         // Fork: an extension's creativity; a route that refuses it is asked again without it.
         if let temperature = input.temperature { body["temperature"] = temperature }
+        // Fork: OpenAI's own API takes only the newer name; DeepSeek and gateways take the older.
+        if let cap = input.outputCap {
+            let own = configuration.baseURL.host() == URL(string: AIProviderKind.openAI.defaultBaseURL)?.host()
+            body[own ? "max_completion_tokens" : "max_tokens"] = cap
+        }
         if !input.tools.isEmpty {
             body["tools"] = input.tools.map {
                 [
@@ -120,7 +125,7 @@ enum AIRequestBody {
         var body: [String: Any] = [
             "model": configuration.model,
             "messages": anthropicMessages(input.messages),
-            "max_tokens": input.maxOutputTokens,
+            "max_tokens": input.outputCap ?? input.maxOutputTokens,
             "stream": true
         ]
         if !systemParts.isEmpty { body["system"] = systemParts.joined(separator: "\n\n") }

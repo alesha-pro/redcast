@@ -111,6 +111,15 @@ optional chord: see [background and scheduled agents](background-agents.md).
   assistant message, that model's own text or an empty string for a reply from history or from
   another model, as pi does. A reply that called nothing keeps nothing, since it is never resent
   with its reasoning. Anthropic-shape thinking blocks are not replayed: Tinycast never asks for them.
+- **A reply the output cap cut runs none of its calls.** Its arguments may stop mid-JSON and still
+  parse, so a long report through `write_file` would be written cut. The decoder says `.outputLimit`
+  on OpenAI's `finish_reason: length` and Anthropic's `stop_reason: max_tokens`, and both loops answer
+  each of that reply's calls with pi's words (`AIToolResult.cutOff`: "was not executed… Re-issue the
+  tool call with complete arguments.") instead of running it. Every round of an agent's turn and its
+  sub-agents' asks for 16,384 output tokens (`AgentTurnBudget.outputTokens`, `AIRequest.outputCap`):
+  `max_tokens` on Anthropic and on OpenAI-shaped routes, `max_completion_tokens` on OpenAI's own API,
+  where the shape else sends no cap and DeepSeek would stop at its 4K default. Plain chats send what
+  they always sent.
 - **A cache hit is counted apart from input on every route.** OpenAI's and OpenRouter's
   `prompt_tokens_details.cached_tokens` and DeepSeek's `prompt_cache_hit_tokens` leave
   `AIUsage.inputTokens` for `cachedInputTokens`, as Anthropic's `cache_read_input_tokens` always did;

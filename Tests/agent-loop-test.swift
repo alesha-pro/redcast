@@ -24,6 +24,7 @@ struct AgentLoopTests {
         await stopReachesTheRunningCall()
         await aTurnWithoutCallsPassesThrough()
         await reasoningRidesTheCallsItMade()
+        await aCutReplysCallsNeverRun()
         await anAgentTurnCostsEveryRound()
         await theSpendMeterHearsEachRoundsCost()
         await aLongTurnElidesInsteadOfStopping()
@@ -135,6 +136,12 @@ struct AgentLoopTests {
                 [.text("ok"), .finished]
             ], maxRounds: 25)
         await differential(
+            "a reply the output cap cut", rounds: [
+                [.text("Writing."), call("c1", "fs_read", #"{"path":"a"#), call("c2"), .outputLimit],
+                [call("c3")],
+                [.text("Done."), .finished]
+            ], maxRounds: 25)
+        await differential(
             "a priced turn", rounds: [
                 [.usage(AIUsage(inputTokens: 10, costUSD: 0.01)), call("c1")],
                 [.usage(AIUsage(inputTokens: 15)), call("c2")],
@@ -240,6 +247,34 @@ struct AgentLoopTests {
         expect(
             !events.contains { if case .reasoningReplay = $0 { true } else { false } },
             "and never reaches the transcript")
+    }
+
+    /// pi's rule: a call from a reply the output cap cut is answered, never run, and asked again.
+    static func aCutReplysCallsNeverRun() async {
+        let ran = Heard()
+        let writer = FakeTools(names: ["fs_write"], risk: .change) { _, _ in
+            ran.append(1)
+            return "wrote"
+        }
+        let base = ScriptedProvider(rounds: [
+            [call("w1", "fs_write", ##"{"path":"r.md","content":"# Rep"##), .outputLimit],
+            [call("w2", "fs_write", ##"{"path":"r.md","content":"# Report"}"##)],
+            [.text("Saved."), .finished]
+        ])
+        let loop = AgentLoopProvider(
+            base: base, toolset: toolset([writer]), maxRounds: 25, outputCap: AgentTurnBudget.outputTokens)
+        let events = await collect(loop).events
+        expect(ran.values.count == 1, "only the whole call runs")
+        expect(
+            events.contains(.toolResult(id: "w1", isError: true)), "the cut call's row closes as failed")
+        expect(
+            base.requests[1].messages.last?.toolResult?.content
+                == #"Tool call "fs_write" was not executed: the response hit the output token limit, so "#
+                + "its arguments may be truncated. Re-issue the tool call with complete arguments.",
+            "and the model reads pi's words for it")
+        expect(
+            base.requests.allSatisfy { $0.outputCap == AgentTurnBudget.outputTokens },
+            "every round of an agent's turn asks for its own output cap")
     }
 
     static func anAgentTurnCostsEveryRound() async {

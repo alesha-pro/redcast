@@ -171,6 +171,8 @@ struct AIProviderTests {
         cachedTokensCountApartFromInput()
         reasoningDetailsMergeAsTheyStream()
         reasoningGoesBackToTheModelThatWroteIt()
+        aReplyTheCapCutSaysSo()
+        anAgentRoundCarriesItsOwnCap()
 
         print("\(passes) passed, \(failures) failed")
         if failures > 0 { exit(1) }
@@ -394,6 +396,80 @@ struct AIProviderTests {
             routedBody != nil && routedBody == fixture("openrouter-reasoning-details"),
             "OpenRouter's body matches its fixture: details back verbatim and in order to the model "
                 + "that wrote them, none to another, and no reasoning_content")
+    }
+
+    /// A call from a reply the output cap cut may hold half its arguments, so the loop is told.
+    static func aReplyTheCapCutSaysSo() {
+        var openAI = AIStreamDecoder(shape: .openAICompatible)
+        let cut = Data(
+            """
+            data: {"choices":[{"delta":{"tool_calls":[{"index":0,"id":"c1","function":{"name":"write_file",\
+            "arguments":"{\\"path\\":\\"r.md\\",\\"content\\":\\"# Rep"}}]}}]}
+
+            data: {"choices":[{"delta":{},"finish_reason":"length"}]}
+
+            data: [DONE]
+
+            """.utf8)
+        let events = ((try? openAI.feed(cut)) ?? []) + ((try? openAI.finish()) ?? [])
+        let limit = events.firstIndex(of: .outputLimit)
+        let call = events.firstIndex { if case .toolCallRequested = $0 { true } else { false } }
+        expect(
+            limit != nil && call != nil && limit! < call!,
+            "OpenAI's finish_reason length is said before the half-written call, got \(events)")
+
+        var anthropic = AIStreamDecoder(shape: .anthropic)
+        let stopped = Data(
+            """
+            data: {"type":"content_block_start","index":0,"content_block":{"type":"tool_use","id":"t1","name":"write_file"}}
+
+            data: {"type":"content_block_delta","index":0,"delta":{"type":"input_json_delta","partial_json":"{\\"pa"}}
+
+            data: {"type":"message_delta","delta":{"stop_reason":"max_tokens"},"usage":{"output_tokens":16384}}
+
+            data: {"type":"message_stop"}
+
+            """.utf8)
+        let anthropicEvents = ((try? anthropic.feed(stopped)) ?? []) + ((try? anthropic.finish()) ?? [])
+        expect(
+            anthropicEvents.contains(.outputLimit)
+                && anthropicEvents.contains(.toolCallRequested(AIToolCall(id: "t1", name: "write_file", arguments: #"{"pa"#))),
+            "and so is Anthropic's max_tokens stop")
+        var whole = AIStreamDecoder(shape: .openAICompatible)
+        let finished = Data(
+            "data: {\"choices\":[{\"delta\":{\"content\":\"ok\"},\"finish_reason\":\"stop\"}]}\n\ndata: [DONE]\n\n".utf8)
+        expect(
+            !((try? whole.feed(finished)) ?? []).contains(.outputLimit),
+            "while a reply that ended on its own says nothing of the kind")
+    }
+
+    /// An agent round asks for room on every shape, under the name each API takes.
+    static func anAgentRoundCarriesItsOwnCap() {
+        func body(_ provider: AIProviderKind, _ base: String, cap: Int?) -> [String: Any] {
+            AIRequestBody.make(
+                AIRequest(messages: [AIMessage(role: .user, text: "hi")], outputCap: cap),
+                configuration: AIHTTPConfiguration(provider: provider, baseURL: URL(string: base)!, model: "m"))
+        }
+        expect(
+            body(.openAICompatible, "https://api.deepseek.com", cap: 16_384)["max_tokens"] as? Int == 16_384,
+            "DeepSeek and other OpenAI-shaped routes take max_tokens")
+        let openAI = body(.openAI, "https://api.openai.com/v1", cap: 16_384)
+        expect(
+            openAI["max_completion_tokens"] as? Int == 16_384 && openAI["max_tokens"] == nil,
+            "OpenAI's own API takes max_completion_tokens, which its reasoning models require")
+        expect(
+            body(.anthropic, "https://api.anthropic.com", cap: 16_384)["max_tokens"] as? Int == 16_384
+                && body(.anthropic, "https://api.anthropic.com", cap: nil)["max_tokens"] as? Int
+                    == AIRequest.defaultMaxOutputTokens,
+            "Anthropic's cap is the round's, else the request's default")
+        expect(
+            body(.openRouter, "https://openrouter.ai/api/v1", cap: nil)["max_tokens"] == nil
+                && body(.openAI, "https://api.openai.com/v1", cap: nil)["max_completion_tokens"] == nil,
+            "and a request without one is sent as it always was")
+        let turn = AIRequest(messages: [], outputCap: 9)
+        expect(
+            turn.continuing(with: [], tools: []).outputCap == 9 && turn.capped(at: nil).outputCap == nil,
+            "a continued turn keeps its cap, and a capped copy replaces it")
     }
 
     /// Both providers stream a call's arguments in pieces; a half-parsed call would be uncallable.

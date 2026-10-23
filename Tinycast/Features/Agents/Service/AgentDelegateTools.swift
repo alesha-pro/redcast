@@ -40,7 +40,8 @@ struct AgentDelegateTools: AgentToolProvider {
         guard let task = Self.task(in: call.arguments) else {
             return .failure(call.id, "delegate takes a name and a task, both non-empty text.")
         }
-        let child = AgentLoopProvider(base: base, toolset: toolset, maxRounds: Self.maxRounds)
+        let child = AgentLoopProvider(
+            base: base, toolset: toolset, maxRounds: Self.maxRounds, outputCap: AgentTurnBudget.outputTokens)
         let request = AIRequest(
             instructions: instructions, messages: [AIMessage(role: .user, text: task.text)])
         var answer = ""
