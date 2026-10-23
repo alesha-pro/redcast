@@ -171,7 +171,7 @@ struct LanguageTests {
                 reordered.contains(size) && reordered.contains("2") && !reordered.contains("%@"))
             let privacy = bundle.localizedString(
                 forKey: "NSCameraUsageDescription", value: nil, table: "InfoPlist")
-            check("\(code) camera privacy prompt loads", privacy.contains("Tinycast"))
+            check("\(code) camera privacy prompt loads", privacy.contains("Redcast"))  // Fork: renamed by rebrand.mjs
 
             if code == "en" || code == "fr" {
                 for (key, french) in [
