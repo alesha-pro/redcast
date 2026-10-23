@@ -2,6 +2,10 @@ import Foundation
 
 /// The built-in families as one provider; each call gets an executor bound to its turn.
 struct AgentBuiltInTools: AgentToolProvider {
+    var documents: DocumentTextService = .bundled
+    /// Each `web_fetch` reads on a session of its own, so no cookie follows the agent between pages.
+    var pages: @Sendable () -> URLSession = { WebPageReader.fetchSession() }
+
     func specs(for turn: AgentTurn) -> [AgentToolSpec] {
         AgentToolbox.tools(for: turn.profile, hasSkills: !turn.skills.isEmpty)
             .map { AgentToolbox.spec(for: $0) }
@@ -10,7 +14,8 @@ struct AgentBuiltInTools: AgentToolProvider {
     func run(_ call: AIToolCall, in context: AgentToolContext) async -> AIToolResult {
         await AgentToolExecutor(
             profile: context.turn.profile, skills: context.turn.skills,
-            memoryURL: context.turn.memoryURL, consent: context.consent, web: context.turn.web
+            memoryURL: context.turn.memoryURL, consent: context.consent, web: context.turn.web,
+            documents: documents, pages: pages
         ).run(call)
     }
 }
@@ -24,6 +29,7 @@ nonisolated struct AgentToolExecutor: Sendable {
     /// Told when a read reaches the user's files beyond the folder, and what `web_fetch` may open.
     var web: AgentWebScope?
     var documents: DocumentTextService = .bundled
+    var pages: @Sendable () -> URLSession = { WebPageReader.fetchSession() }
 
     /// Under the loop's own 32 KB cap per result, so a cut here can still say where to continue.
     private static let maxOutputBytes = 28 * 1_024
@@ -375,7 +381,8 @@ nonisolated struct AgentToolExecutor: Sendable {
         }
         let position = WebPageTool.position(in: arguments)
         let read = await WebPageReader.read(
-            url, part: position.part, pages: position.pages, tool: AgentToolbox.webFetch, documents: documents)
+            url, part: position.part, pages: position.pages, tool: AgentToolbox.webFetch, documents: documents,
+            session: pages)
         switch read {
         case .success(let page):
             web?.found(page.links, on: url)

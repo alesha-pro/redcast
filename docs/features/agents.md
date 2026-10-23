@@ -752,5 +752,6 @@ this way, as one provider. Nothing else changes: no router edit, no upstream lin
   that answered, search results given once a round showed them, a page's links kept to its own site,
   eight pages a narrowed turn, an earlier turn's mark carried over and set once, and attachments;
   `ai-provider-test` pins which routes and which requests are asked to cache and where the marks
-  go; and `agent-schedule-test` covers background runs and schedules (see
+  go; `agent-scenario-test` runs whole turns end to end on each provider's wire
+  ([agent harness](agent-harness.md#testing)); and `agent-schedule-test` covers background runs and schedules (see
   [background-agents.md](background-agents.md#manual-sweep)).
