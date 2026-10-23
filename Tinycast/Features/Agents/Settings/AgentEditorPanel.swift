@@ -419,9 +419,16 @@ struct AgentEditorPanel: View {
                 title: String(localized: "Effort"),
                 options: AgentEffort.allCases.map { .init(value: $0, title: $0.title) },
                 selection: effort)
-            Text(draft.effortLevel.summary)
-                .font(.caption)
-                .foregroundStyle(.secondary)
+            Text(
+                draft.runtime == nil
+                    ? draft.effortLevel.summary
+                    : String(
+                        localized:
+                            "An agent on its own command line keeps only the time: 5, 15 or 45 minutes in the background."
+                    )
+            )
+            .font(.caption)
+            .foregroundStyle(.secondary)
         }
     }
 
