@@ -2,8 +2,8 @@
 
 Settings → AI → **Usage** sums the tokens and cost each reply reported — per model, or per ACP
 agent, for a day, a week or a month — from the chat history kept on this Mac and from a small log of
-the replies no chat keeps (Quick Actions, Ask by Voice and cloud dictation, extension AI, chat
-titles). A strip of bars shows the period's tokens per hour of a day or per day of a week or month.
+the replies no chat keeps (Quick Actions, Ask by Voice, Edit Selection by Voice and cloud dictation
+with its modes, extension AI, chat titles). A strip of bars shows the period's tokens per hour of a day or per day of a week or month.
 On a press of **Check Balance** it asks OpenRouter what a key has spent, and with an optional
 management key what the account has left. The **AI Usage** command opens the section from the
 launcher. It is the fork's (roadmap item 14 in [FORK.md](../../FORK.md)), kept to
@@ -47,7 +47,8 @@ below, and the `Fork:`-marked lines listed under [Upstream touches](#upstream-to
   The answer lives in the row's `@State` and goes with it: never persisted, polled or refreshed.
 - **Replies no chat keeps are logged, and only their numbers.** `UsageRecordingProvider` wraps the
   provider at the four places such a reply is asked for — `AppCore.quickActionProvider`,
-  `VoiceAIRoute.provider` (Ask by Voice and cloud dictation), Extension AI's `makeProvider` and
+  `VoiceAIRoute.provider` (both voice commands, and cloud dictation with its modes' rewrite),
+  Extension AI's `makeProvider` (requested models and `experimental_decide` included) and
   `AIChatCoordinator`'s title request — and nowhere a chat's reply is, since history already counts
   those. It passes every event through untouched and, once the stream ends (finished, failed or
   stopped after usage arrived), appends one line: the date, the origin, the route
@@ -176,8 +177,8 @@ search keywords in `SettingsSearchCatalog`.
   section.
 - Run a Quick Action on an OpenRouter model, then show the section: its model's line gains a reply
   and its cost, and `ai-usage.tsv` in `~/Library/Application Support/<bundle id>/` has one line with
-  no text of the selection or the answer. Do the same with Ask by Voice, a cloud dictation, an
-  extension's `AI.ask` and a new chat's title. A Quick Action on Apple Intelligence adds nothing.
+  no text of the selection or the answer. Do the same with Ask by Voice, Edit Selection by Voice, a
+  cloud dictation in a mode, an extension's `AI.ask` and a new chat's title. A Quick Action on Apple Intelligence adds nothing.
 - Stop a streaming Quick Action after its first words: no line, unless usage had already arrived.
 - The trend: Day shows a bar per hour, Week seven and Month one per day; the current one is tinted
   and later ones are a hairline; hovering a bar names it with its tokens and cost. A 25-hour day
