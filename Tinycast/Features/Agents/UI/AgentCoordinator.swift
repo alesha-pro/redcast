@@ -23,6 +23,10 @@ final class AgentCoordinator {
     @ObservationIgnored let consentGate = AgentConsentGate()
 
     @ObservationIgnored private var builtACPHost: AgentACPHost?
+    /// Settings' agent for Quick AI, read on first use.
+    @ObservationIgnored private(set) lazy var quickAISettings = QuickAISettingsStore()
+    /// Quick AI's unsent chat whose ⌘K said No Agent, so Settings' agent stays out of it.
+    var quickAIDeclined: UUID?
 
     /// Built on first use, so a Mac that runs no ACP agent never holds one.
     var acpHost: AgentACPHost {
@@ -72,8 +76,13 @@ final class AgentCoordinator {
 
     var agents: [AgentProfile] { store.agents }
 
+    /// The chat's own agent, or Quick AI's for its chat until the first message binds it.
     func agent(for chat: AIChatState) -> AgentProfile? {
-        store.agent(forChat: chat.session.id)
+        let id = ChatToolPolicy.agent(
+            bound: store.agent(forChat: chat.session.id)?.id, quickAI: quickAIAgent?.id,
+            surface: surface(of: chat), isUnsent: chat.session.messages.isEmpty,
+            declined: quickAIDeclined == chat.session.id)
+        return id.flatMap(store.agent(id:))
     }
 
     func setAgent(_ agent: AgentProfile?, for chat: AIChatState) {

@@ -16,7 +16,7 @@ struct AgentChatBadge: Equatable {
 }
 
 extension EnvironmentValues {
-    /// Set by AI Chat's window for an agent chat; a plain chat and the palette leave it nil.
+    /// Set for an agent chat by AI Chat's window and by Quick AI; a plain chat leaves it nil.
     @Entry var agentChatBadge: AgentChatBadge?
 }
 

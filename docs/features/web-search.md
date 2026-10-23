@@ -1,10 +1,12 @@
 # Web search
 
 `web_search` is one built-in tool that searches the web from any tool-calling API route: OpenAI,
-Anthropic, Gemini, OpenRouter and every OpenAI-compatible endpoint. An agent gets it with its **Web**
-family, beside `web_fetch`. A chat without an agent gets it from the **Web search** toggle in
-Settings → AI → Chat, together with `read_page`, which reads a page the user linked or a search in
-the same turn returned. Codex keeps its own search; Apple Intelligence and the installed CLIs get
+Anthropic, Gemini, OpenRouter and every OpenAI-compatible endpoint. An agent gets it with its
+**Web** family, beside `web_fetch`. A chat without an agent gets it from the **Web search** toggle
+in Settings → AI → Chat, also in the AI Chat composer's **+** menu and Quick AI's ⌘K menu ([Quick AI
+tools](quick-ai-tools.md)), together with `read_page`, which reads a page the user linked or a
+search in the same turn returned; its prompt names both and sends live facts through a search and a
+read of the best result. Codex keeps its own search; Apple Intelligence and the installed CLIs get
 nothing. Engines are tried in the user's order, and the default chain needs no key and no account:
 Exa, then Parallel, then DuckDuckGo. The feature is this fork's, in `Features/WebSearch/` plus the
 few lines that wire it into `AIChatCoordinator`, `AIToolLoopProvider`, `AgentCoordinator`,
@@ -162,7 +164,8 @@ A configuration saved by an older build gains the engine at the end of its order
 3. The same agent with Web off: no search row, and the model says it cannot look things up. With Web
    set to Ask Each Chat, a search raises "wants to use web_search" naming the query.
 4. A plain chat on Anthropic or Gemini: the **+** menu offers Web Search; on, the pill shows and a
-   news question makes a search row. Off, no tool is sent.
+   news question makes a search row. Off, no tool is sent. Quick AI's ⌘K menu has the same Web
+   Search row on the same setting.
 5. OpenRouter plain chat with Web Search on: the request body has no `plugins`, and the search row
    appears.
 6. A plain chat with Web Search on: "Summarise https://www.swift.org/blog/" shows a

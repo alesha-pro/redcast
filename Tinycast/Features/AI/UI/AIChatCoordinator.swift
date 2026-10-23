@@ -298,8 +298,8 @@ final class AIChatCoordinator {
             let sent = chat.send(
                 address.rest, using: try provider(for: chat, scopedTo: address.slug),
                 model: model(for: chat), webSearch: webSearch(for: chat),
-                instructions: instructions(for: chat), contextBudget: contextBudget(for: chat),
-                toolScope: address.slug)
+                instructions: instructions(for: chat, scopedTo: address.slug),
+                contextBudget: contextBudget(for: chat), toolScope: address.slug)
             if sent, let title { core.chatHistory.rename(id: chat.session.id, to: title) }
             // Named while the answer streams, so the sidebar has a title before the reply ends.
             if sent { nameIfNeeded(chat) }
@@ -318,7 +318,8 @@ final class AIChatCoordinator {
             chat.regenerate(
                 using: try provider(for: chat, scopedTo: scope),
                 model: model(for: chat), webSearch: webSearch(for: chat),
-                instructions: instructions(for: chat), contextBudget: contextBudget(for: chat))
+                instructions: instructions(for: chat, scopedTo: scope),
+                contextBudget: contextBudget(for: chat))
         } catch {
             chat.report(error.localizedDescription)
         }
@@ -338,13 +339,17 @@ final class AIChatCoordinator {
     }
 
     /// An agent's chat adds its own context after the shared prompt, even when that one is off.
-    private func instructions(for chat: AIChatState) -> String? {
+    private func instructions(for chat: AIChatState, scopedTo slug: String?) -> String? {
         let attachesTools =
             capabilities(for: chat).tools && model(for: chat)?.runsItsOwnTools != true
+        // Fork: the shared prompt ends with the time and, in a plain chat, what it can look up.
+        let listed = ChatToolPolicy.listsTools(toolFacts(for: chat))
+            ? webTools(for: chat) + tools(for: chat, scopedTo: slug) : []
+        let shared = instructions.map { $0 + "\n\n" + briefing(for: chat, tools: listed.map(\.name)) }
         guard let agent = core.agentCoordinator.prompt(for: chat, hasTools: attachesTools) else {
-            return instructions
+            return shared
         }
-        return [instructions, agent].compactMap { $0 }.joined(separator: "\n\n")
+        return [shared, agent].compactMap { $0 }.joined(separator: "\n\n")
     }
 
     /// A turn's route and its tools: a CLI with its own client is handed servers, others the loop.
@@ -402,9 +407,7 @@ final class AIChatCoordinator {
 
     /// A chat without an agent searches and reads pages through Tinycast while Web search is on.
     private func webTools(for chat: AIChatState) -> [AITool] {
-        guard case .api? = model(for: chat), core.aiSettings.webSearchEnabled,
-            capabilities(for: chat).webSearch
-        else { return [] }
+        guard ChatToolPolicy.offersWebTools(toolFacts(for: chat)) else { return [] }
         return WebChatTools.definitions(origin: String(localized: "Web search"))
     }
 
