@@ -52,6 +52,8 @@ struct AgentProfile: Hashable, Identifiable, Sendable {
     let id: UUID
     var name: String
     var iconSymbol: String?
+    /// A `RaycastHue` name; nil, or one a newer build added, takes the colour derived from `id`.
+    var color: String?
     var instructions: String
     var model: AIModelSelection?
     /// Absolute, `~` already expanded; the folder the agent works in and reads context from.
@@ -80,7 +82,8 @@ struct AgentProfile: Hashable, Identifiable, Sendable {
     var createdAt: Date
 
     init(
-        id: UUID = UUID(), name: String, iconSymbol: String? = nil, instructions: String = "",
+        id: UUID = UUID(), name: String, iconSymbol: String? = nil, color: String? = nil,
+        instructions: String = "",
         model: AIModelSelection? = nil, directory: String, access: AgentAccess = .workspaceWrite,
         tools: Set<AgentToolKind> = AgentToolKind.defaults,
         skillSources: Set<AgentSkillSource> = Set(AgentSkillSource.allCases),
@@ -92,6 +95,7 @@ struct AgentProfile: Hashable, Identifiable, Sendable {
         self.id = id
         self.name = name
         self.iconSymbol = iconSymbol
+        self.color = color
         self.instructions = instructions
         self.model = model
         self.directory = directory
@@ -125,7 +129,7 @@ struct AgentProfile: Hashable, Identifiable, Sendable {
 /// Written by hand only so a newer family never lands where the previous build reads `tools`.
 extension AgentProfile: Codable {
     private enum CodingKeys: String, CodingKey {
-        case id, name, iconSymbol, instructions, model, directory, access, tools, addedTools
+        case id, name, iconSymbol, color, instructions, model, directory, access, tools, addedTools
         case skillSources, disabledSkills, readsProjectInstructions, readsGlobalInstructions, runtime
         case acpMode, acpModel, acpReasoning, acpOptions, consent, background, createdAt
     }
@@ -135,6 +139,7 @@ extension AgentProfile: Codable {
         id = try values.decode(UUID.self, forKey: .id)
         name = try values.decode(String.self, forKey: .name)
         iconSymbol = try values.decodeIfPresent(String.self, forKey: .iconSymbol)
+        color = try values.decodeIfPresent(String.self, forKey: .color)
         instructions = try values.decode(String.self, forKey: .instructions)
         model = try values.decodeIfPresent(AIModelSelection.self, forKey: .model)
         directory = try values.decode(String.self, forKey: .directory)
@@ -163,6 +168,7 @@ extension AgentProfile: Codable {
         try values.encode(id, forKey: .id)
         try values.encode(name, forKey: .name)
         try values.encodeIfPresent(iconSymbol, forKey: .iconSymbol)
+        try values.encodeIfPresent(color, forKey: .color)
         try values.encode(instructions, forKey: .instructions)
         try values.encodeIfPresent(model, forKey: .model)
         try values.encode(directory, forKey: .directory)

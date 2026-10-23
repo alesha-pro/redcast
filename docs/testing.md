@@ -149,6 +149,7 @@ If a change touches anything in the right column, the harness on the left is man
 | `dictation-inference-test` | Dictation byte BPE, Fourier/mel features and non-overlapping audio chunks; no downloaded models |
 | `dictation-worker-test` | Dictation's framed channel, worker reuse/switching, removal, cancellation and broken pipes with a fixture helper |
 | `fallback-test` | `Launcher/Model/Fallback.swift`, plus the `CommandID` and `Quicklink` ids it is built from |
+| `colorful-icons-test` | `ColorfulIcons/Model/` (fork) — Raycast's `Color.<hue>` values pinned, a white glyph's 3:1 on every tile and each hue's on its surface, the asset catalog's accent sets (white on the fill, links at 4.5:1, the selection a wash of the fill), an agent's derived colour (stable, every hue reachable, grey never, a newer build's name read as derived), every command's family and the ⌘K glyph map |
 | `dictionary-test` | `Dictionary/Model/DictionaryEntry.swift`, `DictionaryMarkup.swift` — a real XHTML record and the plain-text fallback, read into page blocks |
 | `callout-test` | `DesignSystem/Theme.swift`, `HotKeys/UI/CalloutPlacement.swift` |
 | `system-action-test` | `SystemActions/Model/SystemAction.swift` |

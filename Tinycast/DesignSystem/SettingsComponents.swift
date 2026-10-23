@@ -34,9 +34,8 @@ struct SettingsFeatureToggleLabel: View {
 
     var body: some View {
         HStack(spacing: Theme.Spacing.lg) {
-            SettingsTabIcon(
-                systemImage: anchor.tab.systemImage, tint: .accentColor,
-                size: Theme.Size.settingsRowIcon * 1.5)
+            // Fork: the pane's coloured tile while Colourful Icons is on.
+            SettingsTabTile(tab: anchor.tab, size: Theme.Size.settingsRowIcon * 1.5)
             VStack(alignment: .leading, spacing: Theme.Spacing.xxs) {
                 SettingsRowTitle(anchor, title)
                     .fontWeight(.semibold)

@@ -95,6 +95,8 @@ struct AIChatDetailView: View {
                         current: find.currentOccurrence(in: occurrences))
                     : nil
             )
+            // Fork: an agent chat's transcript opens with the agent's tile and name.
+            .environment(\.agentChatBadge, coordinator.agents.agent(for: chat).map(AgentChatBadge.init))
             // A switched chat is a new scroll: its own tail-following, opening at its latest line.
             .id(chat.session.id)
             .overlay(alignment: .topTrailing) {
@@ -471,7 +473,12 @@ private struct AIAgentPicker: View {
                             get: { current?.id == agent.id },
                             set: { if $0 { agents.setAgent(agent, for: chat) } })
                     ) {
-                        Label(agent.name, systemImage: agent.symbol)
+                        // Fork: each agent on its own coloured tile.
+                        Label {
+                            Text(agent.name)
+                        } icon: {
+                            Image(nsImage: GlyphTile.menuImage(symbol: agent.symbol, hue: agent.hue))
+                        }
                     }
                 }
             }
@@ -479,9 +486,14 @@ private struct AIAgentPicker: View {
             Button("Manage Agents…", action: coordinator.showSettings)
         } label: {
             ComposerControlLabel(title: current?.name ?? String(localized: "Agent")) {
-                Image(systemName: current?.symbol ?? "person.crop.circle")
-                    .font(Theme.Typography.composerSymbol)
-                    .foregroundStyle(current == nil ? Theme.Colors.textTertiary : Theme.Colors.textPrimary)
+                // Fork: the chat's agent as its own coloured tile.
+                if let current {
+                    GlyphTile(symbol: current.symbol, hue: current.hue, size: Theme.Size.aiChatComposerGlyph)
+                } else {
+                    Image(systemName: "person.crop.circle")
+                        .font(Theme.Typography.composerSymbol)
+                        .foregroundStyle(Theme.Colors.textTertiary)
+                }
             }
         }
         .composerMenu()
@@ -622,6 +634,7 @@ private struct AIModelPicker: View {
             ) {
                 MenuIconImage(icon: coordinator.modelIcon(of: selected), edge: Theme.Size.menuBrandIcon)
                     .font(Theme.Typography.composerSymbol)
+                    .glyphTint(coordinator.modelIcon(of: selected).brandHue)  // Fork: maker's hue
             }
         }
         .composerMenu()

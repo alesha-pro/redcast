@@ -25,6 +25,8 @@ final class AgentStore {
     private let agentsURL: URL
     /// Families the previous build cannot read, per agent; its rewrite of agents.json drops them.
     private let newerToolsURL: URL
+    /// Each agent's colour, apart from agents.json, which the previous build rewrites without it.
+    private let colorsURL: URL
     private let bindingsURL: URL
     private let acpSessionsURL: URL
     private let acpChoicesURL: URL
@@ -41,6 +43,7 @@ final class AgentStore {
         self.directory = base
         agentsURL = base.appendingPathComponent("agents.json")
         newerToolsURL = base.appendingPathComponent("agent-newer-tools.json")
+        colorsURL = base.appendingPathComponent("agent-colors.json")
         bindingsURL = base.appendingPathComponent("agent-chats.json")
         acpSessionsURL = base.appendingPathComponent("agent-acp-sessions.json")
         acpChoicesURL = base.appendingPathComponent("agent-acp-choices.json")
@@ -99,7 +102,8 @@ final class AgentStore {
                 isAvailable = false
                 return
             }
-            agents = restoringNewerTools(decoded, from: data).sorted { $0.createdAt < $1.createdAt }
+            agents = restoringColors(restoringNewerTools(decoded, from: data))
+                .sorted { $0.createdAt < $1.createdAt }
         }
         if let data = try? Data(contentsOf: bindingsURL),
             let decoded = try? JSONDecoder().decode([UUID: UUID].self, from: data)
@@ -337,6 +341,7 @@ final class AgentStore {
         do {
             // First, so the side file is never older than the agents.json it restores.
             try writeNewerTools(of: updated)
+            try writeColors(of: updated)
             try data.write(to: agentsURL, options: .atomic)
         } catch {
             throw .storageUnavailable
@@ -357,6 +362,30 @@ final class AgentStore {
             return
         }
         try JSONEncoder().encode(newer).write(to: newerToolsURL, options: .atomic)
+    }
+
+    private func writeColors(of agents: [AgentProfile]) throws {
+        let colors = agents.reduce(into: [UUID: String]()) { $0[$1.id] = $1.color }
+        guard !colors.isEmpty else {
+            if FileManager.default.fileExists(atPath: colorsURL.path) {
+                try FileManager.default.removeItem(at: colorsURL)
+            }
+            return
+        }
+        try JSONEncoder().encode(colors).write(to: colorsURL, options: .atomic)
+    }
+
+    /// An agent the previous build saved has lost `color`; it gets the one this build last wrote.
+    private func restoringColors(_ decoded: [AgentProfile]) -> [AgentProfile] {
+        guard let saved = try? Data(contentsOf: colorsURL),
+            let colors = try? JSONDecoder().decode([UUID: String].self, from: saved)
+        else { return decoded }
+        return decoded.map { agent in
+            guard agent.color == nil, let color = colors[agent.id] else { return agent }
+            var restored = agent
+            restored.color = color
+            return restored
+        }
     }
 
     /// The previous build's save drops `addedTools`; such an agent gets what this build last wrote.

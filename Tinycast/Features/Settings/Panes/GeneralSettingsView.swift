@@ -77,6 +77,11 @@ struct GeneralSettingsView: View {
                 } label: {
                     SettingsRowTitle(.generalAppearance, "Appearance")
                 }
+                // Fork: Raycast's coloured tiles and glyphs; off is upstream's monochrome.
+                Toggle(isOn: $settings.colorfulIcons) {
+                    SettingsRowTitle(.generalAppearance, "Colorful icons")
+                    Text("Commands, menus and agents in their own colors.")
+                }
                 InterfaceSizeRow()
                 WindowModeRow()
                 Toggle(isOn: $settings.showFavoritesInCompactMode) {

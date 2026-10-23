@@ -21,6 +21,8 @@ That paragraph describes **Dark**, which is the design. Light is the same design
 inverted: a white scrim over the same blur, and a black-alpha ramp at matched stops. Nothing about
 geometry, type, motion or state changes between them.
 
+Fork: Raycast's colour layer sits on top; see [Colour: the Raycast palette](#colour-the-raycast-palette-fork).
+
 Five load-bearing ideas, in priority order:
 
 1. **Surface = scrim over behind-window blur.** No solid backgrounds. Depth comes from the desktop showing through.
@@ -241,6 +243,7 @@ is an `adaptive` pair, not a `ramp`. So is `composerSendInk`, black 0.85 on the 
 on the light one.
 `brand`, `primaryAction`, `destructive`, `success` and `dropGuideArmed` are fixed hues and adapt on
 their own.
+Fork: `selection`, `primaryAction`, `composerSend` and `composerSendInk` take Raycast red instead; see [below](#colour-the-raycast-palette-fork).
 `Theme.Colors.Syntax` holds the code-colouring palette AI Chat paints into a fenced block — `keyword`,
 `string`, `number`, `comment`, `type`, `function`, `constant`, `attribute`, `property`, `inserted`
 and `deleted`. Each is an `adaptive` pair, a bright hue on the dark surface and a deeper one on the
@@ -252,6 +255,95 @@ the environment's appearance). **Selection always beats hover** when a row is bo
 An extension's own surfaces live in `ExtensionColors` (`Features/Extensions/UI/`), not here — the
 `ramp` mechanism is shared, the values are the feature's. See the Extensions non-negotiable in
 [`AGENTS.md`](../AGENTS.md).
+
+---
+
+## Colour: the Raycast palette (fork)
+
+Source: `Features/ColorfulIcons/Model/RaycastHue.swift` (the values, Foundation-only),
+`Model/GlyphCategory.swift` (which family a glyph belongs to), `DesignSystem/RaycastPalette.swift`
+(how a hue paints, and the fork's few tokens), `DesignSystem/ColorfulIcons.swift` (the switch),
+`DesignSystem/GlyphTile.swift` (the one tile view) and the asset catalog's `AccentColor`,
+`AccentInk` and `AccentSelection`. Where the rest of this doc names a colour, it is upstream's; the
+fork's overrides are all listed here.
+
+**Each hue carries three values.** `dark` and `light` are Raycast's own `Color.<hue>`, read from its
+bundled Raycast Dark and Raycast Light themes, which its API resolves `raycast-*` to. `apiColor`
+paints them, so an extension's `raycast-red` here is Raycast's: `ExtensionImage` merges
+`RaycastHue.extensionPalette` over its own names. `tile` is the tone under a white glyph, fixed in
+both appearances and at least 3:1 against white. It is also Tinycast's own glyph ink on the light
+surface (`RaycastHue.color`), so a family's bare glyph and its tile read as one colour there; on the
+dark surface a bare glyph takes Raycast Dark's value.
+
+| Hue       | Dark      | Light (API) | Tile, light ink | Family (`GlyphCategory`, `SettingsTab.hue`)                 |
+| --------- | --------- | ----------- | --------------- | ----------------------------------------------------------- |
+| `red`     | `#FF6363` | `#B12424`   | `#F2453D`       | AI, agents, Quick Actions, AI Usage; Extensions in Settings |
+| `orange`  | `#FF9217` | `#C75D07`   | `#D9650B`       | clipboard, snippets, calculator                             |
+| `yellow`  | `#FFC531` | `#F8A300`   | `#BF7A00`       | notes, calendar and meetings, emoji, schedules              |
+| `green`   | `#59D499` | `#006B4F`   | `#1A9A5C`       | system actions, camera, backups                             |
+| `blue`    | `#56C2FF` | `#138AF2`   | `#138AF2`       | files, menu items, dictionary, web, voice                   |
+| `purple`  | `#A485FF` | `#6A3DEC`   | `#7D55F0`       | windows (commands, layouts, rooms), quicklinks              |
+| `magenta` | `#CF2F98` | `#9A1B6E`   | `#CF2F98`       | no family: an agent's swatch and extensions only            |
+| `gray`    | `#999999` | `#666666`   | `#7A7F8A`       | scripts and Tinycast's housekeeping (Settings, Quit…)       |
+
+The yellow and orange tiles sit deeper than Raycast's yellow and orange, because a white glyph needs
+3:1 on them; Raycast itself never puts white on yellow.
+
+- **The accent is Raycast red, in three colour sets.** `AccentColor` is the fill, `#D63A40` on light
+  and `#E0434A` on dark, so white reads on it at 4.6:1 and 4.1:1 (the brand `#FF6363` holds white at
+  only 2.9:1). `ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME` names it, so while macOS's accent is
+  Multicolor, AppKit and SwiftUI take it everywhere: switches, checkboxes, default buttons, focus
+  rings, list and menu selection, and `Color.accentColor` with `roomCardStroke`, `dropTarget` and
+  `searchFlash`. `Theme.Colors.accent` reads it directly, so `primaryAction` and `composerSend` stay
+  red when the user picks a fixed system accent, and `settingsEnvironment` tints Settings with it.
+  `AccentInk` is text: links in AI Chat and Notes (`Theme.Colors.accentInk`, in place of the system
+  link colour), `#C4343A` on light (4.8:1 on `#F2F2F2`) and the brand `#FF6363` on dark.
+  `AccentSelection` is the fill at 16% on light and 24% on dark: it is `Colors.selection`, so the row
+  under the keyboard reads at a glance in every list. Raycast's own selection is a neutral 10%; the
+  owner asked for what matters to stand out. A harness has no asset catalog, so
+  `Theme.Colors.catalog` gives nil there and each token falls back to upstream's value.
+- **Red never says two things at once.** A dialog's primary action is a solid accent capsule under
+  `primaryActionInk` white, so it can't pass for the tinted destructive one beside it (the same in
+  `ExtensionSettingsEditorButtonStyle`). Progress and the armed drop guide keep upstream's blue, so
+  running never reads as failed. An unanswered argument field turns `warning` orange, since focus is
+  the red one. In a ⌘K menu, red stays the destructive rows'.
+- **A glyph's family picks its hue, never its row.** `AppEntry.glyphCategory` reads the kind, then
+  `GlyphCategory.of(_:)`. Apps, System Settings panes, Apple Shortcuts and extensions keep their own
+  artwork; content rows (clipboard items, past chats, calculator history) stay neutral. A command or
+  Settings pane upstream adds stays grey until it is mapped, and `colorful-icons-test` names every
+  unmapped command, so a sync still builds.
+- **One tile, two drawings.** A launcher row asks `AppEntry.colorfulIcon(symbol:)` from
+  `defaultIcon` and gets `IconCache`'s existing `.tintedSymbol` tile, so no new cache exists. SwiftUI
+  surfaces draw `GlyphTile` at that tile's proportions (`Theme.Size.glyphTileGlyph` and
+  `glyphTileCorner`), and a menu item that only takes an image gets `GlyphTile.menuImage`, drawn from
+  the same cached tile. The Settings sidebar, its search results and feature switches draw
+  `SettingsTabTile` in `SettingsTabIcon`'s place, as System Settings does; the selected row's fill is
+  the accent, so its tile wears a white `selectedTileEdge`.
+- **A bare glyph takes its hue only where it says something.** ⌘K rows colour by their glyph's
+  meaning (`GlyphCategory.menuHue(forSymbol:)`): copy orange, Finder and search blue, favourite and
+  pin yellow, open and run green, edit and links purple, anything else `menuSymbol`. The AI Chat
+  composer stays neutral but for three marks: the chat's agent as its own tile, the model's brand
+  mark in its maker's colour (`PopoverMenuIcon.brandHue`, as Agent Sessions paints that CLI), and
+  the red Send disc with a white arrow.
+- **Section headers stand out.** The palette's `SectionHeader` is semibold `textSecondary`, 5.7:1 over
+  the light scrim where `.secondary` gave 3.9:1.
+- **An agent wears its own colour**, chosen from seven swatches in its editor or derived from its id;
+  see [agents.md](features/agents.md). An agent chat opens with the agent's tile, name and folder
+  above the transcript (`AgentChatHeader`): a chat's agent can change and a reply records none, so
+  the header names the chat's agent instead of badging each reply. An agent session's tile takes its
+  CLI maker's hue (Claude orange, Codex green, Gemini blue, OpenCode purple, Tinycast red).
+- **General › Appearance › Colorful icons** (`AppSettings.colorfulIcons`, on by default, in backups
+  and `settings.json` as `appearance.colorfulIcons`) turns tiles and tinted glyphs back to upstream's
+  look: grey launcher tiles, `menuSymbol` glyphs, and `SettingsTabIcon`'s accent-tinted glyphs. The
+  accent, the selection wash, the solid primary button and the headers stay. `AppCore` mirrors the
+  setting into `ColorfulIcons`, an atomic because `AppEntry.iconSource` is asked off the main actor,
+  and a change calls `IconCache.invalidateStyled()`, so every view keyed on `IconCache.style` repaints
+  (`ColorfulIcons.observedIcon` and `GlyphTile.menuImage` observe it from a `body`); agents' rows,
+  whose tile rides in the entry, are republished.
+- **Contrast is pinned** by `colorful-icons-test`: a white glyph at least 3:1 on every tile, every
+  tile tone at least 3:1 as a glyph on `#F2F2F2` and every dark value on `#1E1E1E`, and the three
+  colour sets read from the catalog: white on the fill, links at 4.5:1 on either surface, and the
+  selection a 10–30% wash of the fill. Everything is a static table: no images, no timers, no cache.
 
 ---
 
