@@ -73,8 +73,9 @@ optional chord: see [background and scheduled agents](background-agents.md).
   day to the next; the shared prompt's quarter-hour clock is left out of an agent chat on Tinycast's
   loop. `AgentTurnLead` puts the date and time to the minute, with the run's effort and round budget,
   at the head of the turn's question as the loop sends it (`[Now: Friday 2026-10-23 22:45,
-  Europe/Moscow. Balanced effort: up to 25 rounds of tool calls.]`), never into the chat's own text,
-  and a sub-agent's task gets the same line with its own budget.
+  Europe/Moscow. Balanced effort: tools only as the task needs them, at most 25 rounds.]`), never
+  into the chat's own text, and a sub-agent's task gets the same line with its own budget. The
+  budget is worded as a ceiling, so a simple question does not read it as work to fill.
 - **The prompt states the rules the toolset runs.** Its Access line reads changes and commands from
   `AgentConsentPolicy.rule(for:in:of:)`, the call `AgentToolset` filters with: approval is promised
   only under ask, Always Allow says nobody sees the change or command first, and Never Allow, an
