@@ -26,6 +26,8 @@ struct ACPTests {
         toolOutputReachesItsRowOnce()
         commandsDecodeMatchAndComplete()
         aCommandLeadsItsPrompt()
+        configOptionsDecodeAndSlot()
+        rememberedChoicesApplyAndPersist()
         runtimesParseTheirArguments()
         await aRealProcessStreamsATurn()
         await stoppingLeavesNoProcessBehind()
@@ -102,6 +104,12 @@ struct ACPTests {
                 #""availableCommands":[{"name":"web","description":"Search","input":{"hint":"query"}}]}}"#))
                 == .commands([ACPCommand(name: "web", description: "Search", hint: "query")]),
             "a session's slash commands decode with their hints")
+        guard case .options(let listed) = decoded(
+            (#"{"sessionId":"s","update":{"sessionUpdate":"config_option_update","configOptions":[{"id":"m","# +
+                #""name":"Model","category":"model","type":"select","currentValue":"a","options":[{"value":"a","# +
+                #""name":"A"}]}]}}"#))
+        else { return expect(false, "a config option update decodes") }
+        expect(listed.map(\.id) == ["m"] && listed.first?.category == .model, "with the agent's whole list")
         expect(decoded(#"{"update":{"sessionUpdate":"plan"}}"#) == nil, "an update names its session")
     }
 
@@ -819,4 +827,175 @@ extension ACPTests {
 @MainActor
 final class Listed {
     var events: [(chat: UUID?, names: [String]?)] = []
+}
+
+extension ACPTests {
+    static func configOptionsDecodeAndSlot() {
+        let result = JSONValue(data: Data(#"""
+            {"sessionId":"s",
+             "modes":{"currentModeId":"default","availableModes":[{"id":"default","name":"Manual"}]},
+             "models":{"currentModelId":"x[low]","availableModels":[{"modelId":"x[low]","name":"X (low)"}]},
+             "configOptions":[
+              {"id":"mode","name":"Mode","category":"mode","type":"select","currentValue":"default",
+               "options":[{"value":"default","name":"Manual"},{"value":"plan","name":"Plan","description":"Plans\nfirst"}]},
+              {"id":"model","name":"Model","category":"model","type":"select","currentValue":"gone",
+               "options":[{"group":"fast","name":"Fast","options":[{"value":"small","name":"Small"}]},
+                          {"group":"smart","name":"Smart","options":[{"value":"large","name":"Large"}]}]},
+              {"id":"effort","name":"Effort","category":"thought_level","type":"select","currentValue":"low",
+               "options":[{"value":"low","name":"Low"},{"value":"high","name":"High"}]},
+              {"id":"fast","name":"Fast mode","category":"model_config","type":"select","currentValue":"off",
+               "options":[{"value":"off","name":"Off"},{"value":"on","name":"On"}]},
+              {"id":"agent","name":"Agent","type":"select","currentValue":"default",
+               "options":[{"value":"default","name":"Default"}]},
+              {"id":"beta","name":"Beta","type":"boolean","currentValue":false},
+              {"id":"empty","name":"Empty","type":"select","currentValue":"","options":[]}
+             ]}
+            """#.utf8)) ?? .null
+        guard let options = ACPSessionOptions(result: result) else {
+            return expect(false, "a session's config options decode")
+        }
+        expect(
+            options.options.map(\.id) == ["mode", "model", "effort", "fast", "agent"],
+            "selects in the agent's order; a boolean and an empty select are left out, got \(options.options.map(\.id))")
+        expect(
+            options.model?.id == "model" && options.reasoning?.id == "effort" && options.mode?.id == "mode",
+            "the model, thought level and mode categories fill the composer's own pickers")
+        expect(
+            options.others.map(\.id) == ["fast", "agent"] && options.slot(of: options.others[1]) == .option("agent"),
+            "every other select, with a category or none, goes under the overflow by its id")
+        expect(
+            options.model?.groups.map(\.name) == ["Fast", "Smart"]
+                && options.model?.choices.map(\.value) == ["small", "large"],
+            "grouped choices keep their groups")
+        expect(options.model?.currentTitle == "gone", "a current value the list lacks shows as itself")
+        expect(
+            options.mode?.choices.last?.description == "Plans first" && options.mode?.setter == .configOption,
+            "a description is one line, and the config option wins over the older modes")
+
+        let older = ACPSessionOptions(result: JSONValue(data: Data(#"""
+            {"modes":{"currentModeId":"ask","availableModes":[{"id":"ask","name":"Ask"},{"id":"code","name":"Code"}]},
+             "models":{"currentModelId":"or:a","availableModels":[{"modelId":"or:a","name":"A"},{"modelId":"or:b"}]}}
+            """#.utf8)) ?? .null)
+        expect(
+            older?.model?.setter == .legacyModel && older?.model?.choices.map(\.name) == ["A", "or:b"]
+                && older?.mode?.setter == .legacyMode && older?.reasoning == nil,
+            "an agent with only the older shapes still offers a model and a mode")
+        let byModel = older?.model?.request(setting: "or:b", session: "s")
+        expect(
+            byModel?.method == "session/set_model" && byModel?.params["modelId"] as? String == "or:b",
+            "an older model goes by set_model")
+        expect(older?.mode?.request(setting: "code", session: "s").method == "session/set_mode", "a mode by set_mode")
+        let byConfig = options.reasoning?.request(setting: "high", session: "s")
+        expect(
+            byConfig?.method == "session/set_config_option" && byConfig?.params["configId"] as? String == "effort"
+                && byConfig?.params["value"] as? String == "high",
+            "and a config option by its id and value")
+
+        expect(options.step(for: .reasoning, wanting: "low") == .keep, "a value in effect is not sent again")
+        expect(options.step(for: .model, wanting: "gone") == .keep, "even one the list no longer names")
+        expect(options.step(for: .reasoning, wanting: "high") == .send(options.reasoning!), "an offered one is sent")
+        expect(options.step(for: .reasoning, wanting: "max") == .forget, "a vanished one is forgotten")
+        expect(older?.step(for: .reasoning, wanting: "max") == .keep, "a select nobody offers keeps its value")
+        expect(options.step(for: .option("fast"), wanting: "on") == .send(options.others[0]), "by id for the rest")
+
+        var replaced = older!
+        replaced.replace(with: [options.model!])
+        expect(
+            replaced.model?.setter == .configOption && replaced.mode?.setter == .legacyMode,
+            "an update replaces what it covers and keeps an older select it does not")
+        let before = replaced
+        replaced.replace(with: [])
+        expect(replaced == before, "an empty list, as Hermes answers a set, wipes nothing")
+        var settled = options
+        settled.settle("high", in: "effort", answer: .object([:]))
+        expect(settled.reasoning?.current == "high", "an answer without a list moves only the picked value")
+        settled.settle(
+            "large", in: "model",
+            answer: .object(["configOptions": .array([JSONValue(data: Data(
+                (#"{"id":"model","name":"Model","category":"model","type":"select","currentValue":"large","# +
+                    #""options":[{"value":"large","name":"Large"}]}"#).utf8))!])]))
+        expect(
+            settled.options.map(\.id) == ["model"] && settled.model?.current == "large",
+            "an answer with a list is the agent's whole state")
+        var moved = options
+        moved.moveMode(to: "plan")
+        expect(moved.mode?.current == "plan", "the agent moving its mode moves the config option")
+        moved.moveMode(to: "nowhere")
+        expect(moved.mode?.current == "plan", "but never onto a mode it does not offer")
+
+        let many = JSONValue.object([
+            "configOptions": .array((0..<40).map { index in
+                .object([
+                    "id": .string("o\(index)"), "name": .string(String(repeating: "n", count: 300)),
+                    "type": .string("select"), "currentValue": .string("v0"),
+                    "options": .array((0..<600).map { .object(["value": .string("v\($0)")]) })
+                ])
+            })
+        ])
+        let capped = ACPSessionOptions(result: many)
+        expect(
+            capped?.options.count == ACPConfigOption.maxOptions
+                && capped?.options.first?.choices.count == ACPConfigOption.maxChoices
+                && (capped?.options.first?.name.count ?? 0) <= ACPConfigOption.maxNameLength,
+            "a list is held to its caps")
+    }
+
+    static func rememberedChoicesApplyAndPersist() {
+        var agent = AgentProfile(name: "A", directory: "/tmp")
+        agent.setACPChoice("large", for: .model)
+        agent.setACPChoice("high", for: .reasoning)
+        agent.setACPChoice("nope", for: .mode)
+        agent.setACPChoice("on", for: .option("fast"))
+        agent.setACPChoice("x", for: .option("agent"))
+        expect(
+            agent.acpWishes.map(\.slot) == [.model, .reasoning, .mode, .option("agent"), .option("fast")],
+            "the model is applied first, since the levels and the rest follow it")
+        let offered = ACPSessionOptions(options: [
+            option("mode", .mode, current: "default", values: ["default", "plan"]),
+            option("model", .model, current: "small", values: ["small", "large"]),
+            option("effort", .thoughtLevel, current: "low", values: ["low", "high"]),
+            option("fast", .other, current: "off", values: ["off", "on"]),
+        ])
+        let shown = offered.applying(agent)
+        expect(
+            shown.model?.current == "large" && shown.reasoning?.current == "high"
+                && shown.others.first?.current == "on" && shown.mode?.current == "default",
+            "a chat with no session shows the agent's list on what it remembers, unknown values left out")
+        var moved = agent
+        moved.forgetACPChoices()
+        expect(moved.acpWishes.isEmpty, "another program under Runs on starts with nothing remembered")
+        agent.setACPChoice(nil, for: .option("fast"))
+        agent.setACPChoice(nil, for: .option("agent"))
+        expect(agent.acpOptions == nil, "no other choice left stores none")
+
+        let encoder = JSONEncoder()
+        let untouched = AgentProfile(name: "B", directory: "/tmp")
+        let plain = (try? encoder.encode(untouched)).flatMap { String(data: $0, encoding: .utf8) } ?? ""
+        expect(
+            !plain.contains("acpModel") && !plain.contains("acpReasoning") && !plain.contains("acpOptions"),
+            "an agent that never picked writes none of the new keys")
+        agent.setACPChoice("on", for: .option("fast"))
+        guard let data = try? encoder.encode(agent),
+            let back = try? JSONDecoder().decode(AgentProfile.self, from: data)
+        else { return expect(false, "an agent with choices round-trips") }
+        expect(
+            back.acpModel == "large" && back.acpReasoning == "high" && back.acpOptions == ["fast": "on"]
+                && back.acpMode == "nope",
+            "and reads back what it remembered")
+        struct PreviousBuild: Decodable {
+            let id: UUID
+            let acpMode: String?
+        }
+        expect(
+            (try? JSONDecoder().decode(PreviousBuild.self, from: data))?.acpMode == "nope",
+            "a build that knows only the mode still reads the file")
+    }
+
+    private static func option(
+        _ id: String, _ category: ACPConfigOption.Category, current: String, values: [String]
+    ) -> ACPConfigOption {
+        ACPConfigOption(
+            id: id, name: id, description: nil, category: category, setter: .configOption, current: current,
+            groups: [.init(id: "", name: nil, choices: values.map { .init(value: $0, name: $0, description: nil) })])
+    }
 }
