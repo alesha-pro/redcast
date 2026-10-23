@@ -441,8 +441,9 @@ nonisolated enum AgentProcess {
             process.standardOutput = pipe
             process.standardError = pipe
             process.standardInput = FileHandle.nullDevice
+            let exit: ProcessExit
             do {
-                try process.run()
+                exit = try process.runObservingExit()
             } catch {
                 continuation.resume(returning: Result(status: -1, output: error.localizedDescription))
                 return
@@ -452,7 +453,7 @@ nonisolated enum AgentProcess {
             }
             DispatchQueue.global().async {
                 let data = pipe.fileHandleForReading.readDataToEndOfFile()
-                process.waitUntilExit()
+                exit.wait()
                 continuation.resume(
                     returning: Result(
                         status: process.terminationStatus,
