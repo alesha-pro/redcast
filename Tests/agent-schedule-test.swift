@@ -548,6 +548,10 @@ struct AgentScheduleTests {
         ledger.begin(manual)
         ledger.begin(finished)
         expect(abs(ledger.cappedSpend - 0.4) < 1e-12, "only capped runs still going count as running spend")
+        expect(capped.spend(final: 0.6) == 0.6, "a capped run's final cost is what the day adds")
+        expect(capped.spend(final: nil) == 0.4, "one cut off before its final cost adds its last report")
+        expect(run(origin: .schedule(scheduled, manual: false)).spend(final: nil) == nil, "none reported, none added")
+        expect(manual.spend(final: 9) == nil, "and a Run Now never adds to the day")
         expect(
             AgentRun.endState(complete: false, reply: "Working", stoppedAfter: 15, capped: "Stopped at the cap")
                 == .failed("Stopped at the cap"),
