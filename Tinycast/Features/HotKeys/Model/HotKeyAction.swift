@@ -20,6 +20,8 @@ enum HotKeyAction: Hashable, Sendable {
     case snippet(id: StoredSnippet.ID)
     /// Keyed by `AppEntry.id`, which is what survives a reinstall of the extension.
     case extensionCommand(entryID: String)
+    /// Fork: an AI agent; its chord seeds root search with `@handle `.
+    case agent(id: UUID)
 
     /// The UserDefaults key, and the `HotKeyCenter` registration id: one per action.
     var defaultsKey: String {
@@ -41,6 +43,8 @@ enum HotKeyAction: Hashable, Sendable {
         case .appleShortcut(let id): "hotkey.appleShortcut." + id.uuidString.lowercased()
         case .snippet(let id): "hotkey.snippet." + id
         case .extensionCommand(let entryID): "hotkey.extensionCommand." + entryID
+        // Fork: keyed by the agent's id, which a rename keeps.
+        case .agent(let id): "hotkey.agent." + id.uuidString.lowercased()
         }
     }
 

@@ -82,12 +82,12 @@ extension AgentCoordinator {
         AgentTaskAddress.parse(query, handles: AgentTaskAddress.handles(for: agents))
     }
 
-    /// Fallback rows render an `AppEntry` and are never indexed, so a command entry carries them.
+    /// Fallback rows render an `AppEntry` and are never indexed, so their ids name no launcher row.
     private static func row(_ fallback: Fallback, _ agent: AgentProfile, _ subtitle: String) -> AppEntry {
         AppEntry(
             id: fallback.id, name: agent.name,
             url: URL(string: "tinycast://agent/" + agent.id.uuidString.lowercased())!,
-            bundleID: nil, kind: .command, subtitle: subtitle, symbolName: agent.symbol,
+            bundleID: nil, kind: .agent, subtitle: subtitle, symbolName: agent.symbol,
             ownerName: String(localized: "Agent"))
     }
 }

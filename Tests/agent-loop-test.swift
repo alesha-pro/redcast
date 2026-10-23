@@ -24,6 +24,7 @@ struct AgentLoopTests {
         await stopReachesTheRunningCall()
         await aTurnWithoutCallsPassesThrough()
         await anAgentTurnCostsEveryRound()
+        await theSpendMeterHearsEachRoundsCost()
         await aLongTurnElidesInsteadOfStopping()
         await callsThatMayShareARoundDo()
         await aCallThatMayNotRunsAlone()
@@ -225,6 +226,49 @@ struct AgentLoopTests {
         }
         expect(abs((usages.last?.costUSD ?? 0) - 0.03) < 1e-12, "an agent reply costs its whole turn")
         expect(usages.last?.inputTokens == 30, "while its tokens stay the last round's")
+    }
+
+    /// A capped run's meter hears the turn's running cost after each round, and changes nothing.
+    static func theSpendMeterHearsEachRoundsCost() async {
+        let rounds: [[AIStreamEvent]] = [
+            [.usage(AIUsage(inputTokens: 10, costUSD: 0.01)), call("c1")],
+            [.usage(AIUsage(inputTokens: 15)), call("c2")],
+            [.text("ok"), .usage(AIUsage(inputTokens: 30, costUSD: 0.02)), .finished]
+        ]
+        let tools = toolset([FakeTools(names: ["fs_read"]) { _, _ in "x" }])
+        let plain = await collect(
+            AgentLoopProvider(base: ScriptedProvider(rounds: rounds), toolset: tools, maxRounds: 25)).events
+        let heard = Heard()
+        let metered = await collect(
+            AgentSpendMeter(
+                base: AgentLoopProvider(base: ScriptedProvider(rounds: rounds), toolset: tools, maxRounds: 25)
+            ) { heard.append($0) })
+        expect(metered.events == plain, "the meter passes every event through unchanged")
+        expect(metered.failure == nil, "and ends the turn as it ended")
+        let costs = heard.values
+        expect(costs.count == 3, "one report per usage that carries a cost, got \(costs)")
+        expect(abs((costs.last ?? 0) - 0.03) < 1e-12, "the last is the whole turn's cost")
+        expect(costs == costs.sorted(), "and the reports only ever grow")
+
+        let failing = await collect(AgentSpendMeter(base: FailingProvider()) { heard.append($0) })
+        expect(failing.failure != nil, "a route's failure still reaches the chat through the meter")
+    }
+}
+
+final class Heard: @unchecked Sendable {
+    private let lock = NSLock()
+    private var stored: [Double] = []
+
+    var values: [Double] { lock.withLock { stored } }
+
+    func append(_ value: Double) {
+        lock.withLock { stored.append(value) }
+    }
+}
+
+struct FailingProvider: AIProvider {
+    func stream(_ request: AIRequest) -> AIProviderStream {
+        AIProviderStream { $0.finish(throwing: AIProviderError.responseFailed("down")) }
     }
 }
 

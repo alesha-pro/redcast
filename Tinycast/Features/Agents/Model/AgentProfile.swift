@@ -104,6 +104,16 @@ struct AgentProfile: Hashable, Identifiable, Sendable {
     var symbol: String { iconSymbol ?? Self.sfSymbol }
 
     var backgroundPolicy: AgentBackgroundPolicy { background ?? AgentBackgroundPolicy() }
+
+    /// Its launcher row's id; apart from the `@handle` rows' `agent:` and `agent-pick:` ids.
+    static let entryIDPrefix = "agent-profile:"
+
+    var entryID: String { Self.entryIDPrefix + id.uuidString.lowercased() }
+
+    static func id(fromEntryID entryID: String) -> UUID? {
+        guard entryID.hasPrefix(entryIDPrefix) else { return nil }
+        return UUID(uuidString: String(entryID.dropFirst(entryIDPrefix.count)))
+    }
 }
 
 /// Written by hand only so a newer family never lands where the previous build reads `tools`.

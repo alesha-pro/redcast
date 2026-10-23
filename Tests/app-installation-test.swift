@@ -501,7 +501,7 @@ enum HotKeyAction: Hashable, Sendable {
     case app(bundleID: String), settingsPane(bundleID: String), quickAction(id: UUID)
     case customCommand(id: UUID), systemAction(id: SystemAction.ID), windowCommand(id: WindowCommand.ID)
     case customWindowSize(id: UUID), windowLayout(id: UUID), windowRoom(id: UUID), quicklink(id: UUID)
-    case appleShortcut(id: UUID), snippet(id: UUID), extensionCommand(entryID: String)
+    case appleShortcut(id: UUID), snippet(id: UUID), extensionCommand(entryID: String), agent(id: UUID)
 }
 struct OtherEntry<Tag: Sendable>: Sendable {
     var id = UUID()
@@ -522,6 +522,7 @@ enum QuickActionTag: Sendable {}
 enum CommandTag: Sendable {}
 enum QuicklinkTag: Sendable {}
 enum ShortcutTag: Sendable {}
+enum AgentTag: Sendable {}
 typealias WindowLayout = OtherEntry<LayoutTag>
 typealias Room = OtherEntry<RoomTag>
 typealias CustomWindowSize = OtherEntry<SizeTag>
@@ -529,6 +530,7 @@ typealias CustomQuickAction = OtherEntry<QuickActionTag>
 typealias CustomCommand = OtherEntry<CommandTag>
 typealias Quicklink = OtherEntry<QuicklinkTag>
 typealias AppleShortcut = OtherEntry<ShortcutTag>
+typealias AgentProfile = OtherEntry<AgentTag>
 struct SystemAction: Sendable {
     enum ID: String, Sendable { case fixture }
     var id = ID.fixture

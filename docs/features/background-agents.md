@@ -8,7 +8,9 @@ or every few hours, each with a prompt and a rule for runs missed while the Mac 
 an ordinary chat, and a schedule can also append its answer to a note.
 
 Everything lives in `Features/Agents/` plus a few lines in `AIChatSurfacesState`, `AIChatCoordinator`,
-the launcher's fallback files, `CommandID`, `AISettingsView` and `AppCore`.
+the launcher's fallback files, `CommandID`, `AISettingsView` and `AppCore`, and, for each agent's own
+row and chord, `AppIndex`, `LauncherList`, `LauncherCoordinator`, `AppActionsMenu`, `HotKeyAction`,
+`HotKeyManager` and `VisibilityStore`, each hunk marked `Fork:`.
 
 ## Invariants
 
@@ -28,8 +30,14 @@ the launcher's fallback files, `CommandID`, `AISettingsView` and `AppCore`.
 - **One sleeping task, no heartbeat.** `AgentScheduler` sleeps until the next due time with a 30 s
   tolerance, drops that task when the Mac is about to sleep and re-arms on wake, clock and time-zone
   changes: four observers, kept only while some schedule is enabled. A run in flight adds one
-  watchdog task, one transient `NSStatusItem` and one `ProcessInfo` activity that keeps the Mac from
-  idle-sleeping, all released when the run ends.
+  watchdog task and one `ProcessInfo` activity that keeps the Mac from idle-sleeping, both released
+  when the run ends, and shows in the one transient Agents `NSStatusItem`.
+- **One Agents menu-bar item, and only while it has something to show.** `AgentsStatusItem` lists
+  background runs and Agent Sessions' live sessions together; `AgentCoordinator.refreshMenuBar`
+  makes it when either source has a run working, waiting or finished unseen, or a session working,
+  waiting or finished unseen, and removes it when neither has. Each half keeps its own switch: the
+  sessions appear only while AI, the hub and its **Show running agents in the menu bar** are on.
+  There is no timer and no observer; rows are built as the menu opens.
 - **After sleep, every due run waits out the settle.** The wake, a clock change and a run's end can
   reach the scheduler in any order. Each compares the continuous clock, which counts sleep, with the
   suspending one, which does not; any gap over a second means the Mac slept, so the first of them
@@ -51,13 +59,35 @@ the launcher's fallback files, `CommandID`, `AISettingsView` and `AppCore`.
   turn in the queue comes, so someone who left during the wait is not asked and a Stop shows nothing.
   An ACP refusal nobody chose picks the agent's refuse-once option, or cancels the request when it
   offers none, so it never leaves an "always" behind.
+- **An unattended turn is told so, on either runtime.** A native agent's instructions and an ACP
+  agent's prompt both carry the briefing while, and only while, the run is active; the ACP one goes
+  on every such turn, not only a fresh session's first, so the agent's own loaded session cannot
+  miss it. A slash command's turn is the exception: the agent must read the command first, so it
+  goes as typed. It is model-facing text, never localized, and names no tool and no file.
 - **Agent questions queue.** `AgentConsentGate` asks one at a time and only once no dialog is up,
   observed rather than polled, so a foreground and a background ask no longer refuse each other.
 - **Only Always-trusted MCP servers ride an unattended turn.** Servers set to Ask are excluded through
   the run chat's tools menu, so MCP's own dialog, which allows on Return, never appears for one.
-- **Nothing here travels in a backup or `settings.json`.** The policy, the banner opt-in and the
-  schedules live in `agents.json`, `agent-schedules.json` and `agent-schedule-runs.json` beside the
-  other agent files, which are in no backup category and have no `SettingsFileKey`.
+- **Nothing here travels in a backup or `settings.json`.** The policy, the banner opt-in, the
+  schedules and the spend cap live in `agents.json`, `agent-schedules.json`,
+  `agent-schedule-runs.json` and `agent-schedule-spend.json` beside the other agent files, which are
+  in no backup category and have no `SettingsFileKey`.
+- **Schedules spend only up to the day's cap.** With a **Daily spend cap**, a run a schedule starts
+  on its own is not started once the local day's finished scheduled runs cost the cap or more: it
+  gets a failed row saying so instead of a chat, and its occurrence is spent. A capped run whose
+  reported cost, with the day's total and the other capped runs in flight, passes the cap is stopped
+  and its row says why. Costs are only what routes report (`AgentSpendMeter` over a native turn,
+  `AgentACPHost.onCost` for each ACP `usage_update`); a route that reports none counts nothing.
+  Run Now and `@handle` runs are a person's gesture: never held, never counted. A cap file that will
+  not read counts as $0, so nothing scheduled starts until the cap is set again.
+- **A capped run's reported cost counts however the run ends.** Finished, stopped, cut off by AI
+  off or a quit (`stopAll` adds `cappedSpend` before it lets the runs go), or with its chat deleted
+  mid-turn: `AgentRun.spend(final:)` takes the turn's final cost, else the last one its route
+  reported, so a relaunch never hands a schedule a fresh day's budget.
+- **An agent's row and chord cost nothing until used.** The rows exist only while AI is on, and only
+  an agent with a chord is indexed in `boundAgentIDs` and registered with `HotKeyCenter`. Deleting an
+  agent takes its chord, favorite, alias and ranking with it; no chord travels in a backup or
+  `settings.json`, since the agents themselves do not.
 - **Notification Center only on opt-in, and never with the answer.** A banner names the agent, the
   run and whether it finished; the answer stays in the chat. `AgentRunNotifier` and its delegate
   exist only while some agent opts in, and macOS asks for permission on the toggle's own click.
@@ -87,22 +117,53 @@ happened to rank first. They are `Fallback.agent` and `.agentPick`, never part o
 Settings › Fallbacks never lists them. An ordinary query costs the claim one character's
 comparison. **Run Agent Task** seeds root search with `@`; it is listed in the launcher and under
 Settings › AI › Commands, where its hotkey and alias come free, while AI is on and an agent exists.
+All of these rows are `AppEntry.Kind.agent`, like the agents' own rows below, but keep their
+`agent:` and `agent-pick:` ids.
+
+### An agent's own row and chord
+
+While AI is on, every agent is also a row of its own in root search, under **Agents**, with its
+`@handle` beside its name (`AppEntry.Kind.agent`, id `agent-profile:<uuid>`, built by
+`AgentCoordinator.publishLauncherRows`). Typing its name finds it, and `agent` or `agents` lists them
+all, the way `meeting` lists meetings. ↵ opens a new AI Chat with the agent. Its ⌘K menu offers
+**New Chat** (↵), **Run in Background…**, which types `@handle ` into the field for a task, and
+**Edit Agent**, which opens Settings › AI › Agents with the agent's editor up; then the shared
+Favorites, Change Alias and Change Shortcut rows. The rows answer to AI's switch (`settingsOwner`
+`.ai`), so no Settings checkbox gates them and **Hide from Search** is not offered, and Suggestions
+never push one.
+
+An agent's **chord** (`HotKeyAction.agent(id:)`) is recorded from that ⌘K row or from **Shortcut** in
+the agent's editor. It summons root search with `@handle ` typed: ↵ on the empty task opens a chat,
+a typed task runs in the background, ⌘↵ runs it in AI Chat in front of you. Only bound agents are
+indexed (`boundAgentIDs`) and registered, so an agent without a chord costs nothing. Deleting an
+agent clears its chord, favorite, alias, hidden flag and ranking; a chord whose agent is gone at
+launch is dropped once `agents.json` has read. Chords, like agents, travel in no backup and no
+`settings.json`.
 
 ## While and after a run
 
-The menu-bar item appears with the first run and goes once nothing is running and every finished run
-has been seen. It shows, in order of priority, a run waiting for an answer, runs in flight (with a
-count past one), an unseen failure or an unseen success. Its menu is built only when opened: one row
-per run, newest first, with ⌥ turning a running row into **Stop**; opening it marks finished runs
-seen. A launcher run and Run Now show a HUD at the start and the end; a schedule's own runs show none,
-so nothing pops up at 3 a.m. A run whose chat is on screen in a key AI Chat window is marked seen
-with no HUD and no banner. A run still going after the agent's limit (15 minutes by default, 5 to
-60) is stopped.
+The Agents menu-bar item appears with the first run and goes once nothing is running and every
+finished run has been seen, unless Agent Sessions still has a live session to show in it. It shows,
+in order of priority, a run or session waiting for an answer, runs and sessions at work (with a
+count past one), an unseen failure or an unseen success (`AgentRunLedger.Indicator.of` and
+`merged(with:)`). Its menu is built only when opened: **Background Runs**, one row per run, newest
+first, with ⌥ turning a running row into **Stop**; then **Agent Sessions**, one row per live session,
+which jumps to it; then Search Agent Sessions and Clear Finished while the hub's half is on, and
+Agent Settings…. Opening it marks finished runs and sessions seen. The work its closing does waits a
+turn of the main queue, because AppKit sends the chosen row's action after `menuDidClose`, and the
+background coordinator is not let go while the menu is open. A launcher run and Run Now show a HUD
+at the start and the end; a schedule's own runs show none, so nothing pops up at 3 a.m. A run whose
+chat is on screen in a key AI Chat window is marked seen with no HUD and no banner. A run still going
+after the agent's limit (15 minutes by default, 5 to 60) is stopped.
 
 A native agent's model is told, while its turn runs unattended, that nobody can answer and that it
-should finish with a short report (`AgentBackgroundBriefing`); a follow-up typed in the window later
-is an ordinary turn. ACP agents get their context once per fresh session, which knows no chat, so
-they do not get the briefing yet.
+should finish with a short report (`AgentBackgroundBriefing.text`); a follow-up typed in the window
+later is an ordinary turn. An ACP agent is told the same in its prompt: `AgentACPHost` asks its
+`briefing` closure with the turn's chat, and an unattended chat's prompt carries
+`AgentBackgroundBriefing.acp` — a `# Running unattended` section saying that nobody may be at the
+Mac, that permission requests are declined unless someone at the Mac answers them, and to finish
+with the result as the final message — after the fresh session's context, on every turn the chat
+runs unattended except a slash command's, which goes as typed.
 
 ## Schedules
 
@@ -125,19 +186,36 @@ cut at 64 KB with a pointer to the chat, one blank line below what the note held
 the Notes editor is changed through `NotesStore`, which stays its only writer while editing; any
 other is written on disk and re-listed the next time Notes opens. With Notes off, nothing is written.
 
+### Daily spend cap
+
+**Daily spend cap** under the agents takes US dollars, empty for none; its subtitle adds what
+scheduled runs spent today. `agent-schedule-spend.json` holds the cap, the local day last counted and
+that day's total (`AgentScheduleSpend`, every field optional); `AgentSpendPolicy` decides, and a new
+day starts at zero. A run is checked as it is due — at or past the cap it is held and its row reads
+"Not started: scheduled runs reached today's cap of $5.00", and opening that row shows the cap — and
+again on every cost its route reports while it runs, which ACP agents send mid-turn and the native
+loop after each round. When the turn ends, its last reported cost joins the day's total, also when
+AI is switched off, Tinycast quits or the chat is deleted before it ends. The held run's row shows
+only its reason, with no "Failed:" in front, since it never started. The cap is local to the Mac's
+day and time zone, like the schedules.
+
 ## Layout
 
 | File | Holds |
 | --- | --- |
 | `Model/AgentTaskAddress.swift` | Handles and `@handle task` parsing |
 | `Model/AgentSchedule.swift` | The rule, the schedule, its errors, and `AgentSchedulePolicy`: occurrences, verdicts, summaries |
-| `Model/AgentRun.swift` | A run, how it ended and the ledger behind the indicator, `AgentConsentMode`, `AgentConsentPlan`, `AgentBackgroundNeeds`, the note block, the briefing |
+| `Model/AgentRun.swift` | A run, how it ended and the ledger behind the indicator, `AgentConsentMode`, `AgentConsentPlan`, `AgentBackgroundNeeds`, the note block, both briefings |
+| `Model/AgentScheduleSpend.swift` | The cap file's shape and `AgentSpendPolicy`: days, starts, stops, totals and the rows' reasons |
 | `Service/AgentScheduler.swift` | The one sleeping task, its four observers and the sleep meter |
 | `Service/AgentRunNotifier.swift` | Opt-in Notification Center banners |
-| `UI/AgentBackgroundCoordinator.swift` | Starting, watching and finishing runs; consent mode; the item, the notifier and the scheduler |
+| `Service/AgentSpendMeter.swift` | A capped native turn's route, passed through, its reported costs heard |
+| `UI/AgentBackgroundCoordinator.swift` | Starting, watching and finishing runs; consent mode; the notifier and the scheduler; feeds the Agents item |
 | `UI/AgentConsentGate.swift` | One agent question at a time, never over another dialog, put as its plan says |
-| `UI/AgentRunsStatusItem.swift` | The transient menu-bar item and its menu |
+| `UI/AgentsStatusItem.swift` | The one transient Agents menu-bar item and its menu, runs and sessions |
+| `UI/AgentsMenuBar.swift` | `AgentCoordinator.refreshMenuBar`: when the item exists, what it shows, what its rows do |
 | `UI/AgentTaskLauncher.swift` | Root search's claim, ↵, ⌘↵, Run Agent Task and the rows' ⌘K menu |
+| `UI/AgentLauncherRows.swift` | Each agent's own row, its ⌘K menu, its chord's summon, and its cleanup on delete |
 | `UI/AgentNoteWriter.swift` | Appending to a note, through the store or on disk; in `UI/` because it needs `NotesStore` |
 | `Settings/AgentScheduleEditorPanel.swift` | The schedule editor |
 
@@ -162,6 +240,15 @@ other is written on disk and re-listed the next time Notes opens. With Notes off
 - ⌘↵ on `@rig task`: it runs in AI Chat in front of you, as a normal chat.
 - **Run Agent Task** and its hotkey: the palette opens with `@`. Hidden, and the hotkey inert, while AI
   is off or there are no agents.
+- Type an agent's name: its row shows under Agents with `@rig` beside it; ↵ opens a chat with it.
+  `agents` lists every agent. Rename the agent: the row follows, and its favorite, alias and chord
+  stay. ⌘K → Run in Background…: the field reads `@rig `. ⌘K → Edit Agent: Settings opens on AI with
+  Rig's editor up, also when Settings was already open on another pane.
+- ⌘K → Change Shortcut, press ⌥⌘R: the chord summons the palette with `@rig ` typed from any app;
+  Return opens a chat, a typed task runs in the background. The editor's Shortcut shows the same
+  chord. A chord another action owns is refused with its name. An agent without a chord: nothing in
+  `HotKeyCenter` for it. Delete the agent: the chord is free again and its row, favorite and alias
+  are gone. AI off: no agent rows, and the chord does nothing.
 
 **Schedules**
 
@@ -178,9 +265,24 @@ other is written on disk and re-listed the next time Notes opens. With Notes off
 - **Notify** on: macOS asks once, on the toggle. A finished run posts a banner without the answer;
   clicking it opens the chat. Off: no banner and no `UNUserNotificationCenter` delegate.
 - ACP: a Claude Code agent run from `@cc …` asks with Claude's own options; **Decline** picks its
-  refuse-once option. When the run ends, the `npx`/adapter/CLI tree leaves Activity Monitor at once.
-  Two Claude Code agents asking at once: each dialog names its own agent and run.
+  refuse-once option. Its transcript (`~/.claude/projects/…`) shows the prompt opening with the
+  context, then `# Running unattended`; a follow-up typed in the window afterwards has neither. When
+  the run ends, the `npx`/adapter/CLI tree leaves Activity Monitor at once. Two Claude Code agents
+  asking at once: each dialog names its own agent and run.
+- **Daily spend cap** of 0.01 with a schedule on an OpenRouter model (or Claude Code) two minutes
+  ahead: the run starts, is stopped once its reported cost passes a cent, and its row says "Stopped at
+  today's spend cap of $0.01"; the subtitle shows what was spent today. The next due run does not
+  start: an unseen ✗ appears and its row says "Not started…"; clicking it opens Settings › AI ›
+  Agents. Run Now and `@handle` still run. Empty the field: the next due run starts. Quit, set the
+  file to `garbage` and relaunch: the field reads 0 and nothing scheduled starts until it is set.
+  Quit, or turn AI off, while a capped run that has reported a cost is going: the subtitle's
+  spent-today still includes it afterwards.
 - AI off mid-run: the run ends "Cancelled", and the item and the scheduler go away.
+- With live status and **Show running agents in the menu bar** on, start a Claude CLI session and a
+  `@rig` run: one item shows both under their headers and counts them. Let the run finish while the
+  session waits: the item keeps the waiting symbol. Turn the hub's menu-bar switch off: the session
+  rows, Search Agent Sessions and Clear Finished leave the menu, and the item goes once the run is
+  seen. No run and no live session: no item at all.
 
 Harness: `agent-schedule-test` — handles and addresses, occurrences across weekends and daylight
 saving, verdicts and catch-up, the ledger and its indicator, consent modes and plans, the gate's
@@ -188,4 +290,9 @@ whole ask (in front, quiet with Return on refusal, refused unseen when nobody is
 nothing shown after Stop, what is counted) and a counted unattended refusal, how a run ends and its
 limit, note blocks and the append on disk and through an open note's store, persistence and its
 refusals, the scheduler's arming and its settle after sleep, and the consent gate waiting for a
-dialog in order. `acp-test` covers the refusal option and two agents sharing a session id.
+dialog in order, and the spend cap: days, starts at and below the cap, stops past it, a new day,
+nonsense costs and caps, the capped origin, its running spend and what it adds however it ends,
+its end state, the file's persistence and an unreadable file failing closed. `acp-test` covers the
+refusal option, two agents sharing a session id, and the briefing: on an unattended chat's every
+turn, after the context, never on a chat someone started. `agent-loop-test` runs `AgentSpendMeter`
+over the loop: unchanged events and a growing cost after each round.

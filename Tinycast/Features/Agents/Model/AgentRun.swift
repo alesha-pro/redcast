@@ -19,6 +19,12 @@ struct AgentRun: Identifiable, Equatable, Sendable {
             case .schedule(_, let manual): manual
             }
         }
+
+        /// Held to the daily spend cap: only what a schedule starts on its own, never a gesture.
+        var isCapped: Bool {
+            guard case .schedule(_, let manual) = self else { return false }
+            return !manual
+        }
     }
 
     enum State: Equatable, Sendable {
@@ -43,6 +49,10 @@ struct AgentRun: Identifiable, Equatable, Sendable {
     /// What went wrong after the answer itself, such as a note that would not take it.
     var problem: String?
     var isSeen = false
+    /// What its route reported the turn has cost so far, in US dollars.
+    var cost: Double?
+    /// False for a due run the spend cap held back: there is no chat to open.
+    var hasChat = true
 
     var isActive: Bool { state == .running || state == .waiting }
 
@@ -51,9 +61,17 @@ struct AgentRun: Identifiable, Equatable, Sendable {
         return true
     }
 
+    /// What a capped run adds to the day however it ends: its final cost, else its last report.
+    func spend(final: Double?) -> Double? {
+        origin.isCapped ? final ?? cost : nil
+    }
+
     /// Done only with a complete answer; otherwise why it ended, in the words its row shows.
-    static func endState(complete: Bool, reply: String?, stoppedAfter minutes: Int?) -> State {
+    static func endState(
+        complete: Bool, reply: String?, stoppedAfter minutes: Int?, capped: String? = nil
+    ) -> State {
         if complete { return .done }
+        if let capped { return .failed(capped) }
         if let minutes { return .failed(String(localized: "Stopped after \(minutes) minutes")) }
         // The reply's last line is where a failure says what went wrong.
         let line =
@@ -77,12 +95,40 @@ struct AgentRun: Identifiable, Equatable, Sendable {
 
 /// Recent unattended runs, newest first; finished ones are kept only until there are ten.
 struct AgentRunLedger: Equatable, Sendable {
+    /// What the Agents menu-bar item shows, for background runs and live sessions alike.
     enum Indicator: Equatable, Sendable {
         case hidden
-        case waiting
+        case waiting(Int)
         case running(Int)
         case failed
         case done
+
+        /// Waiting beats running beats an unseen failure beats an unseen success.
+        static func of(waiting: Int, running: Int, failed: Bool, done: Bool) -> Self {
+            if waiting > 0 { return .waiting(waiting) }
+            if running > 0 { return .running(running) }
+            if failed { return .failed }
+            return done ? .done : .hidden
+        }
+
+        /// Two sources in one item: the more urgent wins, and counts of the same state add up.
+        func merged(with other: Self) -> Self {
+            switch (self, other) {
+            case (.waiting(let a), .waiting(let b)): .waiting(a + b)
+            case (.running(let a), .running(let b)): .running(a + b)
+            default: rank <= other.rank ? self : other
+            }
+        }
+
+        private var rank: Int {
+            switch self {
+            case .waiting: 0
+            case .running: 1
+            case .failed: 2
+            case .done: 3
+            case .hidden: 4
+            }
+        }
     }
 
     static let keptFinished = 10
@@ -123,14 +169,18 @@ struct AgentRunLedger: Equatable, Sendable {
 
     var activeCount: Int { runs.count(where: \.isActive) }
 
-    /// Waiting beats running beats an unseen failure beats an unseen success.
+    /// What the capped runs still going have reported so far.
+    var cappedSpend: Double {
+        runs.reduce(0) { $1.isActive && $1.origin.isCapped ? $0 + ($1.cost ?? 0) : $0 }
+    }
+
+    /// A waiting run counts as waiting, not running; finished ones only until they are seen.
     var indicator: Indicator {
-        if runs.contains(where: { $0.state == .waiting }) { return .waiting }
-        let active = activeCount
-        if active > 0 { return .running(active) }
-        if runs.contains(where: { $0.isFailed && !$0.isSeen }) { return .failed }
-        if runs.contains(where: { $0.state == .done && !$0.isSeen }) { return .done }
-        return .hidden
+        let waiting = runs.count { $0.state == .waiting }
+        return .of(
+            waiting: waiting, running: activeCount - waiting,
+            failed: runs.contains { $0.isFailed && !$0.isSeen },
+            done: runs.contains { $0.state == .done && !$0.isSeen })
     }
 
     /// Active runs are never dropped; the oldest finished ones go first.
@@ -261,5 +311,16 @@ enum AgentBackgroundBriefing {
         until it ends. Do the task with what you have, then finish with a short report: what you \
         did, what you found, and what is left for the user. A refused request means the user was \
         not asked; say what you would have done.
+        """
+
+    /// An ACP agent's equivalent, leading each prompt of an unattended turn after its context.
+    static let acp = """
+        # Running unattended
+
+        This turn runs in the background, started by Tinycast rather than typed by the user: nobody \
+        may be at the Mac, and nobody can answer a question until it ends. Permission requests are \
+        declined unless someone at the Mac answers them, so do what you can without them. Finish \
+        with the result as your final message: what you did, what you found, and what is left for \
+        the user. If a request was declined, say what you would have done.
         """
 }

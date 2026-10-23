@@ -156,6 +156,9 @@ final class LauncherCoordinator {
         case .snippet:
             guard let snippetID = StoredSnippet.id(fromEntryID: app.id) else { return }
             snippetCoordinator.expandSnippet(id: snippetID, target: previous)
+        // Fork: an agent's row opens a new AI Chat with it.
+        case .agent:
+            core.agentCoordinator.startChat(entryID: app.id)
         case .command, .quickAction, .customCommand, .systemAction, .windowCommand, .windowLayout,
             .windowRoom, .quicklink, .appleShortcut, .extensionCommand, .meeting:
             break  // handled above

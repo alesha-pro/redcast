@@ -157,6 +157,10 @@ enum AppActionsMenu {
         if app.kind == .meeting, let meeting = core.calendarCoordinator.meeting(entryID: app.id) {
             return MeetingActionsMenu.content(meeting: meeting, core: core).items
         }
+        // Fork: an agent's row offers a chat, a background task and its editor.
+        if app.kind == .agent {
+            return AgentLauncherMenu.leadingItems(app: app, searchQuery: searchQuery, core: core)
+        }
         if app.kind == .customCommand, let command = core.customCommands.command(entryID: app.id) {
             return CustomCommandActionsMenu.leadingItems(
                 command: command, coordinator: core.customCommandCoordinator

@@ -119,9 +119,10 @@ async function prompt(id, params) {
   const history = earlier === undefined
     ? "no history"
     : `with history of ${(earlier.match(/^(User|Assistant): /gm) ?? []).length} turns`;
+  const briefed = text.includes("# Running unattended") ? "; briefed" : "";
   update(sessionId, {
     sessionUpdate: "agent_message_chunk",
-    content: { type: "text", text: `turn ${session.turns} in ${session.cwd}; ${chosen}; ${context}; ${history}; images ${images}; servers ${session.servers}` },
+    content: { type: "text", text: `turn ${session.turns} in ${session.cwd}; ${chosen}; ${context}; ${history}; images ${images}; servers ${session.servers}${briefed}` },
   });
   send({ id, result: { stopReason: "end_turn" } });
 }

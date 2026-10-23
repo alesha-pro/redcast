@@ -16,6 +16,8 @@ struct AppEntry: Identifiable, Hashable, Sendable {
         case appleShortcut
         case extensionCommand
         case meeting
+        // Fork: an AI agent; ↵ opens a new chat with it (Features/Agents).
+        case agent
 
         var descriptor: KindDescriptor {
             switch self {
@@ -91,6 +93,12 @@ struct AppEntry: Identifiable, Hashable, Sendable {
                     label: "Meeting", sectionTitle: "Meetings",
                     openVerb: "Join Meeting", canHideFromSearch: false,
                     canRevealInFinder: false, canDragOut: false, isSymbolIcon: true, rankPriority: 1)
+            // Fork: an agent answers to AI's switch, so no pane holds a checkbox to unhide one.
+            case .agent:
+                return KindDescriptor(
+                    label: "Agent", sectionTitle: "Agents", openVerb: "New Chat",
+                    canHideFromSearch: false, canRevealInFinder: false, canDragOut: false,
+                    isSymbolIcon: true, rankPriority: 3)
             }
         }
     }
@@ -197,6 +205,9 @@ struct AppEntry: Identifiable, Hashable, Sendable {
             return AppleShortcut.id(fromEntryID: id).map { .appleShortcut(id: $0) }
         case .snippet:
             return StoredSnippet.id(fromEntryID: id).map { .snippet(id: $0) }
+        // Fork: an agent's chord summons root search with its handle typed.
+        case .agent:
+            return AgentProfile.id(fromEntryID: id).map { .agent(id: $0) }
         case .extensionCommand, .meeting:
             return nil
         }
@@ -232,6 +243,8 @@ struct AppEntry: Identifiable, Hashable, Sendable {
         case .windowLayout: return WindowLayout.sfSymbol
         case .windowRoom: return Room.sfSymbol
         case .meeting: return "video.fill"
+        // Fork: every agent row names its own symbol; this only backs it.
+        case .agent: return AgentProfile.sfSymbol
         case .application, .systemSettings, .appleShortcut, .extensionCommand: return "questionmark"
         }
     }
@@ -408,6 +421,8 @@ final class AppIndex {
     private var customQuickActionEntries: [AppEntry] = []
     private var extensionEntries: [AppEntry] = []
     private var meetingEntries: [AppEntry] = []
+    /// Fork: published between custom commands and Quick Actions.
+    private var agentEntries: [AppEntry] = []
     /// The catalog's commands a disabled feature hides; the Commands slice is recomputed from it.
     private var hiddenCommands: Set<CommandID> = []
     /// Kept out of launcher search by a "Show in launcher" switch, yet still runnable by shortcut.
@@ -502,6 +517,13 @@ final class AppIndex {
     func setMeetings(_ entries: [AppEntry]) {
         guard entries != meetingEntries else { return }
         meetingEntries = entries
+        publishEntries()
+    }
+
+    // Fork: one row per agent, built by AgentCoordinator while AI is on.
+    func setAgents(_ entries: [AppEntry]) {
+        guard entries != agentEntries else { return }
+        agentEntries = entries
         publishEntries()
     }
 
@@ -700,7 +722,9 @@ final class AppIndex {
                 extensionEntries + quicklinkEntries + appleShortcutEntries + snippetEntries
                     + Self.systemActionEntries + windowLayoutEntries + windowRoomEntries
                     + windowCommandEntries
-                    + customWindowSizeEntries + customCommandEntries + quickActionEntries
+                    + customWindowSizeEntries + customCommandEntries
+                    // Fork: agent rows, between custom commands and Quick Actions.
+                    + agentEntries + quickActionEntries
                     + commandEntries)
         guard updated != searchEntries else { return }
         searchEntries = updated
