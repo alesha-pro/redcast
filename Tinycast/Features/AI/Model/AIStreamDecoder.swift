@@ -208,8 +208,8 @@ struct AIStreamDecoder: Sendable {
         case "content_block_start":
             // Fork: a thinking block goes back as it came, signature and all, where it stood.
             switch event.contentBlock?.type {
-            case "tool_use": reasoning.place(.call(event.contentBlock?.id ?? ""))
-            case "text": reasoning.place(.text)
+            case "tool_use": reasoning.place(call: event.contentBlock?.id ?? "")
+            case "text": reasoning.place(text: event.index ?? 0)
             default:
                 let block = JSONValue(data: data)?.objectValue?["content_block"]?.objectValue
                 if let block { reasoning.open(block: event.index ?? 0, block) }
@@ -221,6 +221,8 @@ struct AIStreamDecoder: Sendable {
             return []
         case "content_block_delta":
             if event.delta?.type == "text_delta", let text = event.delta?.text, !text.isEmpty {
+                // Fork: each text block is kept apart too, as Claude's later blocks were signed over it.
+                reasoning.extend(text: event.index ?? 0, text)
                 return [.text(text)]
             }
             if event.delta?.type == "input_json_delta" {

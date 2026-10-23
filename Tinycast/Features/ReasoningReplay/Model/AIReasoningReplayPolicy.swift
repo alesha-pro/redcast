@@ -74,19 +74,22 @@ enum AIReasoningReplayPolicy {
         _ parts: [[String: Any]], of message: AIMessage, configuration: AIHTTPConfiguration
     ) -> [[String: Any]] {
         guard message.role == .assistant, let own = message.reasoning, isOwn(own, configuration),
-            own.form == .blocks, !own.isStored, !own.items.isEmpty, configuration.reasoningReplay != .never
+            own.form == .blocks, !own.isStored, !own.items.isEmpty || !own.layout.isEmpty,
+            configuration.reasoningReplay != .never
         else { return parts }
         let blocks = own.items.compactMap { $0.jsonObject as? [String: Any] }
         guard !own.layout.isEmpty else { return blocks + parts }
-        var rest = parts
+        // Each text block goes back as it streamed, so the calls and blocks after it keep their prefix.
+        let split = own.layout.contains { if case .text = $0 { true } else { false } }
+        var rest = split ? parts.filter { $0["type"] as? String != "text" } : parts
         var placed: [[String: Any]] = []
         for slot in own.layout {
             switch slot {
             case .item(let index) where blocks.indices.contains(index): placed.append(blocks[index])
             case .item: continue
-            case .text:
-                guard let at = rest.firstIndex(where: { $0["type"] as? String == "text" }) else { continue }
-                placed.append(rest.remove(at: at))
+            case .text(let said):
+                guard !said.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { continue }
+                placed.append(["type": "text", "text": said])
             case .call(let id):
                 guard let at = rest.firstIndex(where: { $0["id"] as? String == id }) else { continue }
                 placed.append(rest.remove(at: at))
