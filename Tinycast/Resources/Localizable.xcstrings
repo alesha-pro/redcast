@@ -37857,6 +37857,58 @@
         }
       }
     },
+    "Claude Code folder" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Claude-Code-Ordner"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Carpeta de Claude Code"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dossier de Claude Code"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Claude Codeのフォルダ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Claude Code 폴더"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pasta do Claude Code"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Папка Claude Code"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Claude Code 文件夹"
+          }
+        }
+      }
+    },
     "Claude Code has every hook turned off (disableAllHooks), so live status can't work." : {
       "localizations" : {
         "de" : {
@@ -40404,6 +40456,58 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Codex 已退出，状态码 %d。"
+          }
+        }
+      }
+    },
+    "Codex folder" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Codex-Ordner"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Carpeta de Codex"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dossier de Codex"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Codexのフォルダ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Codex 폴더"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pasta do Codex"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Папка Codex"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Codex 文件夹"
           }
         }
       }
@@ -61985,54 +62089,54 @@
         }
       }
     },
-    "Find Claude Code, Codex and Tinycast chats from the launcher and resume them in their folder. Nothing is read until you open Search Agent Sessions, and nothing leaves this Mac." : {
+    "Find Claude Code, Codex, Gemini CLI, OpenCode and Tinycast chats from the launcher and resume them in their folder. Nothing is read until you open Search Agent Sessions, and nothing leaves this Mac." : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Finde Chats aus Claude Code, Codex und Tinycast im Launcher und setze sie in ihrem Ordner fort. Nichts wird gelesen, bevor du „Agentensitzungen durchsuchen“ öffnest, und nichts verlässt diesen Mac."
+            "value" : "Finde Chats aus Claude Code, Codex, Gemini CLI, OpenCode und Tinycast im Launcher und setze sie in ihrem Ordner fort. Nichts wird gelesen, bevor du „Agentensitzungen durchsuchen“ öffnest, und nichts verlässt diesen Mac."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Encuentra chats de Claude Code, Codex y Tinycast desde el lanzador y reanúdalos en su carpeta. No se lee nada hasta que abres Buscar sesiones de agentes, y nada sale de este Mac."
+            "value" : "Encuentra chats de Claude Code, Codex, Gemini CLI, OpenCode y Tinycast desde el lanzador y reanúdalos en su carpeta. No se lee nada hasta que abres Buscar sesiones de agentes, y nada sale de este Mac."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Retrouvez les conversations Claude Code, Codex et Tinycast depuis le lanceur et reprenez-les dans leur dossier. Rien n’est lu avant que vous ouvriez Rechercher des sessions d’agents, et rien ne quitte ce Mac."
+            "value" : "Retrouvez les conversations Claude Code, Codex, Gemini CLI, OpenCode et Tinycast depuis le lanceur et reprenez-les dans leur dossier. Rien n’est lu avant que vous ouvriez Rechercher des sessions d’agents, et rien ne quitte ce Mac."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Claude Code、Codex、Tinycastのチャットをランチャーから見つけ、そのフォルダで再開します。「エージェントセッションを検索」を開くまで何も読み込まれず、このMacの外には何も送信されません。"
+            "value" : "Claude Code、Codex、Gemini CLI、OpenCode、Tinycastのチャットをランチャーから見つけ、そのフォルダで再開します。「エージェントセッションを検索」を開くまで何も読み込まれず、このMacの外には何も送信されません。"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "런처에서 Claude Code, Codex, Tinycast 채팅을 찾아 해당 폴더에서 재개합니다. 에이전트 세션 검색을 열기 전에는 아무것도 읽지 않으며, 이 Mac 밖으로 아무것도 나가지 않습니다."
+            "value" : "런처에서 Claude Code, Codex, Gemini CLI, OpenCode, Tinycast 채팅을 찾아 해당 폴더에서 재개합니다. 에이전트 세션 검색을 열기 전에는 아무것도 읽지 않으며, 이 Mac 밖으로 아무것도 나가지 않습니다."
           }
         },
         "pt" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Encontre chats do Claude Code, Codex e Tinycast no iniciador e retome-os na pasta deles. Nada é lido até você abrir Buscar sessões de agentes, e nada sai deste Mac."
+            "value" : "Encontre chats do Claude Code, Codex, Gemini CLI, OpenCode e Tinycast no iniciador e retome-os na pasta deles. Nada é lido até você abrir Buscar sessões de agentes, e nada sai deste Mac."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Находите чаты Claude Code, Codex и Tinycast в лаунчере и продолжайте их в их папке. Ничего не читается, пока вы не откроете «Поиск сеансов агентов», и ничего не покидает этот Mac."
+            "value" : "Находите чаты Claude Code, Codex, Gemini CLI, OpenCode и Tinycast в лаунчере и продолжайте их в их папке. Ничего не читается, пока вы не откроете «Поиск сеансов агентов», и ничего не покидает этот Mac."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "从启动器中找到 Claude Code、Codex 和 Tinycast 的聊天，并在其文件夹中继续。在你打开“搜索智能体会话”之前不会读取任何内容，也不会有任何内容离开这台 Mac。"
+            "value" : "从启动器中找到 Claude Code、Codex、Gemini CLI、OpenCode 和 Tinycast 的聊天，并在其文件夹中继续。在你打开“搜索智能体会话”之前不会读取任何内容，也不会有任何内容离开这台 Mac。"
           }
         }
       }
@@ -71319,54 +71423,54 @@
         }
       }
     },
-    "Include Archived Codex Threads" : {
+    "Include Archived Sessions" : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Archivierte Codex-Threads einbeziehen"
+            "value" : "Archivierte Sitzungen einbeziehen"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Incluir hilos archivados de Codex"
+            "value" : "Incluir sesiones archivadas"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Inclure les fils Codex archivés"
+            "value" : "Inclure les sessions archivées"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "アーカイブ済みのCodexスレッドを含める"
+            "value" : "アーカイブ済みのセッションを含める"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "보관된 Codex 스레드 포함"
+            "value" : "보관된 세션 포함"
           }
         },
         "pt" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Incluir threads arquivados do Codex"
+            "value" : "Incluir sessões arquivadas"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Включать архивные треды Codex"
+            "value" : "Включать архивные сеансы"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "包括已归档的 Codex 线程"
+            "value" : "包括已归档的会话"
           }
         }
       }
@@ -88375,6 +88479,58 @@
         }
       }
     },
+    "No folder at this path." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unter diesem Pfad gibt es keinen Ordner."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No hay ninguna carpeta en esta ruta."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aucun dossier à cet emplacement."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このパスにフォルダがありません。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "이 경로에 폴더가 없습니다."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Não há pasta neste caminho."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "По этому пути нет папки."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此路径下没有文件夹。"
+          }
+        }
+      }
+    },
     "No folders found" : {
       "localizations" : {
         "de" : {
@@ -105053,60 +105209,60 @@
         }
       }
     },
-    "Reading Claude Code sessions… %lld of %lld" : {
+    "Reading %@ sessions… %lld of %lld" : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Claude-Code-Sitzungen werden gelesen … %1$lld von %2$lld"
+            "value" : "Sitzungen von %1$@ werden gelesen … %2$lld von %3$lld"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Reading Claude Code sessions… %1$lld of %2$lld"
+            "value" : "Reading %1$@ sessions… %2$lld of %3$lld"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Leyendo sesiones de Claude Code… %1$lld de %2$lld"
+            "value" : "Leyendo sesiones de %1$@… %2$lld de %3$lld"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Lecture des sessions Claude Code… %1$lld sur %2$lld"
+            "value" : "Lecture des sessions %1$@… %2$lld sur %3$lld"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Claude Codeのセッションを読み込み中… %1$lld/%2$lld"
+            "value" : "%1$@のセッションを読み込み中… %2$lld/%3$lld"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Claude Code 세션 읽는 중… %1$lld/%2$lld"
+            "value" : "%1$@ 세션 읽는 중… %2$lld/%3$lld"
           }
         },
         "pt" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Lendo sessões do Claude Code… %1$lld de %2$lld"
+            "value" : "Lendo sessões do %1$@… %2$lld de %3$lld"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Чтение сеансов Claude Code… %1$lld из %2$lld"
+            "value" : "Чтение сеансов %1$@… %2$lld из %3$lld"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "正在读取 Claude Code 会话… %1$lld/%2$lld"
+            "value" : "正在读取 %1$@ 会话… %2$lld/%3$lld"
           }
         }
       }
@@ -144239,6 +144395,58 @@
         }
       }
     },
+    "Turn off live status to change this folder." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Schalte den Live-Status aus, um diesen Ordner zu ändern."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Desactiva el estado en directo para cambiar esta carpeta."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Désactivez le statut en direct pour modifier ce dossier."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このフォルダを変更するには、ライブステータスをオフにしてください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "이 폴더를 변경하려면 실시간 상태를 끄세요."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Desative o status ao vivo para alterar esta pasta."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Чтобы изменить эту папку, выключите живой статус."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "要更改此文件夹，请先关闭实时状态。"
+          }
+        }
+      }
+    },
     "Turn on AI in Settings → AI first." : {
       "localizations" : {
         "de" : {
@@ -150317,6 +150525,64 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "位置"
+          }
+        }
+      }
+    },
+    "Where %@ points, if you set it. Empty reads %@." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wohin %1$@ zeigt, falls du es gesetzt hast. Leer wird %2$@ gelesen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Where %1$@ points, if you set it. Empty reads %2$@."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Adónde apunta %1$@, si la definiste. Si está vacío, se lee %2$@."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Là où pointe %1$@, si vous l’avez défini. Vide, %2$@ est lu."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@を設定している場合、その指す場所。空欄なら%2$@を読み込みます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@을(를) 설정했다면 그 경로입니다. 비워 두면 %2$@을(를) 읽습니다."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Para onde %1$@ aponta, se você a definiu. Vazio, lê %2$@."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Куда указывает %1$@, если вы её задали. Если пусто, читается %2$@."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "如果你设置了 %1$@，填写它指向的位置。留空则读取 %2$@。"
           }
         }
       }

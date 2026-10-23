@@ -28,8 +28,8 @@ struct AgentSessionsList: View {
     /// Live, then date buckets, for the full list; a ranked or found list reads in its own order.
     private var items: [Item] {
         var items: [Item] = []
-        if case .loading(let done, let total) = index.phase, total > 0, done < total {
-            items.append(.note(String(localized: "Reading Claude Code sessions… \(done) of \(total)")))
+        if case .loading(let source, let done, let total) = index.phase, total > 0, done < total {
+            items.append(.note(String(localized: "Reading \(source.productName) sessions… \(done) of \(total)")))
         }
         let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
         if let search = index.transcriptSearch, search.query == trimmed {
@@ -200,6 +200,8 @@ private struct AgentSessionRow: View {
             switch session.source {
             case .claude: AIBrand.claude.assetName
             case .codex: AIBrand.openAI.assetName
+            case .gemini: AIBrand.gemini.assetName
+            case .openCode: AIBrand.openCode.assetName
             case .tinycast: "bubble.left"
             }
         }

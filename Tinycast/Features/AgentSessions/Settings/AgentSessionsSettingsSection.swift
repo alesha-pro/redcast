@@ -7,9 +7,13 @@ struct AgentSessionsSettingsSection: View {
     @State private var terminals: [AgentTerminal] = []
     @State private var summary: AgentSessionsCoordinator.LiveStatusSummary?
     @State private var plan: AgentSessionsCoordinator.LiveStatusPlan?
+    /// From a live-status button until the plan or the re-read summary that follows it lands.
+    @State private var settling = false
 
     private var coordinator: AgentSessionsCoordinator { core.agentSessionsCoordinator }
     private var isOn: Bool { summary?.isOn ?? false }
+    /// A folder moved under installed hooks would strand them beyond Turn Off's reach.
+    private var foldersLocked: Bool { settling || plan != nil || summary?.isInstalledAnywhere != false }
 
     var body: some View {
         Section {
@@ -17,8 +21,9 @@ struct AgentSessionsSettingsSection: View {
                 SettingsRowTitle(.aiAgentSessions, "Search agent sessions")
                 Text(
                     """
-                    Find Claude Code, Codex and Tinycast chats from the launcher and resume them in their \
-                    folder. Nothing is read until you open Search Agent Sessions, and nothing leaves this Mac.
+                    Find Claude Code, Codex, Gemini CLI, OpenCode and Tinycast chats from the launcher and \
+                    resume them in their folder. Nothing is read until you open Search Agent Sessions, and \
+                    nothing leaves this Mac.
                     """)
             }
             Picker(selection: terminalBinding) {
@@ -28,6 +33,22 @@ struct AgentSessionsSettingsSection: View {
                 }
             } label: {
                 SettingsRowTitle(.aiAgentSessions, "Resume in")
+            }
+            .disabled(!appSettings.agentSessionsEnabled)
+            LabeledContent {
+                AgentFolderField(placeholder: "~/.claude", text: folderBinding(\.agentSessionsClaudeFolder))
+                    .disabled(foldersLocked)
+            } label: {
+                SettingsRowTitle(.aiAgentSessions, "Claude Code folder")
+                folderNote(appSettings.agentSessionsClaudeFolder, variable: "CLAUDE_CONFIG_DIR", default: "~/.claude")
+            }
+            .disabled(!appSettings.agentSessionsEnabled)
+            LabeledContent {
+                AgentFolderField(placeholder: "~/.codex", text: folderBinding(\.agentSessionsCodexFolder))
+                    .disabled(foldersLocked)
+            } label: {
+                SettingsRowTitle(.aiAgentSessions, "Codex folder")
+                folderNote(appSettings.agentSessionsCodexFolder, variable: "CODEX_HOME", default: "~/.codex")
             }
             .disabled(!appSettings.agentSessionsEnabled)
             SettingsRow(title: "Live status", subtitle: statusText, anchor: .aiAgentSessions) {
@@ -59,7 +80,11 @@ struct AgentSessionsSettingsSection: View {
         }
         .settingsEditorPanel(item: $plan) { plan in
             AgentHooksPanel(plan: plan) {
-                Task { summary = await coordinator.liveStatusSummary() }
+                settling = true
+                Task {
+                    summary = await coordinator.liveStatusSummary()
+                    settling = false
+                }
             }
         }
     }
@@ -85,7 +110,11 @@ struct AgentSessionsSettingsSection: View {
     }
 
     private func review(on: Bool) {
-        Task { plan = await coordinator.prepareLiveStatus(on: on) }
+        settling = true
+        Task {
+            plan = await coordinator.prepareLiveStatus(on: on)
+            settling = false
+        }
     }
 
     private var enabledBinding: Binding<Bool> {
@@ -104,9 +133,60 @@ struct AgentSessionsSettingsSection: View {
             set: { appSettings.agentSessionsTerminal = $0 })
     }
 
+    /// Live status is read again, since its hook files live in the folder that moved.
+    private func folderBinding(_ key: ReferenceWritableKeyPath<AppSettings, String>) -> Binding<String> {
+        Binding(
+            get: { appSettings[keyPath: key] },
+            set: { text in
+                guard !foldersLocked else { return }
+                appSettings[keyPath: key] = text.trimmingCharacters(in: .whitespacesAndNewlines)
+                Task { summary = await coordinator.liveStatusSummary() }
+            })
+    }
+
+    /// One `stat` per render of the section, which only Settings shows.
+    private func folderNote(_ text: String, variable: String, default folder: String) -> Text {
+        if summary?.isInstalledAnywhere == true { return Text("Turn off live status to change this folder.") }
+        let url = AgentSessionsLocations.folder(text, home: FileManager.default.homeDirectoryForCurrentUser)
+        guard text.isEmpty || url.map({ AgentSessionsCoordinator.folderExists($0.path) }) == true else {
+            return Text("No folder at this path.")
+        }
+        return Text("Where \(variable) points, if you set it. Empty reads \(folder).")
+    }
+
     private var menuBarBinding: Binding<Bool> {
         Binding(
             get: { appSettings.agentStatusMenuBar },
             set: { coordinator.setStatusItemEnabled($0) })
+    }
+}
+
+/// One agent's folder, saved on Return or when the field is left rather than on every keystroke.
+private struct AgentFolderField: View {
+    let placeholder: String
+    @Binding var text: String
+    @State private var draft = ""
+    @FocusState private var focused: Bool
+    @Environment(\.isEnabled) private var isEnabled
+
+    var body: some View {
+        TextField(placeholder, text: $draft, prompt: Text(verbatim: placeholder))
+            .labelsHidden()
+            .font(.callout.monospaced())
+            .autocorrectionDisabled()
+            .focused($focused)
+            .onSubmit(save)
+            .onChange(of: focused) { _, isFocused in
+                if !isFocused { save() }
+            }
+            .onAppear { draft = text }
+            .onChange(of: isEnabled) { draft = text }
+    }
+
+    /// Read back, since the setter trims the text and refuses it while the folders are locked.
+    private func save() {
+        guard draft.trimmingCharacters(in: .whitespacesAndNewlines) != text else { return }
+        text = draft
+        draft = text
     }
 }

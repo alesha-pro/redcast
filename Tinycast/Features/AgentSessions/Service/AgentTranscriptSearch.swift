@@ -16,24 +16,24 @@ enum AgentTranscriptSearch {
 
     /// The stream ends after the last file or the 50th hit; cancelling its consumer stops the scan.
     static func run(
-        query: String, sessions: [AgentSession], codexHistory: URL,
+        query: String, sessions: [AgentSession], locations: AgentSessionsLocations,
         progress: @escaping @Sendable (Int, Int) -> Void
     ) -> AsyncStream<Hit> {
-        let claude = sessions.filter { $0.source == .claude && $0.transcriptPath != nil }
-            .sorted { $0.updatedAt > $1.updatedAt }
-        let codex = sessions.filter { $0.source == .codex }.sorted { $0.updatedAt > $1.updatedAt }
+        let newest = sessions.sorted { $0.updatedAt > $1.updatedAt }
+        let files = newest.filter { [.claude, .gemini].contains($0.source) && $0.transcriptPath != nil }
+        let databases = newest.filter { [.codex, .openCode].contains($0.source) }
         let needles = needles(for: query)
         return AsyncStream { continuation in
             let task = Task.detached(priority: .utility) {
-                let total = claude.count + codex.count
+                let total = files.count + databases.count
                 var done = 0
                 var hits = 0
                 var start = 0
-                while start < claude.count, hits < hitLimit, !Task.isCancelled {
-                    let pair = Array(claude[start..<min(start + 2, claude.count)])
+                while start < files.count, hits < hitLimit, !Task.isCancelled {
+                    let pair = Array(files[start..<min(start + 2, files.count)])
                     let found = await withTaskGroup(of: (Int, Hit?).self) { group in
                         for (index, session) in pair.enumerated() {
-                            group.addTask { (index, searchClaude(session, needles: needles, query: query)) }
+                            group.addTask { (index, searchFile(session, needles: needles, query: query)) }
                         }
                         var results: [(Int, Hit?)] = []
                         for await result in group { results.append(result) }
@@ -47,13 +47,12 @@ enum AgentTranscriptSearch {
                     done += pair.count
                     progress(done, total)
                 }
-                for session in codex where hits < hitLimit && !Task.isCancelled {
-                    if let text = try? CodexStateReader.historyMatch(
-                        database: codexHistory, threadID: session.sessionID, needle: query),
+                for session in databases where hits < hitLimit && !Task.isCancelled {
+                    if let text = databaseMatch(session, query: query, locations: locations),
                         let snippet = snippet(in: text, query: query)
                     {
                         hits += 1
-                        continuation.yield(Hit(sessionID: session.sessionID, source: .codex, snippet: snippet))
+                        continuation.yield(Hit(sessionID: session.sessionID, source: session.source, snippet: snippet))
                     }
                     done += 1
                     if done % 8 == 0 || done == total { progress(done, total) }
@@ -61,6 +60,21 @@ enum AgentTranscriptSearch {
                 continuation.finish()
             }
             continuation.onTermination = { _ in task.cancel() }
+        }
+    }
+
+    private static func databaseMatch(_ session: AgentSession, query: String, locations: AgentSessionsLocations)
+        -> String?
+    {
+        switch session.source {
+        case .codex:
+            try? CodexStateReader.historyMatch(
+                database: locations.codexHistory, threadID: session.sessionID, needle: query)
+        case .openCode:
+            try? OpenCodeStateReader.match(
+                database: locations.openCodeDatabase, sessionID: session.sessionID, needle: query)
+        case .claude, .gemini, .tinycast:
+            nil
         }
     }
 
@@ -73,12 +87,41 @@ enum AgentTranscriptSearch {
             .map { Array($0.utf8) }
     }
 
-    /// The first conversation line holding the query; tool output never counts as a hit.
-    static func searchClaude(_ session: AgentSession, needles: [[UInt8]], query: String) -> Hit? {
-        guard let path = session.transcriptPath,
-            let data = try? Data(contentsOf: URL(filePath: path), options: .alwaysMapped)
-        else { return nil }
-        let snippet: String? = data.withUnsafeBytes { buffer in
+    static func searchFile(_ session: AgentSession, needles: [[UInt8]], query: String) -> Hit? {
+        guard let path = session.transcriptPath else { return nil }
+        let snippet: String?
+        switch session.source {
+        case .claude:
+            snippet = search(path, needles: needles, query: query) { line in
+                guard case .conversation(let user) = ClaudeTranscriptDecoder.lineKind(of: line),
+                    let object = ClaudeTranscriptDecoder.object(line)
+                else { return [] }
+                return texts(in: object, user: user)
+            }
+        case .gemini where path.hasSuffix(".json"):
+            let data = (try? Data(contentsOf: URL(filePath: path), options: .alwaysMapped)) ?? Data()
+            let texts = data.count <= GeminiChatDecoder.legacyCap ? GeminiChatDecoder.legacyTexts(data) : []
+            snippet = texts.lazy.compactMap { self.snippet(in: $0, query: query) }.first
+        case .gemini:
+            snippet = search(path, needles: needles, query: query) { line in
+                guard case .message = GeminiChatDecoder.lineKind(of: line),
+                    let record = ClaudeTranscriptDecoder.object(line)
+                else { return [] }
+                return [GeminiChatDecoder.promptText(in: record) ?? GeminiChatDecoder.replyText(in: record)]
+                    .compactMap { $0 }
+            }
+        case .codex, .openCode, .tinycast:
+            snippet = nil
+        }
+        return snippet.map { Hit(sessionID: session.sessionID, source: session.source, snippet: $0) }
+    }
+
+    /// The first line whose readable `texts` hold the query, so tool output never counts as a hit.
+    private static func search(
+        _ path: String, needles: [[UInt8]], query: String, texts: (Data) -> [String]
+    ) -> String? {
+        guard let data = try? Data(contentsOf: URL(filePath: path), options: .alwaysMapped) else { return nil }
+        return data.withUnsafeBytes { buffer -> String? in
             guard let base = buffer.baseAddress else { return nil }
             var position = 0
             var nextCheck = cancellationStride
@@ -93,16 +136,12 @@ enum AgentTranscriptSearch {
                 position = lineEnd + 1
                 guard lineEnd - lineStart <= decodableLine else { continue }
                 let line = Data(bytes: base + lineStart, count: lineEnd - lineStart)
-                guard case .conversation(let user) = ClaudeTranscriptDecoder.lineKind(of: line),
-                    let object = ClaudeTranscriptDecoder.object(line)
-                else { continue }
-                for text in texts(in: object, user: user) {
+                for text in texts(line) {
                     if let found = self.snippet(in: text, query: query) { return found }
                 }
             }
             return nil
         }
-        return snippet.map { Hit(sessionID: session.sessionID, source: .claude, snippet: $0) }
     }
 
     /// ±80 characters around the first case-insensitive match, on one line.

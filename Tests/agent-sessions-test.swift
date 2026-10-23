@@ -50,6 +50,14 @@ struct AgentSessionsTests {
         await transcriptSearch()
         await hookFilesOnDisk()
         await liveProbe()
+        await movedFolders()
+        lineSplitter()
+        geminiDecoder()
+        await geminiScanner()
+        openCodeReader()
+        newSourceCommands()
+        await newSourceSearch()
+        await claudeAppRoute()
 
         print("\(passes) passed, \(failures) failed")
         if failures > 0 { exit(1) }
@@ -242,8 +250,8 @@ struct AgentSessionsTests {
         expect(
             ClaudeTranscriptDecoder.title(head: head4, tail: tail4) == ("API pagination rework", .generated),
             "a summary titles the session")
-        let item = ClaudeListingItem(path: "-Users-me-dev-api/\(s4).jsonl", size: Int64(data4.count), modified: 1)
-        let entry = ClaudeIndexEntry(item: item, head: head4, tail: tail4)
+        let item = TranscriptListingItem(path: "-Users-me-dev-api/\(s4).jsonl", size: Int64(data4.count), modified: 1)
+        let entry = TranscriptIndexEntry(item: item, head: head4, tail: tail4)
         expect(entry.cwd == "/Users/me/dev/api", "relocatedCwd wins for the resume folder")
         expect(entry.branch == "feature/pages", "branch from the head")
 
@@ -304,38 +312,38 @@ struct AgentSessionsTests {
     // MARK: - 5. Rescan policy
 
     static func rescanPolicy() {
-        let item = ClaudeListingItem(path: "p/a.jsonl", size: 100, modified: 10)
-        var entry = ClaudeIndexEntry(item: item, head: .init(), tail: .init())
+        let item = TranscriptListingItem(path: "p/a.jsonl", size: 100, modified: 10)
+        var entry = TranscriptIndexEntry(item: item, head: .init(), tail: .init())
         entry.headDone = true
-        func step(_ size: Int64, _ modified: Double, headDone: Bool = true) -> ClaudeRescanPolicy.Step {
+        func step(_ size: Int64, _ modified: Double, headDone: Bool = true) -> TranscriptRescanPolicy.Step {
             var cached = entry
             cached.headDone = headDone
-            return ClaudeRescanPolicy.step(
-                for: ClaudeListingItem(path: item.path, size: size, modified: modified), cached: cached)
+            return TranscriptRescanPolicy.step(
+                for: TranscriptListingItem(path: item.path, size: size, modified: modified), cached: cached)
         }
-        expect(ClaudeRescanPolicy.step(for: item, cached: nil) == .full, "new → full")
+        expect(TranscriptRescanPolicy.step(for: item, cached: nil) == .full, "new → full")
         expect(step(100, 10) == .reuse, "same size and mtime → reuse")
         expect(step(150, 11) == .tail, "grown with its head done → tail")
         expect(step(50, 11) == .full, "shrunk → full")
         expect(step(150, 11, headDone: false) == .full, "grown without its head → full")
-        let plan = ClaudeRescanPolicy.plan(
+        let plan = TranscriptRescanPolicy.plan(
             cached: ["p/a.jsonl": entry, "p/gone.jsonl": entry],
-            listing: [item, ClaudeListingItem(path: "p/b.jsonl", size: 1, modified: 20)])
+            listing: [item, TranscriptListingItem(path: "p/b.jsonl", size: 1, modified: 20)])
         expect(plan.dropped == ["p/gone.jsonl"], "missing → dropped")
         expect(plan.steps.map(\.0.path) == ["p/b.jsonl", "p/a.jsonl"], "newest first")
 
-        let file = ClaudeIndexFile(projectsRoot: "/Users/me/.claude/projects", entries: [entry])
+        let file = TranscriptIndexFile(projectsRoot: "/Users/me/.claude/projects", entries: [entry])
         let data = file.encoded()
         expect(
-            ClaudeIndexFile.decode(data, projectsRoot: "/Users/me/.claude/projects")?.entries == [entry],
+            TranscriptIndexFile.decode(data, projectsRoot: "/Users/me/.claude/projects")?.entries == [entry],
             "the cache round-trips")
-        expect(ClaudeIndexFile.decode(data, projectsRoot: "/elsewhere") == nil, "another root rebuilds")
+        expect(TranscriptIndexFile.decode(data, projectsRoot: "/elsewhere") == nil, "another root rebuilds")
         var other = file
         other.version = 2
         expect(
-            ClaudeIndexFile.decode(other.encoded(), projectsRoot: "/Users/me/.claude/projects") == nil,
+            TranscriptIndexFile.decode(other.encoded(), projectsRoot: "/Users/me/.claude/projects") == nil,
             "another version rebuilds")
-        expect(ClaudeRescanPolicy.session(from: entry, root: "/r") == nil, "no title and no prompt: dropped")
+        expect(TranscriptRescanPolicy.claudeSession(from: entry, root: "/r") == nil, "no title and no prompt: dropped")
     }
 
     static func scannerOverFixtures() async {
@@ -344,10 +352,10 @@ struct AgentSessionsTests {
         let listing = await AgentSessionsScanner.listClaude(root: root)
         expect(listing.count == 5, "five top-level transcripts, got \(listing.count)")
         expect(!listing.contains { $0.path.contains("subagents") }, "a subagent transcript is never listed")
-        let plan = ClaudeRescanPolicy.plan(cached: [:], listing: listing)
+        let plan = TranscriptRescanPolicy.plan(cached: [:], listing: listing)
         expect(plan.steps.allSatisfy { $0.1 == .full }, "a first scan reads everything")
         let entries = await AgentSessionsScanner.scan(plan.steps, cached: [:], root: root)
-        let sessions = entries.compactMap { ClaudeRescanPolicy.session(from: $0, root: root.path) }
+        let sessions = entries.compactMap { TranscriptRescanPolicy.claudeSession(from: $0, root: root.path) }
         let byID = Dictionary(uniqueKeysWithValues: sessions.map { ($0.sessionID, $0) })
         expect(Set(byID.keys) == [s1, s2, s3, s4], "the empty session is dropped, got \(byID.keys.sorted())")
         expect(byID[s1]?.title == "Login redirect fix" && byID[s1]?.lastPrompt == "now add a test for it", "s1")
@@ -358,13 +366,13 @@ struct AgentSessionsTests {
 
         let cacheURL = scratch.appending(path: "cache/claude-index.json")
         await AgentSessionsScanner.saveCache(
-            ClaudeIndexFile(projectsRoot: root.path, entries: entries), to: cacheURL)
+            TranscriptIndexFile(projectsRoot: root.path, entries: entries), to: cacheURL)
         let mode = (try? FileManager.default.attributesOfItem(atPath: cacheURL.path))?[.posixPermissions] as? Int
         expect(mode == 0o600, "the cache is private")
         let loaded = await AgentSessionsScanner.loadCache(cacheURL, root: root.path)
         let cached = Dictionary(uniqueKeysWithValues: (loaded?.entries ?? []).map { ($0.path, $0) })
         expect(cached.count == 5, "the cache reloads")
-        let again = ClaudeRescanPolicy.plan(cached: cached, listing: await AgentSessionsScanner.listClaude(root: root))
+        let again = TranscriptRescanPolicy.plan(cached: cached, listing: await AgentSessionsScanner.listClaude(root: root))
         expect(again.steps.allSatisfy { $0.1 == .reuse }, "an unchanged tree is all reuse")
 
         let grown = root.appending(path: "-Users-me-dev-app/\(s1).jsonl")
@@ -373,7 +381,7 @@ struct AgentSessionsTests {
         try? handle?.write(
             contentsOf: Data((#"{"type":"last-prompt","lastPrompt":"and ship it","sessionId":"\#(s1)"}"# + "\n").utf8))
         try? handle?.close()
-        let later = ClaudeRescanPolicy.plan(cached: cached, listing: await AgentSessionsScanner.listClaude(root: root))
+        let later = TranscriptRescanPolicy.plan(cached: cached, listing: await AgentSessionsScanner.listClaude(root: root))
         let step = later.steps.first { $0.0.path.hasSuffix(s1 + ".jsonl") }
         expect(step?.1 == .tail, "a grown file reads only its tail")
         let updated = await AgentSessionsScanner.scan(step.map { [$0] } ?? [], cached: cached, root: root)
@@ -653,7 +661,7 @@ struct AgentSessionsTests {
         expect(AgentResumeCommand.focusScript(for: .terminal, tty: "ttys0\"; do") == nil, "a bad tty")
         expect(AgentResumeCommand.focusScript(for: .warp, tty: "ttys004") == nil, "Warp can't focus a tab")
 
-        let body = AgentResumeCommand.script(command: "cd '/a' && claude --resume \(s1)")
+        let body = AgentResumeCommand.script(command: "cd '/a' && claude --resume \(s1)", directory: "/a")
         let lines = body.split(separator: "\n").map(String.init)
         expect(lines.first == "#!/bin/sh" && lines[safe: 1] == #"/bin/rm -f -- "$0""#, "the script deletes itself first")
         expect(lines[safe: 2] == "cd '/a' && exec claude --resume \(s1)", "then execs the agent")
@@ -1126,7 +1134,7 @@ struct AgentSessionsTests {
             var changes: [AgentHookFileFormat.Change] = []
             var snapshots: [AgentHookTarget: AgentHookRepository.Snapshot] = [:]
             for target in targets {
-                let snapshot = await AgentHookRepository.snapshot(target, home: home)
+                let snapshot = await AgentHookRepository.snapshot(target, locations: AgentSessionsLocations(home: home))
                 snapshots[target] = snapshot
                 let change = on ? install(snapshot.text, target) : snapshot.text.flatMap { remove($0, target) }
                 if let change { changes.append(change) }
@@ -1142,7 +1150,7 @@ struct AgentSessionsTests {
             }
         }
 
-        let missing = await AgentHookRepository.snapshot(.codex, home: home)
+        let missing = await AgentHookRepository.snapshot(.codex, locations: AgentSessionsLocations(home: home))
         expect(missing.text == nil && missing.isReadable && !missing.isAgentPresent, "no ~/.codex: nothing to offer")
         write(plain, to: settings)
         try? fileManager.setAttributes([.posixPermissions: 0o640], ofItemAtPath: settings.path)
@@ -1199,7 +1207,7 @@ struct AgentSessionsTests {
 
         try? fileManager.removeItem(at: settings)
         try? Data([0x7B, 0xFF, 0xFE, 0x7D]).write(to: settings)
-        let binary = await AgentHookRepository.snapshot(.claude, home: home)
+        let binary = await AgentHookRepository.snapshot(.claude, locations: AgentSessionsLocations(home: home))
         expect(!binary.isReadable && binary.text == nil, "a file that is not UTF-8 is unreadable")
 
         let record = home.appending(path: "state/live-status.json")
@@ -1287,12 +1295,13 @@ struct AgentSessionsTests {
         let root = scratch.appending(path: "claude", directoryHint: .isDirectory)
         let listing = await AgentSessionsScanner.listClaude(root: root)
         let entries = await AgentSessionsScanner.scan(
-            listing.map { ($0, ClaudeRescanPolicy.Step.full) }, cached: [:], root: root)
-        let sessions = entries.compactMap { ClaudeRescanPolicy.session(from: $0, root: root.path) }
+            listing.map { ($0, TranscriptRescanPolicy.Step.full) }, cached: [:], root: root)
+        let sessions = entries.compactMap { TranscriptRescanPolicy.claudeSession(from: $0, root: root.path) }
         func hits(_ query: String) async -> [AgentTranscriptSearch.Hit] {
             var found: [AgentTranscriptSearch.Hit] = []
             for await hit in AgentTranscriptSearch.run(
-                query: query, sessions: sessions, codexHistory: scratch.appending(path: "none.sqlite"),
+                query: query, sessions: sessions,
+                locations: AgentSessionsLocations(home: scratch.appending(path: "nobody", directoryHint: .isDirectory)),
                 progress: { _, _ in })
             {
                 found.append(hit)
@@ -1308,6 +1317,496 @@ struct AgentSessionsTests {
         expect(cyrillic.map(\.sessionID) == [s1], "Cyrillic is found")
         let toolOutput = await hits("file contents that mention")
         expect(toolOutput.isEmpty, "tool output is never a hit")
+    }
+}
+
+// MARK: - Moved folders
+
+extension AgentSessionsTests {
+    static func movedFolders() async {
+        let home = URL(filePath: "/Users/me", directoryHint: .isDirectory)
+        let plain = AgentSessionsLocations(home: home)
+        expect(plain.claude.path == "/Users/me/.claude" && plain.codex.path == "/Users/me/.codex", "defaults")
+        expect(plain.claudeProjects.path == "/Users/me/.claude/projects", "Claude's projects")
+        expect(plain.codexState.path == "/Users/me/.codex/state_5.sqlite", "Codex's state")
+        expect(plain.hookFile(.claude).path == "/Users/me/.claude/settings.json", "Claude's hook file")
+        expect(plain.environment(for: .claude).isEmpty && plain.environment(for: .codex).isEmpty, "no variable")
+
+        let moved = AgentSessionsLocations(home: home, claudeFolder: " ~/cfg/claude/ ", codexFolder: "/srv/codex")
+        expect(moved.claude.path == "/Users/me/cfg/claude", "~ is the home, got \(moved.claude.path)")
+        expect(moved.codex.path == "/srv/codex", "an absolute folder")
+        expect(moved.claudeProjects.path == "/Users/me/cfg/claude/projects", "projects follow the folder")
+        expect(moved.hookFile(.codex).path == "/srv/codex/hooks.json", "so do the hooks")
+        expect(moved.codexHistory.path == "/srv/codex/thread_history_1.sqlite", "and Codex's history")
+        expect(moved.environment(for: .claude) == ["CLAUDE_CONFIG_DIR": "/Users/me/cfg/claude"], "CLAUDE_CONFIG_DIR")
+        expect(moved.environment(for: .codex) == ["CODEX_HOME": "/srv/codex"], "CODEX_HOME")
+        expect(moved.environment(for: .tinycast).isEmpty, "a Tinycast chat has none")
+        let relative = AgentSessionsLocations(home: home, claudeFolder: "cfg", codexFolder: "~/.codex/")
+        expect(relative.claude == plain.claude, "relative text reads the default")
+        expect(relative.environment(for: .codex).isEmpty, "the default spelled out adds no variable")
+
+        let app = session(.claude, s1, title: "t", folder: "/Users/me/dev/app")
+        let claudeLine = AgentResumeCommand.command(
+            for: app, action: .resume, environment: moved.environment(for: .claude))
+        expect(
+            claudeLine == "cd '/Users/me/dev/app' && env CLAUDE_CONFIG_DIR='/Users/me/cfg/claude' claude --resume \(s1)",
+            "the moved folder rides along, got \(claudeLine ?? "nil")")
+        let codex = session(.codex, codexID(1), title: "t", folder: "/Users/me/dev/api")
+        expect(
+            AgentResumeCommand.command(for: codex, action: .fork, environment: ["CODEX_HOME": "/srv/it's"])
+                == "cd '/Users/me/dev/api' && env CODEX_HOME='/srv/it'\\''s' codex fork \(codexID(1))",
+            "the folder is quoted")
+        expect(
+            AgentResumeCommand.command(for: app, action: .resume, environment: ["A=B;rm": "x", "lower": "y"])
+                == "cd '/Users/me/dev/app' && claude --resume \(s1)",
+            "only plain variable names are set")
+        expect(
+            AgentResumeCommand.command(
+                for: app, action: .attach(shortID: "bg7"), environment: moved.environment(for: .claude))
+                == "env CLAUDE_CONFIG_DIR='/Users/me/cfg/claude' claude attach bg7",
+            "attach keeps the folder")
+
+        let tricky = "/tmp/a && b"
+        let trickySession = session(.claude, s1, title: "t", folder: tricky)
+        let trickyLine = AgentResumeCommand.command(
+            for: trickySession, action: .resume, environment: ["CLAUDE_CONFIG_DIR": "/c"]) ?? ""
+        let body = AgentResumeCommand.script(command: trickyLine, directory: tricky)
+        expect(
+            body.hasSuffix("cd '/tmp/a && b' && exec env CLAUDE_CONFIG_DIR='/c' claude --resume \(s1)\n"),
+            "a folder holding && still execs the agent, got \(body.debugDescription)")
+        expect(
+            AgentResumeCommand.script(command: "codex resume x", directory: nil).hasSuffix("\nexec codex resume x\n"),
+            "without a folder")
+
+        let fileManager = FileManager.default
+        let movedHome = scratch.appending(path: "moved-home", directoryHint: .isDirectory)
+        let claudeFolder = scratch.appending(path: "elsewhere/claude", directoryHint: .isDirectory)
+        try? fileManager.createDirectory(at: claudeFolder, withIntermediateDirectories: true)
+        try? Data("{}\n".utf8).write(to: claudeFolder.appending(path: "settings.json"))
+        let locations = AgentSessionsLocations(home: movedHome, claudeFolder: claudeFolder.path)
+        let snapshot = await AgentHookRepository.snapshot(.claude, locations: locations)
+        expect(
+            snapshot.isAgentPresent && snapshot.text == "{}\n"
+                && snapshot.url.standardizedFileURL.path == claudeFolder.appending(path: "settings.json").path,
+            "live status reads the moved folder")
+        let codexSnapshot = await AgentHookRepository.snapshot(.codex, locations: locations)
+        expect(!codexSnapshot.isAgentPresent, "and Codex's default one, absent here")
+
+        let probeFolder = scratch.appending(path: "probe-env", directoryHint: .isDirectory)
+        try? fileManager.createDirectory(at: probeFolder, withIntermediateDirectories: true)
+        let fake = probeFolder.appending(path: "claude")
+        let script = #"printf '[{"sessionId":"%s","status":"busy"}]' "$CLAUDE_CONFIG_DIR""#
+        try? ("#!/bin/sh\n" + script + "\n").write(to: fake, atomically: true, encoding: .utf8)
+        try? fileManager.setAttributes([.posixPermissions: 0o755], ofItemAtPath: fake.path)
+        let entries = await ClaudeLiveSessionsProbe.run(
+            executable: fake, home: probeFolder, environment: ["CLAUDE_CONFIG_DIR": "moved-folder-ok"])
+        expect(entries.map(\.sessionID) == ["moved-folder-ok"], "the probe passes the folder, got \(entries)")
+    }
+}
+
+// MARK: - Gemini CLI and OpenCode
+
+extension AgentSessionsTests {
+    static let g1 = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"
+    static let g2 = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb"
+    static let g3 = "cccccccc-cccc-4ccc-8ccc-cccccccccccc"
+    static let geminiChat = "my-app/chats/session-2026-10-20T09-15-aaaaaaaa.jsonl"
+    static let geminiLegacy = "my-app/chats/session-2026-10-18T08-00-bbbbbbbb.json"
+
+    static func lineSplitter() {
+        let text = Data("one\ntwo-two\n\(String(repeating: "x", count: 40))\nthree\nfour".utf8)
+        for size in [1, 3, 7, 64] {
+            var splitter = JSONLineSplitter(cap: 16)
+            var lines: [String] = []
+            var start = 0
+            while start < text.count {
+                let chunk = text.subdata(in: start..<min(start + size, text.count))
+                var index = chunk.startIndex
+                while let line = splitter.next(in: chunk, from: &index) {
+                    lines.append(String(bytes: line, encoding: .utf8) ?? "")
+                }
+                start += size
+            }
+            if let last = splitter.finish() { lines.append(String(bytes: last, encoding: .utf8) ?? "") }
+            expect(lines == ["one", "two-two", "three", "four"], "chunks of \(size) split alike, got \(lines)")
+            expect(splitter.largestCarry <= 16, "a line past the cap is never held whole")
+        }
+        var unterminated = JSONLineSplitter(cap: 4)
+        var index = 0
+        expect(unterminated.next(in: Data("abcdefgh".utf8), from: &index) == nil && index == 8, "no whole line")
+        expect(unterminated.finish() == nil, "an unterminated line past the cap is dropped")
+        var early = JSONLineSplitter(cap: 64)
+        let twoLines = Data("first\nsecond\n".utf8)
+        var cursor = twoLines.startIndex
+        expect(early.next(in: twoLines, from: &cursor).flatMap { String(bytes: $0, encoding: .utf8) } == "first", "one")
+        expect(cursor == 6, "and the rest of the chunk is left unread")
+    }
+
+    static func geminiDecoder() {
+        let chat = fixture("gemini/" + geminiChat)
+        var reader = GeminiChatDecoder.HeadReader()
+        expect(reader.consume(chat), "the head is complete within the file")
+        let head = reader.finish()
+        expect(head.sessionID == g1, "the id comes from the first line")
+        expect(head.createdAt == ClaudeTranscriptDecoder.date("2026-10-20T09:15:03.662Z"), "and the start time")
+        expect(
+            head.firstPrompt == "explain the cache layer @src/cache.ts",
+            "the prompt as typed, past a command and injected context, got \(head.firstPrompt ?? "nil")")
+        expect(!head.isSubagent, "a main chat")
+        let tail = GeminiChatDecoder.tail(chat, startsMidLine: false)
+        expect(tail.summary == "Cache layer walkthrough" && tail.lastPrompt == "now add a test for it", "the tail")
+        expect(
+            GeminiChatDecoder.title(head: head, tail: tail) == ("Cache layer walkthrough", .generated),
+            "the summary is the title")
+        expect(
+            GeminiChatDecoder.title(head: head, tail: .init()) == ("explain the cache layer @src/cache.ts", .prompt),
+            "else the first prompt")
+        let cut = Data(chat.dropFirst(10))
+        expect(GeminiChatDecoder.tail(cut, startsMidLine: true).summary != nil, "a window starting mid-line")
+
+        let turns = GeminiChatDecoder.previewTurns(chat, startsMidLine: false, limit: 8)
+        expect(
+            turns.map(\.text) == [
+                "explain the cache layer @src/cache.ts", "The cache keeps a zebra index of entries.\n\nIt also expires entries.",
+                "now add a test for it", "Added a test."
+            ], "turns skip thoughts, tool responses, info lines, a rewound exchange and a reply written twice, "
+                + "got \(turns.map(\.text))")
+        expect(turns.map(\.role) == [.user, .assistant, .user, .assistant], "and alternate")
+        expect(GeminiChatDecoder.previewTurns(chat, startsMidLine: false, limit: 1).map(\.text) == ["Added a test."], "N")
+        let rewoundAll = Data(
+            (#"{"id":"r1","timestamp":"t","type":"user","content":"gone"}"# + "\n" + #"{"$rewindTo":"earlier"}"#).utf8)
+        expect(
+            GeminiChatDecoder.previewTurns(rewoundAll, startsMidLine: false, limit: 8).isEmpty,
+            "a rewind to a message before the window drops everything before it")
+
+        func kind(_ line: String) -> GeminiChatDecoder.LineKind { GeminiChatDecoder.lineKind(of: Data(line.utf8)) }
+        expect(kind(#"{"sessionId":"x","projectHash":"y"}"#) == .metadata, "metadata")
+        expect(kind(#"{"$set":{"messages":[{"id":"a","type":"user"}]}}"#) == .update, "an update, whatever it holds")
+        expect(kind(#"{"id":"a","timestamp":"t","type":"user","content":"hi"}"#) == .message(user: true), "a user turn")
+        expect(kind(#"{"id":"a","timestamp":"t","type":"gemini","content":[]}"#) == .message(user: false), "a reply")
+        expect(kind(#"{"id":"a","timestamp":"t","type":"info","content":"x"}"#) == .other, "info is neither")
+        let prompt = { (content: Any) in GeminiChatDecoder.prompt(in: ["type": "user", "content": content]) }
+        expect(prompt("  /compress ") == nil && prompt("?") == nil, "commands are not prompts")
+        expect(prompt("<hook_context>x</hook_context>") == nil, "hook context is not a prompt")
+        expect(prompt(["text": "one part"]) == "one part", "a single part")
+        expect(prompt([["text": "a "], ["inlineData": ["mimeType": "image/png"]], ["text": "b"]]) == "a b", "text parts")
+        expect(prompt([["functionResponse": ["id": "t"]]]) == nil, "a tool response")
+
+        let legacy = GeminiChatDecoder.legacy(fixture("gemini/" + geminiLegacy))
+        expect(legacy?.head.sessionID == g2 && legacy?.head.firstPrompt == "rename the quokka helper", "legacy head")
+        expect(legacy?.tail.lastPrompt == "and update the docs", "legacy last prompt")
+        expect(
+            GeminiChatDecoder.legacyTurns(fixture("gemini/" + geminiLegacy), limit: 8).map(\.role)
+                == [.user, .assistant, .user], "legacy turns")
+        expect(GeminiChatDecoder.legacy(Data("[]".utf8)) == nil, "something else is not a session")
+        let subagent = fixture("gemini/my-app/chats/\(g1)/eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee.jsonl")
+        var subReader = GeminiChatDecoder.HeadReader()
+        _ = subReader.consume(subagent)
+        expect(subReader.finish().isSubagent, "a subagent's chat says so")
+    }
+
+    static func geminiScanner() async {
+        let root = scratch.appending(path: "gemini", directoryHint: .isDirectory)
+        try? FileManager.default.copyItem(at: fixtures.appending(path: "gemini"), to: root)
+        let listing = await AgentSessionsScanner.listGemini(root: root)
+        let paths = Set(listing.items.map(\.path))
+        expect(paths.count == 4, "four chats, the subagent's left out, got \(paths.sorted())")
+        expect(!paths.contains { $0.contains("eeeeeeee") }, "a subagent's chat is never listed")
+        expect(listing.projects == ["my-app": "/Users/me/dev/app"], "a project's folder from .project_root")
+        let plan = TranscriptRescanPolicy.plan(cached: [:], listing: listing.items)
+        let entries = await AgentSessionsScanner.scan(plan.steps, cached: [:], root: root, source: .gemini)
+        let sessions = entries.compactMap { entry in
+            TranscriptRescanPolicy.geminiSession(
+                from: entry, root: root.path, directory: listing.directory(of: entry.path))
+        }
+        let byID = Dictionary(uniqueKeysWithValues: sessions.map { ($0.sessionID, $0) })
+        expect(Set(byID.keys) == [g1, g2, g3], "the empty chat is dropped, got \(byID.keys.sorted())")
+        expect(byID[g1]?.title == "Cache layer walkthrough" && byID[g1]?.directory == "/Users/me/dev/app", "g1")
+        expect(byID[g1]?.lastPrompt == "now add a test for it" && byID[g1]?.source == .gemini, "g1's last prompt")
+        expect(byID[g2]?.title == "rename the quokka helper" && byID[g2]?.directory == "/Users/me/dev/app", "legacy")
+        expect(byID[g3]?.directory == nil, "a hash-named folder has no known path")
+        expect(byID[g1]?.transcriptPath == root.appending(path: geminiChat).path, "the file is the transcript")
+
+        let cached = Dictionary(uniqueKeysWithValues: entries.map { ($0.path, $0) })
+        let grown = root.appending(path: geminiChat)
+        let handle = try? FileHandle(forWritingTo: grown)
+        _ = try? handle?.seekToEnd()
+        let more = #"{"id":"m10","timestamp":"t","type":"user","content":"and ship it"}"# + "\n"
+            + #"{"$set":{"summary":"Cache layer, shipped"}}"# + "\n"
+        try? handle?.write(contentsOf: Data(more.utf8))
+        try? handle?.close()
+        let legacyURL = root.appending(path: geminiLegacy)
+        let legacyText = (try? String(contentsOf: legacyURL, encoding: .utf8)) ?? ""
+        try? (legacyText + "\n").write(to: legacyURL, atomically: true, encoding: .utf8)
+        let later = TranscriptRescanPolicy.plan(cached: cached, listing: await AgentSessionsScanner.listGemini(root: root).items)
+        let steps = Dictionary(uniqueKeysWithValues: later.steps.map { ($0.0.path, $0.1) })
+        expect(steps[geminiChat] == .tail, "a grown chat reads only its tail")
+        expect(steps[geminiLegacy] == .full, "a changed legacy file is read whole")
+        let updated = await AgentSessionsScanner.scan(
+            later.steps.filter { $0.0.path == geminiChat }, cached: cached, root: root, source: .gemini)
+        expect(
+            updated.first?.title == "Cache layer, shipped" && updated.first?.last == "and ship it",
+            "the tail brings the new summary and prompt")
+
+        let preview = await AgentSessionsScanner.previewTurns(
+            for: byID[g1]!, locations: AgentSessionsLocations(home: scratch))
+        expect(preview?.suffix(2).map(\.text) == ["Added a test.", "and ship it"], "a Gemini preview")
+        let legacyPreview = await AgentSessionsScanner.previewTurns(
+            for: byID[g2]!, locations: AgentSessionsLocations(home: scratch))
+        expect(legacyPreview?.first?.text == "rename the quokka helper", "a legacy preview")
+
+        let busyRoot = scratch.appending(path: "gemini-busy", directoryHint: .isDirectory)
+        let busy = "busy/chats/session-2026-10-21T10-00-ffffffff.jsonl"
+        let output = String(repeating: "o", count: 30_000)
+        let reply = #"{"id":"r","timestamp":"t","type":"gemini","content":"","toolCalls":[{"result":"\#(output)"}]}"#
+        let busyText = [
+            #"{"sessionId":"ffffffff-ffff-4fff-8fff-ffffffffffff","startTime":"2026-10-21T10:00:00.000Z"}"#,
+            #"{"id":"u","timestamp":"t","type":"user","content":"run the long migration"}"#, reply, reply, reply
+        ].joined(separator: "\n") + "\n"
+        let busyURL = busyRoot.appending(path: busy)
+        try? FileManager.default.createDirectory(
+            at: busyURL.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try? Data(busyText.utf8).write(to: busyURL)
+        let busyItem = TranscriptListingItem(path: busy, size: Int64(busyText.utf8.count), modified: 1)
+        let busyEntry = await AgentSessionsScanner.scan(
+            [(busyItem, .full)], cached: [:], root: busyRoot, source: .gemini)
+        expect(
+            busyEntry.first?.last == "run the long migration",
+            "a prompt behind 64 KB of tool results is found in the wide tail")
+    }
+
+    static func openCodeID(_ name: String) -> String { "ses_" + name }
+
+    static func openCodeDatabase(_ url: URL) {
+        func message(_ id: String, _ session: String, _ role: String, _ time: Int) -> String {
+            """
+            INSERT INTO message VALUES ('\(id)', '\(openCodeID(session))', \(time), \(time),
+              '{"role":"\(role)","time":{"created":\(time)},"agent":"build"}');
+            """
+        }
+        func part(_ id: String, _ message: String, _ session: String, _ json: String) -> String {
+            "INSERT INTO part VALUES ('\(id)', '\(message)', '\(openCodeID(session))', 1, 1, '\(json)');"
+        }
+        func session(
+            _ name: String, title: String, updated: Int, parent: String? = nil, archived: Int? = nil,
+            directory: String = "/Users/me/dev/app"
+        ) -> String {
+            """
+            INSERT INTO session (id, project_id, parent_id, slug, directory, title, version, time_created,
+              time_updated, time_archived, future_column)
+            VALUES ('\(openCodeID(name))', 'p1', \(parent.map { "'\(openCodeID($0))'" } ?? "NULL"), 'slug',
+              '\(directory)', '\(title)', '1.19.4', \(updated - 100), \(updated),
+              \(archived.map(String.init) ?? "NULL"), 'x');
+            """
+        }
+        sqlite(
+            url,
+            """
+            CREATE TABLE project (id TEXT PRIMARY KEY, worktree TEXT NOT NULL);
+            CREATE TABLE session (id TEXT PRIMARY KEY, project_id TEXT NOT NULL, workspace_id TEXT,
+              parent_id TEXT, slug TEXT NOT NULL, directory TEXT NOT NULL, path TEXT, title TEXT NOT NULL,
+              version TEXT NOT NULL, share_url TEXT, cost REAL NOT NULL DEFAULT 0, time_created INTEGER NOT NULL,
+              time_updated INTEGER NOT NULL, time_compacting INTEGER, time_archived INTEGER, future_column TEXT);
+            CREATE TABLE message (id TEXT PRIMARY KEY, session_id TEXT NOT NULL, time_created INTEGER NOT NULL,
+              time_updated INTEGER NOT NULL, data TEXT NOT NULL);
+            CREATE TABLE part (id TEXT PRIMARY KEY, message_id TEXT NOT NULL, session_id TEXT NOT NULL,
+              time_created INTEGER NOT NULL, time_updated INTEGER NOT NULL, data TEXT NOT NULL);
+            CREATE INDEX message_session_time_created_id_idx ON message (session_id, time_created, id);
+            CREATE INDEX part_message_id_id_idx ON part (message_id, id);
+            """
+                + session("a", title: "Fix flaky login test", updated: 5_000)
+                + session("b", title: "New session - 2026-10-20T09:15:03.662Z", updated: 4_000)
+                + session("c", title: "New session - 2026-10-20T09:15:03.662Z", updated: 3_000)
+                + session("d", title: "Old archived work", updated: 2_000, archived: 2_500)
+                + session("e", title: "Explore the repo (@explore subagent)", updated: 6_000, parent: "a")
+                + message("m1", "a", "user", 100) + message("m2", "a", "assistant", 200)
+                + message("m3", "a", "assistant", 300) + message("m4", "a", "user", 400)
+                + message("m5", "a", "assistant", 500) + message("m6", "b", "user", 100)
+                + part("p1", "m1", "a", #"{"type":"text","text":"why does the login test flake"}"#)
+                + part("p2", "m1", "a", #"{"type":"text","text":"<file>secret contents</file>","synthetic":true}"#)
+                + part("p3", "m2", "a", #"{"type":"reasoning","text":"thinking"}"#)
+                + part("p4", "m2", "a", #"{"type":"text","text":"It races the timer."}"#)
+                + part("p5", "m3", "a", #"{"type":"tool","tool":"bash","state":{"output":"a pangolin"}}"#)
+                + part("p6", "m3", "a", #"{"type":"text","text":"Fixed with a fake clock."}"#)
+                + part("p7", "m4", "a", #"{"type":"text","text":"now run the suite"}"#)
+                + part("p8", "m5", "a", #"{"type":"text","text":"All green, no flamingo."}"#)
+                + part("p9", "m6", "b", #"{"type":"text","text":"add a dark mode toggle"}"#))
+    }
+
+    static func openCodeReader() {
+        let database = scratch.appending(path: "opencode.db")
+        openCodeDatabase(database)
+        let listed = (try? OpenCodeStateReader.sessions(database: database, includeArchived: false)) ?? []
+        expect(
+            listed.map(\.sessionID) == [openCodeID("a"), openCodeID("b")],
+            "top-level sessions with something in them, newest first, got \(listed.map(\.sessionID))")
+        let a = listed.first
+        expect(a?.title == "Fix flaky login test" && a?.titleOrigin == .generated, "OpenCode's title")
+        expect(a?.firstPrompt == "why does the login test flake", "the first prompt, attached files left out")
+        expect(a?.lastPrompt == "now run the suite", "the last prompt")
+        expect(a?.directory == "/Users/me/dev/app" && a?.source == .openCode && a?.host == .terminal, "folder and host")
+        expect(a?.updatedAt == Date(timeIntervalSince1970: 5), "times are milliseconds")
+        expect(listed.last?.title == "add a dark mode toggle" && listed.last?.titleOrigin == .prompt, "a placeholder")
+        let all = (try? OpenCodeStateReader.sessions(database: database, includeArchived: true)) ?? []
+        expect(all.contains { $0.sessionID == openCodeID("d") && $0.isArchived }, "archived only with the flag")
+        expect(!all.contains { $0.sessionID == openCodeID("e") }, "a subagent's child session never")
+        expect(OpenCodeStateReader.isPlaceholder("Child session - 2026-07-30T18:45:03.662Z"), "a child placeholder")
+        expect(!OpenCodeStateReader.isPlaceholder("New session - custom"), "a title that only looks like one")
+
+        let turns = (try? OpenCodeStateReader.turns(database: database, sessionID: openCodeID("a"), limit: 8)) ?? []
+        expect(
+            turns.map(\.text) == [
+                "why does the login test flake", "It races the timer.\n\nFixed with a fake clock.", "now run the suite",
+                "All green, no flamingo."
+            ], "steps join into one reply; reasoning, tools and attachments are left out, got \(turns.map(\.text))")
+        expect(turns.map(\.role) == [.user, .assistant, .user, .assistant], "with their roles")
+        expect(
+            (try? OpenCodeStateReader.turns(database: database, sessionID: openCodeID("a"), limit: 1))?.map(\.text)
+                == ["All green, no flamingo."], "the last N")
+        expect(
+            (try? OpenCodeStateReader.match(database: database, sessionID: openCodeID("a"), needle: "FLAMINGO"))
+                == "All green, no flamingo.", "a text part is searched case-insensitively")
+        expect(
+            (try? OpenCodeStateReader.match(database: database, sessionID: openCodeID("a"), needle: "pangolin")) == nil,
+            "tool output is not searched")
+        expect(
+            (try? OpenCodeStateReader.match(database: database, sessionID: openCodeID("a"), needle: "secret")) == nil,
+            "nor an attached file")
+
+        let bare = scratch.appending(path: "opencode-bare.db")
+        sqlite(
+            bare,
+            """
+            CREATE TABLE session (id TEXT, directory TEXT, title TEXT, time_created INTEGER, time_updated INTEGER);
+            INSERT INTO session VALUES ('ses_x', '/Users/me', 'Named elsewhere', 1000, 2000);
+            """)
+        let bareRead = (try? OpenCodeStateReader.sessions(database: bare, includeArchived: false)) ?? []
+        expect(bareRead.map(\.title) == ["Named elsewhere"], "a schema without messages still lists titles")
+        expect((try? OpenCodeStateReader.turns(database: bare, sessionID: "ses_x", limit: 8)) == [], "no turns")
+        let broken = scratch.appending(path: "opencode-broken.db")
+        sqlite(broken, "CREATE TABLE session (id TEXT, title TEXT);")
+        do {
+            _ = try OpenCodeStateReader.sessions(database: broken, includeArchived: false)
+            expect(false, "a database without directory fails")
+        } catch {
+            expect(error == .schema("directory, time_created, time_updated"), "with .schema, got \(error)")
+        }
+        do {
+            _ = try OpenCodeStateReader.sessions(database: scratch.appending(path: "none.db"), includeArchived: false)
+            expect(false, "a missing database fails")
+        } catch {
+            expect(error == .missing, "a missing database is .missing")
+        }
+        var filter = AgentSessionFilter()
+        let archived = all.first { $0.isArchived }
+        expect(archived.map(filter.admits) == false, "the filter hides archived sessions")
+        filter.showsArchived = true
+        expect(archived.map(filter.admits) == true, "until asked")
+    }
+
+    static func newSourceCommands() {
+        let gemini = session(.gemini, g1, title: "t", folder: "/Users/me/dev/app")
+        expect(
+            AgentResumeCommand.command(for: gemini, action: .resume) == "cd '/Users/me/dev/app' && gemini --resume \(g1)",
+            "gemini resumes in its folder")
+        expect(AgentResumeCommand.command(for: gemini, action: .fork) == nil, "Gemini cannot fork")
+        expect(
+            AgentResumeCommand.command(for: session(.gemini, g3, title: "t"), action: .resume) == nil,
+            "without its folder Gemini cannot find the session")
+        let openCode = session(.openCode, "ses_7f3aB9", title: "t", folder: "/Users/me/dev/app")
+        expect(
+            AgentResumeCommand.command(for: openCode, action: .resume)
+                == "cd '/Users/me/dev/app' && opencode --session ses_7f3aB9", "opencode resumes by id")
+        expect(
+            AgentResumeCommand.command(for: openCode, action: .fork)
+                == "cd '/Users/me/dev/app' && opencode --session ses_7f3aB9 --fork", "and forks")
+        expect(
+            AgentResumeCommand.command(for: session(.openCode, "ses_x;rm", title: "t"), action: .resume) == nil,
+            "an unsafe id gets no command")
+        expect(
+            AgentResumeCommand.command(for: session(.claude, "a_b", title: "t"), action: .resume) == nil,
+            "a Claude id never takes an underscore")
+        expect(AgentResumeCommand.isSafeID("ses_x", underscore: true) && !AgentResumeCommand.isSafeID("ses_x"), "_")
+        let home = URL(filePath: "/Users/me", directoryHint: .isDirectory)
+        let locations = AgentSessionsLocations(home: home, claudeFolder: "/elsewhere")
+        expect(locations.geminiProjects.path == "/Users/me/.gemini/tmp", "Gemini's chats")
+        expect(locations.openCodeDatabase.path == "/Users/me/.local/share/opencode/opencode.db", "OpenCode's database")
+        expect(locations.environment(for: .gemini).isEmpty && locations.environment(for: .openCode).isEmpty, "none")
+        expect(AgentSource.openCode.rawValue == "opencode" && AgentSource.gemini.productName == "Gemini CLI", "names")
+    }
+
+    static func newSourceSearch() async {
+        let geminiRoot = scratch.appending(path: "gemini", directoryHint: .isDirectory)
+        let listing = await AgentSessionsScanner.listGemini(root: geminiRoot)
+        let entries = await AgentSessionsScanner.scan(
+            listing.items.map { ($0, TranscriptRescanPolicy.Step.full) }, cached: [:], root: geminiRoot, source: .gemini)
+        let gemini = entries.compactMap { TranscriptRescanPolicy.geminiSession(from: $0, root: geminiRoot.path, directory: nil) }
+        let home = scratch.appending(path: "search-home", directoryHint: .isDirectory)
+        let locations = AgentSessionsLocations(home: home)
+        try? FileManager.default.createDirectory(
+            at: locations.openCodeDatabase.deletingLastPathComponent(), withIntermediateDirectories: true)
+        openCodeDatabase(locations.openCodeDatabase)
+        let openCode = (try? OpenCodeStateReader.sessions(database: locations.openCodeDatabase, includeArchived: false)) ?? []
+        func hits(_ query: String) async -> [String] {
+            var found: [String] = []
+            for await hit in AgentTranscriptSearch.run(
+                query: query, sessions: gemini + openCode, locations: locations, progress: { _, _ in })
+            {
+                found.append(hit.source.rawValue + ":" + hit.sessionID)
+            }
+            return found
+        }
+        let zebra = await hits("zebra")
+        expect(zebra == ["gemini:" + g1], "a word said mid-chat is found in Gemini, got \(zebra)")
+        let walrus = await hits("walrus")
+        expect(walrus.isEmpty, "Gemini tool output is never a hit")
+        let quokka = await hits("Quokka")
+        expect(quokka == ["gemini:" + g2], "a legacy chat is searched too")
+        let flamingo = await hits("flamingo")
+        expect(flamingo == ["opencode:" + openCodeID("a")], "OpenCode is searched through its database")
+    }
+
+    static func claudeAppRoute() async {
+        let desktop = "local_0f8e2c1a-5b7d-4e9a-a3c6-2d4f6b8e0a1c"
+        let other = "local_7a9c1e3f-2b4d-4f6a-8c0e-1d3f5b7a9c2e"
+        func record(_ id: String, transcript: String?) -> String {
+            let cli = transcript.map { #""cliSessionId":"\#($0)","# } ?? ""
+            return #"{"sessionId":"\#(id)",\#(cli)"cwd":"/Users/me/dev/app","isArchived":false,"title":"t"}"#
+        }
+        expect(
+            ClaudeAppRoute.desktopID(inHead: Data(record(desktop, transcript: s1).utf8), transcriptID: s1) == desktop,
+            "a record names the desktop session running a transcript")
+        expect(
+            ClaudeAppRoute.desktopID(inHead: Data(record(desktop, transcript: s2).utf8), transcriptID: s1) == nil,
+            "another transcript's record is not it")
+        expect(
+            ClaudeAppRoute.desktopID(inHead: Data(record(desktop, transcript: nil).utf8), transcriptID: s1) == nil,
+            "nor a record that runs no transcript")
+        expect(
+            ClaudeAppRoute.desktopID(inHead: Data(record("local_a;open x", transcript: s1).utf8), transcriptID: s1) == nil,
+            "an id the app would refuse is never used")
+        expect(
+            ClaudeAppRoute.continueURL(desktopID: desktop)?.absoluteString == "claude://code/continue?session=" + desktop,
+            "the route the app's handler and dock menu use")
+        expect(ClaudeAppRoute.continueURL(desktopID: "last") == nil, "only a session's own id")
+        expect(ClaudeAppRoute.continueURL(desktopID: "local_" + String(repeating: "a", count: 65)) == nil, "≤ 64")
+
+        let home = scratch.appending(path: "claude-app-home", directoryHint: .isDirectory)
+        let root = AgentSessionsLocations(home: home).claudeAppSessions
+        expect(root.path.hasSuffix("Library/Application Support/Claude/claude-code-sessions"), "the app's records")
+        let organization = root.appending(path: "account-1/org-1", directoryHint: .isDirectory)
+        try? FileManager.default.createDirectory(at: organization, withIntermediateDirectories: true)
+        let records = [(other, s2), (desktop, s1)]
+        for (id, transcript) in records {
+            try? Data(record(id, transcript: transcript).utf8).write(to: organization.appending(path: id + ".json"))
+        }
+        try? Data(record("local_ignored", transcript: s3).utf8).write(to: organization.appending(path: "notes.json"))
+        let found = await AgentSessionsScanner.claudeAppSession(transcriptID: s1, root: root)
+        expect(found == desktop, "the lookup finds the record by its transcript, got \(found ?? "nil")")
+        let missing = await AgentSessionsScanner.claudeAppSession(transcriptID: s3, root: root)
+        expect(missing == nil, "only local_ records are read")
+        let none = await AgentSessionsScanner.claudeAppSession(transcriptID: s1, root: home.appending(path: "none"))
+        expect(none == nil, "no records, no route")
     }
 }
 

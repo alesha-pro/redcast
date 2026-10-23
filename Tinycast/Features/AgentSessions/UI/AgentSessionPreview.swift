@@ -5,7 +5,8 @@ struct AgentSessionPreview: View {
     @Environment(\.metrics) private var metrics
     let session: AgentSession
     let live: AgentLiveEntry?
-    let codexHistory: URL
+    let locations: AgentSessionsLocations
+    let command: String?
     /// Dropped with the selection, so only one preview is ever held.
     @State private var messages: [ChatMessage]?
 
@@ -13,7 +14,7 @@ struct AgentSessionPreview: View {
         VStack(alignment: .leading, spacing: metrics.spacing.md) {
             header
             transcript
-            if let command = AgentResumeCommand.command(for: session, action: .resume) {
+            if let command {
                 Text(verbatim: command)
                     .font(metrics.typography.inlineCode)
                     .foregroundStyle(Theme.Colors.textSecondary)
@@ -27,7 +28,7 @@ struct AgentSessionPreview: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .task(id: session.id) {
             messages = nil
-            let turns = await AgentSessionsScanner.previewTurns(for: session, codexHistory: codexHistory)
+            let turns = await AgentSessionsScanner.previewTurns(for: session, locations: locations)
             guard !Task.isCancelled else { return }
             messages = (turns ?? []).map { turn in
                 ChatMessage(
