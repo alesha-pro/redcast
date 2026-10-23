@@ -476,7 +476,8 @@ struct AgentTests {
             AgentTurnLead.opening(
                 now: Date(timeIntervalSince1970: 1_800_000_000), timeZone: moscow,
                 budget: AgentEffort.balanced.budget, effort: "Balanced effort")
-                == "[Now: Friday 2027-01-15 11:00, Europe/Moscow. Balanced effort: up to 25 rounds of tool calls.]",
+                == "[Now: Friday 2027-01-15 11:00, Europe/Moscow. Balanced effort: tools only as the "
+                    + "task needs them, at most 25 rounds.]",
             "the date and time lead the turn instead, with what the run may do")
         let toolless = context.prompt(now: Date(), timeZone: .current, hasTools: false)
         expect(toolless.contains("cannot call tools"), "a route without tools is told so")

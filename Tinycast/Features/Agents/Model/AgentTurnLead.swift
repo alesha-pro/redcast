@@ -21,8 +21,9 @@ struct AgentTurnLead: Equatable, Sendable {
         let weekday = calendar.weekdaySymbols[(parts.weekday ?? 1) - 1]
         let date = String(format: "%04d-%02d-%02d", parts.year ?? 0, parts.month ?? 0, parts.day ?? 0)
         let time = String(format: "%02d:%02d", parts.hour ?? 0, parts.minute ?? 0)
-        return "[Now: \(weekday) \(date) \(time), \(timeZone.identifier). \(effort): up to \(budget.rounds) "
-            + "rounds of tool calls.]"
+        // A ceiling, worded so a simple question does not read it as work to fill.
+        return "[Now: \(weekday) \(date) \(time), \(timeZone.identifier). \(effort): tools only as the "
+            + "task needs them, at most \(budget.rounds) rounds.]"
     }
 
     /// `Europe/Moscow (UTC+03:00)`, the zone the prompt names once.
