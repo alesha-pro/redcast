@@ -79,6 +79,10 @@ row and chord, `AppIndex`, `LauncherList`, `LauncherCoordinator`, `AppActionsMen
   `AgentACPHost.onCost` for each ACP `usage_update`); a route that reports none counts nothing.
   Run Now and `@handle` runs are a person's gesture: never held, never counted. A cap file that will
   not read counts as $0, so nothing scheduled starts until the cap is set again.
+- **A capped run's reported cost counts however the run ends.** Finished, stopped, cut off by AI
+  off or a quit (`stopAll` adds `cappedSpend` before it lets the runs go), or with its chat deleted
+  mid-turn: `AgentRun.spend(final:)` takes the turn's final cost, else the last one its route
+  reported, so a relaunch never hands a schedule a fresh day's budget.
 - **An agent's row and chord cost nothing until used.** The rows exist only while AI is on, and only
   an agent with a chord is indexed in `boundAgentIDs` and registered with `HotKeyCenter`. Deleting an
   agent takes its chord, favorite, alias and ranking with it; no chord travels in a backup or
@@ -189,8 +193,9 @@ that day's total (`AgentScheduleSpend`, every field optional); `AgentSpendPolicy
 day starts at zero. A run is checked as it is due — at or past the cap it is held and its row reads
 "Not started: scheduled runs reached today's cap of $5.00", and opening that row shows the cap — and
 again on every cost its route reports while it runs, which ACP agents send mid-turn and the native
-loop after each round. When the turn ends, its last reported cost joins the day's total. The cap is
-local to the Mac's day and time zone, like the schedules.
+loop after each round. When the turn ends, its last reported cost joins the day's total, also when
+AI is switched off, Tinycast quits or the chat is deleted before it ends. The cap is local to the
+Mac's day and time zone, like the schedules.
 
 ## Layout
 
@@ -268,6 +273,8 @@ local to the Mac's day and time zone, like the schedules.
   start: an unseen ✗ appears and its row says "Not started…"; clicking it opens Settings › AI ›
   Agents. Run Now and `@handle` still run. Empty the field: the next due run starts. Quit, set the
   file to `garbage` and relaunch: the field reads 0 and nothing scheduled starts until it is set.
+  Quit, or turn AI off, while a capped run that has reported a cost is going: the subtitle's
+  spent-today still includes it afterwards.
 - AI off mid-run: the run ends "Cancelled", and the item and the scheduler go away.
 - With live status and **Show running agents in the menu bar** on, start a Claude CLI session and a
   `@rig` run: one item shows both under their headers and counts them. Let the run finish while the
@@ -282,8 +289,8 @@ nothing shown after Stop, what is counted) and a counted unattended refusal, how
 limit, note blocks and the append on disk and through an open note's store, persistence and its
 refusals, the scheduler's arming and its settle after sleep, and the consent gate waiting for a
 dialog in order, and the spend cap: days, starts at and below the cap, stops past it, a new day,
-nonsense costs and caps, the capped origin and its running spend, its end state, the file's
-persistence and an unreadable file failing closed. `acp-test` covers the refusal option, two agents
-sharing a session id, and the briefing: on an unattended chat's every turn, after the context, never
-on a chat someone started. `agent-loop-test` runs `AgentSpendMeter` over the loop: unchanged events
-and a growing cost after each round.
+nonsense costs and caps, the capped origin, its running spend and what it adds however it ends,
+its end state, the file's persistence and an unreadable file failing closed. `acp-test` covers the
+refusal option, two agents sharing a session id, and the briefing: on an unattended chat's every
+turn, after the context, never on a chat someone started. `agent-loop-test` runs `AgentSpendMeter`
+over the loop: unchanged events and a growing cost after each round.

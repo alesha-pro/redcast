@@ -61,6 +61,11 @@ struct AgentRun: Identifiable, Equatable, Sendable {
         return true
     }
 
+    /// What a capped run adds to the day however it ends: its final cost, else its last report.
+    func spend(final: Double?) -> Double? {
+        origin.isCapped ? final ?? cost : nil
+    }
+
     /// Done only with a complete answer; otherwise why it ended, in the words its row shows.
     static func endState(
         complete: Bool, reply: String?, stoppedAfter minutes: Int?, capped: String? = nil

@@ -265,6 +265,9 @@ final class AgentBackgroundCoordinator {
     }
 
     func stopAll() {
+        // AI off or quit cuts capped runs short; what their routes reported still counts today.
+        let cutOff = ledger.cappedSpend
+        if cutOff > 0 { store.recordScheduledSpend(cutOff, on: Self.today()) }
         for task in watchdogs.values { task.cancel() }
         let running = Array(chats.values)
         watchdogs = [:]
@@ -313,13 +316,15 @@ final class AgentBackgroundCoordinator {
         if chats.isEmpty { releaseActivity() }
         // Off, deleting or quitting replace a chat's session before this runs: read it by id.
         let session = chat.session.id == id ? chat.session : core.chatHistory.session(id: id)
-        guard let run = ledger.run(id), let session else {
+        guard let run = ledger.run(id) else { return settle() }
+        let last = session?.messages.last { $0.role == .assistant }
+        if let cost = run.spend(final: last?.usage?.costUSD) {
+            store.recordScheduledSpend(cost, on: Self.today())
+        }
+        // Counted first: a chat deleted mid-turn still spent what its route reported.
+        guard session != nil else {
             ledger.remove(id)
             return settle()
-        }
-        let last = session.messages.last { $0.role == .assistant }
-        if run.origin.isCapped, let cost = last?.usage?.costUSD ?? run.cost {
-            store.recordScheduledSpend(cost, on: Self.today())
         }
         let state = AgentRun.endState(
             complete: last?.state == .complete, reply: last?.text, stoppedAfter: stoppedAfter,
