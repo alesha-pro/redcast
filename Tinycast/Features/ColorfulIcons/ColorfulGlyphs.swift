@@ -4,7 +4,7 @@ extension AppEntry {
     /// From the kind, then the command catalog; apps, files and extensions keep their own artwork.
     var glyphCategory: GlyphCategory? {
         switch kind {
-        case .command: CommandID(rawValue: id).map(GlyphCategory.init)
+        case .command: CommandID(rawValue: id).flatMap(GlyphCategory.of)
         case .quickAction, .agent: .ai
         case .customCommand: .scripts
         case .snippet: .snippets
@@ -12,7 +12,7 @@ extension AppEntry {
         case .windowCommand, .windowLayout, .windowRoom: .windows
         case .quicklink: .quicklinks
         case .meeting: .calendar
-        case .application, .systemSettings, .appleShortcut, .extensionCommand: nil
+        default: nil
         }
     }
 
@@ -51,6 +51,14 @@ extension AgentSource {
     }
 }
 
+extension PopoverMenuIcon {
+    /// A model's mark in its maker's colour, the one its CLI's sessions wear; nil for any other.
+    var brandHue: RaycastHue? {
+        guard case .asset(let name) = self else { return nil }
+        return AgentSource.allCases.first { $0.tileSymbol == name }?.hue
+    }
+}
+
 extension AppCore {
     /// An agent's row carries its tile in the entry itself, so the switch republishes them.
     func applyColorfulIcons() {
@@ -61,34 +69,18 @@ extension AppCore {
 
 extension SettingsTab {
     /// The sidebar's families match the launcher's, so a feature wears one colour everywhere.
-    var hue: RaycastHue {
-        switch self {
-        case .general, .systemSettings, .fallbacks, .about: .gray
-        case .permissions, .applications, .fileSearch, .navigation, .dictation: .blue
-        case .systemActions, .backup: .green
-        case .commands, .clipboard, .snippets: .orange
-        case .quicklinks, .extensions: .magenta
-        case .appleShortcuts, .windowManagement: .purple
-        case .notes, .calendar, .emoji: .yellow
-        case .ai, .quickActions: .red
-        }
-    }
-}
+    var hue: RaycastHue { Self.hues[self] ?? .gray }
 
-/// A Settings tab's tile: its hue under a white glyph, or upstream's tinted glyph while off.
-struct SettingsTabTile: View {
-    let tab: SettingsTab
-    var tint = Color.accentColor
-    var size = Theme.Size.settingsSidebarGlyph + Theme.Spacing.xs * 2
-
-    var body: some View {
-        IconCache.observeStyle()
-        return Group {
-            if ColorfulIcons.isEnabled {
-                GlyphTile(symbol: tab.systemImage, hue: tab.hue, size: size)
-            } else {
-                SettingsTabIcon(systemImage: tab.systemImage, tint: tint, size: size)
-            }
-        }
-    }
+    /// A pane upstream adds since is grey until it is given a family.
+    private static let hues: [SettingsTab: RaycastHue] = {
+        let families: [RaycastHue: [SettingsTab]] = [
+            .blue: [.permissions, .applications, .fileSearch, .navigation, .dictation],
+            .green: [.systemActions, .backup],
+            .orange: [.commands, .clipboard, .snippets],
+            .purple: [.quicklinks, .appleShortcuts, .windowManagement],
+            .yellow: [.notes, .calendar, .emoji],
+            .red: [.ai, .quickActions, .extensions]
+        ]
+        return Dictionary(uniqueKeysWithValues: families.flatMap { hue, tabs in tabs.map { ($0, hue) } })
+    }()
 }

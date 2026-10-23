@@ -16,6 +16,7 @@ enum ChatSurface {
 struct ChatTranscriptView: View {
 
     @Environment(\.metrics) private var metrics
+    @Environment(\.agentChatBadge) private var agentBadge  // Fork: an agent chat's header
     let messages: [ChatMessage]
     let status: String?
     let usage: AIUsage?
@@ -43,6 +44,7 @@ struct ChatTranscriptView: View {
             ScrollView {
                 // Not lazy: every anchored jump and the end test measure an estimated height
                 VStack(spacing: metrics.spacing.xl) {
+                    if let agentBadge { AgentChatHeader(badge: agentBadge) }  // Fork: the agent
                     ForEach(messages) { message in
                         let isLast = message.id == messages.last?.id
                         ChatMessageView(
@@ -186,7 +188,6 @@ private struct ChatMessageView: View, @MainActor Equatable {
     let onRegenerate: (() -> Void)?
     let onChoose: ((String) -> Void)?
     @Environment(\.chatTextHighlight) private var highlight
-    @Environment(\.agentReplyBadge) private var agentBadge  // Fork: an agent chat's reply header
 
     @State private var hovered = false
 
@@ -208,10 +209,6 @@ private struct ChatMessageView: View, @MainActor Equatable {
         HStack {
             if message.role == .user { Spacer(minLength: metrics.spacing.xxl) }
             VStack(alignment: message.role == .user ? .trailing : .leading, spacing: metrics.spacing.xxs) {
-                // Fork: an agent chat's reply opens with its agent's tile and name.
-                if message.role == .assistant, let agentBadge {
-                    AgentReplyBadgeView(badge: agentBadge).padding(.horizontal, replyInset)
-                }
                 content
                 if message.state != .streaming { footer }
             }

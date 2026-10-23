@@ -129,6 +129,7 @@ struct AgentEditorPanel: View {
                 GlyphTile(symbol: draft.symbol, hue: draft.hue, size: Theme.Size.settingsRowIcon)
                     .frame(width: 40)
             }
+            .accessibilityLabel("Icon")
             .popover(isPresented: $showingIconPicker, arrowEdge: .bottom) {
                 SymbolPicker(
                     selection: $draft.iconSymbol, fallback: AgentProfile.sfSymbol,

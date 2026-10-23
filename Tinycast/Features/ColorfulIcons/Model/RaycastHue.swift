@@ -22,7 +22,7 @@ enum RaycastHue: String, CaseIterable, Identifiable, Sendable {
         }
     }
 
-    /// Raycast Dark's value for `Color.<hue>`: a glyph or text on the dark surface.
+    /// Raycast Dark's value for `Color.<hue>`: an extension's, and any glyph's on the dark surface.
     var dark: UInt32 {
         switch self {
         case .red: 0xFF6363
@@ -50,13 +50,13 @@ enum RaycastHue: String, CaseIterable, Identifiable, Sendable {
         }
     }
 
-    /// A tile under a white glyph, one value in both appearances: Raycast's command-icon tones.
+    /// Under a white glyph in both appearances, and Tinycast's own glyph ink on the light surface.
     var tile: UInt32 {
         switch self {
         case .red: 0xF2453D
-        case .orange: 0xF27A0C
-        case .yellow: 0xE89F00
-        case .green: 0x1FA463
+        case .orange: 0xD9650B
+        case .yellow: 0xBF7A00
+        case .green: 0x1A9A5C
         case .blue: 0x138AF2
         case .purple: 0x7D55F0
         case .magenta: 0xCF2F98
@@ -67,7 +67,7 @@ enum RaycastHue: String, CaseIterable, Identifiable, Sendable {
     /// What an agent may wear; grey is kept for Tinycast's own plumbing.
     static let agentChoices: [RaycastHue] = [.red, .orange, .yellow, .green, .blue, .purple, .magenta]
 
-    /// An agent with no colour of its own: FNV-1a over its id, so it never changes between launches.
+    /// An agent with no colour of its own: FNV-1a over its id, stable between launches.
     static func stable(for id: UUID) -> RaycastHue {
         var hash: UInt64 = 0xcbf2_9ce4_8422_2325
         withUnsafeBytes(of: id.uuid) { bytes in

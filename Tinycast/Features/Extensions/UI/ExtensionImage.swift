@@ -160,16 +160,16 @@ enum ExtensionImage {
 
     /// The one source for both a SwiftUI tint and the CSS an SVG's own `stroke` is rewritten to.
     private static let palette: [String: Color] = [
-        "raycast-blue": RaycastHue.blue.color,  // Fork: Raycast's own values, light and dark
-        "raycast-green": RaycastHue.green.color,
-        "raycast-magenta": RaycastHue.magenta.color,
-        "raycast-orange": RaycastHue.orange.color,
-        "raycast-purple": RaycastHue.purple.color,
-        "raycast-red": RaycastHue.red.color,
-        "raycast-yellow": RaycastHue.yellow.color,
+        "raycast-blue": .blue,
+        "raycast-green": .green,
+        "raycast-magenta": Color(red: 0.85, green: 0.24, blue: 0.62),
+        "raycast-orange": .orange,
+        "raycast-purple": .purple,
+        "raycast-red": .red,
+        "raycast-yellow": .yellow,
         "raycast-primary-text": .primary,
         "raycast-secondary-text": Theme.Colors.textSecondary
-    ]
+    ].merging(RaycastHue.extensionPalette) { $1 }  // Fork: Raycast's own values, light and dark
 
     private static func color(named raw: String) -> Color? {
         // Extensions also pass raw CSS, in every notation `ColorValue` reads.

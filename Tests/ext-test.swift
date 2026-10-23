@@ -890,7 +890,7 @@ struct ExtensionTests {
         let tinted = icon(#"{"source":"circle-16","tintColor":"raycast-green"}"#)
         check("a tinted symbol keeps its source", tinted.source == .symbol("circle"))
         // Fork: `raycast-*` paints with Raycast's own values, the fork's palette.
-        check("a tinted symbol keeps its tint", tinted.tint == RaycastHue.green.color)
+        check("a tinted symbol keeps its tint", tinted.tint == RaycastHue.green.apiColor)
 
         // Doubled delimiters: the hex tint contains `"#`, which closes a single-# raw string.
         check(
@@ -900,7 +900,7 @@ struct ExtensionTests {
         check(
             "a themed tint picks the dark side",
             icon(#"{"source":"circle-16","tintColor":{"light":"raycast-red","dark":"raycast-blue"}}"#)
-                .tint == RaycastHue.blue.color)
+                .tint == RaycastHue.blue.apiColor)  // Fork: Raycast Dark's blue
         // A colour picker states its swatch in Oklch, which read as no tint at all before.
         check(
             "an oklch tint too",
@@ -922,7 +922,7 @@ struct ExtensionTests {
         check(
             "a destructive action's own tint wins",
             icon(#"{"source":"circle-16","tintColor":"raycast-yellow"}"#, isDestructive: true).tint
-                == RaycastHue.yellow.color)
+                == RaycastHue.yellow.apiColor)  // Fork: Raycast's own yellow
         // A tint masks artwork rather than colouring it, so a destructive PNG must stay untinted.
         let destructiveArtwork = icon(#""danger.png""#, isDestructive: true, assets: "/tmp/a")
         check(

@@ -23,8 +23,8 @@ struct SectionHeader: View {
             }
             Spacer(minLength: 0)
         }
-        .font(metrics.typography.sectionHeader)
-        .foregroundStyle(.secondary)
+        .font(metrics.typography.sectionHeader.weight(.semibold))  // Fork: headers that stand out
+        .foregroundStyle(Theme.Colors.textSecondary)  // Fork: 4.5:1 over the light scrim, not 3.9
         .padding(.horizontal, metrics.spacing.md)
         .padding(.top, isFirst ? metrics.spacing.xs : metrics.spacing.sectionSpacing)
         .padding(.bottom, metrics.spacing.sectionHeaderBottom)

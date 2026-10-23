@@ -7,7 +7,7 @@ enum GlyphCategory: CaseIterable, Sendable {
     /// Tinycast's own housekeeping: Settings, backups, updates, About, Quit.
     case app
 
-    /// Raycast's families where it has one: AI red, clipboard orange, dictation blue.
+    /// Raycast's families: AI red, clipboard orange, dictation blue, quicklinks purple.
     var hue: RaycastHue {
         switch self {
         case .ai: .red
@@ -15,51 +15,51 @@ enum GlyphCategory: CaseIterable, Sendable {
         case .notes, .calendar, .emoji: .yellow
         case .system, .camera: .green
         case .files, .web, .voice: .blue
-        case .windows: .purple
-        case .quicklinks: .magenta
+        case .windows, .quicklinks: .purple
         case .scripts, .app: .gray
         }
     }
 
-    /// Exhaustive, so a command upstream adds fails to build until it is given a family.
-    init(_ command: CommandID) {
-        switch command {
-        case .quickAI, .aiChat, .askAboutScreen, .runAgentTask, .searchAgentSessions, .jumpToAgent,
-            .aiUsage, .fixGrammar, .rewrite, .translate, .summarize:
-            self = .ai
-        case .askByVoice, .editByVoice: self = .voice
-        case .clipboardHistory, .pasteSequentially: self = .clipboard
-        case .searchSnippets, .createSnippet: self = .snippets
-        case .showNotes, .createNote, .searchNotes: self = .notes
-        case .joinNextMeeting, .mySchedule, .createEvent, .copyMeetingLink, .openInCalendar:
-            self = .calendar
-        case .searchEmoji: self = .emoji
-        case .calculatorHistory: self = .calculator
-        case .searchFiles, .searchMenuItems, .define: self = .files
-        case .openInBrowser: self = .web
-        case .switchWindows, .switchWindowsBackwards, .createWindowLayout, .captureWindowLayout,
-            .switchRoom, .createRoom:
-            self = .windows
-        case .createQuicklink, .searchQuicklinks, .importQuicklinks, .exportQuicklinks:
-            self = .quicklinks
-        case .runShellCommand, .createCustomCommand, .searchCustomCommands: self = .scripts
-        case .openCamera: self = .camera
-        case .exportSettings, .importSettings, .importFromRaycast, .checkForUpdates, .settings, .about,
-            .support, .quit:
-            self = .app
-        }
-    }
+    /// Nil for a command upstream added since; it keeps the grey glyph until it is given a family.
+    static func of(_ command: CommandID) -> GlyphCategory? { commandFamilies[command] }
+
+    private static let commandFamilies: [CommandID: GlyphCategory] = {
+        let families: [GlyphCategory: [CommandID]] = [
+            .ai: [
+                .quickAI, .aiChat, .askAboutScreen, .runAgentTask, .searchAgentSessions, .jumpToAgent,
+                .aiUsage, .fixGrammar, .rewrite, .translate, .summarize
+            ],
+            .voice: [.askByVoice, .editByVoice],
+            .clipboard: [.clipboardHistory, .pasteSequentially],
+            .snippets: [.searchSnippets, .createSnippet],
+            .notes: [.showNotes, .createNote, .searchNotes],
+            .calendar: [.joinNextMeeting, .mySchedule, .createEvent, .copyMeetingLink, .openInCalendar],
+            .emoji: [.searchEmoji],
+            .calculator: [.calculatorHistory],
+            .files: [.searchFiles, .searchMenuItems, .define],
+            .web: [.openInBrowser],
+            .windows: [
+                .switchWindows, .switchWindowsBackwards, .createWindowLayout, .captureWindowLayout,
+                .switchRoom, .createRoom
+            ],
+            .quicklinks: [.createQuicklink, .searchQuicklinks, .importQuicklinks, .exportQuicklinks],
+            .scripts: [.runShellCommand, .createCustomCommand, .searchCustomCommands],
+            .camera: [.openCamera],
+            .app: [
+                .exportSettings, .importSettings, .importFromRaycast, .checkForUpdates, .settings, .about,
+                .support, .quit
+            ]
+        ]
+        return Dictionary(
+            uniqueKeysWithValues: families.flatMap { family, commands in commands.map { ($0, family) } })
+    }()
 
     /// A ⌘K row's glyph says what the row does, so its meaning picks the hue; nil stays neutral.
     static func menuHue(forSymbol name: String) -> RaycastHue? { menuHues[name] }
 
+    /// No red: in a menu it stays the destructive rows' alone, and AI rows read neutral.
     private static let menuHues: [String: RaycastHue] = {
         let families: [RaycastHue: [String]] = [
-            .red: [
-                "sparkles", "wand.and.sparkles", "wand.and.stars", "brain", "bubble.left",
-                "bubble.left.and.bubble.right", "plus.bubble", "person.crop.circle",
-                "person.crop.circle.badge.clock"
-            ],
             .orange: [
                 "doc.on.doc", "doc.on.doc.fill", "doc.on.clipboard", "list.bullet.clipboard",
                 "text.quote", "paperclip"
@@ -78,9 +78,8 @@ enum GlyphCategory: CaseIterable, Sendable {
             ],
             .purple: [
                 "pencil", "character.cursor.ibeam", "text.cursor", "command", "keyboard",
-                "slider.horizontal.3", "macwindow", "macwindow.badge.plus", "rectangle.3.group"
-            ],
-            .magenta: ["link"]
+                "slider.horizontal.3", "macwindow", "macwindow.badge.plus", "rectangle.3.group", "link"
+            ]
         ]
         return Dictionary(
             uniqueKeysWithValues: families.flatMap { hue, names in names.map { ($0, hue) } })
