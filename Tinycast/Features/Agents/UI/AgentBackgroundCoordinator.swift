@@ -402,6 +402,13 @@ final class AgentBackgroundCoordinator {
         ledger.markFinishedSeen()
     }
 
+    /// Finished runs leave the menu, and the banners that announced them go too.
+    func clearFinished() {
+        for run in ledger.runs where !run.isActive { notifier?.withdraw(run.id) }
+        ledger.clearFinished()
+        refreshIndicator()
+    }
+
     private func refreshIndicator() {
         core.agentCoordinator.refreshMenuBar()
     }

@@ -74,11 +74,11 @@ relaunches it. About shows the `git describe` version and the commit count (a fr
 `git fetch upstream --tags` first). Details and the manual sweep are in
 [fork tooling](docs/fork-tooling.md#scriptsforkinstallsh).
 
-- `--self-check` resolves the identity, version and paths and builds nothing; `--self-test` rehearses
-  an install, a rollback and a start from Tinycast with a stubbed build in `$TMPDIR`; `--rollback` puts
-  back the copy the last install replaced; `--no-launch` and `--force-quit` do what they say. A build
-  rolled back to reads this one's files; continuing an ACP chat there drops the saved diffs and output
-  of the reply it rewrites ([why](docs/features/agents.md#invariants)).
+- `--self-check` resolves the identity, version and paths and builds nothing; `--self-test`
+  rehearses an install, a rollback and a start from Tinycast with a stubbed build in `$TMPDIR`;
+  `--rollback` puts back the copy the last install replaced; `--no-launch` and `--force-quit` do
+  what they say. A build rolled back to reads this one's files; continuing an ACP chat there drops
+  the saved diffs and output of the reply it rewrites ([why](docs/features/agents.md#invariants)).
 - It refuses to replace upstream's same-named `Tinycast.app`, and to install a build whose code
   requirement differs from the installed one: that would cost every privacy grant.
   `--accept-new-identity` goes ahead and prints the `tccutil reset` lines; it never runs them itself.
@@ -92,9 +92,9 @@ relaunches it. About shows the `git describe` version and the commit count (a fr
 ## Roadmap
 
 Sizes are focused working days. Waves are ordered by leverage, not by size. Every item carries the
-owner's decision: **shipped**, **undecided**, **paused**, **not now** or **declined**; a shipped item's "next on
-it" list is agreed work, and what follows its "Undecided:" waits for the owner. Declined items stay
-listed so the numbers other docs cite keep their meaning.
+owner's decision: **shipped**, **undecided**, **paused**, **not now** or **declined**; a shipped
+item's "next on it" list is agreed work, and what follows its "Undecided:" waits for the owner.
+Declined items stay listed so the numbers other docs cite keep their meaning.
 
 ### Wave 0 — fork foundation
 
@@ -130,12 +130,13 @@ listed so the numbers other docs cite keep their meaning.
    shared with background agents (item 5) have shipped. Next on it: nothing agreed. Undecided: live
    status for Gemini CLI (its hooks) and OpenCode (a plugin); folder fields for `GEMINI_CLI_HOME` and
    `OPENCODE_DB`; and OpenCode's `session_v2` schema once it is released.
-3. **Voice to AI — shipped** (see Voice AI above): cloud dictation with dictation modes, Ask by Voice
-   with hold-to-talk on a single modifier and an agent as an optional target, and Edit Selection by
-   Voice. Next on it: nothing agreed. Undecided: measuring modes' one-request reliability per model,
-   which may tune `VoiceRoutePolicy.rewritesWhileTranscribing`; modes for the on-device engine behind
-   their own consent, a capsule caption naming the agent or the edit while recording, choosing an
-   agent per press, and reordering modes. Upstream declined voice control (#1550).
+3. **Voice to AI — shipped** (see Voice AI above): cloud dictation with dictation modes, Ask by
+   Voice with hold-to-talk on a single modifier and an agent as an optional target, and Edit
+   Selection by Voice. Next on it: nothing agreed. Undecided: measuring modes' one-request
+   reliability per model, which may tune `VoiceRoutePolicy.rewritesWhileTranscribing`; modes for the
+   on-device engine behind their own consent, a capsule caption naming the agent or the edit while
+   recording, choosing an agent per press, and reordering modes. Upstream declined voice control
+   (#1550).
 4. **Tinycast as an MCP server — declined.** A stdio helper that would have lent the launcher's
    clipboard, screen, notes and dialogs to Claude Code, Codex and other MCP clients. Those stay
    inside Tinycast's own agents.
@@ -154,9 +155,9 @@ listed so the numbers other docs cite keep their meaning.
    tool shipped with the native harness. *3–4 days.*
 7. **Web search — shipped** (see above), with `read_page` for plain chats: it reads only a page the
    user linked in their own words or a search in the same turn returned, at the address the user or
-   the engine wrote, at most five a turn, through `web_fetch`'s bounded read, under the same toggle. Next on it: nothing agreed. Undecided:
-   the keyed engines Serper, Linkup, Ollama and Mojeek, and reading an earlier turn's results without
-   a new search.
+   the engine wrote, at most five a turn, through `web_fetch`'s bounded read, under the same toggle.
+   Next on it: nothing agreed. Undecided: the keyed engines Serper, Linkup, Ollama and Mojeek, and
+   reading an earlier turn's results without a new search.
 8. **Raycast AI for extensions — shipped** (see above), including the requested `AI.Model` (opt-in,
    by the vendor its first word names, silently falling back to the extension model;
    Groq/Vercel/Baseten/Together names keep it), `creativity` as temperature (none for Gemini; one

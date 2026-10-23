@@ -223,8 +223,9 @@ an ended one after 10 minutes and anything after 12 hours.
 With **Show running agents in the menu bar** on, the hub's live sessions are a section of the one
 Agents menu-bar item that background runs use (`Agents/UI/AgentsStatusItem.swift`): the hub gives it
 `menuBarIndicator` and `menuBarRows`, built as the menu opens, and the item's opening marks finished
-sessions seen. Rows jump to their session; Search Agent Sessions and Clear Finished sit below. With
-the switch off, the item shows no session, row or hub action at all.
+sessions seen. Rows jump to their session; Search Agent Sessions and Clear Finished sit below, and
+Clear Finished also drops finished background runs. With the switch off, the item shows no session,
+row or Search Agent Sessions at all.
 
 ## Manual sweep
 

@@ -65,7 +65,8 @@ row and chord, `AppIndex`, `LauncherList`, `LauncherCoordinator`, `AppActionsMen
   on every such turn, not only a fresh session's first, so the agent's own loaded session cannot
   miss it. A slash command's turn is the exception: the agent must read the command first, so it
   goes as typed. Since a run starts a fresh process, its first `/word` waits for the session's list
-  ([why](agents.md#acp-agents)), so a task such as `/tmp is full…` is briefed like any other. It is model-facing text, never localized, and names no tool and no file.
+  ([why](agents.md#acp-agents)), so a task such as `/tmp is full…` is briefed like any other. It is
+  model-facing text, never localized, and names no tool and no file.
 - **Agent questions queue.** `AgentConsentGate` asks one at a time and only once no dialog is up,
   observed rather than polled, so a foreground and a background ask no longer refuse each other.
 - **Only Always-trusted MCP servers ride an unattended turn.** Servers set to Ask are excluded through
@@ -153,14 +154,16 @@ finished run has been seen, unless Agent Sessions still has a live session to sh
 in order of priority, a run or session waiting for an answer, runs and sessions at work (with a
 count past one), an unseen failure or an unseen success (`AgentRunLedger.Indicator.of` and
 `merged(with:)`). Its menu is built only when opened: **Background Runs**, one row per run, newest
-first, with ⌥ turning a running row into **Stop**; then **Agent Sessions**, one row per live session,
-which jumps to it; then Search Agent Sessions and Clear Finished while the hub's half is on, and
-Agent Settings…. Opening it marks finished runs and sessions seen. The work its closing does waits a
-turn of the main queue, because AppKit sends the chosen row's action after `menuDidClose`, and the
-background coordinator is not let go while the menu is open. A launcher run and Run Now show a HUD
-at the start and the end; a schedule's own runs show none, so nothing pops up at 3 a.m. A run whose
-chat is on screen in a key AI Chat window is marked seen with no HUD and no banner. A run still going
-after the agent's limit (15 minutes by default, 5 to 60) is stopped.
+first, with ⌥ turning a running row into **Stop**; then **Agent Sessions**, one row per live
+session, which jumps to it; then Search Agent Sessions while the hub's half is on, Clear Finished
+while that half is on or a finished run is listed (it drops finished runs, withdrawing their
+banners, and the hub's finished sessions; running and waiting ones stay), and Agent Settings….
+Opening it marks finished runs and sessions seen. The work its closing does waits a turn of the main
+queue, because AppKit sends the chosen row's action after `menuDidClose`, and the background
+coordinator is not let go while the menu is open. A launcher run and Run Now show a HUD at the start
+and the end; a schedule's own runs show none, so nothing pops up at 3 a.m. A run whose chat is on
+screen in a key AI Chat window is marked seen with no HUD and no banner. A run still going after the
+agent's limit (15 minutes by default, 5 to 60) is stopped.
 
 A native agent's model is told, while its turn runs unattended, that nobody can answer and that it
 should finish with a short report (`AgentBackgroundBriefing.text`); a follow-up typed in the window
@@ -286,19 +289,21 @@ day and time zone, like the schedules.
 - AI off mid-run: the run ends "Cancelled", and the item and the scheduler go away.
 - With live status and **Show running agents in the menu bar** on, start a Claude CLI session and a
   `@rig` run: one item shows both under their headers and counts them. Let the run finish while the
-  session waits: the item keeps the waiting symbol. Turn the hub's menu-bar switch off: the session
-  rows, Search Agent Sessions and Clear Finished leave the menu, and the item goes once the run is
-  seen. No run and no live session: no item at all.
+  session waits: the item keeps the waiting symbol. Clear Finished: the finished run leaves
+  Background Runs while a running one stays. Turn the hub's menu-bar switch off: the session rows
+  and Search Agent Sessions leave the menu, Clear Finished stays only while a finished run is
+  listed, and the item goes once the run is seen. No run and no live session: no item at all.
 
 Harness: `agent-schedule-test` — handles and addresses, occurrences across weekends and daylight
-saving, verdicts and catch-up, the ledger and its indicator, consent modes and plans, the gate's
-whole ask (in front, quiet with Return on refusal, refused unseen when nobody is left after the wait,
-nothing shown after Stop, what is counted) and a counted unattended refusal, how a run ends and its
-limit, note blocks and the append on disk and through an open note's store, persistence and its
-refusals, the scheduler's arming and its settle after sleep, and the consent gate waiting for a
-dialog in order, and the spend cap: days, starts at and below the cap, stops past it, a new day,
-nonsense costs and caps, the capped origin, its running spend and what it adds however it ends,
-its end state, the file's persistence and an unreadable file failing closed. `acp-test` covers the
-refusal option, two agents sharing a session id, and the briefing: on an unattended chat's every
-turn, after the context, never on a chat someone started. `agent-loop-test` runs `AgentSpendMeter`
-over the loop: unchanged events and a growing cost after each round.
+saving, verdicts and catch-up, the ledger, its indicator and Clear Finished, consent modes and
+plans, the gate's whole ask (in front, quiet with Return on refusal, refused unseen when nobody is
+left after the wait, nothing shown after Stop, what is counted) and a counted unattended refusal,
+how a run ends and its limit, note blocks and the append on disk and through an open note's store,
+persistence and its refusals, the scheduler's arming and its settle after sleep, and the consent
+gate waiting for a dialog in order, and the spend cap: days, starts at and below the cap, stops past
+it, a new day, nonsense costs and caps, the capped origin, its running spend and what it adds
+however it ends, its end state, the file's persistence and an unreadable file failing closed.
+`acp-test` covers the refusal option, two agents sharing a session id, and the briefing: on an
+unattended chat's every turn, after the context, never on a chat someone started, and on a fresh
+process's `/word` turn. `agent-loop-test` runs `AgentSpendMeter` over the loop: unchanged events and
+a growing cost after each round, a sub-agent's rounds included.

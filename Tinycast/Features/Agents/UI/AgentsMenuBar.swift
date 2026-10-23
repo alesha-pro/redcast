@@ -29,7 +29,10 @@ extension AgentCoordinator {
                 stopRun: { [weak self] in self?.backgroundRuns?.stop($0) },
                 jumpToSession: { [weak self] in self?.core.agentSessionsCoordinator.jump(toSession: $0) },
                 searchSessions: { [weak self] in self?.core.agentSessionsCoordinator.show() },
-                clearFinishedSessions: { [weak self] in self?.core.agentSessionsCoordinator.clearFinished() },
+                clearFinished: { [weak self] in
+                    self?.backgroundRuns?.clearFinished()
+                    self?.core.agentSessionsCoordinator.clearFinished()
+                },
                 settings: { [weak self] in self?.showAgentSettings() },
                 viewed: { [weak self] in
                     self?.backgroundRuns?.markFinishedSeen()

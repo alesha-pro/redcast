@@ -59,11 +59,12 @@ below, and the `Fork:`-marked lines listed under [Upstream touches](#upstream-to
   Support, one tab-separated line per reply, the date first. The append runs on the stream's own
   detached task under one `Mutex`. A line a crash cut short would read as a reply once ended, so
   that append instead rewrites the file atomically without it (never shrinking it in place under a
-  mapped reader); an ordinary append then reads the file's first 32 bytes, and only when that oldest line is more than 430 days old rewrites the file
-  atomically without the lines older than 400 days (and any it cannot read). So it holds 400–430
-  days and is rewritten about once a month, never on a timer. A failed write never touches the reply.
-  **Usage log → Clear…** at the section's foot removes the file under the same lock after Tinycast's
-  own confirmation; chats keep their usage, and the next logged reply starts a new file.
+  mapped reader); an ordinary append then reads the file's first 32 bytes, and only when that oldest
+  line is more than 430 days old rewrites the file atomically without the lines older than 400 days
+  (and any it cannot read). So it holds 400–430 days and is rewritten about once a month, never on a
+  timer. A failed write never touches the reply. **Usage log → Clear…** at the section's foot
+  removes the file under the same lock after Tinycast's own confirmation; chats keep their usage,
+  and the next logged reply starts a new file.
 - **The log stays readable both ways.** A reader ignores fields past the ninth and reads missing
   trailing ones as unreported, so a later build can add columns; an origin it does not know is
   kept as none, and a route it cannot parse is **Unknown model**.
@@ -184,7 +185,8 @@ search keywords in `SettingsSearchCatalog`.
   cloud dictation in a mode, an extension's `AI.ask` and a new chat's title. A Quick Action on Apple Intelligence adds nothing.
 - Stop a streaming Quick Action after its first words: no line, unless usage had already arrived.
 - Usage log → Clear…: Tinycast's own dialog asks; Clear Log removes `ai-usage.tsv`, the Quick Action
-  lines leave the section at once while chats keep theirs, and the next Quick Action starts a new file.
+  lines leave the section at once while chats keep theirs, and the next Quick Action starts a new
+  file.
 - The trend: Day shows a bar per hour, Week seven and Month one per day; the current one is tinted
   and later ones are a hairline; hovering a bar names it with its tokens and cost. A 25-hour day
   (the last Sunday of October in Europe) shows 25 bars.
@@ -199,20 +201,21 @@ search keywords in `SettingsSearchCatalog`.
 ## Harness
 
 `usage-dashboard-test` runs the query against a real `ChatHistoryStore` in a scratch folder: sums
-per conversation, user messages and replies without usage left out, exact `[start, end)` edges,
-cost NULL against 0, a missing database left uncreated, reads beside the open writer and after it
-closes. It merges models whose stored JSON differs only in key order and effort, puts an ACP-bound
-chat under its agent and a chat with no model under Unknown model, and checks the sort and the
-totals. ACP running totals go through the same store: 0.1, 0.3 and 0.6 cost 0.6, a period counts
-only the rise inside it, a drop starts counting afresh, an unpriced reply keeps the last total, and a
-chat no ACP agent ran sums as stored. Periods use a Berlin Gregorian calendar with Monday weeks (a
-23-hour DST day, a week across the clock change, stepping back across a year); formats use `en_US`.
+per conversation, user messages and replies without usage left out, exact `[start, end)` edges, cost
+NULL against 0, a missing database left uncreated, reads beside the open writer and after it closes.
+It merges models whose stored JSON differs only in key order and effort, puts an ACP-bound chat
+under its agent and a chat with no model under Unknown model, and checks the sort and the totals.
+ACP running totals go through the same store: 0.1, 0.3 and 0.6 cost 0.6, a period counts only the
+rise inside it, a drop starts counting afresh, an unpriced reply keeps the last total, and a chat no
+ACP agent ran sums as stored. Periods use a Berlin Gregorian calendar with Monday weeks (a 23-hour
+DST day, a week across the clock change, stepping back across a year); formats use `en_US`.
 OpenRouter's documented `/key` and `/credits` bodies, an error body and status mapping are decoded
 without a network; the management key's request goes to the fixed `/credits` URL and a refusal names
 it. The log's own case appends, reads, trims, drops a line a crash cut short (even one that already
-names its model) rather than ending it, and clears. It also holds the two accuracy fixes: a two-round tool turn's cost is both rounds', and only
-OpenAI's own endpoint is sent `stream_options` — an OpenAI preset on a gateway and an unknown server
-are not. `agent-loop-test` holds the agents' loop to the same sum.
+names its model) rather than ending it, and clears. It also holds the two accuracy fixes: a
+two-round tool turn's cost is both rounds', and only OpenAI's own endpoint is sent `stream_options`
+— an OpenAI preset on a gateway and an unknown server are not. `agent-loop-test` holds the agents'
+loop to the same sum.
 
 The trend: hourly, daily and DST-day slices, the slice each reply lands in from the same statement,
 an ACP rise counted in its own slice, and bars that add up to the total. The log: a line reads back

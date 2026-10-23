@@ -155,6 +155,11 @@ struct AgentRunLedger: Equatable, Sendable {
         runs.removeAll { $0.id == id }
     }
 
+    /// The menu's Clear Finished; a running or waiting run stays.
+    mutating func clearFinished() {
+        runs.removeAll { !$0.isActive }
+    }
+
     func run(_ id: UUID) -> AgentRun? {
         runs.first { $0.id == id }
     }

@@ -285,6 +285,18 @@ struct AgentScheduleTests {
         expect(kept.isRunning(schedule: scheduled), "a schedule's run is found by its schedule")
         expect(!AgentRun.Origin.schedule(scheduled, manual: false).announces, "a schedule's own run is quiet")
         expect(AgentRun.Origin.schedule(scheduled, manual: true).announces, "Run Now is announced")
+
+        var cleared = AgentRunLedger()
+        let waiting = run(state: .waiting)
+        for (state, entry) in [(AgentRun.State.done, run()), (.failed("x"), run()), (.running, run())] {
+            cleared.begin(entry)
+            cleared.update(entry.id) { $0.state = state }
+        }
+        cleared.begin(waiting)
+        cleared.clearFinished()
+        expect(
+            cleared.runs.map(\.state) == [.waiting, .running],
+            "Clear Finished drops done and failed runs and keeps those running or waiting")
     }
 
     static func oneItemForRunsAndSessions() {

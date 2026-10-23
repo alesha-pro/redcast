@@ -17,7 +17,8 @@ final class AgentsStatusItem: NSObject, NSMenuDelegate {
         let stopRun: (UUID) -> Void
         let jumpToSession: (String) -> Void
         let searchSessions: () -> Void
-        let clearFinishedSessions: () -> Void
+        /// Finished background runs and finished live sessions alike.
+        let clearFinished: () -> Void
         let settings: () -> Void
         /// The menu opened: every finished run and session counts as seen.
         let viewed: () -> Void
@@ -92,7 +93,9 @@ final class AgentsStatusItem: NSObject, NSMenuDelegate {
         menu.addItem(.separator())
         if sessions != nil {
             menu.addItem(row(CommandID.searchAgentSessions.name, #selector(searchSessions)))
-            menu.addItem(row(String(localized: "Clear Finished"), #selector(clearFinishedSessions)))
+        }
+        if sessions != nil || runs.contains(where: { !$0.isActive }) {
+            menu.addItem(row(String(localized: "Clear Finished"), #selector(clearFinished)))
         }
         menu.addItem(row(String(localized: "Agent Settings…"), #selector(openSettings)))
     }
@@ -149,8 +152,8 @@ final class AgentsStatusItem: NSObject, NSMenuDelegate {
         actions.searchSessions()
     }
 
-    @objc private func clearFinishedSessions() {
-        actions.clearFinishedSessions()
+    @objc private func clearFinished() {
+        actions.clearFinished()
     }
 
     @objc private func openSettings() {
