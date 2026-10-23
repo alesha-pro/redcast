@@ -27,8 +27,8 @@ own keys, logins and machines.
 
 ### Agents
 
-- **[Agents](docs/features/agents.md)**: a chat that lives in a folder, reads its `AGENTS.md`, skills
-  and notes, and works there with built-in tools for files, terminal, web and memory, on any
+- **[Native agents](docs/features/agents.md)**: a chat that lives in a folder, reads its `AGENTS.md`,
+  skills and notes, and works there with built-in tools for files, terminal, web and memory, on any
   tool-calling API model. Every change and command is asked first unless the agent's permissions say
   otherwise.
 - **[ACP agents](docs/features/agents.md#acp-agents)**: Claude Code, Codex, Gemini CLI, OpenCode,
@@ -44,15 +44,15 @@ own keys, logins and machines.
 ### AI
 
 - **[Web search](docs/features/web-search.md)**: Exa, Parallel or DuckDuckGo with no key, or your
-  SearXNG, Brave or Tavily, for agents and every API model in AI Chat, then the pages it finds or you
-  link.
+  SearXNG, Brave or Tavily, for agents and every API model in AI Chat and Quick AI; with it on, a chat
+  also reads a page you linked or a search found.
 - **[Quick AI with tools](docs/features/quick-ai-tools.md)**: web search from Quick AI's ⌘K, and an
   agent of your choice answering there with its tools, folder and permissions.
 - **[Screen Awareness](docs/features/screen-awareness.md)**: double-tap right ⌘ and the window in front
   (title, URL, selection, focused field, readable text and, if you allow it, a screenshot) is attached
   to a chat.
-- **[Quick Actions](docs/features/quick-actions.md#placeholders)**: `{clipboard}`, `{date}` and
-  `{argument}` placeholders in your own actions, and ⌘J to continue a result in AI Chat.
+- **[Quick Action placeholders](docs/features/quick-actions.md#placeholders)**: `{clipboard}`,
+  `{date}` and `{argument}` in your own actions, and ⌘J to continue a result in AI Chat.
 - **[Notes and AI](docs/features/notes-ai.md)**: attach a note with `@note`. Agents with the Notes tools
   search, read and append to your notes, and ask before every addition.
 - **[Raycast extensions with AI](docs/features/extension-ai.md)**: `AI.ask` and `useAI` are answered by
@@ -66,23 +66,23 @@ own keys, logins and machines.
   OpenAI-compatible connection, with spoken punctuation, lists and corrections, the languages you
   speak, your own spellings, and modes (Translate to English, Polish, As a message, or your own) that
   Tab switches mid-dictation.
-- **[Ask and Edit by Voice](docs/features/voice-ai.md)**: ask about the window in front and get the
-  answer beside it or typed into the field, hand the request to an agent, or say how to change the
-  selected text.
+- **[Ask and Edit by Voice](docs/features/voice-ai.md#ask-by-voice)**: ask about the window in front
+  and get the answer beside it or typed into the field, hand the request to an agent, or say how to
+  change the selected text.
 - **[Dictation History](docs/features/dictation-history.md)**: every transcript kept as text, never
   audio, searchable from the launcher and pasted again with ↵.
 
 ### Look and feel
 
 - **[Raycast look](docs/ui.md#colour-the-raycast-palette-fork)**: Raycast's palette and red accent,
-  command tiles coloured by family, and a colour for every agent. Colorful icons in Settings › General
-  brings back Tinycast's.
+  command tiles coloured by family, and a colour for every agent. Settings → General → Appearance →
+  Colorful icons brings back Tinycast's tiles.
 - **[Alias + Space](docs/features/alias-actions.md)**: type an entry's alias and press Space to open it.
   Change an alias or a shortcut right from ⌘K.
 
 ## Kept from Tinycast
 
-Everything Tinycast does, Redcast does too:
+The launcher Tinycast built is all here:
 
 - **Launch:** apps, files and folders, Apple Shortcuts, custom shell commands, global and per-app hotkeys
 - **Text:** clipboard history with images, snippets with keyword expansion, quicklinks, a calculator
@@ -101,10 +101,10 @@ Each one has its own page in [docs/](docs/README.md#features).
 ## Light by design
 
 - **Native and small.** SwiftUI and AppKit, no Electron, no third-party dependencies and no
-  telemetry, held to Tinycast's ceiling of 100 MB of resident memory.
+  telemetry, built to Tinycast's 100 MB memory budget.
 - **Quiet when idle.** The fork's features wait for you: ACP agents stop after two idle minutes, voice
-  keeps no timer, tap or process between presses, schedules wait as one sleeping task, and histories
-  and sessions are read when you open them.
+  keeps no timer or process between presses (a single-key hold shares the one listen-only key tap),
+  schedules wait as one sleeping task, and histories and sessions are read when you open them.
 - **The network on your terms.** AI requests go to the providers you connect, with your keys and
   logins, when you ask. A Redcast build never checks for updates. Timed requests are the ones you set
   up (a schedule, an extension's background refresh) and the calculator's daily exchange rates.
@@ -152,11 +152,15 @@ Each permission is asked for the first time a feature needs it, and lives in Sys
 | Microphone | dictate, or ask or edit by voice |
 | Screen Recording | turn on a window screenshot for Screen Awareness or voice |
 | Calendars | use the calendar and meeting join |
-| Automation | run a system action that scripts another app, such as Empty Trash |
+| Automation | run a system action that scripts another app (such as Empty Trash), use Show Info in Uninstall, or resume an agent session in Terminal, iTerm2 or Ghostty |
 | Camera, Bluetooth, Reminders | open the camera, toggle Bluetooth, or run an extension that uses reminders |
 
-Snippets ship off, and their keywords are matched on your Mac, never stored and never sent anywhere.
-Voice audio goes only to the connection you approved and is never saved.
+Full Disk Access is never requested: Search Files needs it and Uninstall uses it for protected
+leftovers. Grant it in System Settings → Privacy & Security → Full Disk Access.
+
+Snippets ship off; with them on, what you type is matched against their keywords on your Mac and is
+never stored or sent anywhere. Voice audio goes only to the connection you approved and is never
+saved.
 
 ## Documentation
 
@@ -178,7 +182,8 @@ lands. How it works is in [docs/fork-tooling.md](docs/fork-tooling.md#scriptsfor
 Redcast is an unofficial fork of [Tinycast](https://github.com/abue-ammar/tinycast) by Abue Ammar. The
 launcher and most of its code come from Tinycast, Copyright © 2026 Abue Ammar, and Redcast is
 distributed under the same [GNU Affero General Public License v3.0](LICENSE). The app's About window
-says so too.
+says so too. Redcast's changes, made from October 2026 on and listed in [FORK.md](FORK.md) and the git
+history, are Copyright © 2026 [alesha-pro](https://github.com/alesha-pro) under the same licence.
 
 Ported from other Tinycast forks under the same licence: alias + Space and the extension-runtime fixes
 from [sermelipharo/tinycast-space](https://github.com/sermelipharo/tinycast-space), ⌘K alias and
