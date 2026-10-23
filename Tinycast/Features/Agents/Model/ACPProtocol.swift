@@ -342,9 +342,9 @@ enum ACPPrompt {
     /// Prior turns travel only when the agent could not reload its own copy of the session.
     static let maxHistoryBytes = 24 * 1_024
 
-    /// A slash command leads with its text, where agents look for one, and carries no preamble.
+    /// `earlier` is a `transcript(of:)`; a slash command leads with its text and has no preamble.
     static func blocks(
-        for message: AIMessage, context: String?, history: [AIMessage], capabilities: Capabilities,
+        for message: AIMessage, context: String?, earlier: String, capabilities: Capabilities,
         asCommand: Bool = false
     ) -> [[String: Any]] {
         let request: [String: Any] = ["type": "text", "text": message.text]
@@ -352,7 +352,6 @@ enum ACPPrompt {
         var blocks: [[String: Any]] = []
         var preamble: [String] = []
         if let context, !context.isEmpty { preamble.append(context) }
-        let earlier = transcript(of: history)
         if !earlier.isEmpty {
             preamble.append("## Earlier in this conversation\n\n" + earlier)
         }
