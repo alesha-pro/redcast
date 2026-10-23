@@ -44,7 +44,7 @@ struct AgentDelegateTools: AgentToolProvider {
         let request = AIRequest(
             instructions: instructions, messages: [AIMessage(role: .user, text: task.text)])
         var answer = ""
-        var cost: Double?
+        var billed = 0.0
         var failure: String?
         do {
             for try await event in child.stream(request) {
@@ -52,14 +52,18 @@ struct AgentDelegateTools: AgentToolProvider {
                 case .text(let delta): answer += delta
                 // What it said before its last calls was working aloud, not its answer.
                 case .toolCall: answer = ""
-                case .usage(let usage): cost = usage.costUSD ?? cost
+                // A running total: each rise is billed now, so a child cut short is still billed.
+                case .usage(let usage):
+                    if let cost = usage.costUSD, cost > billed {
+                        context.signal(.spent(cost - billed))
+                        billed = cost
+                    }
                 default: break
                 }
             }
         } catch {
             failure = error.localizedDescription
         }
-        if let cost { context.signal(.spent(cost)) }
         let found = answer.trimmingCharacters(in: .whitespacesAndNewlines)
         if let failure {
             let partial = found.isEmpty ? "" : " What it had found:\n\n" + Self.bounded(found)

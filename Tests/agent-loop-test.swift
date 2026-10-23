@@ -33,6 +33,7 @@ struct AgentLoopTests {
         await aSubAgentAnswersInsideItsParentsTurn()
         await aSubAgentIsBounded()
         await stopReachesASubAgent()
+        await aSubAgentsSpendIsHeardAsItLands()
         await compactionAddsNothingWhileNothingIsDropped()
         await compactionSummarisesOnceThenReuses()
         await aFailedSummaryLeavesTheTurnAsBuilt()
@@ -533,6 +534,70 @@ extension AgentLoopTests {
     }
 }
 
+extension AgentLoopTests {
+    static func meteredParent(_ base: any AIProvider) -> AgentLoopProvider {
+        let child = childTools([FakeTools(names: ["fs_read"]) { _, _ in "x" }])
+        let delegate = AgentDelegateTools(base: base, toolset: child, instructions: "")
+        return AgentLoopProvider(base: base, toolset: toolset([delegate], families: [.delegate]), maxRounds: 25)
+    }
+
+    static func cents(_ values: [Double]) -> [Double] {
+        values.map { ($0 * 100).rounded() / 100 }
+    }
+
+    static func aSubAgentsSpendIsHeardAsItLands() async {
+        let rounds: [[AIStreamEvent]] = [
+            [.usage(AIUsage(inputTokens: 10, costUSD: 0.01)), delegateCall("d1")],
+            [call("c1"), .usage(AIUsage(costUSD: 0.5))],
+            [call("c2"), .usage(AIUsage(costUSD: 0.5))],
+            [.text("Found."), .usage(AIUsage(costUSD: 0.5)), .finished],
+            [.text("Done."), .usage(AIUsage(inputTokens: 20, costUSD: 0.01)), .finished]
+        ]
+        let heard = Heard()
+        let metered = await collect(AgentSpendMeter(base: meteredParent(ScriptedProvider(rounds: rounds))) {
+            heard.append($0)
+        })
+        expect(metered.failure == nil, "a metered parent with a sub-agent finishes")
+        expect(
+            cents(heard.values) == [0.01, 0.51, 1.01, 1.51, 1.52],
+            "the meter hears each of the sub-agent's rounds as it ends, got \(heard.values)")
+
+        let hanging = ScriptThenHang(rounds: Array(rounds.prefix(4)))
+        let log = EventLog()
+        let loop = meteredParent(hanging)
+        let consumer = Task {
+            do {
+                for try await event in loop.stream(turn) { log.append(event) }
+            } catch {}
+        }
+        let deadline = ContinuousClock.now + .seconds(3)
+        while cents([lastCost(log.events) ?? 0]) != [1.51] || hanging.requests < 5, .now < deadline {
+            try? await Task.sleep(for: .milliseconds(10))
+        }
+        consumer.cancel()
+        await consumer.value
+        let shown = log.events.compactMap { event -> AIUsage? in
+            if case .usage(let usage) = event { usage } else { nil }
+        }.last
+        expect(
+            hanging.requests == 5 && cents([shown?.costUSD ?? 0]) == [1.51],
+            "stopped while the parent's next round streams, the reply keeps the sub-agent's spend")
+        expect(shown?.inputTokens == 10, "beside the tokens of the parent's last round")
+
+        let pair = ScriptedProvider(rounds: [
+            [.usage(AIUsage(costUSD: 0.01)), delegateCall("d1"), delegateCall("d2", name: "Other")],
+            [.text("A."), .usage(AIUsage(costUSD: 0.5)), .finished],
+            [.text("B."), .usage(AIUsage(costUSD: 0.25)), .finished],
+            [.text("Done."), .usage(AIUsage(costUSD: 0.01)), .finished]
+        ])
+        let both = Heard()
+        _ = await collect(AgentSpendMeter(base: meteredParent(pair)) { both.append($0) })
+        expect(
+            pair.requests.count == 4 && cents(both.values) == [0.01, 0.51, 0.76, 0.77],
+            "two sub-agents of one round are heard one at a time, got \(both.values)")
+    }
+}
+
 // MARK: - Cross-turn compaction
 
 extension AgentLoopTests {
@@ -738,6 +803,30 @@ final class HangingProvider: AIProvider, @unchecked Sendable {
             }
             continuation.onTermination = { _ in task.cancel() }
         }
+    }
+}
+
+/// Replays a script, then never answers, as a route that stalls on the next request.
+final class ScriptThenHang: AIProvider, @unchecked Sendable {
+    private let script: ScriptedProvider
+    private let hang = HangingProvider()
+    private let lock = NSLock()
+    private let scripted: Int
+    private var count = 0
+
+    init(rounds: [[AIStreamEvent]]) {
+        script = ScriptedProvider(rounds: rounds)
+        scripted = rounds.count
+    }
+
+    var requests: Int { lock.withLock { count } }
+
+    func stream(_ request: AIRequest) -> AIProviderStream {
+        let replays = lock.withLock {
+            count += 1
+            return count <= scripted
+        }
+        return replays ? script.stream(request) : hang.stream(request)
     }
 }
 
