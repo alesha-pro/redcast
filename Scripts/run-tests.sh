@@ -1008,7 +1008,7 @@ run web-search-test        Tinycast/Features/WebSearch/Model/*.swift \
                            Tinycast/Features/AI/Service/AIProvider.swift \
                            Tinycast/Features/AI/Service/AIToolLoopProvider.swift
 run quick-ai-tools-test    Tinycast/Features/QuickAITools/Model/*.swift \
-                           Tinycast/Features/QuickAITools/Settings/QuickAISettingsStore.swift \
+                           Tinycast/Features/Agents/Settings/AgentDefaultStore.swift \
                            Tinycast/Features/Settings/AppSettingsKey.swift \
                            Tinycast/Features/WebSearch/Model/*.swift \
                            Tinycast/Features/AI/Model/AIRequest.swift \

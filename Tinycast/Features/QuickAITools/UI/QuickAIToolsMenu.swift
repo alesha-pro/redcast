@@ -25,14 +25,14 @@ enum QuickAIToolsMenu {
                 title: String(localized: "No Agent"), icon: current == nil ? .symbol("checkmark") : .blank,
                 sectionTitle: String(localized: "Answer with"), startsSection: true
             ) {
-                agents.chooseQuickAIAgent(nil, for: chat)
+                agents.chooseAgent(nil, for: chat)
             })
         for agent in offered {
             items.append(
                 PopoverMenuItem(
                     title: agent.name, icon: current?.id == agent.id ? .symbol("checkmark") : .blank
                 ) {
-                    agents.chooseQuickAIAgent(agent, for: chat)
+                    agents.chooseAgent(agent, for: chat)
                 })
         }
         return items

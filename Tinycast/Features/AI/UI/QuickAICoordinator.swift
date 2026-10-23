@@ -101,7 +101,7 @@ final class QuickAICoordinator {
     @discardableResult
     func send(_ input: String) -> Bool {
         // Fork: the agent Quick AI answers with becomes the chat's own once its first message goes.
-        core.agentCoordinator.bindingQuickAIAgent(in: chat) { chatCoordinator.send(input, in: chat) }
+        chatCoordinator.sendBindingAgent(input, in: chat)
     }
 
     func startNewChat() {

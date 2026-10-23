@@ -1,6 +1,6 @@
 import Foundation
 
-/// What a chat is offered: Tinycast's web tools, the Web Search switch, and Quick AI's agent.
+/// What a chat is offered: Tinycast's web tools, the Web Search switch, and its starting agent.
 enum ChatToolPolicy {
     enum Surface: Equatable, Sendable {
         case quickAI
@@ -47,12 +47,29 @@ enum ChatToolPolicy {
         facts.callsTools && facts.hasToolServers && !facts.hasAgent
     }
 
-    /// The chat's own agent, else Quick AI's while its chat is unsent and ⌘K has not said none.
-    static func agent(
-        bound: UUID?, quickAI: UUID?, surface: Surface, isUnsent: Bool, declined: Bool
-    ) -> UUID? {
+    /// The chat's own agent, else its surface's pick while it is unsent and nobody said none.
+    static func agent<Agent>(
+        bound: Agent?, quickAI: @autoclosure () -> Agent?, window: @autoclosure () -> Agent?,
+        surface: Surface, isUnsent: Bool, declined: Bool
+    ) -> Agent? {
         if let bound { return bound }
-        guard surface == .quickAI, isUnsent, !declined else { return nil }
-        return quickAI
+        guard isUnsent, !declined else { return nil }
+        return surface == .quickAI ? quickAI() : window()
+    }
+
+    /// AI Chat's pick while AI is on and `lookup` still finds its agent; otherwise chats start plain.
+    static func windowAgent<Agent>(picked: UUID?, aiEnabled: Bool, lookup: (UUID) -> Agent?) -> Agent? {
+        guard aiEnabled, let picked else { return nil }
+        return lookup(picked)
+    }
+
+    /// No Agent on an unsent chat keeps the pick out of it; another pick, or the chat gone, lets it in.
+    static func declined(
+        _ declined: Set<UUID>, choosing agent: UUID?, for chat: UUID, isUnsent: Bool,
+        live: some Sequence<UUID>
+    ) -> Set<UUID> {
+        var kept = declined.intersection(live)
+        if agent == nil && isUnsent { kept.insert(chat) } else { kept.remove(chat) }
+        return kept
     }
 }

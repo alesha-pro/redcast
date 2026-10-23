@@ -568,7 +568,7 @@ and the Actions menu's own chords, and dies with the window.
   solid under its glass so the transcript cannot show through. `ChatContextReport`
   lays it out: tokens in context of the window, input with its cached share, output with its
   thinking share and cost; then what the next message sends — model, history of budget, messages
-  sent of total, staged files, and whether the system prompt, web search and tools ride along. The model and reasoning menus are this chat's, as Quick AI's header is Quick AI's. Files arrive by ⌘V, a drop anywhere on the pane, or Attach Files…, and all three take
+  sent of total, staged files, and whether the system prompt, web search and tools ride along. The model and reasoning menus are this chat's, as Quick AI's header is Quick AI's. The fork's agent menu sits before them, and a new chat starts on the agent Settings → AI → Agents → Agent for new chats names, bound only once its first message goes ([which chats](agents.md#a-new-chats-agent)). Files arrive by ⌘V, a drop anywhere on the pane, or Attach Files…, and all three take
   the refusals a paste does. The text field takes a file drop itself and hands it to the same
   attach, since an `NSTextView` would otherwise type the file's path. The unsent text lives on `AIChatState.draft`, so it survives closing
   the window.

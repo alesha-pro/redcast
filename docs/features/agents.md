@@ -295,10 +295,38 @@ optional chord: see [background and scheduled agents](background-agents.md).
   from history and not open, so the file holds no more lines than there are agent chats.
   `agent-personal-chats.json` beside it lists the chats whose agent read the user's own data (see the
   web scope above), written once a chat and pruned the same way; the previous build never reads it.
+- **A new AI Chat chat starts with the agent for new chats.** Settings → AI → Agents → Agent for new
+  chats (`aiChatAgent`) names any agent the composer offers, ACP ones included. `agent(for:)`
+  resolves through `ChatToolPolicy.agent`: a chat's own binding wins, and a window chat with no
+  message yet takes the pick unless its composer said No Agent for it (`chooseAgent` keeps that in
+  `declinedDefault`, in memory, by chat id). So everything that asks `agent(for:)` — the route, the
+  prompt, the model, an ACP agent's pickers and slash commands, the **+** menu and the capabilities a
+  capture is staged under — has the agent before the first message, as a pick in the composer gives
+  it, and the composer still switches it, to No Agent too, for that chat alone.
+- **Bound by the first message, never before.** `AIChatCoordinator.sendBindingAgent`, the window's
+  and Quick AI's send, reads the agent an unbound chat shows before the send and binds it with
+  `setAgent` only once the message went. An empty chat never sent, or a refused send, adds no line
+  to `agent-chats.json`, and no ACP process starts before that send; a deleted chat drops its line
+  as any agent chat's does. A chat that has spoken never moves with the setting, so existing chats
+  are untouched, and an unsent one follows a change in Settings until it speaks.
+- **A gone or switched-off default is none.** `ChatToolPolicy.windowAgent` reads the pick as No
+  Agent while AI is off or once its agent is deleted, and new chats then start plain. Nothing is
+  rewritten, so turning AI back on brings the pick back.
+- **Nothing resident, and nothing travels.** `AgentDefaultStore` reads one `UserDefaults` string per
+  surface, the first time an unbound chat with no message there asks `agent(for:)`; a bound or
+  spoken chat never works a default out. `declinedDefault` holds only open chats that said No Agent
+  before speaking, and each pick forgets the rest. The default's folder is read off-main once, when
+  AI Chat prepares (`warmChatAgent` from `prepareForChat`) or the setting changes, so its first send
+  finds the context cached, as after a pick in the composer. No timer, no file, no process: an ACP
+  default an empty chat only shows starts nothing and keeps nothing running, since a background
+  run's release counts the chats bound to its agent. `aiChatAgent` names an agent on this Mac, and
+  with an ACP agent a command to run, so like `aiQuickAIAgent` it is excluded from backups and has
+  no `settings.json` key; the previous build ignores it.
 - **Quick AI can answer with an agent.** Settings → AI → Agents → Quick AI answers with names an
   agent on the chat's model (`aiQuickAIAgent`); `agent(for:)` gives it to Quick AI's chat until its
   first message binds it like any other, and ⌘K → Answer with switches it for one chat. ACP agents
-  are not offered there ([why](quick-ai-tools.md#invariants)).
+  are not offered there ([why](quick-ai-tools.md#invariants)), and neither surface takes the
+  other's pick.
 - **An ACP tool row holds only what it shows.** A call's diffs and output are compacted once, as
   they arrive, by `ChatToolContent(call:)`, and the compacted form is both what the row unfolds and
   what is saved: at most 12 KB a row. It is saved in its own table, `message_tool_content`, keyed
@@ -350,6 +378,22 @@ optional chord: see [background and scheduled agents](background-agents.md).
   those, never the command's own turn and reply, which the agent already holds.
 - **Tinycast lends an ACP agent no file system and no terminal.** `initialize` declares `fs` and
   `terminal` off and every such request is refused; [why](#tinycasts-own-fs-and-terminal).
+
+## A new chat's agent
+
+Which chats count as new for Agent for new chats, and why:
+
+| The chat | Starts with | Why |
+| --- | --- | --- |
+| New Chat, ⌘N, or AI Chat opened by its command, a chord or Screen Awareness onto a new conversation (Opens to, Start a new conversation after) | the agent for new chats | a conversation the user starts in the window, which is what the setting names |
+| ⌘N on a chat with no message yet | that chat: an agent picked there, else the agent for new chats | `newWindowChat` keeps an empty chat as already new, with what is staged in it. ⌘N asks for a new chat, so `restoreDefault` forgets a No Agent said there; an agent picked there is a choice already bound, and stays |
+| A capture Screen Awareness stages into that new chat | the agent for new chats, the capture staged under its model | staging asks `capabilities(for:)`, so a picture the agent's model cannot see stays behind, as after a pick |
+| A chat resumed from the sidebar, history or the open policy | its own agent or none | it has spoken |
+| A Quick Action's Continue in AI Chat (⌘J) | no agent | `openSeededInWindow` opens it holding the action's question and reply on the action's model, so it has spoken; an agent would change the model and prompt under a reply it never wrote. The composer adds one in a click |
+| Quick AI's ⌘J | Quick AI's agent; with none, the agent for new chats while the chat has no message | `adoptQuickAIAgent` binds the agent Quick AI showed. Showing none is no choice, so the chat is left unbound: one moved with only staged files is new in the window and takes its default, unless ⌘K said No Agent for it, which `declinedDefault` keeps by chat id on either surface; one that has spoken stays plain |
+| An agent's launcher row, `@handle`, Settings' New Chat | that agent | an explicit pick, bound at once by `startChat(with:)` |
+| Background and scheduled runs, voice-to-agent | their agent | a run binds its own chat before its first turn |
+| A new Quick AI chat | Quick AI answers with | Quick AI's own setting, native agents only |
 
 ## ACP agents
 
@@ -504,6 +548,7 @@ off by default per agent, bounded by `AgentPathPolicy` and asked through the age
 | `Service/AgentPlanTools.swift` | `update_plan`: shows the checklist it is sent |
 | `Service/AgentDelegateTools.swift` | `delegate`: one read-only sub-agent per call, its answer bounded and its cost billed |
 | `UI/AgentCoordinator.swift` | Bindings, cached context, the turn's prompt, its loop and provider registry, consent |
+| `UI/NewChatAgent.swift` | A chat before its first message: AI Chat's default and its warm-up, `chooseAgent`, ⌘N's `restoreDefault`, and `sendBindingAgent` |
 | `Model/AgentRuntime.swift` | ACP presets and the command/arguments an agent runs |
 | `Model/ACPProtocol.swift` | Framing, `session/update` decoding, permissions, prompt blocks, `ACPEventMapper` |
 | `Model/ACPSessionOptions.swift` | A session's selects (config options, older models and modes), their slots, what a remembered value comes to, `ACPChoices` for an agent and a chat |
@@ -516,6 +561,8 @@ off by default per agent, bounded by `AgentPathPolicy` and asked through the age
 | `UI/ChatToolContentView.swift` | `.toolContent(_:)`: a transcript row's fold and its diff or output card |
 | `UI/ACPCommandPicker.swift` | `.acpCommands(chat:chats:editor:)`: the composer's command card and its keys |
 | `Settings/AgentsSettingsSection.swift`, `AgentEditorPanel.swift` | The AI pane's list, its schedules and the editor |
+| `Settings/NewChatAgentRow.swift`, `AgentDefaultPicker.swift` | Agent for new chats, on the picker Quick AI's row shares |
+| `Settings/AgentDefaultStore.swift` | `aiChatAgent` and `aiQuickAIAgent` in `UserDefaults`, one store each |
 
 Background runs and schedules add their own files, listed in
 [background-agents.md](background-agents.md#layout).
@@ -679,7 +726,22 @@ this way, as one provider. Nothing else changes: no router edit, no upstream lin
   ask an agent something that takes it two or three tool rounds: Settings → AI → Usage shows the
   model's input with a "cached" share. Ask again in a new chat within five minutes: the cached share
   covers the prompt and tools from the first request.
-- Delete the agent: its chats remain as plain chats and the composer shows No Agent.
+- Agent for new chats: set it to an agent with its own model. ⌘N: the composer shows the agent and
+  its model before anything is typed; Return on the empty chat leaves `agent-chats.json` unchanged.
+  Ask what the project is: the reply is the agent's, and the chat keeps it after a relaunch. ⌘N,
+  pick No Agent, ask something: a plain reply, and the next ⌘N shows the agent again. ⌘N, pick No
+  Agent, ⌘N again before typing: the same chat shows the agent again. An older chat without an
+  agent opened from the sidebar still has none. In Quick AI with no agent of its own, capture the
+  screen and ⌘J: AI Chat shows the agent for new chats over the capture. Set it to a Claude Code
+  agent after a relaunch: ⌘N drops the API model picker, `ps` shows no adapter until the first send,
+  and once that chat answered, the next ⌘N shows its model, effort and mode pickers before a word is
+  typed. With that chat sent and a new empty one in front, run the agent by its `@handle` in the
+  background: `ps` shows the adapter gone as soon as the run ends, not two minutes later. Continue a
+  Quick Action's result in AI Chat: it opens with no agent. Search Settings for "new chats": it lands
+  on the row. Export a backup: `aiChatAgent` is not in it.
+- Delete the agent: its chats remain as plain chats and the composer shows No Agent; Agent for new
+  chats reads No Agent and a new chat starts plain. Turn AI off: the row, disabled, still names the
+  pick; turn AI on and a new chat starts on it again.
 - ACP: make an agent on Claude Code in a project folder; ask it to read and change a file. The first
   turn may wait while npx fetches the adapter; then the dialog lists Claude's own options, the
   transcript shows its tool rows, and the composer shows its model, effort and mode pickers and a ⋯
@@ -756,3 +818,6 @@ this way, as one provider. Nothing else changes: no router edit, no upstream lin
   go; `agent-scenario-test` runs whole turns end to end on each provider's wire
   ([agent harness](agent-harness.md#testing)); and `agent-schedule-test` covers background runs and schedules (see
   [background-agents.md](background-agents.md#manual-sweep)).
+  `quick-ai-tools-test` holds which agent a chat starts with on each surface, that a bound or
+  spoken chat never works a default out, which open chats keep a No Agent and when one is
+  forgotten, the fallback when the agent is gone or AI is off, and both picks across launches.
