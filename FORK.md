@@ -22,7 +22,7 @@ OpenCode, Goose, Hermes, local models — on the subscriptions and machines you 
 | Native agent harness | Agent chats on API models run the fork's own tool loop. Tool families plug in as providers, each with a risk, and every change, command and fetch passes one consent policy. Read-only calls in a round run in parallel, and a long turn elides old results instead of stopping. A long chat keeps notes on the turns it no longer sends: made once, extended rarely, billed into the reply. `update_plan` shows a checklist the way ACP plans show. Opt-in Sub-agents hands a read-only task to a `delegate` copy of the agent on the same model. Opt-in Screen lets `screen_context` read the text of the window behind Tinycast, only on a turn the user sends from the chat and only after a dialog that names the app. On Anthropic's own API and on OpenRouter, Claude is asked to cache every request that will be sent again. Stop ends a running command, sub-agent or summary and voids a late Allow | [agents](docs/features/agents.md#adding-a-tool-family) |
 | Web search | A `web_search` tool for agents and every API model: Exa, Parallel and DuckDuckGo with no key, then your SearXNG, Brave or Tavily, tried in order; with Web search on, a plain chat can also `read_page` a page you linked or a search found | [web-search](docs/features/web-search.md) |
 | Notes ↔ AI | Attach Note… in the composer or Quick AI's ⌘K menu, or `@note`, picks a note to send with the next message; agents with the Notes tools search and read your notes and add reports to them, every addition asked first whatever the agent's other rules say | [notes-ai](docs/features/notes-ai.md) |
-| Background and scheduled agents | `@agent do X` in root search runs a turn with no window, and every agent is a launcher row of its own (Return a new chat; Cmd-K Run in Background… and Edit Agent) with an optional global chord that types its `@handle`. One transient Agents menu-bar item shows background runs and Agent Sessions' live sessions together; a HUD (and an opt-in banner) says when a run ended, and the result is a chat. Schedules run an agent daily, on working days or every few hours while Tinycast is open, with one sleeping task, a catch-up rule, an optional note and an optional daily spend cap in US dollars over the costs routes report, counted even for runs cut short by a quit. Unattended requests ask only someone at the Mac, with Return on Don't Allow; native and ACP agents are both told when nobody is watching | [background-agents](docs/features/background-agents.md) |
+| Background and scheduled agents | `@agent do X` in root search runs a turn with no window, and every agent is a launcher row of its own (Return a new chat; ⌘K Run in Background… and Edit Agent) with an optional global chord that types its `@handle`. One transient Agents menu-bar item shows background runs and Agent Sessions' live sessions together; a HUD (and an opt-in banner) says when a run ended, and the result is a chat. Schedules run an agent daily, on working days or every few hours while Tinycast is open, with one sleeping task, a catch-up rule, an optional note and an optional daily spend cap in US dollars over the costs routes report, counted even for runs cut short by a quit. Unattended requests ask only someone at the Mac, with Return on Don't Allow; native and ACP agents are both told when nobody is watching | [background-agents](docs/features/background-agents.md) |
 | ACP agents | An agent can run as its own CLI over the Agent Client Protocol — Claude Code, Codex, Gemini CLI, OpenCode, Goose, Hermes or any command — on your own logins, with its permission requests, tool rows that unfold the call's diff or command output, plans, modes and its slash commands offered in the composer in AI Chat, and sessions that survive a relaunch; an unattended run's prompt says nobody may be at the Mac | [agents](docs/features/agents.md#acp-agents) |
 | Voice AI | Cloud dictation through Gemini Flash on your own OpenRouter, Gemini or OpenAI-compatible connection, with dictation modes (Translate to English, Polish, As a message or your own) that rewrite the transcript per app. The capsule names the mode, and Tab or ⇧Tab switches it, even while the shortcut is held. Ask by Voice: speak a question about the window in front and get the answer beside it or typed into the field. Or hand the request to an agent as a background task with the window attached; that run is saved as its chat. Edit Selection by Voice: say how to change the selected text, and it is replaced in place if the selection hasn't moved. Both commands can be held on a key combination or a single modifier such as right Option. Audio goes only to the connection you approved and is never saved | [voice-ai](docs/features/voice-ai.md) |
 | Raycast AI for extensions | `AI.ask`, `useAI`, `AI.experimental_decide` and `canAccess(AI)` answered by your own model, off until you allow it and asked once per extension (a dismissed question asks again); `creativity` becomes a temperature where the route takes one, and an opt-in switch lets a model an extension names (Claude, GPT, Gemini…) reach that vendor's closest model among your API connections — read from the name's host, so Groq's or Vercel's hosted models keep yours; only in a command you open or from a menu-bar item you click, never in a menu's render, a background refresh or anything one launches | [extension-ai](docs/features/extension-ai.md) |
@@ -92,7 +92,7 @@ relaunches it. About shows the `git describe` version and the commit count (a fr
 ## Roadmap
 
 Sizes are focused working days. Waves are ordered by leverage, not by size. Every item carries the
-owner's decision: **shipped**, **undecided**, **paused** or **declined**; a shipped item's "next on
+owner's decision: **shipped**, **undecided**, **paused**, **not now** or **declined**; a shipped item's "next on
 it" list is agreed work, and what follows its "Undecided:" waits for the owner. Declined items stay
 listed so the numbers other docs cite keep their meaning.
 
@@ -132,11 +132,10 @@ listed so the numbers other docs cite keep their meaning.
    `OPENCODE_DB`; and OpenCode's `session_v2` schema once it is released.
 3. **Voice to AI — shipped** (see Voice AI above): cloud dictation with dictation modes, Ask by Voice
    with hold-to-talk on a single modifier and an agent as an optional target, and Edit Selection by
-   Voice. Next on it: nothing agreed; the manual sweep measures modes' one-request reliability per
-   model, which may tune `VoiceRoutePolicy.rewritesWhileTranscribing`. Undecided: modes for the
-   on-device engine behind their own consent, a capsule caption naming the agent or the edit while
-   recording, choosing an agent per press, and reordering modes. Upstream declined voice control
-   (#1550).
+   Voice. Next on it: nothing agreed. Undecided: measuring modes' one-request reliability per model,
+   which may tune `VoiceRoutePolicy.rewritesWhileTranscribing`; modes for the on-device engine behind
+   their own consent, a capsule caption naming the agent or the edit while recording, choosing an
+   agent per press, and reordering modes. Upstream declined voice control (#1550).
 4. **Tinycast as an MCP server — declined.** A stdio helper that would have lent the launcher's
    clipboard, screen, notes and dialogs to Claude Code, Codex and other MCP clients. Those stay
    inside Tinycast's own agents.
@@ -162,10 +161,11 @@ listed so the numbers other docs cite keep their meaning.
    by the vendor its first word names, silently falling back to the extension model;
    Groq/Vercel/Baseten/Together names keep it), `creativity` as temperature (none for Gemini; one
    retry without it where a route refuses it), `AI.experimental_decide` (prompted probabilities, not
-   logprobs) and AI from a menu-bar item's own action. Next on it: extension model providers
-   (`ai.modelProvider`, `getModels`), held back because surfacing them in AI Chat needs a JS-backed
-   provider layer and a resident extension runtime. Calibrated `experimental_decide` probabilities
-   need logprobs no route exposes.
+   logprobs) and AI from a menu-bar item's own action. Extension model providers
+   (`ai.modelProvider`, `getModels`) were evaluated and left out: surfacing them in AI Chat needs a
+   JS-backed provider layer and a resident extension runtime
+   ([why](docs/features/extension-ai.md#what-maps-to-what)). Next on it: nothing agreed. Calibrated
+   `experimental_decide` probabilities need logprobs no route exposes.
 9. **Model arena — declined.** One prompt to two to four models side by side.
 
 ### Wave 3 — daily delights
