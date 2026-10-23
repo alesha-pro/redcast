@@ -25,7 +25,9 @@ plus the few lines that wire it in.
   that app and says to reopen it; otherwise it is the missing-grant dialog.
 - **Only on a gesture, and never Tinycast itself.** Nothing is read until the command runs. With the
   palette open the target is the app behind it (`PaletteCoordinator.targetApp`); with it closed, the
-  frontmost app. Tinycast's own bundle is refused with a HUD rather than captured.
+  frontmost app. Tinycast's own bundle is refused with a HUD rather than captured. For an agent the
+  gesture is a message the user sends in its chat: a schedule's or the launcher's background run and a
+  sub-agent never read the screen (see below).
 - **Passwords are not context.** A secure text field is skipped by role or subrole everywhere the walk
   looks, and the focused field is dropped entirely while Secure Event Input is on.
 - **The window's text gives way first.** `ScreenContextFormatter` keeps the header, the selection and
@@ -45,6 +47,21 @@ plus the few lines that wire it in.
   `screenAwarenessShortcutOffered` then stays set, so a binding the reader cleared stays cleared.
 - **The capture is taken before anything comes forward.** Both destinations are shown only after the
   window was read, so neither the AI Chat window nor the palette can become the window captured.
+- **An agent reads the screen only when ticked, as text, and keeps nothing.** `ScreenAgentTools` offers
+  `screen_context` to an agent on Tinycast's loop with the Screen family ticked (off for every agent until
+  then), and only while AI and this feature are on, checked again at each call. It reads the frontmost
+  normal-layer window of a regular app other than Tinycast, found in `CGWindowListCopyWindowInfo` by owner
+  pid at call time (no observer, no Screen Recording), through the same `ScreenContextReader` and
+  `AccessibilityText` selection Ask About Screen uses, never a screenshot. The text goes into that call's
+  result only, cut by `ScreenContextFormatter` under 24 KB, and is never written down. It is offered
+  only on a turn the user sent from the chat (`AgentTurn.isUserTurn`): a turn of a background run
+  (`AgentTurn.isBackground`, set while `AgentBackgroundCoordinator` holds the chat's run, even when its
+  dialogs may still reach someone) or of a sub-agent (unattended) is not offered it, and a call there
+  is refused before anything is asked or read, since the window in front is whatever the user happens to
+  have open. It is personal data, so the agent's rule for that risk applies: Always by default, and the
+  editor has no row for it, so ticking Screen is the grant. `context.consent` still runs before the read,
+  so a rule other than Always would be honoured. Without Accessibility it says so rather than
+  prompting.
 - **A picture the route cannot see stays behind.** `AIChatCoordinator.stage` checks
   `AIModelCapabilities.images`; on a text-only route only the text is staged and a HUD says so, rather
   than staging an image the send would refuse.
@@ -57,6 +74,7 @@ plus the few lines that wire it in.
 | `Model/ScreenContextFormatter.swift` | The capture as the Markdown attachment, its budget and its name |
 | `Service/ScreenContextReader.swift` | The Accessibility walk, off-main: focused window, title, frame, web area URL, focused field |
 | `Service/WindowScreenshotter.swift` | Finds the window by pid and frame, captures it with ScreenCaptureKit; `ScreenRecordingAccess` |
+| `Service/ScreenAgentTools.swift` | `screen_context` for agents: the window behind Tinycast, read as text when called |
 | `UI/ScreenAwarenessCoordinator.swift` | The one funnel: target, permission, capture, staging; the capture is shared with Ask by Voice |
 | `Model/ScreenAwarenessDestination.swift` | AI Chat (the default, as in Raycast) or Quick AI |
 | `Settings/ScreenAwarenessSettingsSection.swift` | The AI pane's section |
@@ -104,5 +122,12 @@ bounded to 1568px like any pasted picture.
 - Switch **Open captures in** to Quick AI: the same capture lands in the palette's chat instead.
 - With Tinycast's Settings in front, press the shortcut: refused with a HUD.
 - Turn the feature off: the launcher row disappears and the shortcut does nothing.
+- Tick Screen for an agent (Settings → AI → Agents), open a page in Safari, then ask the agent in AI Chat
+  what is on the page: the transcript shows `screen_context` and the answer quotes the page. Turn
+  Screen Awareness off: the checkbox greys out and the agent says it cannot read the screen.
+- With Screen still ticked, run the same agent from the launcher (**Run Agent Task**) asking what is on
+  screen, and ask it in a chat to delegate that question to a sub-agent: neither transcript shows a
+  `screen_context` row, and the agent says it cannot see the screen from there.
 - Harness: `screen-awareness-test` (section order, budget and cut markers, forged titles, secure roles,
-  line normalizing).
+  line normalizing; the agent tool's spec, opt-in, consent before any read, the off and untrusted paths,
+  no offer and no read in a background run or a sub-agent, and its cut).

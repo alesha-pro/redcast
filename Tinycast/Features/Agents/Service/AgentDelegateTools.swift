@@ -1,0 +1,118 @@
+import Foundation
+
+/// `delegate`: one read-only sub-agent per call on the turn's own model; its findings are the result.
+struct AgentDelegateTools: AgentToolProvider {
+    static let name = "delegate"
+    /// A sub-task that has not answered in this many rounds has lost its way.
+    static let maxRounds = 12
+    /// Under the executor's 28 KB, so the parent's budget never has to cut it.
+    static let maxAnswerBytes = 16 * 1_024
+    static let maxNameLength = 60
+    static let briefing = """
+        ## Sub-task
+
+        Another agent handed you the task in the next message. You can only read: you cannot change \
+        files, run commands, write notes or ask the user anything, and you do not see that agent's \
+        conversation. Work the task through with your tools, then answer with what you found (facts, \
+        paths, short quotes) as briefly as the task allows. Your answer goes back to that agent, not to \
+        the user.
+        """
+
+    /// The parent's route, and the child's read-only toolset and prompt, built with the turn.
+    let base: any AIProvider
+    let toolset: AgentToolset
+    let instructions: String
+
+    func specs(for turn: AgentTurn) -> [AgentToolSpec] {
+        // The call changes nothing itself; each of the child's calls meets its own rule.
+        [
+            AgentToolSpec(
+                tool: Self.definition(origin: turn.profile.name), family: .delegate, risk: .read,
+                concurrent: false)
+        ]
+    }
+
+    func title(for call: AIToolCall) -> String? {
+        Self.task(in: call.arguments).map { Self.name + ": " + $0.name }
+    }
+
+    func run(_ call: AIToolCall, in context: AgentToolContext) async -> AIToolResult {
+        guard let task = Self.task(in: call.arguments) else {
+            return .failure(call.id, "delegate takes a name and a task, both non-empty text.")
+        }
+        let child = AgentLoopProvider(base: base, toolset: toolset, maxRounds: Self.maxRounds)
+        let request = AIRequest(
+            instructions: instructions, messages: [AIMessage(role: .user, text: task.text)])
+        var answer = ""
+        var cost: Double?
+        var failure: String?
+        do {
+            for try await event in child.stream(request) {
+                switch event {
+                case .text(let delta): answer += delta
+                // What it said before its last calls was working aloud, not its answer.
+                case .toolCall: answer = ""
+                case .usage(let usage): cost = usage.costUSD ?? cost
+                default: break
+                }
+            }
+        } catch {
+            failure = error.localizedDescription
+        }
+        if let cost { context.signal(.spent(cost)) }
+        let found = answer.trimmingCharacters(in: .whitespacesAndNewlines)
+        if let failure {
+            let partial = found.isEmpty ? "" : " What it had found:\n\n" + Self.bounded(found)
+            return .failure(call.id, "The sub-agent stopped: \(failure)" + partial)
+        }
+        guard !found.isEmpty else { return .failure(call.id, "The sub-agent gave no answer.") }
+        return AIToolResult(callID: call.id, content: Self.bounded(found), isError: false)
+    }
+
+    static func definition(origin: String) -> AITool {
+        AITool(
+            name: name,
+            description:
+                "Hand one self-contained task to a read-only sub-agent with your folder and your "
+                + "reading tools. It works on its own and returns only its findings, which keeps long "
+                + "searches and reading out of this conversation. It cannot change files, run commands "
+                + "or ask the user, and it does not see this conversation, so give it everything it needs.",
+            parameters: .object([
+                "type": .string("object"),
+                "properties": .object([
+                    "name": .object([
+                        "type": .string("string"),
+                        "description": .string("A few words naming the task, shown to the user.")
+                    ]),
+                    "task": .object([
+                        "type": .string("string"),
+                        "description": .string("The whole task, with the context it needs.")
+                    ])
+                ]),
+                "required": .array([.string("name"), .string("task")])
+            ]),
+            origin: origin, title: name)
+    }
+
+    static func task(in arguments: String) -> (name: String, text: String)? {
+        let object = JSONValue(data: Data(arguments.utf8))?.objectValue
+        guard let text = object?["task"]?.stringValue?.trimmingCharacters(in: .whitespacesAndNewlines),
+            !text.isEmpty,
+            let name = object?["name"]?.stringValue?.split(whereSeparator: \.isNewline)
+                .joined(separator: " ").trimmingCharacters(in: .whitespaces),
+            !name.isEmpty
+        else { return nil }
+        return (String(name.prefix(maxNameLength)), text)
+    }
+
+    /// Whole scalars only, and a cut that says so.
+    static func bounded(_ text: String) -> String {
+        guard text.utf8.count > maxAnswerBytes else { return text }
+        var used = 0
+        let kept = text.unicodeScalars.prefix { scalar in
+            used += scalar.utf8.count
+            return used <= maxAnswerBytes
+        }
+        return String(kept) + "\n…cut: the sub-agent's answer was longer."
+    }
+}

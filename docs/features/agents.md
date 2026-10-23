@@ -4,8 +4,8 @@ An **agent** lives in one folder. A chat given an agent works there: its turns r
 `AGENTS.md`, the skills in `<folder>/.agents/skills` and `~/.agents/skills`, the agent's own notes and
 instructions, and its built-in tools — files, terminal, web and memory — act there. Agents are this
 fork's; upstream lists AI-assistant features under [not planned](../not-planned.md), so the feature
-stays in `Features/Agents/` plus the few lines in `AIChatCoordinator`, `AIChatDetailView`,
-`AISettingsView` and `AppCore` that wire it in. An agent can also work with no window, from `@handle`
+stays in `Features/Agents/` plus the few lines in `AIChatCoordinator`, `QuickAICoordinator`,
+`AIChatDetailView`, `AISettingsView` and `AppCore` that wire it in. An agent can also work with no window, from `@handle`
 in root search or on a schedule: see [background and scheduled agents](background-agents.md).
 
 ## Invariants
@@ -82,6 +82,61 @@ in root search or on a schedule: see [background and scheduled agents](backgroun
   pairing of calls and results are never touched, a stub is never stubbed again, and the gap between
   the two marks means the prefix changes rarely, so a provider's prompt cache keeps hitting. Elided
   bytes stop counting toward the history wall.
+- **Claude is asked to cache; no other route is.** Anthropic and OpenRouter cache a Claude prompt only
+  when the request asks, while OpenAI, Gemini, DeepSeek and the rest cache a repeated prefix by
+  themselves and are sent as they always were. `AIRequestBody.cacheMarked`, one fork block in upstream's
+  file, adds a top-level `cache_control` to a request for Anthropic's own API (`api.anthropic.com`) or
+  for an OpenRouter `anthropic/` or `~anthropic/` model, which keeps one breakpoint on the newest block
+  as the conversation grows. On Anthropic's own API it also marks the system prompt and the last tool,
+  so a new chat with the same agent reads them from the cache: three breakpoints of the four allowed.
+  An Anthropic preset pointed at another host is a gateway, which may refuse a field it does not know,
+  so it is left alone. Only a request that will be sent again asks: one that offers tools (each round of
+  an agent's or a sub-agent's turn) or carries more than one message (a chat's follow-up). A lone
+  question, as a Quick Action, extension AI or the compaction summary, goes out unmarked, since the
+  automatic breakpoint would land after its unique tail and every run would pay the write premium on
+  bytes nobody reads back. A write costs a quarter more than plain input and a read a tenth, so a turn
+  of two rounds or a reply within five minutes pays for it; a prompt under the model's minimum is simply
+  not cached.
+- **A plan is shown, never kept.** `update_plan` belongs to no family and is the agent's own (risk
+  own), so every agent on Tinycast's loop has it and it never asks. The model sends the whole checklist
+  each time; `AgentPlanTools` shows it as a reasoning fold with the same lines `ACPEventMapper` draws for
+  an ACP agent's plan (`AgentPlan.checklist`), and stores nothing.
+- **A sub-agent only reads, on its parent's model, inside its parent's turn.** Sub-agents
+  (`AgentToolKind.delegate`, off until ticked) offers `delegate`, which runs one nested
+  `AgentLoopProvider` per call over the turn's own route. The child is the agent made read-only with
+  Sub-agents removed, so it has no `delegate` of its own and stops at one level; its toolset offers only
+  `AgentToolRisk.reads` (read, network, personal: no change, command, `memory_write` or plan), no MCP,
+  and runs unattended, so anything whose rule would ask is refused and `screen_context`, which needs a
+  turn the user sent, is not offered. It gets the agent's context prompt for that read-only profile
+  and a sub-task briefing, never the parent's conversation. It stops after 12
+  rounds; its answer is the text after its last call, cut to 16 KB. What it spent comes back as
+  `AgentToolSignal.spent` and is billed into the parent's reply. Its own calls never show; the parent's
+  row reads "delegate: <name>" through `AgentToolProvider.title(for:)`. One runs at a time, and Stop
+  cancels the parent's task group, which ends the child's stream and its task.
+- **A newer family never breaks the previous build.** `AgentProfile` writes `tools` with only the
+  families the build before Screen and Sub-agents could decode, and those two under `addedTools`, a key
+  that build ignores; reading merges both and drops a family name it does not know. A family added later
+  joins `AgentToolKind.unknownToOlderBuilds`.
+- **A long agent chat keeps notes on what no longer fits, made once and grown rarely.**
+  `ChatSession.requestMessages` drops a chat's oldest turns past its text budget. For an agent chat on
+  Tinycast's loop, `AgentLoopProvider` first reads the chat's history (`AgentCompaction.Source`, read on
+  the main actor when the turn starts) and counts what was dropped. Nothing dropped: no file is read and
+  no request is made. Dropped and already covered: the stored notes are reused, with no request.
+  Dropped past them: one request to the chat's own model, with no tools, folds the notes so far and only
+  the newly dropped messages into new notes (at most 64 KB read, newest first, 6 KB a message; 8 KB
+  kept). The new notes reach past what was dropped, to the first question from which at most half of
+  the history that fitted the budget is left, so later turns reuse them for a while. The newest question
+  is not part of that measure: it always goes out whole, outside the budget, so a long pasted question
+  cannot push the notes over the conversation that fitted. They lead the first question sent, inside
+  `<earlier_conversation>`, rather than as a message of their own, since some chat
+  templates reject two questions in a row, and nothing they cover is sent again. Their cost is billed
+  into the reply; tokens are left alone. A tool row, "Summary of earlier messages", opens while they are
+  made and closes when done (failed when the request fails, and the turn then goes as it was built);
+  reuse shows nothing. The notes are `AgentChatSummary` in `agent-summaries/<chat>.json`, with how many
+  messages they cover and the id of the last, so notes on a history that changed underneath start over.
+  They go when the chat is deleted (by its id one at a time; all at once or by retention through
+  `AppCore.pruneAgentSummaries`, which keeps only the chats still listed), when the chat leaves its
+  agent and when its agent is deleted. Plain chats and ACP chats never make any.
 - **The binding is the fork's, not the chat history's.** Which chat has which agent is
   `agent-chats.json` beside `agents.json` in Application Support, so upstream's SQLite schema is
   untouched. Deleting an agent frees its chats, which stay as plain AI chats, and deletes its notes.
@@ -143,16 +198,20 @@ They run on the user's own logins and subscriptions; Tinycast never sees a key.
 | File | Holds |
 | --- | --- |
 | `Model/AgentProfile.swift` | The profile: folder, access, tool families, permissions, skill sources, instructions sources, model |
-| `Model/AgentStore.swift` | Agents and chat bindings as JSON; the notes' location |
+| `Model/AgentStore.swift` | Agents and chat bindings as JSON; where the agent's notes and a chat's summary live |
 | `Model/AgentSkill.swift` | `SKILL.md` front matter, the merged catalog, and `AgentContext.prompt` |
 | `Model/AgentToolbox.swift` | `AgentPathPolicy`, the tool definitions per profile, and what each reaches (`spec(for:)`) |
 | `Model/AgentTool.swift` | `AgentToolProvider`, `AgentToolSpec`, `AgentToolRisk`, `AgentTurn`, `AgentRunMode`, the call's context |
 | `Model/AgentConsentPolicy.swift` | Rules (ask, always, never), an agent's own (`AgentConsentRules`), `AgentGrant`, the verdict per rule and mode |
 | `Model/AgentToolset.swift` | One turn's offered tools in a stable order, and where each call goes |
 | `Model/AgentTurnBudget.swift` | The per-result, per-turn and history limits; `AgentBatchPolicy` |
+| `Model/AgentCompaction.swift` | Cross-turn notes: what was dropped, what they cover, when they grow, the request that makes them, `AgentChatSummary` |
+| `Model/AgentPlan.swift` | `update_plan`'s definition and arguments, and the checklist ACP plans share |
 | `Service/AgentContextLoader.swift` | Reads `AGENTS.md` (or a lone `CLAUDE.md`), `~/.agents/AGENTS.md`, skills, notes |
 | `Service/AgentToolExecutor.swift` | `AgentBuiltInTools`, the first provider; the executor runs each call: ripgrep search, terminal with timeout, web fetch, HTML to text |
-| `Service/AgentLoopProvider.swift` | The agent chats' tool loop: rounds, batches, budget, Stop |
+| `Service/AgentLoopProvider.swift` | The agent chats' tool loop: cross-turn notes, rounds, batches, budget, Stop |
+| `Service/AgentPlanTools.swift` | `update_plan`: shows the checklist it is sent |
+| `Service/AgentDelegateTools.swift` | `delegate`: one read-only sub-agent per call, its answer bounded and its cost billed |
 | `UI/AgentCoordinator.swift` | Bindings, cached context, the turn's prompt, its loop and provider registry, consent |
 | `Model/AgentRuntime.swift` | ACP presets and the command/arguments an agent runs |
 | `Model/ACPProtocol.swift` | Framing, `session/update` decoding, permissions, prompt blocks, modes, `ACPEventMapper` |
@@ -179,11 +238,16 @@ because the composer's label and menu styles are private to that file.
 | `memory_read` | memory | read | any | always | — |
 | `memory_write` | memory | own | any | always | — |
 | `load_skill` | — (when skills exist) | read | any | always | — |
+| `update_plan` | — | own | any | always | — |
+| `delegate` | sub-agents | read (each of its calls meets its own rule) | any | always | — |
+| `screen_context` | screen (while Screen Awareness is on) | personal | any | always | — |
 | `notes_search`, `notes_read` | notes | personal | any | always | — |
 | `notes_append` | notes | change | workspace, full | ask | — (always asks) |
 
 The notes family is off for every agent until ticked, and offered only while Notes is on; see
-[notes and AI](notes-ai.md).
+[notes and AI](notes-ai.md). Sub-agents is off until ticked too, and so is Screen, which is offered only
+while [Screen Awareness](screen-awareness.md) is on, only on a turn the user sent from the chat (never a
+background run or a sub-agent), and reads the window behind Tinycast as text.
 
 `run_command` runs through `ShellCommandRunner.stream` with the login shell's environment in the
 agent's folder, stopped after its timeout (120 s by default, 600 s at most); escape sequences are
@@ -204,9 +268,8 @@ concurrent searches' rows complete together, since `AIChatState` closes every op
 
 ## Adding a tool family
 
-Notes arrived this way ([notes and AI](notes-ai.md)); web search, screen context, a plan and
-sub-agents each arrive as one provider too. Nothing else changes: no router edit, no upstream line, no
-prompt edit.
+Notes ([notes and AI](notes-ai.md)), web search, screen context, the plan and sub-agents each arrived
+this way, as one provider. Nothing else changes: no router edit, no upstream line, no prompt edit.
 
 1. Write a `struct` conforming to `AgentToolProvider`. `specs(for:)` lists everything it can offer
    now, with `family` set when a profile switch governs the tool, an honest `risk`, and `concurrent`
@@ -236,6 +299,12 @@ prompt edit.
   file untouched and the model asks what to do instead; Allow for This Chat stops the next question.
 - Ask it to run `ls ..`: the command dialog appears; ask it to read `../something`: refused.
 - Ask a question a skill covers: the transcript shows `load_skill` before the work.
+- Ask for a task of several steps: a reasoning fold opens with `Plan:` and ✓, → and · lines, and a later
+  call shows the list again with steps ticked.
+- Tick Sub-agents and ask the agent to have a sub-agent find where something is defined: one row reads
+  "delegate: <name>", none of the sub-agent's own calls show, and the reply's cost is above what its own
+  rounds cost. Ask for a sub-agent to change a file: it reports that it cannot. Stop while the sub-agent
+  works: the turn ends at once. Untick it: the agent no longer offers to delegate.
 - Tell it to remember something, start a new chat with the same agent, ask about it.
 - A read-only agent is never offered the terminal or writes; a chat without an agent is unchanged.
 - Ask it to run `sleep 30`, then Stop: `ps` shows no `sleep`. Ask for a change, Stop while the dialog
@@ -249,6 +318,15 @@ prompt edit.
 - Ask an agent with Web on about today's news: the transcript shows its `web_search` row and a
   "Searched web" row, then the answer cites sources. With Web off it says it cannot look things up.
 - Tick Notes in the editor and run [notes and AI](notes-ai.md#manual-sweep)'s agent half.
+- Tick Screen and run [Screen Awareness](screen-awareness.md#manual-sweep)'s agent step.
+- In a long agent chat (or with a small model whose budget fills fast), keep going until the oldest
+  turns no longer fit: one reply opens with a "Summary of earlier messages" row, the next few replies
+  show none, and the agent still knows what was settled at the start. Its cost includes the summary.
+  Delete the chat: `agent-summaries/` no longer holds its file.
+- On an Anthropic connection to `api.anthropic.com`, and again on OpenRouter with an `anthropic/` model,
+  ask an agent something that takes it two or three tool rounds: Settings → AI → Usage shows the
+  model's input with a "cached" share. Ask again in a new chat within five minutes: the cached share
+  covers the prompt and tools from the first request.
 - Delete the agent: its chats remain as plain chats and the composer shows No Agent.
 - ACP: make an agent on Claude Code in a project folder; ask it to read and change a file. The first
   turn may wait while npx fetches the adapter; then the dialog lists Claude's own options, the
@@ -260,10 +338,16 @@ prompt edit.
   in `Tests/acp-fixtures/fake-agent.mjs`: streaming, consent, reuse, refusal, cancel, reload, lost
   sessions, a missing command, two agents sharing a session id); `agent-test` (skills, catalog, path policy, tool sets, specs, consent
   policy and per-agent rules, toolset order and routing, batches, budget, elision, the prompt and the
-  rules it states, persistence); `agent-tools-test` (the executor against a real folder: reads,
-  writes with consent, link escapes, commands, timeouts and Stop, memory, skills, HTML; the built-ins
-  through a toolset, with and without an agent's own rules; every refused effect); and
+  rules it states, persistence, the plan checklist shared with ACP, newer families kept out of the
+  previous build's way, a reading-only toolset and per-call row titles, compaction's coverage, reuse,
+  bounds, a long newest question and notes kept per chat); `agent-tools-test` (the executor against
+  a real folder: reads, writes with consent, link escapes, commands, timeouts and Stop, memory, skills,
+  HTML; the built-ins through a toolset, with and without an agent's own rules; every refused effect;
+  `update_plan`); and
   `agent-loop-test` (the fork's loop and upstream's on the same scripts under 128 KB; routing,
-  signals, Stop, parallel batches, a long turn that elides); `web-search-test` covers the search
-  provider through a toolset and the loop; and `agent-schedule-test` covers background runs and
+  signals, Stop, parallel batches, a long turn that elides; `delegate`'s spec and name, a sub-agent's
+  request, tools, answer, cost, bounds and Stop; compaction with nothing dropped, made once then
+  reused then grown, a failed summary and Stop while it is made); `web-search-test` covers the search
+  provider through a toolset and the loop; `ai-provider-test` pins which routes and which requests
+  are asked to cache and where the marks go; and `agent-schedule-test` covers background runs and
   schedules (see [background-agents.md](background-agents.md#manual-sweep)).

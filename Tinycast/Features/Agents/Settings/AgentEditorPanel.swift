@@ -215,7 +215,12 @@ struct AgentEditorPanel: View {
                 Toggle("Terminal", isOn: tool(.terminal)).disabled(!draft.access.writes)
                 Toggle("Web", isOn: tool(.web))
                 Toggle("Memory", isOn: tool(.memory))
+            }
+            .toggleStyle(.checkbox)
+            HStack(spacing: Theme.Spacing.lg) {
                 Toggle("Notes", isOn: tool(.notes)).disabled(!core.settings.notesEnabled)
+                Toggle("Screen", isOn: tool(.screen)).disabled(!core.settings.screenAwarenessEnabled)
+                Toggle("Sub-agents", isOn: tool(.delegate))
             }
             .toggleStyle(.checkbox)
             Text("Web reads pages and searches with the engines in Settings → AI → Chat.")
@@ -225,6 +230,22 @@ struct AgentEditorPanel: View {
                 """
                 Notes searches and reads your Tinycast Notes, and always asks before adding to \
                 them. Notes must be on.
+                """
+            )
+            .font(.caption)
+            .foregroundStyle(.secondary)
+            Text(
+                """
+                Screen reads the text of the window behind Tinycast when the agent asks, never a \
+                picture. Screen Awareness must be on.
+                """
+            )
+            .font(.caption)
+            .foregroundStyle(.secondary)
+            Text(
+                """
+                Sub-agents hands a read-only task to a copy of the agent on the same model; its cost \
+                counts toward the reply.
                 """
             )
             .font(.caption)

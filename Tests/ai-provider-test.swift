@@ -118,6 +118,7 @@ struct AIProviderTests {
         refusalsShowTheProvidersOwnWords()
         brandsResolveFromModelIDs()
         requestBodiesCarryDocuments()
+        claudeRoutesMarkTheirCachedPrefix()
         codexProtocolFramesRoundTrip()
         installedCLIStreamsDecode()
         settingsPersistAndRepairSelections()
@@ -2366,6 +2367,112 @@ struct AIProviderTests {
                 && errorResponse?["subtype"] as? String == "error"
                 && errorResponse?["request_id"] as? String == "r2",
             "with the SDK's error response, so the CLI stops waiting on it")
+    }
+}
+
+/// Claude caches only when a request asks; a gateway never sees the field, other routes cache alone.
+extension AIProviderTests {
+    static func claudeRoutesMarkTheirCachedPrefix() {
+        let names = ["read", "list"]
+        let calls = names.map { AIToolCall(id: $0, name: $0, arguments: "{}") }
+        let results = names.map { name in
+            let result = AIToolResult(callID: name, content: "a", isError: false)
+            return AIMessage(role: .tool, text: "", toolResult: result)
+        }
+        let turn = AIRequest(
+            instructions: "Be brief.",
+            messages: [
+                AIMessage(role: .user, text: "hi"), AIMessage(role: .assistant, text: "", toolCalls: calls)
+            ] + results,
+            tools: names.map {
+                AITool(name: $0, description: "", parameters: .object([:]), origin: "T")
+            })
+        let ephemeral = ["type": "ephemeral"]
+        func marks(_ value: Any?) -> Int {
+            switch value {
+            case let object as [String: Any]:
+                (object["cache_control"] as? [String: String] == ephemeral ? 1 : 0)
+                    + object.values.reduce(0) { $0 + marks($1) }
+            case let array as [Any]: array.reduce(0) { $0 + marks($1) }
+            default: 0
+            }
+        }
+        func body(
+            _ request: AIRequest, _ provider: AIProviderKind, _ url: String, _ model: String
+        ) -> [String: Any] {
+            let route = AIHTTPConfiguration(provider: provider, baseURL: URL(string: url)!, model: model)
+            return AIRequestBody.make(request, configuration: route)
+        }
+
+        let anthropic = body(turn, .anthropic, "https://api.anthropic.com", "claude-sonnet-5-5")
+        expect(
+            anthropic["cache_control"] as? [String: String] == ephemeral,
+            "Anthropic's own API is asked to cache the moving tail of the conversation")
+        let system = anthropic["system"] as? [[String: Any]]
+        expect(
+            system?.count == 1 && system?.first?["text"] as? String == "Be brief."
+                && system?.first?["cache_control"] as? [String: String] == ephemeral,
+            "its system prompt becomes one marked text block")
+        let tools = anthropic["tools"] as? [[String: Any]] ?? []
+        expect(
+            tools.count == 2 && tools.last?["cache_control"] as? [String: String] == ephemeral
+                && tools.first?["cache_control"] == nil,
+            "and the last tool is marked, so the tools cache apart from the prompt")
+        let messages = anthropic["messages"] as? [[String: Any]] ?? []
+        expect(
+            messages.first?["content"] as? String == "hi" && marks(messages) == 0,
+            "the conversation itself goes out as it was")
+        expect(marks(anthropic) == 3, "three breakpoints, under Anthropic's four")
+        expect(JSONSerialization.isValidJSONObject(anthropic), "and the body is still JSON")
+
+        let oneShot = AIRequest(instructions: "Fix the grammar.", messages: [AIMessage(role: .user, text: "hi")])
+        for (provider, url, model) in [
+            (AIProviderKind.anthropic, "https://api.anthropic.com", "claude-sonnet-5-5"),
+            (.openRouter, "https://openrouter.ai/api/v1", "anthropic/claude-sonnet-5.5")
+        ] {
+            let lone = body(oneShot, provider, url, model)
+            expect(
+                marks(lone) == 0 && lone["cache_control"] == nil
+                    && (provider != .anthropic || lone["system"] as? String == "Fix the grammar."),
+                "a lone question, as a Quick Action or a summary, is sent as before on \(provider)")
+        }
+        let followUp = AIRequest(
+            instructions: "Be brief.",
+            messages: [
+                AIMessage(role: .user, text: "hi"), AIMessage(role: .assistant, text: "hello"),
+                AIMessage(role: .user, text: "and?")
+            ])
+        let chat = body(followUp, .anthropic, "https://api.anthropic.com", "claude-sonnet-5-5")
+        expect(
+            marks(chat) == 2 && chat["cache_control"] as? [String: String] == ephemeral
+                && chat["tools"] == nil,
+            "a chat's follow-up asks, marking the prompt and the moving tail with no tools to mark")
+
+        let gateway = body(turn, .anthropic, "https://gateway.example.com", "claude-sonnet-5-5")
+        expect(
+            marks(gateway) == 0 && gateway["system"] as? String == "Be brief.",
+            "an Anthropic preset pointed at a gateway is sent exactly as before")
+
+        for model in ["anthropic/claude-sonnet-5.5", "~anthropic/claude-sonnet-latest"] {
+            let router = body(turn, .openRouter, "https://openrouter.ai/api/v1", model)
+            let routed = router["messages"] as? [[String: Any]] ?? []
+            expect(
+                router["cache_control"] as? [String: String] == ephemeral && marks(router) == 1
+                    && routed.first?["content"] as? String == "Be brief.",
+                "OpenRouter's \(model) is asked to cache, with nothing else changed")
+        }
+        for (provider, url, model) in [
+            (AIProviderKind.openRouter, "https://openrouter.ai/api/v1", "openai/gpt-5"),
+            (.openAI, "https://api.openai.com/v1", "gpt-5"),
+            (.gemini, "https://generativelanguage.googleapis.com/v1beta/openai", "gemini-2.5-pro"),
+            (.openAICompatible, "http://localhost:11434/v1", "anthropic/claude")
+        ] {
+            let other = body(turn, provider, url, model)
+            expect(
+                marks(other) == 0
+                    && (other["messages"] as? [[String: Any]])?.first?["content"] as? String == "Be brief.",
+                "\(provider) \(model) caches by itself and is sent exactly as before")
+        }
     }
 }
 

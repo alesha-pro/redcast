@@ -60,6 +60,8 @@ final class AIChatCoordinator {
             let cutoff = core.aiSettings.retention.cutoff(from: Date())
         else { return }
         core.chatHistory.prune(before: cutoff)
+        // Fork: an agent chat's notes on its earlier turns go with the chat.
+        core.pruneAgentSummaries()
     }
 
     // MARK: - The window
@@ -198,6 +200,8 @@ final class AIChatCoordinator {
         else { return }
         core.chatGPTSubscription.turns.discardConversation(id: id)
         chats.delete(id: id)
+        // Fork: an agent chat's notes on its earlier turns go with the chat.
+        core.agentStore.removeSummary(forChat: id)
     }
 
     func deleteAllChats() async {
@@ -214,6 +218,8 @@ final class AIChatCoordinator {
             core.chatGPTSubscription.turns.discardConversation(id: conversation.id)
         }
         chats.deleteAll()
+        // Fork: an agent chat's notes on its earlier turns go with the chat.
+        core.pruneAgentSummaries()
     }
 
     // MARK: - Titles

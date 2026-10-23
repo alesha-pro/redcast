@@ -1,4 +1,5 @@
 import Foundation
+import Synchronization
 
 /// An agent's turn: re-streams it until the model stops calling tools or a cap ends it.
 struct AgentLoopProvider: AIProvider {
@@ -8,11 +9,17 @@ struct AgentLoopProvider: AIProvider {
     private let base: any AIProvider
     private let toolset: AgentToolset
     private let maxRounds: Int?
+    /// An agent chat's; nil sends the turn as it was built, as upstream's loop does.
+    private let compaction: AgentCompaction.Source?
 
-    init(base: any AIProvider, toolset: AgentToolset, maxRounds: Int?) {
+    init(
+        base: any AIProvider, toolset: AgentToolset, maxRounds: Int?,
+        compaction: AgentCompaction.Source? = nil
+    ) {
         self.base = base
         self.toolset = toolset
         self.maxRounds = maxRounds
+        self.compaction = compaction
     }
 
     func stream(_ request: AIRequest) -> AIProviderStream {
@@ -34,11 +41,15 @@ struct AgentLoopProvider: AIProvider {
     private func run(
         _ request: AIRequest, into continuation: AIProviderStream.Continuation
     ) async throws {
-        var messages = request.messages
+        var (messages, billed) = try await compacted(request, into: continuation)
+        let turnStart = messages.count
         var budget = AgentTurnBudget()
         var rounds = 0
-        var billed: Double?
-        let signal: @Sendable (AgentToolSignal) -> Void = { continuation.yield($0.event) }
+        let spend = Spend()
+        let signal: @Sendable (AgentToolSignal) -> Void = { signal in
+            if case .spent(let cost) = signal { spend.add(cost) }
+            if let event = signal.event { continuation.yield(event) }
+        }
         while maxRounds.map({ rounds < $0 }) ?? (budget.carried < AgentTurnBudget.historyBytes) {
             // A call that outlived Stop must not bill another round.
             try Task.checkCancellation()
@@ -60,18 +71,66 @@ struct AgentLoopProvider: AIProvider {
                 let calls = Array(round.calls[batch])
                 for call in calls {
                     let tool = toolset.tools.first { $0.name == call.name }
-                    continuation.yield(
-                        .toolCall(
-                            id: call.id, origin: tool?.origin ?? "", title: tool?.title ?? call.name))
+                    let title = toolset.title(for: call) ?? tool?.title ?? call.name
+                    continuation.yield(.toolCall(id: call.id, origin: tool?.origin ?? "", title: title))
                 }
                 let results = await run(calls, signal: signal, budget: &budget, into: continuation)
                 messages += results.map { AIMessage(role: .tool, text: "", toolResult: $0) }
+                if let spent = spend.take() { billed = (billed ?? 0) + spent }
             }
             budget.release(
-                AgentTurnBudget.elide(&messages, turnStart: request.messages.count, keepFrom: roundStart))
+                AgentTurnBudget.elide(&messages, turnStart: turnStart, keepFrom: roundStart))
         }
         throw AIProviderError.responseFailed(
             String(localized: "Stopped after \(rounds) rounds of tool calls."))
+    }
+
+    /// The turn with notes on what the budget dropped leading it, and what making them cost.
+    private func compacted(
+        _ request: AIRequest, into continuation: AIProviderStream.Continuation
+    ) async throws -> (messages: [AIMessage], cost: Double?) {
+        guard let compaction else { return (request.messages, nil) }
+        let history = await compaction.history()
+        guard let dropped = AgentCompaction.dropped(from: history, sent: request.messages), dropped > 0
+        else { return (request.messages, nil) }
+        let stored = AgentChatSummary.load(from: compaction.url)
+        switch AgentCompaction.plan(history: history, dropped: dropped, summary: stored) {
+        case .reuse(let summary):
+            return (AgentCompaction.messages(request.messages, dropped: dropped, summary: summary), nil)
+        case .extend(let from, let to, let previous):
+            let id = AgentCompaction.markerID
+            continuation.yield(
+                .toolCall(id: id, origin: compaction.origin, title: AgentCompaction.markerTitle))
+            let made = try await summarise(
+                AgentCompaction.request(previous: previous, slice: history[from..<to]))
+            let summary = made.text.flatMap { AgentCompaction.summary($0, covering: to, of: history) }
+            continuation.yield(.toolResult(id: id, isError: summary == nil))
+            guard let summary else { return (request.messages, made.cost) }
+            try? summary.write(to: compaction.url)
+            return (AgentCompaction.messages(request.messages, dropped: dropped, summary: summary), made.cost)
+        }
+    }
+
+    /// The chat's own model, asked once with no tools; a failure leaves the turn as it was built.
+    private func summarise(_ request: AIRequest) async throws -> (text: String?, cost: Double?) {
+        var text = ""
+        var cost: Double?
+        do {
+            for try await event in base.stream(request) {
+                try Task.checkCancellation()
+                switch event {
+                case .text(let delta): text += delta
+                case .usage(let usage): cost = usage.costUSD ?? cost
+                default: break
+                }
+            }
+        } catch is CancellationError {
+            throw CancellationError()
+        } catch {
+            return (nil, cost)
+        }
+        try Task.checkCancellation()
+        return (text, cost)
     }
 
     /// A batch's admitted results in call order; each row closes as its own call ends.
@@ -123,5 +182,22 @@ struct AgentLoopProvider: AIProvider {
             }
         }
         return (text, calls, cost)
+    }
+}
+
+/// What a batch's calls spent of their own; they run in a task group, so it is summed under a lock.
+private final class Spend: Sendable {
+    private let total = Mutex(0.0)
+
+    func add(_ cost: Double) {
+        total.withLock { $0 += cost }
+    }
+
+    /// The sum since the last take, nil when nothing was spent.
+    func take() -> Double? {
+        total.withLock { sum in
+            defer { sum = 0 }
+            return sum > 0 ? sum : nil
+        }
     }
 }

@@ -51,6 +51,32 @@ final class AgentStore {
             .appendingPathComponent("memory.md")
     }
 
+    /// Where an agent chat keeps its notes on the turns its requests no longer carry.
+    func summaryURL(forChat id: UUID) -> URL {
+        summariesDirectory.appendingPathComponent(id.uuidString.lowercased() + ".json")
+    }
+
+    func removeSummary(forChat id: UUID) {
+        try? FileManager.default.removeItem(at: summaryURL(forChat: id))
+    }
+
+    /// Every chat's notes but those of `chats` go: what deleting chats in bulk leaves to sweep.
+    func pruneSummaries(keeping chats: some Sequence<UUID>) {
+        let kept = Set(chats)
+        guard
+            let files = try? FileManager.default.contentsOfDirectory(
+                at: summariesDirectory, includingPropertiesForKeys: nil)
+        else { return }
+        for file in files {
+            let chat = UUID(uuidString: file.deletingPathExtension().lastPathComponent)
+            if chat.map(kept.contains) != true { try? FileManager.default.removeItem(at: file) }
+        }
+    }
+
+    private var summariesDirectory: URL {
+        directory.appendingPathComponent("agent-summaries", isDirectory: true)
+    }
+
     func load() {
         if FileManager.default.fileExists(atPath: agentsURL.path) {
             // A file that exists but won't read is authored data: report, never write over it.
@@ -132,7 +158,10 @@ final class AgentStore {
         try commit(agents.filter { $0.id != id })
         let chats = chatAgents.filter { $0.value == id }.map(\.key)
         bind(chats, to: nil)
-        for chat in chats { setACPSession(nil, forChat: chat) }
+        for chat in chats {
+            setACPSession(nil, forChat: chat)
+            removeSummary(forChat: chat)
+        }
         let orphaned = schedules.filter { $0.agentID == id }.map(\.id)
         guard !orphaned.isEmpty else { return }
         // An unreadable file is filtered by agent on the next load, so it is left as it is.
