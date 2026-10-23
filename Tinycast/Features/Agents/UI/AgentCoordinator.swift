@@ -23,10 +23,11 @@ final class AgentCoordinator {
     @ObservationIgnored let consentGate = AgentConsentGate()
 
     @ObservationIgnored private var builtACPHost: AgentACPHost?
-    /// Settings' agent for Quick AI, read on first use.
-    @ObservationIgnored private(set) lazy var quickAISettings = QuickAISettingsStore()
-    /// Quick AI's unsent chat whose ⌘K said No Agent, so Settings' agent stays out of it.
-    var quickAIDeclined: UUID?
+    /// Settings' agents for Quick AI's and AI Chat's new chats, each read on first use.
+    @ObservationIgnored private(set) lazy var quickAIDefault = AgentDefaultStore(.aiQuickAIAgent)
+    @ObservationIgnored private(set) lazy var chatDefault = AgentDefaultStore(.aiChatAgent)
+    /// Unsent chats that said No Agent, so Settings' agent stays out of them until they speak.
+    var declinedDefault: Set<UUID> = []
 
     /// Built on first use, so a Mac that runs no ACP agent never holds one.
     var acpHost: AgentACPHost {
@@ -76,13 +77,12 @@ final class AgentCoordinator {
 
     var agents: [AgentProfile] { store.agents }
 
-    /// The chat's own agent, or Quick AI's for its chat until the first message binds it.
+    /// The chat's own agent, or its surface's from Settings until the first message binds it.
     func agent(for chat: AIChatState) -> AgentProfile? {
-        let id = ChatToolPolicy.agent(
-            bound: store.agent(forChat: chat.session.id)?.id, quickAI: quickAIAgent?.id,
+        ChatToolPolicy.agent(
+            bound: store.agent(forChat: chat.session.id), quickAI: quickAIAgent, window: chatAgent,
             surface: surface(of: chat), isUnsent: chat.session.messages.isEmpty,
-            declined: quickAIDeclined == chat.session.id)
-        return id.flatMap(store.agent(id:))
+            declined: declinedDefault.contains(chat.session.id))
     }
 
     func setAgent(_ agent: AgentProfile?, for chat: AIChatState) {
@@ -386,6 +386,12 @@ final class AgentCoordinator {
         let loaded = AgentContextLoader.load(agent, memoryURL: store.memoryURL(for: agent.id))
         contexts[agent.id] = loaded
         return loaded
+    }
+
+    /// Read off-main ahead of a first send, unless the cached reading is still this agent's.
+    func warmContext(for agent: AgentProfile) {
+        guard contexts[agent.id]?.profile != agent else { return }
+        refresh(agent)
     }
 
     func refresh(_ agent: AgentProfile) {

@@ -110,6 +110,8 @@ final class AIChatCoordinator {
     }
 
     func newChat() {
+        // Fork: ⌘N keeps an empty chat as the new one, so its No Agent gives way to the default.
+        agents.restoreDefault(in: chats.window)
         chats.newWindowChat()
     }
 
@@ -749,6 +751,8 @@ final class AIChatCoordinator {
     func prepareForChat() {
         warmUpModelList()
         core.mcpCoordinator.warmUp()
+        // Fork: the default agent's folder is read off-main before a new chat's first send.
+        agents.warmChatAgent()
     }
 
     /// Fetches the list so the title is a name, and a default can resolve without Settings.

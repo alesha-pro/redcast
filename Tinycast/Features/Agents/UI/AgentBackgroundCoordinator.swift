@@ -362,7 +362,7 @@ final class AgentBackgroundCoordinator {
             append(answer, of: schedule, toNoteTitled: title, run: id)
         }
         if let agent, agent.runtime != nil,
-            !ai.chats.live.contains(where: { core.agentCoordinator.agent(for: $0)?.id == agent.id })
+            !ai.chats.live.contains(where: { store.agent(forChat: $0.session.id)?.id == agent.id })
         {
             core.agentCoordinator.acpHost.release(agentID: agent.id)
         }
