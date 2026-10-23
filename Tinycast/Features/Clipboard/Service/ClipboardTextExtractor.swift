@@ -45,7 +45,7 @@ nonisolated enum ClipboardTextExtractor {
     }
 
     /// Full-width strips, so no line is cut across columns and the text keeps its reading order.
-    private static func recognize(_ image: CGImage) async throws -> String {
+    static func recognize(_ image: CGImage) async throws -> String {  // Fork: DocumentTextExtractor
         var text = ""
         for top in stride(from: 0, to: max(1, image.height - stripOverlap), by: stripHeight - stripOverlap) {
             try Task.checkCancellation()
@@ -106,7 +106,7 @@ nonisolated enum ClipboardTextExtractor {
         return text
     }
 
-    private static func render(_ page: PDFPage) -> CGImage? {
+    static func render(_ page: PDFPage) -> CGImage? {  // Fork: DocumentTextExtractor reads scans
         guard let reference = page.pageRef else { return nil }
         let bounds = page.bounds(for: .mediaBox)
         guard bounds.width.isFinite, bounds.height.isFinite,

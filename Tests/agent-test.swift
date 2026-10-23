@@ -42,6 +42,8 @@ struct AgentTests {
         compactionCoversWhatTheBudgetDrops()
         compactionNotesRideTheFirstQuestion()
         compactionNotesAreKeptPerChat()
+        readingToolsDescribeTheirReach()
+        spotlightQueriesAreBuiltNotWritten()
 
         print("\(passes) passed, \(failures) failed")
         if failures > 0 { exit(1) }
@@ -588,9 +590,24 @@ struct AgentTests {
             "a chat that is gone leaves no binding behind")
         let untouched = directory.appendingPathComponent("untouched")
         AgentStore(directory: untouched).unbind([UUID()])
+        AgentStore(directory: untouched).forgetPersonal([UUID()])
         expect(
-            !FileManager.default.fileExists(atPath: untouched.appendingPathComponent("agent-chats.json").path),
-            "unbinding a chat that had no agent writes nothing")
+            !FileManager.default.fileExists(atPath: untouched.appendingPathComponent("agent-chats.json").path)
+                && !FileManager.default.fileExists(
+                    atPath: untouched.appendingPathComponent("agent-personal-chats.json").path),
+            "unbinding a chat that had no agent, or forgetting one never marked, writes nothing")
+
+        let other = UUID()
+        store.notePersonal(forChat: chat)
+        store.notePersonal(forChat: chat)
+        store.notePersonal(forChat: other)
+        let marked = AgentStore(directory: directory)
+        marked.load()
+        expect(marked.personalChats == [chat, other], "a chat that read the user's data stays marked across a relaunch")
+        marked.forgetPersonal([other, UUID()])
+        let pruned = AgentStore(directory: directory)
+        pruned.load()
+        expect(pruned.personalChats == [chat], "and loses its mark only when it is gone")
         try? reloaded.remove(id: agent.id)
         expect(reloaded.agent(forChat: chat) == nil, "deleting an agent frees its chats")
         expect(
@@ -960,5 +977,140 @@ struct FakeProvider: AgentToolProvider {
 
     func run(_ call: AIToolCall, in context: AgentToolContext) async -> AIToolResult {
         .failure(call.id, "fake")
+    }
+}
+
+/// `read_file`, `web_fetch` and `search_files` as the model sees them, and Spotlight's query.
+extension AgentTests {
+    static func readingToolsDescribeTheirReach() {
+        func properties(_ name: String, _ agent: AgentProfile) -> Set<String> {
+            let tool = AgentToolbox.tools(for: agent, hasSkills: false).first { $0.name == name }
+            return Set(tool?.parameters.objectValue?["properties"]?.objectValue?.keys.map { $0 } ?? [])
+        }
+        expect(
+            properties(AgentToolbox.readFile, profile()) == ["path", "offset", "limit", "pages", "raw"],
+            "read_file pages a PDF and reads an HTML file's source on request")
+        expect(properties(AgentToolbox.webFetch, profile()) == ["url", "part", "pages"], "web_fetch pages and parts")
+        expect(
+            properties(AgentToolbox.searchFiles, profile())
+                == ["pattern", "path", "mode", "kind", "modified_after", "names_only"],
+            "search_files takes Spotlight's narrowing")
+        func search(_ access: AgentAccess) -> String {
+            AgentToolbox.tools(for: profile(access), hasSkills: false)
+                .first { $0.name == AgentToolbox.searchFiles }?.description ?? ""
+        }
+        expect(search(.fullAccess).contains("in the home folder and iCloud Drive, or the path given"), "full access: home")
+        expect(search(.readOnly).contains("in the agent's folder"), "anything less: its folder")
+        expect(
+            AgentToolbox.spec(for: tool(AgentToolbox.searchFiles)).risk == .read
+                && AgentToolbox.spec(for: tool(AgentToolbox.searchFiles)).concurrent,
+            "searching stays a read that may share a round")
+    }
+
+    static func spotlightQueriesAreBuiltNotWritten() {
+        func parse(_ arguments: [String: JSONValue]) -> Result<AgentSpotlightQuery, AgentSpotlightQuery.Failure> {
+            AgentSpotlightQuery.parse(arguments)
+        }
+        expect(
+            AgentSpotlightQuery.terms(in: #"  tax  "annual report" 2025 "" - "#) == ["tax", "annual report", "2025"],
+            "words, quoted phrases, nothing empty or without a letter or digit")
+        expect(AgentSpotlightQuery.terms(in: (1...12).map(String.init).joined(separator: " ")).count == 8, "eight terms")
+        let query = try? parse(["pattern": .string("tax \"annual report\"")]).get()
+        expect(
+            query?.query == #"(kMDItemFSName == "*tax*"cd || kMDItemTitle == "*tax*"cd || kMDItemTextContent == "tax*"cdw)"#
+                + #" && (kMDItemFSName == "*annual report*"cd || kMDItemTitle == "*annual report*"cd || "#
+                + #"kMDItemTextContent == "annual report*"cdw)"#,
+            "each term matches a name, a title or the indexed text, got \(query?.query ?? "nothing")")
+        let names = try? parse([
+            "pattern": .string("invoice"), "names_only": .bool(true), "kind": .string("PDF"),
+            "modified_after": .string("2026-10-01")
+        ]).get()
+        expect(
+            names?.query == #"(kMDItemFSName == "*invoice*"cd || kMDItemTitle == "*invoice*"cd) && "#
+                + #"(kMDItemContentTypeTree == "com.adobe.pdf") && kMDItemFSContentChangeDate >= $time.iso(2026-10-01)"#,
+            "names only, a kind by its content type, a date, got \(names?.query ?? "nothing")")
+        expect(
+            AgentSpotlightQuery.terms(in: #"a"||kMDItemFSName=="*"#) == ["a", "||kMDItemFSName=="],
+            "a quote only ever bounds a phrase, so none reaches the query")
+        let hostile = try? parse(["pattern": .string(#"a*b c\d"#)]).get()
+        expect(
+            hostile?.query.contains(#"kMDItemFSName == "*a\*b*"cd"#) == true
+                && hostile?.query.contains(#"kMDItemTextContent == "c\\d*"cdw"#) == true,
+            "wildcards and backslashes in a word are escaped, got \(hostile?.query ?? "")")
+        expect(
+            AgentSpotlightQuery.escaped("a\\b?\n") == #"a\\b\?"#, "backslashes, wildcards and newlines too")
+        let folders = try? parse(["pattern": .string(""), "kind": .string("folder")]).get()
+        expect(folders?.query == #"(kMDItemContentTypeTree == "public.folder")"#, "a kind alone is a query")
+        expect(
+            parse(["pattern": .string(" ")]).failure?.message.contains("Give words") == true,
+            "nothing to find is refused")
+        expect(parse(["pattern": .string("x"), "kind": .string("movie")]).failure != nil, "an unknown kind")
+        for date in ["2026-1-01", "2026-13-01", "26-10-01", "2026-10-01T00:00", "2026-10-01) || (x"] {
+            expect(parse(["pattern": .string("x"), "modified_after": .string(date)]).failure != nil, "\(date) is no date")
+        }
+        expect(
+            query?.arguments(in: ["/Users/me"]) == ["-onlyin", "/Users/me", query?.query ?? ""],
+            "one argument for the root and one for the query, never a shell line")
+
+        let roots = ["/Users/me"]
+        expect(AgentSpotlightQuery.isShown("/Users/me/Documents/tax.pdf", roots: roots, home: "/Users/me"), "a document")
+        expect(!AgentSpotlightQuery.isShown("/Users/me/.ssh/id_ed25519", roots: roots, home: "/Users/me"), "no hidden path")
+        expect(!AgentSpotlightQuery.isShown("/Users/me/a/.git/HEAD", roots: roots, home: "/Users/me"), "at any depth")
+        expect(
+            !AgentSpotlightQuery.isShown("/Users/me/Library/Mail/V10/x.emlx", roots: roots, home: "/Users/me"),
+            "nor mail, messages or caches under Library")
+        expect(
+            AgentSpotlightQuery.isShown(
+                "/Users/me/Library/Mobile Documents/x.pdf", roots: ["/Users/me/Library/Mobile Documents"],
+                home: "/Users/me"),
+            "unless the search began there")
+        expect(!AgentSpotlightQuery.isShown("/Volumes/x/a.pdf", roots: roots, home: "/Users/me"), "nothing past the root")
+        let drive = "/Users/me/Library/Mobile Documents/"
+        expect(
+            AgentSpotlightQuery.isShown(drive + "com~apple~CloudDocs/Taxes/invoice.pdf", roots: roots, home: "/Users/me")
+                && AgentSpotlightQuery.isShown(drive + "com~apple~Pages/Documents/Plan.pages", roots: roots, home: "/Users/me")
+                && AgentSpotlightQuery.isShown(
+                    "/Users/me/Library/CloudStorage/Dropbox/a.pdf", roots: roots, home: "/Users/me"),
+            "iCloud Drive, an app's iCloud Documents and cloud folders are the user's documents")
+        expect(
+            !AgentSpotlightQuery.isShown(drive + "iCloud~md~obsidian/Data/cache.db", roots: roots, home: "/Users/me")
+                && !AgentSpotlightQuery.isShown(drive + "com~apple~CloudDocs/.Trash/a.pdf", roots: roots, home: "/Users/me"),
+            "but not an app's own iCloud data, nor a hidden path in them")
+        expect(
+            AgentSpotlightQuery.terms(in: "a\u{0}b \u{7}\u{1B}c") == ["ab", "c"]
+                && AgentSpotlightQuery.escaped("x\u{0}y\u{1F}") == "xy",
+            "a NUL or other control character never reaches mdfind, whose launch it would end")
+
+        let day: TimeInterval = 86_400
+        let hits = [
+            AgentSpotlightQuery.Hit(
+                path: "/Users/me/old.pdf", isFolder: false, size: 2_048, modified: Date(timeIntervalSince1970: 0)),
+            AgentSpotlightQuery.Hit(
+                path: "/Users/me/new.pdf", isFolder: false, size: 3_500_000,
+                modified: Date(timeIntervalSince1970: 20_000 * day)),
+            AgentSpotlightQuery.Hit(path: "/Users/me/Taxes", isFolder: true, size: nil, modified: nil)
+        ]
+        let listing = AgentSpotlightQuery.listing(hits, matched: 3, cut: false, timeZone: TimeZone(identifier: "UTC")!)
+        expect(
+            listing == "2024-10-04  3.3 MB    /Users/me/new.pdf\n1970-01-01  2 KB      /Users/me/old.pdf\n"
+                + "            folder    /Users/Me/Taxes".replacingOccurrences(of: "Me", with: "me"),
+            "newest first, with its date and size, got:\n\(listing)")
+        let many = (0..<60).map {
+            AgentSpotlightQuery.Hit(
+                path: "/Users/me/\($0)", isFolder: false, size: 1, modified: Date(timeIntervalSince1970: Double($0)))
+        }
+        let long = AgentSpotlightQuery.listing(many, matched: 80, cut: false, timeZone: .current)
+        expect(long.split(separator: "\n").count == 51 && long.hasSuffix("30 more matched; narrow the words, kind, "
+            + "modified_after or path."), "fifty shown, the rest counted")
+        expect(
+            AgentSpotlightQuery.listing([], matched: 0, cut: false, timeZone: .current).hasPrefix("Spotlight found nothing"),
+            "nothing found points at mode text")
+    }
+}
+
+extension Result {
+    var failure: Failure? {
+        guard case .failure(let failure) = self else { return nil }
+        return failure
     }
 }

