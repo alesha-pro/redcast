@@ -57,10 +57,13 @@ below, and the `Fork:`-marked lines listed under [Upstream touches](#upstream-to
   `QuickActionRunner` caps its output by testing the provider's type.
 - **The log is append-only, written off-main and bounded by age.** `ai-usage.tsv` in Application
   Support, one tab-separated line per reply, the date first. The append runs on the stream's own
-  detached task under one `Mutex`; it ends a line a crash cut short before writing, then reads the
-  file's first 32 bytes, and only when that oldest line is more than 430 days old rewrites the file
+  detached task under one `Mutex`. A line a crash cut short would read as a reply once ended, so
+  that append instead rewrites the file atomically without it (never shrinking it in place under a
+  mapped reader); an ordinary append then reads the file's first 32 bytes, and only when that oldest line is more than 430 days old rewrites the file
   atomically without the lines older than 400 days (and any it cannot read). So it holds 400–430
   days and is rewritten about once a month, never on a timer. A failed write never touches the reply.
+  **Usage log → Clear…** at the section's foot removes the file under the same lock after Tinycast's
+  own confirmation; chats keep their usage, and the next logged reply starts a new file.
 - **The log stays readable both ways.** A reader ignores fields past the ninth and reads missing
   trailing ones as unreported, so a later build can add columns; an origin it does not know is
   kept as none, and a route it cannot parse is **Unknown model**.
@@ -111,7 +114,7 @@ below, and the `Fork:`-marked lines listed under [Upstream touches](#upstream-to
   the one before it, only the difference counts, so up to that earlier total goes uncounted.
 - **Deleted and pruned chats take their usage with them** (`ON DELETE CASCADE`, retention), which is
   what "counted from the chats kept on this Mac" means. The log keeps its replies for 400 days
-  whatever happens to chats, and has no Clear button.
+  whatever happens to chats, a chat's title request included, until **Clear…** removes it.
 - **Claude's own session titles** (`installedAI.claudeTitle`) report no usage and are not logged.
 - **OpenRouter BYOK** reports `cost` 0 with the real figure in
   `cost_details.upstream_inference_cost`, which is not parsed.
@@ -129,10 +132,10 @@ below, and the `Fork:`-marked lines listed under [Upstream touches](#upstream-to
 | `Model/UsageLedgerEntry.swift` | One logged reply, its line format both ways, and reading and trimming a log's bytes |
 | `Model/OpenRouterAccount.swift` | `/key` and `/credits` requests and decoding, the management key's fixed request, what a status means |
 | `Service/UsageQuery.swift` | The read-only aggregate by conversation and slice, ACP running totals turned into rises, and the report built with the log off-main |
-| `Service/UsageLedger.swift` | `ai-usage.tsv`: the locked append, the age trim and the read |
+| `Service/UsageLedger.swift` | `ai-usage.tsv`: the locked append, the age trim, the read and the clear |
 | `Service/UsageRecordingProvider.swift` | The pass-through provider that logs a reply's usage when its stream ends |
 | `Service/OpenRouterAccountClient.swift` | The Keychain reads and the per-call fetch |
-| `Settings/UsageSection.swift` | The section, the trend strip, a row per model or agent, a balance row per OpenRouter connection and its management-key panel |
+| `Settings/UsageSection.swift` | The section, the trend strip, a row per model or agent, a balance row per OpenRouter connection and its management-key panel, and the log's Clear row |
 
 The aggregate scans `message_details` (replies with usage) first: `CROSS JOIN` pins that order, so
 `messages` is searched by its primary key rather than scanned whole, and the result is one row per
@@ -180,6 +183,8 @@ search keywords in `SettingsSearchCatalog`.
   no text of the selection or the answer. Do the same with Ask by Voice, Edit Selection by Voice, a
   cloud dictation in a mode, an extension's `AI.ask` and a new chat's title. A Quick Action on Apple Intelligence adds nothing.
 - Stop a streaming Quick Action after its first words: no line, unless usage had already arrived.
+- Usage log → Clear…: Tinycast's own dialog asks; Clear Log removes `ai-usage.tsv`, the Quick Action
+  lines leave the section at once while chats keep theirs, and the next Quick Action starts a new file.
 - The trend: Day shows a bar per hour, Week seven and Month one per day; the current one is tinted
   and later ones are a hairline; hovering a bar names it with its tokens and cost. A 25-hour day
   (the last Sunday of October in Europe) shows 25 bars.
@@ -204,7 +209,8 @@ chat no ACP agent ran sums as stored. Periods use a Berlin Gregorian calendar wi
 23-hour DST day, a week across the clock change, stepping back across a year); formats use `en_US`.
 OpenRouter's documented `/key` and `/credits` bodies, an error body and status mapping are decoded
 without a network; the management key's request goes to the fixed `/credits` URL and a refusal names
-it. It also holds the two accuracy fixes: a two-round tool turn's cost is both rounds', and only
+it. The log's own case appends, reads, trims, drops a line a crash cut short (even one that already
+names its model) rather than ending it, and clears. It also holds the two accuracy fixes: a two-round tool turn's cost is both rounds', and only
 OpenAI's own endpoint is sent `stream_options` — an OpenAI preset on a gateway and an unknown server
 are not. `agent-loop-test` holds the agents' loop to the same sum.
 
