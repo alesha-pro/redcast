@@ -210,10 +210,13 @@ extension ChatToolContent {
 
     // MARK: - Shared
 
-    /// Views into the text, so a large file is never copied line by line just to be cut.
+    /// Views cut at newline bytes, which always end a grapheme; walking graphemes is the slow part.
     private static func splitLines(_ text: String) -> [Substring] {
-        var lines = text.split(omittingEmptySubsequences: false, whereSeparator: isLineBreak).map {
-            $0.last == "\r" ? $0.dropLast() : $0
+        var text = text
+        // A bridged NSString from the JSON is transcoded once rather than read through the bridge.
+        text.makeContiguousUTF8()
+        var lines = text.utf8.split(separator: 0x0A, omittingEmptySubsequences: false).map { line in
+            Substring(line.last == 0x0D ? line.dropLast() : line)
         }
         if lines.last?.isEmpty == true { lines.removeLast() }
         return lines
