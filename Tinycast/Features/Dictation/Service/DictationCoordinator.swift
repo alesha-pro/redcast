@@ -31,7 +31,7 @@ final class DictationCoordinator {
     @ObservationIgnored private var recordedSamples = 0  // Fork: Dictation History
     @ObservationIgnored private var stopTask: Task<Void, Never>?
     @ObservationIgnored private var finishWhenStarted = false
-    @ObservationIgnored private var target: InjectionTarget?
+    @ObservationIgnored private(set) var target: InjectionTarget?  // Fork: the app cloud dictation describes
     /// The field a mic button is dictating into; nil for a shortcut's session.
     private(set) var field: DictationField?
 

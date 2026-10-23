@@ -32,13 +32,14 @@ final class AppCore {
         settings: settings, hotKeys: hotKeys)
     @ObservationIgnored private lazy var dictationKey = DictationKeyManager(hotKeys: hotKeys)
     @ObservationIgnored private(set) lazy var voiceSettings = VoiceAISettings()
-    @ObservationIgnored private(set) lazy var voiceCloud = VoiceCloudTranscriber(
+    @ObservationIgnored private(set) lazy var voiceCloud: VoiceCloudTranscriber = VoiceCloudTranscriber(
         settings: settings, voice: voiceSettings, aiSettings: aiSettings,
         confirm: { [unowned self] in
             await self.confirm(
                 title: $0, message: $1, symbol: "waveform", confirmTitle: String(localized: "Continue"),
                 tone: .neutral, confirmRole: .standard)
-        })
+        },
+        dictatedApp: { [unowned self] in self.dictationCoordinator.target?.externalApp })
     let windowMover = WindowMover()
     let spaceSwitcher = SpaceSwitcher()
     let inputSourceSwitcher = InputSourceSwitcher()

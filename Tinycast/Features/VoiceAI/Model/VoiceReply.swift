@@ -149,14 +149,15 @@ struct VoiceReplyParser: Sendable {
 }
 
 enum VoiceTranscript {
-    private static let quotePairs: [(open: Character, close: Character)] = [
-        ("\"", "\""), ("“", "”"), ("«", "»")
-    ]
+    /// How a model quotes its reply, as the prompt's examples do; «» around it all was dictated.
+    private static let replyQuotes: [(open: Character, close: Character)] = [("\"", "\""), ("“", "”")]
+    private static let quotePairs = replyQuotes + [("«", "»")]
 
-    /// A dictation's text from inside its tag, kept as written; a reply without the tag is cleaned.
+    /// A dictation's text from inside its tag: fences kept, quotes wrapping all of it taken off.
     static func dictation(_ reply: String) -> String? {
         guard let inside = tagged(reply) else { return cleaned(reply) }
-        let text = inside.trimmingCharacters(in: .whitespacesAndNewlines)
+        let text = unquoted(inside.trimmingCharacters(in: .whitespacesAndNewlines), pairs: replyQuotes)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
         return text.isEmpty || text == VoicePrompt.noSpeech ? nil : text
     }
 
@@ -179,9 +180,11 @@ enum VoiceTranscript {
         return text.isEmpty || text == VoicePrompt.noSpeech ? nil : text
     }
 
-    private static func unquoted(_ text: String) -> String {
+    private static func unquoted(
+        _ text: String, pairs: [(open: Character, close: Character)] = quotePairs
+    ) -> String {
         guard text.count >= 2, let first = text.first, let last = text.last,
-            let pair = quotePairs.first(where: { $0.open == first && $0.close == last })
+            let pair = pairs.first(where: { $0.open == first && $0.close == last })
         else { return text }
         let inside = text.dropFirst().dropLast()
         guard !inside.contains(pair.open), !inside.contains(pair.close) else { return text }

@@ -17,13 +17,17 @@ final class VoiceCloudTranscriber {
     private let aiSettings: AISettingsStore
     private let confirm: (_ title: String, _ message: String) async -> Bool
     private let frontmostBundleID: @MainActor () -> String?
+    /// The app Dictation types into; nil for one of Tinycast's own editors, such as a Note.
+    private let dictatedApp: @MainActor () -> NSRunningApplication?
     private var consentTask: Task<Void, Never>?
     private weak var capsule: DictationPanelController?
     /// While the capsule is up: the app it opened over, its frame, and the mode it names.
     private var session: (bundleID: String?, frame: NSRect)?
     private(set) var activeMode: VoiceMode?
-    /// The app in front, read off-main as the capsule shows; only a sent recording waits for it.
+    /// The app dictated into, read off-main as the capsule shows; a sent recording waits only briefly.
     private var frontApp: Task<VoiceAppContext?, Never>?
+    /// How long a finished recording waits for a capture still running before going without it.
+    private static let contextGrace: Duration = .milliseconds(500)
     private var caption: VoiceModeCaption?
     /// Read while the capsule is still up, and gone with it.
     private(set) var lastTranscription: Transcription?
@@ -33,13 +37,15 @@ final class VoiceCloudTranscriber {
         confirm: @escaping (_ title: String, _ message: String) async -> Bool,
         frontmostBundleID: @escaping @MainActor () -> String? = {
             NSWorkspace.shared.frontmostApplication?.bundleIdentifier
-        }
+        },
+        dictatedApp: @escaping @MainActor () -> NSRunningApplication?
     ) {
         self.settings = settings
         self.voice = voice
         self.aiSettings = aiSettings
         self.confirm = confirm
         self.frontmostBundleID = frontmostBundleID
+        self.dictatedApp = dictatedApp
     }
 
     var isOn: Bool { settings.dictationEnabled && voice.cloudDictation }
@@ -87,17 +93,25 @@ final class VoiceCloudTranscriber {
             switching
             ? String(localized: "Send Dictation to \(connection.title)?")
             : String(localized: "Transcribe Dictation in the Cloud?")
+        let message =
+            voice.appContext == .off
+            ? String(
+                localized: """
+                    Each finished recording goes to \(connection.title) to be transcribed by \
+                    \(model). Tinycast keeps no copy of the audio; your provider's data policy \
+                    applies.
+                    """)
+            : String(
+                localized: """
+                    Each finished recording goes to \(connection.title) to be transcribed by \
+                    \(model), with the name and window title of the app you dictate into, and a \
+                    screenshot if you chose one. Tinycast keeps no copy; your provider's data policy \
+                    applies.
+                    """)
         consentTask = Task { [weak self] in
             guard let self else { return }
             defer { consentTask = nil }
-            let approved = await confirm(
-                title,
-                String(
-                    localized: """
-                        Each finished recording goes to \(connection.title) to be transcribed by \
-                        \(model). Tinycast keeps no copy of the audio; your provider's data policy \
-                        applies.
-                        """))
+            let approved = await confirm(title, message)
             guard approved, !Task.isCancelled else { return }
             voice.dictationModel = selection
             voice.cloudDictation = true
@@ -128,7 +142,8 @@ final class VoiceCloudTranscriber {
         session = (bundleID, frame)
         activeMode = voice.modes.mode(for: bundleID)
         let level = voice.appContext
-        frontApp = level == .off ? nil : Task { await VoiceAppContextReader.read(level) }
+        let app = level == .off ? nil : dictatedApp()
+        frontApp = app.map { app in Task { await VoiceAppContextReader.read(level, of: app) } }
         showCaption()
     }
 
@@ -163,8 +178,11 @@ final class VoiceCloudTranscriber {
         let mode = activeMode
         let reading = frontApp
         guard let wav = await VoiceMediaEncoder.wav(samples) else { throw VoiceAIFailure.noSpeech }
-        let context = await reading?.value
+        var context = await Self.ready(reading)
         try Task.checkCancellation()
+        if !VoiceRoutePolicy.seesScreenshot(selection, connections: aiSettings.connections) {
+            context?.screenshot = nil
+        }
         let audio = AIAudio(data: wav, format: "wav")
         let options = VoicePrompt.DictationOptions(
             cleanup: voice.cleanup, languages: voice.languages, vocabulary: voice.vocabulary,
@@ -190,6 +208,24 @@ final class VoiceCloudTranscriber {
     ) -> String {
         lastTranscription = Transcription(text: text, transcript: transcript, mode: mode?.name, model: model)
         return text
+    }
+
+    /// The capture if it ends within `contextGrace`; one still running is left behind, not awaited.
+    private static func ready(_ reading: Task<VoiceAppContext?, Never>?) async -> VoiceAppContext? {
+        guard let reading else { return nil }
+        let (stream, continuation) = AsyncStream<VoiceAppContext?>.makeStream()
+        let read = Task { continuation.yield(await reading.value) }
+        let timer = Task {
+            try? await Task.sleep(for: contextGrace)
+            continuation.yield(nil)
+        }
+        defer {
+            read.cancel()
+            timer.cancel()
+            continuation.finish()
+        }
+        for await context in stream { return context }
+        return nil
     }
 
     /// The streamed text from its tag; the sentinel or nothing at all is no speech.

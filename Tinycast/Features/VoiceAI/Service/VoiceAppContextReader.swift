@@ -2,14 +2,14 @@ import AppKit
 // `@preconcurrency` downgrades AX diagnostics: the attribute keys are constant C globals.
 @preconcurrency import ApplicationServices
 
-/// The app in front for a dictation: its name at once, its window's title and picture off-main.
+/// The app a dictation types into: its name at once, its window's title and picture off-main.
 enum VoiceAppContextReader {
-    /// A hung app costs a dictation this much at most, and never its start.
+    /// Per Accessibility call, two of them: a hung app costs a dictation this much, never its start.
     private static let timeout: Float = 0.25
 
     @MainActor
-    static func read(_ level: VoiceAppContext.Level) async -> VoiceAppContext? {
-        guard level != .off, let app = NSWorkspace.shared.frontmostApplication else { return nil }
+    static func read(_ level: VoiceAppContext.Level, of app: NSRunningApplication) async -> VoiceAppContext? {
+        guard level != .off else { return nil }
         let name = app.localizedName ?? app.bundleIdentifier ?? ""
         return await window(of: app.processIdentifier, named: name, screenshot: level == .screenshot)
     }

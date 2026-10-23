@@ -104,21 +104,35 @@ enum VoiceRoutePolicy {
 
     /// Low enough to keep a transcript literal; Gemini keeps its own, as below it Gemini 3 loops.
     static let dictationTemperature = 0.2
+    /// Every reasoning model OpenRouter lists offers it, which `minimal` is not.
+    static let typedFlashEffort = "low"
 
-    /// A dictation saved with no effort, on OpenRouter's Gemini Flash, thinks as little as it can.
+    /// A Gemini Flash on OpenRouter saved with no effort thinks as little as its catalog lists.
     static func dictation(_ selection: AIModelSelection, connections: [AIConnection]) -> AIModelSelection {
         guard case .api(let id, let model, .none) = selection,
-            provider(of: selection, in: connections) == .openRouter,
+            let connection = routeConnection(selection, in: connections), connection.provider == .openRouter,
             rewritesWhileTranscribing(model), model.lowercased().contains("flash")
         else { return selection }
-        return .api(connection: id, model: model, effort: "minimal")
+        guard let listed = connection.reasoningOptions?[model]?.efforts else {
+            return .api(connection: id, model: model, effort: typedFlashEffort)
+        }
+        return .api(connection: id, model: model, effort: fastestEffort(listed))
+    }
+
+    /// Gemini, or a model OpenRouter's catalog says sees pictures; nothing else is sent a screenshot.
+    static func seesScreenshot(_ selection: AIModelSelection, connections: [AIConnection]) -> Bool {
+        guard let connection = routeConnection(selection, in: connections) else { return false }
+        let model = selection.model
+        return rewritesWhileTranscribing(model)
+            || (connection.provider == .openRouter && connection.visionModels.contains(model))
     }
 
     /// Gemini as built; elsewhere one user turn, since a chat template may insist roles alternate.
     static func fitted(
         _ request: AIRequest, for selection: AIModelSelection, connections: [AIConnection]
     ) -> AIRequest {
-        let provider = provider(of: selection, in: connections)
+        let connection = routeConnection(selection, in: connections)
+        let provider = connection?.provider
         guard provider != .gemini, !rewritesWhileTranscribing(selection.model) else { return request }
         var messages = request.messages
         if messages.count > 1, messages.allSatisfy({ $0.role == .user }) {
@@ -129,18 +143,20 @@ enum VoiceRoutePolicy {
                     audio: messages.flatMap(\.audio))
             ]
         }
-        let takesTemperature = provider == .openRouter || provider == .openAICompatible
+        // OpenRouter drops what a model refuses; a remote gateway may front one that refuses it.
+        let isLocal = connection.map { AIEndpointPolicy.isLoopback($0.baseURL) } ?? false
+        let takesTemperature = provider == .openRouter || (provider == .openAICompatible && isLocal)
         return AIRequest(
             instructions: request.instructions, messages: messages,
             maxOutputTokens: request.maxOutputTokens,
             temperature: takesTemperature ? dictationTemperature : request.temperature)
     }
 
-    private static func provider(
-        of selection: AIModelSelection, in connections: [AIConnection]
-    ) -> AIProviderKind? {
+    private static func routeConnection(
+        _ selection: AIModelSelection, in connections: [AIConnection]
+    ) -> AIConnection? {
         guard case .api(let id, _, _) = selection else { return nil }
-        return connections.first { $0.id == id }?.provider
+        return connections.first { $0.id == id }
     }
 
     /// A model the connection's own catalog marked text-only is sent no picture.
