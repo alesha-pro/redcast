@@ -54,7 +54,8 @@ row and chord, `AppIndex`, `LauncherList`, `LauncherCoordinator`, `AppActionsMen
   the dialog only when the Mac was used in the last two minutes; it never activates Tinycast, waits
   its turn behind any open dialog and puts Return on Don't Allow, so typing elsewhere can never
   approve anything. When nobody is there, or under **Decline**, the request is refused at once and
-  counted on the run's row. A rule of Always Allow still allows, and Never Allow still refuses.
+  counted on the run's row, as is anything a sub-agent of the run is refused, since it never asks.
+  A rule of Always Allow still allows, and Never Allow still refuses.
   `AgentConsentPlan` says how a request is put, and `AgentConsentGate.ask` decides it again when its
   turn in the queue comes, so someone who left during the wait is not asked and a Stop shows nothing.
   An ACP refusal nobody chose picks the agent's refuse-once option, or cancels the request when it
