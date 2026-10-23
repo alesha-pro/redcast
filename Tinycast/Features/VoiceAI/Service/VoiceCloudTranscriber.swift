@@ -22,6 +22,8 @@ final class VoiceCloudTranscriber {
     /// While the capsule is up: the app it opened over, its frame, and the mode it names.
     private var session: (bundleID: String?, frame: NSRect)?
     private(set) var activeMode: VoiceMode?
+    /// The app in front, read off-main as the capsule shows; only a sent recording waits for it.
+    private var frontApp: Task<VoiceAppContext?, Never>?
     private var caption: VoiceModeCaption?
     /// Read while the capsule is still up, and gone with it.
     private(set) var lastTranscription: Transcription?
@@ -116,6 +118,8 @@ final class VoiceCloudTranscriber {
             session = nil
             activeMode = nil
             lastTranscription = nil
+            frontApp?.cancel()
+            frontApp = nil
             caption?.close()
             caption = nil
             return
@@ -123,6 +127,8 @@ final class VoiceCloudTranscriber {
         let bundleID = frontmostBundleID()
         session = (bundleID, frame)
         activeMode = voice.modes.mode(for: bundleID)
+        let level = voice.appContext
+        frontApp = level == .off ? nil : Task { await VoiceAppContextReader.read(level) }
         showCaption()
     }
 
@@ -149,27 +155,34 @@ final class VoiceCloudTranscriber {
 
     // MARK: - Transcription
 
-    func transcribe(_ samples: [Float], language: String?) async throws -> String {
+    func transcribe(_ samples: [Float]) async throws -> String {
         lastTranscription = nil
-        guard let selection = route else { throw VoiceAIFailure.noDictationModel }
+        guard let route else { throw VoiceAIFailure.noDictationModel }
+        let selection = VoiceRoutePolicy.dictation(route, connections: aiSettings.connections)
         let provider = try VoiceAIRoute.provider(for: selection, settings: aiSettings)
         let mode = activeMode
+        let reading = frontApp
         guard let wav = await VoiceMediaEncoder.wav(samples) else { throw VoiceAIFailure.noSpeech }
+        let context = await reading?.value
         try Task.checkCancellation()
         let audio = AIAudio(data: wav, format: "wav")
         let options = VoicePrompt.DictationOptions(
-            cleanup: voice.cleanup, language: language, vocabulary: voice.vocabulary)
+            cleanup: voice.cleanup, languages: voice.languages, vocabulary: voice.vocabulary,
+            context: context)
         let plain = VoicePrompt.dictationRequest(audio: audio, options: options)
-        guard let mode else { return noted(try await collect(plain, on: provider), model: selection.model) }
-        if case .api(_, let model, _) = selection, !VoiceRoutePolicy.rewritesWhileTranscribing(model) {
-            let transcript = try await collect(plain, on: provider)
+        let model = selection.model
+        guard let mode else {
+            return noted(try await collect(plain, as: selection, on: provider), model: model)
+        }
+        if !VoiceRoutePolicy.rewritesWhileTranscribing(model) {
+            let transcript = try await collect(plain, as: selection, on: provider)
             let rewritten = try await collect(
-                VoicePrompt.rewriteRequest(transcript: transcript, mode: mode), on: provider)
+                VoicePrompt.rewriteRequest(transcript: transcript, mode: mode), as: selection, on: provider)
             return noted(rewritten, transcript: transcript, mode: mode, model: model)
         }
         let rewritten = try await collect(
-            VoicePrompt.modeRequest(audio: audio, mode: mode, options: options), on: provider)
-        return noted(rewritten, mode: mode, model: selection.model)
+            VoicePrompt.modeRequest(audio: audio, mode: mode, options: options), as: selection, on: provider)
+        return noted(rewritten, mode: mode, model: model)
     }
 
     private func noted(
@@ -179,14 +192,17 @@ final class VoiceCloudTranscriber {
         return text
     }
 
-    /// The streamed text, cleaned; the sentinel or nothing at all is no speech.
-    private func collect(_ request: AIRequest, on provider: any AIProvider) async throws -> String {
+    /// The streamed text from its tag; the sentinel or nothing at all is no speech.
+    private func collect(
+        _ request: AIRequest, as selection: AIModelSelection, on provider: any AIProvider
+    ) async throws -> String {
+        let fitted = VoiceRoutePolicy.fitted(request, for: selection, connections: aiSettings.connections)
         var text = ""
-        for try await event in provider.stream(request) {
+        for try await event in provider.stream(fitted) {
             if case .text(let delta) = event { text += delta }
         }
         try Task.checkCancellation()
-        guard let transcript = VoiceTranscript.cleaned(text) else { throw VoiceAIFailure.noSpeech }
+        guard let transcript = VoiceTranscript.dictation(text) else { throw VoiceAIFailure.noSpeech }
         return transcript
     }
 

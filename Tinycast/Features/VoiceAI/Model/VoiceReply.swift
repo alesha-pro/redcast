@@ -153,6 +153,23 @@ enum VoiceTranscript {
         ("\"", "\""), ("“", "”"), ("«", "»")
     ]
 
+    /// A dictation's text from inside its tag, kept as written; a reply without the tag is cleaned.
+    static func dictation(_ reply: String) -> String? {
+        guard let inside = tagged(reply) else { return cleaned(reply) }
+        let text = inside.trimmingCharacters(in: .whitespacesAndNewlines)
+        return text.isEmpty || text == VoicePrompt.noSpeech ? nil : text
+    }
+
+    /// From the first opening tag to the closing one after it; a cut reply may lack either.
+    private static func tagged(_ reply: String) -> Substring? {
+        let open = reply.range(of: VoicePrompt.transcriptOpen, options: .caseInsensitive)
+        let start = open?.upperBound ?? reply.startIndex
+        let close = reply.range(
+            of: VoicePrompt.transcriptClose, options: .caseInsensitive, range: start..<reply.endIndex)
+        guard open != nil || close != nil else { return nil }
+        return reply[start..<(close?.lowerBound ?? reply.endIndex)]
+    }
+
     /// nil for the no-speech sentinel or nothing at all; strips wrapping quotes and code fences.
     static func cleaned(_ raw: String) -> String? {
         var text = raw.trimmingCharacters(in: .whitespacesAndNewlines)

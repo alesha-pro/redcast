@@ -3,7 +3,6 @@ import SwiftUI
 /// The Dictation pane's second engine: the same shortcut, transcribed by an AI connection.
 struct VoiceCloudDictationSection: View {
     @Environment(AppCore.self) private var core
-    @Environment(AppSettings.self) private var settings
 
     var body: some View {
         let voice = core.voiceSettings
@@ -39,18 +38,22 @@ struct VoiceCloudDictationSection: View {
                 ) {
                     SettingsRowTitle(.dictationCloudTranscription, "Words to spell exactly")
                 }
-                // Qwen's own picker already shows this setting; one row per pane.
-                if !showsModelLanguage {
-                    Picker(selection: languageBinding) {
-                        Text(LocalizedStringResource("dictation-language-auto", defaultValue: "Auto"))
-                            .tag("")
-                        Divider()
-                        ForEach(DictationLanguage.allCases) { language in
-                            Text(language.displayName(locale: .current)).tag(language.rawValue)
-                        }
-                    } label: {
-                        SettingsRowTitle(.dictationCloudTranscription, "Language")
+                languagesRow(voice.languages)
+                Picker(selection: $voice.appContext) {
+                    Text("Off").tag(VoiceAppContext.Level.off)
+                    Text("Name and title").tag(VoiceAppContext.Level.title)
+                    Text("Name, title and screenshot").tag(VoiceAppContext.Level.screenshot)
+                } label: {
+                    SettingsRowTitle(.dictationCloudTranscription, "Use the app in front")
+                    Text("Sent with each recording to help spell names and terms, and never saved.")
+                    if voice.appContext == .screenshot, !ScreenRecordingAccess.isGranted {
+                        Text("No screenshot: allow Screen Recording for Tinycast in System Settings.")
+                            .foregroundStyle(.orange)
                     }
+                }
+                .onChange(of: voice.appContext) { _, level in
+                    guard level == .screenshot, !ScreenRecordingAccess.isGranted else { return }
+                    ScreenRecordingAccess.request()
                 }
             }
         } header: {
@@ -64,9 +67,32 @@ struct VoiceCloudDictationSection: View {
         }
     }
 
-    private var showsModelLanguage: Bool {
-        settings.dictationModel.isQwen
-            && core.dictationCoordinator.models.isInstalled(settings.dictationModel)
+    /// A menu of checkmarks; past the limit, the rest wait until one is unchecked.
+    private func languagesRow(_ chosen: [String]) -> some View {
+        let names = chosen.compactMap(DictationLanguage.init(rawValue:)).map {
+            $0.displayName(locale: .current)
+        }
+        let full = chosen.count >= VoiceLanguagePolicy.limit
+        return LabeledContent {
+            Menu {
+                ForEach(DictationLanguage.allCases) { language in
+                    Toggle(isOn: languageBinding(language.rawValue)) {
+                        Text(language.displayName(locale: .current))
+                    }
+                    .disabled(full && !chosen.contains(language.rawValue))
+                }
+            } label: {
+                if names.isEmpty {
+                    Text(LocalizedStringResource("dictation-language-auto", defaultValue: "Auto"))
+                } else {
+                    Text(verbatim: names.formatted(.list(type: .and, width: .narrow)))
+                }
+            }
+            .fixedSize()
+        } label: {
+            SettingsRowTitle(.dictationCloudTranscription, "Languages I speak")
+            Text("The model expects only these, even mixed in one sentence.")
+        }
     }
 
     private var enabledBinding: Binding<Bool> {
@@ -81,9 +107,12 @@ struct VoiceCloudDictationSection: View {
             set: { core.voiceSettings.vocabulary = String($0.prefix(VoicePrompt.maxVocabularyLength)) })
     }
 
-    private var languageBinding: Binding<String> {
+    private func languageBinding(_ language: String) -> Binding<Bool> {
         Binding(
-            get: { settings.dictationLanguage ?? "" },
-            set: { settings.dictationLanguage = $0.isEmpty ? nil : $0 })
+            get: { core.voiceSettings.languages.contains(language) },
+            set: { _ in
+                core.voiceSettings.languages = VoiceLanguagePolicy.toggled(
+                    language, in: core.voiceSettings.languages)
+            })
     }
 }

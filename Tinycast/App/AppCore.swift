@@ -118,7 +118,8 @@ final class AppCore {
         },
         showMessage: { [unowned self] in self.showMessage($0, tone: $1) },
         cloudIsOn: { [unowned self] in self.voiceCloud.isOn },
-        cloudTranscribe: { [unowned self] in try await self.voiceCloud.transcribe($0, language: $1) },
+        // Fork: cloud dictation is told the languages its own setting names, not the local model's.
+        cloudTranscribe: { [unowned self] samples, _ in try await self.voiceCloud.transcribe(samples) },
         capsule: { [unowned self] in self.voiceCloud.attach(to: $0) },
         finished: { [unowned self] in  // Fork: Dictation History
             self.dictationHistoryCoordinator.recordDictation(
