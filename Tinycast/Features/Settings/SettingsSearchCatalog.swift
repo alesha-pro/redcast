@@ -346,7 +346,7 @@ enum SettingsSearchCatalog {
             group: .aiUsage, "Usage",
             keywords: [
                 "tokens", "cost", "spend", "billing", "openrouter", "balance", "credits", "trend",
-                "quick actions", "management key", "provisioning key"
+                "quick actions", "management key", "provisioning key", "usage log", "clear log"
             ]),
         .init(
             .aiSystemPrompt, "Send a system prompt",

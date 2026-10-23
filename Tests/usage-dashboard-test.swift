@@ -685,6 +685,16 @@ extension UsageDashboardTests {
         UsageLedger.append(entry(1), to: url)
         let afterCut = (try? UsageLedger.entries(at: url, in: all)) ?? []
         expect(afterCut.count == 4 && afterCut.last == entry(1), "a cut-short line never swallows the next one")
+        let fields = try? FileHandle(forWritingTo: url)
+        _ = try? fields?.seekToEnd()
+        try? fields?.write(contentsOf: Data("1790100001\tvoice\tcodex\tgpt-5-m".utf8))
+        try? fields?.close()
+        UsageLedger.append(entry(2), to: url)
+        let afterLongerCut = (try? UsageLedger.entries(at: url, in: all)) ?? []
+        expect(
+            afterLongerCut.count == 5 && afterLongerCut.last == entry(2)
+                && !afterLongerCut.contains { $0.model == "gpt-5-m" },
+            "a cut that already has a model is dropped, never counted as a reply")
 
         func write(_ offsetsInDays: [Double], garbage: Bool = false) {
             let lines = offsetsInDays.map { entry($0 * 86_400).line }.joined()
@@ -707,6 +717,15 @@ extension UsageDashboardTests {
         expect(
             !cleaned.contains("garbage") && cleaned.split(separator: "\n").count == 2,
             "an unreadable head is trimmed away")
+
+        UsageLedger.clear(at: url)
+        expect(
+            (try? UsageLedger.entries(at: url, in: all)) == []
+                && !FileManager.default.fileExists(atPath: url.path),
+            "clearing the log removes it, and reads as no usage")
+        UsageLedger.append(entry(0), to: url)
+        expect(
+            (try? UsageLedger.entries(at: url, in: all)) == [entry(0)], "and the next reply starts a new one")
     }
 
     static func ledgerEntriesJoinTheirModelsLine() async {

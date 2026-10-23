@@ -9,11 +9,14 @@ struct UsageSection: View {
     @State private var period = UsagePeriod.month
     @State private var anchor = Date()
     @State private var loaded: Loaded?
+    @State private var logClears = 0
 
     private struct Request: Hashable {
         let interval: DateInterval
         let slices: [Date]
         let isEnabled: Bool
+        /// A cleared log retires the load that still counts it.
+        let logClears: Int
     }
 
     /// A nil report is a history that would not read.
@@ -29,7 +32,7 @@ struct UsageSection: View {
         let interval = period.interval(containing: anchor, calendar: calendar)
         let request = Request(
             interval: interval, slices: period.slices(of: interval, calendar: calendar),
-            isEnabled: appSettings.aiEnabled)
+            isEnabled: appSettings.aiEnabled, logClears: logClears)
         let openRouter = aiSettings.connections.filter {
             $0.provider == .openRouter && aiSettings.isRouteEnabled(.api($0.id))
         }
@@ -58,6 +61,16 @@ struct UsageSection: View {
             }
             ForEach(openRouter) { connection in
                 OpenRouterBalanceRow(connection: connection, showsName: openRouter.count > 1)
+            }
+            SettingsRow(
+                title: String(localized: "Usage log"),
+                subtitle: String(
+                    localized: """
+                        Quick Actions, voice, extension AI and chat titles. Chats keep their own usage.
+                        """),
+                subtitleLineLimit: 2
+            ) {
+                Button("Clear…", role: .destructive) { Task { await clearLog() } }
             }
         } header: {
             SettingsSectionHeader(.aiUsage)
@@ -106,6 +119,17 @@ struct UsageSection: View {
             slices: request.slices, agents: acpBindings())
         guard !Task.isCancelled else { return }
         loaded = Loaded(request: request, report: report)
+    }
+
+    private func clearLog() async {
+        guard
+            await core.confirm(
+                title: String(localized: "Clear the usage log?"),
+                message: String(localized: "This can't be undone."), symbol: "trash",
+                confirmTitle: String(localized: "Clear Log"))
+        else { return }
+        await Task.detached(priority: .utility) { UsageLedger.clear() }.value
+        logClears += 1
     }
 
     /// A chat an ACP agent ran is the agent's: its CLI ran it, whatever the model picker held.
