@@ -4,6 +4,8 @@ import { spawn } from "node:child_process";
 
 // `config` sends config options, as claude-agent-acp and codex-acp do; else the older shapes.
 const variant = process.argv[2] === "config" ? "config" : "legacy";
+// `refuse-model` turns every model switch down, as a busy or offline adapter would.
+const refusesModel = process.argv.includes("refuse-model");
 const sessions = new Map();
 let nextSession = 1;
 let nextRequest = 1000;
@@ -248,6 +250,10 @@ input.on("line", (line) => {
       const session = sessions.get(params.sessionId);
       const option = variant === "config" ? configOptions(session).find((o) => o.id === params.configId) : undefined;
       const values = (option?.options ?? []).flatMap((o) => o.options ?? [o]).map((o) => o.value);
+      if (refusesModel && params.configId === "model") {
+        send({ id, error: { code: -32603, message: "Internal error" } });
+        break;
+      }
       if (!values.includes(params.value)) {
         send({ id, error: { code: -32602, message: "Invalid params" } });
         break;

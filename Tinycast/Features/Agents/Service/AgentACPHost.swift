@@ -267,18 +267,22 @@ final class AgentACPHost {
         let own = store.acpChoices(forChat: chatID)
         let wanted = own ?? (store.agent(id: agent.id) ?? agent).acpChoices
         var vanished: [(slot: ACPChoiceSlot, value: String)] = []
+        var confirmed = true
         for (slot, value) in wanted.wishes {
             guard !Task.isCancelled else { break }
             switch offered.step(for: slot, wanting: value) {
             case .keep:
                 continue
             case .forget:
-                vanished.append((slot, value))
+                if confirmed { vanished.append((slot, value)) }
             case .send(let option):
-                guard let answer = try? await connection.set(value, for: option, sessionID: session) else {
-                    continue
+                do {
+                    let answer = try await connection.set(value, for: option, sessionID: session)
+                    offered.settle(value, in: option.id, answer: answer)
+                } catch {
+                    // The list later values meet was never confirmed, so none is forgotten.
+                    confirmed = false
                 }
-                offered.settle(value, in: option.id, answer: answer)
             }
         }
         if sessions[chatID] == Session(agentID: agent.id, id: session) {
