@@ -21,14 +21,17 @@ and `SettingsSearchCatalog`.
 - **Quick AI's agent is Settings' pick until the chat speaks, then the chat's own.**
   `AgentCoordinator.agent(for:)` resolves through `ChatToolPolicy.agent`: a chat's own binding wins;
   Quick AI's chat with no message yet takes `aiQuickAIAgent` unless ⌘K said No Agent for that chat
-  (`quickAIDeclined`, in memory, by chat id). A first message the chat took, and ⌘J, bind it through
-  `setAgent`, so later turns, AI Chat and the history keep it, and a later change in Settings never
-  moves a chat that has spoken. The agent is read before the send and bound only once it went
-  (`bindingQuickAIAgent`), so Return on an empty Quick AI or a refused send leaves no binding. A
-  chat Quick AI resumes without an agent stays plain; AI Chat's window never takes it. Everything
-  that asks `agent(for:)` — the route, the agent's prompt, the model the chat runs on, the
-  capabilities and the context card — sees the agent before the first message, so the header's model
-  is the agent's and the first turn is already the agent's.
+  (`chooseAgent` keeps it in `declinedDefault`, in memory, by chat id). A first message the chat
+  took, and a ⌘J that moves it, bind it through `setAgent`, so later turns, AI Chat and the history
+  keep it, and a later change in Settings never moves a chat that has spoken; ⌘J on an unsent chat
+  with staged files and no agent marks it No Agent, so AI Chat's own
+  [agent for new chats](agents.md#a-new-chats-agent) stays out of it too. The agent is read before
+  the send and bound only once it went (`AIChatCoordinator.sendBindingAgent`, AI Chat's send too),
+  so Return on an empty Quick AI or a refused send leaves no binding. A chat Quick AI resumes
+  without an agent stays plain; AI Chat's window never takes Quick AI's pick, nor Quick AI the
+  window's. Everything that asks `agent(for:)` — the route, the agent's prompt, the model the chat
+  runs on, the capabilities and the context card — sees the agent before the first message, so the
+  header's model is the agent's and the first turn is already the agent's.
 - **A binding lasts as long as its chat.** Every Quick AI chat that answers with an agent adds a
   line to `agent-chats.json`, as an AI Chat agent chat does. Deleting a chat drops its line
   (`AgentCoordinator.chatDeleted`), and the history's retention prune and Delete All sweep the lines
@@ -67,7 +70,7 @@ and `SettingsSearchCatalog`.
   lost whenever they change, so the time is a fifteen-minute window (`ChatBriefing.clockStep`)
   rather than the minute: the prompt changes four times an hour, not on every turn. Model-facing
   text is English, its weekday from an `en_US_POSIX` calendar.
-- **Nothing resident.** `QuickAISettingsStore` reads one default the first time an agent is
+- **Nothing resident.** `AgentDefaultStore` reads one default the first time an agent is
   resolved; the ⌘K rows are built when the menu opens; the briefing is a string built per send. No
   timer, no file of its own, no network but the turn's own.
 - **The setting never travels.** `aiQuickAIAgent` names an agent on this Mac and lends it Quick AI's
@@ -90,12 +93,15 @@ and `SettingsSearchCatalog`.
 | --- | --- |
 | `Model/ChatToolPolicy.swift` | The rules: the switch, the web tools, the hint, the tools the prompt names, which agent answers |
 | `Model/ChatBriefing.swift` | The prompt's last lines: the clock, the tools, the live-facts rule, the switch's place |
-| `Settings/QuickAISettingsStore.swift` | `aiQuickAIAgent` in `UserDefaults` |
-| `Settings/QuickAIAgentRow.swift` | Quick AI answers with, in Settings → AI → Agents |
-| `UI/QuickAIAgents.swift` | `AgentCoordinator`'s Quick AI part: the agents offered, Settings' pick, binding after a send, ⌘K's choice |
+| `Settings/QuickAIAgentRow.swift` | Quick AI answers with, in Settings → AI → Agents, on `AgentDefaultPicker` |
+| `UI/QuickAIAgents.swift` | `AgentCoordinator`'s Quick AI part: the agents offered, Settings' pick, what ⌘J carries |
 | `UI/ChatToolFacts.swift` | `AIChatCoordinator`'s facts for the policy, the briefing for a turn, the ⌘K toggle |
 | `UI/QuickAIToolsMenu.swift` | The ⌘K rows: Web Search, then Answer with |
 | `UI/QuickAIAgentHeader.swift` | The agent's line over an empty Quick AI chat |
+
+`aiQuickAIAgent` is kept by `Agents/Settings/AgentDefaultStore.swift`, and ⌘K's choice and the
+binding send are `Agents/UI/NewChatAgent.swift`'s, shared with AI Chat's
+[agent for new chats](agents.md#a-new-chats-agent).
 
 ## Manual sweep
 
@@ -122,5 +128,5 @@ and `SettingsSearchCatalog`.
 Harness: `quick-ai-tools-test` (the clock across zones and quarter-hour edges, the briefing with and
 without tools, search or an MCP server, the offering rules for Quick AI with Web Search on and off
 and with and without an agent, Codex, the Claude command, the on-device model and AI Chat, which
-agent answers, and the setting across launches). `agent-test` holds the bindings a gone chat leaves
-behind, and `agent-tools-test` and `web-search-test` the page reads.
+agent answers on either surface, and both settings across launches). `agent-test` holds the
+bindings a gone chat leaves behind, and `agent-tools-test` and `web-search-test` the page reads.

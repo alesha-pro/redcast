@@ -1,6 +1,6 @@
 import Foundation
 
-/// What a chat is offered: Tinycast's web tools, the Web Search switch, and Quick AI's agent.
+/// What a chat is offered: Tinycast's web tools, the Web Search switch, and its starting agent.
 enum ChatToolPolicy {
     enum Surface: Equatable, Sendable {
         case quickAI
@@ -47,12 +47,23 @@ enum ChatToolPolicy {
         facts.callsTools && facts.hasToolServers && !facts.hasAgent
     }
 
-    /// The chat's own agent, else Quick AI's while its chat is unsent and ⌘K has not said none.
+    /// The chat's own agent, else its surface's pick while it is unsent and nobody said none.
     static func agent(
-        bound: UUID?, quickAI: UUID?, surface: Surface, isUnsent: Bool, declined: Bool
+        bound: UUID?, quickAI: UUID?, window: UUID?, surface: Surface, isUnsent: Bool, declined: Bool
     ) -> UUID? {
         if let bound { return bound }
-        guard surface == .quickAI, isUnsent, !declined else { return nil }
-        return quickAI
+        guard isUnsent, !declined else { return nil }
+        return surface == .quickAI ? quickAI : window
+    }
+
+    /// AI Chat's pick while AI is on and the agent still exists; otherwise chats start plain.
+    static func windowAgent(picked: UUID?, among agents: some Sequence<UUID>, aiEnabled: Bool) -> UUID? {
+        guard aiEnabled, let picked, agents.contains(picked) else { return nil }
+        return picked
+    }
+
+    /// No Agent on a chat that has not spoken, picked or carried over, keeps the pick out of it.
+    static func declines(_ agent: UUID?, isUnsent: Bool) -> Bool {
+        agent == nil && isUnsent
     }
 }

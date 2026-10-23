@@ -28,6 +28,7 @@ struct AgentsSettingsSection: View {
             } label: {
                 SettingsRowTitle(.aiAgents, "Add Agent")
             }
+            if !agents.agents.isEmpty { NewChatAgentRow() }
             if !agents.quickAIAgents.isEmpty { QuickAIAgentRow() }
             SettingsRow(
                 title: "Daily spend cap", subtitle: spendSubtitle, subtitleLineLimit: 3, anchor: .aiAgents

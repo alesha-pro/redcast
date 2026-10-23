@@ -254,9 +254,10 @@ private struct AIChatComposer: View {
     }
 
     private func submit() {
+        // Fork: the agent a new chat shows becomes its own once its first message goes.
         if chat.isStreaming {
             coordinator.stopResponse(in: chat)
-        } else if coordinator.send(chat.draft, in: chat) {
+        } else if coordinator.sendBindingAgent(chat.draft, in: chat) {
             chat.draft = ""
         }
     }
@@ -462,7 +463,7 @@ private struct AIAgentPicker: View {
             Toggle(
                 isOn: Binding(
                     get: { current == nil },
-                    set: { if $0 { agents.setAgent(nil, for: chat) } })
+                    set: { if $0 { agents.chooseAgent(nil, for: chat) } })
             ) {
                 Text("No Agent")
             }
@@ -471,7 +472,7 @@ private struct AIAgentPicker: View {
                     Toggle(
                         isOn: Binding(
                             get: { current?.id == agent.id },
-                            set: { if $0 { agents.setAgent(agent, for: chat) } })
+                            set: { if $0 { agents.chooseAgent(agent, for: chat) } })
                     ) {
                         // Fork: each agent on its own coloured tile.
                         Label {
