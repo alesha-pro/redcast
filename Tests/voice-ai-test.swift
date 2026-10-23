@@ -573,8 +573,10 @@ struct VoiceAITests {
         modes.assign(VoiceModeCatalog.translateToEnglish, to: slack)
         expect(modes.mode(for: slack)?.id == VoiceModeCatalog.translateToEnglish, "an app remembers its mode")
         expect(modes.mode(for: mail) == nil, "another app keeps the default")
-        modes.assign(formal.id, to: nil)
-        expect(modes.defaultMode == formal.id && modes.mode(for: mail)?.id == formal.id, "no app means the default")
+        modes.defaultMode = formal.id
+        expect(
+            modes.mode(for: nil)?.id == formal.id && modes.mode(for: mail)?.id == formal.id,
+            "no app, or one without a choice, means the default")
         modes.assign(nil, to: mail)
         expect(
             modes.apps[mail] == VoiceModeSettings.plain && modes.mode(for: mail) == nil,
