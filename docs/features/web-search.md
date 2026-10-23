@@ -95,21 +95,29 @@ few lines that wire it into `AIChatCoordinator`, `AIToolLoopProvider`, `AgentCoo
 
 ## Reading a page
 
-`WebPageReader` streams the body: HTML or text up to 2 MB, a PDF or an image (by its type, by
-`%PDF-` at the start of an untyped body, or by a `.pdf` name) to a temporary file of at most 32 MB,
-removed when the read ends and handed to the [document helper](document-text.md). Text is decoded
-by its declared charset, else UTF-8, else the page's own `<meta charset>`, else Latin-1.
+`WebPageReader` streams the body: HTML or text up to 2 MB; a PDF, an image or a Word, RTF or ODT
+file (by its type, by `%PDF-` at the start of an untyped body, or by its name when the type says
+only "download") to a temporary file of at most 32 MB, named with its suffix, removed when the read
+ends and handed to the [document helper](document-text.md). A Word file's text comes back in parts
+as a page's does. An archive, media, a font, a program, a spreadsheet or slides is refused by its
+type before the body is read, and any other body with a NUL in its first 8 KB (unless it is sent as
+UTF-16 or UTF-32) is refused as binary data rather than decoded into noise. Text is decoded by its
+declared charset, else UTF-8, else the page's own `<meta charset>`, else Latin-1.
 
 - **Compact Markdown in one pass.** `WebPageMarkdown` walks the bytes once, with no DOM and no
-  recursion, so memory stays near the output and a page nested a hundred thousand deep converts as
-  fast as a flat one. Headings become `#`, lists `-` or `1.` with nesting, data tables GFM tables
+  recursion, so memory stays near the output. Each tag costs the same however many came before: of
+  the `main` and `article` regions it keeps only the open ones (one of each at most) and the first
+  of each, so a page nested a hundred thousand deep, or one of 2 MB of empty articles, converts as
+  fast as a flat one (under a second unoptimized). A stopped turn stops the conversion too, keeping
+  what it had. Headings become `#`, lists `-` or `1.` with nesting, data tables GFM tables
   (a layout table or a lone row reads cell by cell), `pre` a fence, `code` backticks, `blockquote`
   `>`. Links become `[text](absolute URL)`: resolved against the page or its `<base>`, without the
   fragment, http and https only (mail, scripts and in-page anchors are text), an image's alt naming
   a link that has no text of its own, and an address linked once per part, plain text after that.
   Links set side by side stay apart.
 - **What a reader does not see is left out.** Scripts, styles, `noscript`, `template`, frames,
-  SVG, media, form controls and the head; the site's `nav`, `footer`, `aside`, its own `header` and
+  SVG, media, form controls and the head; a button too, unless it sits in a heading or opens a
+  section (`aria-expanded`, `aria-controls`), as an accordion's or a FAQ's questions do; the site's `nav`, `footer`, `aside`, its own `header` and
   ARIA banner, navigation, contentinfo and complementary roles (an article's own header stays); the
   same page in other languages (`hreflang`); anything `hidden`, `aria-hidden`, `display:none` or
   `visibility:hidden`, and the classes screen-reader and MediaWiki conventions hide (edit links,
@@ -119,8 +127,9 @@ by its declared charset, else UTF-8, else the page's own `<meta charset>`, else 
   is read again keeping chrome. A `main` or `[role=main]` region, or the page's only `article`, is
   the page when it holds a fifth of the text; a list left open ends with the block that held it.
 - **Long pages come in parts.** `WebPageParts` cuts the Markdown at block edges into parts of at
-  most 24 KB (a block longer than that between words, a word longer than that on whole
-  characters). Each part says "Part 2 of 5." and how to read the next one; `part` reads it, and the
+  most 24 KB. A block longer than that starts in the room its part has left and goes on in the
+  next: a table between rows, each later piece under the table's header again, any other block
+  between words, a word longer than a part on whole characters. Each part says "Part 2 of 5." and how to read the next one; `part` reads it, and the
   page is fetched again for it, so nothing is kept between calls. The last part of a page cut at
   2 MB says the rest was not fetched. A part past the end says how many there are.
 - **A PDF by pages.** `pages` takes `"3"`, `"3-5"` or `"8-"`, as `read_file` does; the answer names
@@ -168,7 +177,7 @@ sentence. SearXNG documents no week for its JSON API, so a week widens to a mont
 | `Model/WebPageScope.swift` | Which addresses a turn was given, what tells two apart, and the one to fetch |
 | `Model/WebPageMarkdown.swift` | A page as compact Markdown in one pass: blocks, link markers, chrome and hidden text left out |
 | `Model/WebPageParts.swift` | A converted page cut into parts that fit a result, each rendering its links once |
-| `Service/WebPageReader.swift` | One bounded fetch for `read_page` and `web_fetch`: a page in parts, a PDF by pages, `PageRedirects` |
+| `Service/WebPageReader.swift` | One bounded fetch for `read_page` and `web_fetch`: a page or a Word file in parts, a PDF by pages, binary refused, `PageRedirects` |
 | `Service/WebSearchRunner.swift` | The chain for one call: keys on demand, the transport, fallback, the results found |
 | `Service/WebSearchAgentTools.swift` | The Web family's provider: consent, the search row, the runner |
 | `Service/WebChatTools.swift` | A plain chat's turn: routes both tools, keeps its searches' results, watches each round |
@@ -241,12 +250,14 @@ links inside an attached file or captured window left out, a sixth read in a tur
 the redirects that may not leave the open web for a local host, and the notes a page only its
 scripts would fill carries; the Markdown conversion: headings, lists, tables, code, quotes, links
 resolved and linked once, chrome and every kind of hidden text left out, hidden elements left open,
-a stray list, an article, a base, entities, forged link markers and a deep page; four pages recorded
+a stray list, an article, a base, entities, forged link markers, a deep page, 2 MB of empty
+articles and of `main` roles in time, a stopped conversion, and accordion buttons; four pages recorded
 live on 2026-10-23 in `Tests/web-search-fixtures/pages/` (a Wikipedia article, a news article whose
 sentences are replaced, a weather forecast and a page only its scripts fill; `live-2026-10-23.txt`
-lists those reads and a PDF report's); parts and their limits; `WebPageReader` over a stubbed
-session: a declared charset, a PDF by type, by its first bytes and by name read through the
-harness acting as the document helper, plain text, a 404, a missing helper and a page past 2 MB in
-parts; another part not counting as a read; and an agent's web scope, see
+lists those reads and a PDF report's); parts and their limits, and a 1,200-row table cut between
+rows under its header; `WebPageReader` over a stubbed session: a declared charset, a PDF by type, by
+its first bytes and by name read through the harness acting as the document helper, a Word file by
+type and an RTF download by name in parts, an archive refused by type and bytes by a NUL, UTF-16
+text, plain text, a 404, a missing helper and a page past 2 MB in parts; another part not counting as a read; and an agent's web scope, see
 [agents](agents.md#manual-sweep)). `agent-tools-test` reads a saved page as Markdown and holds
 `web_fetch`'s refusals, and `agent-test` its arguments.

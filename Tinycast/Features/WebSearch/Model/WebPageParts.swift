@@ -14,29 +14,52 @@ nonisolated struct WebPageParts: Sendable {
 
     init(_ page: WebPageMarkdown.Page, partBytes: Int = Self.partBytes) {
         let limit = max(256, partBytes)
-        let blocks = page.blocks.flatMap { Self.pieces(of: $0, limit: limit, links: page.links) }
+        let links = page.links
+        var blocks: [WebPageMarkdown.Block] = []
         var ranges: [Range<Int>] = []
         var start = 0
         var size = 0
         var used = Set<Int>()
-        for (index, block) in blocks.enumerated() {
+        /// Into the part being filled when it fits there; `force` puts a piece in an empty part.
+        func add(_ block: WebPageMarkdown.Block, force: Bool = false) -> Bool {
             var trial = used
-            var bytes = Self.render(block.text, links: page.links, used: &trial).text.utf8.count
-            let joint = index == start ? 0 : (block.tight ? 1 : 2)
-            if index > start, size + joint + bytes > limit {
-                ranges.append(start..<index)
-                start = index
-                trial = []
-                bytes = Self.render(block.text, links: page.links, used: &trial).text.utf8.count
-                size = bytes
-            } else {
-                size += joint + bytes
-            }
+            let bytes = Self.render(block.text, links: links, used: &trial).text.utf8.count
+            let joint = blocks.count == start ? 0 : (block.tight ? 1 : 2)
+            guard size + joint + bytes <= limit || (force && blocks.count == start) else { return false }
+            blocks.append(block)
+            size += joint + bytes
             used = trial
+            return true
         }
-        if start < blocks.count { ranges.append(start..<blocks.count) }
+        func close() {
+            guard blocks.count > start else { return }
+            ranges.append(start..<blocks.count)
+            start = blocks.count
+            size = 0
+            used = []
+        }
+        for block in page.blocks {
+            if add(block) { continue }
+            if Self.upperBound(block.text, links: links) <= limit {
+                close()
+                _ = add(block, force: true)
+                continue
+            }
+            // Too long for any part, so its first piece fills what this part has left.
+            var room = limit - size - (blocks.count == start ? 0 : (block.tight ? 1 : 2))
+            if room < limit / 4 {
+                close()
+                room = limit
+            }
+            for piece in Self.pieces(of: block, first: room, limit: limit, links: links) {
+                if add(piece) { continue }
+                close()
+                _ = add(piece, force: true)
+            }
+        }
+        close()
         self.blocks = blocks
-        self.links = page.links
+        self.links = links
         self.ranges = ranges
     }
 
@@ -83,16 +106,17 @@ nonisolated struct WebPageParts: Sendable {
         return (String(output), kept)
     }
 
-    /// A block too long for one part, cut between words, each piece within `limit` linked in full.
+    /// A block too long for one part: a table by rows under its header, else cut between words.
     private static func pieces(
-        of block: WebPageMarkdown.Block, limit: Int, links: [URL]
+        of block: WebPageMarkdown.Block, first: Int, limit: Int, links: [URL]
     ) -> [WebPageMarkdown.Block] {
+        if let rows = rows(of: block, first: first, limit: limit, links: links) { return rows }
         let units = units(of: block.text)
         let sizes = units.map { upperBound($0, links: links) }
-        guard sizes.reduce(0, +) > limit else { return [block] }
         var pieces: [WebPageMarkdown.Block] = []
         var piece = ""
         var size = 0
+        var budget = min(first, limit)
         func flush() {
             let text = piece.trimmingCharacters(in: .whitespacesAndNewlines)
             if !text.isEmpty {
@@ -100,10 +124,11 @@ nonisolated struct WebPageParts: Sendable {
             }
             piece = ""
             size = 0
+            budget = limit
         }
         for (unit, unitSize) in zip(units, sizes) {
-            if size + unitSize > limit { flush() }
-            guard unitSize > limit else {
+            if size + unitSize > budget { flush() }
+            guard unitSize > budget else {
                 piece += unit
                 size += unitSize
                 continue
@@ -112,13 +137,42 @@ nonisolated struct WebPageParts: Sendable {
             var none = Set(links.indices)
             var rest = Substring(render(unit, links: links, used: &none).text)
             while !rest.isEmpty {
-                let cut = prefix(rest, bytes: limit)
+                let cut = prefix(rest, bytes: budget)
                 piece = String(cut)
                 flush()
                 rest = rest[cut.endIndex...]
             }
         }
         flush()
+        return pieces
+    }
+
+    /// A Markdown table cut between rows, each piece under the header again; nil for any other block.
+    private static func rows(
+        of block: WebPageMarkdown.Block, first: Int, limit: Int, links: [URL]
+    ) -> [WebPageMarkdown.Block]? {
+        let lines = block.text.components(separatedBy: "\n")
+        guard lines.count > 3, lines[0].hasPrefix("| "), lines[1].hasPrefix("| --- |") else { return nil }
+        let header = lines[0] + "\n" + lines[1]
+        let headerSize = upperBound(header, links: links)
+        let sizes = lines.dropFirst(2).map { upperBound($0, links: links) + 1 }
+        // A row that fits no part under the header is cut between words instead.
+        guard sizes.allSatisfy({ headerSize + $0 <= limit }) else { return nil }
+        var pieces: [WebPageMarkdown.Block] = []
+        var piece = header
+        var size = headerSize
+        var budget = headerSize + sizes[0] <= first ? first : limit
+        for (row, rowSize) in zip(lines.dropFirst(2), sizes) {
+            if size + rowSize > budget {
+                pieces.append(.init(text: piece, tight: pieces.isEmpty && block.tight, weight: piece.count))
+                piece = header
+                size = headerSize
+                budget = limit
+            }
+            piece += "\n" + row
+            size += rowSize
+        }
+        pieces.append(.init(text: piece, tight: pieces.isEmpty && block.tight, weight: piece.count))
         return pieces
     }
 

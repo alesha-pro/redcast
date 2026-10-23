@@ -85,7 +85,7 @@ extension WebPageMarkdown {
         /// Code, media, controls and the head: never the page's text, whatever the page says.
         private static let dropped: Set<String> = [
             "script", "style", "noscript", "template", "iframe", "svg", "math", "object", "embed",
-            "canvas", "video", "audio", "select", "button", "textarea", "dialog", "head"
+            "canvas", "video", "audio", "select", "textarea", "dialog", "head"
         ]
         private static let chrome: Set<String> = ["nav", "footer", "aside", "header", "menu"]
         private static let chromeRoles: Set<String> = ["navigation", "banner", "contentinfo", "complementary"]
@@ -117,7 +117,7 @@ extension WebPageMarkdown {
         ]
         private static let attributes: Set<String> = [
             "href", "hidden", "aria-hidden", "style", "role", "alt", "name", "property", "content", "class",
-            "hreflang"
+            "hreflang", "aria-expanded", "aria-controls"
         ]
 
         private struct Table {
@@ -160,7 +160,10 @@ extension WebPageMarkdown {
         private var tables: [Table] = []
         /// The open link's address, its text's byte offset in `current`, and an image's alt.
         private var link: (index: Int?, start: Int, alt: String?)?
-        private var regions: [Region] = []
+        /// The `main` and `article` elements open now, at most one of each, so a tag never scans more.
+        private var openRegions: [Region] = []
+        /// The first `main` and the first `article`, which `chosen()` picks between.
+        private var firstRegions: [String: Region] = [:]
         private var articles = 0
 
         init(html: [UInt8], base: URL, semantic: Bool) {
@@ -172,7 +175,11 @@ extension WebPageMarkdown {
         mutating func run() -> Page {
             var index = 0
             let count = html.count
+            var steps = 0
             while index < count {
+                steps += 1
+                // A stopped read keeps what it converted rather than finish a page nobody waits for.
+                if steps.isMultiple(of: 4_096), Task.isCancelled { break }
                 guard html[index] == UInt8(ascii: "<") else {
                     let next = html[index...].firstIndex(of: UInt8(ascii: "<")) ?? count
                     text(html[index..<next])
@@ -184,6 +191,7 @@ extension WebPageMarkdown {
             unclosedSkip = skip.map { $0.name != "head" } ?? false
             while !tables.isEmpty { closeTable() }
             breakBlock()
+            for region in openRegions where firstRegions[region.name] == nil { firstRegions[region.name] = region }
             page.title = decodingEntities(page.title)
                 .replacingOccurrences(of: "\\s+", with: " ", options: .regularExpression)
                 .trimmingCharacters(in: .whitespaces)
@@ -205,9 +213,8 @@ extension WebPageMarkdown {
         /// The main region when it holds a fifth of the text; a page of articles keeps them all.
         private func chosen() -> [Block] {
             let total = page.weight
-            let mains = regions.filter { $0.name == "main" }
-            let candidates = mains.isEmpty && articles == 1 ? regions.filter { $0.name == "article" } : mains
-            guard let region = candidates.first, total > 0 else { return page.blocks }
+            let candidate = firstRegions["main"] ?? (articles == 1 ? firstRegions["article"] : nil)
+            guard let region = candidate, total > 0 else { return page.blocks }
             let range = region.start..<min(region.end ?? page.blocks.count, page.blocks.count)
             let weight = page.blocks[range].reduce(0) { $0 + $1.weight }
             return weight * 5 >= total ? Array(page.blocks[range]) : page.blocks
@@ -327,9 +334,7 @@ extension WebPageMarkdown {
                 return
             }
             if !selfClosing {
-                for index in regions.indices where regions[index].end == nil && regions[index].tag == name {
-                    regions[index].depth += 1
-                }
+                for index in openRegions.indices where openRegions[index].tag == name { openRegions[index].depth += 1 }
             }
             if Self.blocks.contains(name) { breakBlock() }
             if Self.containers.contains(name), !selfClosing { depth += 1 }
@@ -399,8 +404,12 @@ extension WebPageMarkdown {
 
         private func dropsSubtree(_ name: String, _ attributes: [String: String]) -> Bool {
             if Self.dropped.contains(name) { return true }
+            // A heading's or a disclosure's button names a section, as an accordion's do; others are controls.
+            if name == "button" {
+                return heading == 0 && attributes["aria-expanded"] == nil && attributes["aria-controls"] == nil
+            }
             guard semantic else { return false }
-            let inside = regions.contains { $0.end == nil }
+            let inside = !openRegions.isEmpty
             // An article's own header holds its title and byline, so only the site's is chrome.
             if Self.chrome.contains(name) { return !(name == "header" && inside) }
             if let role = attributes["role"]?.lowercased(), Self.chromeRoles.contains(role) {
@@ -465,17 +474,19 @@ extension WebPageMarkdown {
 
         private mutating func openRegion(_ name: String, tag: String) {
             if name == "article" { articles += 1 }
-            guard !regions.contains(where: { $0.name == name && $0.end == nil }) else { return }
+            guard !openRegions.contains(where: { $0.name == name }) else { return }
             breakBlock()
-            regions.append(Region(name: name, tag: tag, start: page.blocks.count))
+            openRegions.append(Region(name: name, tag: tag, start: page.blocks.count))
         }
 
         private mutating func closeRegion(_ tag: String) {
-            guard let index = regions.lastIndex(where: { $0.tag == tag && $0.end == nil }) else { return }
-            regions[index].depth -= 1
-            guard regions[index].depth == 0 else { return }
+            guard let index = openRegions.lastIndex(where: { $0.tag == tag }) else { return }
+            openRegions[index].depth -= 1
+            guard openRegions[index].depth == 0 else { return }
             breakBlock()
-            regions[index].end = page.blocks.count
+            var region = openRegions.remove(at: index)
+            region.end = page.blocks.count
+            if firstRegions[region.name] == nil { firstRegions[region.name] = region }
         }
 
         // MARK: - Links

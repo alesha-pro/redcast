@@ -149,8 +149,8 @@ enum AgentToolbox {
         if profile.tools.contains(.web) {
             tool(
                 webFetch,
-                "Fetch a web page, text or PDF. A page comes as Markdown with its headings and links, a "
-                    + "long one in parts; a PDF by pages.",
+                "Fetch a web page, text, PDF or Word file. A page comes as Markdown with its headings and "
+                    + "links, a long one in parts; a PDF by pages; a Word, RTF or ODT file as text.",
                 ["url": string("An http or https URL."), "part": WebPageTool.partProperty,
                  "pages": WebPageTool.pagesProperty],
                 required: ["url"])

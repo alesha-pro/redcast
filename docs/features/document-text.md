@@ -1,7 +1,7 @@
 # Document text
 
 Agents read PDFs, scans, images and rich text through one shared reader: `read_file` for a file in
-reach, and `web_fetch` and `read_page` for a PDF or an image on the web
+reach, and `web_fetch` and `read_page` for a PDF, an image or a Word, RTF or ODT file on the web
 ([web search](web-search.md#reading-a-page)). It is this fork's, in `Features/DocumentText/`, and
 builds on the clipboard's own extractor, which keeps working exactly as before.
 
