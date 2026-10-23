@@ -75,7 +75,7 @@ struct AgentEditorPanel: View {
                         toolsField
                         permissionsField
                     }
-                    effortField
+                    if draft.runtime == nil { effortField }
                     backgroundField
                     contextField
                     skillsField
@@ -377,7 +377,7 @@ struct AgentEditorPanel: View {
         }
     }
 
-    /// A run nobody watches: what its requests get, and whether it says it ended.
+    /// A run nobody watches: what its requests get, whether it says it ended, and its time limit.
     private var backgroundField: some View {
         field("In the background") {
             SteadySegmentedPicker(
@@ -409,6 +409,12 @@ struct AgentEditorPanel: View {
                     NSWorkspace.shared.open(url)
                 }
             }
+            // Tinycast's loop takes its time from Effort; an agent on its own CLI keeps its own limit.
+            if draft.runtime != nil {
+                Stepper(value: background.minutes, in: AgentBackgroundPolicy.minuteRange, step: 5) {
+                    Text("Stop a run after \(draft.backgroundPolicy.minutes) minutes")
+                }
+            }
         }
     }
 
@@ -419,22 +425,17 @@ struct AgentEditorPanel: View {
                 title: String(localized: "Effort"),
                 options: AgentEffort.allCases.map { .init(value: $0, title: $0.title) },
                 selection: effort)
-            Text(
-                draft.runtime == nil
-                    ? draft.effortLevel.summary
-                    : String(
-                        localized:
-                            "An agent on its own command line keeps only the time: 5, 15 or 45 minutes in the background."
-                    )
-            )
-            .font(.caption)
-            .foregroundStyle(.secondary)
+            Text(draft.effortLevel.summary)
+                .font(.caption)
+                .foregroundStyle(.secondary)
         }
     }
 
-    /// Balanced is stored as nothing, so an untouched agent's file says nothing about it.
+    /// The effort an untouched agent reads is stored as nothing, so its file says nothing about it.
     private var effort: Binding<AgentEffort> {
-        Binding(get: { draft.effortLevel }, set: { draft.effort = $0 == .balanced ? nil : $0 })
+        Binding(
+            get: { draft.effortLevel },
+            set: { draft.effort = $0 == AgentEffort.lasting(draft.backgroundPolicy.minutes) ? nil : $0 })
     }
 
     /// The defaults are stored as nothing, so an untouched agent's file says nothing about them.

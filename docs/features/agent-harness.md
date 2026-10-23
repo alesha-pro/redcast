@@ -198,7 +198,9 @@ The run is one user turn of an agent, or one background run. Its effort sets its
 | Balanced (default) | 25 | 512 KB | 15 minutes | 2 |
 | Thorough | 60 | 1 MB | 45 minutes | 4 |
 
-A sub-agent has 12 rounds and 256 KB inside its parent's run. After each round of calls
+A sub-agent has 12 rounds and 256 KB inside its parent's run. An agent that never picked an Effort
+reads the least one lasting as long as the background limit it kept from before (a 30-minute agent is
+Thorough); an ACP agent has no Effort and keeps its own 5–60 minute limit. After each round of calls
 `AgentBudgetPolicy` decides, as pi's `finishTurn` and DeepSeek Harness's goal wrap-up do in their
 own ways:
 

@@ -25804,58 +25804,6 @@
         }
       }
     },
-    "An agent on its own command line keeps only the time: 5, 15 or 45 minutes in the background." : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ein Agent mit eigener Befehlszeile behält nur das Zeitlimit: 5, 15 oder 45 Minuten im Hintergrund."
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Un agente con su propia línea de comandos solo conserva el tiempo: 5, 15 o 45 minutos en segundo plano."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Un agent sur sa propre ligne de commande ne garde que la durée : 5, 15 ou 45 minutes en arrière-plan."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "独自のコマンドラインで動くエージェントには時間だけが適用されます：バックグラウンドで5分、15分、45分。"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "자체 명령줄로 실행되는 에이전트에는 시간만 적용됩니다: 백그라운드에서 5분, 15분 또는 45분."
-          }
-        },
-        "pt" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Um agente na própria linha de comando mantém só o tempo: 5, 15 ou 45 minutos em segundo plano."
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Для агента со своей командной строкой действует только время: 5, 15 или 45 минут в фоне."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "使用自身命令行的智能体只受时间限制：后台运行 5、15 或 45 分钟。"
-          }
-        }
-      }
-    },
     "An extension that names another provider's model, such as Claude or Gemini, gets the closest one among your API connections. Otherwise the model above answers." : {
       "localizations" : {
         "de" : {
