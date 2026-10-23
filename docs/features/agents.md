@@ -161,14 +161,25 @@ optional chord: see [background and scheduled agents](background-agents.md).
   keys. That build's own save drops them (only a preference is lost; the agent then starts on its
   own defaults), so unlike the newer tool families they have no side file. Picking another program
   under the editor's Runs on clears all four: one program's names mean nothing to the next.
+- **A chat keeps its own picks; the agent's are the next chat's.** A pick in the composer becomes
+  the agent's default for every new session — background runs, schedules, voice-to-agent and
+  launcher runs included, as Codex's own `/model` saves its default — and moves only the chat it
+  was made in. What each chat's session is on (every select's current value, after the start, a
+  pick or the agent's own change) is `ACPChoices` in `agent-acp-choices.json`, keyed by chat
+  beside `agent-acp-sessions.json` and gone with the session id; picked while the session sleeps,
+  it is written there directly. So two chats on different models stay on them across the
+  two-minute idle stop and a relaunch, although the adapters differ in what `session/load`
+  restores (codex-acp keeps the thread's model and resets the mode). A chat from a build before
+  the file has no entry and reloads on the agent's picks once. The previous build never reads it.
 - **The picks reach every session before its first prompt.** `AgentACPHost.adopt` runs on each
   `session/new` and `session/load` answer, the one path chats, background runs, schedules,
-  voice-to-agent and launcher runs share, and sends the remembered values in order — model,
-  reasoning, mode, then the rest — each checked against the list the previous answer carried,
-  since a model switch changes the levels and options on offer. A value already in effect is not
-  sent; one the option no longer lists is not sent and is forgotten on the agent (unless it was
-  picked again meanwhile); an option the session does not offer at all keeps its value; a refused
-  set is ignored for that session. Nothing else is started to learn a list: it comes with a session.
+  voice-to-agent and launcher runs share, and sends the chat's own picks, or the agent's for a
+  chat that has none, in order — model, reasoning, mode, then the rest — each checked against the
+  list the previous answer carried, since a model switch changes the levels and options on offer.
+  A value already in effect is not sent; an option the session does not offer at all keeps its
+  value. An agent's value the option no longer lists is not sent and is forgotten on the agent
+  (unless it was picked again meanwhile). A refused set is ignored for that session. Nothing else
+  is started to learn a list: it comes with a session.
 - **A session's selects live with it.** `AgentACPHost` keeps them per live chat and mirrors them to
   the coordinator, which also keeps the agent's last list, so a new chat and the editor can pick
   before a session exists; a chat's copy goes when its session, its agent's process or the chat's
@@ -280,10 +291,12 @@ They run on the user's own logins and subscriptions; Tinycast never sees a key.
   becomes the model select, switched with `session/set_model`, and `modes` the mode select,
   switched with `session/set_mode`; each only when no config option has that category. With a
   model and no levels the reasoning picker shows disabled, as for an API model. A pick is
-  remembered on the agent and sent to a live session at once with `session/set_config_option`
-  (or the older method), and the answer's whole list replaces the shown one; an empty answer, as
-  Hermes gives, moves only the picked value, and a refused pick shows the session as it was. The
-  pickers follow `config_option_update` and `current_mode_update` when the agent changes itself.
+  remembered on the agent and the chat (see [Invariants](#invariants)) and sent to a live session
+  at once with `session/set_config_option` (or the older method), and the answer's whole list
+  replaces the shown one; an empty answer, as Hermes gives, moves only the picked value, and a
+  refused pick shows the session as it was. The pickers follow `config_option_update` and
+  `current_mode_update` when the agent changes itself. A chat whose session sleeps shows the
+  agent's last list on its own picks, a chat with no session yet on the agent's.
   Lists hold 32 options of 500 choices, one-line names of 120 characters and descriptions of 200.
 - **The chat's MCP servers ride `session/new`.** Command servers always, HTTP ones when the agent
   declares `mcpCapabilities.http`, narrowed by the chat's tools menu like any other route.
@@ -332,7 +345,7 @@ off by default per agent, bounded by `AgentPathPolicy` and asked through the age
 | `UI/AgentCoordinator.swift` | Bindings, cached context, the turn's prompt, its loop and provider registry, consent |
 | `Model/AgentRuntime.swift` | ACP presets and the command/arguments an agent runs |
 | `Model/ACPProtocol.swift` | Framing, `session/update` decoding, permissions, prompt blocks, `ACPEventMapper` |
-| `Model/ACPSessionOptions.swift` | A session's selects (config options, older models and modes), their slots, what a remembered value comes to, the picks on `AgentProfile` |
+| `Model/ACPSessionOptions.swift` | A session's selects (config options, older models and modes), their slots, what a remembered value comes to, `ACPChoices` for an agent and a chat |
 | `Model/ChatToolContent.swift` | A tool row's compacted diffs and output as saved; the only fork type upstream's chat model names |
 | `Model/ACPToolContent.swift` | The compaction: line diff, folds, output cleaning, the per-row budget |
 | `Model/ACPCommand.swift` | Slash commands: decoding, matching a draft, completion, what a turn's text invokes |
@@ -468,11 +481,14 @@ this way, as one provider. Nothing else changes: no router edit, no upstream lin
   new chat with the agent: before its first message the pickers already show Sonnet and High, and
   Settings → AI → Agents → the agent's editor shows Sonnet in its Model row. Pick Haiku: Fast mode
   leaves the ⋯ menu and comes back with Opus. Repeat with Codex (a model's own efforts; Plan under
-  ⋯ as Collaboration mode) and with `hermes acp` (its provider models, no effort). Quit Tinycast and
-  continue a chat: the reloaded session is on the remembered model. After a relaunch, before any
-  chat with it, type a model the agent does not have in the editor and start a chat: the turn goes
-  on the agent's default, and the editor's row lists the agent's models with none picked. Run the
-  agent in the background and on a schedule: the run's chat shows the remembered model.
+  ⋯ as Collaboration mode) and with `hermes acp` (its provider models, no effort). In two Codex
+  chats pick a different model and effort in each, wait two minutes (or quit Tinycast) and continue
+  both: each reloads on its own picks, and a third, new chat starts on the last one picked. Pick a
+  model in a chat whose session slept, then continue it: the turn runs on that model. After a
+  relaunch, before any chat with it, type a model the agent does not have in the editor and start a
+  chat: the turn goes on the agent's default, and the editor's row lists the agent's models with
+  none picked. Run the agent in the background and on a schedule: the run's chat shows the
+  remembered model.
 - ACP rows: ask Claude Code to change two lines far apart in a file, then to run `ls -la` and a
   failing test. Each row has a chevron and opens to the path and red and green lines with two of
   context, or to the command's output without colour codes or a `console` fence; Copy Output copies
@@ -489,14 +505,16 @@ this way, as one provider. Nothing else changes: no router edit, no upstream lin
   command's, not a model's).
 - Harnesses: `acp-test` (framing, updates, permissions, prompts, tool content compaction, slash
   commands, config options and the older models and modes: decoding, caps, slots, updates, what a
-  remembered value comes to, the picks on the profile and in `agents.json`, and a scripted agent
-  process in `Tests/acp-fixtures/fake-agent.mjs`, run as the older shapes or with `config`: picks
-  applied model first before the first prompt of a new, unattended or reloaded session, a vanished
-  value forgotten on disk, a live switch, a refused one and the agent's own change, streaming,
-  consent, reuse, refusal, cancel, reload, lost sessions, a missing command, two agents sharing a
-  session id, commands that beat the session's binding, a command turn and the briefing after it
-  with only the turns from before the session, a fresh process's `/word` turn waiting for the list
-  and going as an ordinary, briefed one, diffs and output reaching their rows once);
+  remembered value comes to, the picks on the profile and in `agents.json`, a chat's own picks on
+  disk and gone with its session, and a scripted agent process in
+  `Tests/acp-fixtures/fake-agent.mjs`, run as the older shapes or with `config`: picks applied
+  model first before the first prompt of a new, unattended or reloaded session, a vanished value
+  forgotten on disk, a live switch, a refused one and the agent's own change, two chats reloading
+  on their own picks while a new one starts on the agent's, a chat from before its own picks,
+  streaming, consent, reuse, refusal, cancel, reload, lost sessions, a missing command, two agents
+  sharing a session id, commands that beat the session's binding, a command turn and the briefing
+  after it with only the turns from before the session, a fresh process's `/word` turn waiting for
+  the list and going as an ordinary, briefed one, diffs and output reaching their rows once);
   `ai-chat-test`'s fork case (content on its row, saved beside it, unreadable or absent content, a
   store from before the table, the cascade); `agent-test` (skills, catalog, path policy, tool sets,
   specs, consent policy and per-agent rules, toolset order and routing, batches, budget, elision,

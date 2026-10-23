@@ -258,15 +258,16 @@ final class AgentACPHost {
         if let listed = commands[session] { onCommands?(chatID, session.agentID, listed) }
     }
 
-    /// The agent's remembered choices, model first, before the first prompt; a vanished one goes.
+    /// The chat's own picks, else the agent's, model first, before the first prompt.
     private func adopt(
         _ offered: ACPSessionOptions?, session: String, chatID: UUID, agent: AgentProfile,
         on connection: ACPConnection
     ) async {
         guard var offered else { return }
-        let wanted = store.agent(id: agent.id) ?? agent
+        let own = store.acpChoices(forChat: chatID)
+        let wanted = own ?? (store.agent(id: agent.id) ?? agent).acpChoices
         var vanished: [(slot: ACPChoiceSlot, value: String)] = []
-        for (slot, value) in wanted.acpWishes {
+        for (slot, value) in wanted.wishes {
             guard !Task.isCancelled else { break }
             switch offered.step(for: slot, wanting: value) {
             case .keep:
@@ -281,15 +282,21 @@ final class AgentACPHost {
             }
         }
         if sessions[chatID] == Session(agentID: agent.id, id: session) {
-            options[chatID] = offered
-            onOptions?(chatID, agent.id, offered)
+            publish(offered, chatID: chatID, agentID: agent.id)
         }
         // A pick made while the session started is the user's newer word, so it stays.
-        guard var stored = store.agent(id: agent.id) else { return }
-        let gone = vanished.filter { stored.acpChoice(for: $0.slot) == $0.value }
+        guard own == nil, var stored = store.agent(id: agent.id) else { return }
+        let gone = vanished.filter { stored.acpChoices[$0.slot] == $0.value }
         guard !gone.isEmpty else { return }
-        for (slot, _) in gone { stored.setACPChoice(nil, for: slot) }
+        for (slot, _) in gone { stored.acpChoices[slot] = nil }
         try? store.update(stored)
+    }
+
+    /// What the composer shows is also what a reload of the chat puts back.
+    private func publish(_ current: ACPSessionOptions, chatID: UUID, agentID: UUID) {
+        options[chatID] = current
+        store.setACPChoices(ACPChoices(current), forChat: chatID)
+        onOptions?(chatID, agentID, current)
     }
 
     /// A live session switches now; otherwise the choice waits for the next session to start.
@@ -309,8 +316,7 @@ final class AgentACPHost {
         }
         guard sessions[chatID] == live, var current = options[chatID] else { return }
         current.settle(value, in: option.id, answer: answer)
-        options[chatID] = current
-        onOptions?(chatID, live.agentID, current)
+        publish(current, chatID: chatID, agentID: live.agentID)
     }
 
     private func route(_ update: ACPUpdate, to session: Session) {
@@ -335,8 +341,7 @@ final class AgentACPHost {
         default: return
         }
         guard current != options[chatID], !current.options.isEmpty else { return }
-        options[chatID] = current
-        onOptions?(chatID, agentID, current)
+        publish(current, chatID: chatID, agentID: agentID)
     }
 
     /// A fresh process's first `/name` turn is told a command from a word only once the list is in.
