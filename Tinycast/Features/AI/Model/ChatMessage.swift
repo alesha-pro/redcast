@@ -122,6 +122,8 @@ struct ChatToolUse: Equatable, Hashable, Sendable {
     /// Characters of reply text that had arrived when the call started.
     let textOffset: Int
     let sequence: Int
+    /// Fork: what an ACP agent's call showed, folded under the row; nil for every other route.
+    var content: ChatToolContent?
 
     var label: String {
         let target = origin.isEmpty ? title : "\(origin) · \(title)"

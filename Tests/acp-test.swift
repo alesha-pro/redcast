@@ -21,10 +21,16 @@ struct ACPTests {
         permissionsOfferAllowsFirst()
         promptsCarryContextOnlyWhenFresh()
         eventsSettleEachCallOnce()
+        toolContentIsCompactedOnce()
+        toolOutputReachesItsRowOnce()
+        commandsDecodeMatchAndComplete()
+        aCommandLeadsItsPrompt()
         runtimesParseTheirArguments()
         await aRealProcessStreamsATurn()
         await stoppingLeavesNoProcessBehind()
         await twoAgentsSharingASessionIDStayApart()
+        await toolContentReachesItsRows()
+        await commandsReachTheChatAndLeadTheirTurn()
 
         print("\(passes) passed, \(failures) failed")
         if failures > 0 { exit(1) }
@@ -86,9 +92,14 @@ struct ACPTests {
                 == .mode("plan"),
             "the agent moving to another mode is reported")
         expect(
-            decoded(#"{"sessionId":"s","update":{"sessionUpdate":"available_commands_update","availableCommands":[]}}"#)
-                == .other("available_commands_update"),
+            decoded(#"{"sessionId":"s","update":{"sessionUpdate":"session_info_update","title":"x"}}"#)
+                == .other("session_info_update"),
             "an update not drawn yet is kept as known, not dropped as malformed")
+        expect(
+            decoded((#"{"sessionId":"s","update":{"sessionUpdate":"available_commands_update","# +
+                #""availableCommands":[{"name":"web","description":"Search","input":{"hint":"query"}}]}}"#))
+                == .commands([ACPCommand(name: "web", description: "Search", hint: "query")]),
+            "a session's slash commands decode with their hints")
         expect(decoded(#"{"update":{"sessionUpdate":"plan"}}"#) == nil, "an update names its session")
     }
 
@@ -137,7 +148,7 @@ struct ACPTests {
             AIMessage(role: .user, text: "Hello"), AIMessage(role: .assistant, text: "Hi there")
         ]
         let full = ACPPrompt.blocks(
-            for: message, context: "CONTEXT", history: history,
+            for: message, context: "CONTEXT", earlier: ACPPrompt.transcript(of: history),
             capabilities: .init(image: true, embeddedContext: true))
         expect(full.first?["type"] as? String == "text", "context and history lead the prompt")
         let lead = full.first?["text"] as? String ?? ""
@@ -149,7 +160,7 @@ struct ACPTests {
         expect(full.contains { $0["type"] as? String == "resource" }, "a file goes as an embedded resource")
         expect(full.last?["text"] as? String == "Fix it", "and the request itself comes last")
         let plain = ACPPrompt.blocks(
-            for: message, context: nil, history: [], capabilities: .init())
+            for: message, context: nil, earlier: "", capabilities: .init())
         expect(!plain.contains { $0["type"] as? String == "image" }, "no image to an agent that cannot see")
         expect(
             plain.contains { ($0["text"] as? String)?.contains("Attached file t.csv") == true },
@@ -466,4 +477,300 @@ final class SeenModes {
 @MainActor
 final class Answer {
     var choice: String?
+}
+
+extension ACPTests {
+    static func toolContentIsCompactedOnce() {
+        func rows(_ old: String?, _ new: String) -> [String] {
+            ChatToolContent.compactDiff(old: old, new: new).map { row in
+                switch row {
+                case .context(let text): " " + text
+                case .removed(let text): "-" + text
+                case .added(let text): "+" + text
+                case .cut(let count): "~\(count)"
+                }
+            }
+        }
+        let numbered = (1...20).map { "line \($0)" }
+        var edited = numbered
+        edited[4] = "LINE 5"
+        edited[15] = "LINE 16"
+        edited.insert("inserted", at: 10)
+        expect(
+            rows(numbered.joined(separator: "\n"), edited.joined(separator: "\n")) == [
+                "~2", " line 3", " line 4", "-line 5", "+LINE 5", " line 6", " line 7", " line 8", " line 9",
+                " line 10", "+inserted", " line 11", " line 12", " line 13", " line 14", " line 15", "-line 16",
+                "+LINE 16", " line 17", " line 18", "~2",
+            ],
+            "each change on its own lines with two of context, a fold of one line left as the line")
+        var apart = (1...30).map { "line \($0)" }
+        apart[4] = "five"
+        apart[24] = "twenty-five"
+        let folded = rows((1...30).map { "line \($0)" }.joined(separator: "\n"), apart.joined(separator: "\n"))
+        expect(
+            folded.contains("~15") && folded.first == "~2" && folded.last == "~3",
+            "a long unchanged run between two changes folds into its count, got \(folded)")
+        let created = rows(nil, (1...200).map { "row \($0)" }.joined(separator: "\n"))
+        expect(
+            created.count == ChatToolContent.maxDiffLines && created.first == "+row 1"
+                && created.last == "~\(200 - ChatToolContent.maxDiffLines + 1)",
+            "a new file is additions, cut to the row's lines with the rest counted, got \(created.suffix(2))")
+        expect(rows("same\nlines", "same\nlines").isEmpty, "a diff that changes nothing shows no lines")
+        expect(rows("a\r\nb\r\n", "a\r\nc\r\n") == [" a", "-b", "+c"], "CRLF lines compare as lines")
+        expect(
+            ChatToolContent.lines(of: ChatToolContent.Diff(path: "p", lines: "-a\r\n+b\n\u{1F}3"))
+                == [.removed("a"), .added("b"), .cut(3)],
+            "and read back as lines, whatever ended them")
+        let wide = rows(
+            (1...400).map { "old \($0)" }.joined(separator: "\n"),
+            (1...400).map { "new \($0)" }.joined(separator: "\n"))
+        expect(
+            wide.first == "-old 1" && wide.count == ChatToolContent.maxDiffLines,
+            "past the line diff's budget the old block shows, then the new, still capped")
+
+        let output = ChatToolContent.compactOutput(
+            "```console\n\u{1B}[32mok\u{1B}[0m 3 tests\r\ndownloading 10%\rdownloaded\n\u{1B}]0;title\u{07}done\n```",
+            keepsTail: true)
+        expect(
+            output == [.context("ok 3 tests"), .context("downloaded"), .context("done")],
+            "escapes, one wrapping fence and overwritten progress are gone, got \(String(describing: output))")
+        expect(ChatToolContent.compactOutput("\n  \n", keepsTail: false) == nil, "blank output is no output")
+        let long = (1...500).map { "out \($0)" }.joined(separator: "\n")
+        let command = ChatToolContent.compactOutput(long, keepsTail: true) ?? []
+        expect(
+            command.count == ChatToolContent.maxOutputLines + 1 && command.last == .context("out 500")
+                && command.contains(.cut(500 - ChatToolContent.maxOutputLines)),
+            "a command's output keeps its end, where errors land")
+        let read = ChatToolContent.compactOutput(long, keepsTail: false) ?? []
+        expect(read.first == .context("out 1") && read.count == command.count, "anything else keeps its start")
+
+        let huge = String(repeating: "x", count: 5_000)
+        var call = ACPToolCall([
+            "toolCallId": .string("c"), "kind": .string("execute"),
+            "content": .array(
+                (0..<10).map { index in
+                    .object([
+                        "type": .string("diff"), "path": .string("/p/\(index).txt"), "oldText": .null,
+                        "newText": .string((1...300).map { "\($0) \(huge)" }.joined(separator: "\n"))
+                    ])
+                } + [
+                    .object([
+                        "type": .string("content"),
+                        "content": .object(["type": .string("text"), "text": .string(long)])
+                    ])
+                ])
+        ])
+        guard let content = call.flatMap(ChatToolContent.init(call:)) else {
+            return expect(false, "a call with content compacts")
+        }
+        expect(content.diffs.count == ChatToolContent.maxDiffs, "diffs stop at the row's count")
+        expect(content.omittedDiffs == 10 - ChatToolContent.maxDiffs, "and the ones left out are counted")
+        expect(content.output != nil, "a call with both keeps room for its output")
+        let stored = content.encoded ?? ""
+        expect(
+            stored.utf8.count <= ChatToolContent.maxBytes + 2_048,
+            "what a row persists is bounded, got \(stored.utf8.count) bytes")
+        expect(ChatToolContent(encoded: stored) == content, "and reads back as it was written")
+        expect(
+            ChatToolContent.lines(of: content.diffs[0]).last.map { if case .cut = $0 { true } else { false } } == true,
+            "a diff cut by the budget ends in a count of what it left out")
+        expect(
+            ChatToolContent(encoded: #"{"output":"a","later":true}"#) == ChatToolContent(output: "a"),
+            "a row written by a later build, with fields this one does not know, still opens")
+        expect(ChatToolContent(encoded: "{}")?.isEmpty == true, "and one missing every field is empty")
+        call = ACPToolCall(["toolCallId": .string("c"), "content": .array([])])
+        expect(call.flatMap(ChatToolContent.init(call:)) == nil, "content with nothing to show is no content")
+    }
+
+    static func toolOutputReachesItsRowOnce() {
+        var mapper = ACPEventMapper(origin: "Agent")
+        let diff: JSONValue = .array([
+            .object([
+                "type": .string("diff"), "path": .string("/a"), "oldText": .string("x"),
+                "newText": .string("y")
+            ])
+        ])
+        let opened = mapper.events(for: .toolCall(ACPToolCall([
+            "toolCallId": .string("c"), "title": .string("Edit"), "content": diff
+        ])!))
+        guard opened.count == 2, case .toolOutput(let id, let content) = opened[1] else {
+            return expect(false, "a call with content opens its row, then fills it, got \(opened)")
+        }
+        expect(id == "c" && content.diffs.first?.lines == "-x\n+y", "with the diff, got \(content)")
+        expect(
+            mapper.events(for: .toolCallUpdate(ACPToolCall(["toolCallId": .string("c"), "content": diff])!))
+                .isEmpty,
+            "the same content again sends nothing")
+        expect(
+            mapper.events(for: .toolCallUpdate(ACPToolCall(["toolCallId": .string("c")])!)).isEmpty,
+            "an update without content leaves the row's as it was")
+        let done = mapper.events(for: .toolCallUpdate(ACPToolCall([
+            "toolCallId": .string("c"), "status": .string("completed"),
+            "content": .array([
+                .object(["type": .string("content"), "content": .object(["type": .string("text"), "text": .string("ok")])])
+            ])
+        ])!))
+        expect(
+            done == [.toolOutput(id: "c", content: ChatToolContent(output: "ok")), .toolResult(id: "c", isError: false)],
+            "new content replaces the old before the row closes, got \(done)")
+    }
+
+    static func commandsDecodeMatchAndComplete() {
+        let listed = ACPCommand.list(
+            JSONValue(data: Data((#"[{"name":"/review","description":"Review\nchanges","input":{"hint":"what"}},"# +
+                #"{"name":"compact"},{"name":"bad name"},{"name":"a/b"},{"name":"Review"},"# +
+                #"{"name":"pr-comments","description":"Comments","input":null}]"#).utf8)))
+        expect(
+            listed.map(\.name) == ["review", "compact", "pr-comments"],
+            "a leading slash goes, and names that could never be typed back or repeat are dropped, got \(listed)")
+        expect(listed.first?.description == "Review changes" && listed.first?.hint == "what", "one line, with its hint")
+        expect(listed[1].hint == nil && listed[1].description.isEmpty, "a command may have neither")
+        let many = ACPCommand.list(.array((0..<500).map { .object(["name": .string("c\($0)")]) }))
+        expect(many.count == ACPCommand.maxCount, "a list is held to its cap")
+        expect(ACPCommand.typedName(in: "/rev") == "rev", "a draft after its slash is a name being typed")
+        expect(ACPCommand.typedName(in: "/review now") == nil, "until a space ends it")
+        expect(ACPCommand.typedName(in: "review") == nil, "and a draft without a slash types none")
+        expect(ACPCommand.matches(for: "/", in: listed) == listed, "a bare slash offers every command")
+        expect(
+            ACPCommand.matches(for: "/CO", in: listed).map(\.name) == ["compact", "pr-comments"],
+            "names it starts come first, then the ones it appears in, in any case")
+        expect(ACPCommand.matches(for: "/zzz", in: listed).isEmpty, "a name nothing has offers nothing")
+        let longerFirst = ACPCommand.list(.array(["statusline", "status", "my-status"].map {
+            .object(["name": .string($0)])
+        }))
+        let typed = ACPCommand.matches(for: "/Status", in: longerFirst)
+        expect(
+            typed.map(\.name) == ["status", "statusline", "my-status"],
+            "a name typed out in full leads, wherever the agent listed it, got \(typed.map(\.name))")
+        expect(
+            typed.first?.isTypedOut(in: "/status") == true && typed.first?.isTypedOut(in: "/Status") == false,
+            "so Return sends it as typed, and a name in another case completes to the agent's spelling")
+        expect(typed[1].isTypedOut(in: "/status") == false, "while a longer one is only ever completed")
+        expect(listed[0].completion == "/review ", "completing leaves the name and room for its input")
+        expect(ACPCommand.invocation(in: "/review the diff", offered: listed) == "review", "an offered command runs")
+        expect(ACPCommand.invocation(in: "/Review", offered: listed) == "review", "in any case")
+        expect(ACPCommand.invocation(in: "/unknown x", offered: listed) == nil, "a name the agent never offered is text")
+        expect(ACPCommand.invocation(in: "/etc/hosts", offered: []) == nil, "and a path is never a command")
+        expect(ACPCommand.invocation(in: "/compact", offered: []) == "compact", "before any list, a bare name is one")
+        expect(ACPCommand.invocation(in: "compact", offered: listed) == nil, "text without its slash is text")
+    }
+
+    static func aCommandLeadsItsPrompt() {
+        let message = AIMessage(
+            role: .user, text: "/review now",
+            documents: [AIDocument(data: Data("a".utf8), mimeType: "text/plain", name: "a.txt")])
+        let blocks = ACPPrompt.blocks(
+            for: message, context: "CONTEXT", earlier: "User: Hello", capabilities: .init(), asCommand: true)
+        expect(blocks.first?["text"] as? String == "/review now", "the command is the first block, where agents look")
+        expect(blocks.count == 2, "followed by its files, with no briefing or history")
+    }
+}
+
+extension ACPTests {
+    /// A scripted agent's edit and command fill their rows once, between opening and closing them.
+    static func toolContentReachesItsRows() async {
+        guard let (agent, host, root) = await fakeAgent() else { return }
+        defer {
+            host.stopAll()
+            try? FileManager.default.removeItem(at: root)
+        }
+        let events = await stream("DIFF", chat: UUID(), agent: agent, host: host)
+        let outputs = events.compactMap { event -> (String, ChatToolContent)? in
+            if case .toolOutput(let id, let content) = event { (id, content) } else { nil }
+        }
+        expect(outputs.map(\.0) == ["call_d", "call_x"], "each call's content arrives once, got \(outputs.map(\.0))")
+        expect(
+            outputs.first?.1.diffs.first.map { $0.path == "/tmp/a.txt" && $0.lines == " keep\n-old\n+new\n keep 2" }
+                == true,
+            "the edit's diff, with its context, got \(String(describing: outputs.first?.1))")
+        expect(
+            outputs.last?.1.output == "ok 3 tests",
+            "the command's output, cleaned, got \(String(describing: outputs.last?.1))")
+        let callOpens = events.firstIndex(of: .toolCall(id: "call_x", origin: "Fake", title: "npm test"))
+        let callCloses = events.firstIndex(of: .toolResult(id: "call_x", isError: false))
+        let filled = events.firstIndex { if case .toolOutput(id: "call_x", _) = $0 { true } else { false } }
+        expect(
+            callOpens != nil && filled != nil && callCloses != nil && callOpens! < filled! && filled! < callCloses!,
+            "a row opens, fills, then closes")
+    }
+
+    /// The fake agent lists its commands just after `session/new` answers, before the chat binds.
+    static func commandsReachTheChatAndLeadTheirTurn() async {
+        guard let (agent, host, root) = await fakeAgent() else { return }
+        defer {
+            host.stopAll()
+            try? FileManager.default.removeItem(at: root)
+        }
+        let listed = Listed()
+        host.onCommands = { chat, _, commands in listed.events.append((chat, commands?.map(\.name))) }
+        let chat = UUID()
+        let command = replyText(await stream("/review the diff", chat: chat, agent: agent, host: host))
+        expect(
+            command.contains("ran /review the diff; without context; blocks 1"),
+            "a command on a fresh session goes first and alone, got \(command)")
+        try? await Task.sleep(for: .milliseconds(200))
+        expect(
+            listed.events.contains { $0.chat == chat && $0.names == ["review", "compact"] },
+            "the session's commands reach its chat even when they beat its binding, got \(listed.events)")
+        let ran = [AIMessage(role: .user, text: "/review the diff"), AIMessage(role: .assistant, text: command)]
+        let next = replyText(await stream("Hello", chat: chat, history: ran, agent: agent, host: host))
+        expect(
+            next.contains("with context; no history"),
+            "the briefing the command skipped rides the next turn, without the session's own turns, got \(next)")
+        let older = UUID()
+        let before = [AIMessage(role: .user, text: "Before"), AIMessage(role: .assistant, text: "Earlier reply")]
+        _ = await stream("/compact", chat: older, history: before, agent: agent, host: host)
+        let compacted = [AIMessage(role: .user, text: "/compact"), AIMessage(role: .assistant, text: "ran /compact")]
+        let later = replyText(await stream("Hello", chat: older, history: before + compacted, agent: agent, host: host))
+        expect(
+            later.contains("with context; with history of 2 turns"),
+            "a chat older than its session hears only the turns from before it, got \(later)")
+        let other = replyText(await stream("/unknown thing", chat: UUID(), agent: agent, host: host))
+        expect(
+            other.contains("turn 1") && other.contains("with context"),
+            "a name the agent never offered is an ordinary first turn, got \(other)")
+        host.release(agentID: agent.id)
+        expect(
+            listed.events.last.map { $0.chat != nil && $0.names == nil } == true,
+            "a chat's list goes with its agent's process, so only the agent's last one is kept")
+    }
+
+    private static func fakeAgent() async -> (AgentProfile, AgentACPHost, URL)? {
+        guard let node = await ExecutableLocator.locate("node") else { return nil }
+        let fixture = FileManager.default.currentDirectoryPath + "/Tests/acp-fixtures/fake-agent.mjs"
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent("ACPTests-\(UUID().uuidString)")
+        try? FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        let agent = AgentProfile(
+            name: "Fake", directory: root.path,
+            runtime: AgentRuntime(kind: .custom, command: node.path, arguments: [fixture]))
+        let host = AgentACPHost(
+            store: AgentStore(directory: root.appendingPathComponent("support")),
+            permit: { _, request in request.dialogOptions.first?.id },
+            context: { _ in "# Context from Tinycast" })
+        return (agent, host, root)
+    }
+
+    private static func stream(
+        _ text: String, chat: UUID, history: [AIMessage] = [], agent: AgentProfile, host: AgentACPHost
+    ) async -> [AIStreamEvent] {
+        let provider = ACPAgentProvider(host: host, agent: agent, servers: { [] })
+        var events: [AIStreamEvent] = []
+        let request = AIRequest(messages: history + [AIMessage(role: .user, text: text)], conversationID: chat)
+        do {
+            for try await event in provider.stream(request) { events.append(event) }
+        } catch {
+            expect(false, "\(text) completes, got \(error)")
+        }
+        return events
+    }
+
+    private static func replyText(_ events: [AIStreamEvent]) -> String {
+        events.compactMap { if case .text(let text) = $0 { text } else { nil } }.joined()
+    }
+}
+
+@MainActor
+final class Listed {
+    var events: [(chat: UUID?, names: [String]?)] = []
 }

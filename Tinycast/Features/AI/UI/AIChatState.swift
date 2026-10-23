@@ -269,6 +269,13 @@ final class AIChatState {
             guard let index = message.toolUses.lastIndex(where: { $0.callID == id }) else { return }
             message.toolUses[index].state = isError ? .failed : .completed
             session.replaceLast(with: message)
+        case .toolOutput(let id, let content):
+            // Fork: an ACP call's diff or output lands on its own row, replacing what it had.
+            guard var message = session.messages.last, message.role == .assistant,
+                let index = message.toolUses.lastIndex(where: { $0.callID == id })
+            else { return }
+            message.toolUses[index].content = content
+            session.replaceLast(with: message)
         case .toolCallRequested:
             break
         case .usage(let usage):

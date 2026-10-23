@@ -589,7 +589,8 @@ index there, so its ties go by that index and then to the search. Consecutive to
 one run: the latest running call while live, then an expandable count with any failures once done.
 Text and searches separate runs; a single call keeps its own row. A call loaded still marked running
 belonged to a process that is gone, so it reads back as failed — the same repair a message left
-streaming gets.
+streaming gets. The fork's ACP agents also give a row what the call showed, saved beside it in
+`message_tool_content` ([agents](agents.md#acp-agents)).
 
 `ChatHistoryStore` writes `ai-chats.sqlite3` below the bundle-specific Application Support directory.
 It uses the system SQLite already linked by Tinycast, stores no provider credentials, and repairs a
