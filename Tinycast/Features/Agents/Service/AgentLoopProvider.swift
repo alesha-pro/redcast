@@ -13,16 +13,33 @@ struct AgentLoopProvider: AIProvider {
     private let compaction: AgentCompaction.Source?
     /// Each round's own output cap, so a long `write_file` is not cut at a route's 4K default.
     private let outputCap: Int?
+    private let retry: AgentRetryPolicy
+    /// Whose rows the loop's own notices are, as a retry's: the agent's name.
+    private let origin: String
 
     init(
         base: any AIProvider, toolset: AgentToolset, maxRounds: Int?,
-        compaction: AgentCompaction.Source? = nil, outputCap: Int? = nil
+        compaction: AgentCompaction.Source? = nil, outputCap: Int? = nil,
+        retry: AgentRetryPolicy = .standard, origin: String = ""
     ) {
         self.base = base
         self.toolset = toolset
         self.maxRounds = maxRounds
         self.compaction = compaction
         self.outputCap = outputCap
+        self.retry = retry
+        self.origin = origin
+    }
+
+    /// One reply of the model: its text, the calls it made and what came with them.
+    private struct Round {
+        var text = ""
+        var calls: [AIToolCall] = []
+        var cost: Double?
+        var reasoning: AIReasoningReplay?
+        var cutOff = false
+        /// The route refused the round's output cap, so the rest of the turn goes without one.
+        var dropsCap = false
     }
 
     func stream(_ request: AIRequest) -> AIProviderStream {
@@ -48,9 +65,12 @@ struct AgentLoopProvider: AIProvider {
         let spend = Spend()
         // Shown at once, so a Stop or a failure in the first round still leaves the notes billed.
         if let billed { continuation.yield(.usage(spend.reported(AIUsage(costUSD: billed)))) }
-        let turnStart = messages.count
+        var turnStart = messages.count
+        var lastRound = turnStart
         var budget = AgentTurnBudget()
         var rounds = 0
+        var cap = outputCap ?? request.outputCap
+        var relieved = false
         let signal: @Sendable (AgentToolSignal) -> Void = { signal in
             if case .spent(let cost) = signal { continuation.yield(.usage(spend.add(cost))) }
             if let event = signal.event { continuation.yield(event) }
@@ -59,15 +79,30 @@ struct AgentLoopProvider: AIProvider {
             // A call that outlived Stop must not bill another round.
             try Task.checkCancellation()
             rounds += 1
-            let round = try await streamRound(
-                request.continuing(with: messages, tools: toolset.tools).capped(at: outputCap ?? request.outputCap),
-                billedBefore: billed, spend: spend, into: continuation)
+            let round: Round
+            do {
+                round = try await streamRound(
+                    request.continuing(with: messages, tools: toolset.tools).capped(at: cap),
+                    number: rounds, billedBefore: billed, spend: spend, into: continuation)
+            } catch where AgentRetryPolicy.isOverflow(error) && !relieved {
+                // dsh's rule: a window that overflows is shed once, then the round is asked again.
+                relieved = true
+                let elided = AgentTurnBudget.elide(
+                    &messages, turnStart: turnStart, keepFrom: lastRound, above: 0, to: 0)
+                guard elided > 0 || AgentTurnBudget.dropHistory(&messages, turnStart: &turnStart, keepFrom: &lastRound)
+                else { throw error }
+                budget.release(elided)
+                rounds -= 1
+                continue
+            }
+            if round.dropsCap { cap = nil }
             if let cost = round.cost { billed = (billed ?? 0) + cost }
             guard !round.calls.isEmpty else {
                 continuation.yield(.finished)
                 return
             }
             let roundStart = messages.count
+            lastRound = roundStart
             messages.append(
                 AIMessage(
                     role: .assistant, text: round.text, toolCalls: round.calls, reasoning: round.reasoning))
@@ -175,35 +210,70 @@ struct AgentLoopProvider: AIProvider {
         }
     }
 
-    /// One pass over the base route: text flows straight to the transcript, calls are collected.
+    /// A round, asked again while it fails before answering and the failure may pass.
     private func streamRound(
-        _ request: AIRequest, billedBefore: Double?, spend: Spend,
+        _ request: AIRequest, number: Int, billedBefore: Double?, spend: Spend,
         into continuation: AIProviderStream.Continuation
-    ) async throws -> (
-        text: String, calls: [AIToolCall], cost: Double?, reasoning: AIReasoningReplay?, cutOff: Bool
-    ) {
-        var text = ""
-        var calls: [AIToolCall] = []
-        var cost: Double?
-        var reasoning: AIReasoningReplay?
-        var cutOff = false
+    ) async throws -> Round {
+        var request = request
+        var failedCost: Double?
+        var dropsCap = false
+        var retries = 0
+        while true {
+            var round = Round()
+            do {
+                try await stream(request, billedBefore: sum(billedBefore, failedCost), spend: spend,
+                    into: &round, continuation)
+                round.cost = sum(failedCost, round.cost)
+                round.dropsCap = dropsCap
+                return round
+            } catch is CancellationError {
+                throw CancellationError()
+            } catch {
+                // What a failed attempt reported it spent is spent; the next is billed on top of it.
+                failedCost = sum(failedCost, round.cost)
+                // An answer already on screen would show twice, so a failure after one stands.
+                guard round.text.isEmpty else { throw error }
+                if request.outputCap != nil, AgentRetryPolicy.refusesOutputCap(error) {
+                    request = request.capped(at: nil)
+                    dropsCap = true
+                    continue
+                }
+                retries += 1
+                guard let wait = retry.delay(before: retries, after: error, random: .random(in: 0...1))
+                else { throw error }
+                let id = "tinycast-retry-\(number)-\(retries)"
+                continuation.yield(
+                    .toolCall(
+                        id: id, origin: origin, title: AgentRetryPolicy.title(retries, of: retry.attempts)))
+                try await Task.sleep(for: wait)
+                continuation.yield(.toolResult(id: id, isError: false))
+            }
+        }
+    }
+
+    /// One pass over the base route: text flows straight to the transcript, calls are collected.
+    private func stream(
+        _ request: AIRequest, billedBefore: Double?, spend: Spend, into round: inout Round,
+        _ continuation: AIProviderStream.Continuation
+    ) async throws {
         for try await event in base.stream(request) {
             try Task.checkCancellation()
             switch event {
             case .text(let delta):
-                text += delta
+                round.text += delta
                 continuation.yield(event)
             case .usage(var usage):
-                cost = usage.costUSD ?? cost
+                round.cost = usage.costUSD ?? round.cost
                 // A turn is billed for every round; the reply's cost is the turn's, not its last.
                 if let billedBefore { usage.costUSD = billedBefore + (usage.costUSD ?? 0) }
                 continuation.yield(.usage(spend.reported(usage)))
             case .toolCallRequested(let call):
-                calls.append(call)
+                round.calls.append(call)
             case .reasoningReplay(let replay):
-                reasoning = replay
+                round.reasoning = replay
             case .outputLimit:
-                cutOff = true
+                round.cutOff = true
             // `.finished` is the loop's to send, once the model has stopped asking for tools.
             case .finished:
                 break
@@ -211,7 +281,11 @@ struct AgentLoopProvider: AIProvider {
                 continuation.yield(event)
             }
         }
-        return (text, calls, cost, reasoning, cutOff)
+    }
+
+    private func sum(_ lhs: Double?, _ rhs: Double?) -> Double? {
+        guard lhs != nil || rhs != nil else { return nil }
+        return (lhs ?? 0) + (rhs ?? 0)
     }
 }
 

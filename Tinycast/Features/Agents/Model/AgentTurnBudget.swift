@@ -45,10 +45,13 @@ struct AgentTurnBudget: Sendable {
     }
 
     /// Stubs this turn's oldest results before `keepFrom`; returns the bytes it saved.
-    static func elide(_ messages: inout [AIMessage], turnStart: Int, keepFrom: Int) -> Int {
+    static func elide(
+        _ messages: inout [AIMessage], turnStart: Int, keepFrom: Int, above: Int = elideAbove,
+        to elideTo: Int = elideTo
+    ) -> Int {
         let results = messages.indices.dropFirst(turnStart).filter { messages[$0].toolResult != nil }
         var total = results.reduce(0) { $0 + (messages[$1].toolResult?.content.utf8.count ?? 0) }
-        guard total > elideAbove else { return 0 }
+        guard total > above else { return 0 }
         let names = Dictionary(
             messages[turnStart...].flatMap(\.toolCalls).map { ($0.id, $0.name) }, uniquingKeysWith: { $1 })
         var saved = 0
@@ -66,6 +69,19 @@ struct AgentTurnBudget: Sendable {
             saved += size - replacement.utf8.count
         }
         return saved
+    }
+
+    /// An overflow with nothing left to elide sheds the older half of the history, from a question.
+    static func dropHistory(_ messages: inout [AIMessage], turnStart: inout Int, keepFrom: inout Int) -> Bool {
+        guard let question = messages[..<turnStart].lastIndex(where: { $0.role == .user }), question > 1
+        else { return false }
+        var cut = question / 2
+        while cut < question, messages[cut].role != .user { cut += 1 }
+        guard cut > 0 else { return false }
+        messages.removeFirst(cut)
+        turnStart -= cut
+        keepFrom -= cut
+        return true
     }
 
     /// Without a size, the opening every stub of that tool's results shares.

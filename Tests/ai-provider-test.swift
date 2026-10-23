@@ -173,6 +173,7 @@ struct AIProviderTests {
         reasoningGoesBackToTheModelThatWroteIt()
         aReplyTheCapCutSaysSo()
         anAgentRoundCarriesItsOwnCap()
+        failuresSayWhetherTheyMayPass()
 
         print("\(passes) passed, \(failures) failed")
         if failures > 0 { exit(1) }
@@ -470,6 +471,68 @@ struct AIProviderTests {
         expect(
             turn.continuing(with: [], tools: []).outputCap == 9 && turn.capped(at: nil).outputCap == nil,
             "a continued turn keeps its cap, and a capped copy replaces it")
+    }
+
+    /// A run retries what may pass on its own and sheds a full window; a key or a quota stands.
+    static func failuresSayWhetherTheyMayPass() {
+        func kind(_ status: Int, _ body: String, retryAfter: String? = nil) -> AIProviderRecoverableError.Kind? {
+            AIProviderFailure.recoverable(
+                status: status, body: Data(body.utf8), retryAfter: retryAfter, message: "m")?.kind
+        }
+        expect(
+            kind(503, "") == .transient(retryAfter: nil) && kind(529, #"{"error":{"message":"Overloaded"}}"#)
+                == .transient(retryAfter: nil) && kind(408, "") == .transient(retryAfter: nil),
+            "a server error, an overloaded API and a timeout may pass")
+        expect(
+            kind(429, #"{"error":{"message":"Rate limit reached"}}"#, retryAfter: "7")
+                == .transient(retryAfter: .seconds(7)),
+            "a rate limit may too, after the wait it names")
+        expect(
+            kind(429, #"{"error":{"code":"insufficient_quota","message":"You exceeded your current quota"}}"#)
+                == nil && kind(402, #"{"error":{"message":"Insufficient Balance"}}"#) == nil,
+            "a spent quota or balance never passes by waiting")
+        expect(
+            kind(400, #"{"error":{"message":"This endpoint's maximum context length is 65536 tokens."}}"#)
+                == .overflow
+                && kind(400, #"{"type":"error","error":{"type":"invalid_request_error","message":"prompt is too long: 213462 tokens > 200000 maximum"}}"#)
+                    == .overflow && kind(413, "") == .overflow,
+            "a full window in OpenRouter's, Anthropic's or a proxy's words is an overflow")
+        expect(
+            kind(401, "") == nil && kind(400, #"{"error":{"message":"Unknown model"}}"#) == nil,
+            "and a rejected key or request is just a failure")
+        let recoverable = AIProviderFailure.recoverable(
+            status: 503, body: Data(), retryAfter: nil, message: "The provider is temporarily unavailable (HTTP 503).")
+        expect(
+            recoverable?.localizedDescription == "The provider is temporarily unavailable (HTTP 503).",
+            "and it reads exactly as the failure it stands for")
+
+        func midStream(_ frames: String) -> (any Error)? {
+            var decoder = AIStreamDecoder(shape: .openAICompatible)
+            do { _ = try decoder.feed(Data(frames.utf8)) } catch { return error }
+            return nil
+        }
+        expect(
+            (midStream(#"data: {"error":{"message":"Provider returned error","code":502}}"# + "\n\n")
+                as? AIProviderRecoverableError)?.kind == .transient(retryAfter: nil),
+            "OpenRouter's upstream failure before any answer may pass")
+        expect(
+            (midStream(#"data: {"error":{"message":"Rate limit exceeded","code":"rate_limit_exceeded"}}"# + "\n\n")
+                as? AIProviderRecoverableError) != nil,
+            "and a string code is read by what the message says")
+        expect(
+            midStream(#"data: {"error":{"message":"Invalid model","code":400}}"# + "\n\n") as? AIProviderError
+                == .responseFailed("Invalid model"),
+            "while a refused request stands")
+        var anthropic = AIStreamDecoder(shape: .anthropic)
+        var thrown: (any Error)?
+        do {
+            _ = try anthropic.feed(
+                Data(#"data: {"type":"error","error":{"type":"overloaded_error","message":"Overloaded"}}"#.utf8)
+                    + Data("\n\n".utf8))
+        } catch { thrown = error }
+        expect(
+            (thrown as? AIProviderRecoverableError)?.kind == .transient(retryAfter: nil),
+            "as an overloaded Anthropic stream may pass")
     }
 
     /// Both providers stream a call's arguments in pieces; a half-parsed call would be uncallable.

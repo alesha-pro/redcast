@@ -69,6 +69,7 @@ struct AIStreamDecoder: Sendable {
     private let model: String
     private var replayText = ""
     private var replayDetails: [JSONValue] = []
+    private var hasAnswered = false
 
     init(shape: AIHTTPConfiguration.APIShape, secrets: [String] = [], model: String = "") {
         self.shape = shape
@@ -141,12 +142,20 @@ struct AIStreamDecoder: Sendable {
         // OpenRouter reports a mid-stream failure as a 200 payload, so it's an event, not a status.
         if chunk.error?.message != nil {
             isTerminal = true
-            throw AIProviderError.responseFailed(
-                AIProviderFailure.providerMessage(in: data)
-                    .map { AIProviderFailure.kept($0, secrets: secrets) } ?? Self.stopped)
+            let said = AIProviderFailure.providerMessage(in: data)
+            let message = said.map { AIProviderFailure.kept($0, secrets: secrets) } ?? Self.stopped
+            // Fork: before any answer a busy upstream may pass on a retry; after one, it may not.
+            if !hasAnswered,
+                let recoverable = AIProviderFailure.recoverable(
+                    code: chunk.error?.code, said: chunk.error?.message, message: message)
+            {
+                throw recoverable
+            }
+            throw AIProviderError.responseFailed(message)
         }
         var events: [AIStreamEvent] = []
         if let choice = chunk.choices?.first {
+            if choice.delta?.content?.isEmpty == false || choice.delta?.toolCalls != nil { hasAnswered = true }
             if let content = choice.delta?.content, !content.isEmpty {
                 events += thinkTags.feed(content)
             } else if let reasoning = choice.delta?.reasoningText {
@@ -235,10 +244,13 @@ struct AIStreamDecoder: Sendable {
             return flushToolCalls() + [.finished]
         case "error":
             isTerminal = true
-            throw AIProviderError.responseFailed(
-                AIProviderFailure.described(
-                    Self.anthropicErrorMessage(event.error?.type), said: event.error?.message,
-                    secrets: secrets))
+            let message = AIProviderFailure.described(
+                Self.anthropicErrorMessage(event.error?.type), said: event.error?.message, secrets: secrets)
+            // Fork: Anthropic's busy, rate-limited and server errors may pass on a retry.
+            if ["overloaded_error", "rate_limit_error", "api_error"].contains(event.error?.type) {
+                throw AIProviderRecoverableError(kind: .transient(retryAfter: nil), message: message)
+            }
+            throw AIProviderError.responseFailed(message)
         default:
             return []
         }
@@ -407,7 +419,19 @@ private struct OpenAIChunk: Decodable {
         }
     }
 
-    struct ErrorBody: Decodable { let message: String? }
+    struct ErrorBody: Decodable {
+        let message: String?
+        /// Fork: OpenRouter's HTTP-like code; a vendor's string code reads as none.
+        let code: Int?
+
+        enum CodingKeys: String, CodingKey { case message, code }
+
+        init(from decoder: any Decoder) throws {
+            let values = try decoder.container(keyedBy: CodingKeys.self)
+            message = try values.decodeIfPresent(String.self, forKey: .message)
+            code = try? values.decodeIfPresent(Int.self, forKey: .code)
+        }
+    }
 
     let choices: [Choice]?
     let usage: Usage?

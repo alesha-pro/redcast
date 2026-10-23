@@ -204,6 +204,21 @@ enum AIStreamEvent: Equatable, Sendable {
     case finished
 }
 
+// Fork: a failure a run may outlast; it reads exactly as the failure it stands for.
+struct AIProviderRecoverableError: LocalizedError, Equatable, Sendable {
+    enum Kind: Equatable, Sendable {
+        /// Busy, rate-limited or a dropped connection: the same request may pass later.
+        case transient(retryAfter: Duration?)
+        /// The prompt no longer fits the model's window.
+        case overflow
+    }
+
+    let kind: Kind
+    let message: String
+
+    var errorDescription: String? { message }
+}
+
 enum AIProviderError: LocalizedError, Equatable, Sendable {
     case unavailable(String)
     case responseFailed(String)
