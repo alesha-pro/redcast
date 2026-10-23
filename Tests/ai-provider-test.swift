@@ -473,7 +473,7 @@ struct AIProviderTests {
                 json(#"{"type":"thinking","thinking":"","signature":"a"}"#),
                 json(#"{"type":"thinking","thinking":"Now B.","signature":"b"}"#)
             ],
-            layout: [.item(0), .text, .call("c1"), .item(1), .call("c2")])
+            layout: [.item(0), .text("Both."), .call("c1"), .item(1), .call("c2")])
         let sent = AIRequestBody.make(
             AIRequest(
                 messages: [
@@ -494,6 +494,76 @@ struct AIProviderTests {
         expect(
             content == ["thinking:a", "text:", "tool_use:c1", "thinking:b", "tool_use:c2"],
             "a progress block between parallel calls goes back between them, where it was signed, got \(content)")
+        textBlocksGoBackWhereTheyStreamed()
+    }
+
+    /// Claude's text blocks go back apart: merged, they would edit what later blocks were signed over.
+    static func textBlocksGoBackWhereTheyStreamed() {
+        let stream = """
+            data: {"type":"content_block_start","index":0,"content_block":{"type":"thinking","thinking":""}}
+
+            data: {"type":"content_block_delta","index":0,"delta":{"type":"signature_delta","signature":"S1"}}
+
+            data: {"type":"content_block_start","index":1,"content_block":{"type":"text","text":""}}
+
+            data: {"type":"content_block_delta","index":1,"delta":{"type":"text_delta","text":"First. "}}
+
+            data: {"type":"content_block_start","index":2,"content_block":{"type":"thinking","thinking":""}}
+
+            data: {"type":"content_block_delta","index":2,"delta":{"type":"signature_delta","signature":"S2"}}
+
+            data: {"type":"content_block_start","index":3,"content_block":{"type":"tool_use","id":"a","name":"f"}}
+
+            data: {"type":"content_block_delta","index":3,"delta":{"type":"input_json_delta","partial_json":"{}"}}
+
+            data: {"type":"content_block_start","index":4,"content_block":{"type":"text","text":""}}
+
+            data: {"type":"content_block_delta","index":4,"delta":{"type":"text_delta","text":"Second."}}
+
+            data: {"type":"content_block_start","index":5,"content_block":{"type":"thinking","thinking":""}}
+
+            data: {"type":"content_block_delta","index":5,"delta":{"type":"signature_delta","signature":"S3"}}
+
+            data: {"type":"content_block_start","index":6,"content_block":{"type":"tool_use","id":"b","name":"f"}}
+
+            data: {"type":"content_block_delta","index":6,"delta":{"type":"input_json_delta","partial_json":"{}"}}
+
+            data: {"type":"message_delta","delta":{"stop_reason":"tool_use"},"usage":{"output_tokens":20}}
+
+            """
+        let configuration = AIHTTPConfiguration(
+            provider: .anthropic, baseURL: URL(string: "https://api.anthropic.com")!, model: "claude-opus-5-5")
+        func sent(_ reasoning: AIReasoningReplay?) -> [String] {
+            let body = AIRequestBody.make(
+                AIRequest(
+                    messages: [
+                        AIMessage(role: .user, text: "go"),
+                        AIMessage(
+                            role: .assistant, text: "First. Second.",
+                            toolCalls: ["a", "b"].map { AIToolCall(id: $0, name: "f", arguments: "{}") },
+                            reasoning: reasoning)
+                    ],
+                    tools: [AITool(name: "f", description: "", parameters: .object([:]), origin: "")]),
+                configuration: configuration)
+            return ((body["messages"] as? [[String: Any]])?.last?["content"] as? [[String: Any]] ?? []).map {
+                ($0["type"] as? String ?? "") + ":" + ($0["signature"] as? String ?? $0["id"] as? String
+                    ?? $0["text"] as? String ?? "")
+            }
+        }
+        for slice in [Int.max, 11] {
+            let reply = replays(
+                decode(.anthropic, stream, slice: slice, route: "api.anthropic.com", model: "claude-opus-5-5"))
+            expect(
+                sent(reply.first) == [
+                    "thinking:S1", "text:First. ", "thinking:S2", "tool_use:a", "text:Second.", "thinking:S3",
+                    "tool_use:b"
+                ],
+                "each text block goes back where it streamed, untrimmed (\(slice)-byte slices), got "
+                    + "\(sent(reply.first))")
+            expect(
+                sent(reply.first?.unbound) == ["text:First. ", "tool_use:a", "text:Second.", "tool_use:b"],
+                "and with its blocks dropped, the text and calls stay as they were sent before")
+        }
     }
 
     /// Gemini 3 signs its calls; the reply is stamped so no other model is ever sent the signature.

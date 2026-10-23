@@ -121,7 +121,8 @@ struct AIReasoningReplay: Equatable, Sendable {
     /// Where a block stood among the reply's text and calls: Claude signs it over what preceded it.
     enum Slot: Equatable, Sendable {
         case item(Int)
-        case text
+        /// A text block as it streamed: merged or trimmed, it would edit what later blocks signed.
+        case text(String)
         case call(String)
     }
 
@@ -164,8 +165,10 @@ struct AIReasoningReplay: Equatable, Sendable {
                 || route == "openrouter.ai" && model.drop(while: { $0 == "~" }).hasPrefix("anthropic/"))
     }
 
+    /// Its blocks dropped and their places kept, so the text and calls around them go back unchanged.
     var unbound: AIReasoningReplay {
-        AIReasoningReplay(route: route, model: model, form: form, text: text, isStored: isStored)
+        AIReasoningReplay(
+            route: route, model: model, form: form, text: text, isStored: isStored, layout: layout)
     }
 }
 

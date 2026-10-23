@@ -43,7 +43,7 @@ one of another model, then a tool round) sent to every route below.
 | `delta.reasoning` (OpenRouter, newer vLLM) | the text | `reasoning` |
 | `delta.reasoning_details` (OpenRouter, MiniMax with `reasoning_split`) | entries merged as pi merges them: neighbouring `reasoning.text` or `reasoning.summary` deltas grow one entry, a `reasoning.encrypted` entry stays whole; unknown types are dropped | `details` |
 | `<think>…</think>` leading `delta.content` (MiniMax M2, local Qwen3 without a reasoning parser) | what `AIThinkTagDecoder` took out of the answer | `thinkTags` |
-| Anthropic `content_block_start` `thinking` / `redacted_thinking`, `thinking_delta`, `signature_delta` | each block as it streamed, signature appended, and where it stood among the reply's text and calls (`layout`) | `blocks` |
+| Anthropic `content_block_start` `thinking` / `redacted_thinking`, `thinking_delta`, `signature_delta` | each block as it streamed, signature appended, and where it stood among the reply's text blocks (each kept as it streamed) and calls (`layout`) | `blocks` |
 | `tool_calls[].extra_content.google.thought_signature` (Gemini) | the signature stays on `AIToolCall`; the reply is stamped | none |
 
 It emits one `.reasoningReplay` per reply, before the reply's calls (or before `.finished` when there
@@ -126,14 +126,19 @@ from a reply another model wrote. The rules, provider by provider:
   400 error". Claude Opus 5.5, Sonnet 5.5 and the other 5.x models think by default with no `thinking`
   field, and `display` defaults to `omitted`: the block arrives with an empty `thinking` and a
   signature, and still has to go back. Since August 2026 a block is also bound to everything sent
-  before it ([preserved thinking](https://platform.claude.com/docs/en/build-with-claude/preserved-thinking)):
-  shortening an earlier `tool_result` invalidates every later block, and a request carrying one fails
-  with 400 on accounts the check applies to; dropping blocks from the end is valid. Claude 5.5's
-  progress updates are thinking blocks of their own just before the call they introduce, so between
-  two parallel calls; each block goes back exactly where it streamed among the reply's text and calls. So when the agent
-  loop elides a result or sheds history mid-turn, `AgentTurnBudget.unbind` drops every Claude block
-  after the edit, on `api.anthropic.com` and on OpenRouter's `anthropic/` models, and never puts one
-  back. Earlier turns' blocks are not stored (Redcast keeps no signatures), which the API allows:
+  before it ([preserved thinking](https://platform.claude.com/docs/en/build-with-claude/preserved-thinking),
+  Fable 5.1 and the 5.5 models; enforced by default for accounts created from 31 August 2026):
+  shortening an earlier `tool_result`, or editing or reordering an earlier message, invalidates every
+  later block, and a request carrying one fails with 400. Blocks may be removed from the start, from
+  the end or all at once; a gap in the middle invalidates the blocks after it, and a removed block
+  stays removed. `tool_choice` and `max_tokens` are outside the check. Claude 5.5's progress updates
+  are thinking blocks of their own just before the call they introduce, so between two parallel
+  calls; each block goes back exactly where it streamed, and each text block of the reply goes back
+  as its own block, untrimmed, since merging them would edit what the later blocks were signed over.
+  So when the agent loop elides a result or sheds history mid-turn, `AgentTurnBudget.unbind` drops
+  every Claude block after the edit, on `api.anthropic.com` and on OpenRouter's `anthropic/` models,
+  keeps the text and calls where they stood, and never puts a block back; shedding old reasoning
+  drops Claude's oldest blocks first. Earlier turns' blocks are not stored (Redcast keeps no signatures), which the API allows:
   "outside tool use, omit prior turns' thinking". pi and DeepSeek Harness replay blocks the same way.
 - **Gemini.** Gemini 3 attaches `thought_signature` to function calls, and the API "enforces strict
   validation on the current turn": a call sent back without its signature is a 400. Through the

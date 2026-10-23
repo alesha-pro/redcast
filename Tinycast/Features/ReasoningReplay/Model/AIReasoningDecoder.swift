@@ -10,6 +10,8 @@ struct AIReasoningDecoder: Sendable {
     private var signed = false
     /// An Anthropic block's stream index, to its place in `items`.
     private var blocks: [Int: Int] = [:]
+    /// An Anthropic text block's stream index, to its place in `layout`.
+    private var texts: [Int: Int] = [:]
     private var layout: [AIReasoningReplay.Slot] = []
 
     init(route: String, model: String) {
@@ -59,9 +61,20 @@ struct AIReasoningDecoder: Sendable {
         items[position] = .object(block)
     }
 
-    /// An Anthropic text or tool-use block opening, so a thinking block goes back where it stood.
-    mutating func place(_ slot: AIReasoningReplay.Slot) {
-        layout.append(slot)
+    /// An Anthropic tool-use block opening, so a thinking block goes back where it stood.
+    mutating func place(call id: String) {
+        layout.append(.call(id))
+    }
+
+    /// An Anthropic text block opening; its deltas fill it, so it goes back exactly as it streamed.
+    mutating func place(text index: Int) {
+        texts[index] = layout.count
+        layout.append(.text(""))
+    }
+
+    mutating func extend(text index: Int, _ piece: String) {
+        guard let position = texts[index], case .text(let head) = layout[position] else { return }
+        layout[position] = .text(head + piece)
     }
 
     /// A call that carries a thought signature: the reply is stamped even when it shows no text.
@@ -78,6 +91,7 @@ struct AIReasoningDecoder: Sendable {
             items = []
             signed = false
             blocks = [:]
+            texts = [:]
             layout = []
         }
         let said = text.isEmpty && form == .details ? items.compactMap(Self.text(of:)).joined() : text
