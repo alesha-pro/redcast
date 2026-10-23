@@ -445,7 +445,7 @@ struct AIProviderTests {
                         items: [
                             json(#"{"type":"thinking","thinking":"Read it.","signature":"EqMBCkal=="}"#),
                             json(#"{"type":"redacted_thinking","data":"EmwKAhgB"}"#)
-                        ])
+                        ], layout: [.item(0), .item(1), .call("t1")])
                 ],
                 "thinking and its signature, then the redacted block, in order (\(slice)-byte slices), got "
                     + "\(replays(events))")
@@ -466,6 +466,34 @@ struct AIProviderTests {
         expect(
             replays(omitted).first?.items == [json(#"{"type":"thinking","thinking":"","signature":"Es8C"}"#)],
             "Claude 5's omitted thinking, empty but signed, is kept too: it must still go back")
+        let tool = AITool(name: "f", description: "", parameters: .object([:]), origin: "")
+        let progress = AIReasoningReplay(
+            route: "api.anthropic.com", model: "claude-opus-5-5", form: .blocks, text: "",
+            items: [
+                json(#"{"type":"thinking","thinking":"","signature":"a"}"#),
+                json(#"{"type":"thinking","thinking":"Now B.","signature":"b"}"#)
+            ],
+            layout: [.item(0), .text, .call("c1"), .item(1), .call("c2")])
+        let sent = AIRequestBody.make(
+            AIRequest(
+                messages: [
+                    AIMessage(role: .user, text: "go"),
+                    AIMessage(
+                        role: .assistant, text: "Both.",
+                        toolCalls: [
+                            AIToolCall(id: "c1", name: "f", arguments: "{}"), AIToolCall(id: "c2", name: "f", arguments: "{}")
+                        ],
+                        reasoning: progress)
+                ],
+                tools: [tool]),
+            configuration: AIHTTPConfiguration(
+                provider: .anthropic, baseURL: URL(string: "https://api.anthropic.com")!, model: "claude-opus-5-5"))
+        let content = ((sent["messages"] as? [[String: Any]])?.last?["content"] as? [[String: Any]] ?? []).map {
+            ($0["type"] as? String ?? "") + ":" + ($0["signature"] as? String ?? $0["id"] as? String ?? "")
+        }
+        expect(
+            content == ["thinking:a", "text:", "tool_use:c1", "thinking:b", "tool_use:c2"],
+            "a progress block between parallel calls goes back between them, where it was signed, got \(content)")
     }
 
     /// Gemini 3 signs its calls; the reply is stamped so no other model is ever sent the signature.

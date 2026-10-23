@@ -69,12 +69,30 @@ enum AIReasoningReplayPolicy {
         return encoded
     }
 
-    /// The thinking blocks leading an Anthropic assistant message of this turn, as they came.
-    static func anthropicBlocks(of message: AIMessage, configuration: AIHTTPConfiguration) -> [[String: Any]] {
+    /// An Anthropic assistant message of this turn with its thinking blocks back where they streamed.
+    static func anthropicContent(
+        _ parts: [[String: Any]], of message: AIMessage, configuration: AIHTTPConfiguration
+    ) -> [[String: Any]] {
         guard message.role == .assistant, let own = message.reasoning, isOwn(own, configuration),
-            own.form == .blocks, !own.isStored, configuration.reasoningReplay != .never
-        else { return [] }
-        return own.items.compactMap { $0.jsonObject as? [String: Any] }
+            own.form == .blocks, !own.isStored, !own.items.isEmpty, configuration.reasoningReplay != .never
+        else { return parts }
+        let blocks = own.items.compactMap { $0.jsonObject as? [String: Any] }
+        guard !own.layout.isEmpty else { return blocks + parts }
+        var rest = parts
+        var placed: [[String: Any]] = []
+        for slot in own.layout {
+            switch slot {
+            case .item(let index) where blocks.indices.contains(index): placed.append(blocks[index])
+            case .item: continue
+            case .text:
+                guard let at = rest.firstIndex(where: { $0["type"] as? String == "text" }) else { continue }
+                placed.append(rest.remove(at: at))
+            case .call(let id):
+                guard let at = rest.firstIndex(where: { $0["id"] as? String == id }) else { continue }
+                placed.append(rest.remove(at: at))
+            }
+        }
+        return placed + rest
     }
 
     private static func isOwn(_ reasoning: AIReasoningReplay, _ configuration: AIHTTPConfiguration) -> Bool {

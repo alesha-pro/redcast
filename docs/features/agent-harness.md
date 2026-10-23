@@ -43,7 +43,7 @@ one of another model, then a tool round) sent to every route below.
 | `delta.reasoning` (OpenRouter, newer vLLM) | the text | `reasoning` |
 | `delta.reasoning_details` (OpenRouter, MiniMax with `reasoning_split`) | entries merged as pi merges them: neighbouring `reasoning.text` or `reasoning.summary` deltas grow one entry, a `reasoning.encrypted` entry stays whole; unknown types are dropped | `details` |
 | `<think>…</think>` leading `delta.content` (MiniMax M2, local Qwen3 without a reasoning parser) | what `AIThinkTagDecoder` took out of the answer | `thinkTags` |
-| Anthropic `content_block_start` `thinking` / `redacted_thinking`, `thinking_delta`, `signature_delta` | each block as it streamed, signature appended | `blocks` |
+| Anthropic `content_block_start` `thinking` / `redacted_thinking`, `thinking_delta`, `signature_delta` | each block as it streamed, signature appended, and where it stood among the reply's text and calls (`layout`) | `blocks` |
 | `tool_calls[].extra_content.google.thought_signature` (Gemini) | the signature stays on `AIToolCall`; the reply is stamped | none |
 
 It emits one `.reasoningReplay` per reply, before the reply's calls (or before `.finished` when there
@@ -67,7 +67,7 @@ rounds of the request being sent; "earlier turns" are history replies loaded fro
 | MiniMax (any host naming `minimax`) | as it came: `reasoning_content`, `reasoning_details` or `<think>` in `content` | yes | own stored text | — |
 | Z.ai / Zhipu (`z.ai`, `bigmodel.cn`) | as it came (`reasoning_content`) | yes | own stored text | Always: `thinking: {type: enabled, clear_thinking: false}` |
 | OpenRouter | `reasoning_details` verbatim, else `reasoning` | yes | Always only | — |
-| Anthropic (`api.anthropic.com`) and Anthropic-shaped gateways | `thinking` / `redacted_thinking` blocks first in the message | yes | never | — |
+| Anthropic (`api.anthropic.com`) and Anthropic-shaped gateways | `thinking` / `redacted_thinking` blocks where they streamed in the message | yes | never | — |
 | Gemini (`generativelanguage.googleapis.com`) | only the call's `extra_content.google.thought_signature` (upstream's) | signatures | — | — |
 | OpenAI (`api.openai.com`) | nothing | — | — | — |
 | Any other OpenAI-compatible host | as it came | yes | Always only | — |
@@ -128,7 +128,9 @@ from a reply another model wrote. The rules, provider by provider:
   signature, and still has to go back. Since August 2026 a block is also bound to everything sent
   before it ([preserved thinking](https://platform.claude.com/docs/en/build-with-claude/preserved-thinking)):
   shortening an earlier `tool_result` invalidates every later block, and a request carrying one fails
-  with 400 on accounts the check applies to; dropping blocks from the end is valid. So when the agent
+  with 400 on accounts the check applies to; dropping blocks from the end is valid. Claude 5.5's
+  progress updates are thinking blocks of their own just before the call they introduce, so between
+  two parallel calls; each block goes back exactly where it streamed among the reply's text and calls. So when the agent
   loop elides a result or sheds history mid-turn, `AgentTurnBudget.unbind` drops every Claude block
   after the edit, on `api.anthropic.com` and on OpenRouter's `anthropic/` models, and never puts one
   back. Earlier turns' blocks are not stored (Redcast keeps no signatures), which the API allows:

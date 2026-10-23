@@ -204,15 +204,15 @@ enum AIRequestBody {
         guard message.role != .system else { return nil }
         let text = message.text.nonEmpty
         if !message.toolCalls.isEmpty {
-            // Fork: this turn's thinking blocks lead the message, as the tool loop requires.
-            var parts = AIReasoningReplayPolicy.anthropicBlocks(of: message, configuration: configuration)
-            parts += text.map { [["type": "text", "text": $0]] } ?? []
+            var parts: [[String: Any]] = text.map { [["type": "text", "text": $0]] } ?? []
             parts += message.toolCalls.map {
                 [
                     "type": "tool_use", "id": $0.id, "name": $0.name,
                     "input": JSONValue(data: Data($0.arguments.utf8))?.jsonObject ?? [:]
                 ]
             }
+            // Fork: this turn's thinking blocks go back where they streamed, as the tool loop requires.
+            parts = AIReasoningReplayPolicy.anthropicContent(parts, of: message, configuration: configuration)
             return ["role": message.role.rawValue, "content": parts]
         }
         let hasAttachments = !message.images.isEmpty || !message.documents.isEmpty
