@@ -44,8 +44,12 @@ final class DictationHistoryCoordinator {
 
     /// Listed while the history keeps anything and a voice feature can add to it.
     var isActive: Bool {
-        settings.retention.keepsHistory && (appSettings.dictationEnabled || voice.askEnabled)
+        settings.retention.keepsHistory
+            && (appSettings.dictationEnabled || (voice.askEnabled && settings.keepsVoiceReplies))
     }
+
+    /// Whether Ask by Voice and voice edits are being written down now.
+    var keepsVoiceReplies: Bool { settings.retention.keepsHistory && settings.keepsVoiceReplies }
 
     /// Command visibility only; no file is read here.
     func applyEnabled() {
@@ -63,6 +67,12 @@ final class DictationHistoryCoordinator {
         write { DictationHistoryFile.trim(retention: retention, now: now) }
         applyEnabled()
         if let builtIndex, builtIndex.phase != .idle { builtIndex.reload(loader()) }
+    }
+
+    /// Only what comes next; replies already kept stay until they age out or are deleted.
+    func setKeepsVoiceReplies(_ keeps: Bool) {
+        settings.keepsVoiceReplies = keeps
+        applyEnabled()
     }
 
     // MARK: - Recording
@@ -84,7 +94,8 @@ final class DictationHistoryCoordinator {
 
     func record(_ entry: DictationHistoryEntry) {
         let retention = settings.retention
-        guard retention.keepsHistory else { return }
+        guard retention.keepsHistory, entry.kind.isKept(voiceReplies: settings.keepsVoiceReplies)
+        else { return }
         write { DictationHistoryFile.append(entry, retention: retention) }
         builtIndex?.insert(entry)
     }

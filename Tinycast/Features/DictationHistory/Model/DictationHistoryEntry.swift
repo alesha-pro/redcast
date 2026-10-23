@@ -6,6 +6,9 @@ struct DictationHistoryEntry: Equatable, Identifiable, Sendable {
         case dictation
         case ask
         case edit
+
+        /// An answer or an edited selection holds more than speech, so it is kept only on request.
+        func isKept(voiceReplies: Bool) -> Bool { self == .dictation || voiceReplies }
     }
 
     enum Engine: String, Sendable {

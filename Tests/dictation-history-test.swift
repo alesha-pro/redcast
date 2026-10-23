@@ -28,6 +28,7 @@ struct DictationHistoryTests {
         unreadableLinesAreSkipped()
         theEntryKeepsItsTextBounded()
         retentionSpans()
+        voiceRepliesAreKeptOnlyOnRequest()
         try appendsLoadNewestFirst(in: folder)
         try anAppendTrimsWhatAgedOut(in: folder)
         try aLoadDropsWhatAgedOutSinceTheLastWrite(in: folder)
@@ -160,6 +161,14 @@ struct DictationHistoryTests {
             "the stored values stay what the first build wrote")
         expect(
             DictationHistoryRetention.allCases.allSatisfy { !$0.title.isEmpty }, "every span has a title")
+    }
+
+    static func voiceRepliesAreKeptOnlyOnRequest() {
+        let kinds: [DictationHistoryEntry.Kind] = [.dictation, .ask, .edit]
+        expect(
+            kinds.map { $0.isKept(voiceReplies: false) } == [true, false, false],
+            "with the switch off, only dictations are kept, never an answer or an edited selection")
+        expect(kinds.allSatisfy { $0.isKept(voiceReplies: true) }, "with it on, Ask and edits are kept too")
     }
 
     // MARK: - The file

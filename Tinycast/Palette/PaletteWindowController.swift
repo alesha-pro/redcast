@@ -438,9 +438,10 @@ final class PaletteWindowController: NSObject, NSWindowDelegate {
                 return true
             }
             guard Self.commandCharacter(from: event) != nil else { return false }
-            // Fork: ⌘C copies a Dictation History entry, unless the query has text selected.
+            // Fork: ⌘C copies the entry only from the search field, not from a preview selection.
             if self.core.palette.mode == .dictationHistory, Self.commandCharacter(from: event) == "c",
-                ((self.panel?.firstResponder as? NSTextView)?.selectedRange().length ?? 0) == 0
+                let editor = self.panel?.firstResponder as? NSTextView, editor.isFieldEditor,
+                editor.selectedRange().length == 0
             {
                 return self.core.dictationHistoryCoordinator.copySelection()
             }
