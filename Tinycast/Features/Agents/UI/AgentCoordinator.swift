@@ -59,7 +59,7 @@ final class AgentCoordinator {
 
     /// Observed: the composer's selects follow the session, including the agent's own moves.
     private(set) var chatOptions: [UUID: ACPSessionOptions] = [:]
-    /// What the agent offered last, so a new chat can pick before its session starts.
+    /// What the agent offered last, so a new chat and the editor can pick before a session starts.
     private(set) var agentOptions: [UUID: ACPSessionOptions] = [:]
     /// Observed like the selects: a live session's slash commands, then the agent's last list.
     private(set) var chatCommands: [UUID: [ACPCommand]] = [:]
@@ -134,6 +134,11 @@ final class AgentCoordinator {
         guard let agent = agent(for: chat), agent.runtime != nil else { return nil }
         if let live = chatOptions[chat.session.id] { return live }
         return agentOptions[agent.id]?.applying(agent)
+    }
+
+    /// The models this agent's last session offered, for its editor; nil until one has started.
+    func offeredModels(of agentID: UUID) -> ACPConfigOption? {
+        agentOptions[agentID]?.model
     }
 
     /// The brand the model's own name gives, else that of the CLI that runs it.
