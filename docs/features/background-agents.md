@@ -70,6 +70,13 @@ row and chord, `AppIndex`, `LauncherList`, `LauncherCoordinator`, `AppActionsMen
   model-facing text, never localized, and names no tool and no file.
 - **Agent questions queue.** `AgentConsentGate` asks one at a time and only once no dialog is up,
   observed rather than polled, so a foreground and a background ask no longer refuse each other.
+- **An unattended run's `web_fetch` opens only a few pages it was given.** The run's task text, the
+  results of its own searches and the links on pages it read that stay on their site, at the
+  address given, eight pages a run at most; any other address is refused before a request. That
+  narrows what a run nobody watches can carry out in a URL to which few given pages it reads, rather
+  than closing it ([agents](agents.md#invariants)). A native agent's sub-agents keep to the same
+  pages and count toward the same eight, and a run that read the user's data narrows the chat's
+  later turns as a watched one does.
 - **Only Always-trusted MCP servers ride an unattended turn.** Servers set to Ask are excluded through
   the run chat's tools menu, so MCP's own dialog, which allows on Return, never appears for one.
 - **Nothing here travels in a backup or `settings.json`.** The policy, the banner opt-in, the
@@ -163,8 +170,13 @@ Opening it marks finished runs and sessions seen. The work its closing does wait
 queue, because AppKit sends the chosen row's action after `menuDidClose`, and the background
 coordinator is not let go while the menu is open. A launcher run and Run Now show a HUD at the start
 and the end; a schedule's own runs show none, so nothing pops up at 3 a.m. A run whose chat is on
-screen in a key AI Chat window is marked seen with no HUD and no banner. A run still going after the
-agent's limit (15 minutes by default, 5 to 60) is stopped.
+screen in a key AI Chat window is marked seen with no HUD and no banner. A native agent's run is held
+to its effort's time (5, 15 or 45 minutes, the schedule's own effort or the agent's): at that point a
+call still running is stopped and its loop asks for a hand-over with tools off, a sub-agent having
+ended 90 seconds before ([agents](agents.md#invariants)); one still going two minutes later is
+stopped. An agent that never picked an Effort reads the least one lasting as long as the limit it
+kept from before Effort, so a 30- or 60-minute agent is Thorough (45 minutes). An ACP agent keeps its
+own "Stop a run after N minutes" (5–60) in its editor and has no Effort, so a schedule offers it none.
 
 A native agent's model is told, while its turn runs unattended, that nobody can answer and that it
 should finish with a short report (`AgentBackgroundBriefing.text`); a follow-up typed in the window
@@ -248,8 +260,8 @@ local to the Mac's day and time zone, like the schedules.
 - **Ask me** while away for more than two minutes (start a run, leave the mouse and keyboard alone): no
   dialog; declined and counted.
 - Two background asks at once (two agents): the second dialog waits for the first instead of vanishing.
-- ⌥ on a running row → Stop: the chat ends "Cancelled". A limit of 5 minutes on a long task: stopped,
-  and the row says so.
+- ⌥ on a running row → Stop: the chat ends "Cancelled". An agent at Quick on a long task: after five
+  minutes its reply hands over what it has, and the row is done.
 - Four quick runs: the fourth is refused with a HUD. A second run for a busy agent is refused.
 - An MCP server set to Ask is not offered in a background turn; one set to Always is.
 - ⌘↵ on `@rig task`: it runs in AI Chat in front of you, as a normal chat.

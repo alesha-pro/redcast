@@ -23,17 +23,41 @@ struct AgentLoopTests {
         await signalsLandBetweenACallsRows()
         await stopReachesTheRunningCall()
         await aTurnWithoutCallsPassesThrough()
+        await aSimpleQuestionIsOneRound()
+        await aLongRunWrapsUpThenHandsOver()
+        await aHandOverThatSaysNothingStillHandsOver()
+        await anIgnoredHandOverIsEnforced()
+        await theHistoryWallHandsOver()
+        await anUnattendedRunHandsOverOnTime()
+        await theClockStopsALongCall()
+        await anInterruptedReplyComesBack()
+        await aPlanIsKeptReadBackAndReported()
+        await aFailedRunSaysWhereItsPlanStood()
+        effortsGrowAndStayWhereTheyWere()
+        await reasoningRidesTheCallsItMade()
+        anEditDropsTheThinkingAfterIt()
+        reasoningCountsAndIsShed()
+        await aCutReplysCallsNeverRun()
+        await aCutAnswerIsNeverSilent()
         await anAgentTurnCostsEveryRound()
         await theSpendMeterHearsEachRoundsCost()
         await aLongTurnElidesInsteadOfStopping()
         await callsThatMayShareARoundDo()
         await aCallThatMayNotRunsAlone()
         await aRoundIsNeverWiderThanFour()
-        theDelegateToolOnlyReadsAndRunsAlone()
+        theDelegateToolOnlyReadsAndMayShareARound()
         await aSubAgentAnswersInsideItsParentsTurn()
         await aSubAgentIsBounded()
         await stopReachesASubAgent()
         await aSubAgentsSpendIsHeardAsItLands()
+        await subAgentsRunSideBySideWithinTheirAllowance()
+        retriesWaitAsThePolicySays()
+        await aBusyRouteIsAskedAgain()
+        await retriesEndAndAnAnswerIsNeverRepeated()
+        await stopEndsAWaitingRetry()
+        await anOverflowShedsTheWindowOnce()
+        await aRefusedOutputCapIsDropped()
+        await aRefusedReasoningFieldIsDropped()
         await compactionAddsNothingWhileNothingIsDropped()
         await compactionSummarisesOnceThenReuses()
         await aFailedSummaryLeavesTheTurnAsBuilt()
@@ -92,7 +116,7 @@ struct AgentLoopTests {
             AIToolLoopProvider(base: upstreamBase, tools: tools.tools, maxRounds: maxRounds) { call in
                 await tools.run(call, signal: { _ in })
             })
-        let fork = await collect(AgentLoopProvider(base: forkBase, toolset: tools, maxRounds: maxRounds))
+        let fork = await collect(AgentLoopProvider(base: forkBase, toolset: tools, budget: .roomy))
         expect(fork.events == upstream.events, "\(name): both loops emit the same events")
         expect(
             fork.failure == upstream.failure, "\(name): and end the same way, \(fork.failure ?? "finished")")
@@ -108,16 +132,11 @@ struct AgentLoopTests {
                 [.text("Done."), .finished]
             ], maxRounds: 25)
         let forever = Array(repeating: [call("c")], count: 40)
-        await differential("the round cap", rounds: forever, maxRounds: 3)
         await differential(
             "a 40 KB result", rounds: [[call("c1")], [.text("ok"), .finished]], maxRounds: 25
         ) { _ in String(repeating: "x", count: 40 * 1_024) }
         await differential(
             "unlimited rounds", rounds: forever + [[.text("done"), .finished]], maxRounds: nil)
-        let heavy = String(repeating: "z", count: AgentTurnBudget.historyBytes / 16)
-        await differential(
-            "the history wall", rounds: Array(repeating: [call("c", "fs_read", heavy)], count: 40),
-            maxRounds: nil)
         await differential(
             "reasoning, searches and usage", rounds: [
                 [
@@ -125,6 +144,20 @@ struct AgentLoopTests {
                     call("c1")
                 ],
                 [.searching("q"), .searched("q"), .text("ok"), .usage(AIUsage(inputTokens: 20)), .finished]
+            ], maxRounds: 25)
+        let thought = AIReasoningReplay(
+            route: "openrouter.ai", model: "m", form: .details, text: "check",
+            items: [.object(["type": .string("reasoning.encrypted"), "data": .string("e")])])
+        await differential(
+            "reasoning sent back", rounds: [
+                [.thinking, .reasoning("check"), .reasoningReplay(thought), call("c1")],
+                [.text("ok"), .finished]
+            ], maxRounds: 25)
+        await differential(
+            "a reply the output cap cut", rounds: [
+                [.text("Writing."), call("c1", "fs_read", #"{"path":"a"#), call("c2"), .outputLimit],
+                [call("c3")],
+                [.text("Done."), .finished]
             ], maxRounds: 25)
         await differential(
             "a priced turn", rounds: [
@@ -154,7 +187,7 @@ struct AgentLoopTests {
             [call("u1", "nope")], [call("m1", "srv__read")], [.text("ok"), .finished]
         ])
         let tools = toolset([FakeTools(names: ["fs_read"]) { _, _ in "contents" }], mcp: invoker)
-        let events = await collect(AgentLoopProvider(base: base, toolset: tools, maxRounds: 25)).events
+        let events = await collect(AgentLoopProvider(base: base, toolset: tools, budget: .roomy)).events
         expect(events.contains(.toolResult(id: "u1", isError: true)), "a name nobody offered fails")
         expect(
             base.requests[1].messages.last?.toolResult?.content == "There is no tool called nope.",
@@ -170,7 +203,7 @@ struct AgentLoopTests {
         }
         let base = ScriptedProvider(rounds: [[call("s1")], [.text("ok"), .finished]])
         let events = await collect(
-            AgentLoopProvider(base: base, toolset: toolset([searcher]), maxRounds: 25)
+            AgentLoopProvider(base: base, toolset: toolset([searcher]), budget: .roomy)
         ).events
         expect(
             Array(events.prefix(4)) == [
@@ -184,7 +217,7 @@ struct AgentLoopTests {
         let sleeper = Sleeper()
         let tools = toolset([FakeTools(names: ["fs_read"]) { _, _ in await sleeper.sleep() }])
         let base = ScriptedProvider(rounds: [[call("z1")], [.text("never"), .finished]])
-        let loop = AgentLoopProvider(base: base, toolset: tools, maxRounds: nil)
+        let loop = AgentLoopProvider(base: base, toolset: tools, budget: .roomy)
         let log = EventLog()
         let consumer = Task {
             do {
@@ -209,10 +242,159 @@ struct AgentLoopTests {
         let script: [AIStreamEvent] = [.text("Hi"), .reasoning("r"), .usage(usage), .finished]
         let base = ScriptedProvider(rounds: [script])
         let tools = toolset([FakeTools(names: ["fs_read"]) { _, _ in "x" }])
-        let events = await collect(AgentLoopProvider(base: base, toolset: tools, maxRounds: 25)).events
+        let events = await collect(AgentLoopProvider(base: base, toolset: tools, budget: .roomy)).events
         expect(base.requests.count == 1, "a turn that calls nothing is one request")
         expect(base.requests.first?.tools == tools.tools, "armed with the turn's tools")
         expect(events == script, "and its events pass through unchanged")
+    }
+
+    /// DeepSeek refuses a thinking round whose earlier calls come back without their reasoning.
+    static func reasoningRidesTheCallsItMade() async {
+        let thought = AIReasoningReplay(
+            route: "api.deepseek.com", model: "deepseek-flash", form: .reasoningContent, text: "Read it first.")
+        let base = ScriptedProvider(rounds: [
+            [.thinking, .reasoning("Read it first."), .reasoningReplay(thought), call("c1")],
+            [call("c2")],
+            [.text("ok"), .finished]
+        ])
+        let tools = toolset([FakeTools(names: ["fs_read"]) { _, _ in "x" }])
+        let events = await collect(AgentLoopProvider(base: base, toolset: tools, budget: .roomy)).events
+        let replies = base.requests.last?.messages.filter { $0.role == .assistant } ?? []
+        expect(
+            replies.map(\.reasoning) == [thought, nil],
+            "each round's reasoning goes back on the message with its calls, and only there")
+        expect(
+            events.filter { if case .reasoningReplay = $0 { true } else { false } } == [.reasoningReplay(thought)],
+            "and is handed on once, for the chat to keep for that model's later turns")
+    }
+
+    /// Claude signs a thinking block over all before it: an elided result voids every later block.
+    static func anEditDropsTheThinkingAfterIt() {
+        let signed = AIReasoningReplay(
+            route: "api.anthropic.com", model: "claude-opus-5-5", form: .blocks, text: "",
+            items: [.object(["type": .string("thinking"), "thinking": .string(""), "signature": .string("s")])])
+        let gemini = AIReasoningReplay(
+            route: "generativelanguage.googleapis.com", model: "gemini-3.5-flash", form: nil, text: "")
+        let page = String(repeating: "p", count: 100 * 1_024)
+        func reply(_ id: String, _ reasoning: AIReasoningReplay) -> AIMessage {
+            AIMessage(
+                role: .assistant, text: "", toolCalls: [AIToolCall(id: id, name: "fs_read", arguments: "{}")],
+                reasoning: reasoning)
+        }
+        func result(_ id: String) -> AIMessage {
+            AIMessage(role: .tool, text: "", toolResult: AIToolResult(callID: id, content: page, isError: false))
+        }
+        var messages = [
+            AIMessage(role: .user, text: "go"), reply("a", signed), result("a"), reply("b", signed), result("b"),
+            reply("c", gemini), result("c"), reply("d", signed), result("d")
+        ]
+        let saved = AgentTurnBudget.elide(&messages, turnStart: 1, keepFrom: 7)
+        expect(saved > 0 && messages[2].toolResult?.content.hasPrefix("[Earlier") == true, "the oldest result went")
+        expect(
+            [1, 3, 7].allSatisfy { messages[$0].reasoning?.items.isEmpty == true && !messages[$0].toolCalls.isEmpty },
+            "Claude's oldest blocks go from the start, and every one after the edit is dropped for good")
+        expect(messages[5].reasoning == gemini, "while a route that signs no prefix keeps what it had")
+    }
+
+    /// Reasoning sent back rides every later round: it counts toward the wall, and goes when old.
+    static func reasoningCountsAndIsShed() {
+        let thought = String(repeating: "t", count: 60 * 1_024)
+        let deepSeek = AIReasoningReplay(
+            route: "api.deepseek.com", model: "deepseek-flash", form: .reasoningContent, text: thought)
+        var budget = AgentTurnBudget()
+        budget.carry("ok", calls: [], reasoning: deepSeek)
+        expect(budget.carried == thought.utf8.count + 2, "what goes back with a reply counts toward the history wall")
+        let signed = JSONValue.object(["type": .string("reasoning.encrypted"), "data": .string("sig")])
+        let routed = AIReasoningReplay(
+            route: "openrouter.ai", model: "google/gemini-3.5-pro", form: .details, text: thought,
+            items: [.object(["type": .string("reasoning.text"), "text": .string(thought)]), signed])
+        func reply(_ id: String, _ reasoning: AIReasoningReplay) -> AIMessage {
+            AIMessage(
+                role: .assistant, text: "", toolCalls: [AIToolCall(id: id, name: "fs_read", arguments: "{}")],
+                reasoning: reasoning)
+        }
+        func result(_ id: String) -> AIMessage {
+            AIMessage(role: .tool, text: "", toolResult: AIToolResult(callID: id, content: "x", isError: false))
+        }
+        var messages = [
+            AIMessage(role: .user, text: "go"), reply("a", deepSeek), result("a"), reply("b", routed), result("b"),
+            reply("c", deepSeek), result("c")
+        ]
+        let saved = AgentTurnBudget.elide(&messages, turnStart: 1, keepFrom: 5)
+        expect(saved >= 2 * thought.utf8.count, "a turn's old reasoning is shed like its old results")
+        expect(
+            messages[1].reasoning
+                == AIReasoningReplay(
+                    route: "api.deepseek.com", model: "deepseek-flash", form: .reasoningContent, text: ""),
+            "DeepSeek's goes, the field's place kept, as the route requires")
+        expect(
+            messages[3].reasoning?.items == [signed] && messages[3].reasoning?.text == "",
+            "OpenRouter's text goes while its encrypted entry, which Gemini checks, stays")
+        expect(messages[5].reasoning == deepSeek, "and the newest round keeps its reasoning whole")
+        expect(messages.compactMap(\.toolResult?.content) == ["x", "x", "x"], "results too small to stub stay")
+    }
+
+    /// pi's rule: a call from a reply the output cap cut is answered, never run, and asked again.
+    static func aCutReplysCallsNeverRun() async {
+        let ran = Heard()
+        let writer = FakeTools(names: ["fs_write"], risk: .change) { _, _ in
+            ran.append(1)
+            return "wrote"
+        }
+        let base = ScriptedProvider(rounds: [
+            [call("w1", "fs_write", ##"{"path":"r.md","content":"# Rep"##), .outputLimit],
+            [call("w2", "fs_write", ##"{"path":"r.md","content":"# Report"}"##)],
+            [.text("Saved."), .finished]
+        ])
+        let loop = AgentLoopProvider(
+            base: base, toolset: toolset([writer]), budget: .roomy, outputCap: AgentTurnBudget.outputTokens)
+        let events = await collect(loop).events
+        expect(ran.values.count == 1, "only the whole call runs")
+        expect(
+            events.contains(.toolResult(id: "w1", isError: true)), "the cut call's row closes as failed")
+        expect(
+            base.requests[1].messages.last?.toolResult?.content
+                == #"Tool call "fs_write" was not executed: the response hit the output token limit, so "#
+                + "its arguments may be truncated. Re-issue the tool call with complete arguments.",
+            "and the model reads pi's words for it")
+        let asked = AIOutputCap(tokens: AgentTurnBudget.outputTokens, forced: false)
+        let forced = AIOutputCap(tokens: AgentTurnBudget.outputTokens, forced: true)
+        expect(
+            base.requests.map(\.outputCap) == [asked, forced, forced],
+            "an agent's round asks for its cap where a route needs a number, and every route after a cut, "
+                + "got \(base.requests.map(\.outputCap))")
+    }
+
+    /// A reply the limit cut before it answered is asked again with room; one cut mid-answer says so.
+    static func aCutAnswerIsNeverSilent() async {
+        let tools = toolset([FakeTools(names: ["fs_read"]) { _, _ in "x" }])
+        let thinker = ScriptedProvider(rounds: [
+            [.thinking, .reasoning("long thought"), .outputLimit, .finished],
+            [.thinking, .reasoning("short"), .text("42."), .finished]
+        ])
+        let retried = await collect(
+            AgentLoopProvider(base: thinker, toolset: tools, budget: .roomy, outputCap: AgentTurnBudget.outputTokens))
+        expect(
+            thinker.requests.count == 2 && thinker.requests.last?.outputCap?.forced == true
+                && texts(retried.events) == "42.",
+            "a reply the route's own default cut before a word is asked again, once, with the cap, got "
+                + "\(texts(retried.events))")
+        let stuck = ScriptedProvider(rounds: [
+            [.reasoning("a"), .outputLimit, .finished], [.reasoning("b"), .outputLimit, .finished]
+        ])
+        let silent = await collect(
+            AgentLoopProvider(base: stuck, toolset: tools, budget: .roomy, outputCap: AgentTurnBudget.outputTokens))
+        expect(
+            stuck.requests.count == 2
+                && texts(silent.events) == "The model reached its output limit before it answered.",
+            "and if the room runs out again the reply says so instead of standing empty")
+        let long = ScriptedProvider(rounds: [[.text("Part one"), .outputLimit, .finished]])
+        let cut = await collect(
+            AgentLoopProvider(base: long, toolset: tools, budget: .roomy, outputCap: AgentTurnBudget.outputTokens))
+        expect(
+            long.requests.count == 1
+                && texts(cut.events) == "Part one\n\nThe reply was cut off at the model's output limit.",
+            "an answer cut midway is kept and marked, never asked again to repeat itself")
     }
 
     static func anAgentTurnCostsEveryRound() async {
@@ -221,7 +403,7 @@ struct AgentLoopTests {
             [.text("ok"), .usage(AIUsage(inputTokens: 30, costUSD: 0.02)), .finished]
         ])
         let tools = toolset([FakeTools(names: ["fs_read"]) { _, _ in "x" }])
-        let events = await collect(AgentLoopProvider(base: base, toolset: tools, maxRounds: 25)).events
+        let events = await collect(AgentLoopProvider(base: base, toolset: tools, budget: .roomy)).events
         let usages = events.compactMap { event -> AIUsage? in
             if case .usage(let usage) = event { usage } else { nil }
         }
@@ -238,11 +420,11 @@ struct AgentLoopTests {
         ]
         let tools = toolset([FakeTools(names: ["fs_read"]) { _, _ in "x" }])
         let plain = await collect(
-            AgentLoopProvider(base: ScriptedProvider(rounds: rounds), toolset: tools, maxRounds: 25)).events
+            AgentLoopProvider(base: ScriptedProvider(rounds: rounds), toolset: tools, budget: .roomy)).events
         let heard = Heard()
         let metered = await collect(
             AgentSpendMeter(
-                base: AgentLoopProvider(base: ScriptedProvider(rounds: rounds), toolset: tools, maxRounds: 25)
+                base: AgentLoopProvider(base: ScriptedProvider(rounds: rounds), toolset: tools, budget: .roomy)
             ) { heard.append($0) })
         expect(metered.events == plain, "the meter passes every event through unchanged")
         expect(metered.failure == nil, "and ends the turn as it ended")
@@ -254,6 +436,11 @@ struct AgentLoopTests {
         let failing = await collect(AgentSpendMeter(base: FailingProvider()) { heard.append($0) })
         expect(failing.failure != nil, "a route's failure still reaches the chat through the meter")
     }
+}
+
+extension AgentRunBudget {
+    /// Far past any script here, so a test meets a limit only where it sets one.
+    static let roomy = AgentRunBudget(rounds: 1_000)
 }
 
 final class Heard: @unchecked Sendable {
@@ -280,7 +467,7 @@ extension AgentLoopTests {
     static func aLongTurnElidesInsteadOfStopping() async {
         let page = FakeTools(names: ["fs_read"]) { _, _ in String(repeating: "p", count: 30 * 1_024) }
         let base = ScriptedProvider(rounds: (1...8).map { [call("p\($0)")] } + [[.text("ok"), .finished]])
-        let outcome = await collect(AgentLoopProvider(base: base, toolset: toolset([page]), maxRounds: 25))
+        let outcome = await collect(AgentLoopProvider(base: base, toolset: toolset([page]), budget: .roomy))
         expect(
             outcome.failure == nil && outcome.events.last == .finished, "eight 30 KB pages finish the turn")
         expect(
@@ -307,7 +494,7 @@ extension AgentLoopTests {
         }
         let base = ScriptedProvider(rounds: [[call("r1"), call("r2"), call("r3")], [.text("ok"), .finished]])
         let started = ContinuousClock.now
-        let events = await collect(AgentLoopProvider(base: base, toolset: toolset([reader]), maxRounds: 25))
+        let events = await collect(AgentLoopProvider(base: base, toolset: toolset([reader]), budget: .roomy))
             .events
         expect(ContinuousClock.now - started < .milliseconds(400), "three 200 ms reads share one round")
         let rows = events.filter {
@@ -341,7 +528,7 @@ extension AgentLoopTests {
             [call("r1"), call("r2"), call("w1", "fs_write"), call("r3"), call("r4")], [.text("ok"), .finished]
         ])
         let events = await collect(
-            AgentLoopProvider(base: base, toolset: toolset([reader, writer]), maxRounds: 25)
+            AgentLoopProvider(base: base, toolset: toolset([reader, writer]), budget: .roomy)
         ).events
         let order: [String] = events.compactMap {
             switch $0 {
@@ -367,7 +554,7 @@ extension AgentLoopTests {
             return call.id
         }
         let base = ScriptedProvider(rounds: [(1...6).map { call("r\($0)") }, [.text("ok"), .finished]])
-        _ = await collect(AgentLoopProvider(base: base, toolset: toolset([reader]), maxRounds: 25))
+        _ = await collect(AgentLoopProvider(base: base, toolset: toolset([reader]), budget: .roomy))
         expect(gauge.peak == AgentLoopProvider.width, "at most four calls run at once, got \(gauge.peak)")
     }
 }
@@ -391,7 +578,7 @@ extension AgentLoopTests {
             mcp: { .failure($0.id, "mcp") }, ask: { _, _ in false })
     }
 
-    static func theDelegateToolOnlyReadsAndRunsAlone() {
+    static func theDelegateToolOnlyReadsAndMayShareARound() {
         let full = AgentProfile(
             name: "Loop", directory: "/tmp", access: .fullAccess, tools: Set(AgentToolKind.allCases))
         let delegate = AgentDelegateTools(
@@ -402,8 +589,8 @@ extension AgentLoopTests {
                 mode: .chat(UUID())))
         expect(
             specs.map(\.tool.name) == [AgentDelegateTools.name] && specs.first?.family == .delegate
-                && specs.first?.risk == .read && specs.first?.concurrent == false,
-            "delegate is the Sub-agents family's, changes nothing itself, and one child runs at a time")
+                && specs.first?.risk == .read && specs.first?.concurrent == true,
+            "delegate is the Sub-agents family's, changes nothing itself, and children of a round run together")
         let others =
             AgentToolbox.tools(for: full, hasSkills: true).map(\.name)
             + [AgentPlan.name, WebSearchTool.name, "screen_context"]
@@ -424,7 +611,7 @@ extension AgentLoopTests {
         ])
         let delegate = AgentDelegateTools(base: base, toolset: child, instructions: "Be a sub-agent.")
         let parent = toolset([delegate], families: [.delegate])
-        let outcome = await collect(AgentLoopProvider(base: base, toolset: parent, maxRounds: 25))
+        let outcome = await collect(AgentLoopProvider(base: base, toolset: parent, budget: .roomy))
         expect(outcome.failure == nil && outcome.events.last == .finished, "the parent's turn finishes")
         expect(
             outcome.events.contains(.toolCall(id: "d1", origin: "Loop", title: "delegate: Find config"))
@@ -498,9 +685,23 @@ extension AgentLoopTests {
             AIToolCall(id: "d", name: AgentDelegateTools.name, arguments: #"{"name":"n","task":"t"}"#),
             in: context)
         expect(
-            stopped.isError && stopped.content.contains("Stopped after 12 rounds")
-                && looping.requests.count == AgentDelegateTools.maxRounds,
-            "a child that keeps calling stops at its own round cap, got \(stopped.content)")
+            !stopped.isError && stopped.content == "The sub-task's budget ran out before it wrote an answer."
+                && looping.requests.count == AgentRunBudget.subAgent.rounds + 2
+                && looping.requests.last?.forbidsCalls == true,
+            "a child that keeps calling is asked once more at its budget, then with calls off, and still hands "
+                + "something back, got \(stopped.content)")
+
+        let slow = ScriptedProvider(rounds: [[call("c")], [.text("Found X."), .finished]])
+        let late = AgentDelegateTools(
+            base: slow, toolset: childTools([FakeTools(names: ["fs_read"]) { _, _ in "x" }]), instructions: "",
+            clock: AgentRunClock(limit: .seconds(60), from: .now - .seconds(59)))
+        let timed = await late.run(
+            AIToolCall(id: "d", name: AgentDelegateTools.name, arguments: #"{"name":"n","task":"t"}"#),
+            in: context)
+        expect(
+            timed.content == "Found X." && slow.requests.count == 2
+                && slow.requests.last?.messages.last?.text.contains("of 0 minutes used") == true,
+            "a child started near its parent's end hands over after one round, got \(timed.content)")
 
         let idle = ScriptedProvider(rounds: [])
         let malformed = await AgentDelegateTools(base: idle, toolset: childTools([]), instructions: "").run(
@@ -515,7 +716,7 @@ extension AgentLoopTests {
         let child = childTools([FakeTools(names: ["fs_read"]) { _, _ in await sleeper.sleep() }])
         let parent = toolset(
             [AgentDelegateTools(base: base, toolset: child, instructions: "")], families: [.delegate])
-        let loop = AgentLoopProvider(base: base, toolset: parent, maxRounds: nil)
+        let loop = AgentLoopProvider(base: base, toolset: parent, budget: .roomy)
         let consumer = Task {
             do {
                 for try await _ in loop.stream(turn) {}
@@ -538,7 +739,7 @@ extension AgentLoopTests {
     static func meteredParent(_ base: any AIProvider) -> AgentLoopProvider {
         let child = childTools([FakeTools(names: ["fs_read"]) { _, _ in "x" }])
         let delegate = AgentDelegateTools(base: base, toolset: child, instructions: "")
-        return AgentLoopProvider(base: base, toolset: toolset([delegate], families: [.delegate]), maxRounds: 25)
+        return AgentLoopProvider(base: base, toolset: toolset([delegate], families: [.delegate]), budget: .roomy)
     }
 
     static func cents(_ values: [Double]) -> [Double] {
@@ -592,9 +793,282 @@ extension AgentLoopTests {
         ])
         let both = Heard()
         _ = await collect(AgentSpendMeter(base: meteredParent(pair)) { both.append($0) })
+        let landed = cents(both.values)
         expect(
-            pair.requests.count == 4 && cents(both.values) == [0.01, 0.51, 0.76, 0.77],
-            "two sub-agents of one round are heard one at a time, got \(both.values)")
+            pair.requests.count == 4 && [[0.01, 0.51, 0.76, 0.77], [0.01, 0.26, 0.76, 0.77]].contains(landed),
+            "two sub-agents of one round run side by side and are each heard as they land, got \(both.values)")
+    }
+}
+
+// MARK: - Retries
+
+extension AgentLoopTests {
+    static let quick = AgentRetryPolicy(
+        delays: [10, 20, 40, 80].map { Duration.milliseconds($0) }, jitter: 0.1, longestWait: .seconds(60))
+    static let busy = AIProviderRecoverableError(
+        kind: .transient(retryAfter: nil), message: "The provider is temporarily unavailable (HTTP 503).")
+
+    static func retriesWaitAsThePolicySays() {
+        let policy = AgentRetryPolicy.standard
+        expect(
+            policy.delay(before: 1, after: busy, random: 0.5) == .seconds(2)
+                && policy.delay(before: 4, after: busy, random: 0.5) == .seconds(16),
+            "pi's backoff doubles from two seconds")
+        expect(
+            policy.delay(before: 5, after: busy, random: 0.5) == nil, "and gives up after four retries")
+        let low = policy.delay(before: 2, after: busy, random: 0) ?? .zero
+        let high = policy.delay(before: 2, after: busy, random: 1) ?? .zero
+        let near = { (value: Duration, target: Duration) in abs((value - target) / .milliseconds(1)) < 1 }
+        expect(
+            near(low, .milliseconds(3_600)) && near(high, .milliseconds(4_400)),
+            "a tenth either way, got \(low) \(high)")
+        let limited = AIProviderRecoverableError(kind: .transient(retryAfter: .seconds(7)), message: "429")
+        expect(
+            policy.delay(before: 1, after: limited, random: 0.5) == .seconds(7),
+            "a Retry-After longer than the backoff is waited out")
+        let closed = AIProviderRecoverableError(kind: .transient(retryAfter: .seconds(600)), message: "429")
+        expect(policy.delay(before: 1, after: closed, random: 0.5) == nil, "but not one past a minute")
+        expect(
+            policy.delay(before: 1, after: AIProviderError.responseFailed("API key rejected"), random: 0.5) == nil
+                && policy.delay(
+                    before: 1, after: AIProviderRecoverableError(kind: .overflow, message: "full"), random: 0.5)
+                    == nil,
+            "a refusal or a full window is never simply asked again")
+    }
+
+    /// 5xx, 429 and dropped connections before an answer are asked again, and billed once each.
+    static func aBusyRouteIsAskedAgain() async {
+        let base = FlakyProvider(
+            failures: [busy, busy], spentBeforeFailing: 0.004,
+            then: [
+                [.usage(AIUsage(inputTokens: 10, costUSD: 0.01)), call("c1")],
+                [.text("ok"), .usage(AIUsage(inputTokens: 20, costUSD: 0.02)), .finished]
+            ])
+        let tools = toolset([FakeTools(names: ["fs_read"]) { _, _ in "x" }])
+        let outcome = await collect(
+            AgentLoopProvider(base: base, toolset: tools, budget: .roomy, retry: quick, origin: "Loop"))
+        expect(outcome.failure == nil && outcome.events.last == .finished, "two busy answers, then the turn ends")
+        expect(base.requests.count == 4, "the first round is asked three times, the second once")
+        let rows = outcome.events.filter {
+            switch $0 {
+            case .toolCall(let id, _, _), .toolResult(let id, _): id.hasPrefix("tinycast-retry-")
+            default: false
+            }
+        }
+        expect(
+            rows == [
+                .toolCall(id: "tinycast-retry-1-1", origin: "Loop", title: AgentRetryPolicy.title(1, of: 4)),
+                .toolResult(id: "tinycast-retry-1-1", isError: false),
+                .toolCall(id: "tinycast-retry-1-2", origin: "Loop", title: AgentRetryPolicy.title(2, of: 4)),
+                .toolResult(id: "tinycast-retry-1-2", isError: false)
+            ],
+            "each wait shows as a row that closes when the round is asked again, got \(rows)")
+        expect(
+            abs((lastCost(outcome.events) ?? 0) - 0.038) < 1e-12,
+            "what a failed attempt reported is billed once, beside the rounds that passed, got "
+                + "\(lastCost(outcome.events) ?? 0)")
+        expect(
+            base.requests[0] == base.requests[2], "the same request goes again, nothing of the failure in it")
+    }
+
+    static func retriesEndAndAnAnswerIsNeverRepeated() async {
+        let down = FlakyProvider(failures: Array(repeating: busy, count: 9), then: [])
+        let tools = toolset([FakeTools(names: ["fs_read"]) { _, _ in "x" }])
+        let gaveUp = await collect(AgentLoopProvider(base: down, toolset: tools, budget: .roomy, retry: quick))
+        expect(
+            gaveUp.failure == busy.message && down.requests.count == 5,
+            "four retries, then the failure stands in its own words, got \(gaveUp.failure ?? "none")")
+
+        let halfway = FlakyProvider(failures: [busy], textBeforeFailing: "Half an ans", then: [[.text("x"), .finished]])
+        let said = await collect(AgentLoopProvider(base: halfway, toolset: tools, budget: .roomy, retry: quick))
+        expect(
+            said.failure == busy.message && halfway.requests.count == 1,
+            "a round that already showed text is not asked again, or the text would show twice")
+
+        let refused = FlakyProvider(failures: [AIProviderError.responseFailed("API key rejected")], then: [])
+        let rejected = await collect(AgentLoopProvider(base: refused, toolset: tools, budget: .roomy, retry: quick))
+        expect(
+            rejected.failure == "API key rejected" && refused.requests.count == 1,
+            "and a refusal is never retried")
+    }
+
+    static func stopEndsAWaitingRetry() async {
+        let slow = AgentRetryPolicy(delays: [.seconds(5)], jitter: 0, longestWait: .seconds(60))
+        let base = FlakyProvider(failures: [busy], then: [[.text("never"), .finished]])
+        let loop = AgentLoopProvider(
+            base: base, toolset: toolset([FakeTools(names: ["fs_read"]) { _, _ in "x" }]), budget: .roomy,
+            retry: slow, origin: "Loop")
+        let log = EventLog()
+        let consumer = Task {
+            do {
+                for try await event in loop.stream(turn) { log.append(event) }
+            } catch {}
+        }
+        let deadline = ContinuousClock.now + .seconds(2)
+        while !log.events.contains(where: { if case .toolCall = $0 { true } else { false } }), .now < deadline {
+            try? await Task.sleep(for: .milliseconds(10))
+        }
+        let stopped = ContinuousClock.now
+        consumer.cancel()
+        await consumer.value
+        expect(ContinuousClock.now - stopped < .milliseconds(500), "Stop ends the wait at once")
+        try? await Task.sleep(for: .milliseconds(100))
+        expect(base.requests.count == 1, "and the round is never asked again")
+        expect(!log.events.contains(.finished), "nor does the turn claim to have finished")
+    }
+
+    /// dsh's rule: a full window is shed, old results first, and the round asked again.
+    static func anOverflowShedsTheWindowOnce() async {
+        let full = AIProviderRecoverableError(kind: .overflow, message: "maximum context length is 8192 tokens")
+        let page = String(repeating: "p", count: 20 * 1_024)
+        let base = FlakyProvider(
+            failures: [], failAt: [3: full],
+            then: [[call("c1")], [call("c2")], [.text("ok"), .finished]])
+        let tools = toolset([FakeTools(names: ["fs_read"]) { _, _ in page }])
+        let outcome = await collect(AgentLoopProvider(base: base, toolset: tools, budget: .roomy, retry: quick))
+        expect(outcome.failure == nil && outcome.events.last == .finished, "the turn goes on after an overflow")
+        let results = base.requests.last?.messages.compactMap(\.toolResult?.content) ?? []
+        expect(
+            base.requests.count == 4 && results.count == 2
+                && results[0].hasPrefix("[Earlier fs_read result elided") && results[1] == page,
+            "with the older round's result stubbed and the newest kept, got \(results.map(\.count))")
+
+        let first = FlakyProvider(failures: [full, full], then: [[.text("x"), .finished]])
+        let stuck = await collect(AgentLoopProvider(base: first, toolset: tools, budget: .roomy, retry: quick))
+        expect(
+            stuck.failure == full.message && first.requests.count == 1,
+            "with nothing of the turn to shed and one question, the overflow stands")
+
+        let growing = FlakyProvider(
+            failures: [], failAt: [3: full, 4: full],
+            then: [[call("c1")], [call("c2")], [.text("What I found, from what fits."), .finished]])
+        let handed = await collect(AgentLoopProvider(base: growing, toolset: tools, budget: .roomy, retry: quick))
+        let sent = growing.requests.last?.messages ?? []
+        expect(
+            handed.failure == nil && texts(handed.events) == "What I found, from what fits."
+                && growing.requests.count == 5,
+            "a window still full once the older rounds are shed hands over, got \(handed.failure ?? "")")
+        expect(
+            sent.compactMap(\.toolResult?.content).allSatisfy { $0.hasPrefix("[Earlier fs_read result elided") }
+                && sent.last?.text.contains(AgentBudgetPolicy.windowFull) == true,
+            "with every result shed and the reason said")
+    }
+
+    static func aRefusedOutputCapIsDropped() async {
+        let refusal = AIProviderError.responseFailed(
+            "The provider rejected the model or request (HTTP 400).\n\nmax_tokens: 16384 > 8192")
+        let base = FlakyProvider(failures: [refusal], then: [[call("c1")], [.text("ok"), .finished]])
+        let tools = toolset([FakeTools(names: ["fs_read"]) { _, _ in "x" }])
+        let outcome = await collect(
+            AgentLoopProvider(base: base, toolset: tools, budget: .roomy, outputCap: 16_384, retry: quick))
+        expect(outcome.failure == nil, "a model that takes less output is asked again without the cap")
+        expect(
+            base.requests.map(\.outputCap) == [AIOutputCap(tokens: 16_384, forced: false), nil, nil],
+            "and the rest of the turn goes without one, got \(base.requests.map(\.outputCap))")
+        // vLLM's words: an overflow, since the cap counts against the window, yet the cap is to blame.
+        let window = AIProviderRecoverableError(
+            kind: .overflow,
+            message: "'max_tokens' or 'max_completion_tokens' is too large: 32768. This model's maximum context "
+                + "length is 32768 tokens and your request has 120 input tokens (32768 > 32768 - 120).")
+        let local = FlakyProvider(failures: [window], then: [[.text("ok"), .finished]])
+        let small = await collect(
+            AgentLoopProvider(base: local, toolset: tools, budget: .roomy, outputCap: 32_768, retry: quick))
+        expect(
+            small.failure == nil
+                && local.requests.map(\.outputCap) == [AIOutputCap(tokens: 32_768, forced: false), nil],
+            "a small window that cannot also hold the cap is asked again without it, got \(small.failure ?? "")")
+        let old = AIProviderRecoverableError(
+            kind: .overflow,
+            message: "This model's maximum context length is 8192 tokens. However, you requested 9000 tokens "
+                + "(800 in the messages, 8200 in the completion).")
+        expect(AgentRetryPolicy.refusesOutputCap(old), "older vLLM's words for it too")
+        expect(
+            !AgentRetryPolicy.refusesOutputCap(
+                AIProviderRecoverableError(kind: .overflow, message: "prompt is too long: 210000 tokens > 200000")),
+            "while a prompt too long for any cap is an overflow to shed")
+    }
+
+    /// A strict gateway that names a reasoning field it does not take is sent none for the rest of the run.
+    static func aRefusedReasoningFieldIsDropped() async {
+        let thought = AIReasoningReplay(route: "api.groq.com", model: "qwen3-32b", form: .reasoning, text: "Read it.")
+        let signed = AIReasoningReplay(
+            route: "api.groq.com", model: "qwen3-32b", form: .blocks, text: "",
+            items: [.object(["type": .string("thinking"), "signature": .string("s")])])
+        let groq = AIProviderError.responseFailed(
+            "The provider rejected the model or request (HTTP 400).\n\n'messages.2' : for 'role:assistant' the "
+                + "following must be satisfied[('messages.2' : property 'reasoning' is unsupported)]")
+        let base = FlakyProvider(
+            failures: [], failAt: [2: groq],
+            then: [
+                [.reasoningReplay(thought), call("c1")], [.reasoningReplay(thought), call("c2")],
+                [.text("ok"), .finished]
+            ])
+        let tools = toolset([FakeTools(names: ["fs_read"]) { _, _ in "x" }])
+        let outcome = await collect(AgentLoopProvider(base: base, toolset: tools, budget: .roomy, retry: quick))
+        let carried = base.requests.map { $0.messages.compactMap(\.reasoning) }
+        expect(outcome.failure == nil && texts(outcome.events) == "ok", "a refused field is not the run's end")
+        expect(
+            carried == [[], [thought], [], []],
+            "the refused round is asked again without it, and no later round sends it, got \(carried)")
+        expect(
+            outcome.events.filter { if case .reasoningReplay = $0 { true } else { false } }.count == 2,
+            "while the chat still hears each reply's reasoning")
+        let mistral = AIProviderError.responseFailed(
+            "HTTP 422: [{'type': 'extra_forbidden', 'loc': ('body', 'messages', 1, 'assistant', "
+                + "'reasoning_content'), 'msg': 'Extra inputs are not permitted'}]")
+        expect(AgentRetryPolicy.refusesReasoning(mistral), "pydantic's words for an unknown field too")
+        let deepSeek = AIProviderError.responseFailed(
+            "HTTP 400: The reasoning_content in the thinking mode must be passed back to the API.")
+        expect(!AgentRetryPolicy.refusesReasoning(deepSeek), "DeepSeek asking for the field is no refusal of it")
+        expect(
+            !AgentRetryPolicy.refusesReasoning(AIProviderError.responseFailed("reasoning_effort is not supported")),
+            "nor is a refused effort, which names another field")
+        let claude = FlakyProvider(
+            failures: [], failAt: [2: groq], then: [[.reasoningReplay(signed), call("c1")], [.text("ok"), .finished]])
+        _ = await collect(AgentLoopProvider(base: claude, toolset: tools, budget: .roomy, retry: quick))
+        expect(
+            claude.requests.map { $0.messages.compactMap(\.reasoning) } == [[], [signed]],
+            "Claude's signed blocks are never dropped this way: its tool loop must have them")
+    }
+}
+
+/// Fails as a busy route would, a given number of times or at given requests, then plays a script.
+final class FlakyProvider: AIProvider, @unchecked Sendable {
+    private let script: ScriptedProvider
+    private let lock = NSLock()
+    private var failures: [any Error]
+    private let failAt: [Int: any Error]
+    private let spent: Double?
+    private let text: String?
+    private var seen: [AIRequest] = []
+
+    init(
+        failures: [any Error], failAt: [Int: any Error] = [:], spentBeforeFailing: Double? = nil,
+        textBeforeFailing: String? = nil, then rounds: [[AIStreamEvent]]
+    ) {
+        self.failures = failures
+        self.failAt = failAt
+        spent = spentBeforeFailing
+        text = textBeforeFailing
+        script = ScriptedProvider(rounds: rounds)
+    }
+
+    var requests: [AIRequest] { lock.withLock { seen } }
+
+    func stream(_ request: AIRequest) -> AIProviderStream {
+        let failure: (any Error)? = lock.withLock {
+            seen.append(request)
+            if let planned = failAt[seen.count] { return planned }
+            return failures.isEmpty ? nil : failures.removeFirst()
+        }
+        guard let failure else { return script.stream(request) }
+        let spent = spent
+        let text = text
+        return AIProviderStream { continuation in
+            if let text { continuation.yield(.text(text)) }
+            if let spent { continuation.yield(.usage(AIUsage(costUSD: spent))) }
+            continuation.finish(throwing: failure)
+        }
     }
 }
 
@@ -651,7 +1125,7 @@ extension AgentLoopTests {
         let base = ScriptedProvider(rounds: [script])
         let tools = toolset([FakeTools(names: ["fs_read"]) { _, _ in "x" }])
         let outcome = await run(
-            AgentLoopProvider(base: base, toolset: tools, maxRounds: 25, compaction: source(history, file: file)),
+            AgentLoopProvider(base: base, toolset: tools, budget: .roomy, compaction: source(history, file: file)),
             request(history, keeping: 7))
         expect(
             base.requests.count == 1 && base.requests.first?.messages == request(history, keeping: 7).messages,
@@ -670,7 +1144,7 @@ extension AgentLoopTests {
         ])
         let tools = toolset([FakeTools(names: ["fs_read"]) { _, _ in "x" }])
         let first = await run(
-            AgentLoopProvider(base: base, toolset: tools, maxRounds: 25, compaction: source(history, file: file)),
+            AgentLoopProvider(base: base, toolset: tools, budget: .roomy, compaction: source(history, file: file)),
             built)
         let reach = AgentCompaction.coverage(of: history, dropped: 10)
         expect(base.requests.count == 2, "the first turn that drops messages asks for notes once")
@@ -703,7 +1177,7 @@ extension AgentLoopTests {
         let grown = chat(2, after: history)
         let again = ScriptedProvider(rounds: [[.text("again"), .finished]])
         let second = await run(
-            AgentLoopProvider(base: again, toolset: tools, maxRounds: 25, compaction: source(grown, file: file)),
+            AgentLoopProvider(base: again, toolset: tools, budget: .roomy, compaction: source(grown, file: file)),
             request(grown, keeping: 9))
         let rowShown = second.events.contains { $0 == .toolResult(id: AgentCompaction.markerID, isError: false) }
         expect(again.requests.count == 1 && !rowShown, "the next turn reuses them with no request and no row")
@@ -714,7 +1188,7 @@ extension AgentLoopTests {
         let longer = chat(12, after: grown)
         let extend = ScriptedProvider(rounds: [[.text("notes v2"), .finished], [.text("ok"), .finished]])
         _ = await run(
-            AgentLoopProvider(base: extend, toolset: tools, maxRounds: 25, compaction: source(longer, file: file)),
+            AgentLoopProvider(base: extend, toolset: tools, budget: .roomy, compaction: source(longer, file: file)),
             request(longer, keeping: 9))
         let folded = extend.requests.first?.messages.first?.text ?? ""
         expect(
@@ -734,7 +1208,7 @@ extension AgentLoopTests {
         let base = FailingFirstProvider(then: [[.text("answer"), .finished]])
         let tools = toolset([FakeTools(names: ["fs_read"]) { _, _ in "x" }])
         let outcome = await run(
-            AgentLoopProvider(base: base, toolset: tools, maxRounds: 25, compaction: source(history, file: file)),
+            AgentLoopProvider(base: base, toolset: tools, budget: .roomy, compaction: source(history, file: file)),
             built)
         expect(
             outcome.failure == nil && outcome.events.contains(.toolResult(id: AgentCompaction.markerID, isError: true)),
@@ -748,7 +1222,7 @@ extension AgentLoopTests {
         let history = chat(19)
         let base = HangingProvider()
         let loop = AgentLoopProvider(
-            base: base, toolset: toolset([FakeTools(names: ["fs_read"]) { _, _ in "x" }]), maxRounds: 25,
+            base: base, toolset: toolset([FakeTools(names: ["fs_read"]) { _, _ in "x" }]), budget: .roomy,
             compaction: source(history, file: file))
         let consumer = Task {
             do {
@@ -966,5 +1440,327 @@ final class RecordingInvoker: @unchecked Sendable {
     func invoke(_ call: AIToolCall) async -> AIToolResult {
         lock.withLock { received.append(call) }
         return AIToolResult(callID: call.id, content: result, isError: false)
+    }
+}
+
+// MARK: - Budgets and hand-overs
+
+extension AgentLoopTests {
+    static func drain(_ provider: any AIProvider, _ request: AIRequest) async {
+        do {
+            for try await _ in provider.stream(request) {}
+        } catch {}
+    }
+
+    static func texts(_ events: [AIStreamEvent]) -> String {
+        events.compactMap { event -> String? in
+            if case .text(let text) = event { return text }
+            return nil
+        }.joined()
+    }
+
+    /// "If the task is simple there is nothing to do for long": one round, nothing added to it.
+    static func aSimpleQuestionIsOneRound() async {
+        let base = ScriptedProvider(rounds: [[.text("Paris."), .finished]])
+        let tools = toolset([FakeTools(names: ["fs_read"]) { _, _ in "x" }])
+        let outcome = await collect(
+            AgentLoopProvider(base: base, toolset: tools, budget: AgentEffort.balanced.budget))
+        expect(
+            base.requests.count == 1 && outcome.events == [.text("Paris."), .finished],
+            "a question the model answers at once is one request, passed through as it came")
+        expect(
+            base.requests.first?.messages == turn.messages,
+            "and carries nothing of the budget: no note, no plan, no hand-over")
+    }
+
+    /// At four rounds of five the model is told to wrap up; after the fifth it hands over, tools off.
+    static func aLongRunWrapsUpThenHandsOver() async {
+        let ran = Heard()
+        let reader = FakeTools(names: ["fs_read"]) { _, _ in
+            ran.append(1)
+            return "page"
+        }
+        let base = ScriptedProvider(
+            rounds: Array(repeating: [call("c")], count: 5) + [[.text("Summary: done A, not B."), .finished]])
+        let outcome = await collect(
+            AgentLoopProvider(base: base, toolset: toolset([reader]), budget: AgentRunBudget(rounds: 5)))
+        expect(outcome.failure == nil && outcome.events.last == .finished, "the run ends, it does not fail")
+        expect(base.requests.count == 6 && ran.values.count == 5, "five rounds of calls, then one more request")
+        let sent = base.requests.last?.messages ?? []
+        let notes = sent.enumerated().filter { $0.element.role == .user }.dropFirst()
+        expect(
+            sent.compactMap(\.toolResult?.content) == Array(repeating: "page", count: 5),
+            "the results stay as the tools gave them")
+        expect(
+            notes.count == 2
+                && notes.first?.element.text.hasPrefix("[Run budget: 4 of 5 rounds used. Start wrapping up") == true
+                && sent[(notes.first?.offset ?? 1) - 1].toolResult != nil,
+            "the wrap-up is the user's turn after the fourth round's results, once, got \(notes.map(\.element.text))")
+        expect(
+            notes.last?.element.text.hasPrefix("[Run budget spent: 5 of 5 rounds used. Tools are off now") == true
+                && notes.last?.offset == sent.count - 1,
+            "and the hand-over the fifth's, where pi and dsh put theirs")
+        expect(
+            base.requests.last?.tools == base.requests.first?.tools && base.requests.allSatisfy { !$0.forbidsCalls },
+            "the hand-over round still lists the tools and forbids nothing, so the cached prefix holds")
+        expect(
+            base.requests.dropLast().allSatisfy { request in
+                base.requests.last.map { Array($0.messages.prefix(request.messages.count)) == request.messages }
+                    ?? false
+            },
+            "and every request extends the one before it: nothing already sent is rewritten")
+        expect(texts(outcome.events) == "Summary: done A, not B.", "its answer is the run's last word")
+    }
+
+    static func aHandOverThatSaysNothingStillHandsOver() async {
+        let ran = Heard()
+        let reader = FakeTools(names: ["fs_read", "update_plan"]) { _, _ in
+            ran.append(1)
+            return "ok"
+        }
+        let plan = #"{"plan":[{"step":"Read","status":"completed"},{"step":"Write","status":"pending"}]}"#
+        let base = ScriptedProvider(rounds: [
+            [call("p", "update_plan", plan)], [call("c")], [call("again")], [call("still")]
+        ])
+        let outcome = await collect(
+            AgentLoopProvider(base: base, toolset: toolset([reader]), budget: AgentRunBudget(rounds: 2)))
+        expect(
+            outcome.failure == nil && ran.values.count == 2 && base.requests.count == 4,
+            "a hand-over round that calls a tool runs nothing, nor does the one asked to call nothing")
+        expect(
+            texts(outcome.events)
+                == "This run reached its limit before the agent summed up.\n\nPlan:\n✓ Read\n· Write\n",
+            "and the reply still says where the run stopped, with its plan, got \(texts(outcome.events))")
+    }
+
+    /// A model that ignores the hand-over is answered "not run" and asked once more with calls off.
+    static func anIgnoredHandOverIsEnforced() async {
+        let ran = Heard()
+        let reader = FakeTools(names: ["fs_read"]) { _, _ in
+            ran.append(1)
+            return "page"
+        }
+        let base = ScriptedProvider(rounds: [
+            [call("c1")], [.text("Let me check one more source."), call("c2")],
+            [.text("Found A; B is unchecked."), .finished]
+        ])
+        let outcome = await collect(
+            AgentLoopProvider(base: base, toolset: toolset([reader]), budget: AgentRunBudget(rounds: 1)))
+        let last = base.requests.last
+        expect(
+            outcome.failure == nil && ran.values.count == 1 && base.requests.count == 3,
+            "the ignored hand-over's call never runs, and the round is asked once more")
+        expect(
+            last?.forbidsCalls == true && last?.tools == base.requests.first?.tools
+                && base.requests.dropLast().allSatisfy { !$0.forbidsCalls },
+            "that once with calls forbidden, its tools still listed")
+        expect(
+            last?.messages.last?.toolResult?.content == AgentBudgetPolicy.callsOff
+                && outcome.events.contains(.toolResult(id: "c2", isError: true)),
+            "the call is answered as not run, and its row closes as failed")
+        expect(
+            texts(outcome.events) == "Let me check one more source.Found A; B is unchecked.",
+            "and the run ends on the model's own hand-over, got \(texts(outcome.events))")
+
+        let stubborn = ScriptedProvider(rounds: [[call("c1")], [call("c2")], [.text("Checking."), call("c3")]])
+        let kept = await collect(
+            AgentLoopProvider(base: stubborn, toolset: toolset([reader]), budget: AgentRunBudget(rounds: 1)))
+        expect(
+            stubborn.requests.count == 3
+                && texts(kept.events) == "Checking.\n\nThis run reached its limit before the agent summed up.",
+            "a route that calls even then still ends with the limit said, got \(texts(kept.events))")
+
+        let refusing = FlakyProvider(
+            failures: [], failAt: [3: AIProviderError.responseFailed("tool_choice: only auto is supported")],
+            then: [[call("c1")], [call("c2")]])
+        let ended = await collect(
+            AgentLoopProvider(
+                base: refusing, toolset: toolset([reader]), budget: AgentRunBudget(rounds: 1), retry: quick))
+        expect(
+            ended.failure == nil && texts(ended.events) == "This run reached its limit before the agent summed up.",
+            "and one that refuses to forbid calls ends the run all the same, got \(ended.failure ?? "")")
+    }
+
+    /// Upstream's loop fails at its wall; the fork's hands over instead.
+    static func theHistoryWallHandsOver() async {
+        let heavy = String(repeating: "z", count: AgentTurnBudget.historyBytes / 16)
+        let base = ScriptedProvider(
+            rounds: Array(repeating: [call("c", "fs_read", heavy)], count: 16) + [[.text("Partial.")]])
+        let outcome = await collect(
+            AgentLoopProvider(
+                base: base, toolset: toolset([FakeTools(names: ["fs_read"]) { _, _ in "x" }]), budget: .roomy))
+        expect(
+            outcome.failure == nil && texts(outcome.events).hasSuffix("Partial.") && base.requests.count == 17,
+            "a run at the history wall hands over rather than failing, got \(base.requests.count) "
+                + "\(outcome.failure ?? "")")
+    }
+
+    static func anUnattendedRunHandsOverOnTime() async {
+        let base = ScriptedProvider(rounds: [[call("c")], [.text("Out of time; did C.")]])
+        let outcome = await collect(
+            AgentLoopProvider(
+                base: base, toolset: toolset([FakeTools(names: ["fs_read"]) { _, _ in "x" }]), budget: .roomy,
+                clock: AgentRunClock(limit: .zero)))
+        expect(
+            base.requests.count == 2
+                && base.requests.last?.messages.last?.text.contains("of 0 minutes used") == true
+                && texts(outcome.events) == "Out of time; did C.",
+            "past its time a run hands over after the round in hand")
+    }
+
+    /// A call still running at the run's end is stopped, so the hand-over comes before the watchdog.
+    static func theClockStopsALongCall() async {
+        let sleeper = Sleeper()
+        let tools = toolset([FakeTools(names: ["fs_read"]) { _, _ in await sleeper.sleep() }])
+        let base = ScriptedProvider(rounds: [[call("z1")], [.text("Ran out of time; did nothing."), .finished]])
+        let started = ContinuousClock.now
+        let outcome = await collect(
+            AgentLoopProvider(
+                base: base, toolset: tools, budget: .roomy,
+                clock: AgentRunClock(limit: .milliseconds(300), from: started)))
+        expect(
+            outcome.failure == nil && ContinuousClock.now - started < .seconds(2)
+                && base.requests.count == 2 && texts(outcome.events) == "Ran out of time; did nothing.",
+            "the call is stopped at the run's end and the run hands over, got \(outcome.failure ?? "")")
+        expect(
+            base.requests.last?.messages.compactMap(\.toolResult?.content)
+                == ["Not finished: the run's time ran out while this call was running."],
+            "and the model is told the call never finished")
+        let parent = AgentRunClock(limit: .seconds(600))
+        let child = parent.child()
+        expect(
+            child.deadline == parent.deadline - AgentRunClock.childMargin && child.limit < parent.limit,
+            "a sub-agent's clock ends a margin before its parent's")
+        expect(
+            AgentRunClock(limit: .seconds(60), from: .now - .seconds(120)).child().limit == .zero,
+            "and one started past that point hands over after its first round")
+    }
+
+    static func anInterruptedReplyComesBack() async {
+        let base = ScriptedProvider(rounds: [[.text("Picking up."), .finished]])
+        let request = AIRequest(
+            messages: [AIMessage(role: .user, text: "Do A and B."), AIMessage(role: .user, text: "Go on.")])
+        let loop = AgentLoopProvider(
+            base: base, toolset: toolset([FakeTools(names: ["fs_read"]) { _, _ in "x" }]), budget: .roomy,
+            lead: AgentTurnLead(opening: "<now>", resuming: "Did A.\n\nThe network connection was lost."))
+        await drain(loop, request)
+        expect(
+            base.requests.first?.messages == [
+                AIMessage(role: .user, text: "Do A and B."),
+                AIMessage(role: .assistant, text: "Did A.\n\nThe network connection was lost."),
+                AIMessage(role: .user, text: "<now>\n\nGo on.")
+            ],
+            "the reply history left out goes back before the question, which the turn's facts lead")
+        let answered = ScriptedProvider(rounds: [[.text("ok"), .finished]])
+        let after = AIRequest(
+            messages: [AIMessage(role: .user, text: "Q"), AIMessage(role: .assistant, text: "A"),
+                AIMessage(role: .user, text: "Again")])
+        let resumed = AgentLoopProvider(
+            base: answered, toolset: toolset([FakeTools(names: ["fs_read"]) { _, _ in "x" }]), budget: .roomy,
+            lead: AgentTurnLead(resuming: "stale"))
+        await drain(resumed, after)
+        expect(
+            answered.requests.first?.messages == after.messages,
+            "while a history that already alternates is left as it was")
+    }
+
+    static func effortsGrowAndStayWhereTheyWere() {
+        let budgets = AgentEffort.allCases.map(\.budget)
+        expect(
+            zip(budgets, budgets.dropFirst()).allSatisfy { lower, higher in
+                lower.rounds < higher.rounds && lower.resultBytes < higher.resultBytes
+                    && lower.minutes < higher.minutes && lower.subAgents < higher.subAgents
+            },
+            "each effort allows more of everything than the one below it")
+        expect(
+            AgentEffort.balanced.budget.resultBytes == AgentTurnBudget.turnResultBytes,
+            "and Balanced keeps the tool output a turn always had")
+        var agent = AgentProfile(name: "A", directory: "/tmp")
+        let plain = (try? JSONEncoder().encode(agent)).flatMap { String(bytes: $0, encoding: .utf8) } ?? ""
+        expect(agent.effortLevel == .balanced && !plain.contains("effort"), "an untouched agent is Balanced, unwritten")
+        agent.effort = .thorough
+        let again = (try? JSONEncoder().encode(agent)).flatMap { try? JSONDecoder().decode(AgentProfile.self, from: $0) }
+        expect(again?.effortLevel == .thorough, "a picked effort round-trips")
+    }
+
+    static let planned =
+        #"{"plan":[{"step":"Read","status":"completed"},{"step":"Write","status":"in_progress"}]}"#
+
+    /// One plan for the run: kept from `update_plan`, read back when it goes stale, said at the end.
+    static func aPlanIsKeptReadBackAndReported() async {
+        let tools = toolset([FakeTools(names: ["fs_read", "update_plan"]) { _, _ in "ok" }])
+        let base = ScriptedProvider(
+            rounds: [[call("p", "update_plan", planned)]] + Array(repeating: [call("c")], count: 7)
+                + [[.text("Done."), .finished]])
+        let outcome = await collect(AgentLoopProvider(base: base, toolset: tools, budget: AgentRunBudget(rounds: 10)))
+        let results = base.requests.last?.messages.compactMap(\.toolResult?.content) ?? []
+        expect(outcome.failure == nil && results.count == 8, "eight rounds of calls, then the answer")
+        expect(
+            results[6] == "ok\n\n[Plan: ✓ Read; → Write]" && results[1...5].allSatisfy { $0 == "ok" }
+                && results[7] == "ok",
+            "a plan not touched for six rounds is read back once, on the round's newest result, got \(results)")
+        let wrapUp = base.requests.last?.messages.last
+        expect(
+            wrapUp?.role == .user && wrapUp?.text.contains("Start wrapping up") == true
+                && wrapUp?.text.hasSuffix("\n[Plan: ✓ Read; → Write]") == true,
+            "and the wrap-up carries it too")
+    }
+
+    static func aFailedRunSaysWhereItsPlanStood() async {
+        let refused = AIProviderError.responseFailed("Invalid model")
+        let base = FlakyProvider(
+            failures: [], failAt: [3: refused],
+            then: [[call("p", "update_plan", planned)], [call("c")], [.text("never")]])
+        let tools = toolset([FakeTools(names: ["fs_read", "update_plan"]) { _, _ in "ok" }])
+        let outcome = await collect(AgentLoopProvider(base: base, toolset: tools, budget: .roomy, retry: quick))
+        expect(
+            outcome.failure == "Invalid model"
+                && texts(outcome.events) == "\n\nThe run stopped before the task was done.\n\nPlan:\n✓ Read\n→ Write\n",
+            "a run that fails after working says where its plan stood, then fails, got \(texts(outcome.events))")
+    }
+
+    /// A round's sub-agents run at once, up to the batch's width, and no more than the run allows.
+    static func subAgentsRunSideBySideWithinTheirAllowance() async {
+        let children = SlowAnswerer()
+        let delegate = AgentDelegateTools(
+            base: children, toolset: childTools([FakeTools(names: ["fs_read"]) { _, _ in "x" }]), instructions: "",
+            allowance: AgentSubAgentAllowance(2))
+        let base = ScriptedProvider(rounds: [
+            [delegateCall("d1", task: "A"), delegateCall("d2", task: "B"), delegateCall("d3", task: "C")],
+            [.text("Merged."), .finished]
+        ])
+        let started = ContinuousClock.now
+        let outcome = await collect(
+            AgentLoopProvider(base: base, toolset: toolset([delegate], families: [.delegate]), budget: .roomy))
+        let results = base.requests.last?.messages.compactMap(\.toolResult) ?? []
+        expect(outcome.failure == nil && results.count == 3, "the round's three calls all answer")
+        expect(
+            children.gauge.peak == 2 && ContinuousClock.now - started < .milliseconds(390),
+            "two children ran side by side, got a peak of \(children.gauge.peak)")
+        let refused = results.filter(\.isError)
+        expect(
+            results.map(\.callID) == ["d1", "d2", "d3"] && results.filter { $0.content.hasPrefix("Found: ") }.count == 2
+                && refused.count == 1
+                && refused.first?.content.hasPrefix("This run may start no more sub-agents (2 used)") == true,
+            "read in the order they were asked, and the one past the run's allowance refused, got \(results)")
+    }
+}
+
+/// A child's route that takes a while and answers with its task, so overlap can be measured.
+final class SlowAnswerer: AIProvider, @unchecked Sendable {
+    let gauge = Gauge()
+
+    func stream(_ request: AIRequest) -> AIProviderStream {
+        let gauge = gauge
+        let task = request.messages.last?.text ?? ""
+        return AIProviderStream { continuation in
+            let work = Task {
+                _ = await gauge.hold(.milliseconds(200))
+                continuation.yield(.text("Found: " + task))
+                continuation.yield(.finished)
+                continuation.finish()
+            }
+            continuation.onTermination = { _ in work.cancel() }
+        }
     }
 }

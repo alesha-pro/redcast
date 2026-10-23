@@ -208,6 +208,12 @@ run clipboard-text-test    Tinycast/Features/Clipboard/Model/*.swift Tinycast/Pl
                            Tinycast/Features/Clipboard/Service/ClipboardTextIndexer.swift \
                            Tinycast/Features/Clipboard/Service/ClipboardTextWorker.swift \
                            Tinycast/Platform/ProcessExit.swift
+# Fork: documents read for agents; the harness is its own helper, as the app's ClipboardTextHelper is.
+run document-text-test     Tinycast/Features/DocumentText/Model/*.swift \
+                           Tinycast/Features/DocumentText/Service/*.swift \
+                           Tinycast/Features/DocumentText/Helper/*.swift \
+                           Tinycast/Features/Clipboard/Service/ClipboardTextExtractor.swift \
+                           Tinycast/Platform/ProcessExit.swift
 run pasteboard-test        Tinycast/Platform/PasteboardFiles.swift \
                            Tinycast/Features/Clipboard/Model/ClipboardStore.swift \
                            Tinycast/Platform/Images/ImageDerivative.swift \
@@ -543,6 +549,7 @@ run notes-ai-test          Tinycast/Platform/Signposts.swift \
                            Tinycast/Features/Notes/Model/*.swift \
                            Tinycast/Features/Notes/Service/*.swift \
                            Tinycast/Features/Agents/Model/*.swift \
+                           Tinycast/Features/WebSearch/Model/*.swift \
                            Tinycast/Features/AI/Model/AIRequest.swift \
                            Tinycast/Features/AI/Model/AIAttachmentPolicy.swift \
                            Tinycast/Features/Settings/AppSettingsKey.swift \
@@ -752,6 +759,7 @@ run update-check-test      Tinycast/Features/Updates/Model/*.swift \
 run support-test           Tinycast/Features/Support/Model/*.swift
 run ai-provider-test       Tinycast/Features/Settings/AppSettingsKey.swift \
                            Tinycast/Features/AI/Model/*.swift \
+                           Tinycast/Features/ReasoningReplay/Model/*.swift \
                            Tinycast/Features/Agents/Model/ChatToolContent.swift \
                            Tinycast/Features/AI/Settings/AISettingsStore.swift
 run ai-chat-test           Tinycast/Features/AI/Model/AIRequest.swift \
@@ -828,6 +836,8 @@ run screen-awareness-test  Tinycast/Features/ScreenAwareness/Model/*.swift \
                            Tinycast/Features/ScreenAwareness/Service/ScreenContextReader.swift \
                            Tinycast/Platform/AccessibilityText.swift \
                            Tinycast/Features/Agents/Model/*.swift \
+                           Tinycast/Features/WebSearch/Model/*.swift \
+                           Tinycast/Features/AI/Model/AIAttachmentPolicy.swift \
                            Tinycast/Features/AI/Model/AIRequest.swift \
                            Tinycast/Features/Settings/AppSettingsKey.swift \
                            Tinycast/Features/AI/Model/AITool.swift \
@@ -841,6 +851,7 @@ run voice-ai-test          Tinycast/Features/VoiceAI/Model/*.swift \
                            Tinycast/Features/Agents/Model/ChatToolContent.swift \
                            Tinycast/Features/Settings/AppSettingsKey.swift \
                            Tinycast/Features/AI/Model/*.swift \
+                           Tinycast/Features/ReasoningReplay/Model/*.swift \
                            Tinycast/Features/AI/Settings/AISettingsStore.swift
 run voice-coordinator-test Tinycast/Features/VoiceAI/Model/*.swift \
                            Tinycast/Features/Agents/Model/ChatToolContent.swift \
@@ -850,6 +861,7 @@ run voice-coordinator-test Tinycast/Features/VoiceAI/Model/*.swift \
                            Tinycast/Features/VoiceAI/UI/VoiceAskCoordinator.swift \
                            Tinycast/Features/Settings/AppSettingsKey.swift \
                            Tinycast/Features/AI/Model/*.swift \
+                           Tinycast/Features/ReasoningReplay/Model/*.swift \
                            Tinycast/Features/AI/Service/AIProvider.swift \
                            Tinycast/Features/AI/Settings/AISettingsStore.swift \
                            Tinycast/Features/Dictation/Model/DictationMode.swift \
@@ -866,6 +878,9 @@ run dictation-history-test Tinycast/Features/DictationHistory/Model/*.swift \
 run alias-actions-test     Tinycast/Features/AliasActions/Model/*.swift
 run acp-test               Tinycast/Features/Agents/Model/*.swift \
                            Tinycast/Features/WebSearch/Model/*.swift \
+                           Tinycast/Features/WebSearch/Service/WebPageReader.swift \
+                           Tinycast/Features/DocumentText/Model/*.swift \
+                           Tinycast/Features/DocumentText/Service/*.swift \
                            Tinycast/Features/AI/Model/AIAttachmentPolicy.swift \
                            Tinycast/Features/Agents/Service/*.swift \
                            Tinycast/Platform/NotificationToken.swift \
@@ -885,6 +900,11 @@ run acp-test               Tinycast/Features/Agents/Model/*.swift \
                            Tinycast/Features/CustomCommands/Service/ShellCommandRunner.swift
 run agent-tools-test       Tinycast/Features/Agents/Model/*.swift \
                            Tinycast/Features/WebSearch/Model/*.swift \
+                           Tinycast/Features/WebSearch/Service/WebPageReader.swift \
+                           Tinycast/Features/DocumentText/Model/*.swift \
+                           Tinycast/Features/DocumentText/Service/*.swift \
+                           Tinycast/Features/DocumentText/Helper/*.swift \
+                           Tinycast/Features/Clipboard/Service/ClipboardTextExtractor.swift \
                            Tinycast/Features/AI/Model/AIAttachmentPolicy.swift \
                            Tinycast/Features/AI/Model/AIRequest.swift \
                            Tinycast/Features/AI/Model/AIToolServer.swift \
@@ -903,6 +923,8 @@ run agent-tools-test       Tinycast/Features/Agents/Model/*.swift \
                            Tinycast/Platform/ProcessExit.swift \
                            Tinycast/Features/CustomCommands/Service/ShellCommandRunner.swift
 run agent-test             Tinycast/Features/Agents/Model/*.swift \
+                           Tinycast/Features/WebSearch/Model/*.swift \
+                           Tinycast/Features/AI/Model/AIAttachmentPolicy.swift \
                            Tinycast/Features/AI/Model/AIRequest.swift \
                            Tinycast/Features/Settings/AppSettingsKey.swift \
                            Tinycast/Features/AI/Model/AITool.swift \
@@ -912,6 +934,8 @@ run agent-test             Tinycast/Features/Agents/Model/*.swift \
                            Tinycast/Features/AI/Model/ChatGPTSubscription.swift \
                            Tinycast/Features/AI/Model/InstalledAI.swift
 run agent-schedule-test    Tinycast/Features/Agents/Model/*.swift \
+                           Tinycast/Features/WebSearch/Model/*.swift \
+                           Tinycast/Features/AI/Model/AIAttachmentPolicy.swift \
                            Tinycast/Features/Agents/Service/AgentScheduler.swift \
                            Tinycast/Features/Agents/UI/AgentConsentGate.swift \
                            Tinycast/Features/Agents/UI/AgentNoteWriter.swift \
@@ -944,9 +968,33 @@ run agent-loop-test        Tinycast/Features/Agents/Model/*.swift \
                            Tinycast/Features/AI/Service/AIToolLoopProvider.swift \
                            Tinycast/Features/WebSearch/Model/*.swift \
                            Tinycast/Features/AI/Model/AIAttachmentPolicy.swift
+# Fork: the native agent end to end, real loop and tools on each provider's wire; it is its own helper.
+run agent-scenario-test    Tinycast/Features/Agents/Model/*.swift \
+                           Tinycast/Features/Agents/Service/*.swift \
+                           Tinycast/Features/AI/Model/*.swift \
+                           Tinycast/Features/ReasoningReplay/Model/*.swift \
+                           Tinycast/Features/AI/Service/AIProvider.swift \
+                           Tinycast/Features/WebSearch/Model/*.swift \
+                           Tinycast/Features/WebSearch/Service/*.swift \
+                           Tinycast/Features/DocumentText/Model/*.swift \
+                           Tinycast/Features/DocumentText/Service/*.swift \
+                           Tinycast/Features/DocumentText/Helper/*.swift \
+                           Tinycast/Features/Clipboard/Service/ClipboardTextExtractor.swift \
+                           Tinycast/Features/Settings/AppSettingsKey.swift \
+                           Tinycast/Platform/NotificationToken.swift \
+                           Tinycast/Platform/ExecutableLocator.swift \
+                           Tinycast/Platform/PseudoTerminal.swift \
+                           Tinycast/Platform/ProcessExit.swift \
+                           Tinycast/Features/CustomCommands/Service/ShellCommandRunner.swift
 run web-search-test        Tinycast/Features/WebSearch/Model/*.swift \
                            Tinycast/Features/AI/Model/AIAttachmentPolicy.swift \
                            Tinycast/Features/WebSearch/Service/*.swift \
+                           Tinycast/Features/DocumentText/Model/*.swift \
+                           Tinycast/Features/DocumentText/Service/*.swift \
+                           Tinycast/Features/DocumentText/Helper/*.swift \
+                           Tinycast/Features/Clipboard/Service/ClipboardTextExtractor.swift \
+                           Tinycast/Platform/ProcessExit.swift \
+                           Tinycast/Features/Agents/Service/AgentWebRounds.swift \
                            Tinycast/Features/Agents/Model/*.swift \
                            Tinycast/Features/Agents/Service/AgentLoopProvider.swift \
                            Tinycast/Features/AI/Model/AIRequest.swift \
@@ -979,11 +1027,13 @@ run ext-ai-test            Tinycast/Features/ExtensionAI/Model/*.swift \
                            Tinycast/Features/Settings/AppSettingsKey.swift \
                            Tinycast/Features/Extensions/Model/RenderNode.swift \
                            Tinycast/Features/AI/Model/*.swift \
+                           Tinycast/Features/ReasoningReplay/Model/*.swift \
                            Tinycast/Features/AI/Settings/AISettingsStore.swift \
                            Tinycast/Features/AI/Service/AIProvider.swift
 run usage-dashboard-test   Tinycast/Features/AI/Model/AIRequest.swift \
                            Tinycast/Features/Agents/Model/ChatToolContent.swift \
                            Tinycast/Features/AI/Model/AIRequestBody.swift \
+                           Tinycast/Features/ReasoningReplay/Model/*.swift \
                            Tinycast/Features/AI/Model/AIConnection.swift \
                            Tinycast/Features/AI/Model/AppleIntelligence.swift \
                            Tinycast/Features/AI/Model/ChatGPTSubscription.swift \
@@ -1028,6 +1078,7 @@ run quick-action-test      Tinycast/Features/Settings/AppSettingsKey.swift \
                            Tinycast/Features/QuickActions/Settings/QuickActionSettingsStore.swift
 run apple-intelligence-test Tinycast/Features/Settings/AppSettingsKey.swift \
                            Tinycast/Features/AI/Model/*.swift \
+                           Tinycast/Features/ReasoningReplay/Model/*.swift \
                            Tinycast/Features/Agents/Model/ChatToolContent.swift \
                            Tinycast/Features/AI/Service/AIProvider.swift \
                            Tinycast/Features/AI/Service/AppleIntelligenceProvider.swift
@@ -1040,6 +1091,7 @@ run mcp-oauth-test         Tinycast/Platform/ExecutableLocator.swift \
                            Tinycast/Features/AI/Model/AITool.swift \
                            Tinycast/Features/AI/Model/AIToolServer.swift \
                            Tinycast/Features/AI/Model/AIStreamDecoder.swift \
+                           Tinycast/Features/ReasoningReplay/Model/*.swift \
                            Tinycast/Features/AI/Model/AIProviderFailure.swift \
                            Tinycast/Features/AI/Model/AIThinkTagDecoder.swift \
                            Tinycast/Features/AI/Model/AIRequest.swift \
@@ -1056,6 +1108,7 @@ run slow mcp-stdio-test    Tinycast/Platform/ExecutableLocator.swift \
                            Tinycast/Features/AI/Model/AITool.swift \
                            Tinycast/Features/AI/Model/AIToolServer.swift \
                            Tinycast/Features/AI/Model/AIStreamDecoder.swift \
+                           Tinycast/Features/ReasoningReplay/Model/*.swift \
                            Tinycast/Features/AI/Model/AIProviderFailure.swift \
                            Tinycast/Features/AI/Model/AIThinkTagDecoder.swift \
                            Tinycast/Features/AI/Model/AIRequest.swift \

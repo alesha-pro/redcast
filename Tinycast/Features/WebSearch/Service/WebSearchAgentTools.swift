@@ -23,7 +23,8 @@ struct WebSearchAgentTools: AgentToolProvider {
             return .failure(call.id, "The user declined this. Ask what they would like instead.")
         }
         context.signal(.searching(query.text))
-        let result = await runner.answer(query, callID: call.id).result
+        let (result, found) = await runner.answer(query, callID: call.id)
+        context.turn.web?.found(found.compactMap { URL(string: $0.url) })
         context.signal(.searched(query.text))
         return result
     }

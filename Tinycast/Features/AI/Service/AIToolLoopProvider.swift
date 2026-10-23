@@ -60,8 +60,10 @@ struct AIToolLoopProvider: AIProvider {
                 continuation.yield(.finished)
                 return
             }
+            // Fork: the reasoning goes back with its calls, or DeepSeek's next round is a 400.
             messages.append(
-                AIMessage(role: .assistant, text: round.text, toolCalls: round.calls))
+                AIMessage(
+                    role: .assistant, text: round.text, toolCalls: round.calls, reasoning: round.reasoning))
             carried += round.text.utf8.count + round.calls.reduce(0) { $0 + $1.arguments.utf8.count }
             for call in round.calls {
                 try Task.checkCancellation()
@@ -72,7 +74,8 @@ struct AIToolLoopProvider: AIProvider {
                     search.map { AIStreamEvent.searching($0) }
                         ?? .toolCall(
                             id: call.id, origin: tool?.origin ?? "", title: tool?.title ?? call.name))
-                let result = await bounded(invoke(call), spent: &spent)
+                // Fork: a call from a reply the output cap cut is never run, as pi refuses it.
+                let result = round.cutOff ? .cutOff(call) : await bounded(invoke(call), spent: &spent)
                 continuation.yield(
                     search.map { AIStreamEvent.searched($0) }
                         ?? .toolResult(id: call.id, isError: result.isError))
@@ -88,10 +91,14 @@ struct AIToolLoopProvider: AIProvider {
     private func streamRound(
         _ request: AIRequest, billedBefore: Double?,
         into continuation: AIProviderStream.Continuation
-    ) async throws -> (text: String, calls: [AIToolCall], cost: Double?) {
+    ) async throws -> (
+        text: String, calls: [AIToolCall], cost: Double?, reasoning: AIReasoningReplay?, cutOff: Bool
+    ) {
         var text = ""
         var calls: [AIToolCall] = []
         var cost: Double?
+        var reasoning: AIReasoningReplay?
+        var cutOff = false
         for try await event in base.stream(request) {
             try Task.checkCancellation()
             switch event {
@@ -105,6 +112,12 @@ struct AIToolLoopProvider: AIProvider {
                 continuation.yield(.usage(usage))
             case .toolCallRequested(let call):
                 calls.append(call)
+            // Fork: kept for the calls' message, and passed on so the chat keeps it for a later turn.
+            case .reasoningReplay(let replay):
+                reasoning = replay
+                continuation.yield(event)
+            case .outputLimit:
+                cutOff = true
             // `.finished` is the loop's to send, once the model has stopped asking for tools.
             case .finished:
                 break
@@ -112,7 +125,7 @@ struct AIToolLoopProvider: AIProvider {
                 continuation.yield(event)
             }
         }
-        return (text, calls, cost)
+        return (text, calls, cost, reasoning, cutOff)
     }
 
     private func bounded(_ result: AIToolResult, spent: inout Int) -> AIToolResult {

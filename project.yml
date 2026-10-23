@@ -42,6 +42,8 @@ targets:
         excludes:
           - Features/Clipboard/Service/ClipboardTextExtractor.swift
           - Features/Clipboard/Service/ClipboardTextHelper.swift
+          # Fork: the agents' document reads, built into ClipboardTextHelper below.
+          - Features/DocumentText/Helper
           - Features/Dictation/Helper
           - Features/FileSearch/Helper
           - Resources/EmojiKeywords
@@ -103,6 +105,9 @@ targets:
     sources:
       - Tinycast/Features/Clipboard/Service/ClipboardTextExtractor.swift
       - Tinycast/Features/Clipboard/Service/ClipboardTextHelper.swift
+      # Fork: PDF pages, scans and rich text for agents (docs/features/agents.md).
+      - Tinycast/Features/DocumentText/Model
+      - Tinycast/Features/DocumentText/Helper
     settings:
       base:
         # Pinned, or release.yml's PRODUCT_NAME renames the binary `ClipboardTextWorker` looks for.

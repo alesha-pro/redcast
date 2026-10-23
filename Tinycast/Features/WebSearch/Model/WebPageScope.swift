@@ -19,6 +19,13 @@ enum WebPageScope {
         return pages
     }
 
+    /// `web_fetch`'s reach: a given page at its given address, any other only while unrestricted.
+    static func fetchable(_ asked: URL, given: [String: URL], restricted: Bool) -> URL? {
+        guard let key = key(for: asked) else { return nil }
+        if let page = given[key] { return page }
+        return restricted ? nil : secured(asked)
+    }
+
     /// What names a page, for the model to pick one by; an address with a user or password names none.
     static func key(for url: URL) -> String? {
         guard let components = URLComponents(url: url, resolvingAgainstBaseURL: false),

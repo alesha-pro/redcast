@@ -50,6 +50,16 @@ struct AgentScheduleEditorPanel: View {
                 .labelsHidden()
                 .pickerStyle(.radioGroup)
             }
+            if agent?.runtime == nil {
+                field("Effort") {
+                    Picker("Effort", selection: $draft.effort) {
+                        Text("The agent's (\(agentEffort.title))").tag(AgentEffort?.none)
+                        ForEach(AgentEffort.allCases) { Text($0.title).tag(AgentEffort?.some($0)) }
+                    }
+                    .labelsHidden()
+                    .fixedSize()
+                }
+            }
             noteField
             Toggle("Enabled", isOn: $draft.isEnabled)
                 .toggleStyle(.checkbox)
@@ -93,6 +103,15 @@ struct AgentScheduleEditorPanel: View {
         .padding(Theme.Spacing.dialogInset)
         .frame(width: Theme.Size.editorSheetWidth)
         .settingsEditorPanelSurface(controlsOnGlass: false)
+    }
+
+    private var agent: AgentProfile? {
+        core.agentCoordinator.store.agent(id: draft.agentID)
+    }
+
+    /// An agent on its own CLI has no Effort: its runs keep the agent's own time limit.
+    private var agentEffort: AgentEffort {
+        agent?.effortLevel ?? .balanced
     }
 
     private var isIncomplete: Bool {

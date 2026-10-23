@@ -1,6 +1,6 @@
 import Foundation
 
-/// `update_plan`: the model resends its whole checklist, shown as an ACP plan is and kept nowhere.
+/// `update_plan`: the model resends its whole checklist, shown as an ACP plan is; the loop keeps it.
 struct AgentPlanTools: AgentToolProvider {
     func specs(for turn: AgentTurn) -> [AgentToolSpec] {
         [
@@ -15,6 +15,6 @@ struct AgentPlanTools: AgentToolProvider {
             return .failure(call.id, AgentPlan.malformed)
         }
         context.signal(.reasoning(AgentPlan.checklist(items)))
-        return AIToolResult(callID: call.id, content: "Plan updated.", isError: false)
+        return AIToolResult(callID: call.id, content: AgentPlan.receipt(items), isError: false)
     }
 }
