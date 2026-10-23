@@ -17,6 +17,7 @@ nonisolated final class WebChatTools: Sendable {
         var shown: [URL] = []
         /// Addresses of searches since the latest round, shown with the next one.
         var found: [URL] = []
+        var reads = 0
     }
 
     init(search: WebSearchRunner, fetch: @escaping Fetch) {
@@ -67,6 +68,12 @@ nonisolated final class WebChatTools: Sendable {
         guard let url = WebPageScope.page(for: asked, in: messages, shown: shown) else {
             return .failure(call.id, WebPageTool.outOfScope(asked))
         }
+        let counted = scope.withLock { scope in
+            guard scope.reads < WebPageTool.maxReads else { return false }
+            scope.reads += 1
+            return true
+        }
+        guard counted else { return .failure(call.id, WebPageTool.readsUsed) }
         let page = await fetch(url)
         guard !page.failed else { return .failure(call.id, page.text) }
         return AIToolResult(

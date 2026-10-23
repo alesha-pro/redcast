@@ -35,6 +35,7 @@ struct WebSearchTests {
         aRedirectNeverLeavesForALocalHost()
         await aPlainChatReadsOnlyWhatItWasGiven()
         await aQueryOrASpellingCarriesNothing()
+        await aTurnReadsOnlyAFewPages()
 
         print("\(passes) passed, \(failures) failed")
         if failures > 0 { exit(1) }
@@ -744,6 +745,21 @@ struct WebSearchTests {
         expect(
             WebPageScope.given(in: [], shown: [URL(string: "https://DATA@user.org/page")!]).isEmpty,
             "nor is an address with a user")
+
+        let fenced = "See https://evil.example/a\n````\nnested https://evil.example/b\n````\nhttps://evil.example/c"
+        let attached = AIAttachmentPolicy.prompt(
+            text: "Summarise this, and compare https://typed.org/x",
+            documents: [
+                AIDocument(data: Data(fenced.utf8), mimeType: "text/plain", name: "brief.md"),
+                AIDocument(
+                    data: Data("Window text https://screen.example/s".utf8), mimeType: "text/plain", name: "w.txt")
+            ])
+        let pages = Set(WebPageScope.given(in: [AIMessage(role: .user, text: attached)], shown: []).keys)
+        expect(
+            pages == ["typed.org/x"],
+            "a link inside an attached file or captured window is refused, the typed one opens, got \(pages)")
+        let header = "Attached file: a\nno fence https://x.org"
+        expect(AIAttachmentPolicy.typed(in: header) == header, "a header typed with no fence after it is the user's")
         expect(WebPageScope.given(in: [], shown: []).isEmpty, "nothing given, nothing read")
 
         let local = ["http://llm-server.local:8080/x", "http://localhost/x", "http://[::1]:8080/x", "http://llm-server/x"]
@@ -851,6 +867,22 @@ struct WebSearchTests {
 
     static func reading(_ id: String, _ address: String) -> AIToolCall {
         AIToolCall(id: id, name: WebPageTool.name, arguments: #"{"url":"\#(address)"}"#)
+    }
+
+    static func aTurnReadsOnlyAFewPages() async {
+        let links = (1...7).map { "https://site.org/\($0)" }
+        let outcome = await turn(
+            runner([.parallel], transport: FakeTransport([:]), reader: WebPageTool.name),
+            user: "Read " + links.joined(separator: " "),
+            rounds: [
+                links.prefix(6).enumerated().map { reading("r\($0.offset)", $0.element) }, [reading("r6", links[6])]
+            ])
+        expect(
+            outcome.fetched == Array(links.prefix(WebPageTool.maxReads)),
+            "a turn fetches at most \(WebPageTool.maxReads) pages, got \(outcome.fetched)")
+        expect(
+            outcome.results["r5"]?.content == WebPageTool.readsUsed && outcome.results["r6"]?.isError == true,
+            "and a read past them is refused unfetched, telling the model to ask the user")
     }
 
     static func aQueryOrASpellingCarriesNothing() async {

@@ -9,7 +9,8 @@ enum WebPageScope {
 
     /// The user's links, then the search results the model was shown, by `key(for:)`; first wins.
     static func given(in messages: [AIMessage], shown: [URL]) -> [String: URL] {
-        let typed = links(in: messages.filter { $0.role == .user }.map(\.text).joined(separator: "\n"))
+        let written = messages.filter { $0.role == .user }.map { AIAttachmentPolicy.typed(in: $0.text) }
+        let typed = links(in: written.joined(separator: "\n"))
         var pages: [String: URL] = [:]
         for url in typed + shown {
             guard let key = key(for: url), pages[key] == nil else { continue }

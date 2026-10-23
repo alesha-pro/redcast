@@ -23,16 +23,21 @@ few lines that wire it into `AIChatCoordinator`, `AIToolLoopProvider`, `AgentCoo
   OpenRouter's billed `web` plugin is no longer sent: `AIChatCoordinator.webSearch(for:)` is false on
   every API route.
 - **`read_page` opens only an address the turn was given, never one the model wrote.** A chat
-  without an agent reads a page only when its URL appears in one of the user's own messages of the
-  request (inlined attachments included) or is the address of a result that one of the turn's own
+  without an agent reads a page only when its URL appears in what the user wrote in one of their
+  messages of the request or is the address of a result that one of the turn's own
   searches returned and an earlier round showed the model. `WebChatTools` keeps the result
   addresses its runner hands back (`WebSearchResult.url`), never the answer's text: the query the
   answer repeats, a title, an excerpt and a failure's reason add nothing, so searching for an
   address does not make it readable. `WebChatTools.watching` sees each round's messages before its
   calls run, and those results join the scope with the round that shows them. A page read, the
   model's replies, MCP results and the instructions add nothing either, so a page cannot steer the
-  next read and the model cannot put chat text into an address. No dialog asks: the toggle is the
-  consent, as it is for search, and this rule keeps its grant no wider than search's.
+  next read and the model cannot put chat text into an address. An inlined file, an attached note
+  and a captured window (Ask About Screen, Ask by Voice) are a third party's text, so
+  `AIAttachmentPolicy.typed` takes their blocks out first; a page one of them names can still be
+  reached through a search. Which of several given pages the model reads is itself a signal, so a
+  turn reads at most five (`WebPageTool.maxReads`); a sixth is refused unfetched, telling the model to
+  ask the user. No dialog asks: the toggle is the consent, as it is for search, and these rules keep
+  its grant close to search's.
 - **The model only picks a page; the address it was given is what is fetched.** Scheme, host case,
   a leading `www.`, a trailing or doubled slash, a fragment, a default port and percent-escapes do
   not tell pages apart, and a query or a longer path does (`WebPageScope.key`). The request goes to
@@ -180,4 +185,5 @@ through a fake transport, both loops' rows, the agent provider through a toolset
 `read_page`: its schema, what tells pages apart, what the turn was given, the address fetched, and a
 plain chat's loop reading a found page and a linked one while a forged address, a page's own link, a
 read beside its search, an address the model only searched for and one carrying a user are refused,
+links inside an attached file or captured window left out, a sixth read in a turn refused unfetched,
 and the redirects that may not leave the open web for a local host).
