@@ -186,6 +186,7 @@ private struct ChatMessageView: View, @MainActor Equatable {
     let onRegenerate: (() -> Void)?
     let onChoose: ((String) -> Void)?
     @Environment(\.chatTextHighlight) private var highlight
+    @Environment(\.agentReplyBadge) private var agentBadge  // Fork: an agent chat's reply header
 
     @State private var hovered = false
 
@@ -207,6 +208,10 @@ private struct ChatMessageView: View, @MainActor Equatable {
         HStack {
             if message.role == .user { Spacer(minLength: metrics.spacing.xxl) }
             VStack(alignment: message.role == .user ? .trailing : .leading, spacing: metrics.spacing.xxs) {
+                // Fork: an agent chat's reply opens with its agent's tile and name.
+                if message.role == .assistant, let agentBadge {
+                    AgentReplyBadgeView(badge: agentBadge).padding(.horizontal, replyInset)
+                }
                 content
                 if message.state != .streaming { footer }
             }

@@ -7,6 +7,7 @@ final class AgentsStatusItem: NSObject, NSMenuDelegate {
     struct SessionRow {
         let id: String
         let title: String
+        let source: AgentSource
     }
 
     struct Actions {
@@ -20,6 +21,8 @@ final class AgentsStatusItem: NSObject, NSMenuDelegate {
         /// Finished background runs and finished live sessions alike.
         let clearFinished: () -> Void
         let settings: () -> Void
+        /// A run's agent's colour, for its row's tile.
+        let hue: (UUID) -> RaycastHue
         /// The menu opened: every finished run and session counts as seen.
         let viewed: () -> Void
         /// The menu closed: the owner may remove the item.
@@ -87,6 +90,8 @@ final class AgentsStatusItem: NSObject, NSMenuDelegate {
             for session in sessions {
                 let sessionRow = row(session.title, #selector(jump(_:)))
                 sessionRow.representedObject = session.id
+                sessionRow.image = GlyphTile.menuImage(
+                    symbol: session.source.tileSymbol, hue: session.source.hue)
                 menu.addItem(sessionRow)
             }
         }
@@ -115,7 +120,7 @@ final class AgentsStatusItem: NSObject, NSMenuDelegate {
             let runRow = row("\(run.agentName) — \(run.title)", #selector(open(_:)))
             runRow.representedObject = run.id
             runRow.subtitle = subtitle(for: run, now: now)
-            runRow.image = NSImage(systemSymbolName: run.symbol, accessibilityDescription: nil)
+            runRow.image = GlyphTile.menuImage(symbol: run.symbol, hue: actions.hue(run.agentID))
             menu.addItem(runRow)
             guard run.isActive else { continue }
             let stopRow = row(String(localized: "Stop \(run.agentName)"), #selector(stop(_:)))

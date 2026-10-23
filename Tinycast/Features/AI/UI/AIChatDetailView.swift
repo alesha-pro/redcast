@@ -95,6 +95,8 @@ struct AIChatDetailView: View {
                         current: find.currentOccurrence(in: occurrences))
                     : nil
             )
+            // Fork: an agent chat's replies open with the agent's tile and name.
+            .environment(\.agentReplyBadge, coordinator.agents.agent(for: chat).map(AgentReplyBadge.init))
             // A switched chat is a new scroll: its own tail-following, opening at its latest line.
             .id(chat.session.id)
             .overlay(alignment: .topTrailing) {
@@ -358,7 +360,8 @@ private struct AIAddMenu: View {
             }
             AIToolsMenu(chat: chat, coordinator: coordinator)
         } label: {
-            ComposerControlLabel(showsChevron: false) { ComposerSymbol(name: "plus") }
+            // Fork: attachments' orange while Colourful Icons is on.
+            ComposerControlLabel(showsChevron: false) { ComposerSymbol(name: "plus").glyphTint(.orange) }
         }
         .composerMenu()
         .help("Attach files, search the web, choose tools")
@@ -399,7 +402,7 @@ private struct DictationButton: View {
                         .foregroundStyle(Color.accentColor)
                 } else {
                     ComposerSymbol(name: "mic")
-                        .foregroundStyle(Theme.Colors.textSecondary)
+                        .glyphTint(GlyphCategory.voice.hue)  // Fork: voice's blue while Colourful Icons is on
                 }
             }
             .frame(width: Theme.Size.aiChatComposerControl, height: Theme.Size.aiChatComposerControl)
@@ -471,7 +474,11 @@ private struct AIAgentPicker: View {
                             get: { current?.id == agent.id },
                             set: { if $0 { agents.setAgent(agent, for: chat) } })
                     ) {
-                        Label(agent.name, systemImage: agent.symbol)
+                        Label {
+                            Text(agent.name)
+                        } icon: {
+                            Image(nsImage: GlyphTile.menuImage(symbol: agent.symbol, hue: agent.hue))
+                        }
                     }
                 }
             }
@@ -479,9 +486,13 @@ private struct AIAgentPicker: View {
             Button("Manage Agents…", action: coordinator.showSettings)
         } label: {
             ComposerControlLabel(title: current?.name ?? String(localized: "Agent")) {
-                Image(systemName: current?.symbol ?? "person.crop.circle")
-                    .font(Theme.Typography.composerSymbol)
-                    .foregroundStyle(current == nil ? Theme.Colors.textTertiary : Theme.Colors.textPrimary)
+                if let current {
+                    GlyphTile(symbol: current.symbol, hue: current.hue, size: Theme.Size.aiChatComposerGlyph)
+                } else {
+                    Image(systemName: "person.crop.circle")
+                        .font(Theme.Typography.composerSymbol)
+                        .foregroundStyle(Theme.Colors.textTertiary)
+                }
             }
         }
         .composerMenu()
@@ -511,6 +522,7 @@ private struct AIAgentModePicker: View {
             ComposerControlLabel(title: modes.currentMode?.name ?? String(localized: "Mode")) {
                 Image(systemName: "slider.horizontal.3")
                     .font(Theme.Typography.composerSymbol)
+                    .glyphTint(.purple)
             }
         }
         .composerMenu()
@@ -557,6 +569,7 @@ private struct AIModelPicker: View {
             ) {
                 MenuIconImage(icon: coordinator.modelIcon(of: selected), edge: Theme.Size.menuBrandIcon)
                     .font(Theme.Typography.composerSymbol)
+                    .glyphTint(GlyphCategory.ai.hue)  // Fork: AI's red while Colourful Icons is on
             }
         }
         .composerMenu()
@@ -815,9 +828,11 @@ private struct ContextCard: View {
 }
 
 extension ChatContextReport {
-    fileprivate var tint: Color {
+    @MainActor fileprivate var tint: Color {
         if fill >= 1 { return Theme.Colors.destructive }
-        return fill >= 0.8 ? Theme.Colors.warning : Theme.Colors.textSecondary
+        // Fork: room to spare reads green while Colourful Icons is on.
+        return fill >= 0.8
+            ? Theme.Colors.warning : ColorfulIcons.glyphColor(.green, otherwise: Theme.Colors.textSecondary)
     }
 }
 

@@ -91,7 +91,8 @@ final class ChatSelectableTextView: NSTextView {
         isVerticallyResizable = false
         isHorizontallyResizable = false
         allowsUndo = false
-        linkTextAttributes = [.foregroundColor: NSColor.linkColor, .cursor: NSCursor.pointingHand]
+        // Fork: links in the accent, as Raycast's are.
+        linkTextAttributes = [.foregroundColor: Theme.Colors.accentInk, .cursor: NSCursor.pointingHand]
     }
 
     override init(frame frameRect: NSRect, textContainer container: NSTextContainer?) {

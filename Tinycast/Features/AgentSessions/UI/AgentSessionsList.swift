@@ -162,7 +162,7 @@ private struct AgentSessionRow: View {
     var body: some View {
         IconCache.observeStyle()
         return HStack(spacing: metrics.spacing.lg) {
-            Image(nsImage: IconCache.symbolIcon(named: icon)).resizable()
+            Image(nsImage: IconCache.symbolIcon(named: icon, tint: tint)).resizable()
                 .frame(width: metrics.size.resultRowIcon, height: metrics.size.resultRowIcon)
             VStack(alignment: .leading, spacing: metrics.spacing.xxs) {
                 HStack(spacing: metrics.spacing.xs) {
@@ -196,14 +196,16 @@ private struct AgentSessionRow: View {
     private var icon: String {
         switch row {
         case .searchTranscripts: "magnifyingglass"
-        case .session(let session):
-            switch session.source {
-            case .claude: AIBrand.claude.assetName
-            case .codex: AIBrand.openAI.assetName
-            case .gemini: AIBrand.gemini.assetName
-            case .openCode: AIBrand.openCode.assetName
-            case .tinycast: "bubble.left"
-            }
+        case .session(let session): session.source.tileSymbol
+        }
+    }
+
+    /// The source's own colour, and search's blue, while Colourful Icons is on.
+    private var tint: SymbolTint? {
+        guard ColorfulIcons.isEnabled else { return nil }
+        switch row {
+        case .searchTranscripts: return GlyphCategory.files.hue.symbolTint
+        case .session(let session): return session.source.hue.symbolTint
         }
     }
 

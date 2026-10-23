@@ -140,6 +140,10 @@ enum SettingsSearchCatalog {
         .init(
             .generalAppearance, "Appearance",
             keywords: ["dark", "light", "mode", "theme"]),
+        // Fork: Colourful Icons.
+        .init(
+            .generalAppearance, "Colorful icons",
+            keywords: ["colour", "color", "tiles", "raycast", "monochrome", "gray", "grey"]),
         .init(
             .generalAppearance, "Interface size",
             keywords: ["text size", "font size", "scale", "zoom", "bigger", "larger", "legible"]),

@@ -426,7 +426,9 @@ final class AgentSessionsCoordinator {
     /// Built as the menu opens; nil keeps the hub's rows and actions off the item.
     var menuBarRows: [AgentsStatusItem.SessionRow]? {
         guard isActive, settings.agentStatusMenuBar else { return nil }
-        return menuBarSessions.map { AgentsStatusItem.SessionRow(id: $0.id, title: Self.menuTitle(of: $0)) }
+        return menuBarSessions.map {
+            AgentsStatusItem.SessionRow(id: $0.id, title: Self.menuTitle(of: $0), source: $0.agent)
+        }
     }
 
     func jump(toSession id: AgentActivity.ID) {

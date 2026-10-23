@@ -56,7 +56,9 @@ struct CustomCommandList: View {
         var body: some View {
             IconCache.observeStyle()
             return HStack(spacing: metrics.spacing.lg) {
-                Image(nsImage: IconCache.symbolIcon(named: command.symbol))
+                // Fork: the launcher's script tile while Colourful Icons is on.
+                Image(
+                    nsImage: IconCache.symbolIcon(named: command.symbol, tint: ColorfulIcons.tint(.scripts)))
                     .resizable()
                     .frame(width: metrics.size.resultRowIcon, height: metrics.size.resultRowIcon)
                 Text(command.name).font(metrics.typography.rowTitle).lineLimit(1)

@@ -100,7 +100,9 @@ private struct QuicklinkRow: View {
     var body: some View {
         IconCache.observeStyle()
         return HStack(spacing: metrics.spacing.lg) {
-            Image(nsImage: IconCache.symbolIcon(named: quicklink.symbol))
+            // Fork: the launcher's quicklink tile while Colourful Icons is on.
+            Image(
+                nsImage: IconCache.symbolIcon(named: quicklink.symbol, tint: ColorfulIcons.tint(.quicklinks)))
                 .resizable()
                 .frame(width: metrics.size.resultRowIcon, height: metrics.size.resultRowIcon)
             VStack(alignment: .leading, spacing: metrics.spacing.xxs) {

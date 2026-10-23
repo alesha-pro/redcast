@@ -64,8 +64,7 @@ struct VoiceModesSection: View {
 
     private func modeRow(_ mode: VoiceMode, inCycle: Bool) -> some View {
         SettingsRow(title: mode.name, subtitle: mode.instructions) {
-            Image(systemName: VoiceModeCatalog.symbol(for: mode.id))
-                .frame(width: Theme.Size.settingsRowIcon)
+            GlyphTile(symbol: VoiceModeCatalog.symbol(for: mode.id), hue: GlyphCategory.voice.hue)
         } trailing: {
             Button {
                 editing = VoiceModeEditRequest(mode: mode)
