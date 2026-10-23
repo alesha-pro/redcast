@@ -8,6 +8,8 @@ extension ExtensionTests {
     final class OriginContext: ExtensionHostContext {
         let storage: ExtensionStorage
         var isOpenedByUser: Bool
+        /// Set the way the menu-bar host is: true only while one of its items' actions runs.
+        var acting: Bool?
         private(set) var launches: [String] = []
 
         init(storage: ExtensionStorage, isOpenedByUser: Bool) {
@@ -17,6 +19,7 @@ extension ExtensionTests {
 
         var activeExtensionName: String? { "fixture" }
         var activeLaunchType: ExtensionLaunchType { isOpenedByUser ? .userInitiated : .background }
+        var isActingForUser: Bool { acting ?? isOpenedByUser }
         var pasteTarget: NSRunningApplication? { nil }
         var applicationURLs: [URL] { [] }
         func closeMainWindow(clearRootSearch: Bool) {}
@@ -49,21 +52,23 @@ extension ExtensionTests {
     @MainActor
     final class RecordingAI: ExtensionAIHost {
         struct Refusal: LocalizedError {
-            var errorDescription: String? { "Extensions can use AI only in a command you open." }
+            var errorDescription: String? {
+                "Extensions can use AI only in a command you open or from a menu-bar item you click."
+            }
         }
 
-        private(set) var starts: [(openedByUser: Bool, owner: ObjectIdentifier)] = []
+        private(set) var starts: [(actingForUser: Bool, owner: ObjectIdentifier)] = []
         private(set) var ended: [ObjectIdentifier] = []
         private var chunks: [String] = []
 
         func perform(
-            method: String, arguments: [RenderValue], extensionName: String, openedByUser: Bool,
+            method: String, arguments: [RenderValue], extensionName: String, actingForUser: Bool,
             owner: ObjectIdentifier
         ) async throws -> Any? {
             switch method {
             case "start":
-                starts.append((openedByUser, owner))
-                guard openedByUser, extensionName == "fixture" else { throw Refusal() }
+                starts.append((actingForUser, owner))
+                guard actingForUser, extensionName == "fixture" else { throw Refusal() }
                 chunks = ["Hel", "lo"]
                 return 1
             case "read":
@@ -130,7 +135,7 @@ extension ExtensionTests {
         check("a command the user opened gets its answer", opened == "answer Hello", opened ?? "nil")
         check(
             "the bridge names itself and the user's origin to the AI host",
-            ai.starts.count == 1 && ai.starts.first?.openedByUser == true && ai.starts.first?.owner == owner)
+            ai.starts.count == 1 && ai.starts.first?.actingForUser == true && ai.starts.first?.owner == owner)
         check(
             "its launches carry the user's origin",
             palette.launches == ["ask userInitiated user=true", "link ask user=true"],
@@ -144,8 +149,7 @@ extension ExtensionTests {
         let refresh = await run(on: bridge, session: "refresh")
         check(
             "a run nobody opened is refused by the AI host",
-            refresh == "Extensions can use AI only in a command you open."
-                && ai.starts.last?.openedByUser == false,
+            refresh == RecordingAI.Refusal().errorDescription && ai.starts.last?.actingForUser == false,
             refresh ?? "nil")
         check(
             "and what it launches, UserInitiated or a link, is not the user's either",
@@ -157,9 +161,8 @@ extension ExtensionTests {
         let starts = ai.starts.count
         let menuResult = await run(on: menuBridge, session: "menu")
         check(
-            "a menu-bar bridge has no AI host",
-            menuResult == "AI in menu-bar commands and background launches is not supported in Tinycast extensions."
-                && ai.starts.count == starts,
+            "a scoped bridge carries no AI host of its own",
+            menuResult == "AI is not supported in Tinycast extensions." && ai.starts.count == starts,
             menuResult ?? "nil")
         check(
             "a menu-bar refresh's launch of an AI command reaches it as not the user's",
@@ -167,6 +170,111 @@ extension ExtensionTests {
             menu.launches.joined(separator: ", "))
         await settle(250)
         check("a menu-bar session's end reaches no AI host", !ai.ended.contains(ObjectIdentifier(menuBridge)))
+    }
+
+    /// The menu-bar lane with the AI host its manager hands it: only a click's action may ask.
+    @MainActor
+    static func menuBarAIChecks() async {
+        _ = NSApplication.shared
+        NSApp.setActivationPolicy(.accessory)
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(
+            "tinycast-menu-ai-\(UUID())")
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let storage = ExtensionStorage(directory: directory.appendingPathComponent("storage"))
+        let path = directory.appendingPathComponent("fixture")
+        try? FileManager.default.createDirectory(at: path, withIntermediateDirectories: true)
+        try? #"""
+            const React = require("react");
+            const { AI, LocalStorage, MenuBarExtra, environment } = require("@raycast/api");
+            module.exports.default = function Command() {
+              React.useEffect(() => {
+                AI.ask("render").then(
+                  (text) => LocalStorage.setItem("render", text),
+                  (error) => LocalStorage.setItem("render", error.message));
+              }, []);
+              return React.createElement(MenuBarExtra, { title: String(environment.canAccess(AI)), icon: "star-16" },
+                React.createElement(MenuBarExtra.Item, { title: "Ask", onAction: async () => {
+                  await LocalStorage.setItem("action", await AI.ask("action"));
+                } }));
+            };
+            """#.write(to: path.appendingPathComponent("bar.js"), atomically: true, encoding: .utf8)
+        guard
+            let manifest = ExtensionManifest(json: [
+                "name": "fixture",
+                "commands": [["name": "bar", "title": "Bar", "mode": "menu-bar", "disabledByDefault": true]]
+            ])
+        else {
+            check("the menu-bar AI fixture's manifest parses", false)
+            return
+        }
+        let owner = InstalledExtension(manifest: manifest, directory: path)
+        let reference = ExtensionCommandRef(extensionName: "fixture", commandName: "bar")
+        let ai = RecordingAI()
+        let root = ExtensionHostBridge(
+            clipboardStore: ClipboardStore(directory: directory.appendingPathComponent("clipboard")))
+        var contexts: [OriginContext] = []
+        var bridges: [ObjectIdentifier] = []
+        let metadata = ExtensionCommandMetadataStore(fileURL: directory.appendingPathComponent("commands.json"))
+        let manager = ExtensionMenuBarManager(
+            storage: storage, commandMetadata: metadata,
+            supportDirectory: directory.appendingPathComponent("support"), executionTimeout: .seconds(5),
+            showsStatusItems: false,
+            makeExecution: { _, _, type in
+                let context = OriginContext(storage: storage, isOpenedByUser: type == .userInitiated)
+                context.acting = false
+                contexts.append(context)
+                let bridge = root.scoped(to: context)
+                bridge.ai = ai
+                bridges.append(ObjectIdentifier(bridge))
+                return .init(
+                    runtime: ExtensionRuntime(hostAPI: bridge, runtimeURL: runtimeURL()),
+                    stop: { bridge.context = nil }, setActing: { context.acting = $0 },
+                    aiAccess: type == .userInitiated)
+            }, onError: { _, _, _ in })
+        defer { manager.stop() }
+        manager.synchronize([owner])
+        func stored(_ key: String) -> ExtensionStorage.StoredValue? {
+            storage.localStorageValue(extension: "fixture", key: key)
+        }
+        func title() -> String? {
+            metadata.metadata(extension: "fixture", command: "bar").menuBarSnapshot?.title
+        }
+
+        manager.run(owner, command: owner.manifest.commands[0])
+        await settle(until: { stored("render") != nil && title() != nil && !manager.isRunning })
+        check(
+            "a menu the user opened reports canAccess(AI)",
+            title() == "true", title() ?? "nil")
+        check(
+            "but its render may not ask, even then",
+            stored("render") == .string(RecordingAI.Refusal().errorDescription ?? "")
+                && ai.starts.allSatisfy { !$0.actingForUser },
+            "\(String(describing: stored("render")))")
+
+        let controller = manager.controller(for: reference, owner: owner)
+        controller.menuWillOpen(controller.menu)
+        await settle(until: {
+            manager.isRunning && controller.menu.items.first { $0.title == "Ask" }?.representedObject != nil
+        })
+        guard let index = controller.menu.items.firstIndex(where: { $0.title == "Ask" }) else {
+            check("the menu-bar AI fixture shows its item", false)
+            return
+        }
+        controller.menuDidClose(controller.menu)
+        controller.menu.performActionForItem(at: index)
+        await settle(until: { stored("action") != nil && !manager.isRunning })
+        check(
+            "a click's action asks for the user and gets its answer",
+            stored("action") == .string("Hello") && ai.starts.last?.actingForUser == true
+                && ai.starts.last?.owner == bridges.last,
+            "\(String(describing: stored("action")))")
+        check("the gesture ends with the action", contexts.last?.acting == false)
+        await settle(until: { bridges.last.map(ai.ended.contains) == true })
+        check("leaving the menu ends its answers", bridges.last.map(ai.ended.contains) == true)
+
+        manager.run(owner, command: owner.manifest.commands[0], type: .background)
+        await settle(until: { title() == "false" && !manager.isRunning })
+        check("a refresh reports no access", title() == "false", title() ?? "nil")
     }
 }
 

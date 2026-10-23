@@ -10,6 +10,8 @@ protocol ExtensionHostContext: AnyObject {
     var activeLaunchType: ExtensionLaunchType { get }
     /// False for a background run and anything it launches, however that launch was typed.
     var isOpenedByUser: Bool { get }
+    // Fork: AI's origin; a menu-bar command acts for the user only while an item's action runs.
+    var isActingForUser: Bool { get }
     var storage: ExtensionStorage { get }
     /// The app a paste would land in — the palette's recorded `previousApp`.
     var pasteTarget: NSRunningApplication? { get }
@@ -36,6 +38,11 @@ protocol ExtensionHostContext: AnyObject {
         openedByUser: Bool
     ) throws
     func launch(_ link: ExtensionDeepLink, openedByUser: Bool) throws
+}
+
+// Fork: a command the user opened acts for them throughout; only the menu-bar lane narrows it.
+extension ExtensionHostContext {
+    var isActingForUser: Bool { isOpenedByUser }
 }
 
 struct ExtensionToast: Sendable, Equatable, Identifiable {
@@ -128,7 +135,7 @@ final class ExtensionHostBridge: ExtensionHostAPI {
     private let clipboardStore: ClipboardStore
     private let fetcher: ExtensionFetcher
     private let sockets = ExtensionWebSocketBridge()
-    /// The fork's AI host; menu-bar bridges never get one, so nothing on that lane spends tokens.
+    /// The fork's AI host; each call names whether the context is acting for the user.
     weak var ai: (any ExtensionAIHost)?
     private var reportedSocketFailures: Set<String> = []
     /// One browser sign-in at a time; the palette keeps its command alive while it is out.
@@ -207,12 +214,10 @@ final class ExtensionHostBridge: ExtensionHostAPI {
 
     private func askAI(method: String, arguments: [RenderValue]) async throws -> Any? {
         let (context, name) = try requireContext()
-        guard let ai else {
-            throw ExtensionHostError.unsupported("AI in menu-bar commands and background launches")
-        }
+        guard let ai else { throw ExtensionHostError.unsupported("AI") }
         return try await ai.perform(
             method: method, arguments: arguments, extensionName: name,
-            openedByUser: context.isOpenedByUser, owner: ObjectIdentifier(self))
+            actingForUser: context.isActingForUser, owner: ObjectIdentifier(self))
     }
 
     /// Called wherever a command's context is discarded: nothing left open outlives its session.
