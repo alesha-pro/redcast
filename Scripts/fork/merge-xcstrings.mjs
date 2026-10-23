@@ -2,84 +2,10 @@
 // Three-way merge of a conflicted string catalog, key by key. Usage: see FORK.md or --help.
 import { execFileSync } from "node:child_process";
 import { readFileSync, writeFileSync } from "node:fs";
+import { rebrand } from "./rebrand.mjs";
+import { isMain, parse, serialize } from "./xcstrings.mjs";
 
 const DEFAULT_PATH = "Tinycast/Resources/Localizable.xcstrings";
-
-const LITERAL = /^(?:true|false|null|-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?)/;
-
-// Maps keep key order; a plain object would hoist integer-like keys to the front.
-function parse(text) {
-  let at = 0;
-  const skip = () => {
-    while (at < text.length && " \t\n\r".includes(text[at])) at++;
-  };
-  const expect = (char) => {
-    skip();
-    if (text[at] !== char) throw new SyntaxError(`expected ${char} at ${at}`);
-    at++;
-  };
-  const string = () => {
-    skip();
-    if (text[at] !== '"') throw new SyntaxError(`expected a string at ${at}`);
-    const start = at++;
-    while (at < text.length && text[at] !== '"') at += text[at] === "\\" ? 2 : 1;
-    return JSON.parse(text.slice(start, ++at));
-  };
-  const collection = (close, read) => {
-    at++;
-    skip();
-    if (text[at] === close) return at++;
-    for (;;) {
-      read();
-      skip();
-      if (text[at] === close) return at++;
-      expect(",");
-    }
-  };
-  const value = () => {
-    skip();
-    if (text[at] === "{") {
-      const map = new Map();
-      collection("}", () => {
-        const key = string();
-        expect(":");
-        map.set(key, value());
-      });
-      return map;
-    }
-    if (text[at] === "[") {
-      const list = [];
-      collection("]", () => list.push(value()));
-      return list;
-    }
-    if (text[at] === '"') return string();
-    const literal = LITERAL.exec(text.slice(at, at + 32));
-    if (!literal) throw new SyntaxError(`unexpected input at ${at}`);
-    at += literal[0].length;
-    return JSON.parse(literal[0]);
-  };
-  const result = value();
-  skip();
-  if (at !== text.length) throw new SyntaxError(`trailing input at ${at}`);
-  return result;
-}
-
-// Xcode's own layout: two-space indent, " : ", and an empty object written across a blank line.
-function serialize(value, indent = "") {
-  const inner = indent + "  ";
-  if (value instanceof Map) {
-    if (value.size === 0) return `{\n\n${indent}}`;
-    const members = [...value].map(
-      ([key, item]) => `${inner}${JSON.stringify(key)} : ${serialize(item, inner)}`,
-    );
-    return `{\n${members.join(",\n")}\n${indent}}`;
-  }
-  if (Array.isArray(value)) {
-    if (value.length === 0) return `[\n\n${indent}]`;
-    return `[\n${value.map((item) => inner + serialize(item, inner)).join(",\n")}\n${indent}]`;
-  }
-  return JSON.stringify(value);
-}
 
 const same = (a, b) =>
   a === undefined ? b === undefined : b !== undefined && serialize(a) === serialize(b);
@@ -160,7 +86,9 @@ function mergeStrings(base, ours, theirs, report) {
   return new Map(order.map((key) => [key, values.get(key)]));
 }
 
-function merge(base, ours, theirs) {
+// All three as the fork names the app, so a string it only renamed still takes upstream's edits.
+function merge(...sides) {
+  const [base, ours, theirs] = sides.map((side) => rebrand(side).catalog);
   const report = { conflicts: [], added: 0, removed: 0 };
   const merged = new Map();
   for (const key of new Set([...theirs.keys(), ...ours.keys()])) {
@@ -274,14 +202,39 @@ function selfTest() {
   expect(report.added === 1 && report.removed === 1, `counts: +${report.added} -${report.removed}`);
   expect(report.conflicts.length === 2, `exactly two conflicts, got ${report.conflicts.length}`);
 
+  const renamed = merge(
+    catalog({
+      "Quit Tinycast": { localizations: { de: unit("Tinycast beenden") } },
+      "Tinycast Gone": { localizations: { de: unit("Tinycast weg") } },
+    }),
+    catalog({
+      "Quit Tinycast": { localizations: { de: unit("Redcast beenden"), en: unit("Quit Redcast") } },
+      "Tinycast Gone": { localizations: { de: unit("Redcast weg"), en: unit("Redcast Gone") } },
+    }),
+    catalog({
+      "About Tinycast": { localizations: { de: unit("Über Tinycast") } },
+      "Quit Tinycast": { localizations: { de: unit("Tinycast schließen") } },
+    }),
+  );
+  const named = (key, language) =>
+    renamed.catalog.get("strings").get(key)?.get("localizations")?.get(language)?.get("stringUnit")
+      ?.get("value");
+  expect(named("Quit Tinycast", "de") === "Redcast schließen", "an edit to a renamed string lands");
+  expect(named("Quit Tinycast", "en") === "Quit Redcast", "renamed, English included");
+  expect(named("About Tinycast", "en") === "About Redcast", "an upstream string arrives renamed");
+  expect(!renamed.catalog.get("strings").has("Tinycast Gone"), "one the fork only renamed can go");
+  expect(renamed.report.conflicts.length === 0, "and renaming alone is never a conflict");
+
   console.log(failures === 0 ? "✓ merge-xcstrings self-test passed" : `✗ ${failures} failed`);
   return failures === 0 ? 0 : 1;
 }
 
 const argument = process.argv[2];
-if (argument === "--help" || argument === "-h") {
+if (isMain(import.meta.url) && (argument === "--help" || argument === "-h")) {
   console.log("Usage: node Scripts/fork/merge-xcstrings.mjs [path] | --self-test");
   console.log("Exit codes: 0 clean · 1 conflicts kept as ours (on stderr) · 2 unreadable input");
   process.exit(0);
 }
-process.exit(argument === "--self-test" ? selfTest() : run(argument ?? DEFAULT_PATH));
+if (isMain(import.meta.url)) {
+  process.exit(argument === "--self-test" ? selfTest() : run(argument ?? DEFAULT_PATH));
+}

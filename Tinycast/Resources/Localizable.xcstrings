@@ -30846,6 +30846,59 @@
         }
       }
     },
+    "Based on Tinycast by Abue Ammar" : {
+      "comment" : "About’s credit for the upstream app this fork is built from; keep the name Tinycast",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Basiert auf Tinycast von Abue Ammar"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Basado en Tinycast de Abue Ammar"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Basé sur Tinycast d’Abue Ammar"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abue AmmarによるTinycastがベースです"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abue Ammar의 Tinycast 기반"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Baseado no Tinycast de Abue Ammar"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Основано на Tinycast от Abue Ammar"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "基于 Abue Ammar 的 Tinycast"
+          }
+        }
+      }
+    },
     "Before and after a meeting starts." : {
       "localizations" : {
         "de" : {

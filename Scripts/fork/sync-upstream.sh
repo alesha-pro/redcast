@@ -6,13 +6,14 @@ cd "$(dirname "$0")/../.." || exit 4
 ROOT="$PWD"
 UPSTREAM_URL="${TINYCAST_UPSTREAM_URL:-https://github.com/abue-ammar/tinycast.git}"
 UPSTREAM_WEB=https://github.com/abue-ammar/tinycast
-FORK_REPO="${TINYCAST_FORK_REPO:-alesha-pro/tinycast}"
+FORK_REPO="${TINYCAST_FORK_REPO:-alesha-pro/redcast}"
 XCODEGEN="${TINYCAST_SYNC_XCODEGEN:-xcodegen}"
 WORK=build/sync
 PBXPROJ=Tinycast.xcodeproj/project.pbxproj
 RUNTIME=Tinycast/Resources/RaycastRuntime.generated.js
 RUNTIME_SOURCES=Scripts/raycast-runtime
 CATALOG=Tinycast/Resources/Localizable.xcstrings
+INFO_CATALOG=Tinycast/Resources/InfoPlist.xcstrings
 # Display- or load-bound: reported, never a reason to hold a sync back.
 ENVIRONMENTAL=" form-input-test onboarding-test icon-cache-test "
 RULE_DOCS=" AGENTS.md CLAUDE.md CONTRIBUTING.md docs/architecture.md docs/standards.md \
@@ -49,6 +50,7 @@ die() {
 MODE=sync
 NOTES=""
 CATALOG_NOTE=""
+REBRAND_NOTE=""
 TITLE=""
 UNRESOLVED=""
 BRANCH=""
@@ -170,10 +172,11 @@ anchor() {
         -m "Upstream-Sync: $ANCHOR" "$ANCHOR"
 }
 
-# Generated files take upstream's side and are rebuilt; the catalog merges key by key.
+# Generated files take upstream's side and are rebuilt; the catalogs merge key by key.
 resolve_known() {
     UNRESOLVED=""
-    local path status
+    local path status merged
+    : >"$WORK/xcstrings-review.txt"
     while IFS= read -r path; do
         [ -n "$path" ] || continue
         case "$path" in
@@ -184,12 +187,15 @@ resolve_known() {
                 continue
             fi
             ;;
-        "$CATALOG")
+        # The fork renamed both catalogs' Tinycast; upstream's edits to those lines conflict.
+        "$CATALOG" | "$INFO_CATALOG")
             status=0
-            CATALOG_NOTE="$(node Scripts/fork/merge-xcstrings.mjs "$path" \
-                2>"$WORK/xcstrings-review.txt")" || status=$?
+            merged="$(node Scripts/fork/merge-xcstrings.mjs "$path" \
+                2>>"$WORK/xcstrings-review.txt")" || status=$?
             if [ "$status" -le 1 ]; then
-                note "merged $path key by key: $CATALOG_NOTE"
+                note "merged $path key by key: $merged"
+                merged="$(basename "$path" .xcstrings) $merged"
+                CATALOG_NOTE="${CATALOG_NOTE:+$CATALOG_NOTE; }$merged"
                 continue
             fi
             ;;
@@ -217,6 +223,25 @@ merge_upstream() {
     printf '✗ resolve these, git add them, then run Scripts/fork/sync-upstream.sh --continue:\n' >&2
     printf '%s' "$UNRESOLVED" | sed 's/^/  /' >&2
     exit 2
+}
+
+# Strings upstream adds say Tinycast; the merge commit, and every gate after it, reads Redcast.
+rebrand_catalogs() {
+    [ -e "$(git rev-parse --git-path MERGE_HEAD)" ] || return 0
+    local output
+    if ! output="$(node Scripts/fork/rebrand.mjs 2>&1)"; then
+        NOTES="${NOTES}- rebrand.mjs failed; the catalogs still say Tinycast: $output"$'\n'
+        return 0
+    fi
+    REBRAND_NOTE="$(grep 'renamed Tinycast' <<<"$output" | tr '\n' ' ' || true)"
+    [ -z "$REBRAND_NOTE" ] || note "$REBRAND_NOTE"
+    local stale
+    stale="$(grep -o 'the exclusion .* is in no catalog' <<<"$output" || true)"
+    [ -z "$stale" ] || NOTES="${NOTES}$(sed 's/^/- rebrand.mjs: /; s/$/; drop it from EXCLUDED/' \
+        <<<"$stale")"$'\n'
+
+    local path
+    for path in "$CATALOG" "$INFO_CATALOG"; do [ ! -e "$path" ] || git add -- "$path"; done
 }
 
 regenerate() {
@@ -321,7 +346,9 @@ run_gates() {
     if ./Scripts/lint.sh >"$WORK/lint.log" 2>&1; then GATE_LINT=pass; else GATE_LINT=fail; fi
     if [ -z "$(grep -rln 'import AppKit\|import SwiftUI\|import Cocoa' Tinycast/Features/*/Model/ \
         2>/dev/null || true)" ]; then GATE_PURITY=pass; else GATE_PURITY=fail; fi
-    if node Scripts/fork/merge-xcstrings.mjs --self-test >"$WORK/self-test.log" 2>&1; then
+    if node Scripts/fork/merge-xcstrings.mjs --self-test >"$WORK/self-test.log" 2>&1 &&
+        node Scripts/fork/rebrand.mjs --self-test >>"$WORK/self-test.log" 2>&1 &&
+        node Scripts/fork/rebrand.mjs --check >>"$WORK/self-test.log" 2>&1; then
         GATE_SELF=pass
     else
         GATE_SELF=fail
@@ -366,10 +393,12 @@ attention() {
     if [ -n "${CATALOG_NOTE:-}" ]; then
         review="$(head -10 "$WORK/xcstrings-review.txt" 2>/dev/null |
             sed -E 's/^(.*)  \((.*)\)$/"\1"(\2)/' | tr '\n' ' ' || true)"
-        printf -- '- Localizable: %s%s\n' "$CATALOG_NOTE" "${review:+: ${review% }}"
+        printf -- '- String catalogs: %s%s\n' "$CATALOG_NOTE" "${review:+: ${review% }}"
     elif upstream_changed | grep -qx "$CATALOG"; then
         printf -- '- Localizable: upstream changed it; git merged it without conflicts\n'
     fi
+    [ -z "${REBRAND_NOTE:-}" ] || printf -- '- Rebrand: %s(check the new strings read well)\n' \
+        "$REBRAND_NOTE"
     workflows="$(git diff --name-status "$BASE" "$UP" -- .github/workflows)"
     while IFS=$'\t' read -r status path; do
         [ -n "$path" ] || continue
@@ -512,6 +541,7 @@ rewrite_summary() {
 
 finish() {
     regenerate
+    rebrand_catalogs
     commit_merge
     rm -f "$STATE"
     [ -n "${TITLE:-}" ] || TITLE="$(git log -1 --format=%s)"
@@ -570,8 +600,7 @@ new_case() {
     git clone -q "$UPR" "$FORK"
     git -C "$FORK" remote rename origin upstream
     mkdir -p "$FORK/Scripts/fork"
-    cp "$ROOT/Scripts/fork/sync-upstream.sh" "$ROOT/Scripts/fork/merge-xcstrings.mjs" \
-        "$FORK/Scripts/fork/"
+    cp "$ROOT/Scripts/fork/sync-upstream.sh" "$ROOT/Scripts/fork/"*.mjs "$FORK/Scripts/fork/"
     git -C "$FORK" add Scripts
     git -C "$FORK" commit -q -m "Add the fork's scripts"
     commit_file "$FORK" fork.txt "fork" "Fork work"
@@ -748,6 +777,24 @@ self_test() {
     check "and is rebuilt from both sides' sources" \
         [ "$(git -C "$FORK" show "HEAD:$RUNTIME")" = "A B" ]
 
+    new_case rebrand
+    rebrand_case
+    up="$(git -C "$UPR" rev-parse HEAD)"
+    status="$(run_sync)"
+    check "upstream's edit to a string the fork renamed merges (exit $status)" [ "$status" = 0 ]
+    check "taking upstream's wording, renamed" \
+        git -C "$FORK" grep -q '"value" : "Redcast schließen"' HEAD -- "$CATALOG"
+    check "a string it adds there arrives renamed" \
+        git -C "$FORK" grep -q '"value" : "About Redcast"' HEAD -- "$CATALOG"
+    check "with nothing to review" grep -q "+1 upstream keys, -0 removed, 0 need review" \
+        "$CASE/out.log"
+    check "one git merged cleanly is renamed in the merge commit" \
+        git -C "$FORK" grep -q '"value" : "Redcast filmt."' HEAD -- "$INFO_CATALOG"
+    check "and named in the summary" \
+        grep -q "Rebrand: InfoPlist.xcstrings: renamed Tinycast in 1 key" \
+        "$FORK/build/sync/summary-${up:0:7}.md"
+    check "leaving a clean tree" [ -z "$(git -C "$FORK" status --porcelain --untracked-files=no)" ]
+
     printf '%d passed, %d failed\n' "$PASSES" "$FAILURES"
     [ "$FAILURES" -eq 0 ] || exit 1
     ok "sync-upstream self-test passed"
@@ -773,6 +820,42 @@ catalog_case() {
     git -C "$FORK" commit -q -am "Fork's string"
     catalog_entries A B Z >"$UPR/$CATALOG"
     git -C "$UPR" commit -q -am "Upstream's string"
+}
+
+# Xcode's layout of a one-language entry, for the catalogs the rebrand case edits.
+german_entry() {
+    printf '    "%s" : {\n      "localizations" : {\n        "de" : {\n' "$1"
+    printf '          "stringUnit" : {\n            "state" : "translated",\n'
+    printf '            "value" : "%s"\n          }\n        }\n      }\n    }' "$2"
+}
+
+catalog_of() {
+    printf '{\n  "sourceLanguage" : "en",\n  "strings" : {\n'
+    local first=1
+    while [ $# -gt 1 ]; do
+        [ "$first" -eq 1 ] || printf ',\n'
+        german_entry "$1" "$2"
+        first=0
+        shift 2
+    done
+    printf '\n  },\n  "version" : "1.0"\n}\n'
+}
+
+# The fork renames both catalogs. Upstream edits a renamed line in one, so that one conflicts, and
+# adds a string far from the renamed lines in the other, which git merges on its own.
+rebrand_case() {
+    mkdir -p "$UPR/$(dirname "$CATALOG")"
+    catalog_of "Quit Tinycast" "Tinycast beenden" >"$UPR/$CATALOG"
+    catalog_of NSMicrophoneUsageDescription "Tinycast nimmt auf." >"$UPR/$INFO_CATALOG"
+    git -C "$UPR" add -A && git -C "$UPR" commit -q -m "Add the catalogs"
+    git -C "$FORK" pull -q --no-rebase --no-edit upstream main
+    (cd "$FORK" && node Scripts/fork/rebrand.mjs >/dev/null 2>&1)
+    git -C "$FORK" commit -q -am "Rebrand"
+    catalog_of "About Tinycast" "Über Tinycast" "Quit Tinycast" "Tinycast schließen" \
+        >"$UPR/$CATALOG"
+    catalog_of NSCameraUsageDescription "Tinycast filmt." \
+        NSMicrophoneUsageDescription "Tinycast nimmt auf." >"$UPR/$INFO_CATALOG"
+    git -C "$UPR" commit -q -am "Upstream's strings"
 }
 
 # The gates' tools, and pnpm for the runtime rebuild: none of them may reach Xcode or the network.

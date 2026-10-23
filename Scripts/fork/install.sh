@@ -7,12 +7,19 @@ ROOT="$PWD"
 SELF="$ROOT/Scripts/fork/install.sh"
 export DEVELOPER_DIR="${DEVELOPER_DIR:-/Applications/Xcode.app/Contents/Developer}"
 BUNDLE_ID="${TINYCAST_FORK_BUNDLE_ID:-com.tinycast.app.fork}"
-DEST="${TINYCAST_INSTALL_PATH:-/Applications/Tinycast.app}"
+# The visible name only: the bundle id, and with it data, grants and Keychain items, stays.
+APP_NAME=Redcast
+DEST="${TINYCAST_INSTALL_PATH:-/Applications/$APP_NAME.app}"
 PARENT="$(dirname "$DEST")"
 NAME="$(basename "$DEST" .app)"
+# Where the fork lived before it was Redcast: a fork copy there is migrated, any other left alone.
+LEGACY="$PARENT/Tinycast.app"
 WORK="$ROOT/build/fork"
 # No `.app` suffix, so LaunchServices never registers the kept copy.
 PREVIOUS="$WORK/Tinycast.previous"
+# The path the kept copy was installed at, so --rollback after a migration restores the old name.
+PREVIOUS_ORIGIN="$WORK/Tinycast.previous.origin"
+INSTALLED=""
 FRAMEWORKS=/System/Library/Frameworks/CoreServices.framework/Frameworks
 LSREGISTER="${TINYCAST_LSREGISTER:-$FRAMEWORKS/LaunchServices.framework/Support/lsregister}"
 
@@ -23,8 +30,9 @@ Usage: Scripts/fork/install.sh [--no-launch] [--force-quit] [--accept-new-identi
        Scripts/fork/install.sh --self-check
        Scripts/fork/install.sh --self-test     # stubbed installs into \$TMPDIR, one from a fake app
 
-Builds the fork in Release for this Mac, signs it with the one Apple Development identity,
-verifies it, quits the installed copy gracefully and swaps the new one into place by rename.
+Builds the fork in Release for this Mac as $APP_NAME.app, signs it with the one Apple Development
+identity, verifies it, quits the installed copy gracefully and swaps the new one into place by
+rename. A fork copy still named Tinycast.app beside it is migrated: it goes to the rollback slot.
 
   --no-launch            do not reopen the app after the swap
   --force-quit           SIGTERM, then SIGKILL, when the app does not quit within 20 s
@@ -81,28 +89,54 @@ done
 
 plist() { /usr/libexec/PlistBuddy -c "Print :$2" "$1/Contents/Info.plist" 2>/dev/null; }
 bundle_id() { plist "$1" CFBundleIdentifier; }
+is_fork() { [ -e "$1" ] && [ "$(bundle_id "$1" || true)" = "$BUNDLE_ID" ]; }
 # An ad hoc signature prints its requirement, the cdhash, as a comment.
 designated() { codesign -d -r- "$1" 2>&1 | sed -nE 's/^(# )?designated => //p'; }
-app_running() { pgrep -f "^$DEST/Contents/MacOS/" >/dev/null; }
+app_running() { pgrep -f "^$1/Contents/MacOS/" >/dev/null; }
 # The Dictation, clipboard-text and file-index helpers run from inside the bundle too.
-bundle_running() { pgrep -f "^$DEST/Contents/" >/dev/null; }
+bundle_running() { pgrep -f "^$1/Contents/" >/dev/null; }
 
-# A same-named upstream app must never be replaced: it has its own grants and settings.
-refuse_foreign() {
-    local found=$1 owner="not this fork"
-    case "$found" in
-    com.tinycast.app) owner="upstream's Tinycast, not this fork" ;;
-    com.tinycast.app.beta) owner="upstream's Tinycast Beta, not this fork" ;;
-    com.tinycast.app.dev) owner="a Debug build, not a fork install" ;;
+# The fork copy an install replaces: the destination, else one still under the old name.
+resolve_installed() {
+    INSTALLED=""
+    if [ -e "$DEST" ]; then
+        INSTALLED="$DEST"
+    elif [ "$LEGACY" != "$DEST" ] && is_fork "$LEGACY"; then
+        INSTALLED="$LEGACY"
+    fi
+}
+
+owner() {
+    case "$1" in
+    com.tinycast.app) echo "upstream's Tinycast, not this fork" ;;
+    com.tinycast.app.beta) echo "upstream's Tinycast Beta, not this fork" ;;
+    com.tinycast.app.dev) echo "a Debug build, not a fork install" ;;
+    *) echo "not this fork" ;;
     esac
-    die 2 "$DEST is ${found:-unreadable}, $owner. Point TINYCAST_INSTALL_PATH elsewhere."
+}
+
+# A bundle that is not the fork's is never replaced: upstream's has its own grants and settings.
+refuse_foreign() {
+    die 2 "$1 is ${2:-unreadable}, $(owner "$2"). Point TINYCAST_INSTALL_PATH elsewhere."
 }
 
 check_installed() {
     [ -e "$DEST" ] || return 0
     local found
     found="$(bundle_id "$DEST" || true)"
-    [ "$found" = "$BUNDLE_ID" ] || refuse_foreign "$found"
+    [ "$found" = "$BUNDLE_ID" ] || refuse_foreign "$DEST" "$found"
+}
+
+# Upstream's Tinycast.app beside the fork is only named; a second fork copy is the user's to remove.
+warn_legacy() {
+    [ "$LEGACY" != "$DEST" ] && [ -e "$LEGACY" ] || return 0
+    if ! is_fork "$LEGACY"; then
+        local found
+        found="$(bundle_id "$LEGACY" || true)"
+        note "! $LEGACY is ${found:-unreadable}, $(owner "$found"): both stay installed."
+    elif [ "$INSTALLED" != "$LEGACY" ]; then
+        note "! $LEGACY is a second copy of this fork; quit and remove it once $DEST works."
+    fi
 }
 
 # Every path LaunchServices has registered under the fork's ids, the helper's included.
@@ -115,7 +149,7 @@ registered_copies() {
 
 stale_registrations() {
     registered_copies | while IFS= read -r path; do
-        case "$path" in "$DEST" | "$DEST"/*) ;; *) printf '%s\n' "$path" ;; esac
+        case "$path" in "$1" | "$1"/*) ;; *) printf '%s\n' "$path" ;; esac
     done | sort -u
 }
 
@@ -147,14 +181,14 @@ resolve_version() {
     BUILD="$(git rev-list --count HEAD)"
 }
 
-# Walks the parent chain: quitting Tinycast reaps whatever one of its agents or commands started.
+# Walks the parent chain: quitting the app reaps whatever one of its agents or commands started.
 started_by_tinycast() {
-    local pid=$$ comm
+    local pid=$$ comm app="${INSTALLED:-$DEST}"
     while [ "${pid:-1}" -gt 1 ]; do
         pid="$(ps -o ppid= -p "$pid" 2>/dev/null | tr -d ' ')"
         [ -n "$pid" ] || return 1
         comm="$(ps -o comm= -p "$pid" 2>/dev/null || true)"
-        case "$comm" in "$DEST/Contents/"*) return 0 ;; esac
+        case "$comm" in "$app/Contents/"*) return 0 ;; esac
     done
     return 1
 }
@@ -192,7 +226,8 @@ preflight() {
         note "! project.yml is newer than the project: run \`xcodegen generate\` if it changed."
     fi
     local leftover
-    for leftover in "$PARENT/.$NAME-staged-"*; do
+    # A run from before the rename left them under the old name.
+    for leftover in "$PARENT/.$NAME-staged-"* "$PARENT/.Tinycast-staged-"*; do
         [ -e "$leftover" ] || continue
         if [ "$MODE" = self-check ]; then
             note "would remove the leftover $leftover"
@@ -200,9 +235,10 @@ preflight() {
             rm -rf "$leftover"
         fi
     done
-    for leftover in "$PARENT/.$NAME-previous-"*; do
+    for leftover in "$PARENT/.$NAME-previous-"* "$PARENT/.Tinycast-previous-"*; do
         [ -e "$leftover" ] && note "! $leftover is left from an interrupted swap; check it."
     done
+    resolve_installed
     return 0
 }
 
@@ -210,14 +246,15 @@ preflight() {
 verify_build() {
     [ "$(bundle_id "$BUILT")" = "$BUNDLE_ID" ] ||
         die 1 "$BUILT is $(bundle_id "$BUILT"), expected $BUNDLE_ID."
-    ./Scripts/verify-signature.sh "$BUILT" || die 1 "$BUILT does not verify."
+    TINYCAST_DICTATION_NAME="$APP_NAME Dictation" ./Scripts/verify-signature.sh "$BUILT" ||
+        die 1 "$BUILT does not verify."
     NEW_DR="$(designated "$BUILT")"
     [ -n "$NEW_DR" ] || die 1 "$BUILT has no designated requirement."
     DR_NOTE="new install"
-    [ -e "$DEST" ] || return 0
+    [ -n "$INSTALLED" ] || return 0
     check_installed
     local old_dr
-    old_dr="$(designated "$DEST")"
+    old_dr="$(designated "$INSTALLED")"
     if [ "$old_dr" = "$NEW_DR" ]; then
         DR_NOTE="unchanged"
     elif [ "$ACCEPT_NEW" -eq 1 ]; then
@@ -232,8 +269,10 @@ build() {
     resolve_version
     mkdir -p "$WORK"
     say "Building $BUNDLE_ID $VERSION ($BUILD) for $(uname -m), signed by ${IDENTITY}…"
+    # PRODUCT_NAME as release.yml passes it; project.yml pins the helpers' names against it.
     if ! xcodebuild -project Tinycast.xcodeproj -scheme Tinycast -configuration Release \
         -derivedDataPath "$WORK/DerivedData" ARCHS="$(uname -m)" ONLY_ACTIVE_ARCH=YES \
+        PRODUCT_NAME="$APP_NAME" DICTATION_EXECUTABLE_NAME="$APP_NAME Dictation" \
         TINYCAST_BUNDLE_IDENTIFIER="$BUNDLE_ID" \
         CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY="$IDENTITY" DEVELOPMENT_TEAM= \
         OTHER_CODE_SIGN_FLAGS=--timestamp=none \
@@ -243,7 +282,7 @@ build() {
         die 1 "build failed; the full log is $WORK/build.log"
     fi
     local products="$WORK/DerivedData/Build/Products/Release" product
-    BUILT="$products/Tinycast.app"
+    BUILT="$products/$APP_NAME.app"
     # Xcode's RegisterWithLaunchServices step would leave tinycast:// pointing in here.
     for product in "$products"/*.app; do
         [ -e "$product" ] && "$LSREGISTER" -u "$product" >/dev/null 2>&1 || true
@@ -267,93 +306,126 @@ detach() {
 if os.fork(): os._exit(0)
 os.setsid(); os.execv(sys.argv[1], sys.argv[1:])' \
         /bin/bash "$SELF" --detached ${ARGS[@]+"${ARGS[@]}"} </dev/null >"$WORK/install.log" 2>&1 &
-    say "Started from Tinycast: the install goes on in a session of its own, $WORK/install.log"
-    note "Tinycast quits and comes back once it is installed; a failed build leaves it running."
+    say "Started from the app: the install goes on in a session of its own, $WORK/install.log"
+    note "The app quits and comes back once it is installed; a failed build leaves it running."
     exit 0
 }
 
 quit_app() {
-    bundle_running || return 0
+    local app=$INSTALLED label
+    [ -n "$app" ] && bundle_running "$app" || return 0
+    label="$(basename "$app" .app)"
     # Asked only while it runs: AppleScript would launch a quit app just to quit it.
-    if app_running; then
-        say "Quitting ${NAME}…"
+    if app_running "$app"; then
+        say "Quitting ${label}…"
         osascript -e "tell application id \"$BUNDLE_ID\" to quit" >/dev/null 2>&1 || true
     fi
     local _
     for _ in $(seq 100); do
-        bundle_running || return 0
+        bundle_running "$app" || return 0
         sleep 0.2
     done
     [ "$FORCE_QUIT" -eq 1 ] ||
-        die 3 "$NAME did not quit within 20 s. Quit it from its menu, or rerun with --force-quit."
-    note "! forcing $NAME to quit; an unsaved note draft may be lost."
-    pkill -TERM -f "^$DEST/Contents/" || true
+        die 3 "$label did not quit within 20 s. Quit it from its menu, or rerun with --force-quit."
+    note "! forcing $label to quit; an unsaved note draft may be lost."
+    pkill -TERM -f "^$app/Contents/" || true
     sleep 2
-    pkill -KILL -f "^$DEST/Contents/" || true
+    pkill -KILL -f "^$app/Contents/" || true
     sleep 0.5
-    if bundle_running; then die 3 "$NAME is still running after SIGKILL."; fi
+    if bundle_running "$app"; then die 3 "$label is still running after SIGKILL."; fi
     return 0
 }
 
 # rename(2) cannot replace a non-empty directory, so two renames, the first undone on failure.
 swap() {
-    local aside="$PARENT/.$NAME-previous-$$" error
-    if [ -e "$DEST" ] && ! error="$(mv "$DEST" "$aside" 2>&1)"; then
+    local target=$1 aside="$PARENT/.$NAME-previous-$$" error
+    if [ -n "$INSTALLED" ] && ! error="$(mv "$INSTALLED" "$aside" 2>&1)"; then
         printf '%s\n' "$error" >&2
         app_management_hint "$error"
         die 4 "could not move the installed copy aside; nothing changed."
     fi
-    if ! error="$(mv "$STAGE" "$DEST" 2>&1)"; then
+    if ! error="$(mv "$STAGE" "$target" 2>&1)"; then
         printf '%s\n' "$error" >&2
-        [ -e "$aside" ] && mv "$aside" "$DEST"
+        [ -e "$aside" ] && mv "$aside" "$INSTALLED"
         app_management_hint "$error"
         die 4 "swap failed; the previous copy is back in place."
     fi
     STAGE=""
-    rm -rf "$PREVIOUS"
+    rm -rf "$PREVIOUS" "$PREVIOUS_ORIGIN"
     if [ -e "$aside" ]; then
         mkdir -p "$WORK"
-        mv "$aside" "$PREVIOUS" 2>/dev/null || rm -rf "$aside"
+        if mv "$aside" "$PREVIOUS" 2>/dev/null; then
+            printf '%s\n' "$INSTALLED" >"$PREVIOUS_ORIGIN"
+        else
+            rm -rf "$aside"
+        fi
     fi
-    ok "Swapped into $DEST"
+    ok "Swapped into $target"
 }
 
 register() {
-    "$LSREGISTER" -f "$DEST" || true
-    local path
+    local live=$1 path
+    "$LSREGISTER" -f "$live" || true
+    # The copy a migration moved away; LaunchServices would keep offering its old path.
+    if [ -n "$INSTALLED" ] && [ "$INSTALLED" != "$live" ]; then
+        "$LSREGISTER" -u "$INSTALLED" >/dev/null 2>&1 || true
+        note "unregistered $INSTALLED"
+    fi
     while IFS= read -r path; do
-        [ -n "$path" ] || continue
+        [ -n "$path" ] && [ "$path" != "$INSTALLED" ] || continue
         "$LSREGISTER" -u "$path" >/dev/null 2>&1 || true
         note "unregistered $path"
-    done < <(stale_registrations)
+    done < <(stale_registrations "$live")
 }
 
 relaunch() {
+    local live=$1 label
+    label="$(basename "$live" .app)"
     if [ "$LAUNCH" -eq 1 ]; then
-        open "$DEST"
+        open "$live"
         local _
         for _ in $(seq 50); do
-            app_running && break
+            app_running "$live" && break
             sleep 0.2
         done
-        app_running || note "! $NAME did not start within 10 s; open it by hand."
+        app_running "$live" || note "! $label did not start within 10 s; open it by hand."
     fi
     local authority
-    authority="$(codesign -dvv "$DEST" 2>&1 | sed -n 's/^Authority=//p' | head -1)"
-    ok "Installed $NAME $(plist "$DEST" CFBundleShortVersionString || echo "?")" \
-        "($(plist "$DEST" CFBundleVersion || echo "?"))"
+    authority="$(codesign -dvv "$live" 2>&1 | sed -n 's/^Authority=//p' | head -1)"
+    ok "Installed $label $(plist "$live" CFBundleShortVersionString || echo "?")" \
+        "($(plist "$live" CFBundleVersion || echo "?"))"
     note "identity:    ${authority:-ad hoc}"
     note "requirement: $DR_NOTE"
-    note "path:        $DEST ($(du -sh "$DEST" | awk '{ print $1 }'))"
+    note "path:        $live ($(du -sh "$live" | awk '{ print $1 }'))"
+    if [ -n "$INSTALLED" ] && [ "$INSTALLED" != "$live" ]; then
+        note "renamed:     $(basename "$INSTALLED") is in the rollback slot; --rollback restores it"
+        note "Privacy grants follow the bundle id and code requirement, so they carry over. The"
+        note "login item may still name the old path: if $label does not open at login, switch"
+        note "Settings › General › Launch at login off and on (see System Settings › Login Items)."
+    fi
     note "If a Screen Awareness capture says Accessibility is refused while other apps work,"
     note "quit and reopen the app you captured."
 }
 
+# A slot kept by a migration returns under its old name; one from before keeps today's place.
+rollback_target() {
+    TARGET=""
+    [ ! -f "$PREVIOUS_ORIGIN" ] || TARGET="$(cat "$PREVIOUS_ORIGIN")"
+    case "$TARGET" in
+    "") TARGET="${INSTALLED:-$DEST}" ;;
+    "$DEST" | "$LEGACY") ;;
+    *) die 2 "the rollback copy was installed at $TARGET, not $DEST; set TINYCAST_INSTALL_PATH." ;;
+    esac
+    if [ -e "$TARGET" ] && [ "$TARGET" != "$INSTALLED" ]; then
+        die 2 "$TARGET is in the way of the rollback ($(bundle_id "$TARGET" || echo unreadable))."
+    fi
+}
+
 finish() {
     quit_app
-    swap
-    register
-    relaunch
+    swap "$1"
+    register "$1"
+    relaunch "$1"
 }
 
 self_check() {
@@ -365,23 +437,34 @@ self_check() {
     note "identity:    $IDENTITY"
     note "version:     $VERSION ($BUILD)"
     note "bundle id:   $BUNDLE_ID"
-    note "install to:  $DEST"
-    if [ -e "$DEST" ]; then
-        note "installed:   $(bundle_id "$DEST" || echo unreadable)" \
-            "$(plist "$DEST" CFBundleShortVersionString || true)"
-        note "requirement: $(designated "$DEST")"
+    note "install to:  $DEST ($APP_NAME.app, helper $APP_NAME Dictation)"
+    if [ -n "$INSTALLED" ]; then
+        note "installed:   $INSTALLED, $(bundle_id "$INSTALLED" || echo unreadable)" \
+            "$(plist "$INSTALLED" CFBundleShortVersionString || true)"
+        note "requirement: $(designated "$INSTALLED")"
         check_installed
     else
         note "installed:   nothing yet"
     fi
-    if [ -e "$PREVIOUS" ]; then note "rollback to: $PREVIOUS"; else note "rollback to: none"; fi
-    if started_by_tinycast; then note "started by:  Tinycast (an install would detach)"; fi
+    if [ "$INSTALLED" = "$LEGACY" ] && [ "$LEGACY" != "$DEST" ]; then
+        note "migrate:     $LEGACY → $DEST; the old copy goes to the rollback slot and"
+        note "             LaunchServices forgets it. Grants carry over; Launch at login may need"
+        note "             switching off and on."
+    fi
+    warn_legacy
+    if [ -e "$PREVIOUS" ]; then
+        note "rollback to: $PREVIOUS, at" \
+            "$(cat "$PREVIOUS_ORIGIN" 2>/dev/null || echo "${INSTALLED:-$DEST}")"
+    else
+        note "rollback to: none"
+    fi
+    if started_by_tinycast; then note "started by:  the installed app (an install would detach)"; fi
     local path count=0
     while IFS= read -r path; do
         [ -n "$path" ] || continue
         note "would unregister $path"
         count=$((count + 1))
-    done < <(stale_registrations)
+    done < <(stale_registrations "$DEST")
     [ "$count" -gt 0 ] || note "LaunchServices: only $DEST is registered"
     ok "self-check passed; nothing was built, moved or registered"
 }
@@ -405,12 +488,14 @@ EOF
     {
         printf '#!/bin/bash\nset -eu\nLAUNCHER=%q PGID=%q\n' "$bin/launcher" "$TEST_ROOT/build.pgid"
         cat <<'EOF'
-data="" id="" version=""
+data="" id="" version="" name=Tinycast dictation="Tinycast Dictation"
 while [ $# -gt 0 ]; do
     case "$1" in
     -derivedDataPath) data="$2" && shift ;;
     TINYCAST_BUNDLE_IDENTIFIER=*) id="${1#*=}" ;;
     MARKETING_VERSION=*) version="${1#*=}" ;;
+    PRODUCT_NAME=*) name="${1#*=}" ;;
+    DICTATION_EXECUTABLE_NAME=*) dictation="${1#*=}" ;;
     esac
     shift
 done
@@ -421,15 +506,15 @@ info() {
         CFBundleExecutable "$2" CFBundlePackageType APPL CFBundleShortVersionString "$version"
     printf '</dict></plist>\n'
 }
-app="${data:?}/Build/Products/Release/Tinycast.app"
-helper="$app/Contents/Helpers/Tinycast Dictation.app"
+app="${data:?}/Build/Products/Release/$name.app"
+helper="$app/Contents/Helpers/$dictation.app"
 rm -rf "$app"
 mkdir -p "$app/Contents/MacOS" "$helper/Contents/MacOS"
-cp "$LAUNCHER" "$app/Contents/MacOS/Tinycast"
+cp "$LAUNCHER" "$app/Contents/MacOS/$name"
 cp "$LAUNCHER" "$app/Contents/Helpers/ClipboardTextHelper"
-cp "$LAUNCHER" "$helper/Contents/MacOS/Tinycast Dictation"
-info "$id" Tinycast >"$app/Contents/Info.plist"
-info "$id.dictation" "Tinycast Dictation" >"$helper/Contents/Info.plist"
+cp "$LAUNCHER" "$helper/Contents/MacOS/$dictation"
+info "$id" "$name" >"$app/Contents/Info.plist"
+info "$id.dictation" "$dictation" >"$helper/Contents/Info.plist"
 for code in "$app/Contents/Helpers/ClipboardTextHelper" "$helper" "$app"; do
     codesign -s - -o runtime -f "$code" 2>/dev/null
 done
@@ -460,21 +545,34 @@ version() { plist "$1" CFBundleShortVersionString 2>/dev/null || echo none; }
 # Every build the stub ran wrote its process group; none may be the caller's.
 built_outside() { [ -s "$TEST_ROOT/build.pgid" ] && ! grep -qx "$1" "$TEST_ROOT/build.pgid"; }
 
+# An installed copy named as its path says, with the helpers that name implies.
 fake_app() {
-    "$TEST_ROOT/bin/xcodebuild" -derivedDataPath "$TEST_ROOT/seed" \
-        TINYCAST_BUNDLE_IDENTIFIER="$2" MARKETING_VERSION="$3" build
+    local name
+    name="$(basename "$1" .app)"
+    "$TEST_ROOT/bin/xcodebuild" -derivedDataPath "$TEST_ROOT/seed" PRODUCT_NAME="$name" \
+        DICTATION_EXECUTABLE_NAME="$name Dictation" TINYCAST_BUNDLE_IDENTIFIER="$2" \
+        MARKETING_VERSION="$3" build
     mkdir -p "$(dirname "$1")"
-    ditto "$TEST_ROOT/seed/Build/Products/Release/Tinycast.app" "$1"
+    ditto "$TEST_ROOT/seed/Build/Products/Release/$name.app" "$1"
     rm -f "$TEST_ROOT/build.pgid"
 }
 
 # Starts the copied script the way an agent's command does: as a child of the installed app.
 from_app() {
     local status=0
-    "$1/Contents/MacOS/Tinycast" /bin/bash "$TEST_ROOT/repo/Scripts/fork/install.sh" "${@:2}" \
-        >"$TEST_ROOT/out.log" 2>&1 || status=$?
+    "$1/Contents/MacOS/$(plist "$1" CFBundleExecutable)" /bin/bash \
+        "$TEST_ROOT/repo/Scripts/fork/install.sh" "${@:2}" >"$TEST_ROOT/out.log" 2>&1 || status=$?
     printf '%s' "$status"
 }
+
+# Runs the copied script from no app at all, its output where `check` prints it from.
+install_status() {
+    local status=0
+    "$TEST_ROOT/repo/Scripts/fork/install.sh" "$@" >"$TEST_ROOT/out.log" 2>&1 || status=$?
+    printf '%s' "$status"
+}
+
+unregistered() { grep -qxF -- "-u $1" "$TEST_ROOT/lsregister.log" 2>/dev/null; }
 
 # Done once the log has its last word and the detached script has exited.
 finished() {
@@ -492,8 +590,9 @@ finished() {
 self_test() {
     TEST_ROOT="${TMPDIR:-/tmp}"
     TEST_ROOT="${TEST_ROOT%/}/tinycast-install-selftest-$(uuidgen)"
-    local repo="$TEST_ROOT/repo" app="$TEST_ROOT/Applications/Tinycast.app" status own
+    local repo="$TEST_ROOT/repo" app="$TEST_ROOT/Applications/$APP_NAME.app" status own
     local log="$TEST_ROOT/repo/build/fork/install.log" id=com.tinycast.app.fork.selftest
+    local slot="$TEST_ROOT/repo/build/fork/Tinycast.previous" old new upstream
     mkdir -p "$repo/Scripts/fork" "$TEST_ROOT/bin"
     [ -n "${TINYCAST_INSTALL_KEEP:-}" ] || trap 'rm -rf "$TEST_ROOT"' EXIT
     cp "$SELF" "$repo/Scripts/fork/install.sh"
@@ -509,8 +608,7 @@ self_test() {
     own="$(ps -o pgid= -p $$ | tr -d ' ')"
 
     fake_app "$app" "$id" 1.0
-    status=0
-    "$repo/Scripts/fork/install.sh" --no-launch >"$TEST_ROOT/out.log" 2>&1 || status=$?
+    status="$(install_status --no-launch)"
     check "an ad hoc build, whose requirement always changes, is refused (exit $status)" \
         [ "$status" = 2 ]
     check "with both requirements printed" [ "$(grep -c 'cdhash H' "$TEST_ROOT/out.log")" = 2 ]
@@ -523,18 +621,60 @@ self_test() {
     check "the detached install finishes" finished "$log"
     check "having built outside the caller's process group" built_outside "$own"
     check "the new build is installed" [ "$(version "$app")" = 2.0.0 ]
-    check "and the old one kept for --rollback" \
-        [ "$(version "$repo/build/fork/Tinycast.previous")" = 1.0 ]
+    check "named $APP_NAME, its Dictation helper too" \
+        [ "$(plist "$app" CFBundleExecutable)" = "$APP_NAME" -a \
+        -x "$app/Contents/Helpers/$APP_NAME Dictation.app/Contents/MacOS/$APP_NAME Dictation" ]
+    check "and the old one kept for --rollback" [ "$(version "$slot")" = 1.0 ]
     check "--no-launch opens nothing" [ ! -e "$TEST_ROOT/open.log" ]
 
-    status=0
-    "$repo/Scripts/fork/install.sh" --rollback --no-launch >"$TEST_ROOT/out.log" 2>&1 || status=$?
+    status="$(install_status --rollback --no-launch)"
     check "started elsewhere, --rollback runs in place (exit $status)" [ "$status" = 0 ]
     check "and puts the old build back" [ "$(version "$app")" = 1.0 ]
 
+    old="$TEST_ROOT/Migrate/Tinycast.app" new="$TEST_ROOT/Migrate/$APP_NAME.app"
+    export TINYCAST_INSTALL_PATH="$new"
+    rm -rf "$slot" "$log"
+    fake_app "$old" "$id" 1.5
+    status="$(install_status --self-check)"
+    check "--self-check plans the migration (exit $status)" \
+        grep -q "migrate: .*$old → $new" "$TEST_ROOT/out.log"
+    status="$(install_status --no-launch)"
+    check "a fork copy under the old name is checked against the new build (exit $status)" \
+        [ "$status" = 2 -a "$(version "$old")" = 1.5 -a ! -e "$new" ]
+    rm -f "$TEST_ROOT/build.pgid"
+    status="$(from_app "$old" --no-launch --accept-new-identity)"
+    check "started from the old copy, it returns at once (exit $status)" [ "$status" = 0 ]
+    check "having detached from it" grep -q "session of its own" "$TEST_ROOT/out.log"
+    check "the migration finishes" finished "$log"
+    check "installing the new name" [ "$(version "$new")" = 2.0.0 ]
+    check "with the old copy in the rollback slot" [ ! -e "$old" -a "$(version "$slot")" = 1.5 ]
+    check "and unregistered" unregistered "$old"
+    check "and the summary names the grants and Open at login" \
+        grep -q "Privacy grants follow the bundle id" "$log"
+    status="$(install_status --rollback --no-launch)"
+    check "--rollback undoes the migration (exit $status)" \
+        [ "$status" = 0 -a "$(version "$old")" = 1.5 -a ! -e "$new" ]
+    check "keeping the new copy for a second --rollback" [ "$(version "$slot")" = 2.0.0 ]
+    check "and unregistering it" unregistered "$new"
+    status="$(install_status --rollback --no-launch)"
+    check "which migrates again (exit $status)" \
+        [ "$status" = 0 -a "$(version "$new")" = 2.0.0 -a ! -e "$old" ]
+
+    upstream="$TEST_ROOT/Shared/Tinycast.app"
+    export TINYCAST_INSTALL_PATH="$TEST_ROOT/Shared/$APP_NAME.app"
+    fake_app "$upstream" com.tinycast.app 9.0
+    status="$(install_status --no-launch)"
+    check "next to upstream's Tinycast.app the fork installs (exit $status)" \
+        [ "$status" = 0 -a "$(version "$TINYCAST_INSTALL_PATH")" = 2.0.0 ]
+    check "saying both stay" grep -q "upstream's Tinycast, not this fork: both stay" \
+        "$TEST_ROOT/out.log"
+    check "and leaves upstream's in place" [ "$(version "$upstream")" = 9.0 ]
+    check "and registered" sh -c '! grep -qxF -- "-u $1" "$2"' - "$upstream" \
+        "$TEST_ROOT/lsregister.log"
+
     rm -f "$log"
-    fake_app "$TEST_ROOT/Other/Tinycast.app" com.example.other 9.0
-    export TINYCAST_INSTALL_PATH="$TEST_ROOT/Other/Tinycast.app"
+    fake_app "$TEST_ROOT/Other/$APP_NAME.app" com.example.other 9.0
+    export TINYCAST_INSTALL_PATH="$TEST_ROOT/Other/$APP_NAME.app"
     status="$(from_app "$TINYCAST_INSTALL_PATH" --no-launch)"
     check "a foreign app is refused to the caller (exit $status)" [ "$status" = 2 ]
     check "before anything detaches or builds" test ! -e "$log" -a ! -e "$TEST_ROOT/build.pgid"
@@ -559,22 +699,24 @@ install)
     # Refusals that need no build answer the caller before anything detaches.
     resolve_identity
     check_installed
+    warn_legacy
     detach
     trap cleanup EXIT
     build
     stage "$BUILT"
-    finish
+    finish "$DEST"
     ;;
 rollback)
     preflight
     [ -e "$PREVIOUS" ] || die 1 "nothing to roll back to: $PREVIOUS does not exist."
     [ "$(bundle_id "$PREVIOUS")" = "$BUNDLE_ID" ] || die 2 "$PREVIOUS is not a $BUNDLE_ID build."
     check_installed
+    rollback_target
     detach
     DR_NOTE="rolled back"
     trap cleanup EXIT
     # Staged on the destination volume, so the swap stays two renames.
     stage "$PREVIOUS"
-    finish
+    finish "$TARGET"
     ;;
 esac

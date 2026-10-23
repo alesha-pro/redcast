@@ -12,7 +12,7 @@ enum AgentSource: String, Codable, Sendable, CaseIterable {
         case .codex: "Codex"
         case .gemini: "Gemini CLI"
         case .openCode: "OpenCode"
-        case .tinycast: "Tinycast"
+        case .tinycast: "Redcast"
         }
     }
 }
