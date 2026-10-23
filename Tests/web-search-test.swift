@@ -44,8 +44,10 @@ struct WebSearchTests {
         await aQueryOrASpellingCarriesNothing()
         await aTurnReadsOnlyAFewPages()
         pagesBecomeCompactMarkdown()
+        await hostilePagesConvertInOnePass()
         recordedPagesRead()
         longPagesComeInParts()
+        longTablesSplitBetweenRows()
         await theReaderRoutesEachKind()
         await anotherPartIsNotAnotherRead()
         await anAgentsFetchKeepsToWhatItWasGiven()
@@ -1194,6 +1196,42 @@ extension WebSearchTests {
         expect(ContinuousClock.now - started < .seconds(5), "and promptly")
     }
 
+    /// Every tag once: a page of regions, or one stopped half way, never costs more than its length.
+    static func hostilePagesConvertInOnePass() async {
+        let regions = String(repeating: "<article></article>", count: 55_000) + String(repeating: "<b>", count: 330_000)
+        let started = ContinuousClock.now
+        let empty = WebPageMarkdown.page(from: regions, base: URL(string: "https://a.test")!)
+        let took = ContinuousClock.now - started
+        expect(empty.blocks.isEmpty && took < .seconds(4), "2 MB of articles and tags converts in one pass, took \(took)")
+        let roles = String(repeating: "<div role=main></div>", count: 50_000) + String(repeating: "<i>", count: 300_000)
+        let rolesStarted = ContinuousClock.now
+        _ = WebPageMarkdown.page(from: roles, base: URL(string: "https://a.test")!)
+        expect(ContinuousClock.now - rolesStarted < .seconds(4), "and so does a page of main roles")
+        let stopped = Task {
+            withUnsafeCurrentTask { $0?.cancel() }
+            return WebPageMarkdown.page(
+                from: String(repeating: "<p>word</p>", count: 200_000), base: URL(string: "https://a.test")!)
+        }
+        let partial = await stopped.value
+        expect(
+            !partial.blocks.isEmpty && partial.blocks.count < 5_000,
+            "a stopped read stops converting, keeping what it had, got \(partial.blocks.count) blocks")
+
+        let accordion = markdown("""
+            <main><h2 class="accordion-header"><button class="accordion-button" type="button" aria-expanded="true"
+            aria-controls="c1">Shipping</button></h2><div id="c1" class="collapse show"><p>It costs 12 euros.</p></div>
+            <h3><button type="button">Returns</button></h3><div class="collapse"><p>Within 14 days.</p></div>
+            <div class="faq"><button aria-expanded="false" aria-controls="a3">Can I pay later?</button>
+            <div id="a3"><p>No, only by card.</p></div></div>
+            <p>Copy the code <button type="button">Copy</button><button><svg></svg></button> below.</p></main>
+            """)
+        expect(
+            accordion.contains("## Shipping\n\nIt costs 12 euros.") && accordion.contains("### Returns")
+                && accordion.contains("Can I pay later?") && accordion.contains("No, only by card."),
+            "an accordion's or a heading's buttons keep the questions they name, got:\n\(accordion)")
+        expect(accordion.contains("Copy the code below."), "any other button is a control and goes")
+    }
+
     static func page(_ name: String) -> Data {
         FileManager.default.contents(atPath: "Tests/web-search-fixtures/pages/\(name)") ?? Data()
     }
@@ -1290,6 +1328,35 @@ extension WebSearchTests {
             "text with no space at all is cut on whole characters")
     }
 
+    /// A table longer than a part goes on in the next under its own header, cut only between rows.
+    static func longTablesSplitBetweenRows() {
+        let rows = (1...1_200).map {
+            "<tr><td>Country \($0)</td><td>\($0 * 1_237)</td><td>\($0 * 7)</td><td>note \($0)</td></tr>"
+        }
+        let html = "<main><h1>GDP</h1><p>Intro to the list.</p><table><tr><th>Country</th><th>GDP</th><th>Pop</th>"
+            + "<th>Note</th></tr>" + rows.joined() + "</table><p>After the table.</p></main>"
+        let parts = WebPageParts(WebPageMarkdown.page(from: html, base: URL(string: "https://site.test/")!))
+        let header = "| Country | GDP | Pop | Note |\n| --- | --- | --- | --- |"
+        var seen: [Int] = []
+        for number in 1...max(1, parts.count) {
+            let text = parts.part(number)?.text ?? ""
+            expect(text.utf8.count <= WebPageParts.partBytes, "part \(number) fits a result")
+            if number == 1 {
+                expect(
+                    text.hasPrefix("# GDP\n\nIntro to the list.\n\n" + header) && text.utf8.count > 20_000,
+                    "the table starts in the part before it, filling it, got \(text.utf8.count) bytes")
+            } else {
+                expect(text.hasPrefix(header), "part \(number) opens with the header again, got \(text.prefix(60))")
+            }
+            for line in text.split(separator: "\n") where line.hasPrefix("| Country ") {
+                expect(line.hasSuffix(" |") && line.split(separator: "|").count == 4, "a whole row: \(line)")
+                seen += line.matches(of: #/^\| Country (\d+) \|/#).compactMap { Int($0.output.1) }
+            }
+        }
+        expect(seen == Array(1...1_200), "every row once, in order, got \(seen.count)")
+        expect(parts.part(parts.count)?.text.hasSuffix("After the table.") == true, "and the page goes on after it")
+    }
+
     static func theReaderRoutesEachKind() async {
         let me = URL(fileURLWithPath: CommandLine.arguments[0]).standardizedFileURL
         let pdf = FileManager.default.temporaryDirectory.appendingPathComponent("web-test-\(UUID().uuidString).pdf")
@@ -1298,6 +1365,13 @@ extension WebSearchTests {
         let report = (try? Data(contentsOf: pdf)) ?? Data()
         let big = Data(("<html><body>" + String(repeating: "<p>\(String(repeating: "filler ", count: 30))</p>",
                                                 count: 10_000)).utf8)
+        func document(_ text: String, _ type: NSAttributedString.DocumentType) -> Data {
+            let string = NSAttributedString(string: text)
+            let range = NSRange(location: 0, length: string.length)
+            return (try? string.data(from: range, documentAttributes: [.documentType: type])) ?? Data()
+        }
+        let minutes = document((1...3_000).map { "Line \($0) of the minutes." }.joined(separator: "\n\n"), .officeOpenXML)
+        let notes = document("Quarterly notes\nRevenue grew.", .rtf)
         StubPages.set([
             "https://site.test/page": (200, "text/html; charset=windows-1251", Data(
                 "<title>Погода</title><p>Сегодня ясно. <a href=\"/next\">Дальше</a></p>".data(using: .windowsCP1251)!)),
@@ -1306,7 +1380,13 @@ extension WebSearchTests {
             "https://site.test/named.pdf": (200, "", report),
             "https://site.test/plain": (200, "text/plain", Data("First paragraph.\n\nSecond paragraph.".utf8)),
             "https://site.test/missing": (404, "text/html", Data("<p>Not found</p>".utf8)),
-            "https://site.test/big": (200, "text/html", big)
+            "https://site.test/big": (200, "text/html", big),
+            "https://site.test/minutes": (
+                200, "application/vnd.openxmlformats-officedocument.wordprocessingml.document", minutes),
+            "https://site.test/files/notes.rtf": (200, "application/octet-stream", notes),
+            "https://site.test/hello-2.12.tar.gz": (200, "application/x-gzip", Data([0x1F, 0x8B, 0x08, 0x00])),
+            "https://site.test/get?id=7": (200, "application/octet-stream", Data([0x50, 0x4B, 0x03, 0x04, 0x14, 0x00])),
+            "https://site.test/wide": (200, "text/plain; charset=utf-16", "Wide text".data(using: .utf16)!)
         ])
         let documents = DocumentTextService(executable: me)
         func read(
@@ -1353,6 +1433,25 @@ extension WebSearchTests {
             "and its last part says the page went on past what a read takes")
         let past = await read("https://site.test/big", part: count + 1)
         expect(past.failure?.message.contains("part \(count + 1) is past the end") == true, "past the last part")
+        let word = await read("https://site.test/minutes")
+        let wordText = (try? word.get().text) ?? ""
+        expect(
+            wordText.hasPrefix("A document, as plain text.\nPart 1 of ") && wordText.contains("Line 1 of the minutes."),
+            "a Word file by its type reads as text in parts, got \(wordText.prefix(80))")
+        let wordOn = await read("https://site.test/minutes", part: 2)
+        expect((try? wordOn.get().text)?.contains("Part 2 of ") == true, "and reads on by part")
+        let rtf = await read("https://site.test/files/notes.rtf")
+        expect((try? rtf.get().text)?.contains("Revenue grew.") == true, "an RTF download by its name, got \(rtf)")
+        let archive = await read("https://site.test/hello-2.12.tar.gz")
+        expect(
+            archive.failure?.message == "https://site.test/hello-2.12.tar.gz is not a page or a document a read "
+                + "takes (application/x-gzip).",
+            "an archive is refused by its type, not served as text, got \(archive)")
+        let bytes = await read("https://site.test/get?id=7")
+        expect(
+            bytes.failure?.message.hasSuffix("(binary data).") == true, "and bytes sent as a download by a NUL in them")
+        let wide = await read("https://site.test/wide")
+        expect((try? wide.get().text) == "Wide text", "while UTF-16 text, whose bytes hold NULs, still reads")
         let leftovers = (try? FileManager.default.contentsOfDirectory(atPath: NSTemporaryDirectory())) ?? []
         expect(!leftovers.contains { $0.hasPrefix("tinycast-web-") }, "no spool file outlives its read")
     }

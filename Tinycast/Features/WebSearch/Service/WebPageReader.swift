@@ -1,6 +1,6 @@
 import Foundation
 
-/// `web_fetch` and `read_page`'s read: one bounded fetch, a page in Markdown parts, a PDF by pages.
+/// What `web_fetch` and `read_page` read: one bounded fetch, a page or document in parts.
 nonisolated enum WebPageReader {
     struct Read: Sendable, Equatable {
         let text: String
@@ -15,6 +15,8 @@ nonisolated enum WebPageReader {
 
     /// What a PDF read may carry, like `read_file`'s, under the tool's own 28 KB.
     static let documentBudget = 24 * 1_024
+    /// A word processor's text, paged into parts here as a page's is.
+    static let richTextBudget = 1_048_576
 
     @concurrent
     static func read(
@@ -25,8 +27,8 @@ nonisolated enum WebPageReader {
         let session = makeSession()
         // Also ends what is left of a body cut at its limit.
         defer { session.invalidateAndCancel() }
-        let spool = Spool()
-        defer { spool.remove() }
+        var spool: Spool?
+        defer { spool?.remove() }
         do {
             var request = URLRequest(url: url)
             request.setValue(
@@ -38,29 +40,41 @@ nonisolated enum WebPageReader {
                 return .failure(Failure(message: "\(url.absoluteString) answered HTTP \(http.statusCode)."))
             }
             let type = http?.value(forHTTPHeaderField: "Content-Type")?.lowercased() ?? ""
-            var kind = Self.kind(of: type, url: url)
+            var document = Self.documentType(of: type, url: url)
+            if document == nil, let label = Self.binaryLabel(of: type) {
+                return .failure(Failure(message: Self.notReadable(url, label)))
+            }
             var body = Data()
             var truncated = false
-            if kind != nil { try spool.open() }
+            if let document { spool = try Spool(suffix: document.suffix) }
             for try await byte in bytes {
-                if kind != nil {
+                if let document, let spool {
                     guard try spool.append(byte) else {
-                        return .failure(Failure(message: Self.tooLarge(url, kind: kind ?? .pdf)))
+                        return .failure(Failure(message: Self.tooLarge(url, kind: document.kind)))
                     }
                     continue
                 }
                 body.append(byte)
                 if body.count == 5, body.starts(with: Data("%PDF-".utf8)) {
-                    kind = .pdf
-                    try spool.open()
-                    for byte in body { _ = try spool.append(byte) }
+                    document = (.pdf, "pdf")
+                    let file = try Spool(suffix: "pdf")
+                    for byte in body { _ = try file.append(byte) }
+                    spool = file
                     body = Data()
+                } else if body.count == Self.sniffBytes, Self.isBinary(body, type: type) {
+                    return .failure(Failure(message: Self.notReadable(url, Self.label(of: type))))
                 } else if body.count >= WebPageTool.maxPageBytes {
                     truncated = true
                     break
                 }
             }
-            if let kind { return await document(spool, kind: kind, url: url, pages: pages, documents: documents) }
+            if let document, let spool {
+                return await Self.document(
+                    spool, kind: document.kind, url: url, part: part, pages: pages, tool: tool, documents: documents)
+            }
+            if Self.isBinary(body, type: type) {
+                return .failure(Failure(message: Self.notReadable(url, Self.label(of: type))))
+            }
             return page(body, type: type, url: url, base: response.url ?? url, part: part, tool: tool, truncated: truncated)
         } catch {
             return .failure(Failure(message: "Fetching \(url.absoluteString) failed: \(error.localizedDescription)"))
@@ -89,7 +103,8 @@ nonisolated enum WebPageReader {
     }
 
     private static func document(
-        _ spool: Spool, kind: DocumentKind, url: URL, pages: String?, documents: DocumentTextService
+        _ spool: Spool, kind: DocumentKind, url: URL, part: Int, pages: String?, tool: String,
+        documents: DocumentTextService
     ) async -> Result<Read, Failure> {
         let range: DocumentPageRange
         if let pages {
@@ -105,8 +120,11 @@ nonisolated enum WebPageReader {
         } catch {
             return .failure(Failure(message: "Saving \(url.absoluteString) for reading failed."))
         }
-        let request = DocumentTextRequest(path: spool.path, kind: kind, pages: range, budget: documentBudget)
+        let budget = kind == .richText ? richTextBudget : documentBudget
+        let request = DocumentTextRequest(path: spool.path, kind: kind, pages: range, budget: budget)
         switch await documents.read(request) {
+        case .success(let text) where kind == .richText:
+            return richText(text, url: url, part: part, tool: tool)
         case .success(let text):
             let answer = kind == .pdf
                 ? text.pdfAnswer(for: url.absoluteString, asked: range) : text.imageAnswer(for: url.absoluteString)
@@ -117,12 +135,71 @@ nonisolated enum WebPageReader {
         }
     }
 
-    /// A PDF or an image goes to the document helper; nil reads the body as a page.
-    private static func kind(of type: String, url: URL) -> DocumentKind? {
-        if type.contains("application/pdf") { return .pdf }
-        if type.hasPrefix("image/"), !type.contains("svg") { return .image }
-        let named = url.pathExtension.lowercased() == "pdf"
-        return named && (type.isEmpty || type.contains("octet-stream")) ? .pdf : nil
+    /// A word processor's text in parts, as a page's; nothing in it links anywhere.
+    private static func richText(_ text: DocumentText, url: URL, part: Int, tool: String) -> Result<Read, Failure> {
+        let page = WebPageMarkdown.page(fromText: text.pages.map(\.text).joined(separator: "\n"))
+        guard page.weight > 0 else { return .failure(Failure(message: "\(url.absoluteString) holds no text.")) }
+        let parts = WebPageParts(page)
+        guard let body = WebPageTool.body(of: parts, part: part, title: "", tool: tool, truncated: false) else {
+            return .failure(Failure(message: WebPageTool.pastEnd(part, of: parts.count, url: url)))
+        }
+        var answer = "A document, as plain text.\n" + body.text
+        if text.cut, part == parts.count {
+            answer += "\n\n[The document goes on past the \(richTextBudget / 1_048_576) MB of text a read takes.]"
+        }
+        return .success(Read(text: answer, links: []))
+    }
+
+    /// Word processors' types, and the name a file of each needs for AppKit to import it.
+    private static let richTypes = [
+        ("officedocument.wordprocessingml", "docx"), ("application/msword", "doc"), ("application/rtf", "rtf"),
+        ("application/x-rtf", "rtf"), ("text/rtf", "rtf"), ("opendocument.text", "odt")
+    ]
+
+    /// A PDF, an image or a word processor's file goes to the document helper; nil reads a page.
+    private static func documentType(of type: String, url: URL) -> (kind: DocumentKind, suffix: String)? {
+        if type.contains("application/pdf") { return (.pdf, "pdf") }
+        if type.hasPrefix("image/"), !type.contains("svg") { return (.image, "") }
+        if let rich = richTypes.first(where: { type.contains($0.0) }) { return (.richText, rich.1) }
+        // A download's type says nothing, so its name decides.
+        let generic = ["", "octet-stream", "download", "application/zip", "application/x-zip"]
+        guard generic.contains(where: { $0.isEmpty ? type.isEmpty : type.contains($0) }) else { return nil }
+        let suffix = url.pathExtension.lowercased()
+        if suffix == "pdf" { return (.pdf, suffix) }
+        return ["docx", "doc", "rtf", "odt"].contains(suffix) ? (.richText, suffix) : nil
+    }
+
+    /// Archives, media, fonts, programs, spreadsheets and slides, which no read takes, by their type.
+    private static func binaryLabel(of type: String) -> String? {
+        let families = ["audio/", "video/", "font/", "model/", "application/font", "application/x-font"]
+        let names = [
+            "zip", "gzip", "x-tar", "x-7z", "rar", "x-bzip", "x-xz", "diskimage", "java-archive", "msdownload",
+            "x-executable", "x-mach", "wasm", "ms-excel", "ms-powerpoint", "spreadsheetml", "presentationml",
+            "opendocument.spreadsheet", "opendocument.presentation", "x-iso9660", "android.package", "sqlite"
+        ]
+        let known = families.contains { type.hasPrefix($0) } || names.contains { type.contains($0) }
+        return known ? label(of: type) : nil
+    }
+
+    /// Enough of a body to tell text from bytes, as `DocumentKind` tells a file's.
+    static let sniffBytes = 8_192
+
+    /// A NUL early on, in a body not sent as UTF-16 or UTF-32, whose text holds NULs.
+    static func isBinary(_ body: Data, type: String) -> Bool {
+        let head = body.prefix(sniffBytes)
+        guard head.contains(0) else { return false }
+        let wide = type.contains("utf-16") || type.contains("utf-32") || head.starts(with: [0xFF, 0xFE])
+            || head.starts(with: [0xFE, 0xFF])
+        return !wide
+    }
+
+    private static func label(of type: String) -> String {
+        let bare = type.split(separator: ";").first.map { $0.trimmingCharacters(in: .whitespaces) } ?? ""
+        return bare.isEmpty || bare.contains("octet-stream") ? "binary data" : bare
+    }
+
+    private static func notReadable(_ url: URL, _ label: String) -> String {
+        "\(url.absoluteString) is not a page or a document a read takes (\(label))."
     }
 
     private static func tooLarge(_ url: URL, kind: DocumentKind) -> String {
@@ -175,19 +252,26 @@ nonisolated enum WebPageReader {
     }
 }
 
-/// A PDF or image on its way to the helper: written in chunks, removed when the read ends.
+/// A PDF, an image or a document on its way to the helper, in chunks; gone when the read ends.
 private nonisolated final class Spool {
-    let path = FileManager.default.temporaryDirectory
-        .appendingPathComponent("tinycast-web-\(UUID().uuidString)").path
+    /// Named with its type's suffix, as AppKit picks a word processor's importer by it.
+    let path: String
     private var handle: FileHandle?
     private var buffer: [UInt8] = []
     private var size = 0
 
-    func open() throws {
-        guard handle == nil else { return }
+    /// Created at once, readable by this user alone.
+    init(suffix: String) throws {
+        let name = "tinycast-web-\(UUID().uuidString)" + (suffix.isEmpty ? "" : "." + suffix)
+        path = FileManager.default.temporaryDirectory.appendingPathComponent(name).path
         guard FileManager.default.createFile(atPath: path, contents: nil, attributes: [.posixPermissions: 0o600])
         else { throw CocoaError(.fileWriteUnknown) }
-        handle = try FileHandle(forWritingTo: URL(fileURLWithPath: path))
+        do {
+            handle = try FileHandle(forWritingTo: URL(fileURLWithPath: path))
+        } catch {
+            try? FileManager.default.removeItem(atPath: path)
+            throw error
+        }
         buffer.reserveCapacity(65_536)
     }
 

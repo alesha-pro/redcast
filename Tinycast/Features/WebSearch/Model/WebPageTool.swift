@@ -8,10 +8,10 @@ enum WebPageTool {
     static func definition(origin: String) -> AITool {
         AITool(
             name: name,
-            description: "Read a web page as Markdown with its links, or a PDF by pages. Only a page the "
-                + "user linked or one web_search returned in this turn can be read, not a link found on "
-                + "a page or in an attached file, and at most \(maxReads) pages a turn. A long page comes "
-                + "in parts; reading another part of the same page does not count again.",
+            description: "Read a web page as Markdown with its links, a PDF by pages, or a Word file as text. "
+                + "Only a page the user linked or one web_search returned in this turn can be read, not a "
+                + "link found on a page or in an attached file, and at most \(maxReads) pages a turn. A long "
+                + "page comes in parts; reading another part of the same page does not count again.",
             parameters: .object([
                 "type": .string("object"),
                 "properties": .object([

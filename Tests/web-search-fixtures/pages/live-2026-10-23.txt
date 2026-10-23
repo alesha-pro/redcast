@@ -16,3 +16,17 @@ js-only        https://excalidraw.com/ and https://app.diagrams.net/
 weather        https://forecast.weather.gov/MapClick.php?lat=40.7128&lon=-74.006
                ok, one part, 5557 bytes, 33 links, 0.7 s; conditions table, forecast list.
                weather.html: scripts and styles removed; its unclosed <ul> is kept on purpose.
+
+Read again on 2026-10-24 after the review's fixes, the same way (no fixture kept for these):
+
+accordion      https://getbootstrap.com/docs/5.3/components/accordion/
+               ok, part 1 of several, 22413 bytes, 1.1 s; "## Accordion Item #1" to "#3" above their
+               bodies, the questions a heading's button names.
+archive        https://ftp.gnu.org/gnu/hello/hello-2.12.tar.gz
+               refused by its type (application/x-gzip) before the body was read, 1.5 s.
+word           https://calibre-ebook.com/downloads/demos/demo.docx
+               ok, read by the document helper as text, 8903 bytes, 1.4 s.
+long table     https://en.wikipedia.org/wiki/List_of_countries_by_GDP_(nominal)
+               ok, 3 parts; the table fits a part, so it stays whole in part 2 under its header.
+earlier five   BBC, Wikipedia (Spotlight; Macintosh in 6 parts), the NIST PDF, excalidraw.com and
+               app.diagrams.net, and weather.gov read as before.
