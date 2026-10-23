@@ -169,7 +169,7 @@ enum ExtensionImage {
         "raycast-yellow": .yellow,
         "raycast-primary-text": .primary,
         "raycast-secondary-text": Theme.Colors.textSecondary
-    ]
+    ].merging(RaycastHue.extensionPalette) { $1 }  // Fork: Raycast's own values, light and dark
 
     private static func color(named raw: String) -> Color? {
         // Extensions also pass raw CSS, in every notation `ColorValue` reads.

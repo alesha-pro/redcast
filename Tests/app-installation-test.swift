@@ -479,6 +479,8 @@ struct AppInstallationTest {
 enum SettingsTab: Sendable { case ai }
 enum ExtensionRefreshState: Hashable, Sendable { case idle }
 enum EntryIcon: Hashable, Sendable { case file(stamp: Int), symbol(String) }
+// Fork: the Colourful Icons hook `defaultIcon` asks; here every glyph stays plain.
+extension AppEntry { func colorfulIcon(symbol: String) -> EntryIcon { .symbol(symbol) } }
 enum IconCache {
     static func observeStyle() {}
     static func icon(for source: EntryIcon, fileURL: URL) -> NSImage { NSImage() }

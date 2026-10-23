@@ -369,8 +369,13 @@ private struct PopoverMenuRow: View {
                                     weight: Theme.Typography.menuSymbolWeight)
                             )
                             .symbolRenderingMode(.monochrome)
+                            // Fork: the glyph's family colour while Colourful Icons is on.
                             .foregroundStyle(
-                                item.isDestructive ? Color.red : Theme.Colors.menuSymbol
+                                item.isDestructive
+                                    ? Color.red
+                                    : ColorfulIcons.glyphColor(
+                                        GlyphCategory.menuHue(forSymbol: name),
+                                        otherwise: Theme.Colors.menuSymbol)
                             )
                             .frame(width: metrics.size.menuIcon, height: metrics.size.menuIcon)
                     case .asset(let name):

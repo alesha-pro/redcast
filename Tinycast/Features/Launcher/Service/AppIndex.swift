@@ -225,7 +225,8 @@ struct AppEntry: Identifiable, Hashable, Sendable {
 
     private var defaultIcon: EntryIcon {
         guard kind.descriptor.isSymbolIcon else { return .file(stamp: iconStamp) }
-        return .symbol(symbolName ?? kindSymbol)
+        // Fork: a built-in glyph wears its family's tile while Colourful Icons is on.
+        return colorfulIcon(symbol: symbolName ?? kindSymbol)
     }
 
     private var kindSymbol: String {

@@ -16,6 +16,7 @@ enum ChatSurface {
 struct ChatTranscriptView: View {
 
     @Environment(\.metrics) private var metrics
+    @Environment(\.agentChatBadge) private var agentBadge  // Fork: an agent chat's header
     let messages: [ChatMessage]
     let status: String?
     let usage: AIUsage?
@@ -43,6 +44,7 @@ struct ChatTranscriptView: View {
             ScrollView {
                 // Not lazy: every anchored jump and the end test measure an estimated height
                 VStack(spacing: metrics.spacing.xl) {
+                    if let agentBadge { AgentChatHeader(badge: agentBadge) }  // Fork: the agent
                     ForEach(messages) { message in
                         let isLast = message.id == messages.last?.id
                         ChatMessageView(

@@ -34,6 +34,7 @@ extension AgentCoordinator {
                     self?.core.agentSessionsCoordinator.clearFinished()
                 },
                 settings: { [weak self] in self?.showAgentSettings() },
+                hue: { [weak self] id in self?.store.agent(id: id)?.hue ?? GlyphCategory.ai.hue },
                 viewed: { [weak self] in
                     self?.backgroundRuns?.markFinishedSeen()
                     self?.core.agentSessionsCoordinator.markFinishedSeen()
