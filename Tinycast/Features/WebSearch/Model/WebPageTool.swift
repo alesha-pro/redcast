@@ -3,7 +3,7 @@ import Foundation
 /// `read_page` as a chat without an agent sees it: one page the turn was given, as plain text.
 enum WebPageTool {
     static let name = "read_page"
-    static let invalidURL = "read_page takes an http or https URL."
+    static let invalidURL = "read_page takes an http or https URL with no user name or password."
 
     static func definition(origin: String) -> AITool {
         AITool(
@@ -24,11 +24,11 @@ enum WebPageTool {
             origin: origin, title: name)
     }
 
-    /// Nil unless the argument is an http or https address with a host.
+    /// Nil unless the argument names a page: an http or https address with a host and no user.
     static func url(in arguments: String) -> URL? {
         guard let raw = JSONValue(data: Data(arguments.utf8))?.objectValue?["url"]?.stringValue,
             let url = URL(string: raw.trimmingCharacters(in: CharacterSet(charactersIn: " \n\t<>"))),
-            ["http", "https"].contains(url.scheme?.lowercased() ?? ""), url.host()?.isEmpty == false
+            WebPageScope.key(for: url) != nil
         else { return nil }
         return url
     }

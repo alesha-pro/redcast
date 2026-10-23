@@ -1,30 +1,28 @@
 import Foundation
 
-/// Which pages `read_page` may open: an address the turn was handed, never one the model wrote.
+/// Which pages `read_page` may open, and at which address: as the user or a search engine wrote it.
 enum WebPageScope {
-    /// Whether a user message, or one of this turn's `web_search` answers, names `url`.
-    static func allows(_ url: URL, in messages: [AIMessage]) -> Bool {
-        guard let key = key(for: url) else { return false }
-        return given(in: messages).contains(key)
+    /// The address the turn was given for the page `asked` names; the model's spelling never leaves.
+    static func page(for asked: URL, in messages: [AIMessage], shown: [URL]) -> URL? {
+        key(for: asked).flatMap { given(in: messages, shown: shown)[$0] }
     }
 
-    /// The pages the turn was handed, as `key(for:)`; a page read and a reply add none.
-    static func given(in messages: [AIMessage]) -> Set<String> {
-        let searches = Set(messages.flatMap(\.toolCalls).filter { $0.name == WebSearchTool.name }.map(\.id))
-        let texts = messages.compactMap { message -> String? in
-            switch message.role {
-            case .user: message.text
-            case .tool: message.toolResult.flatMap { searches.contains($0.callID) ? $0.content : nil }
-            case .system, .assistant: nil
-            }
+    /// The user's links, then the search results the model was shown, by `key(for:)`; first wins.
+    static func given(in messages: [AIMessage], shown: [URL]) -> [String: URL] {
+        let typed = links(in: messages.filter { $0.role == .user }.map(\.text).joined(separator: "\n"))
+        var pages: [String: URL] = [:]
+        for url in typed + shown {
+            guard let key = key(for: url), pages[key] == nil else { continue }
+            pages[key] = secured(url)
         }
-        return Set(links(in: texts.joined(separator: "\n")).compactMap(key(for:)))
+        return pages
     }
 
-    /// What names a page; scheme, case, `www.`, doubled slashes or an escape can carry nothing.
+    /// What names a page, for the model to pick one by; an address with a user or password names none.
     static func key(for url: URL) -> String? {
         guard let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
             ["http", "https"].contains(components.scheme?.lowercased() ?? ""),
+            components.user == nil, components.password == nil,
             var host = components.host?.lowercased(), !host.isEmpty
         else { return nil }
         if host.hasPrefix("www.") { host.removeFirst(4) }
@@ -33,6 +31,17 @@ enum WebPageScope {
         if path.hasSuffix("/") { path.removeLast() }
         let query = components.query.flatMap { $0.isEmpty ? nil : "?" + $0 } ?? ""
         return host + port + path + query
+    }
+
+    /// Plain HTTP to the open web goes over HTTPS, since ATS refuses it; a local host keeps HTTP.
+    static func secured(_ url: URL) -> URL {
+        guard url.scheme?.lowercased() == "http", let host = url.host()?.lowercased(),
+            !WebSearchEndpoint.allowsPlainHTTP(to: host),
+            var components = URLComponents(url: url, resolvingAgainstBaseURL: false)
+        else { return url }
+        components.scheme = "https"
+        if components.port == 80 { components.port = nil }
+        return components.url ?? url
     }
 
     /// Links as a reader sees them, a bare domain included; only http and https count.
