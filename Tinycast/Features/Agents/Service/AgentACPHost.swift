@@ -306,6 +306,7 @@ final class AgentACPHost {
         await withCheckedContinuation { continuation in
             let timeout = Task { @MainActor [weak self] in
                 try? await Task.sleep(for: Self.commandListWait)
+                guard !Task.isCancelled else { return }
                 self?.endListWait(for: key)
             }
             listWaits[key] = ListWait(resume: continuation, timeout: timeout)

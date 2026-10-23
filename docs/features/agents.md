@@ -203,9 +203,11 @@ They run on the user's own logins and subscriptions; Tinycast never sees a key.
   command's own exchange. That wait is kept in memory, at most the 24 KB transcript per chat, so it
   holds across an idle stop but not a relaunch, and goes when the chat leaves the agent, when the
   chat is deleted (one at a time through `AgentCoordinator.chatDeleted`, all at once or by retention
-  through `AppCore.pruneAgentSummaries`) and when its agent is deleted. A turn
-  nobody is watching adds the unattended briefing after the context, on every such turn but a slash
-  command's, which goes as typed ([background agents](background-agents.md#while-and-after-a-run)).
+  through `AppCore.pruneAgentSummaries`) and when its agent is deleted, all through
+  `AgentCoordinator.forgetACPSession`, which builds no host when none exists yet and then clears
+  only the stored session id. A turn nobody is watching adds the unattended briefing
+  after the context, on every such turn but a slash command's, which goes as typed
+  ([background agents](background-agents.md#while-and-after-a-run)).
 - **Tinycast offers no fs or terminal of its own.** `initialize` declares both off, so the agent
   uses its own tools and asks about them with `session/request_permission`; any `fs/*`, `terminal/*`
   or other request is answered with method-not-found ([why](#tinycasts-own-fs-and-terminal)). The
