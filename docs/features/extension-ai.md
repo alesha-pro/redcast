@@ -15,13 +15,15 @@ upstream code only routes `ai` host calls to it and carries a temperature.
   answers never ride a backup and have no `settings.json` key.
 - **The extension model answers unless you let an extension name another.** With **Use the model an
   extension asks for** (`extensionsAIHonorsModels`) off, as it starts, every `AI.Model` value is
-  answered by the model chosen for extensions, or by AI Chat's default when that is "Same as AI Chat".
-  On, a name whose vendor differs from that model's goes to the vendor's closest model among the
-  enabled API connections and the models their pickers show. The extension model is never swapped for
-  another of its own vendor, and a CLI route is never chosen. No match, or a route that can't be built,
-  answers with the extension model, silently. A `{ id }` model, the extension's own provider, is never
-  surfaced. A pick whose API connection was deleted counts as unset; a route merely switched off is
-  reported by the factory, never moved to another one.
+  answered by the model chosen for extensions, or by AI Chat's default when that is "Same as AI
+  Chat". On, a name whose vendor differs from that model's goes to the vendor's closest model among
+  the enabled API connections and the models their pickers show. A name's vendor is its first word,
+  so a host serving other vendors' models (`Groq_…`, `Vercel_…`, `gateway-…`) names none, whatever
+  model it carries. The extension model is never swapped for another of its own vendor, and a CLI
+  route is never chosen. No match, or a route that can't be built, answers with the extension model,
+  silently. A `{ id }` model, the extension's own provider, is never surfaced. A pick whose API
+  connection was deleted counts as unset; a route merely switched off is reported by the factory,
+  never moved to another one.
 - **Creativity is a temperature only when the extension asks.** No `creativity`, no temperature: every
   route keeps its default, and a Gemini model always does. A route that refuses one before any text
   arrives is asked once more without it.
@@ -66,7 +68,7 @@ bridge.sessionEnded() ──▶ cancelAll(owner)   (leaving the command, shutdow
   Chunks are emitted from a settle, always after the caller's synchronous `.on`.
 - A string `model` and a string or number `creativity` cross with the prompt; anything else does not.
   `AI.Model` is a Proxy that reads any capitalised name back as itself, so the gate reads the vendor
-  from the key (`Anthropic_Claude_Haiku_4.5`) or from a value an extension wrote out
+  from the first word of the key (`Anthropic_Claude_Haiku_4.5`) or of a value an extension wrote out
   (`anthropic-claude-4-5-haiku`), through `AIBrand`, without a table in the runtime.
 - An abort rejects with `signal.reason`: `AbortError`, which `usePromise` ignores, or `TimeoutError`
   for `AbortSignal.timeout`. A chunk that lands after the abort is dropped, and a "data" listener that
@@ -88,9 +90,13 @@ bridge.sessionEnded() ──▶ cancelAll(owner)   (leaving the command, shutdow
 
 With the model switch on, `ExtensionAIModelRoute` maps a name to a pick:
 
-1. The name's brand, `AIBrand.resolve(model:)`: `Anthropic_…`/`anthropic-…` is Claude, `OpenAI_…` is
-   OpenAI, `Google_…` is Gemini, `xAI_…` is X, and so on through Mistral, Perplexity, DeepSeek, Llama
-   and the rest. Groq's and Vercel's own names, `tinycast` and anything else without one stop here.
+1. The brand of the name's first word (up to `_`, `-` or `/`), `AIBrand.resolve(model:)`:
+   `Anthropic_…`/`anthropic-…` is Claude, `OpenAI_…` is OpenAI, `Google_…` is Gemini, `xAI_…` is X,
+   and so on through Mistral and Perplexity, or an old family name such as `DeepSeek_R1` or
+   `Llama3.1_70B`. That word is Raycast's host, so `Perplexity_Llama3_Sonar_Large` is Perplexity's.
+   The hosts serving other vendors' models (`Groq_`/`groq-`, `Vercel_`/`gateway-`, `Baseten_`,
+   `Together_AI_`/`together-`), `tinycast` and anything else without a brand stop here: an
+   open-weight model on a cheap host never becomes its vendor's own, pricier API.
 2. If the extension model already is that brand — an API pick, Claude's or Codex's CLI, a router's
    model — it answers.
 3. Otherwise, among the enabled API connections and their shown models of that brand: a vendor's own
@@ -249,7 +255,9 @@ Install from the store and turn on Settings → Extensions → AI.
     connection. An extension asking `AI.Model["Anthropic_Claude_Haiku_4.5"]` is answered through the
     Anthropic connection (its usage page, or a proxy); the dialog for a new extension mentions the
     closest model among your API connections. Switch the Anthropic connection off: the OpenAI model
-    answers, silently. With an Anthropic extension model the same ask stays on it.
+    answers, silently. With an Anthropic extension model the same ask stays on it. With an Anthropic
+    extension model, `AI.Model["Groq_GPT-OSS_120b"]` and `AI.Model["Vercel_Gemma_4_31B"]` stay on it
+    too, even with an OpenAI and a Gemini connection on.
 14. A local development extension calling `AI.experimental_decide` with a `noul`, a `choice` and a
     `score` question gets typed answers whose probabilities sum to 1; on Apple Intelligence a reply
     that strays from JSON fails with "The model's answer was not the JSON a decision needs."
@@ -257,17 +265,19 @@ Install from the store and turn on Settings → Extensions → AI.
 ## Harnesses
 
 - `ext-ai-test`: every gate row and its precedence, prompt bounds in UTF-8 bytes, the request's
-  shape, creativity as temperature and the retry policy, a named model's vendor, tier and closest name
-  against connections of every kind, dangling picks, refusal messages, the rate limit's windows, and the
-  bridge against a scripted provider (coalescing, waiting reads, dropped events, text before an error,
-  cancel, owners, a cancelled reader, one retry without temperature and none after text), plus the
-  store's round trip. The gate itself, with a scripted dialog: a run nobody opened is refused before
-  any question; no model is reported before asking; concurrent asks share one question; a dismissed or
-  busy dialog keeps nothing; Don't Allow is kept; the gates are checked again after the answer; a
-  command left during the question starts nothing; a read checks the gates again; the switch ends every
-  answer; a session's end ends only its own; the limit counts only routed asks; a named model is used
-  only with its switch, never past a hidden model or a switched-off connection, and falls back when its
-  route can't be built; creativity reaches the route; a dangling pick falls back to AI Chat's model.
+  shape, creativity as temperature and the retry policy, a named model's vendor (its first word,
+  none for Groq's, Vercel's, Baseten's or Together's names), tier and closest name against
+  connections of every kind, dangling picks, refusal messages, the rate limit's windows, and the
+  bridge against a scripted provider (coalescing, waiting reads, dropped events, text before an
+  error, cancel, owners, a cancelled reader, one retry without temperature and none after text),
+  plus the store's round trip. The gate itself, with a scripted dialog: a run nobody opened is
+  refused before any question; no model is reported before asking; concurrent asks share one
+  question; a dismissed or busy dialog keeps nothing; Don't Allow is kept; the gates are checked
+  again after the answer; a command left during the question starts nothing; a read checks the gates
+  again; the switch ends every answer; a session's end ends only its own; the limit counts only
+  routed asks; a named model is used only with its switch, never past a hidden model or a
+  switched-off connection, and falls back when its route can't be built; creativity reaches the
+  route; a dangling pick falls back to AI Chat's model.
 - `ai-provider-test`: the temperature in OpenAI-shaped bodies as given, Anthropic's held to 1, none
   when not asked, and a continued turn keeping it.
 - `ext-test`: `AI.ask` streaming under JavaScriptCore, `canAccess(AI)` from the launch context, and

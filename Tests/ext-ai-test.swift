@@ -295,6 +295,24 @@ struct ExtensionAITests {
         expect(
             route("Vercel_Inkling") == nil && route("tinycast") == nil && route("") == nil,
             "and so does a name with no vendor")
+        let resold = AIConnection(
+            provider: .openRouter,
+            models: [
+                "openai/gpt-oss-120b", "google/gemma-4-31b-it", "z-ai/glm-5.2", "moonshotai/kimi-k3",
+                "deepseek/deepseek-v4-pro", "qwen/qwen3.8-max", "meta-llama/llama-3.1-405b"
+            ])
+        let hosted = [
+            "Groq_GPT-OSS_120b", "groq-openai/gpt-oss-120b", "Vercel_Gemma_4_31B", "Vercel_GLM-5.2",
+            "gateway-zai/glm-5.2", "Vercel_Kimi_K3", "Vercel_DeepSeek_V4_Pro", "Vercel_Qwen3.8_Max",
+            "Baseten_GLM-5.2", "Gateway_Kimi_K3", "Together_AI_Llama_3.1_405B", "together-moonshotai/Kimi-K2.5"
+        ]
+        expect(
+            hosted.allSatisfy { route($0, offered: all + [resold]) == nil },
+            "a host serving others' models names no vendor, even with that very model on offer")
+        expect(
+            route("Perplexity_Llama3_Sonar_Large") == nil && route("Llama3.1_70B") == pick(local, "llama3.1")
+                && route("o3-mini", offered: [openAI]) == pick(openAI, "gpt-5-mini"),
+            "the first word decides: Perplexity's Llama is Perplexity's, an old family name is its own")
         expect(
             route("Anthropic_Claude_Opus_5", fallback: pick(anthropic, "claude-haiku-4-5")) == nil,
             "an extension model of the named vendor is never swapped, even for a closer one")
