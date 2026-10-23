@@ -140,6 +140,23 @@ in root search or on a schedule: see [background and scheduled agents](backgroun
 - **The binding is the fork's, not the chat history's.** Which chat has which agent is
   `agent-chats.json` beside `agents.json` in Application Support, so upstream's SQLite schema is
   untouched. Deleting an agent frees its chats, which stay as plain AI chats, and deletes its notes.
+- **An ACP tool row holds only what it shows.** A call's diffs and output are compacted once, as they
+  arrive, by `ChatToolContent(call:)`, and the compacted form is both what the row unfolds and what
+  is saved: at most 12 KB a row. It is saved in its own table, `message_tool_content`, keyed like
+  `message_tools` and deleted with its message, so `message_tools` keeps its columns and a chat this
+  build saved opens unchanged, without the content, in a build from before it.
+- **A slash command list lives with its session.** `available_commands_update` is kept per live
+  session in `AgentACPHost` and mirrored to the coordinator like the modes; a chat's copy goes when
+  its session or the agent's process does, leaving one list per agent, and nothing is written down.
+  The composer's list exists only while the draft is typing a command name in an ACP chat, and so
+  does the key monitor behind it. A name typed out in full leads the list wherever the agent put it,
+  so Return sends that command and never completes a longer one that starts with it.
+- **A session hears only what it does not already have.** A new session's briefing carries the
+  chat's turns from before it, captured as `session/new` answers, keyed by chat; when a slash
+  command opens the session, the briefing waits for the next ordinary turn and still carries only
+  those, never the command's own turn and reply, which the agent already holds.
+- **Tinycast lends an ACP agent no file system and no terminal.** `initialize` declares `fs` and
+  `terminal` off and every such request is refused; [why](#tinycasts-own-fs-and-terminal).
 
 ## ACP agents
 
@@ -172,26 +189,78 @@ They run on the user's own logins and subscriptions; Tinycast never sees a key.
   instructions when switched on, skills by name and `SKILL.md` path, notes and the agent's own
   instructions — leads the first prompt of a new session, with the chat's earlier turns (newest
   first, 24 KB, a cut said) when the chat began before this session did. A reloaded session needs
-  neither.
-- **Tinycast offers no fs or terminal of its own.** `initialize` declares both off, so the agent uses
-  its own tools and asks about them with `session/request_permission`; any `fs/*`, `terminal/*` or
-  other request is answered with method-not-found. The permission dialog lists the agent's own
-  options, allows first and the least committal refusal last, where the dialog keeps its cancel; the
-  agent remembers an "always" itself. Stop sends `session/cancel` and answers every open permission
-  request as cancelled. A dialog closed unanswered picks the agent's refuse-once option, or cancels
-  when it offers none, so no "always" comes from a choice nobody made.
+  neither. A slash command's turn carries neither and leaves them for the session's next ordinary
+  turn, which sends the turns from before the session as they were when it started, not the
+  command's own exchange. That wait is kept in memory, at most the 24 KB transcript per chat, so it
+  holds across an idle stop but not a relaunch, and goes when the chat leaves the agent.
+- **Tinycast offers no fs or terminal of its own.** `initialize` declares both off, so the agent
+  uses its own tools and asks about them with `session/request_permission`; any `fs/*`, `terminal/*`
+  or other request is answered with method-not-found ([why](#tinycasts-own-fs-and-terminal)). The
+  permission dialog lists the agent's own options, allows first and the least committal refusal
+  last, where the dialog keeps its cancel; the agent remembers an "always" itself. Stop sends
+  `session/cancel` and answers every open permission request as cancelled. A dialog closed
+  unanswered picks the agent's refuse-once option, or cancels when it offers none, so no "always"
+  comes from a choice nobody made.
 - **Updates map onto the transcript.** Message chunks are text, thought chunks reasoning, a plan a
   reasoning block when it changes, tool calls rows that close exactly once — a call still open when
   the turn ends is closed as failed — and one usage at the end from the prompt's result, with the
   window and cost from the last `usage_update` (ACP's cost is the session's running total, stored as
   it came). Attachments go as image blocks and embedded resources when the agent declared it takes
   them, else inlined. A `refusal` stop reason is an error.
+- **A tool row unfolds what the call showed.** A report that carries `content` replaces the row's,
+  as ACP's updates do, through one `AIStreamEvent.toolOutput` that only `AIChatState` reads; the
+  mapper sends it only when the compacted content changed. Diffs show their path once per file and
+  a line diff (`-`, `+`, two lines of context, longer unchanged runs counted) — six blocks, 60 lines
+  each, 8 KB together, the rest counted. Text, which is how Claude Code's adapter sends a command's
+  output (fenced as `console`) and Codex's sends it at the command's end, loses its escape
+  sequences, one wrapping fence and overwritten progress, and keeps 80 lines of 240 characters: a
+  command its last 60, anything else its first 60. The row is collapsed until clicked, the unfolded
+  text wraps in a card like a code block and copies with Copy Output, and nothing is streamed per
+  chunk: `_meta.terminal_output` is not asked for. Images inside tool content are not shown.
+- **Slash commands are the session's.** Claude Code, Codex and Hermes send
+  `available_commands_update` just after `session/new` and `session/load` — Claude Code's adapter
+  before Tinycast has read the session's reply — so the host keeps the list per session and hands it
+  to the chat once the session is bound; the coordinator falls back to the agent's last list for a
+  chat whose session has not started. A list holds 200 commands, names of up to 64 characters
+  without spaces or `/`, one-line descriptions of 200. While the draft is `/` and a name with no
+  space yet, a card over the composer lists the matches: the name typed out in full, then names
+  starting with the text, then names containing it, each in the agent's order. ↑ and ↓ move, Tab
+  completes to `/name ` through the text view, so ⌘Z undoes it, Return completes too unless the
+  draft already names the selected command as the agent spells it, when it sends, and Esc hides the
+  card until the draft changes. Keys reach it only while the composer is first responder and no
+  input method is composing. A command goes as plain text, as ACP says, and its turn leads with it,
+  because the adapters read only the first block (Codex) or the joined text (Hermes): attachments
+  follow, the briefing waits. A text is a command when its name is one the session offered, or,
+  before any list arrived, any name without a `/`, so `/Users/me` stays text. Other chats never show
+  the card.
 - **Modes are the agent's.** The modes a session offers (Claude Code's plan, Codex's read-only…)
   replace the model and reasoning pickers in the composer. The choice is stored on the agent as
   `acpMode`, applied with `session/set_mode` to a live session and to each new one, and the menu
   follows `current_mode_update` when the agent moves itself.
 - **The chat's MCP servers ride `session/new`.** Command servers always, HTTP ones when the agent
   declares `mcpCapabilities.http`, narrowed by the chat's tools menu like any other route.
+
+### Tinycast's own fs and terminal
+
+ACP lets a client offer `fs/read_text_file`, `fs/write_text_file` and `terminal/*`, so that an
+editor can serve unsaved buffers, see each write and run commands in its own terminal. Tinycast
+offers none of them, by decision rather than omission:
+
+- **No adapter in the presets needs them.** `claude-agent-acp` (0.94) and `codex-acp` (2.2) carry
+  the SDK's request specs but never send `fs/*` or `terminal/*`; Hermes has neither. Claude Code and
+  Codex edit and run with their own tools, ask with `session/request_permission`, and report diffs
+  and output as tool content, which the rows above already show.
+- **The one that would use `fs/*` gains nothing.** Gemini CLI routes its file tools through the
+  client when offered. Tinycast has no editor buffer to serve, and its diffs already arrive, so the
+  offer would only move Gemini's writes into Tinycast, a second write path that would need its own
+  folder boundary beside the agent's.
+- **A client terminal would run an agent's commands as Tinycast's children.** They would run outside
+  Codex's sandbox, and Tinycast would own their lifetimes, output buffers and teardown for agents
+  whose own runners already do this. That is the opposite of the lightweight posture: no resident
+  process, nothing left running.
+
+If an adapter ever needs `fs/*` to work at all, the place is `ACPConnection.handle`'s request branch,
+off by default per agent, bounded by `AgentPathPolicy` and asked through the agent's own rules.
 
 ## Layout
 
@@ -215,9 +284,14 @@ They run on the user's own logins and subscriptions; Tinycast never sees a key.
 | `UI/AgentCoordinator.swift` | Bindings, cached context, the turn's prompt, its loop and provider registry, consent |
 | `Model/AgentRuntime.swift` | ACP presets and the command/arguments an agent runs |
 | `Model/ACPProtocol.swift` | Framing, `session/update` decoding, permissions, prompt blocks, modes, `ACPEventMapper` |
+| `Model/ChatToolContent.swift` | A tool row's compacted diffs and output as saved; the only fork type upstream's chat model names |
+| `Model/ACPToolContent.swift` | The compaction: line diff, folds, output cleaning, the per-row budget |
+| `Model/ACPCommand.swift` | Slash commands: decoding, matching a draft, completion, what a turn's text invokes |
 | `Service/ACPConnection.swift` | One agent process: launch, `initialize`, requests, permission routing, exit |
 | `Service/ProcessTree.swift` | Descendants by pid and start time, and their SIGTERM then SIGKILL |
-| `Service/AgentACPHost.swift` | Processes per agent, sessions per chat, load/new, modes; `ACPAgentProvider` |
+| `Service/AgentACPHost.swift` | Processes per agent, sessions per chat, load/new, modes, commands; `ACPAgentProvider` |
+| `UI/ChatToolContentView.swift` | `.toolContent(_:)`: a transcript row's fold and its diff or output card |
+| `UI/ACPCommandPicker.swift` | `.acpCommands(chat:chats:editor:)`: the composer's command card and its keys |
 | `Settings/AgentsSettingsSection.swift`, `AgentEditorPanel.swift` | The AI pane's list, its schedules and the editor |
 
 Background runs and schedules add their own files, listed in
@@ -334,20 +408,38 @@ this way, as one provider. Nothing else changes: no router edit, no upstream lin
   Switch to Plan and ask again; Stop mid-turn; quit Tinycast and continue the chat — the session
   reloads. Repeat with Codex and with `hermes acp`, and with a command that does not exist (an error
   names it).
-- Harnesses: `acp-test` (framing, updates, permissions, prompts, modes and a scripted agent process
-  in `Tests/acp-fixtures/fake-agent.mjs`: streaming, consent, reuse, refusal, cancel, reload, lost
-  sessions, a missing command, two agents sharing a session id); `agent-test` (skills, catalog, path policy, tool sets, specs, consent
-  policy and per-agent rules, toolset order and routing, batches, budget, elision, the prompt and the
-  rules it states, persistence, the plan checklist shared with ACP, newer families kept out of the
-  previous build's way, a reading-only toolset and per-call row titles, compaction's coverage, reuse,
-  bounds, a long newest question and notes kept per chat); `agent-tools-test` (the executor against
-  a real folder: reads, writes with consent, link escapes, commands, timeouts and Stop, memory, skills,
-  HTML; the built-ins through a toolset, with and without an agent's own rules; every refused effect;
-  `update_plan`); and
-  `agent-loop-test` (the fork's loop and upstream's on the same scripts under 128 KB; routing,
-  signals, Stop, parallel batches, a long turn that elides; `delegate`'s spec and name, a sub-agent's
-  request, tools, answer, cost, bounds and Stop; compaction with nothing dropped, made once then
-  reused then grown, a failed summary and Stop while it is made); `web-search-test` covers the search
-  provider through a toolset and the loop; `ai-provider-test` pins which routes and which requests
-  are asked to cache and where the marks go; and `agent-schedule-test` covers background runs and
-  schedules (see [background-agents.md](background-agents.md#manual-sweep)).
+- ACP rows: ask Claude Code to change two lines far apart in a file, then to run `ls -la` and a
+  failing test. Each row has a chevron and opens to the path and red and green lines with two of
+  context, or to the command's output without colour codes or a `console` fence; Copy Output copies
+  it. Quit and reopen the chat: the rows open the same. Ask for a 500-line file: the row shows 60
+  lines and a count. Repeat with Codex (`apply_patch` hunks, command output at its end).
+- ACP commands: in a Claude Code chat type `/`: the card lists its commands with descriptions; type
+  `/rev`, ↓, Tab: the draft is `/review ` and ⌘Z restores `/rev`. Type `/compact` and Return: it
+  sends at once, and the agent compacts. With `deploy.md` and `deploy-prod.md` in the folder's
+  `.claude/commands/`, type `/deploy`: `deploy` is the selected row in whatever order the agent
+  lists them, and Return sends it. Esc hides the card until the next keystroke; Japanese input's
+  Return confirms the composition, not the card. A new chat with the same agent offers the commands
+  before its first message; a chat on an API model or with no agent never shows the card. With
+  Codex, `/status` answers with its status; in a fresh chat it is the first block (its reply is the
+  command's, not a model's).
+- Harnesses: `acp-test` (framing, updates, permissions, prompts, modes, tool content compaction,
+  slash commands, and a scripted agent process in `Tests/acp-fixtures/fake-agent.mjs`: streaming,
+  consent, reuse, refusal, cancel, reload, lost sessions, a missing command, two agents sharing a
+  session id, commands that beat the session's binding, a command turn and the briefing after it
+  with only the turns from before the session, diffs and output reaching their rows once);
+  `ai-chat-test`'s fork case (content on its row, saved beside it, unreadable or absent content, a
+  store from before the table, the cascade); `agent-test` (skills, catalog, path policy, tool sets,
+  specs, consent policy and per-agent rules, toolset order and routing, batches, budget, elision,
+  the prompt and the rules it states, persistence, the plan checklist shared with ACP, newer
+  families kept out of the previous build's way, a reading-only toolset and per-call row titles,
+  compaction's coverage, reuse, bounds, a long newest question and notes kept per chat);
+  `agent-tools-test` (the executor against a real folder: reads, writes with consent, link escapes,
+  commands, timeouts and Stop, memory, skills, HTML; the built-ins through a toolset, with and
+  without an agent's own rules; every refused effect; `update_plan`); and `agent-loop-test` (the
+  fork's loop and upstream's on the same scripts under 128 KB; routing, signals, Stop, parallel
+  batches, a long turn that elides; `delegate`'s spec and name, a sub-agent's request, tools,
+  answer, cost, bounds and Stop; compaction with nothing dropped, made once then reused then grown,
+  a failed summary and Stop while it is made); `web-search-test` covers the search provider through
+  a toolset and the loop; `ai-provider-test` pins which routes and which requests are asked to cache
+  and where the marks go; and `agent-schedule-test` covers background runs and schedules (see
+  [background-agents.md](background-agents.md#manual-sweep)).

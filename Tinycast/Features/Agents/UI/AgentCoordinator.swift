@@ -27,6 +27,10 @@ final class AgentCoordinator {
             self?.chatModes[chatID] = modes
             self?.agentModes[agentID] = modes.available
         }
+        host.onCommands = { [weak self] chatID, agentID, commands in
+            if let chatID { self?.chatCommands[chatID] = commands }
+            if let commands { self?.agentCommands[agentID] = commands }
+        }
         return host
     }()
 
@@ -34,6 +38,9 @@ final class AgentCoordinator {
     private(set) var chatModes: [UUID: ACPModes] = [:]
     /// What the agent offered last time, so a new chat can pick a mode before its first message.
     private(set) var agentModes: [UUID: [ACPModes.Mode]] = [:]
+    /// Observed like the modes: a live session's slash commands, then the agent's last list.
+    private(set) var chatCommands: [UUID: [ACPCommand]] = [:]
+    private(set) var agentCommands: [UUID: [ACPCommand]] = [:]
 
     init(store: AgentStore, core: AppCore) {
         self.store = store
@@ -101,6 +108,12 @@ final class AgentCoordinator {
         if let live = chatModes[chat.session.id] { return live }
         guard let offered = agentModes[agent.id] else { return nil }
         return ACPModes(current: agent.acpMode, available: offered)
+    }
+
+    /// Empty for a chat without an ACP agent, so the composer offers nothing there.
+    func commands(for chat: AIChatState) -> [ACPCommand] {
+        guard let agent = agent(for: chat), agent.runtime != nil else { return [] }
+        return chatCommands[chat.session.id] ?? agentCommands[agent.id] ?? []
     }
 
     /// Remembered on the agent for every new session, and applied now to a live one.
@@ -361,6 +374,7 @@ final class AgentCoordinator {
         contexts[draft.id] = nil
         // A different program or folder is a different agent: its old sessions mean nothing.
         if previous?.runtime != draft.runtime || previous?.directory != draft.directory {
+            agentCommands[draft.id] = nil
             for (chat, agent) in store.chatAgents where agent == draft.id {
                 acpHost.forget(chatID: chat)
             }
@@ -385,6 +399,8 @@ final class AgentCoordinator {
             return
         }
         contexts[id] = nil
+        agentCommands[id] = nil
+        chatCommands = chatCommands.filter { store.agent(forChat: $0.key) != nil }
         try? FileManager.default.removeItem(at: store.memoryURL(for: id).deletingLastPathComponent())
         applyBackground()
     }

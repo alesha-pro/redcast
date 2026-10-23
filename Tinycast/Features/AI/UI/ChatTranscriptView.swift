@@ -615,6 +615,8 @@ private struct ChatToolRow: View {
         }
         .foregroundStyle(Theme.Colors.textSecondary)
         .animation(.easeOut(duration: Theme.Duration.chatFooter), value: use.state)
+        // Fork: an ACP call's diff or output, folded under the row until it is clicked.
+        .toolContent(use.content)
     }
 
     /// Sized by the row's own font, like the search row beside it, not by a symbol point size.

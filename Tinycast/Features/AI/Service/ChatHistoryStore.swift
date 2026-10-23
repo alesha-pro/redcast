@@ -62,6 +62,13 @@ final class ChatHistoryStore {
           text_offset INTEGER NOT NULL,
           PRIMARY KEY(message_id, position)
         );
+        -- Fork: an ACP call's compacted diff or output, beside its row; older builds never read it.
+        CREATE TABLE IF NOT EXISTS message_tool_content(
+          message_id TEXT NOT NULL REFERENCES messages(id) ON DELETE CASCADE,
+          position INTEGER NOT NULL,
+          content TEXT NOT NULL,
+          PRIMARY KEY(message_id, position)
+        );
         CREATE TABLE IF NOT EXISTS conversation_details(
           conversation_id TEXT PRIMARY KEY NOT NULL
             REFERENCES conversations(id) ON DELETE CASCADE,
@@ -514,11 +521,27 @@ final class ChatHistoryStore {
             bind(use.title, to: statement, at: 5)
             bind(use.state.rawValue, to: statement, at: 6)
             sqlite3_bind_int64(statement, 7, Int64(use.textOffset))
-            guard sqlite3_step(statement) == SQLITE_DONE else { return false }
+            guard sqlite3_step(statement) == SQLITE_DONE,
+                saveToolContent(of: use, in: message, database: database)
+            else { return false }
             sqlite3_reset(statement)
             sqlite3_clear_bindings(statement)
         }
         return true
+    }
+
+    /// Fork: an ACP call's diff or output; only a row that showed one writes.
+    private func saveToolContent(
+        of use: ChatToolUse, in message: ChatMessage, database: OpaquePointer
+    ) -> Bool {
+        guard let content = use.content?.encoded else { return true }
+        let sql = "INSERT INTO message_tool_content(message_id, position, content) VALUES(?, ?, ?);"
+        guard let statement = prepare(sql, in: database) else { return false }
+        defer { sqlite3_finalize(statement) }
+        bind(message.id.uuidString, to: statement, at: 1)
+        sqlite3_bind_int64(statement, 2, Int64(use.sequence))
+        bind(content, to: statement, at: 3)
+        return sqlite3_step(statement) == SQLITE_DONE
     }
 
     /// A call left running belonged to a process that is gone, so it never reported back.
@@ -526,9 +549,11 @@ final class ChatHistoryStore {
         forConversation id: UUID, in database: OpaquePointer
     ) -> [UUID: [ChatToolUse]] {
         let sql = """
-            SELECT t.message_id, t.call_id, t.origin, t.title, t.state, t.text_offset, t.position
+            SELECT t.message_id, t.call_id, t.origin, t.title, t.state, t.text_offset, t.position,
+              c.content
             FROM message_tools t
             JOIN messages m ON m.id = t.message_id
+            LEFT JOIN message_tool_content c ON c.message_id = t.message_id AND c.position = t.position
             WHERE m.conversation_id = ? ORDER BY t.message_id, t.position;
             """
         guard let statement = prepare(sql, in: database) else { return [:] }
@@ -543,7 +568,9 @@ final class ChatHistoryStore {
                     callID: text(statement, 1), origin: text(statement, 2),
                     title: text(statement, 3), state: stored == .running ? .failed : stored,
                     textOffset: Int(sqlite3_column_int64(statement, 5)),
-                    sequence: Int(sqlite3_column_int64(statement, 6))))
+                    sequence: Int(sqlite3_column_int64(statement, 6)),
+                    // Fork: the call's content, which only an ACP agent's row has.
+                    content: optionalText(statement, 7).flatMap(ChatToolContent.init(encoded:))))
         }
         return uses
     }

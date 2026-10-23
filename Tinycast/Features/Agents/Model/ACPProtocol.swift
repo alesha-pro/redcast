@@ -80,7 +80,9 @@ enum ACPUpdate: Equatable, Sendable {
     case usage(used: Int, size: Int, costUSD: Double?)
     /// The agent moved itself to another mode, as Claude Code does when it leaves plan mode.
     case mode(String)
-    /// Commands, notices and the rest: known to exist, not drawn yet.
+    /// The session's slash commands, the whole list each time.
+    case commands([ACPCommand])
+    /// Notices and the rest: known to exist, not drawn yet.
     case other(String)
 
     static func decode(_ params: JSONValue) -> (sessionID: String, update: ACPUpdate)? {
@@ -105,6 +107,8 @@ enum ACPUpdate: Equatable, Sendable {
         case "current_mode_update":
             guard let mode = update["currentModeId"]?.stringValue else { return nil }
             decoded = .mode(mode)
+        case "available_commands_update":
+            decoded = .commands(ACPCommand.list(update["availableCommands"]))
         case "usage_update":
             let cost = update["cost"]?.objectValue
             let usd =
@@ -182,6 +186,8 @@ struct ACPToolCall: Equatable, Sendable {
     var kind: String?
     var status: Status?
     var rawInput: JSONValue?
+    /// Whether this report carried `content` at all; when it does, it replaces the row's.
+    var hasContent: Bool
     var diffs: [ACPDiff]
     var text: String?
 
@@ -192,6 +198,7 @@ struct ACPToolCall: Equatable, Sendable {
         kind = object["kind"]?.stringValue
         status = object["status"]?.stringValue.flatMap(Status.init(rawValue:))
         rawInput = object["rawInput"].flatMap { $0 == .null ? nil : $0 }
+        hasContent = object["content"]?.arrayValue != nil
         var diffs: [ACPDiff] = []
         var texts: [String] = []
         for item in object["content"]?.arrayValue ?? [] {
@@ -335,31 +342,35 @@ enum ACPPrompt {
     /// Prior turns travel only when the agent could not reload its own copy of the session.
     static let maxHistoryBytes = 24 * 1_024
 
+    /// `earlier` is a `transcript(of:)`; a slash command leads with its text and has no preamble.
     static func blocks(
-        for message: AIMessage, context: String?, history: [AIMessage], capabilities: Capabilities
+        for message: AIMessage, context: String?, earlier: String, capabilities: Capabilities,
+        asCommand: Bool = false
     ) -> [[String: Any]] {
+        let request: [String: Any] = ["type": "text", "text": message.text]
+        guard !asCommand else { return [request] + attachments(of: message, capabilities: capabilities) }
         var blocks: [[String: Any]] = []
         var preamble: [String] = []
         if let context, !context.isEmpty { preamble.append(context) }
-        let earlier = transcript(of: history)
         if !earlier.isEmpty {
             preamble.append("## Earlier in this conversation\n\n" + earlier)
         }
         if !preamble.isEmpty {
             blocks.append(["type": "text", "text": preamble.joined(separator: "\n\n")])
         }
-        for document in message.documents {
-            blocks.append(block(for: document, capabilities: capabilities))
+        return blocks + attachments(of: message, capabilities: capabilities) + [request]
+    }
+
+    private static func attachments(
+        of message: AIMessage, capabilities: Capabilities
+    ) -> [[String: Any]] {
+        var blocks = message.documents.map { block(for: $0, capabilities: capabilities) }
+        guard capabilities.image else { return blocks }
+        for image in message.images {
+            blocks.append([
+                "type": "image", "mimeType": image.mimeType, "data": image.data.base64EncodedString()
+            ])
         }
-        if capabilities.image {
-            for image in message.images {
-                blocks.append([
-                    "type": "image", "mimeType": image.mimeType,
-                    "data": image.data.base64EncodedString()
-                ])
-            }
-        }
-        blocks.append(["type": "text", "text": message.text])
         return blocks
     }
 
@@ -407,6 +418,8 @@ struct ACPEventMapper: Sendable {
     let origin: String
     private var titles: [String: String] = [:]
     private var settled: Set<String> = []
+    /// What each row was last given, by hash, so an update repeating its content sends nothing.
+    private var shown: [String: Int] = [:]
     private var lastPlan: [ACPPlanEntry] = []
     private var lastUsage: (used: Int, size: Int, costUSD: Double?)?
 
@@ -423,7 +436,8 @@ struct ACPEventMapper: Sendable {
         case .toolCall(let call):
             let title = call.title ?? call.kind ?? "tool"
             titles[call.id] = title
-            return [.toolCall(id: call.id, origin: origin, title: title)] + settle(call)
+            return [.toolCall(id: call.id, origin: origin, title: title)] + output(of: call)
+                + settle(call)
         case .toolCallUpdate(let call):
             var events: [AIStreamEvent] = []
             if titles[call.id] == nil {
@@ -431,7 +445,7 @@ struct ACPEventMapper: Sendable {
                 titles[call.id] = title
                 events.append(.toolCall(id: call.id, origin: origin, title: title))
             }
-            return events + settle(call)
+            return events + output(of: call) + settle(call)
         case .plan(let entries):
             guard entries != lastPlan, !entries.isEmpty else { return [] }
             lastPlan = entries
@@ -444,7 +458,7 @@ struct ACPEventMapper: Sendable {
             // Held for the turn's end, where the prompt's own result has the finer counts.
             lastUsage = (used, size, cost ?? lastUsage?.costUSD)
             return []
-        case .mode, .other:
+        case .mode, .commands, .other:
             return []
         }
     }
@@ -480,6 +494,14 @@ struct ACPEventMapper: Sendable {
                         costUSD: lastUsage.costUSD)))
         }
         return events
+    }
+
+    /// Content replaces the row's, as ACP's updates do; one that compacts to nothing is not sent.
+    private mutating func output(of call: ACPToolCall) -> [AIStreamEvent] {
+        guard call.hasContent, let content = ChatToolContent(call: call),
+            shown.updateValue(content.hashValue, forKey: call.id) != content.hashValue
+        else { return [] }
+        return [.toolOutput(id: call.id, content: content)]
     }
 
     private mutating func settle(_ call: ACPToolCall) -> [AIStreamEvent] {

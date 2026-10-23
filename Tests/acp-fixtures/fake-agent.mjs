@@ -7,6 +7,11 @@ let nextSession = 1;
 let nextRequest = 1000;
 const waiting = new Map();
 const state = { loads: [], cancels: [], news: 0, modes: [], grandchild: null };
+const commands = [
+  { name: "review", description: "Review the changes", input: { hint: "what to review" } },
+  { name: "/compact", description: "Summarise\nthe conversation", input: null },
+  { name: "bad name", description: "never offered" },
+];
 const modes = {
   currentModeId: "default",
   availableModes: [
@@ -54,6 +59,32 @@ async function prompt(id, params) {
     send({ id, result: { stopReason: "refusal" } });
     return;
   }
+  const first = prompt[0]?.type === "text" ? prompt[0].text : "";
+  if (first.startsWith("/")) {
+    const context = text.includes("Context from Tinycast") ? "with context" : "without context";
+    update(sessionId, {
+      sessionUpdate: "agent_message_chunk",
+      content: { type: "text", text: `ran ${first}; ${context}; blocks ${prompt.length}` },
+    });
+    send({ id, result: { stopReason: "end_turn" } });
+    return;
+  }
+  if (text.includes("DIFF")) {
+    const diff = { type: "diff", path: "/tmp/a.txt", oldText: "keep\nold\nkeep 2", newText: "keep\nnew\nkeep 2" };
+    update(sessionId, {
+      sessionUpdate: "tool_call", toolCallId: "call_d", title: "Edit a.txt", kind: "edit", status: "in_progress",
+      content: [diff],
+    });
+    update(sessionId, { sessionUpdate: "tool_call_update", toolCallId: "call_d", content: [diff] });
+    update(sessionId, { sessionUpdate: "tool_call_update", toolCallId: "call_d", status: "completed" });
+    update(sessionId, { sessionUpdate: "tool_call", toolCallId: "call_x", title: "npm test", kind: "execute", status: "in_progress" });
+    update(sessionId, {
+      sessionUpdate: "tool_call_update", toolCallId: "call_x", status: "completed",
+      content: [{ type: "content", content: { type: "text", text: "```console\n\u001b[32mok\u001b[0m 3 tests\n```" } }],
+    });
+    send({ id, result: { stopReason: "end_turn" } });
+    return;
+  }
 
   update(sessionId, { sessionUpdate: "agent_thought_chunk", content: { type: "text", text: "Thinking it over." } });
   update(sessionId, {
@@ -84,7 +115,10 @@ async function prompt(id, params) {
   update(sessionId, { sessionUpdate: "tool_call", toolCallId: "call_2", title: "Never finished", kind: "read" });
   update(sessionId, { sessionUpdate: "usage_update", used: 1200, size: 200000, cost: { amount: 0.01, currency: "USD" } });
   const context = text.includes("Context from Tinycast") ? "with context" : "without context";
-  const history = text.includes("Earlier in this conversation") ? "with history" : "no history";
+  const earlier = text.split("## Earlier in this conversation")[1];
+  const history = earlier === undefined
+    ? "no history"
+    : `with history of ${(earlier.match(/^(User|Assistant): /gm) ?? []).length} turns`;
   update(sessionId, {
     sessionUpdate: "agent_message_chunk",
     content: { type: "text", text: `turn ${session.turns} in ${session.cwd}; ${chosen}; ${context}; ${history}; images ${images}; servers ${session.servers}` },
@@ -119,6 +153,8 @@ input.on("line", (line) => {
       state.news += 1;
       sessions.set(sessionId, { cwd: params.cwd, turns: 0, servers: params.mcpServers.length });
       send({ id, result: { sessionId, modes } });
+      // After the reply, as claude-agent-acp does: the list can beat the client's own bookkeeping.
+      setTimeout(() => update(sessionId, { sessionUpdate: "available_commands_update", availableCommands: commands }), 0);
       break;
     }
     case "session/load":

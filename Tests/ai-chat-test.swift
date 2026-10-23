@@ -51,6 +51,7 @@ struct AIChatTests {
         await anUnlimitedToolLoopStopsWhenItsHistoryIsFull()
         await toolOutputIsBoundedBeforeItIsBilled()
         toolUsesPersistAndSettleOnReload()
+        await acpToolContentRidesBesideItsRow()
         renamesAndPinsSurviveSavesAndSpareRetention()
         transcriptsExportAndDropOnlyATrailingReply()
         await regenerateAsksTheSameQuestionAgain()
@@ -1915,5 +1916,76 @@ final class RecordingInvoker: @unchecked Sendable {
     func invoke(_ call: AIToolCall) async -> AIToolResult {
         lock.withLock { received.append(call) }
         return AIToolResult(callID: call.id, content: result, isError: false)
+    }
+}
+
+extension AIChatTests {
+    /// Fork: an ACP call's diff or output reaches its row, persists beside it, and goes with it.
+    static func acpToolContentRidesBesideItsRow() async {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("tinycast-ai-content-\(UUID().uuidString)", isDirectory: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let diff = ChatToolContent(diffs: [ChatToolContent.Diff(path: "/a.swift", lines: "-old\n+new")])
+        let output = ChatToolContent(output: "line 1\nline 2")
+        let chat = AIChatState(history: ChatHistoryStore(directory: directory))
+        let provider = ScriptedProvider(rounds: [
+            [
+                .toolCall(id: "a", origin: "Agent", title: "Edit a.swift"),
+                .toolOutput(id: "a", content: diff),
+                .toolOutput(id: "a", content: output),
+                .toolResult(id: "a", isError: false),
+                .toolCall(id: "b", origin: "Agent", title: "Read"),
+                .toolResult(id: "b", isError: false),
+                .toolOutput(id: "gone", content: diff),
+                .text("Done."),
+                .finished
+            ]
+        ])
+        expect(chat.send("go", using: provider), "the turn starts")
+        var waited = 0
+        while chat.isStreaming, waited < 400 {
+            try? await Task.sleep(for: .milliseconds(5))
+            waited += 1
+        }
+        let uses = chat.session.messages.last?.toolUses ?? []
+        expect(uses.first?.content == output, "a later report replaces what the row showed, as ACP's do")
+        expect(uses.count == 2 && uses.last?.content == nil, "a row nothing was shown for has nothing")
+
+        let database = directory.appendingPathComponent("ai-chats.sqlite3")
+        let reloaded = ChatHistoryStore(directory: directory).session(id: chat.session.id)
+        expect(reloaded?.messages.last?.toolUses.first?.content == output, "the content reopens with its row")
+        expect(count(database, "SELECT COUNT(*) FROM message_tool_content") == 1, "only a row with content writes")
+        expect(
+            count(database, "SELECT COUNT(*) FROM pragma_table_info('message_tools')") == 7,
+            "the rows' own table keeps its columns, so an older build reads it as it always has")
+
+        expect(tamper(database, "UPDATE message_tool_content SET content = 'not json'"), "the content can be spoiled")
+        let spoiled = ChatHistoryStore(directory: directory).session(id: chat.session.id)
+        expect(
+            spoiled?.messages.last?.toolUses.count == 2 && spoiled?.messages.last?.toolUses.first?.content == nil,
+            "unreadable content leaves the row without it, never the chat unopened")
+
+        expect(tamper(database, "DROP TABLE message_tool_content"), "a store from before the table can be made")
+        let older = ChatHistoryStore(directory: directory)
+        expect(
+            older.session(id: chat.session.id)?.messages.last?.toolUses.count == 2,
+            "and opens with its rows, the table made on the way")
+        if var session = older.session(id: chat.session.id) {
+            session.append(ChatMessage(role: .user, text: "again"))
+            session.append(
+                ChatMessage(
+                    role: .assistant, text: "ok",
+                    toolUses: [
+                        ChatToolUse(
+                            callID: "c", origin: "Agent", title: "Run", state: .completed, textOffset: 0,
+                            sequence: 0, content: output)
+                    ]))
+            older.save(session)
+        }
+        expect(count(database, "SELECT COUNT(*) FROM message_tool_content") == 1, "a later save writes again")
+        expect(
+            tamper(database, "PRAGMA foreign_keys = ON; DELETE FROM messages WHERE text = 'ok';")
+                && count(database, "SELECT COUNT(*) FROM message_tool_content") == 0,
+            "an older build rewriting the tail takes the content with the rows, leaving nothing orphaned")
     }
 }
