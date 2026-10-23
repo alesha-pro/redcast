@@ -198,7 +198,7 @@ struct AgentEditorPanel: View {
         Binding(
             get: { draft.runtime?.kind },
             set: { kind in
-                if kind != draft.runtime?.kind { draft.forgetACPChoices() }
+                if kind != draft.runtime?.kind { draft.acpChoices = ACPChoices() }
                 draft.runtime = kind.map(AgentRuntime.preset)
                 argumentsText = draft.runtime?.arguments.joined(separator: " ") ?? ""
             })

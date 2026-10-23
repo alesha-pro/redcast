@@ -288,10 +288,10 @@ struct ACPSessionOptions: Equatable, Sendable {
         select(value, in: mode.id)
     }
 
-    /// A chat with no session yet: the agent's last list, on the values it remembers.
-    func applying(_ agent: AgentProfile) -> ACPSessionOptions {
+    /// A chat with no live session: the agent's last list, on the values the chat or agent keeps.
+    func applying(_ choices: ACPChoices) -> ACPSessionOptions {
         var applied = self
-        for (slot, value) in agent.acpWishes {
+        for (slot, value) in choices.wishes {
             guard let option = applied.option(for: slot), option.offers(value) else { continue }
             applied.select(value, in: option.id)
         }
@@ -299,45 +299,73 @@ struct ACPSessionOptions: Equatable, Sendable {
     }
 }
 
-extension AgentProfile {
-    func acpChoice(for slot: ACPChoiceSlot) -> String? {
-        switch slot {
-        case .model: acpModel
-        case .reasoning: acpReasoning
-        case .mode: acpMode
-        case .option(let id): acpOptions?[id]
+/// Picks by slot: an agent's start each new session, a chat's are what its own session was on.
+struct ACPChoices: Codable, Equatable, Sendable {
+    var model: String?
+    var reasoning: String?
+    var mode: String?
+    /// The agent's other selects, by its own option ids; nil while there are none.
+    var options: [String: String]?
+
+    init(model: String? = nil, reasoning: String? = nil, mode: String? = nil, options: [String: String]? = nil) {
+        self.model = model
+        self.reasoning = reasoning
+        self.mode = mode
+        self.options = options
+    }
+
+    /// Every select's current value, which a reload of the session puts back.
+    init(_ session: ACPSessionOptions) {
+        self.init()
+        for option in session.options where !option.current.isEmpty {
+            self[session.slot(of: option)] = option.current
         }
     }
 
-    mutating func setACPChoice(_ value: String?, for slot: ACPChoiceSlot) {
-        switch slot {
-        case .model: acpModel = value
-        case .reasoning: acpReasoning = value
-        case .mode: acpMode = value
-        case .option(let id):
-            var options = acpOptions ?? [:]
-            options[id] = value
-            acpOptions = options.isEmpty ? nil : options
+    subscript(slot: ACPChoiceSlot) -> String? {
+        get {
+            switch slot {
+            case .model: model
+            case .reasoning: reasoning
+            case .mode: mode
+            case .option(let id): options?[id]
+            }
+        }
+        set {
+            switch slot {
+            case .model: model = newValue
+            case .reasoning: reasoning = newValue
+            case .mode: mode = newValue
+            case .option(let id):
+                var others = options ?? [:]
+                others[id] = newValue
+                options = others.isEmpty ? nil : others
+            }
         }
     }
 
     /// Model first: the levels and options a session offers follow the model it is on.
-    var acpWishes: [(slot: ACPChoiceSlot, value: String)] {
+    var wishes: [(slot: ACPChoiceSlot, value: String)] {
         var wishes: [(slot: ACPChoiceSlot, value: String)] = []
-        if let acpModel { wishes.append((.model, acpModel)) }
-        if let acpReasoning { wishes.append((.reasoning, acpReasoning)) }
-        if let acpMode { wishes.append((.mode, acpMode)) }
-        for (id, value) in (acpOptions ?? [:]).sorted(by: { $0.key < $1.key }) {
+        if let model { wishes.append((.model, model)) }
+        if let reasoning { wishes.append((.reasoning, reasoning)) }
+        if let mode { wishes.append((.mode, mode)) }
+        for (id, value) in (options ?? [:]).sorted(by: { $0.key < $1.key }) {
             wishes.append((.option(id), value))
         }
         return wishes
     }
+}
 
-    /// A different program's names mean nothing to the next one.
-    mutating func forgetACPChoices() {
-        acpModel = nil
-        acpReasoning = nil
-        acpMode = nil
-        acpOptions = nil
+extension AgentProfile {
+    /// Kept as four keys of its own in `agents.json`, so the build before them still reads it.
+    var acpChoices: ACPChoices {
+        get { ACPChoices(model: acpModel, reasoning: acpReasoning, mode: acpMode, options: acpOptions) }
+        set {
+            acpModel = newValue.model
+            acpReasoning = newValue.reasoning
+            acpMode = newValue.mode
+            acpOptions = newValue.options
+        }
     }
 }

@@ -959,13 +959,13 @@ extension ACPTests {
 
     static func rememberedChoicesApplyAndPersist() {
         var agent = AgentProfile(name: "A", directory: "/tmp")
-        agent.setACPChoice("large", for: .model)
-        agent.setACPChoice("high", for: .reasoning)
-        agent.setACPChoice("nope", for: .mode)
-        agent.setACPChoice("on", for: .option("fast"))
-        agent.setACPChoice("x", for: .option("agent"))
+        agent.acpChoices[.model] = "large"
+        agent.acpChoices[.reasoning] = "high"
+        agent.acpChoices[.mode] = "nope"
+        agent.acpChoices[.option("fast")] = "on"
+        agent.acpChoices[.option("agent")] = "x"
         expect(
-            agent.acpWishes.map(\.slot) == [.model, .reasoning, .mode, .option("agent"), .option("fast")],
+            agent.acpChoices.wishes.map(\.slot) == [.model, .reasoning, .mode, .option("agent"), .option("fast")],
             "the model is applied first, since the levels and the rest follow it")
         let offered = ACPSessionOptions(options: [
             option("mode", .mode, current: "default", values: ["default", "plan"]),
@@ -973,16 +973,19 @@ extension ACPTests {
             option("effort", .thoughtLevel, current: "low", values: ["low", "high"]),
             option("fast", .other, current: "off", values: ["off", "on"]),
         ])
-        let shown = offered.applying(agent)
+        let shown = offered.applying(agent.acpChoices)
         expect(
             shown.model?.current == "large" && shown.reasoning?.current == "high"
                 && shown.others.first?.current == "on" && shown.mode?.current == "default",
             "a chat with no session shows the agent's list on what it remembers, unknown values left out")
+        expect(
+            ACPChoices(shown) == ACPChoices(model: "large", reasoning: "high", mode: "default", options: ["fast": "on"]),
+            "what a session is on is every select's current value, by its slot")
         var moved = agent
-        moved.forgetACPChoices()
-        expect(moved.acpWishes.isEmpty, "another program under Runs on starts with nothing remembered")
-        agent.setACPChoice(nil, for: .option("fast"))
-        agent.setACPChoice(nil, for: .option("agent"))
+        moved.acpChoices = ACPChoices()
+        expect(moved.acpChoices.wishes.isEmpty, "another program under Runs on starts with nothing remembered")
+        agent.acpChoices[.option("fast")] = nil
+        agent.acpChoices[.option("agent")] = nil
         expect(agent.acpOptions == nil, "no other choice left stores none")
 
         let encoder = JSONEncoder()
@@ -991,7 +994,7 @@ extension ACPTests {
         expect(
             !plain.contains("acpModel") && !plain.contains("acpReasoning") && !plain.contains("acpOptions"),
             "an agent that never picked writes none of the new keys")
-        agent.setACPChoice("on", for: .option("fast"))
+        agent.acpChoices[.option("fast")] = "on"
         guard let data = try? encoder.encode(agent),
             let back = try? JSONDecoder().decode(AgentProfile.self, from: data)
         else { return expect(false, "an agent with choices round-trips") }
@@ -1006,6 +1009,35 @@ extension ACPTests {
         expect(
             (try? JSONDecoder().decode(PreviousBuild.self, from: data))?.acpMode == "nope",
             "a build that knows only the mode still reads the file")
+        chatChoicesLiveWithTheirSession()
+    }
+
+    static func chatChoicesLiveWithTheirSession() {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent("ACPTests-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: root) }
+        let store = AgentStore(directory: root)
+        guard let agent = try? store.add(AgentProfile(name: "A", directory: "/tmp")) else {
+            return expect(false, "the agent saves")
+        }
+        let own = ACPChoices(model: "huge", reasoning: "max", mode: "plan", options: ["fast": "on"])
+        let (chat, sessionless) = (UUID(), UUID())
+        store.setAgent(agent.id, forChat: chat)
+        store.setAgent(agent.id, forChat: sessionless)
+        store.setACPChoices(own, forChat: sessionless)
+        expect(store.acpChoices(forChat: sessionless) == nil, "a chat without a session keeps no picks")
+        store.setACPSession("s1", forChat: chat)
+        store.setACPChoices(own, forChat: chat)
+        let reread = AgentStore(directory: root)
+        reread.load()
+        expect(reread.acpChoices(forChat: chat) == own, "a chat's picks are read back after a relaunch")
+        reread.setACPSession("s2", forChat: chat)
+        expect(reread.acpChoices(forChat: chat) == own, "and kept when the agent lost the session for another")
+        reread.setACPSession(nil, forChat: chat)
+        let forgotten = AgentStore(directory: root)
+        forgotten.load()
+        expect(
+            reread.acpChoices(forChat: chat) == nil && forgotten.acpChoices.isEmpty,
+            "a chat's picks go with its session, on disk too")
     }
 
     private static func option(
@@ -1094,14 +1126,30 @@ extension ACPTests {
             "and they are forgotten on the agent, on disk, while the rest stays")
 
         stored = store.agent(id: agent.id) ?? stored
-        stored.acpModel = "huge"
+        stored.acpModel = "small"
         try? store.update(stored)
+        let other = UUID()
+        let started = replyText(await stream("Hello", chat: other, agent: agent, host: first))
+        expect(started.contains("on small/low/plan/on"), "another chat starts on the agent's latest, got \(started)")
         first.stopAll()
         let relaunched = host()
         defer { relaunched.stopAll() }
         let reloaded = replyText(await stream("After relaunch", chat: chat, agent: agent, host: relaunched))
         expect(
-            reloaded.contains("turn 11") && reloaded.contains("sets model=huge,mode=plan,fast=on"),
-            "a reloaded session is moved to them too, got \(reloaded)")
+            reloaded.contains("turn 11") && reloaded.contains("on huge/high/plan/on; sets model=huge,effort=high"),
+            "a reloaded chat is put back on its own picks, not another chat's, got \(reloaded)")
+        let otherAgain = replyText(await stream("After relaunch", chat: other, agent: agent, host: relaunched))
+        expect(otherAgain.contains("on small/low/plan/on"), "and so is the other chat, got \(otherAgain)")
+        expect(store.agent(id: agent.id)?.acpModel == "small", "a reload leaves the agent's own picks alone")
+
+        stored = store.agent(id: agent.id) ?? stored
+        stored.acpModel = "large"
+        try? store.update(stored)
+        let earlier = UUID()
+        store.setACPSession("sess_earlier", forChat: earlier)
+        let older = replyText(await stream("Continue", chat: earlier, agent: agent, host: relaunched))
+        expect(
+            older.contains("turn 11") && older.contains("sets model=large,mode=plan,fast=on"),
+            "a chat from a build before its own picks reloads on the agent's, got \(older)")
     }
 }

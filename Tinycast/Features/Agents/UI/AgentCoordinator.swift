@@ -129,11 +129,12 @@ final class AgentCoordinator {
         background.apply()
     }
 
-    /// The live session's selects, else the agent's last list on the values it remembers.
+    /// The live session's selects, else the agent's last list on what the chat or agent keeps.
     func options(for chat: AIChatState) -> ACPSessionOptions? {
         guard let agent = agent(for: chat), agent.runtime != nil else { return nil }
         if let live = chatOptions[chat.session.id] { return live }
-        return agentOptions[agent.id]?.applying(agent)
+        let kept = store.acpChoices(forChat: chat.session.id) ?? agent.acpChoices
+        return agentOptions[agent.id]?.applying(kept)
     }
 
     /// The models this agent's last session offered, for its editor; nil until one has started.
@@ -162,14 +163,19 @@ final class AgentCoordinator {
         return chatCommands[chat.session.id] ?? agentCommands[agent.id] ?? []
     }
 
-    /// Remembered on the agent for every new session, and applied now to a live one.
+    /// The agent's default for every new session, and this chat's own, now or when it reloads.
     func setOption(_ value: String, of option: ACPConfigOption, for chat: AIChatState) {
         guard var agent = agent(for: chat), let shown = options(for: chat) else { return }
         let slot = shown.slot(of: option)
-        agent.setACPChoice(value, for: slot)
+        agent.acpChoices[slot] = value
         try? store.update(agent)
         let chatID = chat.session.id
-        guard var live = chatOptions[chatID], let host = builtACPHost else { return }
+        guard var live = chatOptions[chatID], let host = builtACPHost else {
+            var own = store.acpChoices(forChat: chatID) ?? ACPChoices(shown)
+            own[slot] = value
+            store.setACPChoices(own, forChat: chatID)
+            return
+        }
         live.select(value, in: option.id)
         chatOptions[chatID] = live
         Task { [weak self] in
