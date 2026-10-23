@@ -562,9 +562,24 @@ struct AgentTests {
             "a chat that is gone leaves no binding behind")
         let untouched = directory.appendingPathComponent("untouched")
         AgentStore(directory: untouched).unbind([UUID()])
+        AgentStore(directory: untouched).forgetPersonal([UUID()])
         expect(
-            !FileManager.default.fileExists(atPath: untouched.appendingPathComponent("agent-chats.json").path),
-            "unbinding a chat that had no agent writes nothing")
+            !FileManager.default.fileExists(atPath: untouched.appendingPathComponent("agent-chats.json").path)
+                && !FileManager.default.fileExists(
+                    atPath: untouched.appendingPathComponent("agent-personal-chats.json").path),
+            "unbinding a chat that had no agent, or forgetting one never marked, writes nothing")
+
+        let other = UUID()
+        store.notePersonal(forChat: chat)
+        store.notePersonal(forChat: chat)
+        store.notePersonal(forChat: other)
+        let marked = AgentStore(directory: directory)
+        marked.load()
+        expect(marked.personalChats == [chat, other], "a chat that read the user's data stays marked across a relaunch")
+        marked.forgetPersonal([other, UUID()])
+        let pruned = AgentStore(directory: directory)
+        pruned.load()
+        expect(pruned.personalChats == [chat], "and loses its mark only when it is gone")
         try? reloaded.remove(id: agent.id)
         expect(reloaded.agent(forChat: chat) == nil, "deleting an agent frees its chats")
         expect(

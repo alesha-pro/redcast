@@ -94,13 +94,19 @@ optional chord: see [background and scheduled agents](background-agents.md).
   sub-agent's rounds only show what it found: its question is the parent's brief, which the model
   wrote). A turn nobody sent from its chat (a schedule, the launcher, a voice task) is narrowed from
   the start; a watched turn is narrowed by the first read that reached the user's data: `read_file`,
-  `list_dir` or `search_files` beyond the agent's folder and its skills (only with full access), and
-  any `personal` call that answered (`notes_search`, `notes_read`, `screen_context`). Narrowed, a
+  `list_dir` or `search_files` beyond the agent's folder and its skills (only with full access), any
+  `personal` call that answered (`notes_search`, `notes_read`, `screen_context`), and a question
+  that carries an attachment (an image, a PDF or an inlined file, as Ask About Screen adds). The
+  first such read marks the chat in `agent-personal-chats.json`, so its later turns, whose history
+  still holds the replies, start narrowed too; the mark goes when the chat is deleted. Narrowed, a
   fetch opens only the user's links in their own messages (not an attached file, a captured window
   or the notes on earlier turns, which the model wrote), the results of this turn's searches and the
-  links on the parts it already fetched, each once a round has shown it, at the address given
-  (`WebPageScope.fetchable`); anything else is refused before any request, saying why. So a model
-  that read a secret cannot spell it into an address. MCP tools are outside this rule.
+  links on the parts it already fetched that stay on that page's site, each once a round has shown
+  it, at the address given (`WebPageScope.fetchable`), and at most eight distinct pages a turn
+  (`AgentWebScope.admit`; another part of one already read is not another); anything else is refused
+  before any request, saying why. This narrows what a model that read a secret can send, without
+  closing it: which few given pages it reads is still a choice, and a search query it writes can
+  steer what comes back. MCP tools are outside this rule.
 - **What tools return is material, and bounded three times.** The agent's prompt says so. A
   provider cuts its own output first, under 28 KB, so the cut can say where to continue;
   `AgentTurnBudget` then holds each result to 32 KB, as upstream's loop does, and a turn's results to
@@ -186,6 +192,8 @@ optional chord: see [background and scheduled agents](background-agents.md).
   untouched. Deleting an agent frees its chats, which stay as plain AI chats, and deletes its notes.
   Deleting a chat drops its line, and the retention prune and Delete All drop those of chats gone
   from history and not open, so the file holds no more lines than there are agent chats.
+  `agent-personal-chats.json` beside it lists the chats whose agent read the user's own data (see the
+  web scope above), written once a chat and pruned the same way; the previous build never reads it.
 - **Quick AI can answer with an agent.** Settings → AI → Agents → Quick AI answers with names an
   agent on the chat's model (`aiQuickAIAgent`); `agent(for:)` gives it to Quick AI's chat until its
   first message binds it like any other, and ⌘K → Answer with switches it for one chat. ACP agents
@@ -373,7 +381,7 @@ off by default per agent, bounded by `AgentPathPolicy` and asked through the age
 | File | Holds |
 | --- | --- |
 | `Model/AgentProfile.swift` | The profile: folder, access, tool families, permissions, skill sources, instructions sources, model |
-| `Model/AgentStore.swift` | Agents and chat bindings as JSON; where the agent's notes and a chat's summary live |
+| `Model/AgentStore.swift` | Agents and chat bindings as JSON; the chats that read personal data; where the agent's notes and a chat's summary live |
 | `Model/AgentSkill.swift` | `SKILL.md` front matter, the merged catalog, and `AgentContext.prompt` |
 | `Model/AgentToolbox.swift` | `AgentPathPolicy`, the tool definitions per profile, and what each reaches (`spec(for:)`) |
 | `Model/AgentTool.swift` | `AgentToolProvider`, `AgentToolSpec`, `AgentToolRisk`, `AgentTurn`, `AgentRunMode`, the call's context |
@@ -383,7 +391,7 @@ off by default per agent, bounded by `AgentPathPolicy` and asked through the age
 | `Model/AgentCompaction.swift` | Cross-turn notes: what was dropped, what they cover, when they grow, the request that makes them, `AgentChatSummary` |
 | `Model/AgentPlan.swift` | `update_plan`'s definition and arguments, and the checklist ACP plans share |
 | `Service/AgentContextLoader.swift` | Reads `AGENTS.md` (or a lone `CLAUDE.md`), `~/.agents/AGENTS.md`, skills, notes |
-| `Model/AgentWebScope.swift` | What one turn's `web_fetch` may open: unattended or narrowed by a personal read, the user's links and what was found |
+| `Model/AgentWebScope.swift` | What one turn's `web_fetch` may open: unattended or narrowed by a personal read or an earlier turn's, the user's links, what was found on the same site, eight pages |
 | `Model/AgentSpotlight.swift` | `search_files`'s Spotlight mode: the `mdfind` query from the model's words, kind and date, what is shown, the listing |
 | `Service/AgentToolExecutor.swift` | `AgentBuiltInTools`, the first provider; the executor runs each call: reads by kind, ripgrep or Spotlight search, terminal with timeout, `web_fetch` through `WebPageReader` |
 | `Service/AgentWebRounds.swift` | The parent turn's route, so its web scope sees each round's messages first |
@@ -530,9 +538,11 @@ this way, as one provider. Nothing else changes: no router edit, no upstream lin
 - Ask it to read a long Wikipedia article: the row's result says "Part 1 of N", and asking for the
   end makes it call `web_fetch` again with a later part. Ask it to read a PDF report by URL.
 - With full access, ask it to find "the invoice from last month" anywhere: one `search_files` row
-  in Spotlight mode, newest first. Then ask it to fetch a made-up URL that carries a word from that
-  file: the row fails, saying the turn read the user's files. A search result still opens. A
-  scheduled run's fetch of an address it found nowhere fails the same way.
+  in Spotlight mode, newest first, an iCloud Drive file among them if one matches. Then ask it to
+  fetch a made-up URL that carries a word from that file: the row fails, saying the chat holds the
+  user's files. A search result still opens. Send another message in the same chat asking for the
+  made-up URL again: it fails the same way. A scheduled run's fetch of an address it found nowhere
+  fails too, and its ninth distinct page says it has read eight.
 - Tell it to remember something, start a new chat with the same agent, ask about it.
 - A read-only agent is never offered the terminal or writes; a chat without an agent is unchanged.
 - Ask it to run `sleep 30`, then Stop: `ps` shows no `sleep`. Ask for a change, Stop while the dialog
@@ -629,6 +639,8 @@ this way, as one provider. Nothing else changes: no router edit, no upstream lin
   made once then reused then grown, a failed summary and Stop while it is made); `web-search-test`
   covers the search provider through a toolset and the loop, and the web scope: unattended and
   narrowed turns, the notes on earlier turns and requests without tools left out, a personal read
-  that answered, and search results given once a round showed them; `ai-provider-test` pins which routes
-  and which requests are asked to cache and where the marks go; and `agent-schedule-test` covers
-  background runs and schedules (see [background-agents.md](background-agents.md#manual-sweep)).
+  that answered, search results given once a round showed them, a page's links kept to its own site,
+  eight pages a narrowed turn, an earlier turn's mark carried over and set once, and attachments;
+  `ai-provider-test` pins which routes and which requests are asked to cache and where the marks
+  go; and `agent-schedule-test` covers background runs and schedules (see
+  [background-agents.md](background-agents.md#manual-sweep)).

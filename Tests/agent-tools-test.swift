@@ -526,6 +526,23 @@ extension AgentToolsTests {
             id: "s", name: AgentToolbox.searchFiles, arguments: "{\"pattern\":\"secret\",\"path\":\"\(outside)\"}"))
         expect(searching.isRestricted, "and so does searching there")
 
+        let counted = AgentWebScope(unattended: true)
+        let tools = [AITool(name: AgentToolbox.webFetch, description: "", parameters: .object([:]), origin: "T")]
+        let links = (1...9).map { "https://user.example/\($0)" }
+        counted.note(AIRequest(messages: [AIMessage(role: .user, text: links.joined(separator: " "))], tools: tools))
+        let declining = AgentToolExecutor(
+            profile: AgentProfile(name: "T", directory: folder), skills: [], memoryURL: memory,
+            consent: { _ in false }, web: counted)
+        var outcomes: [AIToolResult] = []
+        for link in links {
+            outcomes.append(await declining.run(
+                AIToolCall(id: link, name: AgentToolbox.webFetch, arguments: "{\"url\":\"\(link)\"}")))
+        }
+        expect(
+            outcomes.prefix(8).allSatisfy { $0.content == AgentToolFailure.declined.message }
+                && outcomes.last?.content == WebPageTool.agentReadsUsed(unattended: true),
+            "a run nobody watches opens eight given pages, and refuses a ninth unasked, got \(outcomes.last?.content ?? "")")
+
         let invalid = await AgentToolExecutor(
             profile: AgentProfile(name: "T", directory: folder), skills: [], memoryURL: memory,
             consent: { _ in true }

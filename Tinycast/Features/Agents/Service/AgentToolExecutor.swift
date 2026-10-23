@@ -362,10 +362,11 @@ nonisolated struct AgentToolExecutor: Sendable {
         else { return .failure(.init("web_fetch takes an http or https URL with no user name or password.")) }
         let url: URL
         if let web {
-            guard let given = web.fetchable(asked) else {
-                return .failure(.init(WebPageTool.outOfAgentScope(asked, unattended: web.unattended)))
+            switch web.admit(asked) {
+            case .open(let given): url = given
+            case .notGiven: return .failure(.init(WebPageTool.outOfAgentScope(asked, unattended: web.unattended)))
+            case .readsUsed: return .failure(.init(WebPageTool.agentReadsUsed(unattended: web.unattended)))
             }
-            url = given
         } else {
             url = WebPageScope.secured(asked)
         }
@@ -377,7 +378,7 @@ nonisolated struct AgentToolExecutor: Sendable {
             url, part: position.part, pages: position.pages, tool: AgentToolbox.webFetch, documents: documents)
         switch read {
         case .success(let page):
-            web?.found(page.links)
+            web?.found(page.links, on: url)
             return .success(WebPageTool.answer(page.text, from: url))
         case .failure(let failure):
             return .failure(.init(failure.message))
