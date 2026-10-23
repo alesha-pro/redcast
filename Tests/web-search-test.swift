@@ -971,9 +971,11 @@ struct WebSearchTests {
             mcp: { .failure($0.id, "no MCP") }, ask: { _, _ in allows })
     }
 
-    static func collect(_ provider: any AIProvider) async -> [AIStreamEvent] {
+    static func collect(
+        _ provider: any AIProvider,
+        _ request: AIRequest = AIRequest(instructions: nil, messages: [AIMessage(role: .user, text: "go")])
+    ) async -> [AIStreamEvent] {
         var events: [AIStreamEvent] = []
-        let request = AIRequest(instructions: nil, messages: [AIMessage(role: .user, text: "go")])
         do {
             for try await event in provider.stream(request) { events.append(event) }
         } catch {}
@@ -1436,6 +1438,21 @@ extension WebSearchTests {
             scoped.fetchable(url("https://docs.searxng.org/dev/search_api.html"))
                 == url("https://docs.searxng.org//dev/search_api.html"),
             "a search result the next round showed is given, at the address the engine wrote")
+
+        let parent = AgentWebScope(unattended: true)
+        parent.note(AIRequest(messages: [AIMessage(role: .user, text: "Research https://user.example/")], tools: tools))
+        let child = ScriptedProvider(rounds: [[.text("ok"), .finished], [.text("ok"), .finished]])
+        let childRounds = AgentWebRounds(base: child, scope: parent, readsMessages: false)
+        let brief = AIRequest(messages: [AIMessage(role: .user, text: "Read https://brief.example/x")], tools: tools)
+        _ = await collect(childRounds, brief)
+        parent.found([url("https://child-found.example/")])
+        expect(parent.fetchable(url("https://child-found.example/")) == nil, "a sub-agent's result waits for its round")
+        _ = await collect(childRounds, brief)
+        expect(
+            parent.fetchable(url("https://child-found.example/")) != nil
+                && parent.fetchable(url("https://user.example/")) != nil,
+            "which shows it, and the user's own links stay given")
+        expect(parent.fetchable(url("https://brief.example/x")) == nil, "a link in the brief the model wrote is not")
     }
 
     static func makePDF(at url: URL, pages: [String]) {
