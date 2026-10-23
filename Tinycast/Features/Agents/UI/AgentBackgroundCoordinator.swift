@@ -128,8 +128,8 @@ final class AgentBackgroundCoordinator {
         }
         ai.chats.park(chat)
         chats[id] = chat
-        let minutes = effort.budget.minutes
-        // The run hands over at its limit by itself; this stops one a long call kept from it.
+        // An agent on its own CLI keeps its own limit; Tinycast's loop hands over at its effort's.
+        let minutes = agent.runtime == nil ? effort.budget.minutes : agent.backgroundPolicy.limitMinutes
         watchdogs[id] = Task { [weak self] in
             try? await Task.sleep(for: .seconds(minutes * 60) + Self.handOverGrace)
             guard !Task.isCancelled else { return }

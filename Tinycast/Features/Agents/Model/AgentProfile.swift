@@ -79,7 +79,7 @@ struct AgentProfile: Hashable, Identifiable, Sendable {
     var consent: AgentConsentRules?
     /// How a run nobody started from a chat behaves; nil is `AgentBackgroundPolicy()`.
     var background: AgentBackgroundPolicy?
-    /// How much a run may do; nil is Balanced, and the previous build ignores the key.
+    /// How much a run may do; nil follows `effortLevel`, and the previous build ignores the key.
     var effort: AgentEffort?
     var createdAt: Date
 
@@ -117,7 +117,8 @@ struct AgentProfile: Hashable, Identifiable, Sendable {
 
     var backgroundPolicy: AgentBackgroundPolicy { background ?? AgentBackgroundPolicy() }
 
-    var effortLevel: AgentEffort { effort ?? .balanced }
+    /// Nil reads the time limit an agent kept before Effort: a 30-minute agent was not a Balanced one.
+    var effortLevel: AgentEffort { effort ?? AgentEffort.lasting(backgroundPolicy.minutes) }
 
     /// Its launcher row's id; apart from the `@handle` rows' `agent:` and `agent-pick:` ids.
     static let entryIDPrefix = "agent-profile:"
@@ -211,8 +212,13 @@ struct AgentBackgroundPolicy: Codable, Hashable, Sendable {
     var consent: AgentBackgroundConsent = .ask
     /// A Notification Center banner when a run ends; opt-in, since macOS asks for it once.
     var notifies = false
-    /// The previous build's time limit, written for it; this build takes a run's from its effort.
+    /// An agent on its own CLI stops a run after this long; Tinycast's loop takes its time from Effort.
     var minutes = 15
+
+    static let minuteRange = 5...60
+
+    /// The limit a run is held to, inside the range even when a hand-edited file says otherwise.
+    var limitMinutes: Int { min(max(minutes, Self.minuteRange.lowerBound), Self.minuteRange.upperBound) }
 }
 
 enum AgentProfileError: Error, LocalizedError, Equatable {

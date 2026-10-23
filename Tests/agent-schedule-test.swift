@@ -499,6 +499,13 @@ struct AgentScheduleTests {
         expect(
             AgentEffort.allCases.map(\.budget.minutes) == [5, 15, 45],
             "a run's time limit is its effort's: five minutes, a quarter of an hour, three quarters")
+        expect(AgentBackgroundPolicy(minutes: 0).limitMinutes == 5, "a CLI agent's limit can't go under five minutes")
+        expect(AgentBackgroundPolicy(minutes: 999).limitMinutes == 60, "nor over an hour")
+        expect(AgentBackgroundPolicy().limitMinutes == 15, "and the default is a quarter of an hour")
+        expect(
+            [5, 10, 15, 30, 45, 60].map(AgentEffort.lasting)
+                == [.quick, .balanced, .balanced, .thorough, .thorough, .thorough],
+            "an agent's limit from before Effort reads as the least effort that lasts as long")
         var schedule = AgentSchedule(agentID: UUID(), name: "n", prompt: "p")
         let plain = (try? JSONEncoder().encode(schedule)).flatMap { String(bytes: $0, encoding: .utf8) } ?? ""
         expect(schedule.effort == nil && !plain.contains("effort"), "a schedule runs at its agent's effort unless told")

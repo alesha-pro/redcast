@@ -8,6 +8,11 @@ enum AgentEffort: String, Codable, CaseIterable, Identifiable, Sendable {
 
     var id: String { rawValue }
 
+    /// The least effort whose time is at least an agent's limit from the build before Effort.
+    static func lasting(_ minutes: Int) -> AgentEffort {
+        allCases.first { $0.budget.minutes >= minutes } ?? .thorough
+    }
+
     var budget: AgentRunBudget {
         switch self {
         case .quick: AgentRunBudget(rounds: 8, resultBytes: 256 * 1_024, minutes: 5, subAgents: 0)
