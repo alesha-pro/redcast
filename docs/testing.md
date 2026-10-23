@@ -126,7 +126,7 @@ If a change touches anything in the right column, the harness on the left is man
 | `calendar-test` | all of `Calendar/Model/` plus `EventEditorSession` — links, join window, day buckets, draft and form focus |
 | `clipboard-search-test` | Ordinary and OCR result ordering, opt-in lifecycle, cancellation, pins and type filters |
 | `clipboard-text-test` | Apple Vision/PDF extraction, scheduling, retry backoff and recovery |
-| `document-text-test` | `DocumentText/` (fork): kinds, page ranges, the helper's PDF, OCR and rich-text reads, and the service running the harness as its helper — timeout, bound, Stop |
+| `document-text-test` | `DocumentText/` (fork): kinds, page ranges, the helper's PDF, OCR and rich-text reads, archive sizes, and the service running the harness as its helper — timeout, bound, footprint, Stop, a bomb refused unopened |
 | `paste-sequence-test` | `Clipboard/Model/PasteSequence.swift` — the walk's order, its end, and what starts it over |
 | `clipboard-test` | `Clipboard/Model/ClipboardStore.swift`, `ClipboardFilter.swift`, `ClipboardFileKind.swift`, the colour trio |
 | `clipboard-coordinator-test` | Edit Entry selection across query/type changes and pins, failed writes, deletion during editing and cancellation; isolated database and recorded clipboard effects |

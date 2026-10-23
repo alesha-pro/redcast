@@ -24,6 +24,13 @@ struct DocumentTextTests {
         if CommandLine.arguments.count > 1, CommandLine.arguments[1] == DocumentTextRequest.command {
             exit(await DocumentTextExtractor.run(Array(CommandLine.arguments.dropFirst())))
         }
+        // A helper that swells, as an importer fed a document built to inflate would.
+        if CommandLine.arguments.count > 1, CommandLine.arguments[1] == "swell" {
+            let block = UnsafeMutableRawPointer.allocate(byteCount: 512 << 20, alignment: 4_096)
+            block.initializeMemory(as: UInt8.self, repeating: 1, count: 512 << 20)
+            try? await Task.sleep(for: .seconds(10))
+            exit(block.load(as: UInt8.self) == 1 ? 0 : 1)
+        }
         let folder = FileManager.default.temporaryDirectory
             .appendingPathComponent("tinycast-document-test-\(UUID().uuidString)")
         try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
@@ -37,6 +44,7 @@ struct DocumentTextTests {
         await pdfPagesReadInOrderWithinTheBudget(folder)
         await richTextAndImagesRead(folder)
         await theServiceRunsOneHelperPerRead(folder)
+        await archivesAreSizedBeforeTheyOpen(folder)
 
         print("\(passes) passed, \(failures) failed")
         if failures > 0 { exit(1) }
@@ -232,6 +240,79 @@ struct DocumentTextTests {
         let cancelled = await stopped.value
         expect(cancelled.failure?.message.contains("was stopped") == true, "Stop ends a read")
         expect(ContinuousClock.now - stopAt < .seconds(2), "at once, and the helper with it")
+    }
+
+    /// A DOCX or ODT that would unpack past what a read holds is refused before AppKit opens it.
+    static func archivesAreSizedBeforeTheyOpen(_ folder: URL) async {
+        func zip(_ entries: [(String, UInt32)], count: UInt16? = nil) -> Data {
+            var directory = Data()
+            for (name, size) in entries {
+                var entry = [UInt8](repeating: 0, count: 46)
+                entry.replaceSubrange(0..<4, with: [0x50, 0x4B, 0x01, 0x02])
+                for shift in 0..<4 { entry[24 + shift] = UInt8(truncatingIfNeeded: size >> (8 * UInt32(shift))) }
+                entry[28] = UInt8(name.utf8.count & 0xFF)
+                entry[29] = UInt8(name.utf8.count >> 8)
+                directory.append(contentsOf: entry)
+                directory.append(contentsOf: Array(name.utf8))
+            }
+            var end = [UInt8](repeating: 0, count: 22)
+            end.replaceSubrange(0..<4, with: [0x50, 0x4B, 0x05, 0x06])
+            let total = count ?? UInt16(entries.count)
+            end[8] = UInt8(total & 0xFF)
+            end[9] = UInt8(total >> 8)
+            end[10] = end[8]
+            end[11] = end[9]
+            for shift in 0..<4 { end[12 + shift] = UInt8(truncatingIfNeeded: directory.count >> (8 * shift)) }
+            return directory + Data(end)
+        }
+        func verdict(_ data: Data) -> DocumentArchive.Verdict {
+            DocumentArchive.verdict(tail: data.suffix(Int(DocumentArchive.tailBytes)), fileSize: UInt64(data.count)) {
+                Int($0) + $1 <= data.count ? data.subdata(in: Int($0)..<(Int($0) + $1)) : nil
+            }
+        }
+        let small = zip([("[Content_Types].xml", 1_000), ("word/document.xml", 40_000), ("word/media/a.png", 900_000)])
+        expect(
+            verdict(small) == .readable(.init(markup: 41_000, total: 941_000, entries: 3)),
+            "a document's sizes come from its directory, got \(verdict(small))")
+        expect(verdict(zip([("word/document.xml", 300 << 20)])) == .tooLarge, "300 MB of XML is refused")
+        expect(
+            verdict(zip((1...9).map { ("word/media/\($0).png", 30 << 20) })) == .tooLarge,
+            "and so are 270 MB of pictures")
+        expect(verdict(zip([("word/document.xml", 10)], count: 0xFFFF)) == .tooLarge, "ZIP64 is not read")
+        expect(
+            verdict(zip([("word/document.xml", 10)], count: 0)) == .readable(.init(markup: 10, total: 10, entries: 1)),
+            "the end record's count is not trusted")
+        expect(verdict(Data("not a zip at all".utf8)) == .notArchive, "text has no directory")
+
+        let string = NSAttributedString(string: String(repeating: "Minutes of the meeting.\n", count: 200))
+        let real = try? string.data(
+            from: NSRange(location: 0, length: string.length),
+            documentAttributes: [.documentType: NSAttributedString.DocumentType.officeOpenXML])
+        let docx = folder.appendingPathComponent("real.docx")
+        try? real?.write(to: docx)
+        guard case .readable(let sizes) = DocumentTextService.archive(at: docx.path) else {
+            return expect(false, "AppKit's own DOCX reads as an archive")
+        }
+        expect(sizes.markup > 4_000 && sizes.entries >= 3, "with its XML counted, got \(sizes)")
+
+        let bomb = folder.appendingPathComponent("bomb.docx")
+        try? zip([("word/document.xml", 300 << 20)]).write(to: bomb)
+        let me = URL(fileURLWithPath: CommandLine.arguments[0]).standardizedFileURL
+        let refused = await DocumentTextService(executable: me)
+            .read(DocumentTextRequest(path: bomb.path, kind: .richText, budget: 4_096))
+        expect(
+            refused.failure?.message == "bomb.docx unpacks to more than a read can hold, so it was not opened.",
+            "the service refuses it without starting the helper, got \(refused)")
+
+        let swelling = script(in: folder, named: "swelling", body: "exec \"\(me.path)\" swell")
+        var guarded = DocumentTextService(executable: swelling)
+        guarded.memoryLimit = 64 << 20
+        let started = ContinuousClock.now
+        let swollen = await guarded.read(DocumentTextRequest(path: docx.path, kind: .richText, budget: 4_096))
+        expect(
+            swollen.failure?.message == "Reading real.docx needed more than 64 MB and was stopped.",
+            "a helper past its memory is ended, got \(swollen)")
+        expect(ContinuousClock.now - started < .seconds(5), "long before its time runs out")
     }
 
     // MARK: - Fixtures
