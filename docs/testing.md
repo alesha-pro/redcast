@@ -888,12 +888,13 @@ caches, TCC grants and login item, so this cannot disturb an installed copy.
 
 ### Agent Sessions
 
-Eighteen steps, from search and resume in each terminal to the live-status diff, the HUDs, the
-menu-bar item, a spoofed event and moved agent folders:
+Twenty steps, from search and resume in each terminal to the live-status diff, the HUDs, the
+Agents menu-bar item, a spoofed event, moved agent folders and Gemini CLI and OpenCode sessions:
 [agent-sessions.md](features/agent-sessions.md#manual-sweep).
 In short:
 
-- Search Agent Sessions lists Claude Code, Codex and Tinycast rows, fast again after a relaunch
+- Search Agent Sessions lists Claude Code, Codex and Tinycast rows, fast again after a relaunch, and
+  Gemini CLI and OpenCode rows where they are installed
 - ↵ resumes in Terminal, iTerm2, Ghostty, Warp and Zap (Zap must *run* the `.command`); ⌃⌘↵ forks;
   ⌘↵ copies the command; a deleted folder copies it and says so
 - A waiting Claude CLI session shows **Needs you** and Jump to Agent brings its tab forward
