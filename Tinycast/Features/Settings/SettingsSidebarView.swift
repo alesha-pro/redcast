@@ -30,8 +30,9 @@ struct SettingsSidebarView: View {
                         Label {
                             Text(tab.title)
                         } icon: {
-                            SettingsTabIcon(
-                                systemImage: tab.systemImage,
+                            // Fork: System Settings' coloured tiles while Colourful Icons is on.
+                            SettingsTabTile(
+                                tab: tab,
                                 tint: appearsActive
                                     ? (navigation.tab == tab ? Color.primary : Color.accentColor)
                                     : Color.secondary)
@@ -101,7 +102,7 @@ private struct SettingsSearchResultRow: View {
                     .truncationMode(.middle)
             }
         } icon: {
-            SettingsTabIcon(systemImage: entry.tab.systemImage, tint: .accentColor)
+            SettingsTabTile(tab: entry.tab)  // Fork: the pane's own coloured tile
         }
         // Centred, not first-baseline: the tile sits against a two-line title and breadcrumb.
         .labelStyle(CenteredLabelStyle())

@@ -47,6 +47,7 @@ struct AgentEditorPanel: View {
                         }
                         iconField
                     }
+                    colorField
                     folderField
                     if let existing { shortcutField(for: existing) }
                     runtimeField
@@ -125,7 +126,8 @@ struct AgentEditorPanel: View {
             Button {
                 showingIconPicker = true
             } label: {
-                SymbolImage(name: draft.symbol, size: 14).frame(width: 40)
+                GlyphTile(symbol: draft.symbol, hue: draft.hue, size: Theme.Size.settingsRowIcon)
+                    .frame(width: 40)
             }
             .popover(isPresented: $showingIconPicker, arrowEdge: .bottom) {
                 SymbolPicker(
@@ -133,6 +135,36 @@ struct AgentEditorPanel: View {
                     symbols: Self.iconSymbols
                 ) {
                     showingIconPicker = false
+                }
+            }
+        }
+    }
+
+    /// Raycast's seven, the agent's tile wherever it shows; the derived one is ticked until picked.
+    private var colorField: some View {
+        field("Color") {
+            HStack(spacing: Theme.Spacing.md) {
+                ForEach(RaycastHue.agentChoices) { hue in
+                    let isOn = draft.hue == hue
+                    Button {
+                        draft.color = hue.rawValue
+                    } label: {
+                        Circle()
+                            .fill(hue.tileColor)
+                            .frame(width: Theme.Size.settingsRowIcon, height: Theme.Size.settingsRowIcon)
+                            .overlay {
+                                if isOn {
+                                    Image(systemName: "checkmark")
+                                        .font(Theme.Typography.disclosure)
+                                        .foregroundStyle(Color.white)
+                                }
+                            }
+                            .contentShape(Circle())
+                    }
+                    .buttonStyle(.plain)
+                    .help(hue.title)
+                    .accessibilityLabel(hue.title)
+                    .accessibilityAddTraits(isOn ? .isSelected : [])
                 }
             }
         }

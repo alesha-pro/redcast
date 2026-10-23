@@ -37,6 +37,7 @@ struct AgentTests {
         agentsAndTheirChatsSurviveARelaunch()
         aPlanReadsAsAChecklist()
         newerFamiliesStayOutOfOlderBuildsWay()
+        aColourSurvivesTheOlderBuildsRewrite()
         aToolsetCanOfferReadingOnly()
         compactionCoversWhatTheBudgetDrops()
         compactionNotesRideTheFirstQuestion()
@@ -646,7 +647,10 @@ extension AgentTests {
         guard let data = try? Data(contentsOf: file),
             var objects = (try? JSONSerialization.jsonObject(with: data)) as? [[String: Any]]
         else { return }
-        for index in objects.indices { objects[index]["addedTools"] = nil }
+        for index in objects.indices {
+            objects[index]["addedTools"] = nil
+            objects[index]["color"] = nil
+        }
         try? JSONSerialization.data(withJSONObject: objects).write(to: file)
     }
 
@@ -683,6 +687,44 @@ extension AgentTests {
         expect(!FileManager.default.fileExists(atPath: side.path), "with none left, the side file goes")
         rewriteAsOlderBuild(file)
         expect(reloaded().agent(id: agent.id)?.tools == [.files], "and nothing comes back")
+    }
+
+    /// Fork: an agent's colour is an optional key, and a side file brings it back after a rewrite.
+    static func aColourSurvivesTheOlderBuildsRewrite() {
+        var coloured = profile()
+        coloured.color = "purple"
+        let encoded = (try? JSONEncoder().encode(coloured)).flatMap { String(data: $0, encoding: .utf8) }
+        expect(encoded?.contains("\"color\":\"purple\"") == true, "a colour rides its own optional key")
+        expect(
+            (try? JSONEncoder().encode(profile())).flatMap { String(data: $0, encoding: .utf8) }?
+                .contains("\"color\"") == false,
+            "an agent on its derived colour writes no key")
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("AgentColor-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let file = directory.appendingPathComponent("agents.json")
+        let side = directory.appendingPathComponent("agent-colors.json")
+        let store = AgentStore(directory: directory)
+        var draft = AgentProfile(name: "Painted", directory: folder)
+        draft.color = "magenta"
+        guard var agent = try? store.add(draft),
+            let plain = try? store.add(AgentProfile(name: "Plain", directory: folder))
+        else { return expect(false, "two agents are saved") }
+        func reloaded() -> AgentStore {
+            let store = AgentStore(directory: directory)
+            store.load()
+            return store
+        }
+        rewriteAsOlderBuild(file)
+        expect(
+            reloaded().agent(id: agent.id)?.color == "magenta"
+                && reloaded().agent(id: plain.id)?.color == nil,
+            "an agents.json the previous build rewrote gets the colour back, and only where set")
+        agent.color = nil
+        try? store.update(agent)
+        expect(!FileManager.default.fileExists(atPath: side.path), "with no colour left, the side file goes")
+        rewriteAsOlderBuild(file)
+        expect(reloaded().agent(id: agent.id)?.color == nil, "and a colour put back to derived stays so")
     }
 
     static func aToolsetCanOfferReadingOnly() {

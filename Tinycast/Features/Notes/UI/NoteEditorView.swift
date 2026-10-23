@@ -229,7 +229,10 @@ struct NoteEditorView: NSViewRepresentable {
         textView.smartInsertDeleteEnabled = false
         textView.usesFindBar = true
         textView.allowsUndo = true
-        textView.linkTextAttributes = [.foregroundColor: NSColor.linkColor, .cursor: NSCursor.pointingHand]
+        // Fork: links in the accent, as Raycast's are.
+        textView.linkTextAttributes = [
+            .foregroundColor: Theme.Colors.accentInk, .cursor: NSCursor.pointingHand
+        ]
         textView.typingAttributes = NoteMarkdownStyler.literal
     }
 }

@@ -44,6 +44,7 @@ enum SettingsFileSchema {
         case .showFavoritesInCompactMode: return bind(settings, \.showFavoritesInCompactMode)
         case .openOnCursorScreen: return bind(settings, \.openOnCursorScreen)
         case .paletteDraggable: return bind(settings, \.paletteDraggable)
+        case .colorfulIcons: return bind(settings, \.colorfulIcons)  // Fork: Colourful Icons
         case .hyperKey: return bind(settings, \.hyperKey)
         case .hyperKeyIncludesShift: return bind(settings, \.hyperKeyIncludesShift)
         case .hyperKeyQuickPress: return bind(settings, \.hyperKeyQuickPress)

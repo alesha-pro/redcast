@@ -63,7 +63,9 @@ private struct SnippetRow: View {
     var body: some View {
         IconCache.observeStyle()
         return HStack(spacing: metrics.spacing.lg) {
-            Image(nsImage: IconCache.symbolIcon(named: "curlybraces")).resizable()
+            // Fork: the launcher's snippet tile while Colourful Icons is on.
+            Image(nsImage: IconCache.symbolIcon(named: "curlybraces", tint: ColorfulIcons.tint(.snippets)))
+                .resizable()
                 .frame(width: metrics.size.resultRowIcon, height: metrics.size.resultRowIcon)
             Text(record.snippet.name)
                 .font(metrics.typography.rowTitle)

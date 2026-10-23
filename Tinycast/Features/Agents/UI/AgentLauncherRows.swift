@@ -72,6 +72,10 @@ extension AppEntry {
             url: URL(string: "tinycast://agent/" + agent.id.uuidString.lowercased())!,
             bundleID: nil, kind: .agent, settingsOwner: .ai, subtitle: "@" + handle,
             symbolName: agent.symbol)
+        // Its own colour, not AI's red; the Colourful Icons switch republishes these rows.
+        if ColorfulIcons.isEnabled {
+            iconOverride = .tintedSymbol(name: agent.symbol, tint: agent.hue.symbolTint)
+        }
     }
 }
 

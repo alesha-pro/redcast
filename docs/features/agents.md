@@ -123,6 +123,15 @@ optional chord: see [background and scheduled agents](background-agents.md).
   each agent's newer families to `agent-newer-tools.json` (removed when none are ticked), and `load`
   gives them back only to an agent whose saved object lacks `addedTools`, so a family unticked here
   stays off. A family added later joins `AgentToolKind.unknownToOlderBuilds`.
+- **An agent's colour survives the previous build the same way.** `AgentProfile.color` names a
+  `RaycastHue` (one of Raycast's seven; nil, or a name this build doesn't know, takes the colour
+  `RaycastHue.stable(for:)` derives from the id with FNV-1a, so it never changes between launches).
+  It is an optional key the previous build ignores and its save drops, so `commit` first writes
+  every set colour to `agent-colors.json` (removed when none is set) and `load` gives one back only
+  to an agent saved without it. The colour is the agent's tile in its launcher row, the composer's
+  agent picker, the header of each of its replies in AI Chat, its runs in the Agents menu-bar item,
+  Settings → AI → Agents and Usage; the editor's swatches set it. See
+  [ui.md](../ui.md#colour-the-raycast-palette-fork).
 - **A long agent chat keeps notes on what no longer fits, made once and grown rarely.**
   `ChatSession.requestMessages` drops a chat's oldest turns past its text budget. For an agent chat on
   Tinycast's loop, `AgentLoopProvider` first reads the chat's history (`AgentCompaction.Source`, read on

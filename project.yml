@@ -84,6 +84,8 @@ targets:
         INFOPLIST_FILE: Tinycast/Info.plist
         CODE_SIGN_ENTITLEMENTS: Tinycast/Tinycast.entitlements
         ASSETCATALOG_COMPILER_APPICON_NAME: tinycast
+        # Fork: Raycast red as the app accent (Assets.xcassets/AccentColor); see docs/ui.md.
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
         LOCALIZATION_PREFERS_STRING_CATALOGS: YES
         SWIFT_EMIT_LOC_STRINGS: YES
         COMBINE_HIDPI_IMAGES: YES

@@ -277,6 +277,11 @@ final class AppSettings {
         didSet { defaults.set(paletteDraggable, forKey: Key.paletteDraggable.rawValue) }
     }
 
+    /// Fork: coloured tiles and glyphs, the Raycast look; off is upstream's monochrome.
+    var colorfulIcons: Bool {
+        didSet { defaults.set(colorfulIcons, forKey: Key.colorfulIcons.rawValue) }
+    }
+
     /// Where a drag left the panel's top-left, per display and relative to it.
     var palettePositions: [String: [Double]] {
         didSet { defaults.set(palettePositions, forKey: Key.palettePosition.rawValue) }
@@ -793,6 +798,10 @@ final class AppSettings {
             || defaults.bool(forKey: Key.openOnCursorScreen.rawValue)
         autoSwitchInputSourceID = defaults.string(forKey: Key.autoSwitchInputSource.rawValue)
         paletteDraggable = defaults.bool(forKey: Key.paletteDraggable.rawValue)
+        // Fork: on unless switched off.
+        colorfulIcons =
+            defaults.object(forKey: Key.colorfulIcons.rawValue) == nil
+            || defaults.bool(forKey: Key.colorfulIcons.rawValue)
         palettePositions =
             defaults.dictionary(forKey: Key.palettePosition.rawValue)
             as? [String: [Double]] ?? [:]

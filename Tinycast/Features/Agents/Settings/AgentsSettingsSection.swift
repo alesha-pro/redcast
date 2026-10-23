@@ -11,8 +11,7 @@ struct AgentsSettingsSection: View {
         Section {
             ForEach(agents.agents) { agent in
                 SettingsRow(title: agent.name, subtitle: agent.directory) {
-                    SymbolImage(name: agent.symbol, size: Theme.Size.quickActionHeaderIcon)
-                        .frame(width: Theme.Size.settingsRowIcon)
+                    GlyphTile(symbol: agent.symbol, hue: agent.hue)
                 } trailing: {
                     Button("Schedule…") {
                         editingSchedule = AgentScheduleEditRequest(agent: agent, schedule: nil)
@@ -73,8 +72,7 @@ struct AgentsSettingsSection: View {
 
     private func scheduleRow(_ schedule: AgentSchedule, of agent: AgentProfile) -> some View {
         SettingsRow(title: schedule.name, subtitle: subtitle(of: schedule)) {
-            SymbolImage(name: "clock", size: Theme.Size.quickActionHeaderIcon)
-                .frame(width: Theme.Size.settingsRowIcon)
+            GlyphTile(symbol: "clock", hue: GlyphCategory.calendar.hue)
         } trailing: {
             Button("Edit…") {
                 editingSchedule = AgentScheduleEditRequest(agent: agent, schedule: schedule)

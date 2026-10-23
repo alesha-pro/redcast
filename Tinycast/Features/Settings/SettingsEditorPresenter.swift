@@ -366,6 +366,7 @@ extension View {
         editorPresenter: SettingsEditorPresenter
     ) -> some View {
         environment(\.settingsEditorPresenter, editorPresenter)
+            .tint(Theme.Colors.accent)  // Fork: red controls and links whatever the system accent
             .environment(navigation)
             .environment(core)
             .environment(core.settings)

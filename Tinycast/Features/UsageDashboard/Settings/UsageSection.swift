@@ -52,7 +52,8 @@ struct UsageSection: View {
                     }
                     ForEach(report.lines) { line in
                         UsageLineRow(
-                            line: line, title: title(of: line.subject), source: source(of: line.subject))
+                            line: line, title: title(of: line.subject), source: source(of: line.subject),
+                            tile: tile(of: line.subject))
                     }
                 } else {
                     Text("No usage in this period")
@@ -158,6 +159,17 @@ struct UsageSection: View {
         }
     }
 
+    /// A model reads as AI's red; an agent wears its own colour, as everywhere else.
+    private func tile(of subject: UsageSubject) -> (symbol: String, hue: RaycastHue) {
+        switch subject {
+        case .model: ("sparkles", GlyphCategory.ai.hue)
+        case .agent(let id):
+            core.agentStore.agent(id: id).map { ($0.symbol, $0.hue) }
+                ?? (AgentProfile.sfSymbol, GlyphCategory.ai.hue)
+        case .unknown: ("questionmark", .gray)
+        }
+    }
+
     private func source(of subject: UsageSubject) -> String? {
         switch subject {
         case .model(.api(let id), _):
@@ -174,9 +186,12 @@ private struct UsageLineRow: View {
     let line: UsageReport.Line
     let title: String
     let source: String?
+    let tile: (symbol: String, hue: RaycastHue)
 
     var body: some View {
         SettingsRow(title: title, subtitle: subtitle) {
+            GlyphTile(symbol: tile.symbol, hue: tile.hue)
+        } trailing: {
             Text(verbatim: amounts)
                 .monospacedDigit()
                 .foregroundStyle(.secondary)
