@@ -29,6 +29,8 @@ struct AgentLoopTests {
         await theHistoryWallHandsOver()
         await anUnattendedRunHandsOverOnTime()
         await anInterruptedReplyComesBack()
+        await aPlanIsKeptReadBackAndReported()
+        await aFailedRunSaysWhereItsPlanStood()
         effortsGrowAndStayWhereTheyWere()
         await reasoningRidesTheCallsItMade()
         anEditDropsTheThinkingAfterIt()
@@ -1425,5 +1427,38 @@ extension AgentLoopTests {
         agent.effort = .thorough
         let again = (try? JSONEncoder().encode(agent)).flatMap { try? JSONDecoder().decode(AgentProfile.self, from: $0) }
         expect(again?.effortLevel == .thorough, "a picked effort round-trips")
+    }
+
+    static let planned =
+        #"{"plan":[{"step":"Read","status":"completed"},{"step":"Write","status":"in_progress"}]}"#
+
+    /// One plan for the run: kept from `update_plan`, read back when it goes stale, said at the end.
+    static func aPlanIsKeptReadBackAndReported() async {
+        let tools = toolset([FakeTools(names: ["fs_read", "update_plan"]) { _, _ in "ok" }])
+        let base = ScriptedProvider(
+            rounds: [[call("p", "update_plan", planned)]] + Array(repeating: [call("c")], count: 7)
+                + [[.text("Done."), .finished]])
+        let outcome = await collect(AgentLoopProvider(base: base, toolset: tools, budget: AgentRunBudget(rounds: 10)))
+        let results = base.requests.last?.messages.compactMap(\.toolResult?.content) ?? []
+        expect(outcome.failure == nil && results.count == 8, "eight rounds of calls, then the answer")
+        expect(
+            results[6] == "ok\n\n[Plan: ✓ Read; → Write]" && results[1...5].allSatisfy { $0 == "ok" },
+            "a plan not touched for six rounds is read back once, on the round's newest result, got \(results)")
+        expect(
+            results[7].contains("Start wrapping up") && results[7].hasSuffix("\n[Plan: ✓ Read; → Write]"),
+            "and the wrap-up carries it too")
+    }
+
+    static func aFailedRunSaysWhereItsPlanStood() async {
+        let refused = AIProviderError.responseFailed("Invalid model")
+        let base = FlakyProvider(
+            failures: [], failAt: [3: refused],
+            then: [[call("p", "update_plan", planned)], [call("c")], [.text("never")]])
+        let tools = toolset([FakeTools(names: ["fs_read", "update_plan"]) { _, _ in "ok" }])
+        let outcome = await collect(AgentLoopProvider(base: base, toolset: tools, budget: .roomy, retry: quick))
+        expect(
+            outcome.failure == "Invalid model"
+                && texts(outcome.events) == "\n\nThe run stopped before the task was done.\n\nPlan:\n✓ Read\n→ Write\n",
+            "a run that fails after working says where its plan stood, then fails, got \(texts(outcome.events))")
     }
 }
