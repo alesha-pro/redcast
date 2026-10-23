@@ -19,16 +19,16 @@ OpenCode, Goose, Hermes, local models — on the subscriptions and machines you 
 | Continue in AI Chat | ⌘J turns a Quick Action result into a chat that refines it | [quick-actions](docs/features/quick-actions.md#the-panel) |
 | Screen Awareness | Double-tap right ⌘: the window in front — title, URL, selection, focused field, readable text, screenshot — attached to AI Chat | [screen-awareness](docs/features/screen-awareness.md) |
 | Agents | A chat that lives in a folder: its `AGENTS.md`, project and global `.agents/skills`, notes, and built-in tools (files, terminal, web, memory) on any tool-calling API model, every change and command asked first unless the agent's permissions say otherwise | [agents](docs/features/agents.md) |
-| Native agent harness | Agent chats on API models run the fork's own tool loop: tool families plug in as providers with a risk each, every change, command and fetch passes one consent policy, read-only calls in a round run in parallel, a long turn elides old results instead of stopping, and Stop ends a running command and voids a late Allow | [agents](docs/features/agents.md#adding-a-tool-family) |
-| Web search | A `web_search` tool for agents and every API model: Exa, Parallel and DuckDuckGo with no key, then your SearXNG, Brave or Tavily, tried in order | [web-search](docs/features/web-search.md) |
-| Notes ↔ AI | Attach Note… in the composer or `@note` picks a note to send with the next message; agents with the Notes tools search and read your notes and add reports to them, every addition asked first whatever the agent's other rules say | [notes-ai](docs/features/notes-ai.md) |
-| Background and scheduled agents | `@agent do X` in root search runs a turn with no window: a transient menu-bar item shows it working, a HUD (and an opt-in banner) says when it ended, and the result is a chat. Schedules run an agent daily, on working days or every few hours while Tinycast is open, with one sleeping task, a catch-up rule and an optional note. Unattended requests ask only someone at the Mac, with Return on Don't Allow | [background-agents](docs/features/background-agents.md) |
-| ACP agents | An agent can run as its own CLI over the Agent Client Protocol — Claude Code, Codex, Gemini CLI, OpenCode, Goose, Hermes or any command — on your own logins, with its permission requests, tool rows, plans and modes in AI Chat, and sessions that survive a relaunch | [agents](docs/features/agents.md#acp-agents) |
-| Voice AI | Cloud dictation through Gemini Flash on your own OpenRouter, Gemini or OpenAI-compatible connection, and Ask by Voice: speak a question about the window in front, get the answer beside it or typed into the field. Audio goes only to the connection you approved | [voice-ai](docs/features/voice-ai.md) |
-| Raycast AI for extensions | `AI.ask`, `useAI` and `canAccess(AI)` answered by your own model, off until you allow it and asked once per extension (a dismissed question asks again); only in a command you open, never in a menu-bar command, a background refresh or anything one launches | [extension-ai](docs/features/extension-ai.md) |
+| Native agent harness | Agent chats on API models run the fork's own tool loop. Tool families plug in as providers, each with a risk, and every change, command and fetch passes one consent policy. Read-only calls in a round run in parallel, and a long turn elides old results instead of stopping. A long chat keeps notes on the turns it no longer sends: made once, extended rarely, billed into the reply. `update_plan` shows a checklist the way ACP plans show. Opt-in Sub-agents hands a read-only task to a `delegate` copy of the agent on the same model. Opt-in Screen lets `screen_context` read the text of the window behind Tinycast, only on a turn the user sends from the chat. On Anthropic's own API and on OpenRouter, Claude is asked to cache every request that will be sent again. Stop ends a running command, sub-agent or summary and voids a late Allow | [agents](docs/features/agents.md#adding-a-tool-family) |
+| Web search | A `web_search` tool for agents and every API model: Exa, Parallel and DuckDuckGo with no key, then your SearXNG, Brave or Tavily, tried in order; with Web search on, a plain chat can also `read_page` a page you linked or a search found | [web-search](docs/features/web-search.md) |
+| Notes ↔ AI | Attach Note… in the composer or Quick AI's ⌘K menu, or `@note`, picks a note to send with the next message; agents with the Notes tools search and read your notes and add reports to them, every addition asked first whatever the agent's other rules say | [notes-ai](docs/features/notes-ai.md) |
+| Background and scheduled agents | `@agent do X` in root search runs a turn with no window, and every agent is a launcher row of its own (Return a new chat; Cmd-K Run in Background… and Edit Agent) with an optional global chord that types its `@handle`. One transient Agents menu-bar item shows background runs and Agent Sessions' live sessions together; a HUD (and an opt-in banner) says when a run ended, and the result is a chat. Schedules run an agent daily, on working days or every few hours while Tinycast is open, with one sleeping task, a catch-up rule, an optional note and an optional daily spend cap in US dollars over the costs routes report, counted even for runs cut short by a quit. Unattended requests ask only someone at the Mac, with Return on Don't Allow; native and ACP agents are both told when nobody is watching | [background-agents](docs/features/background-agents.md) |
+| ACP agents | An agent can run as its own CLI over the Agent Client Protocol — Claude Code, Codex, Gemini CLI, OpenCode, Goose, Hermes or any command — on your own logins, with its permission requests, tool rows that unfold the call's diff or command output, plans, modes and its slash commands offered in the composer in AI Chat, and sessions that survive a relaunch; an unattended run's prompt says nobody may be at the Mac | [agents](docs/features/agents.md#acp-agents) |
+| Voice AI | Cloud dictation through Gemini Flash on your own OpenRouter, Gemini or OpenAI-compatible connection, with dictation modes (Translate to English, Polish, As a message or your own) that rewrite the transcript per app. The capsule names the mode, and Tab or ⇧Tab switches it, even while the shortcut is held. Ask by Voice: speak a question about the window in front and get the answer beside it or typed into the field. Or hand the request to an agent as a background task with the window attached; that run is saved as its chat. Edit Selection by Voice: say how to change the selected text, and it is replaced in place if the selection hasn't moved. Both commands can be held on a key combination or a single modifier such as right Option. Audio goes only to the connection you approved and is never saved | [voice-ai](docs/features/voice-ai.md) |
+| Raycast AI for extensions | `AI.ask`, `useAI`, `AI.experimental_decide` and `canAccess(AI)` answered by your own model, off until you allow it and asked once per extension (a dismissed question asks again); `creativity` becomes a temperature where the route takes one, and an opt-in switch lets a model an extension names (Claude, GPT, Gemini…) reach that vendor's closest model among your API connections — read from the name's host, so Groq's or Vercel's hosted models keep yours; only in a command you open or from a menu-bar item you click, never in a menu's render, a background refresh or anything one launches | [extension-ai](docs/features/extension-ai.md) |
 | Extension runtime fixes | Google sign-in without a client secret (`querystring` coerces like Node), and extensions that bundle undici (`buffer.Blob`/`File`, undici's requests sent through the `fetch` bridge); ported from sermelipharo/tinycast-space | [extensions](docs/features/extensions.md) |
-| AI usage | Settings → AI → Usage: tokens and cost per model or ACP agent for a day, week or month, read from the chats on this Mac; an OpenRouter key's UTC spend and limit on Check Balance. An ACP reply counts what its session's running total rose; a tool-loop reply, a chat's or an agent's, costs its whole turn, and OpenAI's own API records tokens | [usage-dashboard](docs/features/usage-dashboard.md) |
-| Agent Sessions | Search every past Claude Code, Codex and Tinycast session from the launcher — titles, prompts, folder and branch, a preview, and text inside transcripts on request — and resume it in its folder and terminal with one key; live sessions show their status and Jump to Agent brings a waiting one forward. Opt-in live status adds reviewed hooks to Claude Code and Codex for a HUD and a menu-bar item when an agent finishes or waits | [agent-sessions](docs/features/agent-sessions.md) |
+| AI usage | Settings → AI → Usage: tokens and cost per model or ACP agent for a day, week or month, read from the chats on this Mac and from a small usage log of the replies no chat keeps (Quick Actions, Ask by Voice and dictation, extension AI, chat titles; numbers only, 400 days, never backed up), with a strip of per-hour or per-day bars; an OpenRouter key's UTC spend and limit on Check Balance, and the account's credits with an optional management key sent only to OpenRouter's /credits; the "AI Usage" command opens the section. An ACP reply counts what its session's running total rose; a tool-loop reply, a chat's or an agent's, costs its whole turn, and OpenAI's own API records tokens | [usage-dashboard](docs/features/usage-dashboard.md) |
+| Agent Sessions | Search every past Claude Code, Codex, Gemini CLI, OpenCode and Tinycast session from the launcher — titles, prompts, folder and branch, a preview, and text inside transcripts on request — and resume it in its folder and terminal with one key; ⌘O opens a Claude app session in Claude itself (`claude://code/continue`). Claude Code and Codex folders moved with `CLAUDE_CONFIG_DIR` / `CODEX_HOME` are named in Settings (locked while live status is on). Live sessions show their status and Jump to Agent brings a waiting one forward. Opt-in live status adds reviewed hooks to Claude Code and Codex for a HUD and rows in the one Agents menu-bar item when an agent finishes or waits | [agent-sessions](docs/features/agent-sessions.md) |
 | Alias + Space | Type an entry's alias exactly and press Space: it opens, or its first field takes the caret; `\`␣ types a space, and apps keep searching. From `sermelipharo/tinycast-space`, after `mSarheed/pipcast` | [alias actions](docs/features/alias-actions.md) |
 | Change Alias / Change Shortcut | Edit an entry's alias in place, or record its global shortcut, from its ⌘K menu. From `jhasubhash/tinycast`, as reshaped in `sermelipharo/tinycast-space` | [alias actions](docs/features/alias-actions.md#change-alias--change-shortcut) |
 
@@ -91,7 +91,8 @@ relaunches it. About shows the `git describe` version and the commit count (a fr
 
 Sizes are focused working days. Waves are ordered by leverage, not by size. Every item carries the
 owner's decision: **shipped**, **undecided**, **paused** or **declined**; a shipped item's "next on
-it" list is agreed work. Declined items stay listed so the numbers other docs cite keep their meaning.
+it" list is agreed work, and what follows its "Undecided:" waits for the owner. Declined items stay
+listed so the numbers other docs cite keep their meaning.
 
 ### Wave 0 — fork foundation
 
@@ -106,42 +107,63 @@ it" list is agreed work. Declined items stay listed so the numbers other docs ci
 
 ### Wave 1 — agent-native core
 
-- **Native agent harness — shipped** (see above). Next on it: cross-turn compaction (a summary of the
-  turns a long chat no longer sends), an `update_plan` tool shown as a checklist, a read-only
-  `delegate` sub-agent, prompt-cache markers where a transport needs them, and a `screen_context`
-  tool that reads the window behind Tinycast.
+- **Native agent harness — shipped** (see above), including cross-turn compaction, `update_plan`, a
+  read-only `delegate` sub-agent, `screen_context` (chat turns only, never background runs or
+  sub-agents) and prompt-cache markers for Claude on Anthropic's API and OpenRouter. Next on it:
+  nothing agreed. Undecided: plain chats on the same loop (so `web_search` and compaction reach them
+  with no upstream edit), a sub-agent's tokens counted in Usage, and a Personal data row in an
+  agent's Permissions. The row needs Notes reads to ask too, so that Ask Each Chat means the same
+  thing for both.
 
-1. **ACP agents — shipped** (see above). Next on it: render diffs and command output inside tool
-   rows, expose the agent's slash commands (`available_commands_update`) in the composer, a launcher
-   row and hotkey per agent, and Tinycast's own `fs/*` / `terminal/*` so edits can show in an editor.
+1. **ACP agents — shipped** (see above). Diffs and command output unfold inside tool rows, the
+   agent's slash commands are offered in the composer, and each agent has a launcher row and hotkey
+   (with item 5). Tinycast's own `fs/*` / `terminal/*` were evaluated and left out: no preset adapter
+   calls them, and a client terminal would run agent commands outside their own sandboxes
+   ([why](docs/features/agents.md#tinycasts-own-fs-and-terminal)). Next on it: nothing agreed.
+   Undecided: streaming command output into a row (`_meta.terminal_output`), and images inside tool
+   content.
 2. **Agent Sessions hub — shipped** (see above). Live status uses Codex hooks rather than `notify`,
-   which Computer Use already holds. Next on it: Gemini CLI and OpenCode histories as sources, one
-   merged "Agents" menu-bar item with background agents (item 5), `claude://code/continue` for Claude
-   app sessions once the route is confirmed, and `CLAUDE_CONFIG_DIR` / `CODEX_HOME` overrides.
-3. **Voice to AI — partly shipped** (see Voice AI above): cloud dictation, and hold-to-talk with the
-   screen attached as Ask by Voice. Next on it: dictation *modes* that pass the transcript through a
-   prompt before it is typed (speak Russian, get an English post; per-app tone), a *voice command*
-   over the selection ("make this shorter"), hold-to-talk on a single modifier, and asking an agent
-   by voice. Upstream declined voice control (#1550). *2 days.*
+   which Computer Use already holds. Gemini CLI and OpenCode histories, `claude://code/continue` for
+   Claude app sessions, the `CLAUDE_CONFIG_DIR` / `CODEX_HOME` folders and one Agents menu-bar item
+   shared with background agents (item 5) have shipped. Next on it: nothing agreed. Undecided: live
+   status for Gemini CLI (its hooks) and OpenCode (a plugin); folder fields for `GEMINI_CLI_HOME` and
+   `OPENCODE_DB`; and OpenCode's `session_v2` schema once it is released.
+3. **Voice to AI — shipped** (see Voice AI above): cloud dictation with dictation modes, Ask by Voice
+   with hold-to-talk on a single modifier and an agent as an optional target, and Edit Selection by
+   Voice. Next on it: nothing agreed; the manual sweep measures modes' one-request reliability per
+   model, which may tune `VoiceRoutePolicy.rewritesWhileTranscribing`. Undecided: modes for the
+   on-device engine behind their own consent, a capsule caption naming the agent or the edit while
+   recording, choosing an agent per press, and reordering modes. Upstream declined voice control
+   (#1550).
 4. **Tinycast as an MCP server — declined.** A stdio helper that would have lent the launcher's
    clipboard, screen, notes and dialogs to Claude Code, Codex and other MCP clients. Those stay
    inside Tinycast's own agents.
 
 ### Wave 2 — context and power
 
-5. **Background and scheduled agents — shipped** (see above). Next on it: a per-agent launcher row
-   and hotkey, the unattended briefing for ACP agents, a spend cap for schedules, and one "Agents"
-   menu-bar item shared with Agent Sessions' live status (item 2).
+5. **Background and scheduled agents — shipped** (see above), including a launcher row and hotkey per
+   agent, the unattended briefing for ACP agents, a daily spend cap for schedules, and one Agents
+   menu-bar item shared with Agent Sessions' live status (item 2). Next on it: nothing agreed.
+   Undecided: a per-agent cap or a cap on launcher runs, and cost estimates for routes that report
+   none.
 6. **Screen Awareness+ and Capture — undecided.** Area and full-screen capture, Vision OCR when an
    app exposes no Accessibility text (canvas apps, games), Finder's selected files, a `{screen}`
    placeholder for Quick Actions ("reply to this" in one key) and a searchable screenshot library
    (upstream #1211 declined; `dnw3` and `fminkowski` forks built capture). The `screen_context` agent
-   tool moved to the harness's next steps. *3–4 days.*
-7. **Web search — shipped** (see above). Next on it: `read_page` for plain chats.
-8. **Raycast AI for extensions — shipped** (see above). Next on it: honour the requested `AI.Model`
-   (an Anthropic id to an Anthropic connection), `creativity` as temperature where a route takes one,
-   `AI.experimental_decide`, extension model providers, and AI from a menu-bar item's own action, where
-   the click is the gesture (the menu-bar lane has no AI host today).
+   tool shipped with the native harness. *3–4 days.*
+7. **Web search — shipped** (see above), with `read_page` for plain chats: it reads only a page the
+   user linked or a search in the same turn returned, at the address the user or the engine wrote,
+   through `web_fetch`'s bounded read, under the same toggle. Next on it: nothing agreed. Undecided:
+   the keyed engines Serper, Linkup, Ollama and Mojeek, and reading an earlier turn's results without
+   a new search.
+8. **Raycast AI for extensions — shipped** (see above), including the requested `AI.Model` (opt-in,
+   by the vendor its first word names, silently falling back to the extension model;
+   Groq/Vercel/Baseten/Together names keep it), `creativity` as temperature (none for Gemini; one
+   retry without it where a route refuses it), `AI.experimental_decide` (prompted probabilities, not
+   logprobs) and AI from a menu-bar item's own action. Next on it: extension model providers
+   (`ai.modelProvider`, `getModels`), held back because surfacing them in AI Chat needs a JS-backed
+   provider layer and a resident extension runtime. Calibrated `experimental_decide` probabilities
+   need logprobs no route exposes.
 9. **Model arena — declined.** One prompt to two to four models side by side.
 
 ### Wave 3 — daily delights
@@ -152,13 +174,16 @@ it" list is agreed work. Declined items stay listed so the numbers other docs ci
 12. **Developer utilities — paused**, perhaps as extensions rather than built-ins. Kill by port,
     JSON / Base64 / URL / hash / UUID tools, colour picker, Caffeinate, timers and Pomodoro (`nikteg`,
     `Sai1boats` forks), `#` to run a shell line from root search.
-13. **Notes ↔ AI — shipped** (see above): Attach Note… and `@note` in AI Chat, the
-    `notes_search` / `notes_read` / `notes_append` tools for agents on the native harness, and a
-    schedule's Append the answer to a note (item 5). Next on it: an Attach Note… item in Quick AI's ⌘K
-    menu.
-14. **Usage dashboard — shipped** (see above). Next on it: a ledger so Quick Actions count, an
-    optional OpenRouter management key for the account balance, a trend strip, and a launcher command
-    that opens the section.
+13. **Notes ↔ AI — shipped** (see above): Attach Note… and `@note` in AI Chat, Attach Note… in Quick
+    AI's ⌘K menu, the `notes_search` / `notes_read` / `notes_append` tools for agents on the native
+    harness, and a schedule's Append the answer to a note (item 5). Next on it: nothing agreed
+    (`@note` in Quick AI's query was left out: the launcher and MCP addressing already parse that
+    query).
+14. **Usage dashboard — shipped** (see above), including the usage log for Quick Actions, voice,
+    extension AI and chat titles, the optional OpenRouter management key for the account balance, the
+    trend strip and the AI Usage command. Next on it: nothing agreed. Undecided: a per-origin
+    breakdown (Quick Actions / voice / extensions) from the log's existing origin column, which needs
+    no format change, and reading OpenRouter BYOK's `upstream_inference_cost`.
 15. **App-aware snippets — declined.** Offer the snippets written for the app in front first.
 16. **Moonshot — meeting copilot — not now.** On-device transcription of microphone and system audio
     into a running transcript, summarised into Notes when the meeting ends.
