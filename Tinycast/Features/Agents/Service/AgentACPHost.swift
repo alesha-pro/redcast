@@ -27,6 +27,11 @@ final class AgentACPHost {
     private var commands: [Session: [ACPCommand]] = [:]
     /// A new session's briefing, with the chat's turns from before it, waits for an ordinary turn.
     private var unbriefed: [UUID: Briefing] = [:]
+    /// A `/name` turn on a session that has listed nothing yet; each lives only for that wait.
+    private var listWaits: [Session: ListWait] = [:]
+
+    /// Adapters list commands just after a session's reply; an agent that never lists costs this.
+    static let commandListWait: Duration = .milliseconds(1_500)
 
     /// An agent left alone this long is stopped; its sessions reload on the next turn.
     private static let idleLifetime: Duration = .seconds(2 * 60)
@@ -40,6 +45,11 @@ final class AgentACPHost {
     private struct Briefing {
         let session: Session
         let earlier: String
+    }
+
+    private struct ListWait {
+        let resume: CheckedContinuation<Void, Never>
+        let timeout: Task<Void, Never>
     }
 
     private final class Turn {
@@ -86,6 +96,12 @@ final class AgentACPHost {
                 earlier: request.messages.dropLast())
             sessionID = session
             let key = Session(agentID: agent.id, id: session)
+            if !commands.keys.contains(where: { $0.agentID == agent.id }),
+                ACPCommand.invocation(in: message.text, offered: []) != nil
+            {
+                await commandList(for: key)
+                try Task.checkCancellation()
+            }
             let offered = commands[key] ?? commands.first { $0.key.agentID == agent.id }?.value ?? []
             let isCommand = ACPCommand.invocation(in: message.text, offered: offered) != nil
             let earlier = isCommand ? nil : unbriefed.removeValue(forKey: chatID).flatMap {
@@ -146,6 +162,7 @@ final class AgentACPHost {
     }
 
     func stopAll() {
+        for key in listWaits.keys { endListWait(for: key) }
         for connection in connections.values { connection.stop() }
         connections.removeAll()
         sessions.removeAll()
@@ -191,6 +208,7 @@ final class AgentACPHost {
 
     /// The process is gone or going; a pending briefing stays, as a reload still needs it.
     private func dropSessions(of agentID: UUID) {
+        for key in listWaits.keys where key.agentID == agentID { endListWait(for: key) }
         for (chatID, live) in sessions where live.agentID == agentID && commands[live] != nil {
             onCommands?(chatID, agentID, nil)
         }
@@ -276,10 +294,28 @@ final class AgentACPHost {
         if case .commands(let listed) = update {
             commands[session] = listed
             onCommands?(chatID, session.agentID, listed)
+            endListWait(for: session)
         }
         guard let turn = turns[session] else { return }
         if case .usage(_, _, let cost?) = update { onCost?(turn.chatID, cost) }
         for event in turn.mapper.events(for: update) { turn.continuation.yield(event) }
+    }
+
+    /// A fresh process's first `/name` turn is told a command from a word only once the list is in.
+    private func commandList(for key: Session) async {
+        await withCheckedContinuation { continuation in
+            let timeout = Task { @MainActor [weak self] in
+                try? await Task.sleep(for: Self.commandListWait)
+                self?.endListWait(for: key)
+            }
+            listWaits[key] = ListWait(resume: continuation, timeout: timeout)
+        }
+    }
+
+    private func endListWait(for key: Session) {
+        guard let wait = listWaits.removeValue(forKey: key) else { return }
+        wait.timeout.cancel()
+        wait.resume.resume()
     }
 
     private func scheduleIdleStop(_ agentID: UUID) {
