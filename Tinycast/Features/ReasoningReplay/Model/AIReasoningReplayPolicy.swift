@@ -47,7 +47,10 @@ enum AIReasoningReplayPolicy {
             for index in calls.indices { calls[index]["extra_content"] = nil }
             encoded["tool_calls"] = calls
         }
-        if let own, !configuration.disablesThinking, sends(own, on: route, configuration.reasoningReplay) {
+        // A reply that reasoned with thinking off shows the route ignored the switch, so it goes back.
+        if let own, !configuration.disablesThinking || !own.isStored,
+            sends(own, on: route, configuration.reasoningReplay)
+        {
             let form: AIReasoningReplay.Form? = route == .deepSeek ? .reasoningContent : own.form
             // A shed round keeps only its field's place, where the field must be there at all.
             let said = own.text.isEmpty ? nil : own.text

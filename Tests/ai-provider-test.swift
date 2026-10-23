@@ -729,14 +729,28 @@ struct AIProviderTests {
         let thinkingOff = AIHTTPConfiguration(
             provider: .openAICompatible, baseURL: URL(string: "https://api.deepseek.com/v1")!,
             model: "deepseek-flash", effort: "none", disablesThinking: true)
-        let off = AIRequestBody.make(
-            AIRequest(
-                messages: replayConversation(.reasoningContent, route: "api.deepseek.com", model: "deepseek-flash"),
-                tools: [tool]),
-            configuration: thinkingOff)
+        // DeepSeek honours the switch, so this turn's reply reasoned nothing.
+        var honoured = replayConversation(.reasoningContent, route: "api.deepseek.com", model: "deepseek-flash")
+        honoured[5] = AIMessage(role: .assistant, text: "", toolCalls: honoured[5].toolCalls)
+        let off = AIRequestBody.make(AIRequest(messages: honoured, tools: [tool]), configuration: thinkingOff)
         expect(
             (off["messages"] as? [[String: Any]])?.allSatisfy { $0["reasoning_content"] == nil } == true,
             "with DeepSeek's thinking off nothing is sent back, not even the empty field")
+        // Qwen Cloud reads only enable_thinking, and qwen3.7-plus thinks by default.
+        let ignored = AIHTTPConfiguration(
+            provider: .openAICompatible,
+            baseURL: URL(string: "https://ap-southeast-1.maas.qwencloudapi.com/compatible-mode/v1")!,
+            model: "qwen3.7-plus", effort: "none", disablesThinking: true)
+        let still = AIRequestBody.make(
+            AIRequest(
+                messages: replayConversation(.reasoningContent, route: ignored.route, model: "qwen3.7-plus"),
+                tools: [tool]),
+            configuration: ignored)
+        let sent = (still["messages"] as? [[String: Any]])?.compactMap { $0["reasoning_content"] as? String }
+        expect(
+            sent == ["Read it again."],
+            "a reply that still reasoned with thinking off is sent its reasoning; an earlier turn's is not, got "
+                + "\(sent ?? [])")
     }
 
     /// A call from a reply the output cap cut may hold half its arguments, so the loop is told.
