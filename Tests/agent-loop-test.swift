@@ -703,9 +703,10 @@ extension AgentLoopTests {
         ])
         let both = Heard()
         _ = await collect(AgentSpendMeter(base: meteredParent(pair)) { both.append($0) })
+        let landed = cents(both.values)
         expect(
-            pair.requests.count == 4 && cents(both.values) == [0.01, 0.51, 0.76, 0.77],
-            "two sub-agents of one round are heard one at a time, got \(both.values)")
+            pair.requests.count == 4 && [[0.01, 0.51, 0.76, 0.77], [0.01, 0.26, 0.76, 0.77]].contains(landed),
+            "two sub-agents of one round run side by side and are each heard as they land, got \(both.values)")
     }
 }
 
@@ -1481,10 +1482,12 @@ extension AgentLoopTests {
         expect(
             children.gauge.peak == 2 && ContinuousClock.now - started < .milliseconds(390),
             "two children ran side by side, got a peak of \(children.gauge.peak)")
+        let refused = results.filter(\.isError)
         expect(
-            results.map(\.content).prefix(2) == ["Found: A", "Found: B"] && results[2].isError
-                && results[2].content.hasPrefix("This run may start no more sub-agents (2 used)"),
-            "in the order they were asked, and the one past the run's allowance is refused, got \(results)")
+            results.map(\.callID) == ["d1", "d2", "d3"] && results.filter { $0.content.hasPrefix("Found: ") }.count == 2
+                && refused.count == 1
+                && refused.first?.content.hasPrefix("This run may start no more sub-agents (2 used)") == true,
+            "read in the order they were asked, and the one past the run's allowance refused, got \(results)")
     }
 }
 
