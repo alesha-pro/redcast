@@ -63,3 +63,25 @@ struct AgentRunBudget: Equatable, Sendable {
     /// A sub-agent's: a dozen rounds of reading, inside its parent's run.
     static let subAgent = AgentRunBudget(rounds: 12, resultBytes: 256 * 1_024)
 }
+
+/// An unattended run's clock: its limit, and the instant it ends, which its sub-agents end before.
+struct AgentRunClock: Equatable, Sendable {
+    /// What a sub-agent leaves its parent: room for its own hand-over, then the parent's.
+    static let childMargin: Duration = .seconds(90)
+
+    let limit: Duration
+    let deadline: ContinuousClock.Instant
+
+    init(limit: Duration, from start: ContinuousClock.Instant = .now) {
+        self.limit = limit
+        deadline = start + limit
+    }
+
+    var elapsed: Duration { limit - (deadline - .now) }
+
+    /// A sub-agent's, started now: it ends the margin before this one does.
+    func child(at now: ContinuousClock.Instant = .now) -> AgentRunClock {
+        let end = deadline - Self.childMargin
+        return AgentRunClock(limit: max(end - now, .zero), from: now)
+    }
+}

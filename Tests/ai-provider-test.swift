@@ -177,6 +177,7 @@ struct AIProviderTests {
         eachProviderIsSentItsOwnReasoningBack()
         aReplyTheCapCutSaysSo()
         anAgentRoundCarriesItsOwnCap()
+        shedReasoningKeepsOnlyWhatARouteNeeds()
         failuresSayWhetherTheyMayPass()
 
         print("\(passes) passed, \(failures) failed")
@@ -748,33 +749,130 @@ struct AIProviderTests {
             "while a reply that ended on its own says nothing of the kind")
     }
 
-    /// An agent round asks for room on every shape, under the name each API takes.
+    /// An agent round's cap: Claude's always, an OpenAI-shaped route's once its default cut a reply.
     static func anAgentRoundCarriesItsOwnCap() {
-        func body(_ provider: AIProviderKind, _ base: String, cap: Int?) -> [String: Any] {
+        func body(_ provider: AIProviderKind, _ base: String, cap: AIOutputCap?) -> [String: Any] {
             AIRequestBody.make(
                 AIRequest(messages: [AIMessage(role: .user, text: "hi")], outputCap: cap),
                 configuration: AIHTTPConfiguration(provider: provider, baseURL: URL(string: base)!, model: "m"))
         }
+        let asked = AIOutputCap(tokens: 32_768, forced: false)
+        let forced = AIOutputCap(tokens: 32_768, forced: true)
         expect(
-            body(.openAICompatible, "https://api.deepseek.com", cap: 16_384)["max_tokens"] as? Int == 16_384,
-            "DeepSeek and other OpenAI-shaped routes take max_tokens")
-        let openAI = body(.openAI, "https://api.openai.com/v1", cap: 16_384)
+            body(.openAICompatible, "https://api.deepseek.com", cap: asked)["max_tokens"] == nil
+                && body(.openAICompatible, "http://localhost:8000/v1", cap: asked)["max_tokens"] == nil
+                && body(.openAI, "https://api.openai.com/v1", cap: asked)["max_completion_tokens"] == nil,
+            "an OpenAI-shaped route keeps its own default: DeepSeek's 64K thinking, a local server's window")
         expect(
-            openAI["max_completion_tokens"] as? Int == 16_384 && openAI["max_tokens"] == nil,
-            "OpenAI's own API takes max_completion_tokens, which its reasoning models require")
+            body(.openAICompatible, "https://api.deepseek.com", cap: forced)["max_tokens"] as? Int == 32_768,
+            "once that default cut a reply, it is sent the cap as max_tokens")
+        let openAI = body(.openAI, "https://api.openai.com/v1", cap: forced)
         expect(
-            body(.anthropic, "https://api.anthropic.com", cap: 16_384)["max_tokens"] as? Int == 16_384
+            openAI["max_completion_tokens"] as? Int == 32_768 && openAI["max_tokens"] == nil,
+            "and OpenAI's own API as max_completion_tokens, which its reasoning models require")
+        expect(
+            body(.anthropic, "https://api.anthropic.com", cap: asked)["max_tokens"] as? Int == 32_768
                 && body(.anthropic, "https://api.anthropic.com", cap: nil)["max_tokens"] as? Int
                     == AIRequest.defaultMaxOutputTokens,
-            "Anthropic's cap is the round's, else the request's default")
+            "Anthropic, which must be sent a number, takes the round's, else the request's default")
         expect(
             body(.openRouter, "https://openrouter.ai/api/v1", cap: nil)["max_tokens"] == nil
                 && body(.openAI, "https://api.openai.com/v1", cap: nil)["max_completion_tokens"] == nil,
             "and a request without one is sent as it always was")
-        let turn = AIRequest(messages: [], outputCap: 9)
+        let turn = AIRequest(messages: [], outputCap: asked, forbidsCalls: true)
+        let carried = turn.continuing(with: [], tools: [])
         expect(
-            turn.continuing(with: [], tools: []).outputCap == 9 && turn.capped(at: nil).outputCap == nil,
-            "a continued turn keeps its cap, and a capped copy replaces it")
+            carried.outputCap == asked && carried.forbidsCalls && turn.limited(nil).outputCap == nil
+                && !turn.limited(nil).forbidsCalls,
+            "a continued turn keeps its cap and call rule, and a limited copy replaces both")
+        aHandOverRoundMayCallNothing()
+    }
+
+    /// The tools stay listed, so the cached prefix holds; the choice forbids calls where taken.
+    static func aHandOverRoundMayCallNothing() {
+        let tool = AITool(name: "f", description: "", parameters: .object([:]), origin: "")
+        func body(
+            _ provider: AIProviderKind, _ base: String, forbids: Bool = true, tools: [AITool]? = nil
+        ) -> [String: Any] {
+            AIRequestBody.make(
+                AIRequest(
+                    messages: [AIMessage(role: .user, text: "hi")], tools: tools ?? [tool], forbidsCalls: forbids),
+                configuration: AIHTTPConfiguration(provider: provider, baseURL: URL(string: base)!, model: "m"))
+        }
+        expect(
+            ["https://api.openai.com/v1", "https://api.deepseek.com", "https://api.moonshot.ai/v1",
+                "https://dashscope-intl.aliyuncs.com/compatible-mode/v1", "http://localhost:8000/v1"]
+                .allSatisfy { body(.openAICompatible, $0)["tool_choice"] as? String == "none" }
+                && body(.openRouter, "https://openrouter.ai/api/v1")["tool_choice"] as? String == "none"
+                && body(.gemini, AIProviderKind.gemini.defaultBaseURL)["tool_choice"] as? String == "none",
+            "OpenAI-shaped routes that document it are sent tool_choice none")
+        expect(
+            body(.openAICompatible, "https://api.z.ai/api/paas/v4")["tool_choice"] == nil
+                && body(.openAICompatible, "https://api.minimax.io/v1")["tool_choice"] == nil,
+            "while Z.ai, which takes only auto, and MiniMax, which documents none, are not")
+        let claude = body(.anthropic, "https://api.anthropic.com")
+        expect(
+            (claude["tool_choice"] as? [String: String]) == ["type": "none"] && (claude["tools"] as? [Any])?.count == 1,
+            "Claude is sent its own form, beside the tools it still lists")
+        expect(
+            body(.openAI, "https://api.openai.com/v1", forbids: false)["tool_choice"] == nil
+                && body(.openAI, "https://api.openai.com/v1", tools: [])["tool_choice"] == nil,
+            "and nothing is sent where calls are allowed or no tools are offered")
+        let noted = AIRequestBody.make(
+            AIRequest(
+                messages: [
+                    AIMessage(role: .user, text: "go"),
+                    AIMessage(role: .assistant, text: "", toolCalls: [AIToolCall(id: "c", name: "f", arguments: "{}")]),
+                    AIMessage(
+                        role: .tool, text: "", toolResult: AIToolResult(callID: "c", content: "x", isError: false)),
+                    AIMessage(role: .user, text: "[Run budget: wrap up.]")
+                ],
+                tools: [tool]),
+            configuration: AIHTTPConfiguration(
+                provider: .anthropic, baseURL: URL(string: "https://api.anthropic.com")!, model: "m"))
+        let turns = noted["messages"] as? [[String: Any]] ?? []
+        expect(
+            turns.count == 3 && (turns.last?["content"] as? [[String: Any]])?.compactMap { $0["type"] as? String }
+                == ["tool_result", "text"],
+            "a loop's note after a round's results joins them on Claude's side, text after the results")
+    }
+
+    /// A shed round keeps a field's place only where a route needs it, and never an empty think block.
+    static func shedReasoningKeepsOnlyWhatARouteNeeds() {
+        let encrypted = JSONValue.object(["type": .string("reasoning.encrypted"), "data": .string("e")])
+        func message(_ route: String, _ base: String, _ form: AIReasoningReplay.Form, items: [JSONValue] = [])
+            -> [String: Any]?
+        {
+            let shed = AIReasoningReplay(route: route, model: "m", form: form, text: "Thought.", items: items).shed
+            let body = AIRequestBody.make(
+                AIRequest(
+                    messages: [
+                        AIMessage(role: .user, text: "go"),
+                        AIMessage(
+                            role: .assistant, text: "Reading.",
+                            toolCalls: [AIToolCall(id: "c", name: "f", arguments: "{}")], reasoning: shed)
+                    ],
+                    tools: [AITool(name: "f", description: "", parameters: .object([:]), origin: "")]),
+                configuration: AIHTTPConfiguration(
+                    provider: route == "openrouter.ai" ? .openRouter : .openAICompatible, baseURL: URL(string: base)!,
+                    model: "m"))
+            return (body["messages"] as? [[String: Any]])?.last
+        }
+        expect(
+            message("api.deepseek.com", "https://api.deepseek.com", .reasoningContent)?["reasoning_content"]
+                as? String == "",
+            "DeepSeek keeps the empty field it requires")
+        let tagged = message("api.minimax.io", "https://api.minimax.io/v1", .thinkTags)
+        expect(tagged?["content"] as? String == "Reading.", "a shed think block is left out, not sent empty")
+        let routed = message("openrouter.ai", "https://openrouter.ai/api/v1", .details, items: [encrypted])
+        expect(
+            (routed?["reasoning_details"] as? [[String: Any]])?.map { $0["type"] as? String }
+                == ["reasoning.encrypted"],
+            "and OpenRouter keeps only the encrypted entry, which Gemini validates")
+        expect(
+            message("openrouter.ai", "https://openrouter.ai/api/v1", .details)?["reasoning_details"] == nil
+                && message("vllm.local", "http://vllm.local/v1", .reasoning)?["reasoning"] == nil,
+            "while nothing left is sent as nothing")
     }
 
     /// A run retries what may pass on its own and sheds a full window; a key or a quota stands.

@@ -163,10 +163,13 @@ Opening it marks finished runs and sessions seen. The work its closing does wait
 queue, because AppKit sends the chosen row's action after `menuDidClose`, and the background
 coordinator is not let go while the menu is open. A launcher run and Run Now show a HUD at the start
 and the end; a schedule's own runs show none, so nothing pops up at 3 a.m. A run whose chat is on
-screen in a key AI Chat window is marked seen with no HUD and no banner. A run is held to its effort's
-time (5, 15 or 45 minutes, the schedule's own effort or the agent's): at that point its loop asks for
-a hand-over with tools off ([agents](agents.md#invariants)), and one still going two minutes later is
-stopped.
+screen in a key AI Chat window is marked seen with no HUD and no banner. A native agent's run is held
+to its effort's time (5, 15 or 45 minutes, the schedule's own effort or the agent's): at that point a
+call still running is stopped and its loop asks for a hand-over with tools off, a sub-agent having
+ended 90 seconds before ([agents](agents.md#invariants)); one still going two minutes later is
+stopped. An agent that never picked an Effort reads the least one lasting as long as the limit it
+kept from before Effort, so a 30- or 60-minute agent is Thorough (45 minutes). An ACP agent keeps its
+own "Stop a run after N minutes" (5–60) in its editor and has no Effort, so a schedule offers it none.
 
 A native agent's model is told, while its turn runs unattended, that nobody can answer and that it
 should finish with a short report (`AgentBackgroundBriefing.text`); a follow-up typed in the window

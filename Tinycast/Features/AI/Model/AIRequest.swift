@@ -170,6 +170,43 @@ struct AIReasoningReplay: Equatable, Sendable {
         AIReasoningReplay(
             route: route, model: model, form: form, text: text, isStored: isStored, layout: layout)
     }
+
+    /// What it adds to every request that carries it: its entries where it has them, else its text.
+    var bytes: Int {
+        guard items.isEmpty else { return items.reduce(0) { $0 + Self.size(of: $1) } }
+        return form == .blocks ? 0 : text.utf8.count
+    }
+
+    /// What an older round keeps once shed: the field's place, and only entries a route validates.
+    var shed: AIReasoningReplay {
+        switch form {
+        // Claude allows dropping blocks from the start; a gateway's are kept, its rules unknown.
+        case .blocks?: return bindsPrefix ? unbound : self
+        case .details?:
+            let signed = items.filter { $0.objectValue?["type"]?.stringValue == "reasoning.encrypted" }
+            return AIReasoningReplay(
+                route: route, model: model, form: form, text: "", items: signed, isStored: isStored)
+        case .reasoningContent?, .reasoning?, .thinkTags?:
+            return AIReasoningReplay(route: route, model: model, form: form, text: "", isStored: isStored)
+        case nil: return self
+        }
+    }
+
+    private static func size(of value: JSONValue) -> Int {
+        switch value {
+        case .string(let text): text.utf8.count + 2
+        case .array(let values): values.reduce(2) { $0 + size(of: $1) + 1 }
+        case .object(let fields): fields.reduce(2) { $0 + $1.key.utf8.count + 4 + size(of: $1.value) }
+        case .null, .bool, .number: 5
+        }
+    }
+}
+
+// Fork: an agent round's output cap; Anthropic always takes it, an OpenAI-shaped route once forced.
+struct AIOutputCap: Equatable, Sendable {
+    let tokens: Int
+    /// The route's own default already cut a reply, so an OpenAI-shaped route is sent the number too.
+    let forced: Bool
 }
 
 struct AIRequest: Equatable, Sendable {
@@ -185,14 +222,16 @@ struct AIRequest: Equatable, Sendable {
     let tools: [AITool]
     // Fork: an extension's `creativity` on OpenAI's 0–2 scale; nil keeps each route's own default.
     let temperature: Double?
-    // Fork: an agent round's cap, sent on both shapes; nil leaves the OpenAI shape the route's own.
-    let outputCap: Int?
+    // Fork: an agent round's output cap; nil leaves each shape as upstream sends it.
+    let outputCap: AIOutputCap?
+    // Fork: a hand-over round still lists its tools, so its prefix stays cached, but may call none.
+    let forbidsCalls: Bool
 
     init(
         instructions: String? = nil, messages: [AIMessage],
         maxOutputTokens: Int = defaultMaxOutputTokens,
         webSearch: Bool = false, tools: [AITool] = [], conversationID: UUID? = nil,
-        temperature: Double? = nil, outputCap: Int? = nil
+        temperature: Double? = nil, outputCap: AIOutputCap? = nil, forbidsCalls: Bool = false
     ) {
         self.conversationID = conversationID
         self.instructions = instructions
@@ -202,6 +241,7 @@ struct AIRequest: Equatable, Sendable {
         self.tools = tools
         self.temperature = temperature
         self.outputCap = outputCap
+        self.forbidsCalls = forbidsCalls
     }
 
     /// The same turn carried forward, armed with what the loop wrapping it may call.
@@ -209,15 +249,15 @@ struct AIRequest: Equatable, Sendable {
         AIRequest(
             instructions: instructions, messages: messages, maxOutputTokens: maxOutputTokens,
             webSearch: webSearch, tools: tools, conversationID: conversationID,
-            temperature: temperature, outputCap: outputCap)
+            temperature: temperature, outputCap: outputCap, forbidsCalls: forbidsCalls)
     }
 
-    /// Fork: the same request with its own output cap, or none.
-    func capped(at tokens: Int?) -> AIRequest {
+    /// Fork: the same request with its own output cap, or none, and whether it may call anything.
+    func limited(_ cap: AIOutputCap?, forbidsCalls: Bool = false) -> AIRequest {
         AIRequest(
             instructions: instructions, messages: messages, maxOutputTokens: maxOutputTokens,
             webSearch: webSearch, tools: tools, conversationID: conversationID,
-            temperature: temperature, outputCap: tokens)
+            temperature: temperature, outputCap: cap, forbidsCalls: forbidsCalls)
     }
 }
 

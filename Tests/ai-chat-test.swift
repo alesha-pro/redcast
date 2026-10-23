@@ -53,6 +53,7 @@ struct AIChatTests {
         toolUsesPersistAndSettleOnReload()
         await acpToolContentRidesBesideItsRow()
         await reasoningIsKeptForItsOwnModelsLaterTurns()
+        keptReasoningFitsTheHistoryBudget()
         renamesAndPinsSurviveSavesAndSpareRetention()
         transcriptsExportAndDropOnlyATrailingReply()
         await regenerateAsksTheSameQuestionAgain()
@@ -2026,5 +2027,25 @@ extension AIChatTests {
         expect(
             ChatHistoryStore(directory: directory).session(id: chat.session.id)?.messages[1].replay == nil,
             "a form this build does not know is left out rather than sent the wrong way")
+    }
+
+    /// Fork: kept reasoning rides only in what the history's text left of its budget, newest first.
+    static func keptReasoningFitsTheHistoryBudget() {
+        func reasoned(_ text: String) -> AIReasoningReplay {
+            AIReasoningReplay(
+                route: "api.deepseek.com", model: "m", form: .reasoningContent, text: text, isStored: true)
+        }
+        let messages = [
+            AIMessage(role: .user, text: "q1"),
+            AIMessage(role: .assistant, text: "a1", reasoning: reasoned(String(repeating: "o", count: 60))),
+            AIMessage(role: .user, text: "q2"),
+            AIMessage(role: .assistant, text: "a2", reasoning: reasoned(String(repeating: "n", count: 60))),
+            AIMessage(role: .user, text: "q3")
+        ]
+        let sent = ChatSession.boundedContext(messages, textBudget: 100)
+        expect(sent.map(\.text) == ["q1", "a1", "q2", "a2", "q3"], "reasoning never costs a message its place")
+        expect(
+            sent[3].reasoning == messages[3].reasoning && sent[1].reasoning == nil,
+            "the newest reply's reasoning rides, and an older one past the budget is left out")
     }
 }

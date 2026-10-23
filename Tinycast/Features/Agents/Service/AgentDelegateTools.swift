@@ -25,17 +25,20 @@ struct AgentDelegateTools: AgentToolProvider {
     let allowance: AgentSubAgentAllowance
     /// The time and the child's budget, leading its task as a parent's turn is led.
     let opening: String?
+    /// An unattended parent's clock: each child hands over before the parent must.
+    let clock: AgentRunClock?
 
     init(
         base: any AIProvider, toolset: AgentToolset, instructions: String,
         allowance: AgentSubAgentAllowance = AgentSubAgentAllowance(AgentEffort.thorough.budget.subAgents),
-        opening: String? = nil
+        opening: String? = nil, clock: AgentRunClock? = nil
     ) {
         self.base = base
         self.toolset = toolset
         self.instructions = instructions
         self.allowance = allowance
         self.opening = opening
+        self.clock = clock
     }
 
     func specs(for turn: AgentTurn) -> [AgentToolSpec] {
@@ -60,10 +63,10 @@ struct AgentDelegateTools: AgentToolProvider {
                 call.id,
                 "This run may start no more sub-agents (\(allowance.limit) used). Do the rest of the work yourself.")
         }
-        // At its budget the child is asked for its findings once more, tools off, so none are lost.
+        // At its budget or its parent's time the child is asked for its findings once more, tools off.
         let child = AgentLoopProvider(
             base: base, toolset: toolset, budget: .subAgent, outputCap: AgentTurnBudget.outputTokens,
-            lead: AgentTurnLead(opening: opening), answersAnAgent: true)
+            lead: AgentTurnLead(opening: opening), clock: clock?.child(), answersAnAgent: true)
         let request = AIRequest(
             instructions: instructions, messages: [AIMessage(role: .user, text: task.text)])
         var answer = ""

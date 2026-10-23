@@ -98,29 +98,37 @@ optional chord: see [background and scheduled agents](background-agents.md).
   its effort's allowance (512 KB at Balanced, four times upstream's); the 1 MB history wall is the
   third, and every one of them ends in a hand-over rather than a failure (below).
 - **A run has a budget, and always hands over.** An agent's Effort (`AgentEffort`, picked in its
-  editor and stored only when it is not Balanced; a schedule may pick its own for its runs) sets the
-  run's `AgentRunBudget`: Quick 8 tool rounds, 256 KB of tool output, 5 minutes in the background
-  and no sub-agents; Balanced 25, 512 KB, 15 minutes, 2; Thorough 60, 1 MB, 45 minutes, 4; an ACP
-  agent's runs keep only the time, and its editor says so. Settings' Tool call rounds no longer
-  reaches agents. After each round `AgentBudgetPolicy` decides: past 80% of
-  the rounds, the output or the time, the model is told once to wrap up; at a limit (or the history
-  wall) it is told the budget is spent, tools are off, and it must answer with the result, what is
-  done, what is not and why, and what to do next. That last round still lists the tools, so the
-  cached prefix holds and Anthropic still sees the tools its history used; a call it makes anyway is
-  never run, and a hand-over with no text is replaced by "This run reached its limit before the agent
-  summed up." and the plan. Every note rides the round's newest tool result, added before it is ever
-  sent, so no request rewrites what an earlier one sent. Only an unattended run has a clock: it
-  hands over at its effort's minutes, and the watchdog stops it two minutes later if a long call
-  kept it from doing so. A run that fails after working says where its plan stood before the
-  failure shows, and a reply that failed or was stopped, which history leaves out, goes back before
-  the next question of that chat, so "go on" continues instead of starting over. Upstream's loop and
-  plain chats keep their round cap and its failure.
+  editor; a schedule may pick its own for its runs) sets the run's `AgentRunBudget`: Quick 8 tool
+  rounds, 256 KB of tool output, 5 minutes in the background and no sub-agents; Balanced 25, 512 KB,
+  15 minutes, 2; Thorough 60, 1 MB, 45 minutes, 4. An agent that never picked one reads the least
+  effort that lasts as long as the background limit it kept from before Effort (`AgentEffort.lasting`:
+  15 minutes or less is Balanced, 30 or 60 Thorough), and a pick that matches it is stored as nothing.
+  An ACP agent has no Effort: its editor keeps "Stop a run after N minutes" (5–60) for its background
+  runs. Settings' Tool call rounds no longer reaches agents. After each round `AgentBudgetPolicy`
+  decides: past 80% of the rounds, the output or the time, the model is told once to wrap up; at a
+  limit (or the history wall) it is told the budget is spent, tools are off, and it must answer with
+  the result, what is done, what is not and why, and what to do next. Both notes are the user's turn
+  after the round's results, as pi and DeepSeek Harness send theirs, so a model that reads tool output
+  as material still takes them as the task's; on Claude they join the results' message. That last
+  round still lists the tools, so the cached prefix holds and Anthropic still sees the tools its
+  history used. A call it makes anyway is never run: it is answered "Not run…", and the round is asked
+  once more with `tool_choice: none` (not on Z.ai or MiniMax, which do not take it). A hand-over that
+  says nothing, still calls, or is refused ends with "This run reached its limit before the agent
+  summed up." and the plan. Only an unattended run has a clock (`AgentRunClock`): it hands over at its
+  effort's minutes, a call still running then is stopped and answered as not finished, a sub-agent
+  ends 90 seconds before its parent, and the watchdog stops the run two minutes later only if a model
+  round kept it from handing over. A run that fails after working says where its plan stood before
+  the failure shows, and a reply that failed or was stopped, which history leaves out, goes back
+  before the next question of that chat, so "go on" continues instead of starting over. Upstream's
+  loop and plain chats keep their round cap and its failure.
 - **A long turn elides, it does not stop.** Once this turn's results in the resent history pass
   160 KB, `AgentTurnBudget.elide` replaces the oldest ones before the newest round with a stub that
   names the tool and the size and says to call it again, until they fit in 96 KB. Call ids and the
   pairing of calls and results are never touched, a stub is never stubbed again, and the gap between
-  the two marks means the prefix changes rarely, so a provider's prompt cache keeps hitting. Elided
-  bytes stop counting toward the history wall.
+  the two marks means the prefix changes rarely, so a provider's prompt cache keeps hitting. The
+  reasoning each reply sends back counts toward both marks and the wall, and the oldest is shed with
+  the oldest results, in the form its route still accepts ([agent harness](agent-harness.md#a-run-budget-plan-hand-over)).
+  Elided bytes stop counting toward the history wall.
 - **Claude is asked to cache; no other route is.** Anthropic and OpenRouter cache a Claude prompt only
   when the request asks, while OpenAI, Gemini, DeepSeek and the rest cache a repeated prefix by
   themselves and are sent as they always were. `AIRequestBody.cacheMarked`, one fork block in upstream's
@@ -149,11 +157,14 @@ optional chord: see [background and scheduled agents](background-agents.md).
   parse, so a long report through `write_file` would be written cut. The decoder says `.outputLimit`
   on OpenAI's `finish_reason: length` and Anthropic's `stop_reason: max_tokens`, and both loops answer
   each of that reply's calls with pi's words (`AIToolResult.cutOff`: "was not executed… Re-issue the
-  tool call with complete arguments.") instead of running it. Every round of an agent's turn and its
-  sub-agents' asks for 16,384 output tokens (`AgentTurnBudget.outputTokens`, `AIRequest.outputCap`):
-  `max_tokens` on Anthropic and on OpenAI-shaped routes, `max_completion_tokens` on OpenAI's own API,
-  where the shape else sends no cap and DeepSeek would stop at its 4K default. Plain chats send what
-  they always sent.
+  tool call with complete arguments.") instead of running it. An agent's and its sub-agents' rounds
+  ask for 32,768 output tokens where a route needs a number (`AgentTurnBudget.outputTokens`,
+  `AgentOutputCap`, `AIRequest.outputCap`): `max_tokens` on Anthropic from the first round; an
+  OpenAI-shaped route keeps its own default (DeepSeek's 64K with thinking, a local server's whole
+  window), and only once a reply is cut there is it sent `max_tokens`, or `max_completion_tokens` on
+  OpenAI's own API. A cut reply with no calls is never silent: one that said nothing is asked again
+  once with the cap, one cut mid-answer keeps its text and says so. Plain chats send what they always
+  sent.
 - **A provider's bad minute is waited out, inside the run.** `HTTPAIProvider` throws
   `AIProviderRecoverableError` for what may pass on its own: 408, 409, 425, 429 and 5xx, a dropped or
   unreachable network, a stream that closed early, OpenRouter's mid-stream 429 or 5xx (or, with no
@@ -165,11 +176,13 @@ optional chord: see [background and scheduled agents](background-agents.md).
   after four retries. A round is asked again only while it has shown no text, since an answer on
   screen would show twice; what a failed attempt reported it spent is billed once and the retry on
   top of it. A row, "Retrying after a provider error (1 of 4)", stays open while the round waits,
-  and Stop ends the wait at once. A context overflow (pi's patterns, or 413) is not retried as is:
-  once a run, the loop stubs every result of the turn before the newest round, or with none left
-  drops the older half of the history from a question on, and asks the round again. A route that
-  refuses the round's output cap by name (`max_tokens`…) is asked again without it, and the rest of
-  the turn goes without one. Plain chats and upstream's loop never retry.
+  and Stop ends the wait at once. A context overflow (pi's patterns, or 413) is not retried as is: each
+  one steps down a ladder, stubbing every result and shedding every reasoning of the turn before the
+  newest round, else dropping the older half of the history from a question on, else, once the run
+  has worked, shedding the newest round too and asking for a hand-over; only with nothing left does
+  it stand. A route that refuses the round's output cap, by name (`max_tokens`…) or for room as vLLM,
+  SGLang and OpenRouter word it, is asked again without it, and the rest of the run goes without one.
+  Plain chats and upstream's loop never retry.
 - **A cache hit is counted apart from input on every route.** OpenAI's and OpenRouter's
   `prompt_tokens_details.cached_tokens` and DeepSeek's `prompt_cache_hit_tokens` leave
   `AIUsage.inputTokens` for `cachedInputTokens`, as Anthropic's `cache_read_input_tokens` always did;
@@ -190,8 +203,9 @@ optional chord: see [background and scheduled agents](background-agents.md).
   no MCP, and runs unattended, so anything whose rule would ask is refused and `screen_context`,
   which needs a turn the user sent, is not offered. It gets the agent's context prompt for that
   read-only profile and a sub-task briefing, never the parent's conversation. Its budget is 12 rounds
-  and 256 KB (`AgentRunBudget.subAgent`); at the limit it is asked once more, tools off, for what it
-  found, so nothing it learned is lost; its answer is the text after its last call, cut to 16 KB. What it spent comes back as
+  and 256 KB (`AgentRunBudget.subAgent`), and in a background run it ends 90 seconds before its
+  parent; at the limit it is asked once more, tools off, for what it found, so nothing it learned is
+  lost; its answer is the text after its last call, cut to 16 KB. What it spent comes back as
   `AgentToolSignal.spent` after each of its rounds and raises the reply's cost at once, so a capped
   run hears it before the parent's next round and a turn cut short still counts it; the tokens stay
   the parent's last round's. Its own calls never show; the parent's row reads "delegate: <name>"
@@ -550,7 +564,10 @@ this way, as one provider. Nothing else changes: no router edit, no upstream lin
   call shows the list again with steps ticked. Ask what 2 + 2 is: one reply, no plan, no tool row.
 - Set an agent to Quick and give it a long research task: after a handful of rounds the reply sums up
   what it found, what is left and what to do next, with no "Stopped after" error. Run it in the
-  background: after five minutes the run ends done, with that hand-over.
+  background: after five minutes the run ends done, with that hand-over. An agent on its own CLI shows
+  "Stop a run after N minutes" instead of Effort, and its schedules offer no Effort.
+- On a local vLLM or LM Studio model with a small window, an agent task runs: no request fails for
+  its output cap. On DeepSeek with thinking, a long answer is not cut at 32K.
 - Tick Sub-agents and ask the agent to have a sub-agent find where something is defined: one row reads
   "delegate: <name>", none of the sub-agent's own calls show, and the reply's cost is above what its own
   rounds cost. Ask for a sub-agent to change a file: it reports that it cannot. Stop while the sub-agent

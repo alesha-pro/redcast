@@ -56,6 +56,14 @@ enum AgentBudgetPolicy {
             + "results above establish.]" + recital(plan, leading: "\n")
     }
 
+    /// Why a run hands over when even its shed conversation no longer fits the model's window.
+    static let windowFull = "the conversation no longer fits the model's window"
+
+    /// The answer to a call the hand-over round made anyway: nothing runs once the budget is spent.
+    static let callsOff =
+        "Not run: this run's budget is spent and tools are off. Write your final answer now from the "
+        + "results above."
+
     /// The plan in one line, so the model sees where it is without the checklist's full fold.
     static func recital(_ plan: [AgentPlan.Item]?, leading: String = "") -> String {
         guard let plan, !plan.isEmpty else { return "" }

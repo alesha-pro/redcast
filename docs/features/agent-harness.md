@@ -175,20 +175,34 @@ reads as Automatic.
 
 ## A round: cap, retries, cache
 
-- **Every agent round asks for 16,384 output tokens** (`AgentTurnBudget.outputTokens`): `max_tokens`
-  on Anthropic and OpenAI-shaped routes, `max_completion_tokens` on OpenAI's own API, where the shape
-  otherwise sends no cap and DeepSeek stops at its 4K default. A route that refuses the number by name
-  is asked again without it for the rest of the turn.
+- **The output cap is 32,768 tokens where a route needs a number** (`AgentTurnBudget.outputTokens`,
+  `AgentOutputCap`). Anthropic must be sent `max_tokens`, and upstream's 4,096 leaves Claude 5.5, which
+  thinks by default, little room for a report, so every round of an agent sends it. An OpenAI-shaped
+  route keeps its own default, as upstream sends it: DeepSeek's is 8K without thinking and 64K with it
+  (128K at `max` effort, [create chat completion](https://api-docs.deepseek.com/api/create-chat-completion)),
+  Kimi K3's 131,072 ([chat API](https://platform.kimi.ai/docs/api/chat)), OpenAI's reasoning models' the
+  model's own, a local vLLM's the rest of its window; a smaller number would cut their thinking or not
+  fit. Once a reply is cut at that default, the rest of the run sends 32,768 too (`max_tokens`, or
+  `max_completion_tokens` on OpenAI's own API).
+- **A route that refuses the cap is asked again without it** for the rest of the run: by name
+  (`max_tokens`, `max_completion_tokens`, `max_output_tokens`, Anthropic's "maximum allowed number of
+  output tokens") or for room, which vLLM, SGLang, OpenRouter and Anthropic word as an overflow ("in
+  the completion", "for the completion", "in the output"). Such an overflow drops the cap before
+  anything of the turn is shed.
 - **A reply the cap cut runs none of its calls** (`finish_reason: length`, `stop_reason:
   max_tokens`): each is answered with pi's text (`AIToolResult.cutOff`, from pi's `agent-loop.ts`),
-  since arguments cut mid-JSON may still parse.
+  since arguments cut mid-JSON may still parse. A cut reply with no calls is never silent: one that
+  said nothing yet is asked again once with the cap, one cut mid-answer keeps its text and says the
+  output limit cut it.
 - **Transient failures are waited out inside the run** (`AgentRetryPolicy`, pi's `retry.ts` and
   DeepSeek Harness's `retry-policy.ts`): 408, 409, 425, 429, 5xx, a dropped network, a stream that
   closed early and a provider's own busy words wait 2, 4, 8 and 16 s, a tenth either way, or a
   `Retry-After` up to a minute; never once text is on screen, never a spent quota, and what a failed
-  attempt reported it spent is billed once. Stop ends a wait at once. A context overflow (pi's
-  `overflow.ts` patterns, or 413) sheds the turn's older results once, else the older half of the
-  history, and asks again.
+  attempt reported it spent is billed once. Stop ends a wait at once.
+- **An overflow steps down a ladder** (pi's `overflow.ts` patterns, or 413), one step per overflow,
+  and asks again: the turn's older results and reasoning, else the older half of the history, else,
+  once the run has worked, everything of the turn and a hand-over (the conversation no longer fits
+  the window). Only with nothing left to shed does the overflow stand.
 - **A cache hit is counted apart from input** on every route: `prompt_tokens_details.cached_tokens`,
   DeepSeek's `prompt_cache_hit_tokens`, Anthropic's `cache_read_input_tokens`; an Anthropic cache
   write is input.
@@ -213,20 +227,41 @@ own ways:
   step in hand, check the key facts, answer, start nothing new.
 - **At a limit** (or the 1 MB history wall) it is told the budget is spent and tools are off, and
   asked for the result, what is done, what is not and why, and what to do next, from what the results
-  establish. That last request still lists the tools, so the cached prefix holds and Claude still
-  sees the tools its history used; a call it makes anyway is never run. A hand-over with no text is
-  replaced by a localized line and the plan.
-- **Notes ride the newest tool result**, added before it is first sent, so every request extends
-  the previous one and nothing already sent is rewritten; elision, which does rewrite, waits for
-  160 KB of results and frees down to 96 KB, so it happens rarely.
+  establish. That request still lists the tools and forbids nothing, so the cached prefix holds and
+  Claude still sees the tools its history used.
+- **The hand-over is enforced.** A call the model makes anyway is never run: it is answered "Not run:
+  this run's budget is spent and tools are off…", and the round is asked once more with
+  `tool_choice: none` (`{"type": "none"}` on Claude, outside its signed prefix), still listing the
+  tools. Z.ai documents only `auto` and MiniMax no `tool_choice`, so they get the refusal alone. If
+  that reply still calls, says nothing, or the route refuses the request, the reply ends with a
+  localized line and the plan. A sub-agent's last round works the same way.
+- **The wrap-up and the hand-over are the user's turn**, sent after the round's results, as pi and
+  DeepSeek Harness send theirs: a model that treats tool output as material, never instructions,
+  still reads them as the task's. On Claude the note joins the results' user message, after them, as
+  the API asks. Each extends the previous request, so nothing already sent is rewritten. A route whose
+  template keeps reasoning only since the last user message (Kimi, GLM and MiniMax among them) stops
+  reading the earlier rounds' reasoning there, at the wrap-up and the hand-over only, as DeepSeek
+  Harness accepts for its own wrap-up. The plan's read-back, which is not an instruction and comes every six rounds, rides the
+  newest result instead, added before it is first sent, so it never ends that span.
+- **Elision rewrites rarely**: it waits for 160 KB of results and reasoning in the turn and frees down
+  to 96 KB, oldest first.
+- **Reasoning counts.** What goes back with each reply counts toward the history wall like its text
+  and calls, and elision sheds it with old results: DeepSeek, Qwen, Kimi, GLM and MiniMax keep an empty
+  `reasoning_content` (DeepSeek requires the field), OpenRouter keeps only its `reasoning.encrypted`
+  entries (Gemini checks them), `<think>` and `reasoning` are left out, Claude's oldest blocks go first,
+  and an Anthropic-shaped gateway's blocks are kept, its rules unknown. The newest round keeps its
+  reasoning whole. A chat's stored reasoning rides earlier turns only in what their text left of the
+  history's 100 KB budget, newest reply first, so it never costs a message its place.
 - **One plan for the run.** `update_plan`'s latest checklist is kept in memory for the run, read back
   in one line when nobody touched it for six rounds, and carried by the wrap-up and the hand-over.
 - **Nothing is lost on a failure.** A run that fails after working shows where its plan stood
   before the error; the failed or stopped reply, which history leaves out, goes back before the
   chat's next question.
 - **Time is the unattended run's only clock.** A chat has someone to press Stop. A background run
-  hands over at its minutes, and the watchdog stops it two minutes later only if a long call kept the
-  loop from doing so.
+  hands over at its minutes (`AgentRunClock`): a call still running then is stopped and answered "Not
+  finished: the run's time ran out", and each sub-agent ends 90 seconds before its parent, so its
+  findings arrive before the parent's hand-over. The watchdog stops the run two minutes after its
+  limit only if a model round itself kept the loop from handing over.
 
 ## The prompt and the cache
 
@@ -246,8 +281,8 @@ the user's words. [Agents](agents.md#invariants) has the method's lines.
 | `ReasoningReplay/Model/AIReasoningReplayPolicy.swift` | The provider table above, per message and per body |
 | `AI/Model/AIConnection.swift` (fork lines) | The connection's override and the configuration's route |
 | `AI/Service/ChatHistoryStore.swift` (fork lines) | `message_reasoning_replay`, one row per reply that kept reasoning |
-| `Agents/Model/AgentTurnBudget.swift` | Result bounds, elision, `unbind`: Claude's blocks after an edit |
+| `Agents/Model/AgentTurnBudget.swift` | Result bounds, elision with reasoning, `unbind`, the run's output cap |
 | `Agents/Model/AgentRetryPolicy.swift` | Which failures a round waits out, and how long |
-| `Agents/Model/AgentEffort.swift`, `AgentBudgetPolicy.swift` | The budgets, the wrap-up and the hand-over |
+| `Agents/Model/AgentEffort.swift`, `AgentBudgetPolicy.swift` | The budgets, the run's clock, the wrap-up and the hand-over |
 | `Agents/Model/AgentTurnLead.swift` | The turn's opening line and the reply a failed turn left |
 | `Agents/Service/AgentLoopProvider.swift` | The run: rounds, batches, retries, notes, plan, hand-over |

@@ -26,15 +26,19 @@ struct AgentLoopTests {
         await aSimpleQuestionIsOneRound()
         await aLongRunWrapsUpThenHandsOver()
         await aHandOverThatSaysNothingStillHandsOver()
+        await anIgnoredHandOverIsEnforced()
         await theHistoryWallHandsOver()
         await anUnattendedRunHandsOverOnTime()
+        await theClockStopsALongCall()
         await anInterruptedReplyComesBack()
         await aPlanIsKeptReadBackAndReported()
         await aFailedRunSaysWhereItsPlanStood()
         effortsGrowAndStayWhereTheyWere()
         await reasoningRidesTheCallsItMade()
         anEditDropsTheThinkingAfterIt()
+        reasoningCountsAndIsShed()
         await aCutReplysCallsNeverRun()
+        await aCutAnswerIsNeverSilent()
         await anAgentTurnCostsEveryRound()
         await theSpendMeterHearsEachRoundsCost()
         await aLongTurnElidesInsteadOfStopping()
@@ -286,10 +290,47 @@ struct AgentLoopTests {
         let saved = AgentTurnBudget.elide(&messages, turnStart: 1, keepFrom: 7)
         expect(saved > 0 && messages[2].toolResult?.content.hasPrefix("[Earlier") == true, "the oldest result went")
         expect(
-            messages[1].reasoning == signed && messages[3].reasoning?.items.isEmpty == true
-                && messages[7].reasoning?.items.isEmpty == true,
-            "the block before the edit stays, and every later Claude block is dropped for good")
+            [1, 3, 7].allSatisfy { messages[$0].reasoning?.items.isEmpty == true && !messages[$0].toolCalls.isEmpty },
+            "Claude's oldest blocks go from the start, and every one after the edit is dropped for good")
         expect(messages[5].reasoning == gemini, "while a route that signs no prefix keeps what it had")
+    }
+
+    /// Reasoning sent back rides every later round: it counts toward the wall, and goes when old.
+    static func reasoningCountsAndIsShed() {
+        let thought = String(repeating: "t", count: 60 * 1_024)
+        let deepSeek = AIReasoningReplay(
+            route: "api.deepseek.com", model: "deepseek-flash", form: .reasoningContent, text: thought)
+        var budget = AgentTurnBudget()
+        budget.carry("ok", calls: [], reasoning: deepSeek)
+        expect(budget.carried == thought.utf8.count + 2, "what goes back with a reply counts toward the history wall")
+        let signed = JSONValue.object(["type": .string("reasoning.encrypted"), "data": .string("sig")])
+        let routed = AIReasoningReplay(
+            route: "openrouter.ai", model: "google/gemini-3.5-pro", form: .details, text: thought,
+            items: [.object(["type": .string("reasoning.text"), "text": .string(thought)]), signed])
+        func reply(_ id: String, _ reasoning: AIReasoningReplay) -> AIMessage {
+            AIMessage(
+                role: .assistant, text: "", toolCalls: [AIToolCall(id: id, name: "fs_read", arguments: "{}")],
+                reasoning: reasoning)
+        }
+        func result(_ id: String) -> AIMessage {
+            AIMessage(role: .tool, text: "", toolResult: AIToolResult(callID: id, content: "x", isError: false))
+        }
+        var messages = [
+            AIMessage(role: .user, text: "go"), reply("a", deepSeek), result("a"), reply("b", routed), result("b"),
+            reply("c", deepSeek), result("c")
+        ]
+        let saved = AgentTurnBudget.elide(&messages, turnStart: 1, keepFrom: 5)
+        expect(saved >= 2 * thought.utf8.count, "a turn's old reasoning is shed like its old results")
+        expect(
+            messages[1].reasoning
+                == AIReasoningReplay(
+                    route: "api.deepseek.com", model: "deepseek-flash", form: .reasoningContent, text: ""),
+            "DeepSeek's goes, the field's place kept, as the route requires")
+        expect(
+            messages[3].reasoning?.items == [signed] && messages[3].reasoning?.text == "",
+            "OpenRouter's text goes while its encrypted entry, which Gemini checks, stays")
+        expect(messages[5].reasoning == deepSeek, "and the newest round keeps its reasoning whole")
+        expect(messages.compactMap(\.toolResult?.content) == ["x", "x", "x"], "results too small to stub stay")
     }
 
     /// pi's rule: a call from a reply the output cap cut is answered, never run, and asked again.
@@ -315,9 +356,44 @@ struct AgentLoopTests {
                 == #"Tool call "fs_write" was not executed: the response hit the output token limit, so "#
                 + "its arguments may be truncated. Re-issue the tool call with complete arguments.",
             "and the model reads pi's words for it")
+        let asked = AIOutputCap(tokens: AgentTurnBudget.outputTokens, forced: false)
+        let forced = AIOutputCap(tokens: AgentTurnBudget.outputTokens, forced: true)
         expect(
-            base.requests.allSatisfy { $0.outputCap == AgentTurnBudget.outputTokens },
-            "every round of an agent's turn asks for its own output cap")
+            base.requests.map(\.outputCap) == [asked, forced, forced],
+            "an agent's round asks for its cap where a route needs a number, and every route after a cut, "
+                + "got \(base.requests.map(\.outputCap))")
+    }
+
+    /// A reply the limit cut before it answered is asked again with room; one cut mid-answer says so.
+    static func aCutAnswerIsNeverSilent() async {
+        let tools = toolset([FakeTools(names: ["fs_read"]) { _, _ in "x" }])
+        let thinker = ScriptedProvider(rounds: [
+            [.thinking, .reasoning("long thought"), .outputLimit, .finished],
+            [.thinking, .reasoning("short"), .text("42."), .finished]
+        ])
+        let retried = await collect(
+            AgentLoopProvider(base: thinker, toolset: tools, budget: .roomy, outputCap: AgentTurnBudget.outputTokens))
+        expect(
+            thinker.requests.count == 2 && thinker.requests.last?.outputCap?.forced == true
+                && texts(retried.events) == "42.",
+            "a reply the route's own default cut before a word is asked again, once, with the cap, got "
+                + "\(texts(retried.events))")
+        let stuck = ScriptedProvider(rounds: [
+            [.reasoning("a"), .outputLimit, .finished], [.reasoning("b"), .outputLimit, .finished]
+        ])
+        let silent = await collect(
+            AgentLoopProvider(base: stuck, toolset: tools, budget: .roomy, outputCap: AgentTurnBudget.outputTokens))
+        expect(
+            stuck.requests.count == 2
+                && texts(silent.events) == "The model reached its output limit before it answered.",
+            "and if the room runs out again the reply says so instead of standing empty")
+        let long = ScriptedProvider(rounds: [[.text("Part one"), .outputLimit, .finished]])
+        let cut = await collect(
+            AgentLoopProvider(base: long, toolset: tools, budget: .roomy, outputCap: AgentTurnBudget.outputTokens))
+        expect(
+            long.requests.count == 1
+                && texts(cut.events) == "Part one\n\nThe reply was cut off at the model's output limit.",
+            "an answer cut midway is kept and marked, never asked again to repeat itself")
     }
 
     static func anAgentTurnCostsEveryRound() async {
@@ -609,9 +685,22 @@ extension AgentLoopTests {
             in: context)
         expect(
             !stopped.isError && stopped.content == "The sub-task's budget ran out before it wrote an answer."
-                && looping.requests.count == AgentRunBudget.subAgent.rounds + 1,
-            "a child that keeps calling is asked once more at its budget, and still hands something back, "
-                + "got \(stopped.content)")
+                && looping.requests.count == AgentRunBudget.subAgent.rounds + 2
+                && looping.requests.last?.forbidsCalls == true,
+            "a child that keeps calling is asked once more at its budget, then with calls off, and still hands "
+                + "something back, got \(stopped.content)")
+
+        let slow = ScriptedProvider(rounds: [[call("c")], [.text("Found X."), .finished]])
+        let late = AgentDelegateTools(
+            base: slow, toolset: childTools([FakeTools(names: ["fs_read"]) { _, _ in "x" }]), instructions: "",
+            clock: AgentRunClock(limit: .seconds(60), from: .now - .seconds(59)))
+        let timed = await late.run(
+            AIToolCall(id: "d", name: AgentDelegateTools.name, arguments: #"{"name":"n","task":"t"}"#),
+            in: context)
+        expect(
+            timed.content == "Found X." && slow.requests.count == 2
+                && slow.requests.last?.messages.last?.text.contains("of 0 minutes used") == true,
+            "a child started near its parent's end hands over after one round, got \(timed.content)")
 
         let idle = ScriptedProvider(rounds: [])
         let malformed = await AgentDelegateTools(base: idle, toolset: childTools([]), instructions: "").run(
@@ -827,7 +916,7 @@ extension AgentLoopTests {
         expect(!log.events.contains(.finished), "nor does the turn claim to have finished")
     }
 
-    /// dsh's rule: a full window is shed once, old results first, and the round asked again.
+    /// dsh's rule: a full window is shed, old results first, and the round asked again.
     static func anOverflowShedsTheWindowOnce() async {
         let full = AIProviderRecoverableError(kind: .overflow, message: "maximum context length is 8192 tokens")
         let page = String(repeating: "p", count: 20 * 1_024)
@@ -848,6 +937,20 @@ extension AgentLoopTests {
         expect(
             stuck.failure == full.message && first.requests.count == 1,
             "with nothing of the turn to shed and one question, the overflow stands")
+
+        let growing = FlakyProvider(
+            failures: [], failAt: [3: full, 4: full],
+            then: [[call("c1")], [call("c2")], [.text("What I found, from what fits."), .finished]])
+        let handed = await collect(AgentLoopProvider(base: growing, toolset: tools, budget: .roomy, retry: quick))
+        let sent = growing.requests.last?.messages ?? []
+        expect(
+            handed.failure == nil && texts(handed.events) == "What I found, from what fits."
+                && growing.requests.count == 5,
+            "a window still full once the older rounds are shed hands over, got \(handed.failure ?? "")")
+        expect(
+            sent.compactMap(\.toolResult?.content).allSatisfy { $0.hasPrefix("[Earlier fs_read result elided") }
+                && sent.last?.text.contains(AgentBudgetPolicy.windowFull) == true,
+            "with every result shed and the reason said")
     }
 
     static func aRefusedOutputCapIsDropped() async {
@@ -859,8 +962,29 @@ extension AgentLoopTests {
             AgentLoopProvider(base: base, toolset: tools, budget: .roomy, outputCap: 16_384, retry: quick))
         expect(outcome.failure == nil, "a model that takes less output is asked again without the cap")
         expect(
-            base.requests.map(\.outputCap) == [16_384, nil, nil],
+            base.requests.map(\.outputCap) == [AIOutputCap(tokens: 16_384, forced: false), nil, nil],
             "and the rest of the turn goes without one, got \(base.requests.map(\.outputCap))")
+        // vLLM's words: an overflow, since the cap counts against the window, yet the cap is to blame.
+        let window = AIProviderRecoverableError(
+            kind: .overflow,
+            message: "'max_tokens' or 'max_completion_tokens' is too large: 32768. This model's maximum context "
+                + "length is 32768 tokens and your request has 120 input tokens (32768 > 32768 - 120).")
+        let local = FlakyProvider(failures: [window], then: [[.text("ok"), .finished]])
+        let small = await collect(
+            AgentLoopProvider(base: local, toolset: tools, budget: .roomy, outputCap: 32_768, retry: quick))
+        expect(
+            small.failure == nil
+                && local.requests.map(\.outputCap) == [AIOutputCap(tokens: 32_768, forced: false), nil],
+            "a small window that cannot also hold the cap is asked again without it, got \(small.failure ?? "")")
+        let old = AIProviderRecoverableError(
+            kind: .overflow,
+            message: "This model's maximum context length is 8192 tokens. However, you requested 9000 tokens "
+                + "(800 in the messages, 8200 in the completion).")
+        expect(AgentRetryPolicy.refusesOutputCap(old), "older vLLM's words for it too")
+        expect(
+            !AgentRetryPolicy.refusesOutputCap(
+                AIProviderRecoverableError(kind: .overflow, message: "prompt is too long: 210000 tokens > 200000")),
+            "while a prompt too long for any cap is an overflow to shed")
     }
 }
 
@@ -1318,17 +1442,23 @@ extension AgentLoopTests {
             AgentLoopProvider(base: base, toolset: toolset([reader]), budget: AgentRunBudget(rounds: 5)))
         expect(outcome.failure == nil && outcome.events.last == .finished, "the run ends, it does not fail")
         expect(base.requests.count == 6 && ran.values.count == 5, "five rounds of calls, then one more request")
-        let results = base.requests.last?.messages.compactMap(\.toolResult?.content) ?? []
+        let sent = base.requests.last?.messages ?? []
+        let notes = sent.enumerated().filter { $0.element.role == .user }.dropFirst()
         expect(
-            results.count == 5 && results[3].hasPrefix("page\n\n[Run budget: 4 of 5 rounds used. Start wrapping up")
-                && results.filter { $0.contains("Start wrapping up") }.count == 1,
-            "the wrap-up rides the fourth round's result, once, got \(results)")
+            sent.compactMap(\.toolResult?.content) == Array(repeating: "page", count: 5),
+            "the results stay as the tools gave them")
         expect(
-            results[4].hasPrefix("page\n\n[Run budget spent: 5 of 5 rounds used. Tools are off now"),
-            "and the hand-over the fifth's")
+            notes.count == 2
+                && notes.first?.element.text.hasPrefix("[Run budget: 4 of 5 rounds used. Start wrapping up") == true
+                && sent[(notes.first?.offset ?? 1) - 1].toolResult != nil,
+            "the wrap-up is the user's turn after the fourth round's results, once, got \(notes.map(\.element.text))")
         expect(
-            base.requests.last?.tools == base.requests.first?.tools,
-            "the hand-over round still lists the tools, so the cached prefix holds")
+            notes.last?.element.text.hasPrefix("[Run budget spent: 5 of 5 rounds used. Tools are off now") == true
+                && notes.last?.offset == sent.count - 1,
+            "and the hand-over the fifth's, where pi and dsh put theirs")
+        expect(
+            base.requests.last?.tools == base.requests.first?.tools && base.requests.allSatisfy { !$0.forbidsCalls },
+            "the hand-over round still lists the tools and forbids nothing, so the cached prefix holds")
         expect(
             base.requests.dropLast().allSatisfy { request in
                 base.requests.last.map { Array($0.messages.prefix(request.messages.count)) == request.messages }
@@ -1345,16 +1475,66 @@ extension AgentLoopTests {
             return "ok"
         }
         let plan = #"{"plan":[{"step":"Read","status":"completed"},{"step":"Write","status":"pending"}]}"#
-        let base = ScriptedProvider(rounds: [[call("p", "update_plan", plan)], [call("c")], [call("again")]])
+        let base = ScriptedProvider(rounds: [
+            [call("p", "update_plan", plan)], [call("c")], [call("again")], [call("still")]
+        ])
         let outcome = await collect(
             AgentLoopProvider(base: base, toolset: toolset([reader]), budget: AgentRunBudget(rounds: 2)))
         expect(
-            outcome.failure == nil && ran.values.count == 2 && base.requests.count == 3,
-            "a hand-over round that calls a tool runs nothing")
+            outcome.failure == nil && ran.values.count == 2 && base.requests.count == 4,
+            "a hand-over round that calls a tool runs nothing, nor does the one asked to call nothing")
         expect(
             texts(outcome.events)
                 == "This run reached its limit before the agent summed up.\n\nPlan:\n✓ Read\n· Write\n",
             "and the reply still says where the run stopped, with its plan, got \(texts(outcome.events))")
+    }
+
+    /// A model that ignores the hand-over is answered "not run" and asked once more with calls off.
+    static func anIgnoredHandOverIsEnforced() async {
+        let ran = Heard()
+        let reader = FakeTools(names: ["fs_read"]) { _, _ in
+            ran.append(1)
+            return "page"
+        }
+        let base = ScriptedProvider(rounds: [
+            [call("c1")], [.text("Let me check one more source."), call("c2")],
+            [.text("Found A; B is unchecked."), .finished]
+        ])
+        let outcome = await collect(
+            AgentLoopProvider(base: base, toolset: toolset([reader]), budget: AgentRunBudget(rounds: 1)))
+        let last = base.requests.last
+        expect(
+            outcome.failure == nil && ran.values.count == 1 && base.requests.count == 3,
+            "the ignored hand-over's call never runs, and the round is asked once more")
+        expect(
+            last?.forbidsCalls == true && last?.tools == base.requests.first?.tools
+                && base.requests.dropLast().allSatisfy { !$0.forbidsCalls },
+            "that once with calls forbidden, its tools still listed")
+        expect(
+            last?.messages.last?.toolResult?.content == AgentBudgetPolicy.callsOff
+                && outcome.events.contains(.toolResult(id: "c2", isError: true)),
+            "the call is answered as not run, and its row closes as failed")
+        expect(
+            texts(outcome.events) == "Let me check one more source.Found A; B is unchecked.",
+            "and the run ends on the model's own hand-over, got \(texts(outcome.events))")
+
+        let stubborn = ScriptedProvider(rounds: [[call("c1")], [call("c2")], [.text("Checking."), call("c3")]])
+        let kept = await collect(
+            AgentLoopProvider(base: stubborn, toolset: toolset([reader]), budget: AgentRunBudget(rounds: 1)))
+        expect(
+            stubborn.requests.count == 3
+                && texts(kept.events) == "Checking.\n\nThis run reached its limit before the agent summed up.",
+            "a route that calls even then still ends with the limit said, got \(texts(kept.events))")
+
+        let refusing = FlakyProvider(
+            failures: [], failAt: [3: AIProviderError.responseFailed("tool_choice: only auto is supported")],
+            then: [[call("c1")], [call("c2")]])
+        let ended = await collect(
+            AgentLoopProvider(
+                base: refusing, toolset: toolset([reader]), budget: AgentRunBudget(rounds: 1), retry: quick))
+        expect(
+            ended.failure == nil && texts(ended.events) == "This run reached its limit before the agent summed up.",
+            "and one that refuses to forbid calls ends the run all the same, got \(ended.failure ?? "")")
     }
 
     /// Upstream's loop fails at its wall; the fork's hands over instead.
@@ -1376,12 +1556,40 @@ extension AgentLoopTests {
         let outcome = await collect(
             AgentLoopProvider(
                 base: base, toolset: toolset([FakeTools(names: ["fs_read"]) { _, _ in "x" }]), budget: .roomy,
-                timeLimit: .zero))
+                clock: AgentRunClock(limit: .zero)))
         expect(
             base.requests.count == 2
-                && base.requests.last?.messages.last?.toolResult?.content.contains("of 0 minutes used") == true
+                && base.requests.last?.messages.last?.text.contains("of 0 minutes used") == true
                 && texts(outcome.events) == "Out of time; did C.",
             "past its time a run hands over after the round in hand")
+    }
+
+    /// A call still running at the run's end is stopped, so the hand-over comes before the watchdog.
+    static func theClockStopsALongCall() async {
+        let sleeper = Sleeper()
+        let tools = toolset([FakeTools(names: ["fs_read"]) { _, _ in await sleeper.sleep() }])
+        let base = ScriptedProvider(rounds: [[call("z1")], [.text("Ran out of time; did nothing."), .finished]])
+        let started = ContinuousClock.now
+        let outcome = await collect(
+            AgentLoopProvider(
+                base: base, toolset: tools, budget: .roomy,
+                clock: AgentRunClock(limit: .milliseconds(300), from: started)))
+        expect(
+            outcome.failure == nil && ContinuousClock.now - started < .seconds(2)
+                && base.requests.count == 2 && texts(outcome.events) == "Ran out of time; did nothing.",
+            "the call is stopped at the run's end and the run hands over, got \(outcome.failure ?? "")")
+        expect(
+            base.requests.last?.messages.compactMap(\.toolResult?.content)
+                == ["Not finished: the run's time ran out while this call was running."],
+            "and the model is told the call never finished")
+        let parent = AgentRunClock(limit: .seconds(600))
+        let child = parent.child()
+        expect(
+            child.deadline == parent.deadline - AgentRunClock.childMargin && child.limit < parent.limit,
+            "a sub-agent's clock ends a margin before its parent's")
+        expect(
+            AgentRunClock(limit: .seconds(60), from: .now - .seconds(120)).child().limit == .zero,
+            "and one started past that point hands over after its first round")
     }
 
     static func anInterruptedReplyComesBack() async {
@@ -1444,10 +1652,13 @@ extension AgentLoopTests {
         let results = base.requests.last?.messages.compactMap(\.toolResult?.content) ?? []
         expect(outcome.failure == nil && results.count == 8, "eight rounds of calls, then the answer")
         expect(
-            results[6] == "ok\n\n[Plan: ✓ Read; → Write]" && results[1...5].allSatisfy { $0 == "ok" },
+            results[6] == "ok\n\n[Plan: ✓ Read; → Write]" && results[1...5].allSatisfy { $0 == "ok" }
+                && results[7] == "ok",
             "a plan not touched for six rounds is read back once, on the round's newest result, got \(results)")
+        let wrapUp = base.requests.last?.messages.last
         expect(
-            results[7].contains("Start wrapping up") && results[7].hasSuffix("\n[Plan: ✓ Read; → Write]"),
+            wrapUp?.role == .user && wrapUp?.text.contains("Start wrapping up") == true
+                && wrapUp?.text.hasSuffix("\n[Plan: ✓ Read; → Write]") == true,
             "and the wrap-up carries it too")
     }
 
