@@ -22,11 +22,17 @@ enum AgentToolKind: String, Codable, CaseIterable, Identifiable, Sendable {
     case memory
     /// The user's Tinycast Notes: search, read and add to them.
     case notes
+    /// The text of the window behind Tinycast, while Screen Awareness is on.
+    case screen
+    /// `delegate`: a read-only sub-agent on the same model.
+    case delegate
 
     var id: String { rawValue }
 
     /// A family added later starts off, so it never switches itself on for a new agent.
     static let defaults: Set<AgentToolKind> = [.files, .terminal, .web, .memory]
+    /// A build from before these fails on them inside `tools`, so they are written under their own key.
+    static let unknownToOlderBuilds: Set<AgentToolKind> = [.screen, .delegate]
 }
 
 /// Where an agent's skills come from; a project skill wins over a global one of the same name.
@@ -40,7 +46,7 @@ enum AgentSkillSource: String, Codable, CaseIterable, Identifiable, Sendable {
 }
 
 /// An agent lives in one folder: every chat with it starts there, with that folder's context.
-struct AgentProfile: Codable, Hashable, Identifiable, Sendable {
+struct AgentProfile: Hashable, Identifiable, Sendable {
     static let sfSymbol = "person.crop.circle.badge.checkmark"
 
     let id: UUID
@@ -98,6 +104,63 @@ struct AgentProfile: Codable, Hashable, Identifiable, Sendable {
     var symbol: String { iconSymbol ?? Self.sfSymbol }
 
     var backgroundPolicy: AgentBackgroundPolicy { background ?? AgentBackgroundPolicy() }
+}
+
+/// Written by hand only so a newer family never lands where the previous build reads `tools`.
+extension AgentProfile: Codable {
+    private enum CodingKeys: String, CodingKey {
+        case id, name, iconSymbol, instructions, model, directory, access, tools, addedTools
+        case skillSources, disabledSkills, readsProjectInstructions, readsGlobalInstructions, runtime
+        case acpMode, consent, background, createdAt
+    }
+
+    init(from decoder: any Decoder) throws {
+        let values = try decoder.container(keyedBy: CodingKeys.self)
+        id = try values.decode(UUID.self, forKey: .id)
+        name = try values.decode(String.self, forKey: .name)
+        iconSymbol = try values.decodeIfPresent(String.self, forKey: .iconSymbol)
+        instructions = try values.decode(String.self, forKey: .instructions)
+        model = try values.decodeIfPresent(AIModelSelection.self, forKey: .model)
+        directory = try values.decode(String.self, forKey: .directory)
+        access = try values.decode(AgentAccess.self, forKey: .access)
+        let named =
+            try values.decode([String].self, forKey: .tools)
+            + (values.decodeIfPresent([String].self, forKey: .addedTools) ?? [])
+        // A family from a newer build is left out rather than costing every agent.
+        tools = Set(named.compactMap(AgentToolKind.init(rawValue:)))
+        skillSources = try values.decode(Set<AgentSkillSource>.self, forKey: .skillSources)
+        disabledSkills = try values.decode(Set<String>.self, forKey: .disabledSkills)
+        readsProjectInstructions = try values.decode(Bool.self, forKey: .readsProjectInstructions)
+        readsGlobalInstructions = try values.decode(Bool.self, forKey: .readsGlobalInstructions)
+        runtime = try values.decodeIfPresent(AgentRuntime.self, forKey: .runtime)
+        acpMode = try values.decodeIfPresent(String.self, forKey: .acpMode)
+        consent = try values.decodeIfPresent(AgentConsentRules.self, forKey: .consent)
+        background = try values.decodeIfPresent(AgentBackgroundPolicy.self, forKey: .background)
+        createdAt = try values.decode(Date.self, forKey: .createdAt)
+    }
+
+    func encode(to encoder: any Encoder) throws {
+        var values = encoder.container(keyedBy: CodingKeys.self)
+        try values.encode(id, forKey: .id)
+        try values.encode(name, forKey: .name)
+        try values.encodeIfPresent(iconSymbol, forKey: .iconSymbol)
+        try values.encode(instructions, forKey: .instructions)
+        try values.encodeIfPresent(model, forKey: .model)
+        try values.encode(directory, forKey: .directory)
+        try values.encode(access, forKey: .access)
+        try values.encode(tools.subtracting(AgentToolKind.unknownToOlderBuilds), forKey: .tools)
+        let added = tools.intersection(AgentToolKind.unknownToOlderBuilds)
+        if !added.isEmpty { try values.encode(added, forKey: .addedTools) }
+        try values.encode(skillSources, forKey: .skillSources)
+        try values.encode(disabledSkills, forKey: .disabledSkills)
+        try values.encode(readsProjectInstructions, forKey: .readsProjectInstructions)
+        try values.encode(readsGlobalInstructions, forKey: .readsGlobalInstructions)
+        try values.encodeIfPresent(runtime, forKey: .runtime)
+        try values.encodeIfPresent(acpMode, forKey: .acpMode)
+        try values.encodeIfPresent(consent, forKey: .consent)
+        try values.encodeIfPresent(background, forKey: .background)
+        try values.encode(createdAt, forKey: .createdAt)
+    }
 }
 
 /// What an unattended run does with a request that would ask: a change, a command, a permission.

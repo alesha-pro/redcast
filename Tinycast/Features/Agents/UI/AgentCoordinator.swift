@@ -49,6 +49,7 @@ final class AgentCoordinator {
     func setAgent(_ agent: AgentProfile?, for chat: AIChatState) {
         guard store.agent(forChat: chat.session.id)?.id != agent?.id else { return }
         store.setAgent(agent?.id, forChat: chat.session.id)
+        if agent == nil { store.removeSummary(forChat: chat.session.id) }
         chatGrants[chat.session.id] = nil
         acpHost.forget(chatID: chat.session.id)
         if let agent { refresh(agent) }
@@ -145,7 +146,14 @@ final class AgentCoordinator {
         let chatID = chat.session.id
         let mcp = core.mcpCoordinator
         let mode = backgroundRuns?.runMode(forChat: chatID) ?? .chat(chatID)
-        return loop(for: agent, over: base, mode: mode, mcpTools: mcpTools) { call in
+        let compaction = AgentCompaction.Source(
+            url: store.summaryURL(forChat: chatID), origin: agent.name,
+            history: { @MainActor [weak chat] in
+                chat?.session.historyMessages.map {
+                    AgentCompaction.Entry(id: $0.id, isUser: $0.role == .user, text: $0.text)
+                } ?? []
+            })
+        return loop(for: agent, over: base, mode: mode, mcpTools: mcpTools, compaction: compaction) { call in
             await mcp.invoke(call, in: chatID)
         }
     }
@@ -153,7 +161,7 @@ final class AgentCoordinator {
     /// The one place a turn's tools are assembled: a chat now, a run with no window later.
     func loop(
         for agent: AgentProfile, over base: any AIProvider, mode: AgentRunMode,
-        mcpTools: [AITool] = [],
+        mcpTools: [AITool] = [], compaction: AgentCompaction.Source? = nil,
         mcp: @escaping @Sendable (AIToolCall) async -> AIToolResult = {
             .failure($0.id, "There is no tool called \($0.name).")
         }
@@ -161,9 +169,10 @@ final class AgentCoordinator {
         let context = context(for: agent)
         let turn = AgentTurn(
             profile: agent, skills: context.skills, memoryURL: store.memoryURL(for: agent.id),
-            mode: mode)
+            mode: mode, isBackground: backgroundRuns?.isUnattended(mode.chatID) == true)
         let toolset = AgentToolset(
-            turn: turn, providers: providers(for: agent), mcpTools: mcpTools, mcp: mcp,
+            turn: turn, providers: providers(for: agent, in: context, over: base, mode: mode),
+            mcpTools: mcpTools, mcp: mcp,
             refused: { [weak self] _ in
                 guard case .unattended(let chatID) = mode else { return }
                 Task { @MainActor in self?.backgroundRuns?.noteDeclined(chatID) }
@@ -174,17 +183,57 @@ final class AgentCoordinator {
         }
         guard !toolset.tools.isEmpty else { return nil }
         return AgentLoopProvider(
-            base: base, toolset: toolset, maxRounds: core.aiSettings.toolRounds.limit)
+            base: base, toolset: toolset, maxRounds: core.aiSettings.toolRounds.limit,
+            compaction: compaction)
     }
 
     /// The registry: one line per family, built per turn so nothing stays resident between turns.
-    private func providers(for agent: AgentProfile) -> [any AgentToolProvider] {
+    private func providers(
+        for agent: AgentProfile, in context: AgentContext, over base: any AIProvider, mode: AgentRunMode
+    ) -> [any AgentToolProvider] {
+        var providers = familyProviders(for: agent)
+        providers.append(AgentPlanTools())
+        if agent.tools.contains(.delegate) {
+            providers.append(delegate(for: agent, in: context, over: base, parent: mode.chatID))
+        }
+        return providers
+    }
+
+    /// What a sub-agent shares with its parent: every family, but not the plan or a delegate.
+    private func familyProviders(for agent: AgentProfile) -> [any AgentToolProvider] {
         var providers: [any AgentToolProvider] = [AgentBuiltInTools()]
         if agent.tools.contains(.web) {
             providers.append(WebSearchAgentTools(runner: core.webSearch.runner(canFetch: true)))
         }
         if core.settings.notesEnabled { providers.append(core.notesAI.agentTools) }
+        if core.settings.aiEnabled, core.settings.screenAwarenessEnabled {
+            providers.append(
+                ScreenAgentTools(isEnabled: { @MainActor [weak settings = core.settings] in
+                    settings.map { $0.aiEnabled && $0.screenAwarenessEnabled } ?? false
+                }))
+        }
         return providers
+    }
+
+    /// A read-only copy of the agent with no delegate of its own, so sub-agents stop at one level.
+    private func delegate(
+        for agent: AgentProfile, in context: AgentContext, over base: any AIProvider, parent: UUID
+    ) -> AgentDelegateTools {
+        var reader = agent
+        reader.access = .readOnly
+        reader.tools.remove(.delegate)
+        let toolset = AgentToolset(
+            turn: AgentTurn(
+                profile: reader, skills: context.skills, memoryURL: store.memoryURL(for: agent.id),
+                mode: .unattended(parent)),
+            providers: familyProviders(for: reader), mcpTools: [], offering: AgentToolRisk.reads,
+            mcp: { .failure($0.id, "There is no tool called \($0.name).") }, ask: { _, _ in false })
+        let prompt = AgentContext(
+            profile: reader, projectInstructions: context.projectInstructions,
+            globalInstructions: context.globalInstructions, skills: context.skills, memory: context.memory
+        ).prompt(now: Date(), timeZone: .current, hasTools: true)
+        return AgentDelegateTools(
+            base: base, toolset: toolset, instructions: prompt + "\n\n" + AgentDelegateTools.briefing)
     }
 
     /// Whether this chat's agent is offered `web_search`: Web ticked, and not Never Allow.
@@ -368,5 +417,13 @@ final class AgentCoordinator {
     /// Run Now: announced like a launcher run; the schedule's next time stays where it was.
     func runNow(_ schedule: AgentSchedule) {
         background.start(schedule, manual: true)
+    }
+}
+
+extension AppCore {
+    /// After chats are deleted, the notes their agents kept on earlier turns go with them.
+    func pruneAgentSummaries() {
+        guard chatHistory.isAvailable else { return }
+        agentStore.pruneSummaries(keeping: chatHistory.conversations.map(\.id))
     }
 }

@@ -18,6 +18,7 @@ struct AgentToolset: Sendable {
 
     init(
         turn: AgentTurn, providers: [any AgentToolProvider], mcpTools: [AITool],
+        offering risks: Set<AgentToolRisk> = Set(AgentToolRisk.allCases),
         mcp: @escaping @Sendable (AIToolCall) async -> AIToolResult,
         refused: @escaping @Sendable (AgentToolSpec) -> Void = { _ in },
         ask: @escaping @Sendable (AgentToolSpec, AgentConsentRequest) async -> Bool
@@ -25,7 +26,8 @@ struct AgentToolset: Sendable {
         var tools: [AITool] = []
         var routes: [String: Route] = [:]
         for provider in providers {
-            for spec in provider.specs(for: turn) where routes[spec.tool.name] == nil {
+            for spec in provider.specs(for: turn)
+            where routes[spec.tool.name] == nil && risks.contains(spec.risk) {
                 let rule = AgentConsentPolicy.rule(for: spec.risk, in: spec.family, of: turn.profile)
                 guard rule != .never else { continue }
                 tools.append(spec.tool)
@@ -48,6 +50,12 @@ struct AgentToolset: Sendable {
     func isConcurrent(_ name: String) -> Bool {
         guard case .agent(_, let spec, let rule)? = routes[name] else { return false }
         return spec.concurrent && rule == .always
+    }
+
+    /// The row's title when the call's provider names this call itself; nil keeps the tool's.
+    func title(for call: AIToolCall) -> String? {
+        guard case .agent(let provider, _, _)? = routes[call.name] else { return nil }
+        return provider.title(for: call)
     }
 
     func run(

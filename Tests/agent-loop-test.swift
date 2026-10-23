@@ -28,6 +28,14 @@ struct AgentLoopTests {
         await callsThatMayShareARoundDo()
         await aCallThatMayNotRunsAlone()
         await aRoundIsNeverWiderThanFour()
+        theDelegateToolOnlyReadsAndRunsAlone()
+        await aSubAgentAnswersInsideItsParentsTurn()
+        await aSubAgentIsBounded()
+        await stopReachesASubAgent()
+        await compactionAddsNothingWhileNothingIsDropped()
+        await compactionSummarisesOnceThenReuses()
+        await aFailedSummaryLeavesTheTurnAsBuilt()
+        await stopReachesTheSummary()
 
         print("\(passes) passed, \(failures) failed")
         if failures > 0 { exit(1) }
@@ -42,11 +50,12 @@ struct AgentLoopTests {
     }
 
     static func toolset(
-        _ providers: [any AgentToolProvider], mcp invoker: RecordingInvoker = RecordingInvoker(result: "mcp")
+        _ providers: [any AgentToolProvider], mcp invoker: RecordingInvoker = RecordingInvoker(result: "mcp"),
+        families: Set<AgentToolKind> = AgentToolKind.defaults
     ) -> AgentToolset {
         AgentToolset(
             turn: AgentTurn(
-                profile: AgentProfile(name: "Loop", directory: "/tmp"), skills: [],
+                profile: AgentProfile(name: "Loop", directory: "/tmp", tools: families), skills: [],
                 memoryURL: URL(fileURLWithPath: "/tmp/memory.md"), mode: .chat(UUID())),
             providers: providers,
             mcpTools: [
@@ -315,6 +324,376 @@ extension AgentLoopTests {
         let base = ScriptedProvider(rounds: [(1...6).map { call("r\($0)") }, [.text("ok"), .finished]])
         _ = await collect(AgentLoopProvider(base: base, toolset: toolset([reader]), maxRounds: 25))
         expect(gauge.peak == AgentLoopProvider.width, "at most four calls run at once, got \(gauge.peak)")
+    }
+}
+
+// MARK: - Sub-agents
+
+extension AgentLoopTests {
+    static func delegateCall(_ id: String, name: String = "Find config", task: String = "Where is X?")
+        -> AIStreamEvent
+    {
+        call(id, AgentDelegateTools.name, #"{"name":"\#(name)","task":"\#(task)"}"#)
+    }
+
+    /// The child's toolset as the coordinator builds it: read-only, no MCP, nobody to ask.
+    static func childTools(_ providers: [any AgentToolProvider]) -> AgentToolset {
+        AgentToolset(
+            turn: AgentTurn(
+                profile: AgentProfile(name: "Loop", directory: "/tmp", access: .readOnly), skills: [],
+                memoryURL: URL(fileURLWithPath: "/tmp/memory.md"), mode: .unattended(UUID())),
+            providers: providers, mcpTools: [], offering: AgentToolRisk.reads,
+            mcp: { .failure($0.id, "mcp") }, ask: { _, _ in false })
+    }
+
+    static func theDelegateToolOnlyReadsAndRunsAlone() {
+        let full = AgentProfile(
+            name: "Loop", directory: "/tmp", access: .fullAccess, tools: Set(AgentToolKind.allCases))
+        let delegate = AgentDelegateTools(
+            base: ScriptedProvider(rounds: []), toolset: childTools([]), instructions: "")
+        let specs = delegate.specs(
+            for: AgentTurn(
+                profile: full, skills: [], memoryURL: URL(fileURLWithPath: "/tmp/memory.md"),
+                mode: .chat(UUID())))
+        expect(
+            specs.map(\.tool.name) == [AgentDelegateTools.name] && specs.first?.family == .delegate
+                && specs.first?.risk == .read && specs.first?.concurrent == false,
+            "delegate is the Sub-agents family's, changes nothing itself, and one child runs at a time")
+        let others =
+            AgentToolbox.tools(for: full, hasSkills: true).map(\.name)
+            + [AgentPlan.name, WebSearchTool.name, "screen_context"]
+        expect(!others.contains(AgentDelegateTools.name), "and its name is nobody else's")
+    }
+
+    static func aSubAgentAnswersInsideItsParentsTurn() async {
+        let base = ScriptedProvider(rounds: [
+            [.usage(AIUsage(inputTokens: 10, costUSD: 0.01)), delegateCall("d1")],
+            [.text("Looking."), call("c1"), .usage(AIUsage(inputTokens: 5, costUSD: 0.002))],
+            [.text("X lives in a.txt."), .usage(AIUsage(inputTokens: 6, costUSD: 0.003)), .finished],
+            [.text("Done."), .usage(AIUsage(inputTokens: 20, costUSD: 0.02)), .finished]
+        ])
+        let child = childTools([
+            FakeTools(names: ["fs_read"]) { _, _ in "a.txt: X" },
+            FakeTools(names: ["fs_write"], risk: .change) { _, _ in "wrote" },
+            FakeTools(names: ["notes_keep"], risk: .own) { _, _ in "kept" }
+        ])
+        let delegate = AgentDelegateTools(base: base, toolset: child, instructions: "Be a sub-agent.")
+        let parent = toolset([delegate], families: [.delegate])
+        let outcome = await collect(AgentLoopProvider(base: base, toolset: parent, maxRounds: 25))
+        expect(outcome.failure == nil && outcome.events.last == .finished, "the parent's turn finishes")
+        expect(
+            outcome.events.contains(.toolCall(id: "d1", origin: "Loop", title: "delegate: Find config"))
+                && outcome.events.contains(.toolResult(id: "d1", isError: false)),
+            "its row names the sub-task, got \(outcome.events)")
+        expect(
+            !outcome.events.contains { if case .toolCall(id: "c1", _, _) = $0 { true } else { false } },
+            "and the sub-agent's own calls stay out of the transcript")
+        expect(base.requests.count == 4, "two rounds of the child sit between the parent's two")
+        guard base.requests.count == 4 else {
+            return expect(false, "the script ran to its end, got \(base.requests.count): \(outcome)")
+        }
+        let request = base.requests[1]
+        expect(
+            request.instructions == "Be a sub-agent."
+                && request.messages == [AIMessage(role: .user, text: "Where is X?")],
+            "the child starts from its own prompt and the task alone")
+        expect(
+            request.tools.map(\.name) == ["fs_read"],
+            "and is offered reading only: no change, nothing of its own to write, no delegate")
+        expect(
+            base.requests[3].messages.last?.toolResult?.content == "X lives in a.txt.",
+            "its answer is what it said after its last call")
+        let usages = outcome.events.compactMap { event -> AIUsage? in
+            if case .usage(let usage) = event { usage } else { nil }
+        }
+        expect(
+            abs((usages.last?.costUSD ?? 0) - 0.035) < 1e-12,
+            "and what it spent is billed into the parent's reply, got \(usages.last?.costUSD ?? 0)")
+        expect(usages.last?.inputTokens == 20, "while the tokens stay the parent's last round's")
+
+        let flat = AgentToolset(
+            turn: AgentTurn(
+                profile: AgentProfile(name: "Loop", directory: "/tmp", tools: [.files]), skills: [],
+                memoryURL: URL(fileURLWithPath: "/tmp/memory.md"), mode: .chat(UUID())),
+            providers: [delegate], mcpTools: [], mcp: { .failure($0.id, "mcp") }, ask: { _, _ in false })
+        expect(flat.tools.isEmpty, "an agent without Sub-agents ticked, as every child is, has no delegate")
+        expect(
+            !AgentToolKind.defaults.contains(.delegate)
+                && !AgentProfile(name: "New", directory: "/tmp").tools.contains(.delegate),
+            "Sub-agents is off for a new agent")
+    }
+
+    static func aSubAgentIsBounded() async {
+        let long = String(repeating: "é", count: 20 * 1_024)
+        let talker = ScriptedProvider(rounds: [[.text(long), .finished]])
+        let delegate = AgentDelegateTools(
+            base: talker, toolset: childTools([FakeTools(names: ["fs_read"]) { _, _ in "x" }]),
+            instructions: "")
+        let context = AgentToolContext(
+            turn: AgentTurn(
+                profile: AgentProfile(name: "Loop", directory: "/tmp"), skills: [],
+                memoryURL: URL(fileURLWithPath: "/tmp/memory.md"), mode: .chat(UUID())),
+            consent: { _ in false }, signal: { _ in })
+        let cut = await delegate.run(
+            AIToolCall(id: "d", name: AgentDelegateTools.name, arguments: #"{"name":"n","task":"t"}"#),
+            in: context)
+        expect(
+            !cut.isError && cut.content.utf8.count <= AgentDelegateTools.maxAnswerBytes + 64
+                && cut.content.hasSuffix("…cut: the sub-agent's answer was longer."),
+            "a long answer is cut under the executor's 28 KB and says so")
+        expect(
+            AgentDelegateTools.maxAnswerBytes < AgentTurnBudget.resultBytes,
+            "so the parent's budget never cuts it again")
+
+        let looping = ScriptedProvider(rounds: Array(repeating: [call("c")], count: 20))
+        let lost = AgentDelegateTools(
+            base: looping, toolset: childTools([FakeTools(names: ["fs_read"]) { _, _ in "x" }]),
+            instructions: "")
+        let stopped = await lost.run(
+            AIToolCall(id: "d", name: AgentDelegateTools.name, arguments: #"{"name":"n","task":"t"}"#),
+            in: context)
+        expect(
+            stopped.isError && stopped.content.contains("Stopped after 12 rounds")
+                && looping.requests.count == AgentDelegateTools.maxRounds,
+            "a child that keeps calling stops at its own round cap, got \(stopped.content)")
+
+        let idle = ScriptedProvider(rounds: [])
+        let malformed = await AgentDelegateTools(base: idle, toolset: childTools([]), instructions: "").run(
+            AIToolCall(id: "d", name: AgentDelegateTools.name, arguments: #"{"name":"","task":"t"}"#),
+            in: context)
+        expect(malformed.isError && idle.requests.isEmpty, "a call with no name or task starts no child")
+    }
+
+    static func stopReachesASubAgent() async {
+        let sleeper = Sleeper()
+        let base = ScriptedProvider(rounds: [[delegateCall("d1")], [call("z1")], [.text("never"), .finished]])
+        let child = childTools([FakeTools(names: ["fs_read"]) { _, _ in await sleeper.sleep() }])
+        let parent = toolset(
+            [AgentDelegateTools(base: base, toolset: child, instructions: "")], families: [.delegate])
+        let loop = AgentLoopProvider(base: base, toolset: parent, maxRounds: nil)
+        let consumer = Task {
+            do {
+                for try await _ in loop.stream(turn) {}
+            } catch {}
+        }
+        while !sleeper.started { try? await Task.sleep(for: .milliseconds(10)) }
+        let stopped = ContinuousClock.now
+        consumer.cancel()
+        await consumer.value
+        while sleeper.noticed == nil { try? await Task.sleep(for: .milliseconds(10)) }
+        try? await Task.sleep(for: .milliseconds(200))
+        expect(
+            (sleeper.noticed ?? .now) - stopped < .milliseconds(100),
+            "Stop reaches the sub-agent's running call at once")
+        expect(base.requests.count == 2, "and neither the child nor the parent asks the model again")
+    }
+}
+
+// MARK: - Cross-turn compaction
+
+extension AgentLoopTests {
+    static let folder = FileManager.default.temporaryDirectory
+        .appendingPathComponent("AgentLoopTests-\(UUID().uuidString)")
+
+    /// `count` messages of 1 KB, a question at every even index; the last is the turn's question.
+    static func chat(_ count: Int, after earlier: [AgentCompaction.Entry] = []) -> [AgentCompaction.Entry] {
+        earlier + (earlier.count..<earlier.count + count).map { index in
+            AgentCompaction.Entry(
+                id: UUID(), isUser: index.isMultiple(of: 2),
+                text: "m\(index) " + String(repeating: "x", count: 1_000))
+        }
+    }
+
+    /// What `ChatSession.requestMessages` would have sent: the last `count` messages.
+    static func request(_ history: [AgentCompaction.Entry], keeping count: Int) -> AIRequest {
+        AIRequest(
+            instructions: "Be brief.",
+            messages: history.suffix(count).map {
+                AIMessage(role: $0.isUser ? .user : .assistant, text: $0.text)
+            })
+    }
+
+    static func source(_ history: [AgentCompaction.Entry], file: URL) -> AgentCompaction.Source {
+        AgentCompaction.Source(url: file, origin: "Loop", history: { history })
+    }
+
+    static func run(
+        _ loop: AgentLoopProvider, _ request: AIRequest
+    ) async -> (events: [AIStreamEvent], failure: String?) {
+        var events: [AIStreamEvent] = []
+        do {
+            for try await event in loop.stream(request) { events.append(event) }
+        } catch {
+            return (events, error.localizedDescription)
+        }
+        return (events, nil)
+    }
+
+    static func lastCost(_ events: [AIStreamEvent]) -> Double? {
+        events.compactMap { event -> Double? in
+            if case .usage(let usage) = event { usage.costUSD } else { nil }
+        }.last
+    }
+
+    static func compactionAddsNothingWhileNothingIsDropped() async {
+        let file = folder.appendingPathComponent("whole.json")
+        let history = chat(7)
+        let script: [AIStreamEvent] = [.text("ok"), .finished]
+        let base = ScriptedProvider(rounds: [script])
+        let tools = toolset([FakeTools(names: ["fs_read"]) { _, _ in "x" }])
+        let outcome = await run(
+            AgentLoopProvider(base: base, toolset: tools, maxRounds: 25, compaction: source(history, file: file)),
+            request(history, keeping: 7))
+        expect(
+            base.requests.count == 1 && base.requests.first?.messages == request(history, keeping: 7).messages,
+            "a chat that still fits costs no extra request and goes out as built")
+        expect(outcome.events == script, "and shows no summary row")
+        expect(!FileManager.default.fileExists(atPath: file.path), "and keeps no notes")
+    }
+
+    static func compactionSummarisesOnceThenReuses() async {
+        let file = folder.appendingPathComponent("long.json")
+        let history = chat(19)
+        let built = request(history, keeping: 9)
+        let base = ScriptedProvider(rounds: [
+            [.text("notes v1"), .usage(AIUsage(inputTokens: 900, costUSD: 0.001)), .finished],
+            [.text("answer"), .usage(AIUsage(inputTokens: 50, costUSD: 0.01)), .finished]
+        ])
+        let tools = toolset([FakeTools(names: ["fs_read"]) { _, _ in "x" }])
+        let first = await run(
+            AgentLoopProvider(base: base, toolset: tools, maxRounds: 25, compaction: source(history, file: file)),
+            built)
+        let reach = AgentCompaction.coverage(of: history, dropped: 10)
+        expect(base.requests.count == 2, "the first turn that drops messages asks for notes once")
+        let fold = base.requests.first
+        expect(
+            fold?.instructions == AgentCompaction.instructions && fold?.tools.isEmpty == true
+                && fold?.messages.first?.text.contains("User: m0 ") == true
+                && fold?.messages.first?.text.contains("m\(reach) ") == false,
+            "of the chat's own model, with no tools, over what it drops and a little more")
+        let sent = base.requests.last?.messages ?? []
+        expect(
+            sent.count == 9 - (reach - 10)
+                && sent.first?.text == AgentCompaction.preface("notes v1") + history[reach].text,
+            "then the notes lead the turn, and what they cover is not sent twice")
+        expect(
+            Array(first.events.prefix(2)) == [
+                .toolCall(id: AgentCompaction.markerID, origin: "Loop", title: AgentCompaction.markerTitle),
+                .toolResult(id: AgentCompaction.markerID, isError: false)
+            ],
+            "a quiet row says earlier messages were summarised, got \(first.events)")
+        expect(
+            abs((lastCost(first.events) ?? 0) - 0.011) < 1e-12,
+            "and the reply's cost includes the notes")
+        let stored = AgentChatSummary.load(from: file)
+        expect(
+            stored?.text == "notes v1" && stored?.covered == reach
+                && stored?.lastCoveredID == history[reach - 1].id,
+            "the notes are kept with what they stand for")
+
+        let grown = chat(2, after: history)
+        let again = ScriptedProvider(rounds: [[.text("again"), .finished]])
+        let second = await run(
+            AgentLoopProvider(base: again, toolset: tools, maxRounds: 25, compaction: source(grown, file: file)),
+            request(grown, keeping: 9))
+        let rowShown = second.events.contains { $0 == .toolResult(id: AgentCompaction.markerID, isError: false) }
+        expect(again.requests.count == 1 && !rowShown, "the next turn reuses them with no request and no row")
+        expect(
+            again.requests.first?.messages.first?.text.hasPrefix(AgentCompaction.preface("notes v1")) == true,
+            "and they still lead it")
+
+        let longer = chat(12, after: grown)
+        let extend = ScriptedProvider(rounds: [[.text("notes v2"), .finished], [.text("ok"), .finished]])
+        _ = await run(
+            AgentLoopProvider(base: extend, toolset: tools, maxRounds: 25, compaction: source(longer, file: file)),
+            request(longer, keeping: 9))
+        let folded = extend.requests.first?.messages.first?.text ?? ""
+        expect(
+            folded.hasPrefix("<notes>\nnotes v1\n</notes>") && !folded.contains("User: m0 ")
+                && folded.contains("m\(reach) "),
+            "past them, one request folds only the newly dropped messages into the notes")
+        expect(
+            AgentChatSummary.load(from: file)?.text == "notes v2"
+                && (AgentChatSummary.load(from: file)?.covered ?? 0) > reach,
+            "which then stand for more of the chat")
+    }
+
+    static func aFailedSummaryLeavesTheTurnAsBuilt() async {
+        let file = folder.appendingPathComponent("failed.json")
+        let history = chat(19)
+        let built = request(history, keeping: 9)
+        let base = FailingFirstProvider(then: [[.text("answer"), .finished]])
+        let tools = toolset([FakeTools(names: ["fs_read"]) { _, _ in "x" }])
+        let outcome = await run(
+            AgentLoopProvider(base: base, toolset: tools, maxRounds: 25, compaction: source(history, file: file)),
+            built)
+        expect(
+            outcome.failure == nil && outcome.events.contains(.toolResult(id: AgentCompaction.markerID, isError: true)),
+            "a failed summary marks its row and the turn goes on")
+        expect(base.requests.last?.messages == built.messages, "as it was built")
+        expect(!FileManager.default.fileExists(atPath: file.path), "and keeps no notes")
+    }
+
+    static func stopReachesTheSummary() async {
+        let file = folder.appendingPathComponent("stopped.json")
+        let history = chat(19)
+        let base = HangingProvider()
+        let loop = AgentLoopProvider(
+            base: base, toolset: toolset([FakeTools(names: ["fs_read"]) { _, _ in "x" }]), maxRounds: 25,
+            compaction: source(history, file: file))
+        let consumer = Task {
+            do {
+                for try await _ in loop.stream(request(history, keeping: 9)) {}
+            } catch {}
+        }
+        while base.requests == 0 { try? await Task.sleep(for: .milliseconds(10)) }
+        consumer.cancel()
+        await consumer.value
+        try? await Task.sleep(for: .milliseconds(200))
+        expect(base.requests == 1, "Stop while the notes are made sends nothing more")
+        expect(!FileManager.default.fileExists(atPath: file.path), "and keeps no notes")
+        try? FileManager.default.removeItem(at: folder)
+    }
+}
+
+/// Fails its first request as a route that is down would, then replays a script.
+final class FailingFirstProvider: AIProvider, @unchecked Sendable {
+    private let script: ScriptedProvider
+    private let lock = NSLock()
+    private var seen: [AIRequest] = []
+
+    init(then rounds: [[AIStreamEvent]]) {
+        script = ScriptedProvider(rounds: rounds)
+    }
+
+    var requests: [AIRequest] { lock.withLock { seen } }
+
+    func stream(_ request: AIRequest) -> AIProviderStream {
+        let first = lock.withLock {
+            seen.append(request)
+            return seen.count == 1
+        }
+        guard first else { return script.stream(request) }
+        return AIProviderStream { $0.finish(throwing: AIProviderError.responseFailed("down")) }
+    }
+}
+
+/// Never answers, until whoever is listening goes away.
+final class HangingProvider: AIProvider, @unchecked Sendable {
+    private let lock = NSLock()
+    private var count = 0
+
+    var requests: Int { lock.withLock { count } }
+
+    func stream(_ request: AIRequest) -> AIProviderStream {
+        lock.withLock { count += 1 }
+        return AIProviderStream { continuation in
+            let task = Task {
+                try? await Task.sleep(for: .seconds(30))
+                continuation.finish()
+            }
+            continuation.onTermination = { _ in task.cancel() }
+        }
     }
 }
 
