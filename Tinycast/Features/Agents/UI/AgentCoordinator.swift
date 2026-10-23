@@ -14,7 +14,11 @@ final class AgentCoordinator {
     /// "Allow for This Chat", per family and risk; never written down.
     @ObservationIgnored private var chatGrants: [UUID: Set<AgentGrant>] = [:]
     /// Made on first need and dropped once idle, so a Mac with no schedule holds none of it.
-    private var backgroundRuns: AgentBackgroundCoordinator?
+    private(set) var backgroundRuns: AgentBackgroundCoordinator?
+    /// The one Agents menu-bar item, made only while a run or a live session has something to show.
+    @ObservationIgnored var menuBarItem: AgentsStatusItem?
+    /// An agent whose editor Settings › AI › Agents should open; the section takes and clears it.
+    var pendingEdit: UUID?
     /// Every agent question queues here, a chat's and an unattended run's alike.
     @ObservationIgnored let consentGate = AgentConsentGate()
 
@@ -22,7 +26,10 @@ final class AgentCoordinator {
         let host = AgentACPHost(
             store: store,
             permit: { [weak self] agent, request in await self?.permit(request, by: agent) },
-            context: { [weak self] agent in self?.context(for: agent).briefing() })
+            context: { [weak self] agent in self?.context(for: agent).briefing() },
+            briefing: { [weak self] chatID in
+                self?.backgroundRuns?.isUnattended(chatID) == true ? AgentBackgroundBriefing.acp : nil
+            })
         host.onModes = { [weak self] chatID, agentID, modes in
             self?.chatModes[chatID] = modes
             self?.agentModes[agentID] = modes.available
@@ -31,6 +38,7 @@ final class AgentCoordinator {
             if let chatID { self?.chatCommands[chatID] = commands }
             if let commands { self?.agentCommands[agentID] = commands }
         }
+        host.onCost = { [weak self] chatID, cost in self?.backgroundRuns?.reportCost(cost, forChat: chatID) }
         return host
     }()
 
@@ -85,6 +93,7 @@ final class AgentCoordinator {
         made.onIdle = { [weak self, weak made] in
             guard let self, let made, self.backgroundRuns === made else { return }
             self.backgroundRuns = nil
+            self.refreshMenuBar()
         }
         backgroundRuns = made
         return made
@@ -93,10 +102,12 @@ final class AgentCoordinator {
     /// Read by the settings rows; nil while nothing runs in the background at all.
     var runs: AgentRunLedger? { backgroundRuns?.ledger }
 
-    /// AI on or off, agents or schedules changed: made only when a schedule or a banner needs it.
-    func applyBackground() {
+    /// AI, agents or schedules changed: the rows follow, and the background half only once needed.
+    func apply() {
         let aiEnabled = core.settings.aiEnabled
         core.appIndex.setCommandsVisible([.runAgentTask], aiEnabled && !store.agents.isEmpty)
+        publishLauncherRows()
+        pruneHotKeys()
         let needs = AgentBackgroundNeeds.of(
             aiEnabled: aiEnabled, agents: store.agents, schedules: store.schedules)
         guard backgroundRuns != nil || needs.any else { return }
@@ -166,8 +177,12 @@ final class AgentCoordinator {
                     AgentCompaction.Entry(id: $0.id, isUser: $0.role == .user, text: $0.text)
                 } ?? []
             })
-        return loop(for: agent, over: base, mode: mode, mcpTools: mcpTools, compaction: compaction) { call in
+        let turn = loop(for: agent, over: base, mode: mode, mcpTools: mcpTools, compaction: compaction) { call in
             await mcp.invoke(call, in: chatID)
+        }
+        guard let turn, backgroundRuns?.isCapped(chatID) == true else { return turn }
+        return AgentSpendMeter(base: turn) { [weak self] cost in
+            Task { @MainActor in self?.backgroundRuns?.reportCost(cost, forChat: chatID) }
         }
     }
 
@@ -365,7 +380,7 @@ final class AgentCoordinator {
     func add(_ draft: AgentProfile) throws(AgentProfileError) {
         let agent = try store.add(draft)
         refresh(agent)
-        applyBackground()
+        apply()
     }
 
     func update(_ draft: AgentProfile) throws(AgentProfileError) {
@@ -380,7 +395,7 @@ final class AgentCoordinator {
             }
         }
         if let agent = store.agent(id: draft.id) { refresh(agent) }
-        applyBackground()
+        apply()
     }
 
     func delete(id: UUID) async {
@@ -402,7 +417,8 @@ final class AgentCoordinator {
         agentCommands[id] = nil
         chatCommands = chatCommands.filter { store.agent(forChat: $0.key) != nil }
         try? FileManager.default.removeItem(at: store.memoryURL(for: id).deletingLastPathComponent())
-        applyBackground()
+        removeLauncherReferences(of: id)
+        apply()
     }
 
     // MARK: - Schedules
@@ -410,7 +426,7 @@ final class AgentCoordinator {
     @discardableResult
     func saveSchedule(_ draft: AgentSchedule) throws(AgentScheduleError) -> AgentSchedule {
         let saved = try store.saveSchedule(draft, now: Date())
-        applyBackground()
+        apply()
         return saved
     }
 
@@ -427,12 +443,20 @@ final class AgentCoordinator {
             core.showMessage(error.localizedDescription, tone: .danger)
             return
         }
-        applyBackground()
+        apply()
     }
 
     /// Run Now: announced like a launcher run; the schedule's next time stays where it was.
     func runNow(_ schedule: AgentSchedule) {
         background.start(schedule, manual: true)
+    }
+
+    func setScheduleCap(_ cap: Double?) {
+        do {
+            try store.setScheduleCap(cap)
+        } catch {
+            core.showMessage(error.localizedDescription, tone: .danger)
+        }
     }
 }
 

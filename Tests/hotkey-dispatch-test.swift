@@ -17,6 +17,7 @@ struct HotKeyDispatchTest {
             dispatch(includesShift: includesShift)
             commandRelease(includesShift: includesShift)
         }
+        agentChords()
         print("\(checks) dispatch checks; \(failures) failures")
         if failures > 0 { exit(1) }
     }
@@ -168,5 +169,32 @@ struct HotKeyDispatchTest {
             "under Secure Input a Hyper command still hears its release",
             ran.last == .sample && released == [.sample, .sample])
         manager.setSecureInputEquivalents(includesShift: nil)
+    }
+}
+
+extension HotKeyDispatchTest {
+    /// An agent registers a chord only once bound, keeps its index, and summons that agent.
+    static func agentChords() {
+        let domain = "tinycast.hotkey-dispatch-test.\(UUID())"
+        let defaults = UserDefaults(suiteName: domain)!
+        defer { defaults.removePersistentDomain(forName: domain) }
+        let manager = HotKeyManager(defaults: defaults)
+        let center = HotKeyCenter.current!
+        var summoned: [UUID] = []
+        manager.onSummonAgent = { summoned.append($0) }
+        let rig = UUID()
+        let action = HotKeyAction.agent(id: rig)
+        check("an agent without a chord registers nothing", center.entries[action.defaultsKey] == nil)
+        let chord = HotKeyBinding.combo(KeyShortcut(carbonKeyCode: kVK_ANSI_R, carbonModifiers: controlKey | optionKey))
+        manager.setBinding(chord, for: action)
+        check("a bound agent is indexed for the next launch", manager.boundAgentIDs == [rig])
+        center.entries[action.defaultsKey]?.onKeyDown(0)
+        check("its chord summons that agent", summoned == [rig])
+        check(
+            "and another action can't take the chord", manager.conflictOwner(of: chord, excluding: .dictation) != nil)
+        manager.setBinding(nil, for: action)
+        check(
+            "clearing it unregisters and unindexes it",
+            center.entries[action.defaultsKey] == nil && manager.boundAgentIDs.isEmpty)
     }
 }

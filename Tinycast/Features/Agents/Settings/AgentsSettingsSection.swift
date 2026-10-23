@@ -29,6 +29,21 @@ struct AgentsSettingsSection: View {
             } label: {
                 SettingsRowTitle(.aiAgents, "Add Agent")
             }
+            SettingsRow(
+                title: "Daily spend cap", subtitle: spendSubtitle, subtitleLineLimit: 2, anchor: .aiAgents
+            ) {
+                HStack(spacing: Theme.Spacing.xs) {
+                    TextField(
+                        "Daily spend cap", value: cap,
+                        format: .number.precision(.fractionLength(0...2)), prompt: Text("No cap")
+                    )
+                    .labelsHidden()
+                    .multilineTextAlignment(.trailing)
+                    .frame(width: 72)
+                    Text(verbatim: "USD")
+                        .foregroundStyle(.secondary)
+                }
+            }
         } header: {
             SettingsSectionHeader(.aiAgents)
         } footer: {
@@ -46,6 +61,13 @@ struct AgentsSettingsSection: View {
         }
         .settingsEditorPanel(item: $editingSchedule) { request in
             AgentScheduleEditorPanel(request: request)
+        }
+        // Edit Agent from a launcher row's ⌘K menu lands here, however the pane was opened.
+        .onChange(of: core.agentCoordinator.pendingEdit, initial: true) { _, id in
+            guard let id else { return }
+            core.agentCoordinator.pendingEdit = nil
+            guard let agent = core.agentCoordinator.store.agent(id: id) else { return }
+            editing = AgentEditRequest(agent: agent)
         }
     }
 
@@ -79,6 +101,23 @@ struct AgentsSettingsSection: View {
         else { return summary }
         let when = next.formatted(.dateTime.weekday(.abbreviated).hour().minute())
         return summary + " · " + String(localized: "Next \(when)")
+    }
+
+    /// Read as the pane renders; the store is observed, so a run that ends updates it.
+    private var spendSubtitle: String {
+        let rule = String(
+            localized: "Scheduled runs stop for the day once they cost this much. Only costs your models report count.")
+        let spend = core.agentCoordinator.store.scheduleSpend
+        let today = AgentSpendPolicy.spent(spend, on: AgentSpendPolicy.day(of: Date(), calendar: .current))
+        guard today > 0 else { return rule }
+        let amount = AgentSpendPolicy.amount(today, locale: .current)
+        return rule + " " + String(localized: "\(amount) spent today.")
+    }
+
+    private var cap: Binding<Double?> {
+        Binding(
+            get: { core.agentCoordinator.store.scheduleSpend.capUSD },
+            set: { core.agentCoordinator.setScheduleCap($0) })
     }
 
     private func enabled(_ schedule: AgentSchedule) -> Binding<Bool> {

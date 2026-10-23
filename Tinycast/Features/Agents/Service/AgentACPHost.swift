@@ -8,11 +8,15 @@ final class AgentACPHost {
     private let permit: (AgentProfile, ACPPermissionRequest) async -> String?
     /// What a fresh session is told about the agent: its notes, skills and instructions.
     private let context: (AgentProfile) -> String?
+    /// What a turn nobody is watching is told about itself; nil for a chat someone started.
+    private let briefing: (_ chatID: UUID) -> String?
 
     /// A session's modes changed: on creation, on a reload, or by the agent's own move.
     var onModes: ((_ chatID: UUID, _ agentID: UUID, ACPModes) -> Void)?
     /// A session listed its slash commands, or nil once it is gone; the chat is nil until bound.
     var onCommands: ((_ chatID: UUID?, _ agentID: UUID, [ACPCommand]?) -> Void)?
+    /// The session's running cost as each `usage_update` mid-turn reports it, for the spend cap.
+    var onCost: ((_ chatID: UUID, _ costUSD: Double) -> Void)?
 
     private var connections: [UUID: ACPConnection] = [:]
     private var modes: [UUID: ACPModes] = [:]
@@ -39,10 +43,12 @@ final class AgentACPHost {
     }
 
     private final class Turn {
+        let chatID: UUID
         let continuation: AIProviderStream.Continuation
         var mapper: ACPEventMapper
 
-        init(continuation: AIProviderStream.Continuation, mapper: ACPEventMapper) {
+        init(chatID: UUID, continuation: AIProviderStream.Continuation, mapper: ACPEventMapper) {
+            self.chatID = chatID
             self.continuation = continuation
             self.mapper = mapper
         }
@@ -51,11 +57,13 @@ final class AgentACPHost {
     init(
         store: AgentStore,
         permit: @escaping (AgentProfile, ACPPermissionRequest) async -> String?,
-        context: @escaping (AgentProfile) -> String?
+        context: @escaping (AgentProfile) -> String?,
+        briefing: @escaping (_ chatID: UUID) -> String? = { _ in nil }
     ) {
         self.store = store
         self.permit = permit
         self.context = context
+        self.briefing = briefing
     }
 
     func run(
@@ -83,10 +91,12 @@ final class AgentACPHost {
             let earlier = isCommand ? nil : unbriefed.removeValue(forKey: chatID).flatMap {
                 $0.session == key ? $0.earlier : nil
             }
+            let preamble = [earlier.flatMap { _ in context(agent) }, briefing(chatID)].compactMap(\.self)
             let blocks = ACPPrompt.blocks(
-                for: message, context: earlier.flatMap { _ in context(agent) }, earlier: earlier ?? "",
-                capabilities: connection.capabilities.prompt, asCommand: isCommand)
-            let turn = Turn(continuation: continuation, mapper: ACPEventMapper(origin: agent.name))
+                for: message, context: preamble.isEmpty ? nil : preamble.joined(separator: "\n\n"),
+                earlier: earlier ?? "", capabilities: connection.capabilities.prompt, asCommand: isCommand)
+            let turn = Turn(
+                chatID: chatID, continuation: continuation, mapper: ACPEventMapper(origin: agent.name))
             turns[key] = turn
             defer { turns[key] = nil }
             let result = try await connection.request(
@@ -267,6 +277,7 @@ final class AgentACPHost {
             onCommands?(chatID, session.agentID, listed)
         }
         guard let turn = turns[session] else { return }
+        if case .usage(_, _, let cost?) = update { onCost?(turn.chatID, cost) }
         for event in turn.mapper.events(for: update) { turn.continuation.yield(event) }
     }
 

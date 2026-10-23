@@ -5,8 +5,9 @@ An **agent** lives in one folder. A chat given an agent works there: its turns r
 instructions, and its built-in tools — files, terminal, web and memory — act there. Agents are this
 fork's; upstream lists AI-assistant features under [not planned](../not-planned.md), so the feature
 stays in `Features/Agents/` plus the few lines in `AIChatCoordinator`, `QuickAICoordinator`,
-`AIChatDetailView`, `AISettingsView` and `AppCore` that wire it in. An agent can also work with no window, from `@handle`
-in root search or on a schedule: see [background and scheduled agents](background-agents.md).
+`AIChatDetailView`, `AISettingsView` and `AppCore` that wire it in. An agent can also work with no
+window, from `@handle` in root search or on a schedule, and is a launcher row of its own with an
+optional chord: see [background and scheduled agents](background-agents.md).
 
 ## Invariants
 
@@ -192,7 +193,9 @@ They run on the user's own logins and subscriptions; Tinycast never sees a key.
   neither. A slash command's turn carries neither and leaves them for the session's next ordinary
   turn, which sends the turns from before the session as they were when it started, not the
   command's own exchange. That wait is kept in memory, at most the 24 KB transcript per chat, so it
-  holds across an idle stop but not a relaunch, and goes when the chat leaves the agent.
+  holds across an idle stop but not a relaunch, and goes when the chat leaves the agent. A turn
+  nobody is watching adds the unattended briefing after the context, on every such turn but a slash
+  command's, which goes as typed ([background agents](background-agents.md#while-and-after-a-run)).
 - **Tinycast offers no fs or terminal of its own.** `initialize` declares both off, so the agent
   uses its own tools and asks about them with `session/request_permission`; any `fs/*`, `terminal/*`
   or other request is answered with method-not-found ([why](#tinycasts-own-fs-and-terminal)). The
