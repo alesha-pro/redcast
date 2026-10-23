@@ -102,7 +102,7 @@ enum AgentToolbox {
                 required: ["path"])
             let reach =
                 profile.access == .fullAccess
-                ? "in the home folder, or the path given" : "in the agent's folder"
+                ? "in the home folder and iCloud Drive, or the path given" : "in the agent's folder"
             tool(
                 searchFiles,
                 "Search files. mode text (the default) searches contents for a regular expression, like "

@@ -956,7 +956,7 @@ extension AgentTests {
             AgentToolbox.tools(for: profile(access), hasSkills: false)
                 .first { $0.name == AgentToolbox.searchFiles }?.description ?? ""
         }
-        expect(search(.fullAccess).contains("in the home folder, or the path given"), "full access: the home folder")
+        expect(search(.fullAccess).contains("in the home folder and iCloud Drive, or the path given"), "full access: home")
         expect(search(.readOnly).contains("in the agent's folder"), "anything less: its folder")
         expect(
             AgentToolbox.spec(for: tool(AgentToolbox.searchFiles)).risk == .read
@@ -1022,6 +1022,21 @@ extension AgentTests {
                 home: "/Users/me"),
             "unless the search began there")
         expect(!AgentSpotlightQuery.isShown("/Volumes/x/a.pdf", roots: roots, home: "/Users/me"), "nothing past the root")
+        let drive = "/Users/me/Library/Mobile Documents/"
+        expect(
+            AgentSpotlightQuery.isShown(drive + "com~apple~CloudDocs/Taxes/invoice.pdf", roots: roots, home: "/Users/me")
+                && AgentSpotlightQuery.isShown(drive + "com~apple~Pages/Documents/Plan.pages", roots: roots, home: "/Users/me")
+                && AgentSpotlightQuery.isShown(
+                    "/Users/me/Library/CloudStorage/Dropbox/a.pdf", roots: roots, home: "/Users/me"),
+            "iCloud Drive, an app's iCloud Documents and cloud folders are the user's documents")
+        expect(
+            !AgentSpotlightQuery.isShown(drive + "iCloud~md~obsidian/Data/cache.db", roots: roots, home: "/Users/me")
+                && !AgentSpotlightQuery.isShown(drive + "com~apple~CloudDocs/.Trash/a.pdf", roots: roots, home: "/Users/me"),
+            "but not an app's own iCloud data, nor a hidden path in them")
+        expect(
+            AgentSpotlightQuery.terms(in: "a\u{0}b \u{7}\u{1B}c") == ["ab", "c"]
+                && AgentSpotlightQuery.escaped("x\u{0}y\u{1F}") == "xy",
+            "a NUL or other control character never reaches mdfind, whose launch it would end")
 
         let day: TimeInterval = 86_400
         let hits = [

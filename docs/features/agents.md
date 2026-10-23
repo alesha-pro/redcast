@@ -69,7 +69,8 @@ optional chord: see [background and scheduled agents](background-agents.md).
   returns passes the same check before it is shown.
 - **Files beyond the folder are found through Spotlight's own index.** `search_files` with `mode`
   `spotlight` runs `mdfind` once, without a shell, over the agent's folder, or with full access the
-  home folder or a `path` it may read ([why not a new access level](#finding-files-beyond-the-folder)).
+  home folder and iCloud Drive or a `path` it may read
+  ([why not a new access level](#finding-files-beyond-the-folder)).
 - **Context is read off-main and kept.** `AgentContextLoader` reads the instruction files, scans the
   skills and the notes on a detached task; `AgentCoordinator` caches the result per agent and
   refreshes it after each use, so a send never waits on the disk past an agent's very first turn.
@@ -460,9 +461,12 @@ match a file's name, its title or the text Spotlight extracted, as a word prefix
 quotes only bound a phrase, a backslash and the wildcards are escaped, a date is checked digit by
 digit, and the query is one argument to `mdfind`, so the model never writes query language. It
 searches the agent's folder, or with full access the home folder or a folder it names; hidden paths
-and `~/Library` (mail, messages, caches) are left out unless the search began there, and every path
-passes `AgentPathPolicy` before it is listed. A path beyond the folder narrows the turn's web reach
-like any other read of the user's files.
+and `~/Library` (mail, messages, caches) are left out unless the search began there, except iCloud
+Drive (`Mobile Documents/com~apple~CloudDocs`, and each app's `Documents` there, as Finder lists them)
+and the cloud folders in `~/Library/CloudStorage`, which are the user's documents. Every path passes
+`AgentPathPolicy` before it is listed, and a NUL or other control character in the words is dropped
+before the query is built, since `Process` raises on a NUL rather than throwing. A path beyond the
+folder narrows the turn's web reach like any other read of the user's files.
 
 A "read anywhere, write in its folder" level was the other way, and was left for later: a new
 `AgentAccess` case would make `agents.json` unreadable to the previous build (or need the side file
@@ -608,12 +612,14 @@ this way, as one provider. Nothing else changes: no router edit, no upstream lin
   plan checklist shared with ACP, newer families kept out of the previous build's way and given back
   after its save, a reading-only toolset and per-call row titles, compaction's coverage, reuse,
   bounds, a long newest question and notes kept per chat, the reading tools' arguments, and the
-  Spotlight query: terms, escaping, kinds, dates, arguments, what is shown and the listing);
+  Spotlight query: terms, escaping, control characters, kinds, dates, arguments, what is shown with
+  iCloud Drive among it, and the listing);
   `agent-tools-test` (the executor against a real folder: reads, writes with
   consent, link escapes, commands, timeouts and Stop, memory, skills; documents by kind through the
   harness acting as its helper: a PDF by pages with a scanned page, a Word file by line, a saved page
   as Markdown and as its source, an image by OCR, a binary file, a folder and a missing helper; reads
-  beyond the folder narrowing `web_fetch` and its refusal; Spotlight's refusals; the built-ins
+  beyond the folder narrowing `web_fetch` and its refusal; Spotlight's refusals; a NUL in a
+  pattern, a command or a document path refused rather than crashing; the built-ins
   through a toolset, with and without an agent's own rules; every refused effect; `update_plan`); `document-text-test` (see
   [document text](document-text.md)); and
   `agent-loop-test` (the fork's loop and upstream's on the same scripts under 128 KB; routing,
