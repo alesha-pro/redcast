@@ -82,7 +82,9 @@ struct AgentToolset: Sendable {
                     }
                 },
                 signal: signal)
-            return await provider.run(call, in: context)
+            let result = await provider.run(call, in: context)
+            if spec.risk == .personal, !result.isError { turn.web?.notePersonal() }
+            return result
         }
     }
 }

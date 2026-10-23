@@ -89,13 +89,41 @@ enum AgentToolbox {
                  required: [])
             tool(
                 readFile,
-                "Read a text file with line numbers. Use offset and limit to page through a long one.",
+                "Read a file with line numbers: text, HTML as Markdown, Word, RTF or ODT as text, an image's "
+                    + "text by OCR, or a PDF by pages (scans too). offset and limit page by line; a PDF "
+                    + "takes pages instead.",
                 ["path": path, "offset": integer("First line, from 1."),
-                 "limit": integer("How many lines, at most 2000.")],
+                 "limit": integer("How many lines, at most 2000."),
+                 "pages": WebPageTool.pagesProperty,
+                 "raw": .object([
+                    "type": .string("boolean"),
+                    "description": .string("true reads an HTML file's source rather than its Markdown.")
+                 ])],
                 required: ["path"])
+            let reach =
+                profile.access == .fullAccess
+                ? "in the home folder and iCloud Drive, or the path given" : "in the agent's folder"
             tool(
-                searchFiles, "Search file contents for a regular expression, like ripgrep.",
-                ["pattern": string("Regular expression."), "path": path], required: ["pattern"])
+                searchFiles,
+                "Search files. mode text (the default) searches contents for a regular expression, like "
+                    + "ripgrep. mode spotlight finds files \(reach) by Spotlight's index: every word of "
+                    + "pattern in a name, title or indexed text (PDF, Word, mail is left out), newest first.",
+                ["pattern": string("A regular expression; for spotlight, words or a \"quoted phrase\"."),
+                 "path": path,
+                 "mode": .object([
+                    "type": .string("string"), "enum": .array([.string("text"), .string("spotlight")])
+                 ]),
+                 "kind": .object([
+                    "type": .string("string"),
+                    "description": .string("spotlight only: what kind of file."),
+                    "enum": .array(AgentSpotlightQuery.kinds.keys.sorted().map(JSONValue.string))
+                 ]),
+                 "modified_after": string("spotlight only: changed on or after this date, YYYY-MM-DD."),
+                 "names_only": .object([
+                    "type": .string("boolean"),
+                    "description": .string("spotlight only: match names and titles, not the text inside.")
+                 ])],
+                required: ["pattern"])
             if profile.access.writes {
                 tool(
                     writeFile, "Create or overwrite a text file with the given content.",
@@ -120,8 +148,12 @@ enum AgentToolbox {
         }
         if profile.tools.contains(.web) {
             tool(
-                webFetch, "Fetch a web page or text URL and return its readable text.",
-                ["url": string("An http or https URL.")], required: ["url"])
+                webFetch,
+                "Fetch a web page, text, PDF or Word file. A page comes as Markdown with its headings and "
+                    + "links, a long one in parts; a PDF by pages; a Word, RTF or ODT file as text.",
+                ["url": string("An http or https URL."), "part": WebPageTool.partProperty,
+                 "pages": WebPageTool.pagesProperty],
+                required: ["url"])
         }
         if profile.tools.contains(.memory) {
             tool(readMemory, "Read the notes you keep across chats.", [:], required: [])

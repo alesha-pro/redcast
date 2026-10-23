@@ -1,0 +1,32 @@
+Live reads through WebPageReader on 2026-10-23 (no model involved), from which these fixtures were cut.
+
+news article   https://www.bbc.com/news/articles/c6ev38dj1g8zo
+               ok, one part, 4954 bytes, 2 links kept, 0.8 s; starts "# <headline>", site chrome gone.
+               news-article.html keeps its markup; every sentence is replaced by fixture text.
+wikipedia      https://en.wikipedia.org/wiki/Spotlight_(Apple)
+               ok, one part, 21868 bytes, 112 links, 0.4 s; infobox as a table, references numbered.
+               https://en.wikipedia.org/wiki/Macintosh: 6 parts of under 24 KB, part 99 past the end.
+               wikipedia.html: sections 2-8 and 10 and all but three references removed.
+pdf report     https://nvlpubs.nist.gov/nistpubs/ai/NIST.AI.100-1.pdf (1.9 MB)
+               ok, 48 pages, pages 1-12 in 23659 bytes, "Read on with pages "13-"", 2.1 s;
+               pages "20-22" in 9102 bytes. Too large to keep; the harnesses draw their own PDFs.
+js-only        https://excalidraw.com/ and https://app.diagrams.net/
+               refused in 0.6 s as a page only its scripts fill, naming its title and description.
+               js-only.html is excalidraw.com with its long scripts cut.
+weather        https://forecast.weather.gov/MapClick.php?lat=40.7128&lon=-74.006
+               ok, one part, 5557 bytes, 33 links, 0.7 s; conditions table, forecast list.
+               weather.html: scripts and styles removed; its unclosed <ul> is kept on purpose.
+
+Read again on 2026-10-24 after the review's fixes, the same way (no fixture kept for these):
+
+accordion      https://getbootstrap.com/docs/5.3/components/accordion/
+               ok, part 1 of several, 22413 bytes, 1.1 s; "## Accordion Item #1" to "#3" above their
+               bodies, the questions a heading's button names.
+archive        https://ftp.gnu.org/gnu/hello/hello-2.12.tar.gz
+               refused by its type (application/x-gzip) before the body was read, 1.5 s.
+word           https://calibre-ebook.com/downloads/demos/demo.docx
+               ok, read by the document helper as text, 8903 bytes, 1.4 s.
+long table     https://en.wikipedia.org/wiki/List_of_countries_by_GDP_(nominal)
+               ok, 3 parts; the table fits a part, so it stays whole in part 2 under its header.
+earlier five   BBC, Wikipedia (Spotlight; Macintosh in 6 parts), the NIST PDF, excalidraw.com and
+               app.diagrams.net, and weather.gov read as before.
