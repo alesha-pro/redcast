@@ -256,7 +256,15 @@ final class AgentCoordinator {
                 profile: reader, skills: context.skills, memoryURL: store.memoryURL(for: agent.id),
                 mode: .unattended(parent)),
             providers: familyProviders(for: reader), mcpTools: [], offering: AgentToolRisk.reads,
-            mcp: { .failure($0.id, "There is no tool called \($0.name).") }, ask: { _, _ in false })
+            mcp: { .failure($0.id, "There is no tool called \($0.name).") },
+            // A sub-agent never asks, so what it is refused counts toward its parent's active run.
+            refused: { [weak self] _ in
+                Task { @MainActor in
+                    guard let runs = self?.backgroundRuns, runs.isUnattended(parent) else { return }
+                    runs.noteDeclined(parent)
+                }
+            },
+            ask: { _, _ in false })
         let prompt = AgentContext(
             profile: reader, projectInstructions: context.projectInstructions,
             globalInstructions: context.globalInstructions, skills: context.skills, memory: context.memory
