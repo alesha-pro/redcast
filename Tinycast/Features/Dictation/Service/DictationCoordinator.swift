@@ -39,6 +39,7 @@ final class DictationCoordinator {
         showMessage: @escaping (String, DialogTone) -> Void,
         cloudIsOn: @escaping @MainActor () -> Bool = { false },
         cloudTranscribe: @escaping @MainActor ([Float], String?) async throws -> String = { _, _ in "" },
+        // Fork: lends the capsule to Voice AI, which names its dictation mode above it.
         capsule: (DictationPanelController) -> Void = { _ in }
     ) {
         self.settings = settings

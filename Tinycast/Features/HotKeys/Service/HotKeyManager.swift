@@ -75,6 +75,7 @@ final class HotKeyManager {
     private let defaults: UserDefaults
     private let center = HotKeyCenter()
     private var modifierTaps: [HotKeyBinding: HotKeyAction] = [:]
+    /// Fork: the action each held key talks for, since voice commands hold keys as Dictation does.
     private var heldKeys: [ModifierKey: HotKeyAction] = [:]
     /// Include Shift for the chord whose combos also answer to ⌃+key; nil when none should.
     private var secureInputEquivalentsIncludeShift: Bool?
@@ -350,6 +351,7 @@ final class HotKeyManager {
     func conflictOwner(of binding: HotKeyBinding, excluding action: HotKeyAction) -> String? {
         for candidate in candidateActions where candidate != action {
             guard let other = self.binding(for: candidate) else { continue }
+            // Fork: a held voice command reserves its modifier, as Dictation's hold does.
             let holdsModifier = holds(action, binding) || holds(candidate, other)
             if binding.conflicts(with: other, holdsModifier: holdsModifier) {
                 return displayName(of: candidate)
@@ -446,6 +448,7 @@ final class HotKeyManager {
     /// Rebuilt wholesale, so the map can't drift from what is on disk.
     private func syncModifierTaps() {
         modifierTaps = [:]
+        // Fork: every action held to talk gets its key, not only Dictation.
         var held: [ModifierKey: HotKeyAction] = [:]
         for action in candidateActions {
             guard let binding = binding(for: action), binding.usesModifierTapMonitor else { continue }

@@ -77,6 +77,7 @@ private struct DictationPanelView: View {
 private final class DictationPanel: NSPanel {
     var onAccept: (() -> Void)?
     var onCancel: (() -> Void)?
+    // Fork: the controller's `onTab`, for the dictation mode.
     var onTab: ((Bool) -> Bool)?
 
     init(content: NSView) {
@@ -130,6 +131,7 @@ final class DictationPanelController {
             panel ?? DictationPanel(content: NSHostingView(rootView: DictationPanelView(state: state)))
         panel.onAccept = onAccept
         panel.onCancel = onCancel
+        // Fork: Tab picks the dictation mode.
         panel.onTab = onTab
         self.panel = panel
         let size = Theme.Size.dictationPanel
@@ -140,12 +142,14 @@ final class DictationPanelController {
         state.phase = .listening
         state.levels = [Float](repeating: 0, count: DictationSpectrum.barCount)
         panel.makeKeyAndOrderFront(nil)
+        // Fork: the mode chip takes its place above the capsule.
         onPlacement?(panel.frame)
     }
 
     func close() {
         panel?.orderOut(nil)
         panel = nil
+        // Fork: the mode chip closes with the capsule.
         onPlacement?(nil)
     }
 }
