@@ -417,6 +417,10 @@ final class AgentCoordinator {
                     localized: "Its chats stay, as plain AI chats. Its notes are deleted with it."),
                 symbol: agent.symbol, confirmTitle: String(localized: "Delete"))
         else { return }
+        // Before the store forgets which chats were its, so their pending briefings can be found.
+        for chat in store.acpSessions.keys where store.agent(forChat: chat)?.id == id {
+            acpHost.forget(chatID: chat)
+        }
         do {
             try store.remove(id: id)
         } catch {
@@ -429,6 +433,12 @@ final class AgentCoordinator {
         try? FileManager.default.removeItem(at: store.memoryURL(for: id).deletingLastPathComponent())
         removeLauncherReferences(of: id)
         apply()
+    }
+
+    /// A deleted chat's notes and pending ACP briefing go with it; a plain chat wakes no host.
+    func chatDeleted(_ id: UUID) {
+        store.removeSummary(forChat: id)
+        if store.acpSession(forChat: id) != nil { acpHost.forget(chatID: id) }
     }
 
     // MARK: - Schedules
@@ -471,9 +481,13 @@ final class AgentCoordinator {
 }
 
 extension AppCore {
-    /// After chats are deleted, the notes their agents kept on earlier turns go with them.
+    /// After chats are deleted, the notes and ACP sessions their agents kept go with them.
     func pruneAgentSummaries() {
         guard chatHistory.isAvailable else { return }
-        agentStore.pruneSummaries(keeping: chatHistory.conversations.map(\.id))
+        let kept = Set(chatHistory.conversations.map(\.id))
+        agentStore.pruneSummaries(keeping: kept)
+        for chat in agentStore.acpSessions.keys where !kept.contains(chat) {
+            agentCoordinator.acpHost.forget(chatID: chat)
+        }
     }
 }
