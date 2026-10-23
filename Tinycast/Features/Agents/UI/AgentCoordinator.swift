@@ -22,7 +22,11 @@ final class AgentCoordinator {
     /// Every agent question queues here, a chat's and an unattended run's alike.
     @ObservationIgnored let consentGate = AgentConsentGate()
 
-    @ObservationIgnored private(set) lazy var acpHost: AgentACPHost = {
+    @ObservationIgnored private var builtACPHost: AgentACPHost?
+
+    /// Built on first use, so a Mac that runs no ACP agent never holds one.
+    var acpHost: AgentACPHost {
+        if let builtACPHost { return builtACPHost }
         let host = AgentACPHost(
             store: store,
             permit: { [weak self] agent, request in await self?.permit(request, by: agent) },
@@ -39,8 +43,18 @@ final class AgentCoordinator {
             if let commands { self?.agentCommands[agentID] = commands }
         }
         host.onCost = { [weak self] chatID, cost in self?.backgroundRuns?.reportCost(cost, forChat: chatID) }
+        builtACPHost = host
         return host
-    }()
+    }
+
+    /// A chat's ACP session and briefing go; with no host built, only the stored id is left.
+    func forgetACPSession(ofChat id: UUID) {
+        if let builtACPHost {
+            builtACPHost.forget(chatID: id)
+        } else {
+            store.setACPSession(nil, forChat: id)
+        }
+    }
 
     /// Observed: the composer's mode menu follows the session, including the agent's own moves.
     private(set) var chatModes: [UUID: ACPModes] = [:]
@@ -66,7 +80,7 @@ final class AgentCoordinator {
         store.setAgent(agent?.id, forChat: chat.session.id)
         if agent == nil { store.removeSummary(forChat: chat.session.id) }
         chatGrants[chat.session.id] = nil
-        acpHost.forget(chatID: chat.session.id)
+        forgetACPSession(ofChat: chat.session.id)
         if let agent { refresh(agent) }
     }
 
@@ -84,7 +98,7 @@ final class AgentCoordinator {
 
     func stopAll() {
         backgroundRuns?.stopAll()
-        acpHost.stopAll()
+        builtACPHost?.stopAll()
     }
 
     var background: AgentBackgroundCoordinator {
@@ -401,7 +415,7 @@ final class AgentCoordinator {
         if previous?.runtime != draft.runtime || previous?.directory != draft.directory {
             agentCommands[draft.id] = nil
             for (chat, agent) in store.chatAgents where agent == draft.id {
-                acpHost.forget(chatID: chat)
+                forgetACPSession(ofChat: chat)
             }
         }
         if let agent = store.agent(id: draft.id) { refresh(agent) }
@@ -419,7 +433,7 @@ final class AgentCoordinator {
         else { return }
         // Before the store forgets which chats were its, so their pending briefings can be found.
         for chat in store.acpSessions.keys where store.agent(forChat: chat)?.id == id {
-            acpHost.forget(chatID: chat)
+            forgetACPSession(ofChat: chat)
         }
         do {
             try store.remove(id: id)
@@ -435,10 +449,10 @@ final class AgentCoordinator {
         apply()
     }
 
-    /// A deleted chat's notes and pending ACP briefing go with it; a plain chat wakes no host.
+    /// A deleted chat's notes and pending ACP briefing go with it.
     func chatDeleted(_ id: UUID) {
         store.removeSummary(forChat: id)
-        if store.acpSession(forChat: id) != nil { acpHost.forget(chatID: id) }
+        forgetACPSession(ofChat: id)
     }
 
     // MARK: - Schedules
@@ -487,7 +501,7 @@ extension AppCore {
         let kept = Set(chatHistory.conversations.map(\.id))
         agentStore.pruneSummaries(keeping: kept)
         for chat in agentStore.acpSessions.keys where !kept.contains(chat) {
-            agentCoordinator.acpHost.forget(chatID: chat)
+            agentCoordinator.forgetACPSession(ofChat: chat)
         }
     }
 }
