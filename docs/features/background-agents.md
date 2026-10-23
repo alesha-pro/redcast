@@ -179,11 +179,15 @@ runs unattended except a slash command's, which goes as typed.
 
 Settings › AI › Agents lists each agent's schedules under it. A schedule has a name, a prompt, a
 **Repeat** rule (daily or weekdays at a time, or every 1, 2, 3, 4, 6, 8 or 12 hours from a time),
-a catch-up rule, an optional note and an enabled switch. **Weekdays** are the locale's working days,
-through `Calendar.isDateInWeekend`. The prompt expands `{date}`, `{time}`, `{weekday}` and the rest
-through `SnippetTemplateEngine`; `{clipboard}` and `{selection}` expand to nothing. Each run is a chat
-titled `<name> · <date>`. **Run Now** saves the schedule and runs it like a launcher run, leaving its
-next time where it was.
+a catch-up rule, an optional note and an enabled switch. The editor puts Repeat in one menu on the
+same line as its time ("Daily ▾ at 09:00", "Every 2 hours ▾ from 09:00") and the catch-up rule in
+two radio buttons, so no language's labels can widen its 480-pt panel; a segmented control there
+gave every segment the longest label's width and clipped the panel in French and Russian. **Run
+Now** and **Delete** keep their own width, so the filling Cancel and Save never fold a label in two.
+**Weekdays** are the locale's working days, through `Calendar.isDateInWeekend`. The prompt expands
+`{date}`, `{time}`, `{weekday}` and the rest through `SnippetTemplateEngine`; `{clipboard}` and
+`{selection}` expand to nothing. Each run is a chat titled `<name> · <date>`. **Run Now** saves the
+schedule and runs it like a launcher run, leaving its next time where it was.
 
 `agent-schedules.json` is authored data: a file that exists but will not read is never written over,
 the same rule as `agents.json`. `agent-schedule-runs.json` holds each schedule's **baseline**, when it
@@ -199,7 +203,8 @@ other is written on disk and re-listed the next time Notes opens. With Notes off
 ### Daily spend cap
 
 **Daily spend cap** under the agents takes US dollars, empty for none; its subtitle adds what
-scheduled runs spent today. `agent-schedule-spend.json` holds the cap, the local day last counted and
+scheduled runs spent today, on a third line where a language needs one. The field is wide enough for
+its "No cap" placeholder in every language. `agent-schedule-spend.json` holds the cap, the local day last counted and
 that day's total (`AgentScheduleSpend`, every field optional); `AgentSpendPolicy` decides, and a new
 day starts at zero. A run is checked as it is due — at or past the cap it is held and its row reads
 "Not started: scheduled runs reached today's cap of $5.00", and opening that row shows the cap — and
@@ -262,6 +267,10 @@ day and time zone, like the schedules.
 
 **Schedules**
 
+- With Settings › General › Language set to Russian, then French and German, relaunch and open New
+  Schedule and an existing schedule: the title and every field start at the panel's left edge,
+  Repeat and its time share one line, both catch-up choices read in full, and Run Now's label stays
+  on one line. Every 3 hours from 01:30 saves, and its row in Settings says so.
 - A daily schedule two minutes ahead with **Append the answer to a note**: it runs, the chat is titled
   "<name> · <date>" and the note has the section. With that note open and edited in Notes, the append
   goes through the editor and the edit survives.
@@ -286,7 +295,8 @@ day and time zone, like the schedules.
   Agents. Run Now and `@handle` still run. Empty the field: the next due run starts. Quit, set the
   file to `garbage` and relaunch: the field reads 0 and nothing scheduled starts until it is set.
   Quit, or turn AI off, while a capped run that has reported a cost is going: the subtitle's
-  spent-today still includes it afterwards.
+  spent-today still includes it afterwards. In Russian, the subtitle with a spent-today amount ends
+  on a third line with every word shown, and in French an empty field reads "Aucun plafond" whole.
 - AI off mid-run: the run ends "Cancelled", and the item and the scheduler go away.
 - With live status and **Show running agents in the menu bar** on, start a Claude CLI session and a
   `@rig` run: one item shows both under their headers and counts them. Let the run finish while the
