@@ -9,8 +9,8 @@ for exactly those features, and keeps everything else as close to upstream as it
 
 **Redcast is the name you see, and only that.** The installed app is `Redcast.app` with a
 `Redcast Dictation` helper, and its menus, windows, onboarding and privacy prompts say Redcast in
-English and all eight translations; About still says it is based on Tinycast by Abue Ammar.
-Underneath it stays Tinycast, so upstream merges stay mechanical and an upgrade keeps everything: the
+English and all eight translations. About still says it is based on Tinycast by Abue Ammar, and
+Support names Tinycast, since its checkout funds upstream's author. Underneath it stays Tinycast, so upstream merges stay mechanical and an upgrade keeps everything: the
 Xcode project, targets, sources and type names, the bundle id `com.tinycast.app.fork` (and with it
 settings, Application Support, privacy grants and Keychain items), `.tinycast` backups, the
 `tinycast://` scheme, file paths and log subsystems. The name is set at build time and in the string
@@ -65,8 +65,9 @@ next to Redcast in `/Applications`.
   meaning depends on where it appears, such as `at`, gets a catalog `comment` for translators.
 - New UI text is written with Tinycast in its key, as upstream would, and translated the same way;
   `node Scripts/fork/rebrand.mjs` then gives it an English value and translations that say Redcast,
-  and `--check` fails while any key still needs that. Text about upstream itself (About's credit and
-  its Discord row) is listed in the script and keeps the name.
+  and `--check` fails while any key still needs that. Text about upstream itself (About's credit,
+  its Discord row, and Support, whose checkout funds upstream's author) is listed in the script and
+  keeps the name.
 - `Scripts/fork/sync-upstream.sh` does the merge: into `sync/upstream-<sha>`, upstream's
   `project.pbxproj` and runtime bundle regenerated, both string catalogs merged key by key and
   rebranded, an `Upstream-Sync:` trailer, then the build, harness, lint and purity gates and a summary
@@ -102,7 +103,8 @@ new bundle in by rename and relaunches it. About shows the `git describe` versio
   keyed by bundle id and code requirement, so they carry over. Launch at login may still name the old
   path: if Redcast does not open at login, switch it off and on in Settings › General.
   Upstream's own `Tinycast.app` (another bundle id) is never touched; the script only says both are
-  installed.
+  installed. A fork `Tinycast.app` beside `Redcast.app`, which an un-updated worktree's `install.sh`
+  would put back, is refused: merge `main` into a worktree before installing from it.
 
 - `--self-check` resolves the identity, version and paths, prints the migration it would do, and
   builds nothing; `--self-test` rehearses an install, a rollback, the migration and its rollback, and

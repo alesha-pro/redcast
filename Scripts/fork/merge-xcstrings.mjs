@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Three-way merge of a conflicted string catalog, key by key. Usage: see FORK.md or --help.
+// Three-way merge of a string catalog, key by key. Usage: see docs/fork-tooling.md or --help.
 import { execFileSync } from "node:child_process";
 import { readFileSync, writeFileSync } from "node:fs";
 import { rebrand } from "./rebrand.mjs";
@@ -88,8 +88,9 @@ function mergeStrings(base, ours, theirs, report) {
 
 // All three as the fork names the app, so a string it only renamed still takes upstream's edits.
 function merge(...sides) {
-  const [base, ours, theirs] = sides.map((side) => rebrand(side).catalog);
-  const report = { conflicts: [], added: 0, removed: 0 };
+  const rebranded = sides.map((side) => rebrand(side));
+  const [base, ours, theirs] = rebranded.map((side) => side.catalog);
+  const report = { conflicts: [], added: 0, removed: 0, renamed: [] };
   const merged = new Map();
   for (const key of new Set([...theirs.keys(), ...ours.keys()])) {
     if (key === "strings") {
@@ -102,12 +103,18 @@ function merge(...sides) {
     const value = chosen ? chosen.value : ours.get(key);
     if (value !== undefined) merged.set(key, value);
   }
+  // Upstream's new or changed strings the rename touched, for someone to read: one about upstream
+  // itself belongs in rebrand.mjs's EXCLUDED.
+  const strings = (catalog) => catalog.get("strings") ?? new Map();
+  const [before, after, result] = [sides[0], sides[2], merged].map(strings);
+  report.renamed = rebranded[2].changed.filter(
+    (key) => result.has(key) && !same(before.get(key), after.get(key)));
   return { catalog: merged, report };
 }
 
-function stage(number, path) {
+function git(...args) {
   try {
-    return execFileSync("git", ["show", `:${number}:${path}`], {
+    return execFileSync("git", args, {
       encoding: "utf8",
       maxBuffer: 1 << 28,
       stdio: ["ignore", "pipe", "ignore"],
@@ -117,16 +124,27 @@ function stage(number, path) {
   }
 }
 
+// A conflict's three stages; else, during a merge git finished on its own, its three commits.
+// git's line merge can be wrong for a catalog: an English value the fork derived from a key
+// survives upstream rewording that key in place, now under the new key.
+function sides(path) {
+  const ours = git("show", `:2:${path}`);
+  const theirs = git("show", `:3:${path}`);
+  if (ours !== undefined || theirs !== undefined) return [git("show", `:1:${path}`), ours, theirs];
+  const base = git("merge-base", "HEAD", "MERGE_HEAD")?.trim();
+  if (!base) return [];
+  return [base, "HEAD", "MERGE_HEAD"].map((revision) => git("show", `${revision}:${path}`));
+}
+
 function run(path) {
-  const ours = stage(2, path);
-  const theirs = stage(3, path);
+  const [base, ours, theirs] = sides(path);
   if (ours === undefined || theirs === undefined) {
-    console.error(`✗ ${path} has no conflict stages to merge`);
+    console.error(`✗ ${path} has neither conflict stages nor both sides of a merge in progress`);
     return 2;
   }
   let catalogs;
   try {
-    catalogs = [stage(1, path) ?? "{}", ours, theirs].map(parse);
+    catalogs = [base ?? "{}", ours, theirs].map(parse);
   } catch (error) {
     console.error(`✗ ${path}: ${error.message}`);
     return 2;
@@ -136,6 +154,10 @@ function run(path) {
   execFileSync("git", ["add", "--", path]);
   const review = report.conflicts.length;
   console.log(`+${report.added} upstream keys, -${report.removed} removed, ${review} need review`);
+  const count = report.renamed.length;
+  const noun = count === 1 ? "key" : "keys";
+  if (count > 0) console.log(`renamed Tinycast in ${count} upstream ${noun}`);
+  for (const key of report.renamed) console.log(`  ${JSON.stringify(key)}`);
   for (const { key, languages } of report.conflicts) {
     console.error(`${key}  (${languages.join(", ")})`);
   }
@@ -204,15 +226,23 @@ function selfTest() {
 
   const renamed = merge(
     catalog({
+      "%@ can't use Tinycast": { localizations: { de: unit("%@ kann Tinycast nicht nutzen") } },
+      "Keep Tinycast": { localizations: { de: unit("Tinycast behalten") } },
       "Quit Tinycast": { localizations: { de: unit("Tinycast beenden") } },
       "Tinycast Gone": { localizations: { de: unit("Tinycast weg") } },
     }),
     catalog({
+      "%@ can't use Tinycast": {
+        localizations: { de: unit("%@ kann Redcast nicht nutzen"), en: unit("%@ can't use Redcast") },
+      },
+      "Keep Tinycast": { localizations: { de: unit("Redcast behalten"), en: unit("Keep Redcast") } },
       "Quit Tinycast": { localizations: { de: unit("Redcast beenden"), en: unit("Quit Redcast") } },
       "Tinycast Gone": { localizations: { de: unit("Redcast weg"), en: unit("Redcast Gone") } },
     }),
     catalog({
+      "%@ can’t use Tinycast": { localizations: { de: unit("%@ kann Tinycast nicht nutzen") } },
       "About Tinycast": { localizations: { de: unit("Über Tinycast") } },
+      "Keep Tinycast": { localizations: { de: unit("Tinycast behalten") } },
       "Quit Tinycast": { localizations: { de: unit("Tinycast schließen") } },
     }),
   );
@@ -224,6 +254,12 @@ function selfTest() {
   expect(named("About Tinycast", "en") === "About Redcast", "an upstream string arrives renamed");
   expect(!renamed.catalog.get("strings").has("Tinycast Gone"), "one the fork only renamed can go");
   expect(renamed.report.conflicts.length === 0, "and renaming alone is never a conflict");
+  expect(named("%@ can’t use Tinycast", "en") === "%@ can’t use Redcast",
+    "a key upstream rewords in place gets English from its new text");
+  expect(!renamed.catalog.get("strings").has("%@ can't use Tinycast"), "and the old key goes");
+  const listed = renamed.report.renamed.join(" | ");
+  expect(listed === "%@ can’t use Tinycast | About Tinycast | Quit Tinycast",
+    `upstream's new and changed strings are listed as renamed: ${listed}`);
 
   console.log(failures === 0 ? "✓ merge-xcstrings self-test passed" : `✗ ${failures} failed`);
   return failures === 0 ? 0 : 1;

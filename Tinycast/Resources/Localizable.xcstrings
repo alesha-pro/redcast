@@ -128810,55 +128810,49 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Redcast unterstützen"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Support Redcast"
+            "value" : "Tinycast unterstützen"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Apoyar a Redcast"
+            "value" : "Apoyar a Tinycast"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Soutenir Redcast"
+            "value" : "Soutenir Tinycast"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Redcastをサポート"
+            "value" : "Tinycastをサポート"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Redcast 지원"
+            "value" : "Tinycast 지원"
           }
         },
         "pt" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Apoiar o Redcast"
+            "value" : "Apoiar o Tinycast"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Поддержать Redcast"
+            "value" : "Поддержать Tinycast"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "支持 Redcast"
+            "value" : "支持 Tinycast"
           }
         }
       }

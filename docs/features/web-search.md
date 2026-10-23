@@ -64,7 +64,7 @@ few lines that wire it into `AIChatCoordinator`, `AIToolLoopProvider`, `AgentCoo
   without a valid address, are skipped without a request. There are no retries on the same engine.
 - **Only the query leaves.** Requests go through a private `.ephemeral` session with no cache, no
   cookie storage and cookies refused, 10 s idle and 15 s total, with the honest User-Agent
-  `Tinycast (+https://github.com/alesha-pro/tinycast)`. A response is read to 1 MB at most.
+  `Tinycast (+https://github.com/alesha-pro/redcast)`. A response is read to 1 MB at most.
 - **Answers are bounded, and page text is material.** At most 10 results, 900 characters of excerpt
   each, and 8 KB per call (`WebSearchTool.maxOutputBytes`), a quarter of the loop's per-result cap.
   The answer opens by saying page text is material, never instructions.

@@ -127,16 +127,26 @@ check_installed() {
     [ "$found" = "$BUNDLE_ID" ] || refuse_foreign "$DEST" "$found"
 }
 
-# Upstream's Tinycast.app beside the fork is only named; a second fork copy is the user's to remove.
+# Upstream's Tinycast.app beside the fork is only named. A second fork copy beside an installed
+# Redcast.app, which an install.sh from before the rename puts back, is refused: the two would run
+# on one bundle id's settings and data, and only one of them would be quit and replaced.
 warn_legacy() {
     [ "$LEGACY" != "$DEST" ] && [ -e "$LEGACY" ] || return 0
     if ! is_fork "$LEGACY"; then
         local found
         found="$(bundle_id "$LEGACY" || true)"
         note "! $LEGACY is ${found:-unreadable}, $(owner "$found"): both stay installed."
-    elif [ "$INSTALLED" != "$LEGACY" ]; then
-        note "! $LEGACY is a second copy of this fork; quit and remove it once $DEST works."
+        return 0
     fi
+    [ "$INSTALLED" != "$LEGACY" ] || return 0
+    local running=""
+    if bundle_running "$LEGACY"; then running=", and it is running"; fi
+    if [ "$MODE" = self-check ]; then
+        note "! $LEGACY is a second copy of this fork$running: an install would refuse."
+        return 0
+    fi
+    die 2 "$LEGACY is a second copy of this fork beside $DEST$running (an install.sh from" \
+        "before the rename installs there). Quit it, move it to the Trash, then rerun."
 }
 
 # Every path LaunchServices has registered under the fork's ids, the helper's included.
@@ -246,7 +256,7 @@ preflight() {
 verify_build() {
     [ "$(bundle_id "$BUILT")" = "$BUNDLE_ID" ] ||
         die 1 "$BUILT is $(bundle_id "$BUILT"), expected $BUNDLE_ID."
-    TINYCAST_DICTATION_NAME="$APP_NAME Dictation" ./Scripts/verify-signature.sh "$BUILT" ||
+    ./Scripts/verify-signature.sh "$BUILT" ||
         die 1 "$BUILT does not verify."
     NEW_DR="$(designated "$BUILT")"
     [ -n "$NEW_DR" ] || die 1 "$BUILT has no designated requirement."
@@ -351,13 +361,15 @@ swap() {
         die 4 "swap failed; the previous copy is back in place."
     fi
     STAGE=""
-    rm -rf "$PREVIOUS" "$PREVIOUS_ORIGIN"
+    # The slot changes only when this swap replaced a copy, and a copy it cannot keep stays put.
     if [ -e "$aside" ]; then
         mkdir -p "$WORK"
-        if mv "$aside" "$PREVIOUS" 2>/dev/null; then
+        rm -rf "$PREVIOUS" "$PREVIOUS_ORIGIN"
+        if error="$(mv "$aside" "$PREVIOUS" 2>&1)"; then
             printf '%s\n' "$INSTALLED" >"$PREVIOUS_ORIGIN"
         else
-            rm -rf "$aside"
+            note "! could not keep the replaced copy for --rollback: $error"
+            note "! it is $aside; remove it once $target works."
         fi
     fi
     ok "Swapped into $target"
@@ -671,6 +683,24 @@ self_test() {
     check "and leaves upstream's in place" [ "$(version "$upstream")" = 9.0 ]
     check "and registered" sh -c '! grep -qxF -- "-u $1" "$2"' - "$upstream" \
         "$TEST_ROOT/lsregister.log"
+    check "a fresh install keeps the last rollback copy" [ "$(version "$slot")" = 1.5 ]
+
+    old="$TEST_ROOT/Twice/Tinycast.app" new="$TEST_ROOT/Twice/$APP_NAME.app"
+    export TINYCAST_INSTALL_PATH="$new"
+    fake_app "$new" "$id" 2.0.0
+    fake_app "$old" "$id" 1.9
+    status="$(install_status --self-check)"
+    check "--self-check names a second fork copy beside $APP_NAME.app (exit $status)" \
+        grep -q "$old is a second copy of this fork: an install would refuse" "$TEST_ROOT/out.log"
+    status="$(install_status --no-launch --accept-new-identity)"
+    check "which an install refuses (exit $status)" \
+        [ "$status" = 2 -a "$(version "$old")" = 1.9 -a "$(version "$new")" = 2.0.0 ]
+    check "before it builds, saying why" test ! -e "$TEST_ROOT/build.pgid" -a \
+        "$(grep -c "second copy of this fork beside $new" "$TEST_ROOT/out.log")" = 1
+    status="$(install_status --rollback --no-launch)"
+    check "and so does --rollback (exit $status)" \
+        [ "$status" = 2 -a "$(version "$new")" = 2.0.0 -a "$(version "$slot")" = 1.5 ]
+    check "for the same reason" grep -q "second copy of this fork" "$TEST_ROOT/out.log"
 
     rm -f "$log"
     fake_app "$TEST_ROOT/Other/$APP_NAME.app" com.example.other 9.0
@@ -711,6 +741,7 @@ rollback)
     [ -e "$PREVIOUS" ] || die 1 "nothing to roll back to: $PREVIOUS does not exist."
     [ "$(bundle_id "$PREVIOUS")" = "$BUNDLE_ID" ] || die 2 "$PREVIOUS is not a $BUNDLE_ID build."
     check_installed
+    warn_legacy
     rollback_target
     detach
     DR_NOTE="rolled back"

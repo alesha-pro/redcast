@@ -50,7 +50,6 @@ die() {
 MODE=sync
 NOTES=""
 CATALOG_NOTE=""
-REBRAND_NOTE=""
 TITLE=""
 UNRESOLVED=""
 BRANCH=""
@@ -172,11 +171,37 @@ anchor() {
         -m "Upstream-Sync: $ANCHOR" "$ANCHOR"
 }
 
+# The keys a tool printed under its "renamed Tinycast" line, one quoted key per line.
+renamed_keys() {
+    awk '/renamed Tinycast in/ { keep = 1; next } keep && /^  "/ { sub(/^  /, ""); print; next }
+        { keep = 0 }' <<<"$1" >>"$WORK/renamed-keys.txt"
+}
+
+# Both catalogs merge key by key whenever upstream changed one, conflicted or not. The fork renamed
+# their Tinycast, so upstream's edits to those lines conflict; and where git merges on its own, an
+# English value the fork derived from a key survives upstream rewording that key in place.
+merge_catalog() {
+    local path=$1 status=0 output summary
+    output="$(node Scripts/fork/merge-xcstrings.mjs "$path" \
+        2>>"$WORK/xcstrings-review.txt")" || status=$?
+    [ "$status" -le 1 ] || return 1
+    summary="$(head -1 <<<"$output")"
+    note "merged $path key by key: $summary"
+    CATALOG_NOTE="${CATALOG_NOTE:+$CATALOG_NOTE; }$(basename "$path" .xcstrings) $summary"
+    renamed_keys "$output"
+}
+
 # Generated files take upstream's side and are rebuilt; the catalogs merge key by key.
 resolve_known() {
     UNRESOLVED=""
-    local path status merged
+    local path base
     : >"$WORK/xcstrings-review.txt"
+    base="$(git merge-base HEAD MERGE_HEAD)"
+    for path in "$CATALOG" "$INFO_CATALOG"; do
+        git diff --quiet "$base" MERGE_HEAD -- "$path" && continue
+        merge_catalog "$path" ||
+            NOTES="${NOTES}- merge-xcstrings.mjs could not merge $path; it stays as git merged it"$'\n'
+    done
     while IFS= read -r path; do
         [ -n "$path" ] || continue
         case "$path" in
@@ -184,18 +209,6 @@ resolve_known() {
             if git checkout -q --theirs -- "$path" 2>/dev/null; then
                 git add -- "$path"
                 note "took upstream's $path; regenerated below"
-                continue
-            fi
-            ;;
-        # The fork renamed both catalogs' Tinycast; upstream's edits to those lines conflict.
-        "$CATALOG" | "$INFO_CATALOG")
-            status=0
-            merged="$(node Scripts/fork/merge-xcstrings.mjs "$path" \
-                2>>"$WORK/xcstrings-review.txt")" || status=$?
-            if [ "$status" -le 1 ]; then
-                note "merged $path key by key: $merged"
-                merged="$(basename "$path" .xcstrings) $merged"
-                CATALOG_NOTE="${CATALOG_NOTE:+$CATALOG_NOTE; }$merged"
                 continue
             fi
             ;;
@@ -225,20 +238,21 @@ merge_upstream() {
     exit 2
 }
 
-# Strings upstream adds say Tinycast; the merge commit, and every gate after it, reads Redcast.
+# Whatever the merges left saying Tinycast (a catalog merge-xcstrings could not take, a conflict
+# resolved by hand) says Redcast in the merge commit, before any gate builds it.
 rebrand_catalogs() {
     [ -e "$(git rev-parse --git-path MERGE_HEAD)" ] || return 0
-    local output
+    local output warnings
     if ! output="$(node Scripts/fork/rebrand.mjs 2>&1)"; then
         NOTES="${NOTES}- rebrand.mjs failed; the catalogs still say Tinycast: $output"$'\n'
         return 0
     fi
-    REBRAND_NOTE="$(grep 'renamed Tinycast' <<<"$output" | tr '\n' ' ' || true)"
-    [ -z "$REBRAND_NOTE" ] || note "$REBRAND_NOTE"
-    local stale
-    stale="$(grep -o 'the exclusion .* is in no catalog' <<<"$output" || true)"
-    [ -z "$stale" ] || NOTES="${NOTES}$(sed 's/^/- rebrand.mjs: /; s/$/; drop it from EXCLUDED/' \
-        <<<"$stale")"$'\n'
+    if grep -q 'renamed Tinycast\|restored Tinycast' <<<"$output"; then
+        note "$(grep 'renamed Tinycast\|restored Tinycast' <<<"$output" | tr '\n' ' ')"
+    fi
+    renamed_keys "$output"
+    warnings="$(grep '^! ' <<<"$output" || true)"
+    [ -z "$warnings" ] || NOTES="${NOTES}$(sed 's/^! /- rebrand.mjs: /' <<<"$warnings")"$'\n'
 
     local path
     for path in "$CATALOG" "$INFO_CATALOG"; do [ ! -e "$path" ] || git add -- "$path"; done
@@ -386,7 +400,7 @@ harness_names() {
 }
 
 attention() {
-    local both workflows rules declined capabilities harnesses review
+    local both workflows rules declined capabilities harnesses review renamed count noun
     both="$(comm -12 <(git diff --name-only "$OLD_UP" "$FORK_TIP" | sort) \
         <(upstream_changed | sort) | tr '\n' ' ')"
     [ -z "$both" ] || printf -- '- Both sides changed: %s\n' "${both% }"
@@ -394,11 +408,17 @@ attention() {
         review="$(head -10 "$WORK/xcstrings-review.txt" 2>/dev/null |
             sed -E 's/^(.*)  \((.*)\)$/"\1"(\2)/' | tr '\n' ' ' || true)"
         printf -- '- String catalogs: %s%s\n' "$CATALOG_NOTE" "${review:+: ${review% }}"
-    elif upstream_changed | grep -qx "$CATALOG"; then
-        printf -- '- Localizable: upstream changed it; git merged it without conflicts\n'
     fi
-    [ -z "${REBRAND_NOTE:-}" ] || printf -- '- Rebrand: %s(check the new strings read well)\n' \
-        "$REBRAND_NOTE"
+    renamed="$(awk '!seen[$0]++' "$WORK/renamed-keys.txt" 2>/dev/null || true)"
+    if [ -n "$renamed" ]; then
+        count="$(wc -l <<<"$renamed" | tr -d ' ')"
+        if [ "$count" = 1 ]; then noun="string now says"; else noun="strings now say"; fi
+        printf -- "- Rebrand: %s upstream %s Redcast; read each, and add one about" "$count" "$noun"
+        printf -- ' upstream itself to EXCLUDED in Scripts/fork/rebrand.mjs, then rerun it: %s' \
+            "$(head -20 <<<"$renamed" | paste -sd, - | sed 's/","/", "/g')"
+        [ "$count" -le 20 ] || printf -- ' and %s more' "$((count - 20))"
+        printf '\n'
+    fi
     workflows="$(git diff --name-status "$BASE" "$UP" -- .github/workflows)"
     while IFS=$'\t' read -r status path; do
         [ -n "$path" ] || continue
@@ -555,6 +575,7 @@ finish() {
 sync() {
     preconditions
     mkdir -p "$WORK"
+    : >"$WORK/renamed-keys.txt"
     FORK_TIP="$(git rev-parse HEAD)"
     OLD_UP="$(last_synced)"
     fetch
@@ -788,11 +809,18 @@ self_test() {
         git -C "$FORK" grep -q '"value" : "About Redcast"' HEAD -- "$CATALOG"
     check "with nothing to review" grep -q "+1 upstream keys, -0 removed, 0 need review" \
         "$CASE/out.log"
-    check "one git merged cleanly is renamed in the merge commit" \
+    check "one git merges on its own is merged key by key too" \
+        grep -q "+2 upstream keys, -1 removed, 0 need review" "$CASE/out.log"
+    check "so a string upstream adds there arrives renamed" \
         git -C "$FORK" grep -q '"value" : "Redcast filmt."' HEAD -- "$INFO_CATALOG"
-    check "and named in the summary" \
-        grep -q "Rebrand: InfoPlist.xcstrings: renamed Tinycast in 1 key" \
-        "$FORK/build/sync/summary-${up:0:7}.md"
+    check "and a key it rewords in place takes English from its new text" \
+        git -C "$FORK" grep -q '"value" : "Redcast backup"' HEAD -- "$INFO_CATALOG"
+    check "dropping the old key's" \
+        sh -c '! git -C "$1" grep -q "Backup\"" HEAD -- "$2"' - "$FORK" "$INFO_CATALOG"
+    summary="$FORK/build/sync/summary-${up:0:7}.md"
+    check "the summary names every upstream string renamed" \
+        grep -q 'Rebrand: 4 upstream strings now say Redcast.*"About Tinycast".*"Tinycast backup"' \
+        "$summary"
     check "leaving a clean tree" [ -z "$(git -C "$FORK" status --porcelain --untracked-files=no)" ]
 
     printf '%d passed, %d failed\n' "$PASSES" "$FAILURES"
@@ -841,12 +869,14 @@ catalog_of() {
     printf '\n  },\n  "version" : "1.0"\n}\n'
 }
 
-# The fork renames both catalogs. Upstream edits a renamed line in one, so that one conflicts, and
-# adds a string far from the renamed lines in the other, which git merges on its own.
+# The fork renames both catalogs. Upstream edits a renamed line in one, so that one conflicts. In
+# the other it adds a string and rewords a key in place, both away from the renamed lines, which
+# git merges on its own, keeping the English the fork gave the old key under the new one.
 rebrand_case() {
     mkdir -p "$UPR/$(dirname "$CATALOG")"
     catalog_of "Quit Tinycast" "Tinycast beenden" >"$UPR/$CATALOG"
-    catalog_of NSMicrophoneUsageDescription "Tinycast nimmt auf." >"$UPR/$INFO_CATALOG"
+    catalog_of NSMicrophoneUsageDescription "Tinycast nimmt auf." \
+        "Tinycast Backup" "Tinycast-Sicherung" >"$UPR/$INFO_CATALOG"
     git -C "$UPR" add -A && git -C "$UPR" commit -q -m "Add the catalogs"
     git -C "$FORK" pull -q --no-rebase --no-edit upstream main
     (cd "$FORK" && node Scripts/fork/rebrand.mjs >/dev/null 2>&1)
@@ -854,7 +884,8 @@ rebrand_case() {
     catalog_of "About Tinycast" "Über Tinycast" "Quit Tinycast" "Tinycast schließen" \
         >"$UPR/$CATALOG"
     catalog_of NSCameraUsageDescription "Tinycast filmt." \
-        NSMicrophoneUsageDescription "Tinycast nimmt auf." >"$UPR/$INFO_CATALOG"
+        NSMicrophoneUsageDescription "Tinycast nimmt auf." \
+        "Tinycast backup" "Tinycast-Sicherung" >"$UPR/$INFO_CATALOG"
     git -C "$UPR" commit -q -am "Upstream's strings"
 }
 
