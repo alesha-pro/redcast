@@ -1,3 +1,5 @@
+import AppKit
+import CoreText
 import Foundation
 
 @main
@@ -16,6 +18,10 @@ struct AgentToolsTests {
     }
 
     static func main() async {
+        // The harness reads documents through itself, as the app reads them through its helper.
+        if CommandLine.arguments.count > 1, CommandLine.arguments[1] == DocumentTextRequest.command {
+            exit(await DocumentTextExtractor.run(Array(CommandLine.arguments.dropFirst())))
+        }
         let root = FileManager.default.temporaryDirectory
             .appendingPathComponent("AgentToolsTests-\(UUID().uuidString)")
         defer { try? FileManager.default.removeItem(at: root) }
@@ -183,6 +189,7 @@ struct AgentToolsTests {
         await throughTheToolset(folder: folder, memory: memory)
         await aRefusalLeavesNoEffect(folder: folder, memory: memory)
         await thePlanToolOnlyShows(folder: folder, memory: memory)
+        await documentsReadByKind(folder: folder, memory: memory)
 
         print("\(passes) passed, \(failures) failed")
         if failures > 0 { exit(1) }
@@ -426,4 +433,117 @@ actor Asked {
     private(set) var last: AgentConsentRequest?
 
     func record(_ request: AgentConsentRequest) { last = request }
+}
+
+/// PDFs by pages, scans and images by OCR and rich text, through the helper.
+extension AgentToolsTests {
+    static func documentsReadByKind(folder: String, memory: URL) async {
+        let me = URL(fileURLWithPath: CommandLine.arguments[0]).standardizedFileURL
+        let agent = AgentToolExecutor(
+            profile: AgentProfile(name: "T", directory: folder), skills: [], memoryURL: memory,
+            consent: { _ in true }, documents: DocumentTextService(executable: me))
+        func read(_ arguments: String) async -> AIToolResult {
+            await agent.run(AIToolCall(id: "r", name: AgentToolbox.readFile, arguments: arguments))
+        }
+        let pdf = folder + "/docs/report.pdf"
+        try? FileManager.default.createDirectory(atPath: folder + "/docs", withIntermediateDirectories: true)
+        makePDF(at: URL(fileURLWithPath: pdf), pages: (1...60).map { $0 == 3 ? nil : "REPORT PAGE \($0) TEXT" })
+        let first = await read(#"{"path":"docs/report.pdf"}"#)
+        expect(
+            !first.isError && first.content.contains("PDF, 60 pages. Pages 1–50:")
+                && first.content.contains("[Page 2]\nREPORT PAGE 2 TEXT"),
+            "a PDF reads by pages from the first, got \(first.content.prefix(200))")
+        expect(
+            first.content.contains("[Page 3, scanned: its text was recognized by OCR]")
+                && first.content.contains("7391"),
+            "a scanned page is recognized")
+        expect(first.content.hasSuffix("Read on with pages \"51-\".]"), "and the answer says how to read on")
+        expect(first.content.utf8.count < AgentTurnBudget.resultBytes, "within the loop's own cut")
+        let later = await read(#"{"path":"docs/report.pdf","pages":"59-"}"#)
+        expect(
+            later.content.contains("Pages 59–60:") && !later.content.contains("Read on"),
+            "pages pick a range, and the last one says nothing more follows")
+        let number = await read(#"{"path":"docs/report.pdf","pages":7}"#)
+        expect(number.content.contains("[Page 7]") && !number.content.contains("[Page 8]"), "a page as a number")
+        let wrong = await read(#"{"path":"docs/report.pdf","pages":"seven"}"#)
+        expect(wrong.isError && wrong.content.contains("\"3-5\""), "pages that are no range say what is")
+        let past = await read(#"{"path":"docs/report.pdf","pages":"90"}"#)
+        expect(past.content.contains("has 60 pages; page 90 is past the end"), "and past the end says so")
+
+        let text = (1...3_000).map { "Line \($0) of the minutes." }.joined(separator: "\n")
+        let rich = NSAttributedString(string: text)
+        let docx = try? rich.data(
+            from: NSRange(location: 0, length: rich.length),
+            documentAttributes: [.documentType: NSAttributedString.DocumentType.officeOpenXML])
+        try? docx?.write(to: URL(fileURLWithPath: folder + "/docs/minutes.docx"))
+        let word = await read(#"{"path":"docs/minutes.docx"}"#)
+        expect(
+            word.content.hasPrefix(folder + "/docs/minutes.docx (document, as plain text):")
+                && word.content.contains("     1\tLine 1 of the minutes."),
+            "a Word file reads as numbered text, got \(word.content.prefix(160))")
+        expect(word.content.contains("continue with offset"), "and pages by line")
+        let wordOn = await read(#"{"path":"docs/minutes.docx","offset":2999,"limit":5}"#)
+        expect(wordOn.content.contains("  3000\tLine 3000 of the minutes."), "to its last line")
+
+        let image = URL(fileURLWithPath: folder + "/docs/receipt.png")
+        writePNG(makeImage("ALPINE RECEIPT 7391"), to: image)
+        let ocr = await read(#"{"path":"docs/receipt.png"}"#)
+        expect(
+            ocr.content.contains("image, its text recognized by OCR") && ocr.content.contains("7391"),
+            "an image's text is recognized")
+        try? Data([0x01, 0x00, 0x02, 0x03]).write(to: URL(fileURLWithPath: folder + "/docs/blob.bin"))
+        let binary = await read(#"{"path":"docs/blob.bin"}"#)
+        expect(binary.isError && binary.content.contains("is a binary file"), "a binary file is refused, by name")
+        let directory = await read(#"{"path":"docs"}"#)
+        expect(directory.isError && directory.content.contains("list it with list_dir"), "a folder points at list_dir")
+        let none = await read(#"{"path":"docs/none.txt"}"#)
+        expect(none.isError && none.content.contains("does not exist"), "a missing file says so")
+
+        let lost = AgentToolExecutor(
+            profile: AgentProfile(name: "T", directory: folder), skills: [], memoryURL: memory,
+            consent: { _ in true }, documents: DocumentTextService(executable: URL(fileURLWithPath: "/none")))
+        let unread = await lost.run(AIToolCall(id: "r", name: AgentToolbox.readFile, arguments: #"{"path":"docs/report.pdf"}"#))
+        expect(unread.isError && unread.content.contains("document reader is missing"), "no helper, said so")
+    }
+
+    /// One page a line of text; nil is a scanned page, an image with no text layer.
+    static func makePDF(at url: URL, pages: [String?]) {
+        var box = CGRect(x: 0, y: 0, width: 1000, height: 300)
+        let context = CGContext(consumer: CGDataConsumer(url: url as CFURL)!, mediaBox: &box, nil)!
+        for page in pages {
+            context.beginPDFPage(nil)
+            if let page {
+                draw(page, in: context)
+            } else {
+                context.draw(makeImage("SCANNED PAGE 7391"), in: box)
+            }
+            context.endPDFPage()
+        }
+        context.closePDF()
+    }
+
+    static func makeImage(_ text: String) -> CGImage {
+        let context = CGContext(
+            data: nil, width: 1000, height: 300, bitsPerComponent: 8, bytesPerRow: 4000,
+            space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.noneSkipLast.rawValue)!
+        context.setFillColor(CGColor(gray: 1, alpha: 1))
+        context.fill(CGRect(x: 0, y: 0, width: 1000, height: 300))
+        draw(text, in: context)
+        return context.makeImage()!
+    }
+
+    static func writePNG(_ image: CGImage, to url: URL) {
+        let destination = CGImageDestinationCreateWithURL(url as CFURL, "public.png" as CFString, 1, nil)!
+        CGImageDestinationAddImage(destination, image, nil)
+        expect(CGImageDestinationFinalize(destination), "write \(url.lastPathComponent)")
+    }
+
+    static func draw(_ text: String, in context: CGContext) {
+        let attributes: [NSAttributedString.Key: Any] = [
+            NSAttributedString.Key(kCTFontAttributeName as String): CTFontCreateWithName("Helvetica" as CFString, 48, nil)
+        ]
+        let line = CTLineCreateWithAttributedString(NSAttributedString(string: text, attributes: attributes))
+        context.textPosition = CGPoint(x: 40, y: 150)
+        CTLineDraw(line, context)
+    }
 }
