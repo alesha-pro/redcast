@@ -76,7 +76,9 @@ relaunches it. About shows the `git describe` version and the commit count (a fr
 
 - `--self-check` resolves the identity, version and paths and builds nothing; `--self-test` rehearses
   an install, a rollback and a start from Tinycast with a stubbed build in `$TMPDIR`; `--rollback` puts
-  back the copy the last install replaced; `--no-launch` and `--force-quit` do what they say.
+  back the copy the last install replaced; `--no-launch` and `--force-quit` do what they say. A build
+  rolled back to reads this one's files; continuing an ACP chat there drops the saved diffs and output
+  of the reply it rewrites ([why](docs/features/agents.md#invariants)).
 - It refuses to replace upstream's same-named `Tinycast.app`, and to install a build whose code
   requirement differs from the installed one: that would cost every privacy grant.
   `--accept-new-identity` goes ahead and prints the `tccutil reset` lines; it never runs them itself.
