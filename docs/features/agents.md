@@ -56,6 +56,18 @@ optional chord: see [background and scheduled agents](background-agents.md).
   Allow also covers runs nobody is watching. `agents.json` has no `SettingsFileKey` and is not in
   `SettingsBackupCoverage`, and it must stay out of both while it carries rules, so an import can
   never grant an agent a capability.
+- **A general assistant, told how much to do.** An agent chat on Tinycast's loop is sent the agent's
+  own prompt (`AgentCoordinator.loopInstructions`) in place of the shared one: no launcher
+  self-description (`AIPreamble`), the user's system prompt and the suggested-replies block where those
+  are on (the block only with someone watching), and the unattended briefing in a background run, which
+  says to take the most reasonable reading of anything unclear and name it. Its How to work section
+  calibrates the effort: answer a simple question directly, after one quick look at most; plan a task
+  of several steps briefly and work through it; look up what it does not know (`web_search`, then
+  `web_fetch`, where the Web family is on); check key facts against their sources and link every page
+  used; stop when the task is done, result first; and when it cannot finish, say what is done, what is
+  not and what to do next. The order keeps a provider's cache: header, method, global and project
+  instructions, skills, the agent's instructions, the user's standing text, then the agent's notes,
+  which change most. Agents on Codex or Claude keep the shared prompt with the agent's after it.
 - **The prompt stays put; the turn carries the time.** The agent's prompt names the user's time zone
   (`Europe/Moscow (UTC+03:00)`) and no date, so a provider's prompt cache holds from one turn and one
   day to the next; the shared prompt's quarter-hour clock is left out of an agent chat on Tinycast's
