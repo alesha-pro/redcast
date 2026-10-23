@@ -30,13 +30,15 @@ struct ChatMessage: Identifiable, Equatable, Sendable {
     var usage: AIUsage?
     /// The server a question was addressed to with `@server`; the text is stored without it.
     let toolScope: String?
+    // Fork: what the reply reasoned, for its own model's later turns.
+    var replay: AIReasoningReplay?
 
     init(
         id: UUID = UUID(), role: Role, text: String, state: State = .complete,
         sentAt: Date = Date(), images: [AIImage] = [], documents: [AIDocument] = [],
         searches: [ChatSearch] = [],
         toolUses: [ChatToolUse] = [], reasoning: [ChatReasoning] = [], usage: AIUsage? = nil,
-        toolScope: String? = nil
+        toolScope: String? = nil, replay: AIReasoningReplay? = nil
     ) {
         self.id = id
         self.role = role
@@ -50,6 +52,7 @@ struct ChatMessage: Identifiable, Equatable, Sendable {
         self.reasoning = reasoning
         self.usage = usage
         self.toolScope = toolScope
+        self.replay = replay
     }
 
     /// Text still arrives only into the last of a streaming reply's `count` segments.

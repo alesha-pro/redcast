@@ -31,6 +31,7 @@ open with an `## Invariants` section; read it before changing anything in that a
 [voice AI](features/voice-ai.md) ·
 [dictation history](features/dictation-history.md) ·
 [agents](features/agents.md) ·
+[agent harness](features/agent-harness.md) ·
 [web search](features/web-search.md) ·
 [Quick AI tools](features/quick-ai-tools.md) ·
 [notes and AI](features/notes-ai.md) ·

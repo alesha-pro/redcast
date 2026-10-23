@@ -363,7 +363,8 @@ extension AgentToolsTests {
             AIToolCall(id: "p1", name: AgentPlan.name, arguments: arguments), in: context)
         let consulted = await asked.last != nil
         expect(
-            result == AIToolResult(callID: "p1", content: "Plan updated.", isError: false) && !consulted,
+            result == AIToolResult(callID: "p1", content: "Plan updated: 1 of 2 steps done. Now: Fix.", isError: false)
+                && !consulted,
             "a plan is taken without asking anyone, even with nobody there")
         expect(
             shown.texts == ["Plan:\n✓ Look\n→ Fix\n"],

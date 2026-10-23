@@ -56,6 +56,25 @@ optional chord: see [background and scheduled agents](background-agents.md).
   Allow also covers runs nobody is watching. `agents.json` has no `SettingsFileKey` and is not in
   `SettingsBackupCoverage`, and it must stay out of both while it carries rules, so an import can
   never grant an agent a capability.
+- **A general assistant, told how much to do.** An agent chat on Tinycast's loop is sent the agent's
+  own prompt (`AgentCoordinator.loopInstructions`) in place of the shared one: no launcher
+  self-description (`AIPreamble`), the user's system prompt and the suggested-replies block where those
+  are on (the block only with someone watching), and the unattended briefing in a background run, which
+  says to take the most reasonable reading of anything unclear and name it. Its How to work section
+  calibrates the effort: answer a simple question directly, after one quick look at most; plan a task
+  of several steps briefly and work through it; look up what it does not know (`web_search`, then
+  `web_fetch`, where the Web family is on); check key facts against their sources and link every page
+  used; stop when the task is done, result first; and when it cannot finish, say what is done, what is
+  not and what to do next. The order keeps a provider's cache: header, method, global and project
+  instructions, skills, the agent's instructions, the user's standing text, then the agent's notes,
+  which change most. Agents on Codex or Claude keep the shared prompt with the agent's after it.
+- **The prompt stays put; the turn carries the time.** The agent's prompt names the user's time zone
+  (`Europe/Moscow (UTC+03:00)`) and no date, so a provider's prompt cache holds from one turn and one
+  day to the next; the shared prompt's quarter-hour clock is left out of an agent chat on Tinycast's
+  loop. `AgentTurnLead` puts the date and time to the minute, with the run's effort and round budget,
+  at the head of the turn's question as the loop sends it (`[Now: Friday 2026-10-23 22:45,
+  Europe/Moscow. Balanced effort: up to 25 rounds of tool calls.]`), never into the chat's own text,
+  and a sub-agent's task gets the same line with its own budget.
 - **The prompt states the rules the toolset runs.** Its Access line reads changes and commands from
   `AgentConsentPolicy.rule(for:in:of:)`, the call `AgentToolset` filters with: approval is promised
   only under ask, Always Allow says nobody sees the change or command first, and Never Allow, an
@@ -75,14 +94,41 @@ optional chord: see [background and scheduled agents](background-agents.md).
   is left out by name, so one added later is in until switched off.
 - **What tools return is material, and bounded three times.** The agent's prompt says so. A
   provider cuts its own output first, under 28 KB, so the cut can say where to continue;
-  `AgentTurnBudget` then holds each result to 32 KB, as upstream's loop does, and a turn's results to
-  512 KB, four times upstream's; and a turn with unlimited rounds stops at the 1 MB history wall.
+  `AgentTurnBudget` then holds each result to 32 KB, as upstream's loop does, and a run's results to
+  its effort's allowance (512 KB at Balanced, four times upstream's); the 1 MB history wall is the
+  third, and every one of them ends in a hand-over rather than a failure (below).
+- **A run has a budget, and always hands over.** An agent's Effort (`AgentEffort`, picked in its
+  editor; a schedule may pick its own for its runs) sets the run's `AgentRunBudget`: Quick 8 tool
+  rounds, 256 KB of tool output, 5 minutes in the background and no sub-agents; Balanced 25, 512 KB,
+  15 minutes, 2; Thorough 60, 1 MB, 45 minutes, 4. An agent that never picked one reads the least
+  effort that lasts as long as the background limit it kept from before Effort (`AgentEffort.lasting`:
+  15 minutes or less is Balanced, 30 or 60 Thorough), and a pick that matches it is stored as nothing.
+  An ACP agent has no Effort: its editor keeps "Stop a run after N minutes" (5–60) for its background
+  runs. Settings' Tool call rounds no longer reaches agents. After each round `AgentBudgetPolicy`
+  decides: past 80% of the rounds, the output or the time, the model is told once to wrap up; at a
+  limit (or the history wall) it is told the budget is spent, tools are off, and it must answer with
+  the result, what is done, what is not and why, and what to do next. Both notes are the user's turn
+  after the round's results, as pi and DeepSeek Harness send theirs, so a model that reads tool output
+  as material still takes them as the task's; on Claude they join the results' message. That last
+  round still lists the tools, so the cached prefix holds and Anthropic still sees the tools its
+  history used. A call it makes anyway is never run: it is answered "Not run…", and the round is asked
+  once more with `tool_choice: none` (not on Z.ai or MiniMax, which do not take it). A hand-over that
+  says nothing, still calls, or is refused ends with "This run reached its limit before the agent
+  summed up." and the plan. Only an unattended run has a clock (`AgentRunClock`): it hands over at its
+  effort's minutes, a call still running then is stopped and answered as not finished, a sub-agent
+  ends 90 seconds before its parent, and the watchdog stops the run two minutes later only if a model
+  round kept it from handing over. A run that fails after working says where its plan stood before
+  the failure shows, and a reply that failed or was stopped, which history leaves out, goes back
+  before the next question of that chat, so "go on" continues instead of starting over. Upstream's
+  loop and plain chats keep their round cap and its failure.
 - **A long turn elides, it does not stop.** Once this turn's results in the resent history pass
   160 KB, `AgentTurnBudget.elide` replaces the oldest ones before the newest round with a stub that
   names the tool and the size and says to call it again, until they fit in 96 KB. Call ids and the
   pairing of calls and results are never touched, a stub is never stubbed again, and the gap between
-  the two marks means the prefix changes rarely, so a provider's prompt cache keeps hitting. Elided
-  bytes stop counting toward the history wall.
+  the two marks means the prefix changes rarely, so a provider's prompt cache keeps hitting. The
+  reasoning each reply sends back counts toward both marks and the wall, and the oldest is shed with
+  the oldest results, in the form its route still accepts ([agent harness](agent-harness.md#a-run-budget-plan-hand-over)).
+  Elided bytes stop counting toward the history wall.
 - **Claude is asked to cache; no other route is.** Anthropic and OpenRouter cache a Claude prompt only
   when the request asks, while OpenAI, Gemini, DeepSeek and the rest cache a repeated prefix by
   themselves and are sent as they always were. `AIRequestBody.cacheMarked`, one fork block in upstream's
@@ -98,10 +144,57 @@ optional chord: see [background and scheduled agents](background-agents.md).
   bytes nobody reads back. A write costs a quarter more than plain input and a read a tenth, so a turn
   of two rounds or a reply within five minutes pays for it; a prompt under the model's minimum is simply
   not cached.
-- **A plan is shown, never kept.** `update_plan` belongs to no family and is the agent's own (risk
+- **Reasoning goes back to the model that wrote it.** Thinking models need their own reasoning
+  between tool calls, each provider in its own field and for its own span of the conversation, so
+  `AIStreamDecoder` keeps a reply's reasoning in the form it came (`reasoning_content`, `reasoning`,
+  `reasoning_details`, `<think>`, Anthropic `thinking` blocks with their signatures), stamped with the
+  route and model, and both loops send it back on the message with the reply's calls through
+  `AIReasoningReplayPolicy`: DeepSeek, Qwen, Kimi, MiniMax, GLM, OpenRouter, Anthropic and gateways,
+  Gemini's call signatures, nothing to OpenAI. The chat keeps the text for providers that read earlier
+  turns, and a connection can say Always or Never. The rules and their sources are in
+  [agent harness](agent-harness.md#interleaved-thinking).
+- **A reply the output cap cut runs none of its calls.** Its arguments may stop mid-JSON and still
+  parse, so a long report through `write_file` would be written cut. The decoder says `.outputLimit`
+  on OpenAI's `finish_reason: length` and Anthropic's `stop_reason: max_tokens`, and both loops answer
+  each of that reply's calls with pi's words (`AIToolResult.cutOff`: "was not executed… Re-issue the
+  tool call with complete arguments.") instead of running it. An agent's and its sub-agents' rounds
+  ask for 32,768 output tokens where a route needs a number (`AgentTurnBudget.outputTokens`,
+  `AgentOutputCap`, `AIRequest.outputCap`): `max_tokens` on Anthropic from the first round; an
+  OpenAI-shaped route keeps its own default (DeepSeek's 64K with thinking, a local server's whole
+  window), and only once a reply is cut there is it sent `max_tokens`, or `max_completion_tokens` on
+  OpenAI's own API. A cut reply with no calls is never silent: one that said nothing is asked again
+  once with the cap, one cut mid-answer keeps its text and says so. Plain chats send what they always
+  sent.
+- **A provider's bad minute is waited out, inside the run.** `HTTPAIProvider` throws
+  `AIProviderRecoverableError` for what may pass on its own: 408, 409, 425, 429 and 5xx, a dropped or
+  unreachable network, a stream that closed early, OpenRouter's mid-stream 429 or 5xx (or, with no
+  code, a busy provider in its own words) before any answer, and Anthropic's `overloaded_error`,
+  `rate_limit_error` and `api_error`. It reads exactly as the failure it stands for, so a chat that
+  does not retry shows the same text. A spent quota or balance (`insufficient_quota`, billing,
+  credits) is a plain failure, since no wait fixes it. `AgentRetryPolicy` waits 2, 4, 8 and 16 s, a
+  tenth either way, or a `Retry-After` up to a minute (a longer one stands as a failure), and gives up
+  after four retries. A round is asked again only while it has shown no text, since an answer on
+  screen would show twice; what a failed attempt reported it spent is billed once and the retry on
+  top of it. A row, "Retrying after a provider error (1 of 4)", stays open while the round waits,
+  and Stop ends the wait at once. A context overflow (pi's patterns, or 413) is not retried as is: each
+  one steps down a ladder, stubbing every result and shedding every reasoning of the turn before the
+  newest round, else dropping the older half of the history from a question on, else, once the run
+  has worked, shedding the newest round too and asking for a hand-over; only with nothing left does
+  it stand. A route that refuses the round's output cap, by name (`max_tokens`…) or for room as vLLM,
+  SGLang and OpenRouter word it, is asked again without it, and the rest of the run goes without one.
+  Plain chats and upstream's loop never retry.
+- **A cache hit is counted apart from input on every route.** OpenAI's and OpenRouter's
+  `prompt_tokens_details.cached_tokens` and DeepSeek's `prompt_cache_hit_tokens` leave
+  `AIUsage.inputTokens` for `cachedInputTokens`, as Anthropic's `cache_read_input_tokens` always did;
+  an Anthropic cache write is new input billed above it, so it counts as input. Prompt = input +
+  cached on every route, and the usage card's "cached" share is the hit rate.
+- **One plan for the whole run.** `update_plan` belongs to no family and is the agent's own (risk
   own), so every agent on Tinycast's loop has it and it never asks. The model sends the whole checklist
   each time; `AgentPlanTools` shows it as a reasoning fold with the same lines `ACPEventMapper` draws for
-  an ACP agent's plan (`AgentPlan.checklist`), and stores nothing.
+  an ACP agent's plan (`AgentPlan.checklist`) and answers with where it stands ("Plan updated: 1 of 3
+  steps done. Now: …"). The loop keeps the latest one for the rest of the run, nowhere on disk: a plan
+  untouched for six rounds is read back in one line on the round's newest result, the wrap-up and the
+  hand-over carry it, and a hand-over or a failure that leaves no words of the model's shows it.
 - **A sub-agent only reads, on its parent's model, inside its parent's turn.** Sub-agents
   (`AgentToolKind.delegate`, off until ticked) offers `delegate`, which runs one nested
   `AgentLoopProvider` per call over the turn's own route. The child is the agent made read-only with
@@ -109,13 +202,18 @@ optional chord: see [background and scheduled agents](background-agents.md).
   only `AgentToolRisk.reads` (read, network, personal: no change, command, `memory_write` or plan),
   no MCP, and runs unattended, so anything whose rule would ask is refused and `screen_context`,
   which needs a turn the user sent, is not offered. It gets the agent's context prompt for that
-  read-only profile and a sub-task briefing, never the parent's conversation. It stops after 12
-  rounds; its answer is the text after its last call, cut to 16 KB. What it spent comes back as
+  read-only profile and a sub-task briefing, never the parent's conversation. Its budget is 12 rounds
+  and 256 KB (`AgentRunBudget.subAgent`), and in a background run it ends 90 seconds before its
+  parent; at the limit it is asked once more, tools off, for what it found, so nothing it learned is
+  lost; its answer is the text after its last call, cut to 16 KB. What it spent comes back as
   `AgentToolSignal.spent` after each of its rounds and raises the reply's cost at once, so a capped
   run hears it before the parent's next round and a turn cut short still counts it; the tokens stay
   the parent's last round's. Its own calls never show; the parent's row reads "delegate: <name>"
-  through `AgentToolProvider.title(for:)`. One runs at a time, and Stop cancels the parent's task
-  group, which ends the child's stream and its task.
+  through `AgentToolProvider.title(for:)`. A round's sub-agents run side by side, as many as the
+  batch's width, and a run starts no more than its effort allows (`AgentSubAgentAllowance`: 2 at
+  Balanced, 4 at Thorough, and Quick offers no `delegate`); one past that is refused and the model is
+  told to do the rest itself. Stop cancels the parent's task group, which ends every child's stream
+  and task.
 - **A newer family never breaks the previous build, and survives its save.** `AgentProfile` writes
   `tools` with only the families the build before Screen and Sub-agents could decode, and those two
   under `addedTools`, a key that build ignores; reading merges both and drops a family name it does
@@ -351,9 +449,13 @@ off by default per agent, bounded by `AgentPathPolicy` and asked through the age
 | `Model/AgentTool.swift` | `AgentToolProvider`, `AgentToolSpec`, `AgentToolRisk`, `AgentTurn`, `AgentRunMode`, the call's context |
 | `Model/AgentConsentPolicy.swift` | Rules (ask, always, never), an agent's own (`AgentConsentRules`), `AgentGrant`, the verdict per rule and mode |
 | `Model/AgentToolset.swift` | One turn's offered tools in a stable order, and where each call goes |
-| `Model/AgentTurnBudget.swift` | The per-result, per-turn and history limits; `AgentBatchPolicy` |
+| `Model/AgentTurnBudget.swift` | The per-result, per-turn and history limits, elision, an overflow's shedding and the thinking an edit voids; `AgentBatchPolicy` |
+| `Model/AgentRetryPolicy.swift` | Which failures a round tries again, the waits, a refused output cap |
 | `Model/AgentCompaction.swift` | Cross-turn notes: what was dropped, what they cover, when they grow, the request that makes them, `AgentChatSummary` |
-| `Model/AgentPlan.swift` | `update_plan`'s definition and arguments, and the checklist ACP plans share |
+| `Model/AgentPlan.swift` | `update_plan`'s definition, arguments and receipt, and the checklist ACP plans share |
+| `Model/AgentEffort.swift` | Quick, Balanced and Thorough, and the `AgentRunBudget` each sets |
+| `Model/AgentBudgetPolicy.swift` | When a run wraps up and hands over, the words the model reads, the plan's recital |
+| `Model/AgentTurnLead.swift` | What leads a turn's question: its facts, and a reply the last turn could not finish |
 | `Service/AgentContextLoader.swift` | Reads `AGENTS.md` (or a lone `CLAUDE.md`), `~/.agents/AGENTS.md`, skills, notes |
 | `Service/AgentToolExecutor.swift` | `AgentBuiltInTools`, the first provider; the executor runs each call: ripgrep search, terminal with timeout, web fetch, HTML to text |
 | `Service/AgentLoopProvider.swift` | The agent chats' tool loop: cross-turn notes, rounds, batches, budget, Stop |
@@ -418,8 +520,8 @@ rule and shows a search row between its own row's opening and closing.
 
 Neighbouring calls that may share a round run together, four at most (`AgentLoopProvider.width`),
 which bounds memory to four 2 MB fetch buffers and processes to four ripgreps: reads, `web_fetch`,
-`web_search` and `load_skill` (`AgentToolSpec.concurrent`). Every row of a batch opens first, each
-closes as its call ends, and the model reads the results in the order it asked. A call whose rule
+`web_search`, `load_skill` and `delegate` (`AgentToolSpec.concurrent`). Every row of a batch opens
+first, each closes as its call ends, and the model reads the results in the order it asked. A call whose rule
 can ask, an MCP call (a second dialog would be refused while the first is up), `memory_write` (two
 appends would race on `memory.md`) and any change or command run alone, in their place. Two
 concurrent searches' rows complete together, since `AIChatState` closes every open search row on
@@ -459,7 +561,13 @@ this way, as one provider. Nothing else changes: no router edit, no upstream lin
 - Ask it to run `ls ..`: the command dialog appears; ask it to read `../something`: refused.
 - Ask a question a skill covers: the transcript shows `load_skill` before the work.
 - Ask for a task of several steps: a reasoning fold opens with `Plan:` and ✓, → and · lines, and a later
-  call shows the list again with steps ticked.
+  call shows the list again with steps ticked. Ask what 2 + 2 is: one reply, no plan, no tool row.
+- Set an agent to Quick and give it a long research task: after a handful of rounds the reply sums up
+  what it found, what is left and what to do next, with no "Stopped after" error. Run it in the
+  background: after five minutes the run ends done, with that hand-over. An agent on its own CLI shows
+  "Stop a run after N minutes" instead of Effort, and its schedules offer no Effort.
+- On a local vLLM or LM Studio model with a small window, an agent task runs: no request fails for
+  its output cap. On DeepSeek with thinking, a long answer is not cut at 32K.
 - Tick Sub-agents and ask the agent to have a sub-agent find where something is defined: one row reads
   "delegate: <name>", none of the sub-agent's own calls show, and the reply's cost is above what its own
   rounds cost. Ask for a sub-agent to change a file: it reports that it cannot. Stop while the sub-agent
@@ -475,7 +583,7 @@ this way, as one provider. Nothing else changes: no router edit, no upstream lin
   asking it to fetch a page gets no tool row. Set Web to Ask Each Chat: a fetch raises "wants to use
   web_fetch". Reopen the editor: the choices stuck.
 - With the app in German, French or Russian, open an agent's editor with a mouse attached (so the
-  scroller takes its width): Access and In the background show every choice in full inside the
+  scroller takes its width): Access, Effort and In the background show every choice in full inside the
   panel, each segment as wide as its own label, and switching one does not resize the control.
 - Ask an agent with Web on about today's news: the transcript shows its `web_search` row and a
   "Searched web" row, then the answer cites sources. With Web off it says it cannot look things up.

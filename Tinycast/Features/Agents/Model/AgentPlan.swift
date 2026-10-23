@@ -34,8 +34,9 @@ enum AgentPlan {
         return AITool(
             name: name,
             description:
-                "Keep a checklist for a task of several steps, shown to the user as you go. Send the "
-                + "whole list each time, with at most one step in_progress.",
+                "Keep a checklist for a task of several steps (never for a simple question), shown to the "
+                + "user as you go and kept for the rest of the run. Send the whole list each time, with at "
+                + "most one step in_progress, and mark steps completed as you finish them.",
             parameters: .object([
                 "type": .string("object"),
                 "properties": .object(["plan": .object(["type": .string("array"), "items": item])]),
@@ -58,6 +59,13 @@ enum AgentPlan {
             return Item(step: String(line.prefix(maxStepLength)), status: status)
         }
         return items.isEmpty ? nil : items
+    }
+
+    /// What the model hears back: where the plan stands, not the list it just sent.
+    static func receipt(_ items: [Item]) -> String {
+        let done = items.count { $0.status == .completed }
+        let now = items.first { $0.status == .inProgress }.map { " Now: \($0.step)." } ?? ""
+        return "Plan updated: \(done) of \(items.count) steps done." + now
     }
 
     static func checklist(_ items: [Item]) -> String {

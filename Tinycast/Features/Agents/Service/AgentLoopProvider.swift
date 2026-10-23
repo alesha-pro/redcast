@@ -1,25 +1,67 @@
 import Foundation
 import Synchronization
 
-/// An agent's turn: re-streams it until the model stops calling tools or a cap ends it.
+/// An agent's run: re-streams the turn until the model stops, or hands over at its budget.
 struct AgentLoopProvider: AIProvider {
     /// Calls of one round that may run at once, so at most four fetches or four ripgreps.
     static let width = 4
 
     private let base: any AIProvider
     private let toolset: AgentToolset
-    private let maxRounds: Int?
+    private let budget: AgentRunBudget
     /// An agent chat's; nil sends the turn as it was built, as upstream's loop does.
     private let compaction: AgentCompaction.Source?
+    /// Each round's own output cap, so a long `write_file` is not cut at a route's short default.
+    private let outputCap: Int?
+    private let retry: AgentRetryPolicy
+    /// Whose rows the loop's own notices are, as a retry's: the agent's name.
+    private let origin: String
+    private let lead: AgentTurnLead
+    /// An unattended run's clock; a chat has someone to press Stop.
+    private let clock: AgentRunClock?
+    /// A sub-agent hands over to its parent, so its last words are the model's, never localized.
+    private let answersAnAgent: Bool
 
     init(
-        base: any AIProvider, toolset: AgentToolset, maxRounds: Int?,
-        compaction: AgentCompaction.Source? = nil
+        base: any AIProvider, toolset: AgentToolset, budget: AgentRunBudget,
+        compaction: AgentCompaction.Source? = nil, outputCap: Int? = nil,
+        retry: AgentRetryPolicy = .standard, origin: String = "", lead: AgentTurnLead = AgentTurnLead(),
+        clock: AgentRunClock? = nil, answersAnAgent: Bool = false
     ) {
         self.base = base
         self.toolset = toolset
-        self.maxRounds = maxRounds
+        self.budget = budget
         self.compaction = compaction
+        self.outputCap = outputCap
+        self.retry = retry
+        self.origin = origin
+        self.lead = lead
+        self.clock = clock
+        self.answersAnAgent = answersAnAgent
+    }
+
+    /// One reply of the model: its text, the calls it made and what came with them.
+    private struct Round {
+        var text = ""
+        var calls: [AIToolCall] = []
+        var cost: Double?
+        var reasoning: AIReasoningReplay?
+        var cutOff = false
+        /// The route refused the round's output cap, so the rest of the turn goes without one.
+        var dropsCap = false
+
+        var said: Bool { !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+    }
+
+    /// What the run has kept between rounds: its plan, and how near its end it is.
+    private struct Progress {
+        var plan: [AgentPlan.Item]?
+        var planRound = 0
+        var warned = false
+        var final = false
+        /// The hand-over round called anyway, so the next one is asked to call nothing.
+        var forced = false
+        var worked = false
     }
 
     func stream(_ request: AIRequest) -> AIProviderStream {
@@ -38,54 +80,218 @@ struct AgentLoopProvider: AIProvider {
         }
     }
 
+    /// A run that fails after real work says where its plan stood before the failure shows.
     private func run(
         _ request: AIRequest, into continuation: AIProviderStream.Continuation
     ) async throws {
+        var progress = Progress()
+        do {
+            try await work(request, progress: &progress, into: continuation)
+        } catch is CancellationError {
+            throw CancellationError()
+        } catch {
+            if progress.worked, !answersAnAgent, let plan = progress.plan {
+                continuation.yield(.text("\n\n" + Self.stopped + "\n\n" + AgentPlan.checklist(plan)))
+            }
+            throw error
+        }
+    }
+
+    private func work(
+        _ request: AIRequest, progress: inout Progress, into continuation: AIProviderStream.Continuation
+    ) async throws {
         var (messages, billed) = try await compacted(request, into: continuation)
+        messages = lead.led(messages)
         let spend = Spend()
         // Shown at once, so a Stop or a failure in the first round still leaves the notes billed.
         if let billed { continuation.yield(.usage(spend.reported(AIUsage(costUSD: billed)))) }
-        let turnStart = messages.count
-        var budget = AgentTurnBudget()
+        var turnStart = messages.count
+        var lastRound = turnStart
+        var turn = AgentTurnBudget(allowance: budget.resultBytes)
         var rounds = 0
+        var cap = outputCap.map(AgentOutputCap.init(tokens:))
         let signal: @Sendable (AgentToolSignal) -> Void = { signal in
             if case .spent(let cost) = signal { continuation.yield(.usage(spend.add(cost))) }
             if let event = signal.event { continuation.yield(event) }
         }
-        while maxRounds.map({ rounds < $0 }) ?? (budget.carried < AgentTurnBudget.historyBytes) {
+        while true {
             // A call that outlived Stop must not bill another round.
             try Task.checkCancellation()
             rounds += 1
-            let round = try await streamRound(
-                request.continuing(with: messages, tools: toolset.tools), billedBefore: billed,
-                spend: spend, into: continuation)
+            let round: Round
+            do {
+                let asked = request.continuing(with: messages, tools: toolset.tools)
+                    .limited(cap.map(\.request) ?? request.outputCap, forbidsCalls: progress.forced)
+                round = try await streamRound(
+                    asked, number: rounds, billedBefore: billed, spend: spend, into: continuation)
+            } catch where AgentRetryPolicy.isOverflow(error) {
+                guard relieve(&messages, turnStart: &turnStart, lastRound: &lastRound, turn: &turn, &progress)
+                else { throw error }
+                rounds -= 1
+                continue
+            } catch where progress.forced && !(error is CancellationError) {
+                // A route that will not forbid calls still lets the run end with what it has.
+                continuation.yield(.text(handOver(progress.plan)))
+                continuation.yield(.finished)
+                return
+            }
+            if round.dropsCap { cap?.refuse() }
             if let cost = round.cost { billed = (billed ?? 0) + cost }
-            guard !round.calls.isEmpty else {
+            var raised = false
+            if round.cutOff { raised = cap?.raise() ?? false }
+            // A reply the limit cut before it said a word is asked again, once, with room to answer.
+            if raised, round.calls.isEmpty, !round.said {
+                rounds -= 1
+                continue
+            }
+            guard !round.calls.isEmpty, !progress.final else {
+                if progress.final, !round.calls.isEmpty, !progress.forced {
+                    progress.forced = true
+                    refuseCalls(of: round, in: &messages, into: continuation)
+                    continue
+                }
+                if let closing = closing(round, progress) { continuation.yield(.text(closing)) }
                 continuation.yield(.finished)
                 return
             }
             let roundStart = messages.count
-            messages.append(AIMessage(role: .assistant, text: round.text, toolCalls: round.calls))
-            budget.carry(round.text, calls: round.calls)
+            lastRound = roundStart
+            messages.append(
+                AIMessage(
+                    role: .assistant, text: round.text, toolCalls: round.calls, reasoning: round.reasoning))
+            turn.carry(round.text, calls: round.calls, reasoning: round.reasoning)
             let concurrent = round.calls.map { toolset.isConcurrent($0.name) }
             for batch in AgentBatchPolicy.batches(concurrent, width: Self.width) {
                 try Task.checkCancellation()
                 let calls = Array(round.calls[batch])
-                for call in calls {
-                    let tool = toolset.tools.first { $0.name == call.name }
-                    let title = toolset.title(for: call) ?? tool?.title ?? call.name
-                    continuation.yield(.toolCall(id: call.id, origin: tool?.origin ?? "", title: title))
-                }
-                let results = await run(calls, signal: signal, budget: &budget, into: continuation)
+                for call in calls { continuation.yield(row(for: call)) }
+                let results =
+                    round.cutOff
+                    ? refused(calls, budget: &turn, into: continuation)
+                    : await run(calls, signal: signal, budget: &turn, into: continuation)
                 messages += results.map { AIMessage(role: .tool, text: "", toolResult: $0) }
                 if let spent = spend.take() { billed = (billed ?? 0) + spent }
+                track(calls, results, round: rounds, in: &progress)
             }
-            budget.release(
-                AgentTurnBudget.elide(&messages, turnStart: turnStart, keepFrom: roundStart))
+            progress.worked = true
+            turn.release(AgentTurnBudget.elide(&messages, turnStart: turnStart, keepFrom: roundStart))
+            let usage = AgentBudgetPolicy.Usage(
+                rounds: rounds, resultBytes: turn.spent, carried: turn.carried,
+                elapsed: clock?.elapsed ?? .zero)
+            let step = AgentBudgetPolicy.step(
+                after: usage, of: budget, timeLimit: clock?.limit, warned: progress.warned)
+            // A wrap-up or a hand-over is the user's turn after the results, as pi and dsh send theirs.
+            switch step {
+            case .handOver(let spent):
+                progress.final = true
+                messages.append(
+                    AIMessage(role: .user, text: AgentBudgetPolicy.handOver(spent, plan: progress.plan)))
+            case .wrapUp(let used):
+                progress.warned = true
+                progress.planRound = rounds
+                messages.append(
+                    AIMessage(role: .user, text: AgentBudgetPolicy.wrapUp(used, plan: progress.plan)))
+            case .go:
+                guard progress.plan != nil, rounds - progress.planRound >= AgentBudgetPolicy.reciteEvery
+                else { break }
+                progress.planRound = rounds
+                Self.note(AgentBudgetPolicy.recital(progress.plan), on: &messages)
+            }
         }
-        throw AIProviderError.responseFailed(
-            String(localized: "Stopped after \(rounds) rounds of tool calls."))
     }
+
+    /// dsh's rule, a step per overflow: older results and reasoning, older history, then a hand-over.
+    private func relieve(
+        _ messages: inout [AIMessage], turnStart: inout Int, lastRound: inout Int,
+        turn: inout AgentTurnBudget, _ progress: inout Progress
+    ) -> Bool {
+        let older = AgentTurnBudget.elide(
+            &messages, turnStart: turnStart, keepFrom: lastRound, above: 0, to: 0)
+        turn.release(older)
+        guard older == 0 else { return true }
+        if AgentTurnBudget.dropHistory(&messages, turnStart: &turnStart, keepFrom: &lastRound) { return true }
+        guard progress.worked, !progress.final else { return false }
+        turn.release(
+            AgentTurnBudget.elide(&messages, turnStart: turnStart, keepFrom: messages.count, above: 0, to: 0))
+        progress.final = true
+        let note = AgentBudgetPolicy.handOver(AgentBudgetPolicy.windowFull, plan: progress.plan)
+        messages.append(AIMessage(role: .user, text: note))
+        return true
+    }
+
+    /// The hand-over round's calls run nothing: each is answered so, and the round is asked again.
+    private func refuseCalls(
+        of round: Round, in messages: inout [AIMessage], into continuation: AIProviderStream.Continuation
+    ) {
+        messages.append(
+            AIMessage(role: .assistant, text: round.text, toolCalls: round.calls, reasoning: round.reasoning))
+        for call in round.calls {
+            continuation.yield(row(for: call))
+            messages.append(
+                AIMessage(role: .tool, text: "", toolResult: .failure(call.id, AgentBudgetPolicy.callsOff)))
+            continuation.yield(.toolResult(id: call.id, isError: true))
+        }
+    }
+
+    private func row(for call: AIToolCall) -> AIStreamEvent {
+        let tool = toolset.tools.first { $0.name == call.name }
+        let title = toolset.title(for: call) ?? tool?.title ?? call.name
+        return .toolCall(id: call.id, origin: tool?.origin ?? "", title: title)
+    }
+
+    /// What the reply still needs after its last round: a hand-over it owed, or where the limit cut it.
+    private func closing(_ round: Round, _ progress: Progress) -> String? {
+        let owed = progress.final && (!round.said || !round.calls.isEmpty)
+        guard owed || round.cutOff && round.calls.isEmpty else { return nil }
+        let line = owed ? handOver(progress.plan) : round.said ? cutShort : cutSilent
+        return round.said ? "\n\n" + line : line
+    }
+
+    /// A plan the model sent and the toolset took is the run's plan from now on.
+    private func track(
+        _ calls: [AIToolCall], _ results: [AIToolResult], round: Int, in progress: inout Progress
+    ) {
+        for (call, result) in zip(calls, results) where call.name == AgentPlan.name && !result.isError {
+            guard let items = AgentPlan.items(in: call.arguments) else { continue }
+            progress.plan = items
+            progress.planRound = round
+        }
+    }
+
+    /// The model's notes ride the round's last result, added before it is ever sent: no prefix moves.
+    private static func note(_ text: String, on messages: inout [AIMessage]) {
+        guard !text.isEmpty, let last = messages.indices.last, let result = messages[last].toolResult
+        else { return }
+        let noted = AIToolResult(
+            callID: result.callID, content: result.content + "\n\n" + text, isError: result.isError)
+        messages[last] = AIMessage(role: .tool, text: messages[last].text, toolResult: noted)
+    }
+
+    /// What a hand-over round that said nothing, or still called, leaves in the reply.
+    private func handOver(_ plan: [AgentPlan.Item]?) -> String {
+        let checklist = plan.map { "\n\n" + AgentPlan.checklist($0) } ?? ""
+        guard !answersAnAgent else {
+            return "The sub-task's budget ran out before it wrote an answer." + checklist
+        }
+        return String(localized: "This run reached its limit before the agent summed up.") + checklist
+    }
+
+    private static let stopped = String(localized: "The run stopped before the task was done.")
+
+    private var cutShort: String {
+        answersAnAgent
+            ? "[The answer was cut off at the output limit.]"
+            : String(localized: "The reply was cut off at the model's output limit.")
+    }
+
+    private var cutSilent: String {
+        answersAnAgent
+            ? "The sub-task reached its output limit before it answered."
+            : String(localized: "The model reached its output limit before it answered.")
+    }
+
+    /// What a call the run's clock stopped is answered, so the model knows it never finished.
+    private static let unfinished = "Not finished: the run's time ran out while this call was running."
 
     /// The turn with notes on what the budget dropped leading it, and what making them cost.
     private func compacted(
@@ -135,47 +341,123 @@ struct AgentLoopProvider: AIProvider {
         return (text, cost)
     }
 
+    /// A reply the output cap cut may have cut its calls' arguments too: none of them runs.
+    private func refused(
+        _ calls: [AIToolCall], budget: inout AgentTurnBudget,
+        into continuation: AIProviderStream.Continuation
+    ) -> [AIToolResult] {
+        calls.map { call in
+            let result = budget.admit(.cutOff(call))
+            continuation.yield(.toolResult(id: call.id, isError: true))
+            return result
+        }
+    }
+
     /// A batch's admitted results in call order; each row closes as its own call ends.
     private func run(
         _ calls: [AIToolCall], signal: @escaping @Sendable (AgentToolSignal) -> Void,
         budget: inout AgentTurnBudget, into continuation: AIProviderStream.Continuation
     ) async -> [AIToolResult] {
         let toolset = toolset
-        return await withTaskGroup(of: (Int, AIToolResult).self) { group in
+        let deadline = clock?.deadline
+        return await withTaskGroup(of: (Int, AIToolResult, Bool)?.self) { group in
             for (index, call) in calls.enumerated() {
-                group.addTask { (index, await toolset.run(call, signal: signal)) }
+                group.addTask {
+                    let result = await toolset.run(call, signal: signal)
+                    return (index, result, Task.isCancelled)
+                }
+            }
+            // The run's clock stops calls still running at its end, so the hand-over still comes.
+            if let deadline {
+                group.addTask {
+                    try? await Task.sleep(until: deadline, clock: .continuous)
+                    return nil
+                }
             }
             var results = [AIToolResult?](repeating: nil, count: calls.count)
-            for await (index, raw) in group {
-                let result = budget.admit(raw)
+            var left = calls.count
+            var late = false
+            while left > 0, let next = await group.next() {
+                guard case let (index, raw, stopped)? = next else {
+                    late = !Task.isCancelled
+                    group.cancelAll()
+                    continue
+                }
+                let result = budget.admit(stopped && late ? .failure(raw.callID, Self.unfinished) : raw)
                 continuation.yield(.toolResult(id: calls[index].id, isError: result.isError))
                 results[index] = result
+                left -= 1
             }
+            group.cancelAll()
             return results.compactMap { $0 }
         }
     }
 
-    /// One pass over the base route: text flows straight to the transcript, calls are collected.
+    /// A round, asked again while it fails before answering and the failure may pass.
     private func streamRound(
-        _ request: AIRequest, billedBefore: Double?, spend: Spend,
+        _ request: AIRequest, number: Int, billedBefore: Double?, spend: Spend,
         into continuation: AIProviderStream.Continuation
-    ) async throws -> (text: String, calls: [AIToolCall], cost: Double?) {
-        var text = ""
-        var calls: [AIToolCall] = []
-        var cost: Double?
+    ) async throws -> Round {
+        var request = request
+        var failedCost: Double?
+        var dropsCap = false
+        var retries = 0
+        while true {
+            var round = Round()
+            do {
+                try await stream(request, billedBefore: sum(billedBefore, failedCost), spend: spend,
+                    into: &round, continuation)
+                round.cost = sum(failedCost, round.cost)
+                round.dropsCap = dropsCap
+                return round
+            } catch is CancellationError {
+                throw CancellationError()
+            } catch {
+                // What a failed attempt reported it spent is spent; the next is billed on top of it.
+                failedCost = sum(failedCost, round.cost)
+                // An answer already on screen would show twice, so a failure after one stands.
+                guard round.text.isEmpty else { throw error }
+                if request.outputCap != nil, AgentRetryPolicy.refusesOutputCap(error) {
+                    request = request.limited(nil, forbidsCalls: request.forbidsCalls)
+                    dropsCap = true
+                    continue
+                }
+                retries += 1
+                guard let wait = retry.delay(before: retries, after: error, random: .random(in: 0...1))
+                else { throw error }
+                let id = "tinycast-retry-\(number)-\(retries)"
+                continuation.yield(
+                    .toolCall(
+                        id: id, origin: origin, title: AgentRetryPolicy.title(retries, of: retry.attempts)))
+                try await Task.sleep(for: wait)
+                continuation.yield(.toolResult(id: id, isError: false))
+            }
+        }
+    }
+
+    /// One pass over the base route: text flows straight to the transcript, calls are collected.
+    private func stream(
+        _ request: AIRequest, billedBefore: Double?, spend: Spend, into round: inout Round,
+        _ continuation: AIProviderStream.Continuation
+    ) async throws {
         for try await event in base.stream(request) {
             try Task.checkCancellation()
             switch event {
             case .text(let delta):
-                text += delta
+                round.text += delta
                 continuation.yield(event)
             case .usage(var usage):
-                cost = usage.costUSD ?? cost
+                round.cost = usage.costUSD ?? round.cost
                 // A turn is billed for every round; the reply's cost is the turn's, not its last.
                 if let billedBefore { usage.costUSD = billedBefore + (usage.costUSD ?? 0) }
                 continuation.yield(.usage(spend.reported(usage)))
             case .toolCallRequested(let call):
-                calls.append(call)
+                round.calls.append(call)
+            case .reasoningReplay(let replay):
+                round.reasoning = replay
+                continuation.yield(event)
+            case .outputLimit:
+                round.cutOff = true
             // `.finished` is the loop's to send, once the model has stopped asking for tools.
             case .finished:
                 break
@@ -183,7 +465,11 @@ struct AgentLoopProvider: AIProvider {
                 continuation.yield(event)
             }
         }
-        return (text, calls, cost)
+    }
+
+    private func sum(_ lhs: Double?, _ rhs: Double?) -> Double? {
+        guard lhs != nil || rhs != nil else { return nil }
+        return (lhs ?? 0) + (rhs ?? 0)
     }
 }
 

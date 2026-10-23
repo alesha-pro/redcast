@@ -145,10 +145,11 @@ struct AISettingsView: View {
                 ForEach(AIToolRounds.allCases) { Text($0.title).tag($0) }
             } label: {
                 SettingsRowTitle(.aiChat, "Tool call rounds")
+                // Fork: an agent's run is held to its own Effort instead, so the caption says so.
                 Text(
                     """
                     A reply stops after this many; Unlimited runs until Stop. API connections, Codex \
-                    and Claude.
+                    and Claude; an agent follows its own Effort.
                     """)
             }
         } header: {

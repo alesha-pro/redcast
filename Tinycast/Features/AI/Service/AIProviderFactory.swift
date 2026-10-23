@@ -89,7 +89,8 @@ enum AIProviderFactory {
                     provider: connection.provider, baseURL: baseURL, model: model, effort: effort,
                     disablesThinking: effort == AIConnection.ReasoningOptions.noEffort
                         && connection.takesThinkingField,
-                    headers: headers),
+                    // Fork: the connection's say on sending a reply's reasoning back.
+                    headers: headers, reasoningReplay: connection.reasoningReplay),
                 apiKey: key)
         }
     }

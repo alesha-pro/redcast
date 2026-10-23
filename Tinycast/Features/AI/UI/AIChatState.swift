@@ -276,7 +276,13 @@ final class AIChatState {
             else { return }
             message.toolUses[index].content = content
             session.replaceLast(with: message)
-        case .toolCallRequested:
+        // Fork: kept for the same model's later turns; never shown.
+        case .reasoningReplay(let replay):
+            guard var message = session.messages.last, message.role == .assistant else { return }
+            message.replay = replay.stored ?? message.replay
+            session.replaceLast(with: message)
+        // Fork: a loop's to keep, never the transcript's.
+        case .toolCallRequested, .outputLimit:
             break
         case .usage(let usage):
             guard var message = session.messages.last, message.role == .assistant else { return }

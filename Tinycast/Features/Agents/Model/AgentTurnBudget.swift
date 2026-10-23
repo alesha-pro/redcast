@@ -10,12 +10,22 @@ struct AgentTurnBudget: Sendable {
     /// Past this a turn's results are elided down to `elideTo`; the gap keeps the prefix cacheable.
     static let elideAbove = 160 * 1_024
     static let elideTo = 96 * 1_024
+    /// Each round's output cap: a report sent through `write_file` must fit in one reply, thinking too.
+    static let outputTokens = 32_768
 
+    /// What the run's results may add in all, from its effort.
+    let allowance: Int
     private(set) var spent = 0
     private(set) var carried = 0
 
-    mutating func carry(_ text: String, calls: [AIToolCall]) {
+    init(allowance: Int = turnResultBytes) {
+        self.allowance = allowance
+    }
+
+    /// A reply's text, calls and the reasoning that goes back with them: each rides every later round.
+    mutating func carry(_ text: String, calls: [AIToolCall], reasoning: AIReasoningReplay? = nil) {
         carried += text.utf8.count + calls.reduce(0) { $0 + $1.arguments.utf8.count }
+        carried += reasoning?.bytes ?? 0
     }
 
     /// Elided bytes no longer travel with every round, so they stop counting toward the wall.
@@ -31,39 +41,83 @@ struct AgentTurnBudget: Sendable {
     }
 
     private mutating func bounded(_ result: AIToolResult) -> AIToolResult {
-        guard spent < Self.turnResultBytes else {
+        guard spent < allowance else {
             return .failure(result.callID, "This turn's tool output budget is used up.")
         }
-        let allowance = min(Self.resultBytes, Self.turnResultBytes - spent)
+        let room = min(Self.resultBytes, allowance - spent)
         let size = result.content.utf8.count
-        spent += min(size, allowance)
-        guard size > allowance else { return result }
-        let content = Self.prefix(result.content, bytes: allowance) + "\n…truncated."
+        spent += min(size, room)
+        guard size > room else { return result }
+        let content = Self.prefix(result.content, bytes: room) + "\n…truncated."
         return AIToolResult(callID: result.callID, content: content, isError: result.isError)
     }
 
-    /// Stubs this turn's oldest results before `keepFrom`; returns the bytes it saved.
-    static func elide(_ messages: inout [AIMessage], turnStart: Int, keepFrom: Int) -> Int {
-        let results = messages.indices.dropFirst(turnStart).filter { messages[$0].toolResult != nil }
-        var total = results.reduce(0) { $0 + (messages[$1].toolResult?.content.utf8.count ?? 0) }
-        guard total > elideAbove else { return 0 }
+    /// Stubs older results and sheds older reasoning of the turn before `keepFrom`; returns the saving.
+    static func elide(
+        _ messages: inout [AIMessage], turnStart: Int, keepFrom: Int, above: Int = elideAbove,
+        to elideTo: Int = elideTo
+    ) -> Int {
+        let held = messages.indices.dropFirst(turnStart).filter { size(of: messages[$0]) > 0 }
+        var total = held.reduce(0) { $0 + size(of: messages[$1]) }
+        guard total > above else { return 0 }
         let names = Dictionary(
             messages[turnStart...].flatMap(\.toolCalls).map { ($0.id, $0.name) }, uniquingKeysWith: { $1 })
         var saved = 0
-        for index in results where index < keepFrom && total >= elideTo {
-            guard let result = messages[index].toolResult else { continue }
-            let name = names[result.callID] ?? "tool"
-            let size = result.content.utf8.count
-            let replacement = stub(name, bytes: size)
-            guard replacement.utf8.count < size, !result.content.hasPrefix(stub(name, bytes: nil)) else {
-                continue
+        var edited: Int?
+        for index in held where index < keepFrom && total >= elideTo {
+            let before = size(of: messages[index])
+            if let result = messages[index].toolResult {
+                let name = names[result.callID] ?? "tool"
+                let replacement = stub(name, bytes: before)
+                guard replacement.utf8.count < before, !result.content.hasPrefix(stub(name, bytes: nil))
+                else { continue }
+                let elided = AIToolResult(
+                    callID: result.callID, content: replacement, isError: result.isError)
+                messages[index] = AIMessage(role: .tool, text: messages[index].text, toolResult: elided)
+                edited = edited ?? index
+            } else if let reasoning = messages[index].reasoning {
+                messages[index] = replacing(messages[index], reasoning: reasoning.shed)
             }
-            let elided = AIToolResult(callID: result.callID, content: replacement, isError: result.isError)
-            messages[index] = AIMessage(role: .tool, text: messages[index].text, toolResult: elided)
-            total -= size - replacement.utf8.count
-            saved += size - replacement.utf8.count
+            let freed = before - size(of: messages[index])
+            total -= freed
+            saved += freed
         }
+        if let edited { unbind(&messages, after: edited) }
         return saved
+    }
+
+    /// What elision can shrink in a message of the turn: a result's text, or the reasoning sent back.
+    private static func size(of message: AIMessage) -> Int {
+        message.toolResult?.content.utf8.count ?? message.reasoning?.bytes ?? 0
+    }
+
+    /// Claude's thinking blocks are signed over what came before them, so an edit voids later ones.
+    static func unbind(_ messages: inout [AIMessage], after index: Int) {
+        for later in messages.indices where later > index {
+            guard let reasoning = messages[later].reasoning, reasoning.bindsPrefix else { continue }
+            messages[later] = replacing(messages[later], reasoning: reasoning.unbound)
+        }
+    }
+
+    private static func replacing(_ message: AIMessage, reasoning: AIReasoningReplay) -> AIMessage {
+        AIMessage(
+            role: message.role, text: message.text, images: message.images, documents: message.documents,
+            audio: message.audio, toolCalls: message.toolCalls, toolResult: message.toolResult,
+            reasoning: reasoning)
+    }
+
+    /// An overflow with nothing left to elide sheds the older half of the history, from a question.
+    static func dropHistory(_ messages: inout [AIMessage], turnStart: inout Int, keepFrom: inout Int) -> Bool {
+        guard let question = messages[..<turnStart].lastIndex(where: { $0.role == .user }), question > 1
+        else { return false }
+        var cut = question / 2
+        while cut < question, messages[cut].role != .user { cut += 1 }
+        guard cut > 0 else { return false }
+        messages.removeFirst(cut)
+        turnStart -= cut
+        keepFrom -= cut
+        unbind(&messages, after: -1)
+        return true
     }
 
     /// Without a size, the opening every stub of that tool's results shares.
@@ -81,6 +135,34 @@ struct AgentTurnBudget: Sendable {
             return used <= bytes
         }
         return String(kept)
+    }
+}
+
+/// A run's output cap: Claude's from the start, an OpenAI-shaped route's once its own default cut.
+struct AgentOutputCap: Equatable, Sendable {
+    let tokens: Int
+    private(set) var forced = false
+    private(set) var refused = false
+
+    init(tokens: Int) {
+        self.tokens = tokens
+    }
+
+    /// What the next round asks for; nil once a route refused the number.
+    var request: AIOutputCap? {
+        refused ? nil : AIOutputCap(tokens: tokens, forced: forced)
+    }
+
+    /// A reply hit the limit, so every shape is sent the number from now on; true if that is new.
+    mutating func raise() -> Bool {
+        guard !forced, !refused else { return false }
+        forced = true
+        return true
+    }
+
+    /// A route refused the number, by name or for room: it keeps its own default from now on.
+    mutating func refuse() {
+        refused = true
     }
 }
 
