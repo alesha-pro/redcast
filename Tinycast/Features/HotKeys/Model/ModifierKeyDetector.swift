@@ -14,10 +14,20 @@ struct ModifierKeyDetector: Sendable {
     private var press: (key: ModifierKey, startedAt: TimeInterval)?
     private var pendingTap: (key: ModifierKey, releasedAt: TimeInterval)?
 
-    mutating func handle(_ keys: Set<ModifierKey>, at now: TimeInterval) -> Event? {
+    /// Fork: `holding` is the key held to talk, which Shift may join so ⇧Tab reaches the capsule.
+    mutating func handle(
+        _ keys: Set<ModifierKey>, at now: TimeInterval, holding: ModifierKey? = nil
+    ) -> Event? {
         let previous = held
         held = keys
         guard keys != previous else { return nil }
+        if let holding, press?.key == holding, !keys.isEmpty,
+            keys.subtracting([holding]).isSubset(of: [.leftShift, .rightShift])
+        {
+            guard !keys.contains(holding) else { return nil }
+            cancel()
+            return .released(holding, doubleTap: false, held: true)
+        }
         if keys.isEmpty {
             guard let press else { return nil }
             self.press = nil

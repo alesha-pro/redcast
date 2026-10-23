@@ -145,10 +145,14 @@ Dictation's hold-to-talk mode, and a command in `HotKeyManager.heldCommands` (As
 talk), reserves its single physical modifier across both tap gestures. It
 starts after 250 ms held alone, so ordinary modifier+key chords do not briefly start recording. Another
 key, modifier or mouse click cancels a pending or active hold; Return, Escape and Tab belong to the
-dictation capsule while listening. Release finishes the recording. Pausing, rebinding, disabling
-Dictation, session changes and tap teardown cancel any hold. Dictation's double-tap bindings require
-toggle mode; a held command's double tap stays a toggle. `HotKeyManager` maps each held key to its
-action and updates the monitor before the map, so a hold the update cancels still reaches its holder.
+dictation capsule while listening. Once a hold has begun, Shift may come and go beside it, so ⇧Tab
+reaches the capsule: the monitor passes the key that holds to
+`ModifierKeyDetector.handle(_:at:holding:)`, which ignores Shift and ends the hold when that key is
+released, even with Shift still down. Shift before the 250 ms is a chord and cancels. Release finishes
+the recording. Pausing, rebinding, disabling Dictation, session changes and tap teardown cancel any
+hold. Dictation's double-tap bindings require toggle mode; a held command's double tap stays a toggle.
+`HotKeyManager` maps each held key to its action and updates the monitor before the map, so a hold the
+update cancels still reaches its holder.
 
 ## Double-tap modifiers
 

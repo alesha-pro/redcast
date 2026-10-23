@@ -66,6 +66,7 @@ struct DoubleTapDetectorTests {
         globeTap()
         sidedModifiers()
         globeChord()
+        heldShift()
         firing()
         timing()
         chords()
@@ -300,6 +301,71 @@ struct DoubleTapDetectorTests {
         expect(
             spelling.binding(from: "left cmd+k") == nil,
             "ordinary combinations remain side-agnostic")
+    }
+
+    /// Fork: a hold under way lets Shift come and go, so ⇧Tab can switch a dictation mode.
+    static func heldShift() {
+        for key in [ModifierKey.globe, .rightOption, .leftCommand, .rightShift] {
+            var detector = ModifierKeyDetector()
+            expect(detector.handle([key], at: 0) == .pressed(key), "\(key) starts a hold")
+            expect(
+                detector.handle([key, .leftShift], at: 0.5, holding: key) == nil,
+                "\(key): Shift joining a hold keeps it")
+            expect(detector.handle([key], at: 0.6, holding: key) == nil, "\(key): Shift leaving keeps it")
+            expect(
+                detector.handle([key, .leftShift], at: 0.7, holding: key) == nil,
+                "\(key): Shift may come back")
+            expect(
+                detector.handle([key], at: 0.8, holding: key) == nil, "\(key): and leave again")
+            expect(
+                detector.handle([], at: 1, holding: key)
+                    == .released(key, doubleTap: false, held: true),
+                "\(key): releasing the key after ⇧Tab still ends the hold")
+        }
+
+        var detector = ModifierKeyDetector()
+        _ = detector.handle([.globe], at: 0)
+        _ = detector.handle([.globe, .rightShift], at: 0.5, holding: .globe)
+        expect(
+            detector.handle([.rightShift], at: 0.6, holding: .globe)
+                == .released(.globe, doubleTap: false, held: true),
+            "releasing the held key while Shift is down ends the hold")
+        expect(detector.handle([], at: 0.7) == nil, "Shift's own release fires nothing afterwards")
+        _ = detector.handle([.rightShift], at: 1)
+        expect(
+            detector.handle([], at: 1.05) == .released(.rightShift, doubleTap: false, held: false),
+            "a fresh Shift tap still works after a hold")
+
+        _ = detector.handle([.rightOption], at: 2)
+        _ = detector.handle([.rightOption, .leftShift], at: 2.5, holding: .rightOption)
+        expect(
+            detector.handle([.rightOption, .leftShift, .leftCommand], at: 2.6, holding: .rightOption)
+                == .cancelled,
+            "another modifier beside Shift still cancels a hold")
+        expect(detector.handle([], at: 2.8) == nil, "a cancelled hold has no release")
+
+        _ = detector.handle([.rightOption], at: 3)
+        expect(
+            detector.handle([.rightOption, .leftCommand], at: 3.5, holding: .rightOption) == .cancelled,
+            "a modifier other than Shift cancels a hold")
+        _ = detector.handle([], at: 3.6)
+
+        let hyper: Set<ModifierKey> = [.leftControl, .leftOption, .leftShift, .leftCommand]
+        _ = detector.handle([.rightOption], at: 4)
+        expect(
+            detector.handle(hyper.union([.rightOption]), at: 4.5, holding: .rightOption) == .cancelled,
+            "Hyper still cancels a hold")
+        _ = detector.handle([], at: 4.6)
+
+        _ = detector.handle([.globe], at: 5)
+        expect(
+            detector.handle([.globe, .leftShift], at: 5.1) == .cancelled,
+            "Shift before the hold begins is a chord, not a hold")
+        _ = detector.handle([], at: 5.2)
+        _ = detector.handle([.rightOption], at: 6)
+        expect(
+            detector.handle([.rightOption, .leftShift], at: 6.5, holding: .globe) == .cancelled,
+            "only the key that holds lets Shift join")
     }
 
     static func modifierGlyphs() {
