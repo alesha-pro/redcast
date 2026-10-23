@@ -166,6 +166,68 @@ reads as Automatic.
 | Reasoning dropped on Kimi, MiniMax, GLM, Qwen inside a tool loop | the model loses its plan: repeated calls, wrong tool use |
 | Another model's reasoning or signature sent | the target rejects the signature, or reads a stranger's thoughts as its own |
 
+## A round: cap, retries, cache
+
+- **Every agent round asks for 16,384 output tokens** (`AgentTurnBudget.outputTokens`): `max_tokens`
+  on Anthropic and OpenAI-shaped routes, `max_completion_tokens` on OpenAI's own API, where the shape
+  otherwise sends no cap and DeepSeek stops at its 4K default. A route that refuses the number by name
+  is asked again without it for the rest of the turn.
+- **A reply the cap cut runs none of its calls** (`finish_reason: length`, `stop_reason:
+  max_tokens`): each is answered with pi's text (`AIToolResult.cutOff`, from pi's `agent-loop.ts`),
+  since arguments cut mid-JSON may still parse.
+- **Transient failures are waited out inside the run** (`AgentRetryPolicy`, pi's `retry.ts` and
+  DeepSeek Harness's `retry-policy.ts`): 408, 409, 425, 429, 5xx, a dropped network, a stream that
+  closed early and a provider's own busy words wait 2, 4, 8 and 16 s, a tenth either way, or a
+  `Retry-After` up to a minute; never once text is on screen, never a spent quota, and what a failed
+  attempt reported it spent is billed once. Stop ends a wait at once. A context overflow (pi's
+  `overflow.ts` patterns, or 413) sheds the turn's older results once, else the older half of the
+  history, and asks again.
+- **A cache hit is counted apart from input** on every route: `prompt_tokens_details.cached_tokens`,
+  DeepSeek's `prompt_cache_hit_tokens`, Anthropic's `cache_read_input_tokens`; an Anthropic cache
+  write is input.
+
+## A run: budget, plan, hand-over
+
+The run is one user turn of an agent, or one background run. Its effort sets its budget:
+
+| Effort | Tool rounds | Tool output | In the background | Sub-agents |
+| --- | --- | --- | --- | --- |
+| Quick | 8 | 256 KB | 5 minutes | none (no `delegate`) |
+| Balanced (default) | 25 | 512 KB | 15 minutes | 2 |
+| Thorough | 60 | 1 MB | 45 minutes | 4 |
+
+A sub-agent has 12 rounds and 256 KB inside its parent's run. After each round of calls
+`AgentBudgetPolicy` decides, as pi's `finishTurn` and DeepSeek Harness's goal wrap-up do in their
+own ways:
+
+- **Past 80%** of the rounds, the output or the time, the model is told once to wrap up: finish the
+  step in hand, check the key facts, answer, start nothing new.
+- **At a limit** (or the 1 MB history wall) it is told the budget is spent and tools are off, and
+  asked for the result, what is done, what is not and why, and what to do next, from what the results
+  establish. That last request still lists the tools, so the cached prefix holds and Claude still
+  sees the tools its history used; a call it makes anyway is never run. A hand-over with no text is
+  replaced by a localized line and the plan.
+- **Notes ride the newest tool result**, added before it is first sent, so every request extends
+  the previous one and nothing already sent is rewritten; elision, which does rewrite, waits for
+  160 KB of results and frees down to 96 KB, so it happens rarely.
+- **One plan for the run.** `update_plan`'s latest checklist is kept in memory for the run, read back
+  in one line when nobody touched it for six rounds, and carried by the wrap-up and the hand-over.
+- **Nothing is lost on a failure.** A run that fails after working shows where its plan stood
+  before the error; the failed or stopped reply, which history leaves out, goes back before the
+  chat's next question.
+- **Time is the unattended run's only clock.** A chat has someone to press Stop. A background run
+  hands over at its minutes, and the watchdog stops it two minutes later only if a long call kept the
+  loop from doing so.
+
+## The prompt and the cache
+
+A provider caches a prompt up to its first changed byte, so the agent's system prompt holds nothing
+that changes within a day: the general-assistant header with the time zone, the How to work method,
+global and project instructions, skills, the agent's own instructions, the user's standing text and
+last the agent's notes, which change most. The date and time to the minute, with the effort and its
+round budget, lead each turn's question as the loop sends it (`AgentTurnLead`); the stored chat keeps
+the user's words. [Agents](agents.md#invariants) has the method's lines.
+
 ## Layout
 
 | File | Holds |
@@ -175,4 +237,8 @@ reads as Automatic.
 | `ReasoningReplay/Model/AIReasoningReplayPolicy.swift` | The provider table above, per message and per body |
 | `AI/Model/AIConnection.swift` (fork lines) | The connection's override and the configuration's route |
 | `AI/Service/ChatHistoryStore.swift` (fork lines) | `message_reasoning_replay`, one row per reply that kept reasoning |
-| `Agents/Model/AgentTurnBudget.swift` | `unbind`: Claude's blocks after an edit |
+| `Agents/Model/AgentTurnBudget.swift` | Result bounds, elision, `unbind`: Claude's blocks after an edit |
+| `Agents/Model/AgentRetryPolicy.swift` | Which failures a round waits out, and how long |
+| `Agents/Model/AgentEffort.swift`, `AgentBudgetPolicy.swift` | The budgets, the wrap-up and the hand-over |
+| `Agents/Model/AgentTurnLead.swift` | The turn's opening line and the reply a failed turn left |
+| `Agents/Service/AgentLoopProvider.swift` | The run: rounds, batches, retries, notes, plan, hand-over |
