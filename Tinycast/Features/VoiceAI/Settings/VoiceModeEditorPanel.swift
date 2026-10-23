@@ -72,7 +72,9 @@ struct VoiceModeEditorPanel: View {
                 .buttonStyle(.modalAction(.destructive, fillsWidth: false))
             } else if let builtIn, instructions != builtIn.instructions {
                 Button("Reset to Default") { instructions = builtIn.instructions }
-                    .buttonStyle(.modalAction(.cancel))
+                    .buttonStyle(.modalAction(.cancel, fillsWidth: false))
+                    // Its own width first: sharing the row three ways folds its label in two.
+                    .fixedSize()
             }
             Spacer()
             Button("Cancel") { dismiss() }
