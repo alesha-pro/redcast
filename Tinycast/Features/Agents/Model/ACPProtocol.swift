@@ -80,6 +80,8 @@ enum ACPUpdate: Equatable, Sendable {
     case usage(used: Int, size: Int, costUSD: Double?)
     /// The agent moved itself to another mode, as Claude Code does when it leaves plan mode.
     case mode(String)
+    /// The session's config options, the whole list each time.
+    case options([ACPConfigOption])
     /// The session's slash commands, the whole list each time.
     case commands([ACPCommand])
     /// Notices and the rest: known to exist, not drawn yet.
@@ -109,6 +111,8 @@ enum ACPUpdate: Equatable, Sendable {
             decoded = .mode(mode)
         case "available_commands_update":
             decoded = .commands(ACPCommand.list(update["availableCommands"]))
+        case "config_option_update":
+            decoded = .options(ACPConfigOption.list(update["configOptions"]) ?? [])
         case "usage_update":
             let cost = update["cost"]?.objectValue
             let usd =
@@ -458,7 +462,7 @@ struct ACPEventMapper: Sendable {
             // Held for the turn's end, where the prompt's own result has the finer counts.
             lastUsage = (used, size, cost ?? lastUsage?.costUSD)
             return []
-        case .mode, .commands, .other:
+        case .mode, .options, .commands, .other:
             return []
         }
     }

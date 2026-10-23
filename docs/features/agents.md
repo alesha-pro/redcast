@@ -154,6 +154,12 @@ optional chord: see [background and scheduled agents](background-agents.md).
   this build saved opens unchanged, without the content, in a build from before it. Continuing such
   a chat there rewrites its last saved reply, and the cascade then takes that reply's diffs and
   output for good.
+- **An ACP agent's picks are remembered on it, and the previous build still reads them.** The model,
+  the reasoning level and the agent's other selects are `AgentProfile.acpModel`, `acpReasoning` and
+  `acpOptions` (by the agent's option ids) beside `acpMode`, each written only once picked, so an
+  untouched agent's `agents.json` is unchanged and the build before them decodes it, ignoring the
+  keys. That build's own save drops them (only a preference is lost; the agent then starts on its
+  own defaults), so unlike the newer tool families they have no side file.
 - **A slash command list lives with its session.** `available_commands_update` is kept per live
   session in `AgentACPHost` and mirrored to the coordinator like the modes; a chat's copy goes when
   its session or the agent's process does, leaving one list per agent, and nothing is written down.
@@ -302,6 +308,7 @@ off by default per agent, bounded by `AgentPathPolicy` and asked through the age
 | `UI/AgentCoordinator.swift` | Bindings, cached context, the turn's prompt, its loop and provider registry, consent |
 | `Model/AgentRuntime.swift` | ACP presets and the command/arguments an agent runs |
 | `Model/ACPProtocol.swift` | Framing, `session/update` decoding, permissions, prompt blocks, modes, `ACPEventMapper` |
+| `Model/ACPSessionOptions.swift` | A session's selects (config options, older models and modes), their slots, what a remembered value comes to, the picks on `AgentProfile` |
 | `Model/ChatToolContent.swift` | A tool row's compacted diffs and output as saved; the only fork type upstream's chat model names |
 | `Model/ACPToolContent.swift` | The compaction: line diff, folds, output cleaning, the per-row budget |
 | `Model/ACPCommand.swift` | Slash commands: decoding, matching a draft, completion, what a turn's text invokes |
@@ -444,7 +451,9 @@ this way, as one provider. Nothing else changes: no router edit, no upstream lin
   Codex, `/status` answers with its status; in a fresh chat it is the first block (its reply is the
   command's, not a model's).
 - Harnesses: `acp-test` (framing, updates, permissions, prompts, modes, tool content compaction,
-  slash commands, and a scripted agent process in `Tests/acp-fixtures/fake-agent.mjs`: streaming,
+  slash commands, config options and the older models and modes: decoding, caps, slots, updates,
+  what a remembered value comes to, the picks on the profile and in `agents.json`, and a scripted
+  agent process in `Tests/acp-fixtures/fake-agent.mjs`: streaming,
   consent, reuse, refusal, cancel, reload, lost sessions, a missing command, two agents sharing a
   session id, commands that beat the session's binding, a command turn and the briefing after it
   with only the turns from before the session, a fresh process's `/word` turn waiting for the list
