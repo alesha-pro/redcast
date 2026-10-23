@@ -196,6 +196,8 @@ enum SettingsBackupCoverage {
             "Only means something beside the Voice AI switches, which never travel in a backup.",
         AppSettingsKey.voiceVocabulary.rawValue:
             "Only means something beside the Voice AI switches, which never travel in a backup.",
+        AppSettingsKey.voiceDictationModes.rawValue:
+            "Only means something beside the Voice AI switches, which never travel in a backup.",
         AppSettingsKey.voiceAskEnabled.rawValue:
             "Sends recordings from this Mac's microphone, with the window in front, to an AI "
             + "destination; a flag that grants a capability is never carried by a backup.",
@@ -203,6 +205,8 @@ enum SettingsBackupCoverage {
             "Only means something beside the Voice AI switches, which never travel in a backup.",
         AppSettingsKey.voiceAskModel.rawValue:
             "Names an external AI destination for recorded speech; an import must not choose one.",
+        AppSettingsKey.voiceAskAgent.rawValue:
+            "Names an agent on this Mac that a spoken request runs as; agents never travel in a backup.",
         AppSettingsKey.agentSessionsEnabled.rawValue:
             "Belongs to the AI pane, none of whose settings travel; it reads this Mac's own agent histories.",
         AppSettingsKey.agentSessionsTerminal.rawValue:

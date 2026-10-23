@@ -11,6 +11,11 @@ enum VoiceInsertPolicy {
 
     static func autoInserts(_ text: String, bundleID: String?, hadFocusedField: Bool) -> Bool {
         guard hadFocusedField, !text.isEmpty, text.count <= maxAutoInsertLength else { return false }
-        return bundleID.map { !reviewFirstBundleIDs.contains($0) } ?? true
+        return replacesUnseen(bundleID: bundleID)
+    }
+
+    /// An edit replaces its selection unseen anywhere a paste cannot run a command.
+    static func replacesUnseen(bundleID: String?) -> Bool {
+        bundleID.map { !reviewFirstBundleIDs.contains($0) } ?? true
     }
 }

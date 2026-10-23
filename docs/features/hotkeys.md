@@ -8,10 +8,12 @@
 - `HotKeyCenter` — the Carbon `RegisterEventHotKey` layer, pausable.
 - Dictation, and the commands in `HotKeyManager.releasedCommands` (Ask by Voice), also observe
   Carbon's key-release event for hold-to-talk. A command hears it only for a key combination, its
-  Secure Input equivalent included; every other command registers no key-up.
+  Secure Input equivalent included; every other command registers no key-up. A command in
+  `HotKeyManager.heldCommands` also holds a single modifier, through `ModifierTapMonitor`.
 - `DoubleTapModifier` / `DoubleTapDetector` — the double-tap recognizer.
 - `ModifierKey` / `ModifierKeyDetector` — reported sides, lone presses, taps and holds.
-- `ModifierTapMonitor` — the shared modifier-only tap, including Dictation's hold/release callbacks.
+- `ModifierTapMonitor` — the shared modifier-only tap, including the hold/release callbacks, each
+  naming the key held (Dictation's, or a held command's).
 
 `HotKeyManager` owns them all: persistence, conflict lookup, and dispatch. Every action reads and
 writes one `HotKeyBinding`, so all cases share persistence, conflict detection, the recorder and
@@ -142,11 +144,18 @@ It shares the double-tap's listen-only monitor, permission warning, lifecycle an
 recording. macOS may perform its own Globe action too; set “Press fn/Globe key to” to “Do Nothing” in
 Keyboard settings if it conflicts. Globe+key chords use Carbon registration, like other combos.
 
-Dictation's hold-to-talk mode reserves its single physical modifier across both tap gestures. It
+Dictation's hold-to-talk mode, and a command in `HotKeyManager.heldCommands` (Ask by Voice in Hold to
+talk), reserves its single physical modifier across both tap gestures. It
 starts after 250 ms held alone, so ordinary modifier+key chords do not briefly start recording. Another
-key, modifier or mouse click cancels a pending or active hold; Return and Escape belong to the dictation
-panel while listening. Release finishes the recording. Pausing, rebinding, disabling Dictation,
-session changes and tap teardown cancel any hold. Double-tap bindings require toggle mode.
+key, modifier or mouse click cancels a pending or active hold; Return, Escape and Tab belong to the
+dictation capsule while listening. Once a hold has begun, Shift may come and go beside it, so ⇧Tab
+reaches the capsule: the monitor passes the key that holds to
+`ModifierKeyDetector.handle(_:at:holding:)`, which ignores Shift and ends the hold when that key is
+released, even with Shift still down. Shift before the 250 ms is a chord and cancels. Release finishes
+the recording. Pausing, rebinding, disabling Dictation, session changes and tap teardown cancel any
+hold. Dictation's double-tap bindings require toggle mode; a held command's double tap stays a toggle.
+`HotKeyManager` maps each held key to its action and updates the monitor before the map, so a hold the
+update cancels still reaches its holder.
 
 ## Double-tap modifiers
 

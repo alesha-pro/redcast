@@ -38,9 +38,10 @@ final class ModifierTapMonitor: HealthCheckable {
 
     /// Fired on the tap's final release, so the key is up by the time the action runs.
     @ObservationIgnored var onTrigger: ((HotKeyBinding) -> Void)?
-    @ObservationIgnored var onHoldPressed: (() -> Void)?
-    @ObservationIgnored var onHoldReleased: (() -> Void)?
-    @ObservationIgnored var onHoldCancelled: (() -> Void)?
+    /// Fork: each names its key, since Dictation and held voice commands each hold their own.
+    @ObservationIgnored var onHoldPressed: ((ModifierKey) -> Void)?
+    @ObservationIgnored var onHoldReleased: ((ModifierKey) -> Void)?
+    @ObservationIgnored var onHoldCancelled: ((ModifierKey) -> Void)?
 
     /// Set while a recorder captures, so editing a binding can't trigger it.
     var isPaused = false {
@@ -57,8 +58,9 @@ final class ModifierTapMonitor: HealthCheckable {
     @ObservationIgnored private var pendingHold: Task<Void, Never>?
     @ObservationIgnored private var pendingBinding: HotKeyBinding?
     private var globeDown = false
-    private var holdKey: ModifierKey?
-    private var holding = false
+    /// Fork: a key per action held to talk; `holding` is the one whose hold has begun.
+    private var holdKeys: Set<ModifierKey> = []
+    private var holding: ModifierKey?
     @ObservationIgnored private var tapPort: CFMachPort?
     @ObservationIgnored private var runLoopSource: CFRunLoopSource?
     @ObservationIgnored private var sessionTokens: [NotificationToken] = []
@@ -78,10 +80,11 @@ final class ModifierTapMonitor: HealthCheckable {
     }
 
     /// Modifier-only bindings currently assigned; an empty set tears the tap down entirely.
-    func update(bound: Set<HotKeyBinding>, holdKey: ModifierKey? = nil) {
-        guard bound != self.bound || holdKey != self.holdKey else { return }
+    /// Fork: `holdKeys` replaces Dictation's single hold key, since voice commands hold theirs.
+    func update(bound: Set<HotKeyBinding>, holdKeys: Set<ModifierKey> = []) {
+        guard bound != self.bound || holdKeys != self.holdKeys else { return }
         self.bound = bound
-        self.holdKey = holdKey
+        self.holdKeys = holdKeys
         resetDetectors()
         syncTapPresence()
     }
@@ -98,15 +101,16 @@ final class ModifierTapMonitor: HealthCheckable {
             let modifiers = Self.modifiers(in: flags)
             if keyCode == kVK_Function { globeDown = flags.contains(.maskSecondaryFn) }
             let keys = ModifierKey.held(in: flagsRaw, globeDown: globeDown)
-            if let event = modifierDetector.handle(keys, at: now) {
+            // Fork: a hold under way lets Shift come and go, so ⇧Tab can switch a dictation mode.
+            if let event = modifierDetector.handle(keys, at: now, holding: holding) {
                 handleModifier(event)
             }
             input = .modifiers(modifiers, hasOtherModifiers: Self.hasOtherModifiers(in: flags))
         } else {
-            // Return and Escape belong to the dictation panel while a hold is active.
-            if holding,
+            // Fork: Return, Escape and Tab (a dictation mode) belong to the capsule during a hold.
+            if holding != nil,
                 keyCode == kVK_Return || keyCode == kVK_ANSI_KeypadEnter
-                    || keyCode == kVK_Escape
+                    || keyCode == kVK_Escape || keyCode == kVK_Tab
             {
                 return
             }
@@ -123,26 +127,28 @@ final class ModifierTapMonitor: HealthCheckable {
     }
 
     private func handleModifier(_ event: ModifierKeyDetector.Event) {
+        // Fork: holds are per key, so each press, release and cancel names the key that holds.
         switch event {
         case .pressed(let key):
-            if let holdKey, key == holdKey {
+            if holdKeys.contains(key) {
+                pendingHold?.cancel()
                 pendingHold = Task { [weak self] in
                     try? await Task.sleep(for: .seconds(DoubleTapDetector.maxHold))
                     guard !Task.isCancelled, let self else { return }
                     pendingHold = nil
-                    holding = true
-                    onHoldPressed?()
+                    holding = key
+                    onHoldPressed?(key)
                 }
             } else if key.singleBinding != pendingBinding {
                 cancelPendingSingle()
             }
         case .released(let key, let doubleTap, let held):
-            if key == holdKey {
+            if holdKeys.contains(key) {
                 pendingHold?.cancel()
                 pendingHold = nil
-                if holding {
-                    holding = false
-                    onHoldReleased?()
+                if holding == key {
+                    holding = nil
+                    onHoldReleased?(key)
                 }
                 return
             }
@@ -184,9 +190,10 @@ final class ModifierTapMonitor: HealthCheckable {
     private func cancelHold() {
         pendingHold?.cancel()
         pendingHold = nil
-        guard holding else { return }
-        holding = false
-        onHoldCancelled?()
+        // Fork: named, so the cancel reaches the action whose key was held.
+        guard let key = holding else { return }
+        holding = nil
+        onHoldCancelled?(key)
     }
 
     private func resetDetectors() {
