@@ -5,7 +5,8 @@ struct MenuBarLabel: View {
     let appName: String
 
     var body: some View {
-        Image("MenuBarIcon")
+        // Fork: Redcast's own mark, the command key whose top-right loop is an ember.
+        Image("RedcastMenuBarIcon")
             .accessibilityLabel(appName)
     }
 }

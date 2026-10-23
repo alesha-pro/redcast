@@ -58,6 +58,10 @@ Scripts/fork/install.sh --self-check    # resolve and list; build, quit, move an
 Scripts/fork/install.sh --self-test     # stubbed installs into $TMPDIR, one started from a fake app
 ```
 
+The build uses the fork's own app icon, `Tinycast/redcast.icon` (an Icon Composer file: a solid
+`#F23D32` fill under the white mark), through `ASSETCATALOG_COMPILER_APPICON_NAME=redcast`; Debug
+builds keep upstream's icon. The menu-bar item draws `RedcastMenuBarIcon`, the same mark as a template.
+
 | Environment | Default | Meaning |
 | --- | --- | --- |
 | `TINYCAST_SIGN_IDENTITY` | the single `Apple Development: …` identity | full name to sign with |
@@ -85,7 +89,7 @@ bundle at the destination is refused before anything detaches.
 Exit codes: 0 installed · 1 build or verification failed · 2 refused (a foreign bundle, a second fork
 copy, a changed identity, an ambiguous certificate, a rollback whose place is taken) · 3 the app did
 not quit · 4 the swap failed and was rolled back · 64 usage. Working files live in `build/fork/`
-(`DerivedData/`, `build.log`, `install.log`, `Tinycast.previous` and `Tinycast.previous.origin`, the
+(`DerivedData.noindex/`, `build.log`, `install.log`, `Tinycast.previous` and `Tinycast.previous.origin`, the
 path that copy was installed at), which `.gitignore` already covers. The slot changes only when a swap
 replaced a copy: a fresh install keeps it, and a replaced copy that cannot be moved there stays beside
 the app as `.Redcast-previous-<pid>`, named in the output, rather than being deleted.

@@ -279,10 +279,13 @@ build() {
     resolve_version
     mkdir -p "$WORK"
     say "Building $BUNDLE_ID $VERSION ($BUILD) for $(uname -m), signed by ${IDENTITY}…"
+    # Spotlight skips a .noindex folder, so the build output never shows as a second Redcast.app.
+    rm -rf "$WORK/DerivedData"
     # PRODUCT_NAME as release.yml passes it; project.yml pins the helpers' names against it.
     if ! xcodebuild -project Tinycast.xcodeproj -scheme Tinycast -configuration Release \
-        -derivedDataPath "$WORK/DerivedData" ARCHS="$(uname -m)" ONLY_ACTIVE_ARCH=YES \
+        -derivedDataPath "$WORK/DerivedData.noindex" ARCHS="$(uname -m)" ONLY_ACTIVE_ARCH=YES \
         PRODUCT_NAME="$APP_NAME" DICTATION_EXECUTABLE_NAME="$APP_NAME Dictation" \
+        ASSETCATALOG_COMPILER_APPICON_NAME=redcast \
         TINYCAST_BUNDLE_IDENTIFIER="$BUNDLE_ID" \
         CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY="$IDENTITY" DEVELOPMENT_TEAM= \
         OTHER_CODE_SIGN_FLAGS=--timestamp=none \
@@ -291,7 +294,7 @@ build() {
         grep -E 'error:' "$WORK/build.log" | sort -u | head -40 >&2 || true
         die 1 "build failed; the full log is $WORK/build.log"
     fi
-    local products="$WORK/DerivedData/Build/Products/Release" product
+    local products="$WORK/DerivedData.noindex/Build/Products/Release" product
     BUILT="$products/$APP_NAME.app"
     # Xcode's RegisterWithLaunchServices step would leave tinycast:// pointing in here.
     for product in "$products"/*.app; do
