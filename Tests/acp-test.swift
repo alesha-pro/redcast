@@ -148,7 +148,7 @@ struct ACPTests {
             AIMessage(role: .user, text: "Hello"), AIMessage(role: .assistant, text: "Hi there")
         ]
         let full = ACPPrompt.blocks(
-            for: message, context: "CONTEXT", history: history,
+            for: message, context: "CONTEXT", earlier: ACPPrompt.transcript(of: history),
             capabilities: .init(image: true, embeddedContext: true))
         expect(full.first?["type"] as? String == "text", "context and history lead the prompt")
         let lead = full.first?["text"] as? String ?? ""
@@ -160,7 +160,7 @@ struct ACPTests {
         expect(full.contains { $0["type"] as? String == "resource" }, "a file goes as an embedded resource")
         expect(full.last?["text"] as? String == "Fix it", "and the request itself comes last")
         let plain = ACPPrompt.blocks(
-            for: message, context: nil, history: [], capabilities: .init())
+            for: message, context: nil, earlier: "", capabilities: .init())
         expect(!plain.contains { $0["type"] as? String == "image" }, "no image to an agent that cannot see")
         expect(
             plain.contains { ($0["text"] as? String)?.contains("Attached file t.csv") == true },
@@ -649,8 +649,7 @@ extension ACPTests {
             role: .user, text: "/review now",
             documents: [AIDocument(data: Data("a".utf8), mimeType: "text/plain", name: "a.txt")])
         let blocks = ACPPrompt.blocks(
-            for: message, context: "CONTEXT", history: [AIMessage(role: .user, text: "Hello")],
-            capabilities: .init(), asCommand: true)
+            for: message, context: "CONTEXT", earlier: "User: Hello", capabilities: .init(), asCommand: true)
         expect(blocks.first?["text"] as? String == "/review now", "the command is the first block, where agents look")
         expect(blocks.count == 2, "followed by its files, with no briefing or history")
     }
@@ -702,8 +701,19 @@ extension ACPTests {
         expect(
             listed.events.contains { $0.chat == chat && $0.names == ["review", "compact"] },
             "the session's commands reach its chat even when they beat its binding, got \(listed.events)")
-        let next = replyText(await stream("Hello", chat: chat, agent: agent, host: host))
-        expect(next.contains("with context"), "the briefing the command skipped rides the next turn, got \(next)")
+        let ran = [AIMessage(role: .user, text: "/review the diff"), AIMessage(role: .assistant, text: command)]
+        let next = replyText(await stream("Hello", chat: chat, history: ran, agent: agent, host: host))
+        expect(
+            next.contains("with context; no history"),
+            "the briefing the command skipped rides the next turn, without the session's own turns, got \(next)")
+        let older = UUID()
+        let before = [AIMessage(role: .user, text: "Before"), AIMessage(role: .assistant, text: "Earlier reply")]
+        _ = await stream("/compact", chat: older, history: before, agent: agent, host: host)
+        let compacted = [AIMessage(role: .user, text: "/compact"), AIMessage(role: .assistant, text: "ran /compact")]
+        let later = replyText(await stream("Hello", chat: older, history: before + compacted, agent: agent, host: host))
+        expect(
+            later.contains("with context; with history of 2 turns"),
+            "a chat older than its session hears only the turns from before it, got \(later)")
         let other = replyText(await stream("/unknown thing", chat: UUID(), agent: agent, host: host))
         expect(
             other.contains("turn 1") && other.contains("with context"),
@@ -731,11 +741,11 @@ extension ACPTests {
     }
 
     private static func stream(
-        _ text: String, chat: UUID, agent: AgentProfile, host: AgentACPHost
+        _ text: String, chat: UUID, history: [AIMessage] = [], agent: AgentProfile, host: AgentACPHost
     ) async -> [AIStreamEvent] {
         let provider = ACPAgentProvider(host: host, agent: agent, servers: { [] })
         var events: [AIStreamEvent] = []
-        let request = AIRequest(messages: [AIMessage(role: .user, text: text)], conversationID: chat)
+        let request = AIRequest(messages: history + [AIMessage(role: .user, text: text)], conversationID: chat)
         do {
             for try await event in provider.stream(request) { events.append(event) }
         } catch {

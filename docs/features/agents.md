@@ -95,6 +95,10 @@ in root search or on a schedule: see [background and scheduled agents](backgroun
   its session or the agent's process does, leaving one list per agent, and nothing is written down.
   The composer's list exists only while the draft is typing a command name in an ACP chat, and so
   does the key monitor behind it.
+- **A session hears only what it does not already have.** A new session's briefing carries the
+  chat's turns from before it, captured as `session/new` answers, keyed by chat; when a slash
+  command opens the session, the briefing waits for the next ordinary turn and still carries only
+  those, never the command's own turn and reply, which the agent already holds.
 - **Tinycast lends an ACP agent no file system and no terminal.** `initialize` declares `fs` and
   `terminal` off and every such request is refused; [why](#tinycasts-own-fs-and-terminal).
 
@@ -130,7 +134,9 @@ They run on the user's own logins and subscriptions; Tinycast never sees a key.
   instructions — leads the first prompt of a new session, with the chat's earlier turns (newest
   first, 24 KB, a cut said) when the chat began before this session did. A reloaded session needs
   neither. A slash command's turn carries neither and leaves them for the session's next ordinary
-  turn; that wait is kept in memory, so it holds across an idle stop but not a relaunch.
+  turn, which sends the turns from before the session as they were when it started, not the
+  command's own exchange. That wait is kept in memory, at most the 24 KB transcript per chat, so it
+  holds across an idle stop but not a relaunch, and goes when the chat leaves the agent.
 - **Tinycast offers no fs or terminal of its own.** `initialize` declares both off, so the agent
   uses its own tools and asks about them with `session/request_permission`; any `fs/*`, `terminal/*`
   or other request is answered with method-not-found ([why](#tinycasts-own-fs-and-terminal)). The
@@ -336,15 +342,15 @@ prompt edit.
 - Harnesses: `acp-test` (framing, updates, permissions, prompts, modes, tool content compaction,
   slash commands, and a scripted agent process in `Tests/acp-fixtures/fake-agent.mjs`: streaming,
   consent, reuse, refusal, cancel, reload, lost sessions, a missing command, two agents sharing a
-  session id, commands that beat the session's binding, a command turn and the briefing after it,
-  diffs and output reaching their rows once); `ai-chat-test`'s fork case (content on its row, saved
-  beside it, unreadable or absent content, a store from before the table, the cascade); `agent-test`
-  (skills, catalog, path policy, tool sets, specs, consent policy and per-agent rules, toolset order
-  and routing, batches, budget, elision, the prompt and the rules it states, persistence);
-  `agent-tools-test` (the executor against a real folder: reads, writes with consent, link escapes,
-  commands, timeouts and Stop, memory, skills, HTML; the built-ins through a toolset, with and
-  without an agent's own rules; every refused effect); and `agent-loop-test` (the fork's loop and
-  upstream's on the same scripts under 128 KB; routing, signals, Stop, parallel batches, a long turn
-  that elides); `web-search-test` covers the search provider through a toolset and the loop; and
-  `agent-schedule-test` covers background runs and schedules (see
-  [background-agents.md](background-agents.md#manual-sweep)).
+  session id, commands that beat the session's binding, a command turn and the briefing after it
+  with only the turns from before the session, diffs and output reaching their rows once);
+  `ai-chat-test`'s fork case (content on its row, saved beside it, unreadable or absent content, a
+  store from before the table, the cascade); `agent-test` (skills, catalog, path policy, tool sets,
+  specs, consent policy and per-agent rules, toolset order and routing, batches, budget, elision,
+  the prompt and the rules it states, persistence); `agent-tools-test` (the executor against a real
+  folder: reads, writes with consent, link escapes, commands, timeouts and Stop, memory, skills,
+  HTML; the built-ins through a toolset, with and without an agent's own rules; every refused
+  effect); and `agent-loop-test` (the fork's loop and upstream's on the same scripts under 128 KB;
+  routing, signals, Stop, parallel batches, a long turn that elides); `web-search-test` covers the
+  search provider through a toolset and the loop; and `agent-schedule-test` covers background runs
+  and schedules (see [background-agents.md](background-agents.md#manual-sweep)).

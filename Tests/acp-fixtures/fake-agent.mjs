@@ -115,7 +115,10 @@ async function prompt(id, params) {
   update(sessionId, { sessionUpdate: "tool_call", toolCallId: "call_2", title: "Never finished", kind: "read" });
   update(sessionId, { sessionUpdate: "usage_update", used: 1200, size: 200000, cost: { amount: 0.01, currency: "USD" } });
   const context = text.includes("Context from Tinycast") ? "with context" : "without context";
-  const history = text.includes("Earlier in this conversation") ? "with history" : "no history";
+  const earlier = text.split("## Earlier in this conversation")[1];
+  const history = earlier === undefined
+    ? "no history"
+    : `with history of ${(earlier.match(/^(User|Assistant): /gm) ?? []).length} turns`;
   update(sessionId, {
     sessionUpdate: "agent_message_chunk",
     content: { type: "text", text: `turn ${session.turns} in ${session.cwd}; ${chosen}; ${context}; ${history}; images ${images}; servers ${session.servers}` },

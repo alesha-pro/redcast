@@ -21,8 +21,8 @@ final class AgentACPHost {
     private var idleStops: [UUID: Task<Void, Never>] = [:]
     /// The latest list per live session; it goes with the agent's process.
     private var commands: [Session: [ACPCommand]] = [:]
-    /// New sessions not yet briefed: a slash command's turn leaves the briefing for the next one.
-    private var unbriefed: Set<Session> = []
+    /// A new session's briefing, with the chat's turns from before it, waits for an ordinary turn.
+    private var unbriefed: [UUID: Briefing] = [:]
 
     /// An agent left alone this long is stopped; its sessions reload on the next turn.
     private static let idleLifetime: Duration = .seconds(2 * 60)
@@ -31,6 +31,11 @@ final class AgentACPHost {
     private struct Session: Hashable {
         let agentID: UUID
         let id: String
+    }
+
+    private struct Briefing {
+        let session: Session
+        let earlier: String
     }
 
     private final class Turn {
@@ -68,17 +73,18 @@ final class AgentACPHost {
         var sessionID: String?
         do {
             let connection = try await connection(for: agent)
-            let session = try await session(for: chatID, agent: agent, on: connection, servers: servers)
+            let session = try await session(
+                for: chatID, agent: agent, on: connection, servers: servers,
+                earlier: request.messages.dropLast())
             sessionID = session
             let key = Session(agentID: agent.id, id: session)
             let offered = commands[key] ?? commands.first { $0.key.agentID == agent.id }?.value ?? []
             let isCommand = ACPCommand.invocation(in: message.text, offered: offered) != nil
-            let briefs = !isCommand && unbriefed.remove(key) != nil
-            let history = briefs ? request.messages.dropLast().filter {
-                $0.role == .user || $0.role == .assistant
-            } : []
+            let earlier = isCommand ? nil : unbriefed.removeValue(forKey: chatID).flatMap {
+                $0.session == key ? $0.earlier : nil
+            }
             let blocks = ACPPrompt.blocks(
-                for: message, context: briefs ? context(agent) : nil, history: Array(history),
+                for: message, context: earlier.flatMap { _ in context(agent) }, earlier: earlier ?? "",
                 capabilities: connection.capabilities.prompt, asCommand: isCommand)
             let turn = Turn(continuation: continuation, mapper: ACPEventMapper(origin: agent.name))
             turns[key] = turn
@@ -105,9 +111,9 @@ final class AgentACPHost {
 
     /// A chat's session ends with its agent: the next turn starts or reloads one.
     func forget(chatID: UUID) {
-        if let live = sessions.removeValue(forKey: chatID) {
-            unbriefed.remove(live)
-            if commands.removeValue(forKey: live) != nil { onCommands?(chatID, live.agentID, nil) }
+        unbriefed[chatID] = nil
+        if let live = sessions.removeValue(forKey: chatID), commands.removeValue(forKey: live) != nil {
+            onCommands?(chatID, live.agentID, nil)
         }
         store.setACPSession(nil, forChat: chatID)
     }
@@ -181,8 +187,10 @@ final class AgentACPHost {
         commands = commands.filter { $0.key.agentID != agentID }
     }
 
+    /// `earlier` is what the chat said before this turn; a new session is owed only that much.
     private func session(
-        for chatID: UUID, agent: AgentProfile, on connection: ACPConnection, servers: [AIToolServer]
+        for chatID: UUID, agent: AgentProfile, on connection: ACPConnection, servers: [AIToolServer],
+        earlier: ArraySlice<AIMessage>
     ) async throws -> String {
         if let live = sessions[chatID], live.agentID == agent.id { return live.id }
         let mcpServers = servers.compactMap { Self.mcpServer($0, http: connection.capabilities.mcpHTTP) }
@@ -204,11 +212,9 @@ final class AgentACPHost {
             throw ACPConnection.ConnectionError.requestFailed(
                 String(localized: "The agent didn't start a session."))
         }
-        if let lost = store.acpSession(forChat: chatID) {
-            unbriefed.remove(Session(agentID: agent.id, id: lost))
-        }
-        unbriefed.insert(Session(agentID: agent.id, id: id))
-        bind(chatID, to: Session(agentID: agent.id, id: id))
+        let fresh = Session(agentID: agent.id, id: id)
+        unbriefed[chatID] = Briefing(session: fresh, earlier: ACPPrompt.transcript(of: Array(earlier)))
+        bind(chatID, to: fresh)
         store.setACPSession(id, forChat: chatID)
         await adopt(ACPModes(result: result), session: id, chatID: chatID, agent: agent, on: connection)
         return id
