@@ -148,8 +148,9 @@ enum DictationHistoryActionsMenu {
         if entry.transcript != nil {
             items.append(
                 PopoverMenuItem(
-                    title: String(localized: "Copy Raw Transcript"), systemImage: "text.quote",
-                    shortcut: "⇧⌘C"
+                    title: entry.kind == .dictation
+                        ? String(localized: "Copy Raw Transcript") : String(localized: "Copy Request"),
+                    systemImage: "text.quote", shortcut: "⇧⌘C"
                 ) {
                     coordinator.copyTranscript(entry)
                 })

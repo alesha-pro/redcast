@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// The Dictation pane's History: how long transcripts stay, the command's shortcut, and Clear.
+/// The Dictation pane's History: how long transcripts stay, what joins them, the shortcut, Clear.
 struct DictationHistorySection: View {
     @Environment(AppCore.self) private var core
 
@@ -15,6 +15,15 @@ struct DictationHistorySection: View {
                 SettingsRowTitle(.dictationHistory, "Keep history")
                 Text("Shortening it removes older transcripts at once.")
             }
+            Toggle(isOn: voiceRepliesBinding) {
+                SettingsRowTitle(.dictationHistory, "Include Ask by Voice and voice edits")
+                Text(
+                    """
+                    Also keeps each question with its answer, and each edit's instruction with the \
+                    edited text.
+                    """)
+            }
+            .settingsEnabled(coordinator.settings.retention.keepsHistory)
             ForEach(CommandCatalog.entries(ownedBy: .dictation)) { entry in
                 FeatureCommandRow(entry: entry)
             }
@@ -30,10 +39,16 @@ struct DictationHistorySection: View {
         } footer: {
             Text(
                 """
-                Finished dictations, Ask by Voice questions and voice edits are kept on this Mac as \
-                text, never as audio, and are left out of exported backups.
+                The history is kept on this Mac as text, never as audio, and is left out of exported \
+                backups.
                 """)
         }
+    }
+
+    private var voiceRepliesBinding: Binding<Bool> {
+        Binding(
+            get: { core.dictationHistoryCoordinator.settings.keepsVoiceReplies },
+            set: { core.dictationHistoryCoordinator.setKeepsVoiceReplies($0) })
     }
 
     private var retentionBinding: Binding<DictationHistoryRetention> {

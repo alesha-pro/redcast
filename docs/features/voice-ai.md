@@ -51,8 +51,9 @@ tables and `AppCore`.
   run's chat is saved like any `@handle` run's, with the transcribed request, the window's text and
   any picture, and the **Answer with** caption and the section footer say so. Unless Keep history is
   Off, [Dictation History](dictation-history.md) keeps the text of each finished dictation, with the
-  transcript a mode rewrote, and each Ask's answer and each edit with what was said, never the audio
-  or the window.
+  transcript a mode rewrote, never the audio or the window; each Ask's answer and each edit with
+  what was said only once its **Include Ask by Voice and voice edits** switch is on, which it is not
+  by default. The section footer follows that switch.
 - **Silence never leaves the Mac.** `VoiceAudio.speechRange` trims silence at both ends with 300 ms of
   padding and returns nil for a recording without 200 ms of speech; nil means "No speech was
   recorded" and no request. A `[[NO_SPEECH]]` reply covers what slips through, and is never shown.
@@ -268,8 +269,9 @@ agents](background-agents.md)). Escape while the request is being written down s
 That chat is saved to AI Chat's history as it goes, like every background run's, so the request, the
 window's Markdown and the picture stay on disk until the reader deletes the chat. The caption under
 **Answer with** says so where the agent is chosen, and the section footer names the agent's run as
-the one place besides AI Chat where what was read is kept, and Dictation History as where a
-question's text and its answer are. The recording itself is never saved.
+the one place besides AI Chat where what was read is kept and, while Dictation History keeps voice
+replies, that history as where a question's text and its answer are. The recording itself is never
+saved.
 
 ## Routes and models
 

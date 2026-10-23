@@ -1,21 +1,27 @@
 # Dictation History
 
-**Dictation History** keeps the text of every finished dictation, on-device or in the cloud, and of
-every Ask by Voice question and voice edit, and lists it in a launcher command: newest first,
-searched as you type, previewed in full, and pasted again into the app in front with ↵. It is the fork's take
-on Raycast's dictation history, kept to `Features/DictationHistory/` plus the `Fork:`-marked lines
-listed under [Upstream touches](#upstream-touches). No audio is ever kept; the recording stays where
-[Dictation](dictation.md) and [Voice AI](voice-ai.md) leave it, in memory until it is transcribed.
+**Dictation History** keeps the text of every finished dictation, on-device or in the cloud, and,
+once switched on, of every Ask by Voice question and voice edit, and lists it in a launcher command:
+newest first, searched as you type, previewed in full, and pasted again into the app in front with
+↵. It is the fork's take on Raycast's dictation history, kept to `Features/DictationHistory/` plus
+the `Fork:`-marked lines listed under [Upstream touches](#upstream-touches). No audio is ever kept;
+the recording stays where [Dictation](dictation.md) and [Voice AI](voice-ai.md) leave it, in memory
+until it is transcribed.
 
 ## Invariants
 
 - **Text only, and only once the text is final.** An entry is written when a dictation's text is
   known, whether or not its paste then lands: the text typed (live chunks included), the engine's own
   transcript when a mode's second request rewrote it, the mode's name, the engine and model, the app
-  in front (name and bundle id), the date and the recording's length. An Ask by Voice reply is kept
-  with its transcribed question, and a voice edit with its instruction, marked by kind; an agent's
-  spoken request is not, since its run is already a chat. A recording with no speech, a cancelled one
-  and one whose transcription failed leave nothing.
+  in front (name and bundle id), the date and the recording's length. A recording with no speech, a
+  cancelled one and one whose transcription failed leave nothing.
+- **Ask by Voice and voice edits only when asked for.** An answer can quote the window that was
+  read, and an edit's result is the reader's own selected text rather than speech, so **Include Ask
+  by Voice and voice edits** is off by default and an update never starts keeping them. On, an Ask
+  by Voice reply is kept with its transcribed question, and a voice edit with its instruction,
+  marked by kind; switching it off stops new ones and leaves those kept to age out or be deleted.
+  An agent's spoken request is never kept, since its run is already a chat. Ask by Voice's own
+  footer says which of the two is true.
 - **Nothing at launch, no resident work.** `AppCore.start()` only shows or hides the command, from
   one `UserDefaults` read; the file is first touched by a finished dictation, by opening the screen
   or by a change to Keep history. There is no timer, watcher, cache or process: a trim happens on a
@@ -36,9 +42,10 @@ listed under [Upstream touches](#upstream-touches). No audio is ever kept; the r
   method that asks through Tinycast's own dialog before the file goes. **Delete Entry** (⌃X) is not
   asked, as in Clipboard History.
 - **Never in a backup, never in settings.json.** The history is private text on this Mac: no
-  `BackupCategory` carries it, and `dictationHistoryRetention` is excluded from settings backups (an
-  import must never arrive carrying an instruction to delete transcripts) and has no settings-file
-  key.
+  `BackupCategory` carries it, and both its keys are excluded from settings backups and have no
+  settings-file key: `dictationHistoryRetention`, since an import must never arrive carrying an
+  instruction to delete transcripts, and `dictationHistoryVoiceReplies`, since one must never start
+  writing answers and edited text to disk.
 - **The line format reads both ways.** `dictation-history.jsonl` in the bundle id's Application
   Support folder: per line the date's whole seconds, a tab, then JSON with sorted keys, which
   escapes every newline a transcript holds. A reader ignores keys it does not know, reads a missing
@@ -48,7 +55,8 @@ listed under [Upstream touches](#upstream-touches). No audio is ever kept; the r
   than ended.
 - **↵ types like a snippet.** Paste goes through `TextInjector` to the caret the palette covered,
   an AI Chat composer included, borrowing the clipboard and giving it back. ⌘C and ⌘↵ copy unmarked,
-  so the copy joins Clipboard History like any other; ⇧⌘C copies the raw transcript or the request.
+  so the copy joins Clipboard History like any other; ⇧⌘C copies the raw transcript or the request,
+  and the ⌘K row is named for whichever it is.
 
 ## Layout
 
@@ -58,8 +66,8 @@ listed under [Upstream touches](#upstream-touches). No audio is ever kept; the r
 | `Model/DictationHistoryRetention.swift` | Keep history's spans, their cutoffs and titles |
 | `Model/DictationHistoryQuery.swift` | Folded search keys and the every-word filter |
 | `Service/DictationHistoryFile.swift` | The file: the locked append and its trim, the load, delete, trim and clear |
-| `Settings/DictationHistorySettings.swift` | The fork's own store for Keep history |
-| `Settings/DictationHistorySection.swift` | The Dictation pane's History section: Keep history, the command's row, Clear… |
+| `Settings/DictationHistorySettings.swift` | The fork's own store for Keep history and the voice-replies switch |
+| `Settings/DictationHistorySection.swift` | The Dictation pane's History section: Keep history, the voice-replies switch, the command's row, Clear… |
 | `UI/DictationHistoryCoordinator.swift` | The action surface: recording, the screen, paste, copy, delete, clear, ⌘C |
 | `UI/DictationHistoryIndex.swift` | The loaded entries and their keys while the screen is open |
 | `UI/DictationHistoryScreen.swift` | The palette screen and its ⌘K menu |
@@ -76,10 +84,11 @@ the coordinator takes them when the transcript matches, and otherwise records th
 length is the whole recording's, to a tenth of a second. Gemini rewrites a mode in one request, so
 only a mode on another model keeps a raw transcript.
 
-`VoiceAskCoordinator` takes a `history` closure with a default and records a reply once it is whole,
-however it is then delivered (typed, shown, replaced or shown instead): the answer or the edit as the
-text, the transcribed question or instruction as the transcript, its route's model, the app it was
-asked in, and no length.
+`VoiceAskCoordinator` takes a `history` closure with a default and hands over a reply once it is
+whole, however it is then delivered (typed, shown, replaced or shown instead): the answer or the edit
+as the text, the transcribed question or instruction as the transcript, its route's model, the app it
+was asked in, and no length. `DictationHistoryCoordinator.record` drops it unless the voice-replies
+switch is on (`Kind.isKept(voiceReplies:)`).
 
 ## The screen
 
@@ -94,15 +103,17 @@ anywhere in the text, the transcript, the app or the mode, folding case, accents
 | --- | --- |
 | ↵ | Paste to the app in front |
 | ⌘C, ⌘↵ | Copy to Clipboard |
-| ⇧⌘C | Copy Raw Transcript, when the entry has one |
+| ⇧⌘C | Copy Raw Transcript, or Copy Request for an Ask or an edit, when the entry has one |
 | ⌃X, ⌘⌫ | Delete Entry |
 | ⌃⇧X | Delete All Entries, after the dialog |
 
-⌘C reaches the coordinator from the panel's command shortcut hook only while no query text is
-selected, so selected text in the search field still copies as text. The command is found by its
-name in the interface's language and in English, and by "transcripts" and "voice history" in both;
-its alias, launcher checkbox and global shortcut sit in the History section, since the Dictation pane
-owns it. It is listed while Keep history is not Off and Dictation or Ask by Voice is on.
+⌘C reaches the coordinator from the panel's command shortcut hook only while the first responder is
+a field editor (`isFieldEditor`; SwiftUI's is not the window's `fieldEditor(_:for:)`) with nothing
+selected. Selected query text, and text selected in the preview, whose selectable `Text` is not an
+`NSTextView`, still copy as text. The command is found by its name in the interface's language and
+in English, and by "transcripts" and "voice history" in both; its alias, launcher checkbox and
+global shortcut sit in the History section, since the Dictation pane owns it. It is listed while
+Keep history is not Off and Dictation is on, or Ask by Voice is on with its replies kept.
 
 ## Upstream touches
 
@@ -112,8 +123,8 @@ Dictation pane's `ownedCommands`, `LauncherCoordinator.runCommand`, the `Palette
 symbol and placeholder, `RootPaletteView`'s screen, the ⌘C branch in `PaletteWindowController`'s
 command shortcut hook, `DictationCoordinator`'s `finished` closure, its two calls and the
 recording's sample count, `DictationSettingsView`'s section, `AppCore`'s coordinator, its two
-closures, its `applyEnabled` at start and the two tracks, the `AppSettingsKey`, its reason in
-`SettingsBackupCoverage`, the `SettingsAnchor` and the `SettingsSearchCatalog` entries.
+closures, its `applyEnabled` at start and the two tracks, the two `AppSettingsKey`s, their reasons
+in `SettingsBackupCoverage`, the `SettingsAnchor` and the `SettingsSearchCatalog` entries.
 
 ## Manual sweep
 
@@ -124,8 +135,11 @@ closures, its `applyEnabled` at start and the two tracks, the `AppSettingsKey`, 
   shows the English text, the mode and the model; on a local OpenAI-compatible model it also shows
   the Raw transcript, and ⇧⌘C copies it.
 - Dictate into AI Chat's composer: the entry names Redcast as the app.
-- Ask by Voice a question, then Edit Selection by Voice: both appear with their kind in the row, the
-  answer or the edit as the text, and the question or instruction under Request.
+- With Include Ask by Voice and voice edits off (the default), Ask by Voice a question and Edit
+  Selection by Voice: neither is added, and Ask by Voice's footer says a question is kept only in AI
+  Chat or an agent's run. Switch it on and repeat: both appear with their kind in the row, the answer
+  or the edit as the text, the question or instruction under Request, and ⌘K offers Copy Request;
+  the footer now names Dictation History.
 - Stay silent, or press Escape while it transcribes: nothing is added.
 - Type "transcripts", "voice history" or "Dictation History" in the launcher, and in a Russian
   interface "расшифровки" or "история диктовки": the command is found. Bind it a shortcut in
@@ -133,12 +147,14 @@ closures, its `applyEnabled` at start and the two tracks, the `AppSettingsKey`, 
 - Search with two words from different fields (an app and a word of the text): only entries with
   both remain; "елка" finds "Ёлка".
 - ⌘C with nothing selected in the search field copies the entry and closes the palette; select some
-  typed text and ⌘C copies that text instead.
+  typed text and ⌘C copies that text instead; drag over a sentence in the preview and ⌘C copies
+  just that sentence, leaving the palette open.
 - ⌃X deletes the entry at once; ⌃⇧X asks, and Clear History empties the list and removes
   `dictation-history.jsonl` from `~/Library/Application Support/<bundle id>/`.
 - Set Keep history to 1 Day with older entries present: they leave the file at once. Off hides the
   command and removes the file; a dictation then writes nothing.
-- Turn Dictation and Ask by Voice off: the command is hidden; the History section still clears.
+- Turn Dictation off with Ask by Voice on: the command is listed only while its replies are kept.
+  Turn both off: the command is hidden; the History section still clears.
 - Open and close the screen with Activity Monitor watching: memory returns to where it was once the
   palette pops to root, and no thread or wakeup stays while idle.
 - Export a backup with every category: the archive holds no transcript.
@@ -149,7 +165,8 @@ closures, its `applyEnabled` at start and the two tracks, the `AppSettingsKey`, 
 first-build line field for field and writes it byte for byte; reads a later build's line with an
 unknown kind, engine, extra keys and a bad duration and keeps it byte for byte on a trim; skips lines
 without a date, JSON, an id or a text while a rewrite keeps dated ones; caps the text and drops a
-transcript equal to it; and pins the retention spans and their stored values. On a scratch folder it
+transcript equal to it; pins the retention spans and their stored values; and keeps an Ask or an
+edit only with the voice-replies switch on. On a scratch folder it
 appends and loads newest first, creates no file on a read, writes nothing for Off, trims on an append
 only past the slack and never shows what aged out, drops on a load what aged out since the last
 write and removes an emptied file, drops a cut-short last line on the next append without swallowing

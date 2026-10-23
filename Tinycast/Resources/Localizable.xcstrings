@@ -25439,6 +25439,58 @@
         }
       }
     },
+    "Also keeps each question with its answer, and each edit's instruction with the edited text." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Behält auch jede Frage mit ihrer Antwort und bei jeder Bearbeitung die Anweisung mit dem bearbeiteten Text."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "También guarda cada pregunta con su respuesta, y la instrucción de cada edición con el texto editado."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Conserve aussi chaque question avec sa réponse, et la consigne de chaque modification avec le texte modifié."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "各質問とその回答、および各編集の指示と編集後のテキストも保存します。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "각 질문과 답변, 그리고 각 편집의 지시와 편집된 텍스트도 보관합니다."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Também guarda cada pergunta com a resposta, e a instrução de cada edição com o texto editado."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Также сохраняет каждый вопрос с ответом, а для правки — указание и исправленный текст."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "同时保留每个问题及其回答，以及每次编辑的指令和编辑后的文本。"
+          }
+        }
+      }
+    },
     "Always Allow" : {
       "comment" : "MCP trust level",
       "localizations" : {
@@ -45894,6 +45946,58 @@
         }
       }
     },
+    "Copy Request" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Anfrage kopieren"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copiar la solicitud"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copier la demande"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "リクエストをコピー"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "요청 복사"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copiar pedido"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Скопировать запрос"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "拷贝请求"
+          }
+        }
+      }
+    },
     "Copy Resume Command" : {
       "localizations" : {
         "de" : {
@@ -63847,58 +63951,6 @@
         }
       }
     },
-    "Finished dictations, Ask by Voice questions and voice edits are kept on this Mac as text, never as audio, and are left out of exported backups." : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Beendete Diktate, Fragen über „Per Sprache fragen“ und Sprachbearbeitungen bleiben als Text auf diesem Mac, nie als Audio, und gehören nicht zu exportierten Backups."
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Los dictados terminados, las preguntas de «Preguntar por voz» y las ediciones por voz se guardan en este Mac como texto, nunca como audio, y quedan fuera de las copias de seguridad exportadas."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Les dictées terminées, les questions « Demander à voix haute » et les modifications vocales restent sur ce Mac sous forme de texte, jamais en audio, et hors des sauvegardes exportées."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "完了した音声入力、「音声で質問」の質問、音声での編集は、音声ではなくテキストとしてこのMacに保存され、書き出したバックアップには含まれません。"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "완료된 받아쓰기, '음성으로 묻기' 질문, 음성 편집은 오디오가 아닌 텍스트로 이 Mac에 보관되며, 내보낸 백업에는 포함되지 않습니다."
-          }
-        },
-        "pt" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ditados concluídos, perguntas do “Perguntar por Voz” e edições por voz ficam neste Mac como texto, nunca como áudio, e ficam fora dos backups exportados."
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Завершённые диктовки, вопросы «Спросить голосом» и голосовые правки хранятся на этом Mac только текстом, без аудио, и не попадают в экспортируемые резервные копии."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "完成的听写、“语音提问”的问题和语音编辑会以文本形式保存在这台 Mac 上，绝不保存音频，也不会进入导出的备份。"
-          }
-        }
-      }
-    },
     "Finished successfully." : {
       "localizations" : {
         "de" : {
@@ -72865,6 +72917,58 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "包括已归档的会话"
+          }
+        }
+      }
+    },
+    "Include Ask by Voice and voice edits" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "„Per Sprache fragen“ und Sprachbearbeitungen einbeziehen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Incluir Preguntar por voz y las ediciones por voz"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inclure Demander à voix haute et les modifications vocales"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "「音声で質問」と音声での編集を含める"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "음성으로 묻기와 음성 편집 포함"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Incluir Perguntar por Voz e edições por voz"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Включать «Спросить голосом» и голосовые правки"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "包括语音提问和语音编辑"
           }
         }
       }
@@ -122009,6 +122113,58 @@
         }
       }
     },
+    "Set their shortcuts under Commands. Edit Selection by Voice rewrites the text you selected as you say. A recording is never saved. A question and what was read are kept only if you continue in AI Chat, or as the chat of an agent's run." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lege die Kurzbefehle unter „Befehle“ fest. „Auswahl per Sprache bearbeiten“ schreibt den ausgewählten Text so um, wie du es sagst. Eine Aufnahme wird nie gespeichert. Eine Frage und das Gelesene bleiben nur erhalten, wenn du im KI-Chat weitermachst, oder als Chat eines Agentenlaufs."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Define sus atajos en Comandos. Editar la selección por voz reescribe el texto seleccionado como digas. Una grabación nunca se guarda. Una pregunta y lo leído solo se conservan si continúas en el chat de IA, o como el chat de la ejecución de un agente."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Définissez leurs raccourcis dans Commandes. Modifier la sélection à voix haute réécrit le texte sélectionné comme vous le dites. Un enregistrement n’est jamais conservé. Une question et ce qui a été lu ne sont gardés que si vous continuez dans Conversation IA, ou comme conversation de l’exécution d’un agent."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ショートカットは「コマンド」で設定します。「選択範囲を音声で編集」は、選択したテキストを話したとおりに書き直します。録音は保存されません。質問と読み取った内容は、AIチャットで続けた場合か、エージェントの実行のチャットとしてのみ残ります。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "단축키는 명령에서 설정하세요. 선택 영역을 음성으로 편집은 선택한 텍스트를 말한 대로 다시 씁니다. 녹음은 저장되지 않습니다. 질문과 읽은 내용은 AI 채팅에서 이어가거나 에이전트 실행의 채팅으로만 남습니다."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Defina os atalhos em Comandos. Editar seleção por Voz reescreve o texto selecionado como você disser. Uma gravação nunca é salva. Uma pergunta e o que foi lido só são mantidos se você continuar no Chat de IA, ou como o chat da execução de um agente."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сочетания клавиш задаются в разделе «Команды». «Изменить выделение голосом» переписывает выделенный текст так, как вы скажете. Запись не сохраняется. Вопрос и прочитанное остаются, только если вы продолжите в ИИ-чате, или сохраняются как чат запуска агента."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在“命令”中设置它们的快捷键。“语音编辑所选内容”会按你说的改写选中的文本。录音绝不保存。问题和读取的内容只有在 AI 聊天中继续时，或作为智能体运行的聊天时才会保留。"
+          }
+        }
+      }
+    },
     "Set their shortcuts under Commands. Edit Selection by Voice rewrites the text you selected as you say. A recording is never saved. Dictation History keeps the text of a question and its answer, and of an edit; what was read is kept only if you continue in AI Chat, or as the chat of an agent's run." : {
       "localizations" : {
         "de" : {
@@ -135369,6 +135525,58 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "文件夹“%@”已不存在。"
+          }
+        }
+      }
+    },
+    "The history is kept on this Mac as text, never as audio, and is left out of exported backups." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der Verlauf bleibt als Text auf diesem Mac, nie als Audio, und gehört nicht zu exportierten Backups."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El historial se guarda en este Mac como texto, nunca como audio, y queda fuera de las copias de seguridad exportadas."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L’historique reste sur ce Mac sous forme de texte, jamais en audio, et hors des sauvegardes exportées."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "履歴は音声ではなくテキストとしてこのMacに保存され、書き出したバックアップには含まれません。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "기록은 오디오가 아닌 텍스트로 이 Mac에 보관되며, 내보낸 백업에는 포함되지 않습니다."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O histórico fica neste Mac como texto, nunca como áudio, e fica fora dos backups exportados."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "История хранится на этом Mac только текстом, без аудио, и не попадает в экспортируемые резервные копии."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "历史记录以文本形式保存在这台 Mac 上，绝不保存音频，也不会进入导出的备份。"
           }
         }
       }

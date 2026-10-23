@@ -92,10 +92,13 @@ enum SettingsBackupCoverage {
             "Dictation preferences stay local until backup supports them.",
         AppSettingsKey.dictationIdleRelease.rawValue:
             "Dictation memory use stays a device-local preference.",
-        // Fork: Dictation History's retention; its transcripts travel in no backup either.
+        // Fork: Dictation History's settings; its transcripts travel in no backup either.
         AppSettingsKey.dictationHistoryRetention.rawValue:
             "How long transcripts survive is a decision about the text on this Mac, and an import "
             + "must never arrive carrying an instruction to delete it.",
+        AppSettingsKey.dictationHistoryVoiceReplies.rawValue:
+            "Writes Ask by Voice answers and edited selections to this Mac's disk; an import must "
+            + "never start keeping them.",
         AppSettingsKey.clipboardTextSearchEnabled.rawValue:
             "Background OCR is an opt-in processing choice on this Mac; a backup must not enable it.",
         AppSettingsKey.snippetsEnabled.rawValue:
