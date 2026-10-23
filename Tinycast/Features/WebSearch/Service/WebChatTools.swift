@@ -8,8 +8,16 @@ nonisolated final class WebChatTools: Sendable {
 
     let search: WebSearchRunner
     private let fetch: Fetch
-    /// The latest round's messages, all `read_page` may judge by; they die with the turn.
-    private let latest = Mutex<[AIMessage]>([])
+    /// All `read_page` may judge by, for this turn only.
+    private let scope = Mutex(Scope())
+
+    private struct Scope {
+        var messages: [AIMessage] = []
+        /// Addresses this turn's searches returned and a round has shown the model.
+        var shown: [URL] = []
+        /// Addresses of searches since the latest round, shown with the next one.
+        var found: [URL] = []
+    }
 
     init(search: WebSearchRunner, fetch: @escaping Fetch) {
         self.search = search
@@ -28,23 +36,36 @@ nonisolated final class WebChatTools: Sendable {
     /// Nil for a call that is neither tool, which the caller routes on.
     func run(_ call: AIToolCall) async -> AIToolResult? {
         switch call.name {
-        case WebSearchTool.name: await search.run(call)
+        case WebSearchTool.name: await find(call)
         case WebPageTool.name: await read(call)
         default: nil
         }
     }
 
     fileprivate func note(_ request: AIRequest) {
-        latest.withLock { $0 = request.messages }
+        scope.withLock {
+            $0.messages = request.messages
+            $0.shown += $0.found
+            $0.found.removeAll()
+        }
+    }
+
+    /// The engine's own result addresses; the answer's text, which repeats the query, adds none.
+    private func find(_ call: AIToolCall) async -> AIToolResult {
+        let (result, found) = await search.run(call)
+        let pages = found.compactMap { URL(string: $0.url) }
+        scope.withLock { $0.found += pages }
+        return result
     }
 
     private func read(_ call: AIToolCall) async -> AIToolResult {
-        guard let url = WebPageTool.url(in: call.arguments) else {
+        guard let asked = WebPageTool.url(in: call.arguments) else {
             return .failure(call.id, WebPageTool.invalidURL)
         }
-        let messages = latest.withLock { $0 }
-        guard WebPageScope.allows(url, in: messages) else {
-            return .failure(call.id, WebPageTool.outOfScope(url))
+        let (messages, shown) = scope.withLock { ($0.messages, $0.shown) }
+        // The given address is fetched, so no spelling of the model's can carry chat text out.
+        guard let url = WebPageScope.page(for: asked, in: messages, shown: shown) else {
+            return .failure(call.id, WebPageTool.outOfScope(asked))
         }
         let page = await fetch(url)
         guard !page.failed else { return .failure(call.id, page.text) }

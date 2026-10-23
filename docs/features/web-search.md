@@ -24,13 +24,23 @@ few lines that wire it into `AIChatCoordinator`, `AIToolLoopProvider`, `AgentCoo
   every API route.
 - **`read_page` opens only an address the turn was given, never one the model wrote.** A chat
   without an agent reads a page only when its URL appears in one of the user's own messages of the
-  request (inlined attachments included) or in a `web_search` answer earlier in the same turn.
-  `WebChatTools.watching` sees each round's messages before its calls run, and `WebPageScope`
-  judges by them alone: a page read, the model's replies, MCP results and the instructions add
-  nothing, so a page cannot steer the next read and the model cannot put chat text into an address.
-  Scheme, host case, a leading `www.`, a trailing or doubled slash, a fragment, a default port and
-  percent-escapes do not tell pages apart; a query or a longer path does. No dialog asks: the toggle
-  is the consent, as it is for search, and this rule keeps its grant no wider than search's.
+  request (inlined attachments included) or is the address of a result that one of the turn's own
+  searches returned and an earlier round showed the model. `WebChatTools` keeps the result
+  addresses its runner hands back (`WebSearchResult.url`), never the answer's text: the query the
+  answer repeats, a title, an excerpt and a failure's reason add nothing, so searching for an
+  address does not make it readable. `WebChatTools.watching` sees each round's messages before its
+  calls run, and those results join the scope with the round that shows them. A page read, the
+  model's replies, MCP results and the instructions add nothing either, so a page cannot steer the
+  next read and the model cannot put chat text into an address. No dialog asks: the toggle is the
+  consent, as it is for search, and this rule keeps its grant no wider than search's.
+- **The model only picks a page; the address it was given is what is fetched.** Scheme, host case,
+  a leading `www.`, a trailing or doubled slash, a fragment, a default port and percent-escapes do
+  not tell pages apart, and a query or a longer path does (`WebPageScope.key`). The request goes to
+  the address as the user or the engine wrote it, never the model's spelling, so no variant of it
+  carries anything to the host. An address with a user name or password names no page, from the
+  model, the user or an engine. Plain HTTP to the open web is read over HTTPS, since ATS refuses
+  it anyway (`WebPageScope.secured`); a loopback, `.local` or single-label host keeps HTTP, by the
+  same rule as the SearXNG address.
 - **A page is read as `web_fetch` reads it.** `read_page` goes through
   `AgentToolExecutor.readPage`, `web_fetch`'s own read without its question: one ephemeral session
   with no cache, 20 s idle, 2 MB at most, HTML to text, 28 KB to the model. The answer opens by
@@ -95,14 +105,14 @@ sentence. SearXNG documents no week for its JSON API, so a week widens to a mont
 | --- | --- |
 | `Model/WebSearchSource.swift` | The engines, the query, result, failure and outcome values, the Keychain account |
 | `Model/WebSearchConfiguration.swift` | Order, switches and the SearXNG address; decoding that survives other builds' engines |
-| `Model/WebSearchEndpoint.swift` | One `URLRequest` per engine, byte-stable bodies, the SearXNG address policy |
+| `Model/WebSearchEndpoint.swift` | One `URLRequest` per engine, byte-stable bodies, the SearXNG address and ATS policy |
 | `Model/WebSearchDecoder.swift` | Status and body to results: the MCP envelope, Exa's text, DuckDuckGo's HTML, three JSON shapes |
 | `Model/WebSearchTool.swift` | The `AITool`, argument parsing, the bounded answer, `searchingWithTinycast` |
 | `Model/WebPageTool.swift` | `read_page` as the model sees it: the `AITool`, its address, the answer and refusals |
-| `Model/WebPageScope.swift` | Which addresses a turn was given, and what tells two addresses apart |
-| `Service/WebSearchRunner.swift` | The chain for one call: keys on demand, the transport, fallback |
+| `Model/WebPageScope.swift` | Which addresses a turn was given, what tells two apart, and the one to fetch |
+| `Service/WebSearchRunner.swift` | The chain for one call: keys on demand, the transport, fallback, the results found |
 | `Service/WebSearchAgentTools.swift` | The Web family's provider: consent, the search row, the runner |
-| `Service/WebChatTools.swift` | A plain chat's turn: routes `web_search` and `read_page`, watches each round's messages |
+| `Service/WebChatTools.swift` | A plain chat's turn: routes both tools, keeps its searches' results, watches each round |
 | `Settings/WebSearchSettingsStore.swift` | The engine list in `UserDefaults`, the Keychain item, `runner(reader:)`, `chatTools()` |
 | `Settings/WebSearchEnginesRow.swift`, `WebSearchEnginesPanel.swift` | The row under the toggle and its editor: order, switches, keys, address, Test |
 
@@ -138,9 +148,10 @@ A configuration saved by an older build gains the engine at the end of its order
 6. A plain chat with Web Search on: "Summarise https://www.swift.org/blog/" shows a
    "Web search · read_page" row and a summary. "Find the Swift 6 migration guide and read it" shows a
    search row, then a `read_page` row on a result. Ask it to open a link it found on that page, or
-   to add `?ref=x` to one: the row fails and the reply says it needs a search or your link. With
-   Web Search off, no `read_page` is sent. Settings → AI → Chat's caption says the model may read a
-   page you linked or a search found.
+   to add `?ref=x` to one: the row fails and the reply says it needs a search or your link. Ask it
+   to search for `https://example.org/?q=test` and then read that address: the search row shows,
+   the `read_page` row fails. With Web Search off, no `read_page` is sent. The caption in
+   Settings → AI → Chat says the model may read a page you linked or a search found.
 7. Codex with Web Search on: unchanged, Codex's own rows.
 8. Switch Exa and Parallel off: answers say "from DuckDuckGo". Search a burst of times; if DuckDuckGo
    refuses, the reply says the search failed and nothing hangs.
@@ -158,6 +169,6 @@ A configuration saved by an older build gains the engine at the end of its order
 Harness: `web-search-test` (the tool's schema, arguments, every engine's exact request, the address
 policy, every recorded answer and failure, the bounded answer, configuration across builds, the chain
 through a fake transport, both loops' rows, the agent provider through a toolset and its consent, and
-`read_page`: its schema, what tells pages apart, what the turn was given, and a plain chat's loop
-reading a found page and a linked one while a forged address, a page's own link and a read beside
-its search are refused).
+`read_page`: its schema, what tells pages apart, what the turn was given, the address fetched, and a
+plain chat's loop reading a found page and a linked one while a forged address, a page's own link, a
+read beside its search, an address the model only searched for and one carrying a user are refused).
