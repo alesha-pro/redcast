@@ -7,9 +7,13 @@ struct AgentSessionsSettingsSection: View {
     @State private var terminals: [AgentTerminal] = []
     @State private var summary: AgentSessionsCoordinator.LiveStatusSummary?
     @State private var plan: AgentSessionsCoordinator.LiveStatusPlan?
+    /// From a live-status button until the plan or the re-read summary that follows it lands.
+    @State private var settling = false
 
     private var coordinator: AgentSessionsCoordinator { core.agentSessionsCoordinator }
     private var isOn: Bool { summary?.isOn ?? false }
+    /// A folder moved under installed hooks would strand them beyond Turn Off's reach.
+    private var foldersLocked: Bool { settling || plan != nil || summary?.isInstalledAnywhere != false }
 
     var body: some View {
         Section {
@@ -33,6 +37,7 @@ struct AgentSessionsSettingsSection: View {
             .disabled(!appSettings.agentSessionsEnabled)
             LabeledContent {
                 AgentFolderField(placeholder: "~/.claude", text: folderBinding(\.agentSessionsClaudeFolder))
+                    .disabled(foldersLocked)
             } label: {
                 SettingsRowTitle(.aiAgentSessions, "Claude Code folder")
                 folderNote(appSettings.agentSessionsClaudeFolder, variable: "CLAUDE_CONFIG_DIR", default: "~/.claude")
@@ -40,6 +45,7 @@ struct AgentSessionsSettingsSection: View {
             .disabled(!appSettings.agentSessionsEnabled)
             LabeledContent {
                 AgentFolderField(placeholder: "~/.codex", text: folderBinding(\.agentSessionsCodexFolder))
+                    .disabled(foldersLocked)
             } label: {
                 SettingsRowTitle(.aiAgentSessions, "Codex folder")
                 folderNote(appSettings.agentSessionsCodexFolder, variable: "CODEX_HOME", default: "~/.codex")
@@ -74,7 +80,11 @@ struct AgentSessionsSettingsSection: View {
         }
         .settingsEditorPanel(item: $plan) { plan in
             AgentHooksPanel(plan: plan) {
-                Task { summary = await coordinator.liveStatusSummary() }
+                settling = true
+                Task {
+                    summary = await coordinator.liveStatusSummary()
+                    settling = false
+                }
             }
         }
     }
@@ -100,7 +110,11 @@ struct AgentSessionsSettingsSection: View {
     }
 
     private func review(on: Bool) {
-        Task { plan = await coordinator.prepareLiveStatus(on: on) }
+        settling = true
+        Task {
+            plan = await coordinator.prepareLiveStatus(on: on)
+            settling = false
+        }
     }
 
     private var enabledBinding: Binding<Bool> {
@@ -124,6 +138,7 @@ struct AgentSessionsSettingsSection: View {
         Binding(
             get: { appSettings[keyPath: key] },
             set: { text in
+                guard !foldersLocked else { return }
                 appSettings[keyPath: key] = text.trimmingCharacters(in: .whitespacesAndNewlines)
                 Task { summary = await coordinator.liveStatusSummary() }
             })
@@ -131,6 +146,7 @@ struct AgentSessionsSettingsSection: View {
 
     /// One `stat` per render of the section, which only Settings shows.
     private func folderNote(_ text: String, variable: String, default folder: String) -> Text {
+        if summary?.isInstalledAnywhere == true { return Text("Turn off live status to change this folder.") }
         let url = AgentSessionsLocations.folder(text, home: FileManager.default.homeDirectoryForCurrentUser)
         guard text.isEmpty || url.map({ AgentSessionsCoordinator.folderExists($0.path) }) == true else {
             return Text("No folder at this path.")
@@ -151,6 +167,7 @@ private struct AgentFolderField: View {
     @Binding var text: String
     @State private var draft = ""
     @FocusState private var focused: Bool
+    @Environment(\.isEnabled) private var isEnabled
 
     var body: some View {
         TextField(placeholder, text: $draft, prompt: Text(verbatim: placeholder))
@@ -163,10 +180,13 @@ private struct AgentFolderField: View {
                 if !isFocused { save() }
             }
             .onAppear { draft = text }
+            .onChange(of: isEnabled) { draft = text }
     }
 
+    /// Read back, since the setter trims the text and refuses it while the folders are locked.
     private func save() {
         guard draft.trimmingCharacters(in: .whitespacesAndNewlines) != text else { return }
         text = draft
+        draft = text
     }
 }
