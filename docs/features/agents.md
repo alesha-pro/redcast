@@ -406,9 +406,9 @@ stripped and only the output's tail is kept. `search_files` prefers ripgrep and 
 `grep -rnIE`, run without a shell so a pattern is never interpreted. `web_fetch` uses a private
 `.ephemeral` session per fetch, with no cache and a cookie jar of its own, follows no redirect onto
 a local host it did not start at ([why](web-search.md#invariants)), reads at most 2 MB, and turns
-HTML into text. `web_search` runs through [web search](web-search.md)'s engine chain, not the
-executor; it asks under the same Web rule and shows a search row between its own row's opening and
-closing.
+HTML into text, saying so when a page's scripts would have drawn what is missing. `web_search` runs
+through [web search](web-search.md)'s engine chain, not the executor; it asks under the same Web
+rule and shows a search row between its own row's opening and closing.
 
 Neighbouring calls that may share a round run together, four at most (`AgentLoopProvider.width`),
 which bounds memory to four 2 MB fetch buffers and processes to four ripgreps: reads, `web_fetch`,
