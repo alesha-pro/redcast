@@ -32,13 +32,6 @@ nonisolated struct AgentToolExecutor: Sendable {
     private static let maxFetchBytes = 2 * 1_048_576
     private static let maxMemoryBytes = 64 * 1_024
 
-    private static let session: URLSession = {
-        let configuration = URLSessionConfiguration.ephemeral
-        configuration.urlCache = nil
-        configuration.timeoutIntervalForRequest = 20
-        return URLSession(configuration: configuration)
-    }()
-
     private var home: String { AgentContextLoader.home }
 
     func run(_ call: AIToolCall) async -> AIToolResult {
@@ -275,8 +268,11 @@ nonisolated struct AgentToolExecutor: Sendable {
     /// `web_fetch` past its question; a chat without an agent reads pages through it as well.
     @concurrent
     static func readPage(_ url: URL) async -> Result<String, AgentToolFailure> {
+        let session = fetchSession()
+        // Also ends what is left of a body cut at 2 MB.
+        defer { session.invalidateAndCancel() }
         do {
-            let (bytes, response) = try await Self.session.bytes(from: url)
+            let (bytes, response) = try await session.bytes(from: url)
             var data = Data()
             for try await byte in bytes {
                 data.append(byte)
@@ -296,6 +292,15 @@ nonisolated struct AgentToolExecutor: Sendable {
         } catch {
             return .failure(.init("Fetching \(url.absoluteString) failed: \(error.localizedDescription)"))
         }
+    }
+
+    /// Per read: its redirects keep their cookies, and no jar or pool links reads or outlives one.
+    private static func fetchSession() -> URLSession {
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.urlCache = nil
+        configuration.urlCredentialStorage = nil
+        configuration.timeoutIntervalForRequest = 20
+        return URLSession(configuration: configuration, delegate: PageRedirects(), delegateQueue: nil)
     }
 
     // MARK: - Memory and skills
@@ -471,5 +476,16 @@ nonisolated enum AgentHTML {
                 .trimmingCharacters(in: .whitespaces) }
             .filter { !$0.isEmpty }
             .joined(separator: "\n")
+    }
+}
+
+/// Only the first address was checked, so a redirect may not leave the open web for a local host.
+nonisolated final class PageRedirects: NSObject, URLSessionTaskDelegate, Sendable {
+    func urlSession(
+        _ session: URLSession, task: URLSessionTask, willPerformHTTPRedirection response: HTTPURLResponse,
+        newRequest request: URLRequest, completionHandler: @escaping @Sendable (URLRequest?) -> Void
+    ) {
+        let follows = WebPageScope.follows(from: task.originalRequest?.url, to: request.url)
+        completionHandler(follows ? request : nil)
     }
 }

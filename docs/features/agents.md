@@ -334,7 +334,9 @@ behind Tinycast as text.
 agent's folder, stopped after its timeout (120 s by default, 600 s at most); escape sequences are
 stripped and only the output's tail is kept. `search_files` prefers ripgrep and falls back to
 `grep -rnIE`, run without a shell so a pattern is never interpreted. `web_fetch` uses a private
-`.ephemeral` session with no cache, reads at most 2 MB, and turns HTML into text. `web_search` runs
+`.ephemeral` session per fetch, with no cache and a cookie jar of its own, follows no redirect onto a
+local host it did not start at ([why](web-search.md#invariants)), reads at most 2 MB, and turns HTML
+into text. `web_search` runs
 through [web search](web-search.md)'s engine chain, not the executor; it asks under the same Web rule
 and shows a search row between its own row's opening and closing.
 

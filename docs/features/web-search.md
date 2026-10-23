@@ -41,9 +41,17 @@ few lines that wire it into `AIChatCoordinator`, `AIToolLoopProvider`, `AgentCoo
   model, the user or an engine. Plain HTTP to the open web is read over HTTPS, since ATS refuses
   it anyway (`WebPageScope.secured`); a loopback, `.local` or single-label host keeps HTTP, by the
   same rule as the SearXNG address.
+- **A redirect may not leave the open web for a local host.** Only the first address is checked
+  against the scope, so `PageRedirects` checks every hop with `WebPageScope.follows`: a loopback,
+  `.local`, `.localhost`, single-label or address-literal target (`inet_aton`'s hex and dotless forms
+  too), or one carrying a user, is refused unless the read began at that same host. A found page
+  therefore cannot bounce a read onto the Mac or the LAN; the refused hop reads as the 3xx it was.
+  Agents' `web_fetch` reads the same way, since its question names only the first address.
 - **A page is read as `web_fetch` reads it.** `read_page` goes through
-  `AgentToolExecutor.readPage`, `web_fetch`'s own read without its question: one ephemeral session
-  with no cache, 20 s idle, 2 MB at most, HTML to text, 28 KB to the model. The answer opens by
+  `AgentToolExecutor.readPage`, `web_fetch`'s own read without its question: an ephemeral session
+  made for that read and invalidated when it ends, with no cache and a cookie jar of its own, so a
+  site's cookie check works within one read and no cookie links two reads, chats or agents; 20 s
+  idle, 2 MB at most (the rest of a longer body is cancelled), HTML to text, 28 KB to the model. The answer opens by
   saying page text is material, never instructions; a search answer names `read_page` (or
   `web_fetch` for an agent) as the way to read a result in full.
 - **Engines run in the user's order, and any failure moves on.** A 429, a CAPTCHA, a 4xx or 5xx, a
@@ -171,4 +179,5 @@ policy, every recorded answer and failure, the bounded answer, configuration acr
 through a fake transport, both loops' rows, the agent provider through a toolset and its consent, and
 `read_page`: its schema, what tells pages apart, what the turn was given, the address fetched, and a
 plain chat's loop reading a found page and a linked one while a forged address, a page's own link, a
-read beside its search, an address the model only searched for and one carrying a user are refused).
+read beside its search, an address the model only searched for and one carrying a user are refused,
+and the redirects that may not leave the open web for a local host).
