@@ -43,6 +43,21 @@ struct AgentRetryPolicy: Sendable {
         return capWords.contains(where: said.contains)
     }
 
+    /// A strict gateway naming a reasoning field it does not take, which the run then stops sending.
+    static func refusesReasoning(_ error: any Error) -> Bool {
+        guard !(error is AIProviderRecoverableError) else { return false }
+        let said = error.localizedDescription.lowercased()
+        // `reasoning`, `reasoning_content` or `reasoning_details`, never `reasoning_effort`.
+        guard said.contains(/\breasoning(_content|_details)?\b/) else { return false }
+        return refusalWords.contains(where: said.contains)
+    }
+
+    /// Groq's, Mistral's, OpenAI's and pydantic's words for a field a schema does not know.
+    private static let refusalWords = [
+        "unsupported", "not supported", "unrecognized", "unexpected", "unknown", "not permitted",
+        "not allowed", "extra_forbidden", "extra inputs", "additional properties"
+    ]
+
     /// vLLM's, SGLang's, OpenRouter's, OpenAI's and Anthropic's words for output that does not fit.
     private static let capWords = [
         "max_tokens", "max_completion_tokens", "max_output_tokens", "maximum allowed number of output",

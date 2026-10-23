@@ -57,6 +57,7 @@ struct AgentLoopTests {
         await stopEndsAWaitingRetry()
         await anOverflowShedsTheWindowOnce()
         await aRefusedOutputCapIsDropped()
+        await aRefusedReasoningFieldIsDropped()
         await compactionAddsNothingWhileNothingIsDropped()
         await compactionSummarisesOnceThenReuses()
         await aFailedSummaryLeavesTheTurnAsBuilt()
@@ -985,6 +986,49 @@ extension AgentLoopTests {
             !AgentRetryPolicy.refusesOutputCap(
                 AIProviderRecoverableError(kind: .overflow, message: "prompt is too long: 210000 tokens > 200000")),
             "while a prompt too long for any cap is an overflow to shed")
+    }
+
+    /// A strict gateway that names a reasoning field it does not take is sent none for the rest of the run.
+    static func aRefusedReasoningFieldIsDropped() async {
+        let thought = AIReasoningReplay(route: "api.groq.com", model: "qwen3-32b", form: .reasoning, text: "Read it.")
+        let signed = AIReasoningReplay(
+            route: "api.groq.com", model: "qwen3-32b", form: .blocks, text: "",
+            items: [.object(["type": .string("thinking"), "signature": .string("s")])])
+        let groq = AIProviderError.responseFailed(
+            "The provider rejected the model or request (HTTP 400).\n\n'messages.2' : for 'role:assistant' the "
+                + "following must be satisfied[('messages.2' : property 'reasoning' is unsupported)]")
+        let base = FlakyProvider(
+            failures: [], failAt: [2: groq],
+            then: [
+                [.reasoningReplay(thought), call("c1")], [.reasoningReplay(thought), call("c2")],
+                [.text("ok"), .finished]
+            ])
+        let tools = toolset([FakeTools(names: ["fs_read"]) { _, _ in "x" }])
+        let outcome = await collect(AgentLoopProvider(base: base, toolset: tools, budget: .roomy, retry: quick))
+        let carried = base.requests.map { $0.messages.compactMap(\.reasoning) }
+        expect(outcome.failure == nil && texts(outcome.events) == "ok", "a refused field is not the run's end")
+        expect(
+            carried == [[], [thought], [], []],
+            "the refused round is asked again without it, and no later round sends it, got \(carried)")
+        expect(
+            outcome.events.filter { if case .reasoningReplay = $0 { true } else { false } }.count == 2,
+            "while the chat still hears each reply's reasoning")
+        let mistral = AIProviderError.responseFailed(
+            "HTTP 422: [{'type': 'extra_forbidden', 'loc': ('body', 'messages', 1, 'assistant', "
+                + "'reasoning_content'), 'msg': 'Extra inputs are not permitted'}]")
+        expect(AgentRetryPolicy.refusesReasoning(mistral), "pydantic's words for an unknown field too")
+        let deepSeek = AIProviderError.responseFailed(
+            "HTTP 400: The reasoning_content in the thinking mode must be passed back to the API.")
+        expect(!AgentRetryPolicy.refusesReasoning(deepSeek), "DeepSeek asking for the field is no refusal of it")
+        expect(
+            !AgentRetryPolicy.refusesReasoning(AIProviderError.responseFailed("reasoning_effort is not supported")),
+            "nor is a refused effort, which names another field")
+        let claude = FlakyProvider(
+            failures: [], failAt: [2: groq], then: [[.reasoningReplay(signed), call("c1")], [.text("ok"), .finished]])
+        _ = await collect(AgentLoopProvider(base: claude, toolset: tools, budget: .roomy, retry: quick))
+        expect(
+            claude.requests.map { $0.messages.compactMap(\.reasoning) } == [[], [signed]],
+            "Claude's signed blocks are never dropped this way: its tool loop must have them")
     }
 }
 

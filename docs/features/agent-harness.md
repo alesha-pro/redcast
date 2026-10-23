@@ -62,7 +62,7 @@ rounds of the request being sent; "earlier turns" are history replies loaded fro
 | Provider (host) | Field sent back | This turn | Earlier turns | Body switch |
 | --- | --- | --- | --- | --- |
 | DeepSeek (`*.deepseek.com`) | `reasoning_content` | own text | own stored text; every other assistant message `""` | — |
-| Qwen (`*.aliyuncs.com`, `*.qianwenai.com`) | as it came (`reasoning_content`) | yes | own stored text | Always: `preserve_thinking: true` |
+| Qwen (`*.aliyuncs.com`, Qwen Cloud's `*.qwencloudapi.com`, `*.qianwenai.com`) | as it came (`reasoning_content`) | yes | own stored text | Always: `preserve_thinking: true` |
 | Moonshot Kimi (`moonshot.ai`, `moonshot.cn`, `kimi.com`, `kimi.ai`) | as it came (`reasoning_content`) | yes | own stored text | — |
 | MiniMax (any host naming `minimax`) | as it came: `reasoning_content`, `reasoning_details` or `<think>` in `content` | yes | own stored text | — |
 | Z.ai / Zhipu (`z.ai`, `bigmodel.cn`) | as it came (`reasoning_content`) | yes | own stored text | Always: `thinking: {type: enabled, clear_thinking: false}` |
@@ -91,7 +91,13 @@ from a reply another model wrote. The rules, provider by provider:
   historical assistant messages `reasoning_content`", and turning it on "doesn't cause an error if the
   history has no `reasoning_content`". The function-calling guide appends the full assistant message,
   `reasoning_content` and `tool_calls` included, inside the tool loop. Earlier turns' text is sent; the
-  model reads it only where `preserve_thinking` is on, which Always asks for.
+  model reads it only where `preserve_thinking` is on, which Always asks for. Qwen Cloud serves the
+  same API from `<region>.maas.qwencloudapi.com/compatible-mode/v1` (Alibaba's plans from
+  `coding*.dashscope.aliyuncs.com` and `token-plan.*.maas.aliyuncs.com`), and its
+  [thinking guide](https://docs.qwencloud.com/developer-guides/text-generation/thinking) says the same:
+  "include the assistant's `reasoning_content` when sending tool results back. Omitting it degrades
+  accuracy", and by default a later turn does not read earlier ones'. Its GLM and Kimi models follow
+  these Qwen rules there, since the host decides the route.
 - **Moonshot Kimi.** [Thinking models](https://platform.kimi.ai/docs/guide/use-kimi-k2-thinking-model):
   in a tool loop "keep all of the reasoning content from the context (the `reasoning_content` field) and
   send it back"; across turns `thinking.keep` decides (`kimi-k2.6` defaults to not kept), while
@@ -152,7 +158,14 @@ from a reply another model wrote. The rules, provider by provider:
 - **Any other OpenAI-compatible host.** The reasoning goes back within the turn in the form it came
   (`reasoning_content` as pi does for every compatible endpoint, `<think>` for templates that keep it
   in the content), which is what vLLM, SGLang and llama.cpp chat templates expect inside a tool loop.
-  Earlier turns only with Always.
+  Earlier turns only with Always. A strict gateway that refuses the field by name (Groq's "property
+  'reasoning' is unsupported", pydantic's "Extra inputs are not permitted" on `reasoning_content`,
+  OpenAI's "Additional properties are not allowed") costs one refused request: the agent loop asks
+  the round again with every `reasoning_content`, `reasoning`, `reasoning_details` and `<think>`
+  dropped, and sends none for the rest of the run (`AgentRetryPolicy.refusesReasoning`). Claude's
+  blocks and Gemini's signatures stay, since their tool loops refuse a request without them, and
+  DeepSeek's "must be passed back" names the field without refusing it. The chat still keeps the
+  reasoning; plain chats on upstream's loop take the connection's Never instead.
 
 ### The connection's override
 
@@ -172,6 +185,7 @@ reads as Automatic.
 | Gemini 3 call without its signature in the current turn | HTTP 400 |
 | Reasoning dropped on Kimi, MiniMax, GLM, Qwen inside a tool loop | the model loses its plan: repeated calls, wrong tool use |
 | Another model's reasoning or signature sent | the target rejects the signature, or reads a stranger's thoughts as its own |
+| A field a strict gateway does not know | HTTP 400 or 422 naming it; the agent drops the fields and asks again, a plain chat fails |
 
 ## A round: cap, retries, cache
 
@@ -199,6 +213,8 @@ reads as Automatic.
   closed early and a provider's own busy words wait 2, 4, 8 and 16 s, a tenth either way, or a
   `Retry-After` up to a minute; never once text is on screen, never a spent quota, and what a failed
   attempt reported it spent is billed once. Stop ends a wait at once.
+- **A route that refuses a reasoning field by name is asked again without any** for the rest of the
+  run ([above](#per-provider)); only the agent loop does this, once, and never for Claude's blocks.
 - **An overflow steps down a ladder** (pi's `overflow.ts` patterns, or 413), one step per overflow,
   and asks again: the turn's older results and reasoning, else the older half of the history, else,
   once the run has worked, everything of the turn and a hand-over (the conversation no longer fits

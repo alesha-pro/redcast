@@ -49,6 +49,8 @@ struct AgentLoopProvider: AIProvider {
         var cutOff = false
         /// The route refused the round's output cap, so the rest of the turn goes without one.
         var dropsCap = false
+        /// The route refused a reasoning field by name, so the rest of the run sends none.
+        var dropsReasoning = false
 
         var said: Bool { !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
     }
@@ -62,6 +64,8 @@ struct AgentLoopProvider: AIProvider {
         /// The hand-over round called anyway, so the next one is asked to call nothing.
         var forced = false
         var worked = false
+        /// The route refused a reasoning field, so no round of this run is sent one again.
+        var bare = false
     }
 
     func stream(_ request: AIRequest) -> AIProviderStream {
@@ -136,6 +140,11 @@ struct AgentLoopProvider: AIProvider {
                 return
             }
             if round.dropsCap { cap?.refuse() }
+            if round.dropsReasoning, !progress.bare {
+                progress.bare = true
+                messages = messages.map(Self.bare)
+            }
+            let reasoning = progress.bare ? Self.bare(round.reasoning) : round.reasoning
             if let cost = round.cost { billed = (billed ?? 0) + cost }
             var raised = false
             if round.cutOff { raised = cap?.raise() ?? false }
@@ -147,7 +156,7 @@ struct AgentLoopProvider: AIProvider {
             guard !round.calls.isEmpty, !progress.final else {
                 if progress.final, !round.calls.isEmpty, !progress.forced {
                     progress.forced = true
-                    refuseCalls(of: round, in: &messages, into: continuation)
+                    refuseCalls(of: round, reasoning: reasoning, in: &messages, into: continuation)
                     continue
                 }
                 if let closing = closing(round, progress) { continuation.yield(.text(closing)) }
@@ -157,9 +166,8 @@ struct AgentLoopProvider: AIProvider {
             let roundStart = messages.count
             lastRound = roundStart
             messages.append(
-                AIMessage(
-                    role: .assistant, text: round.text, toolCalls: round.calls, reasoning: round.reasoning))
-            turn.carry(round.text, calls: round.calls, reasoning: round.reasoning)
+                AIMessage(role: .assistant, text: round.text, toolCalls: round.calls, reasoning: reasoning))
+            turn.carry(round.text, calls: round.calls, reasoning: reasoning)
             let concurrent = round.calls.map { toolset.isConcurrent($0.name) }
             for batch in AgentBatchPolicy.batches(concurrent, width: Self.width) {
                 try Task.checkCancellation()
@@ -221,10 +229,11 @@ struct AgentLoopProvider: AIProvider {
 
     /// The hand-over round's calls run nothing: each is answered so, and the round is asked again.
     private func refuseCalls(
-        of round: Round, in messages: inout [AIMessage], into continuation: AIProviderStream.Continuation
+        of round: Round, reasoning: AIReasoningReplay?, in messages: inout [AIMessage],
+        into continuation: AIProviderStream.Continuation
     ) {
         messages.append(
-            AIMessage(role: .assistant, text: round.text, toolCalls: round.calls, reasoning: round.reasoning))
+            AIMessage(role: .assistant, text: round.text, toolCalls: round.calls, reasoning: reasoning))
         for call in round.calls {
             continuation.yield(row(for: call))
             messages.append(
@@ -401,6 +410,7 @@ struct AgentLoopProvider: AIProvider {
         var request = request
         var failedCost: Double?
         var dropsCap = false
+        var dropsReasoning = false
         var retries = 0
         while true {
             var round = Round()
@@ -409,6 +419,7 @@ struct AgentLoopProvider: AIProvider {
                     into: &round, continuation)
                 round.cost = sum(failedCost, round.cost)
                 round.dropsCap = dropsCap
+                round.dropsReasoning = dropsReasoning
                 return round
             } catch is CancellationError {
                 throw CancellationError()
@@ -420,6 +431,13 @@ struct AgentLoopProvider: AIProvider {
                 if request.outputCap != nil, AgentRetryPolicy.refusesOutputCap(error) {
                     request = request.limited(nil, forbidsCalls: request.forbidsCalls)
                     dropsCap = true
+                    continue
+                }
+                if !dropsReasoning, AgentRetryPolicy.refusesReasoning(error),
+                    request.messages.contains(where: { Self.bare($0) != $0 })
+                {
+                    request = request.continuing(with: request.messages.map(Self.bare), tools: request.tools)
+                    dropsReasoning = true
                     continue
                 }
                 retries += 1
@@ -465,6 +483,19 @@ struct AgentLoopProvider: AIProvider {
                 continuation.yield(event)
             }
         }
+    }
+
+    /// What a route that refused the reasoning fields is still sent: Claude's blocks, a call's stamp.
+    private static func bare(_ reasoning: AIReasoningReplay?) -> AIReasoningReplay? {
+        guard let form = reasoning?.form, form != .blocks else { return reasoning }
+        return nil
+    }
+
+    private static func bare(_ message: AIMessage) -> AIMessage {
+        guard message.reasoning != bare(message.reasoning) else { return message }
+        return AIMessage(
+            role: message.role, text: message.text, images: message.images, documents: message.documents,
+            audio: message.audio, toolCalls: message.toolCalls, toolResult: message.toolResult)
     }
 
     private func sum(_ lhs: Double?, _ rhs: Double?) -> Double? {

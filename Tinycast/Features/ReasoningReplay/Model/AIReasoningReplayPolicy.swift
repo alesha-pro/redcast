@@ -17,7 +17,7 @@ enum AIReasoningReplayPolicy {
         if on("api.openai.com") { return .openAI }
         if on("api.anthropic.com") { return .anthropic }
         if on("deepseek.com") { return .deepSeek }
-        if on("aliyuncs.com") || on("qianwenai.com") { return .qwen }
+        if on("aliyuncs.com") || on("qwencloudapi.com") || on("qianwenai.com") { return .qwen }
         if on("moonshot.ai") || on("moonshot.cn") || on("kimi.com") || on("kimi.ai") { return .moonshot }
         if host.contains("minimax") { return .miniMax }
         if on("z.ai") || on("bigmodel.cn") { return .zai }
