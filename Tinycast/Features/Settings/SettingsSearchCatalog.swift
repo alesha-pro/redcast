@@ -300,6 +300,10 @@ enum SettingsSearchCatalog {
         .init(
             .aiAgents, "Add Agent",
             keywords: ["agent", "folder", "skills", "agents.md", "workspace", "tools", "terminal"]),
+        // Fork: the agent Quick AI's new chats answer with.
+        .init(
+            .aiAgents, "Quick AI answers with",
+            keywords: ["agent", "quick ai", "tools", "web search", "default", "palette", "launcher"]),
         // Fork: scheduled agent runs' daily spend cap.
         .init(
             .aiAgents, "Daily spend cap",

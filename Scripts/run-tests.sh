@@ -951,6 +951,19 @@ run web-search-test        Tinycast/Features/WebSearch/Model/*.swift \
                            Tinycast/Features/AI/Model/InstalledAI.swift \
                            Tinycast/Features/AI/Service/AIProvider.swift \
                            Tinycast/Features/AI/Service/AIToolLoopProvider.swift
+run quick-ai-tools-test    Tinycast/Features/QuickAITools/Model/*.swift \
+                           Tinycast/Features/QuickAITools/Settings/QuickAISettingsStore.swift \
+                           Tinycast/Features/Settings/AppSettingsKey.swift \
+                           Tinycast/Features/WebSearch/Model/*.swift \
+                           Tinycast/Features/AI/Model/AIRequest.swift \
+                           Tinycast/Features/Agents/Model/ChatToolContent.swift \
+                           Tinycast/Features/AI/Model/AITool.swift \
+                           Tinycast/Features/AI/Model/JSONValue.swift \
+                           Tinycast/Features/AI/Model/AIAttachmentPolicy.swift \
+                           Tinycast/Features/AI/Model/AIConnection.swift \
+                           Tinycast/Features/AI/Model/AppleIntelligence.swift \
+                           Tinycast/Features/AI/Model/ChatGPTSubscription.swift \
+                           Tinycast/Features/AI/Model/InstalledAI.swift
 run ext-ai-test            Tinycast/Features/ExtensionAI/Model/*.swift \
                            Tinycast/Features/Agents/Model/ChatToolContent.swift \
                            Tinycast/Features/ExtensionAI/Service/*.swift \

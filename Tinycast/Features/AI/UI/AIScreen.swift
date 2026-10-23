@@ -82,6 +82,8 @@ struct AIScreen: PaletteScreen {
                     chatCoordinator.notes.presentPicker(for: chat)
                 })
         }
+        // Fork: Web Search and the agent that answers, switched here without opening AI Chat.
+        items += QuickAIToolsMenu.items(for: chat, chats: chatCoordinator)
         items.append(
             PopoverMenuItem(
                 title: String(localized: "Chat History"), systemImage: "clock.arrow.circlepath",
@@ -167,7 +169,10 @@ struct AIScreen: PaletteScreen {
                 onChoose: { coordinator.send($0) }
             )
             // Fork: Attach Note…'s card, over the transcript and under the query field.
-            .quickNotePicker(chat: chat, chats: chatCoordinator, palette: vm))
+            .quickNotePicker(chat: chat, chats: chatCoordinator, palette: vm)
+            // Fork: the agent that answers heads the chat, as it does in AI Chat.
+            .environment(
+                \.agentChatBadge, chatCoordinator.agents.agent(for: chat).map(AgentChatBadge.init)))
     }
 }
 
@@ -188,6 +193,8 @@ private struct AIChatView: View {
                     message: chat.notice ?? unavailability,
                     canConfigure: chat.notice != nil || unavailability != nil,
                     onConfigure: onConfigure)
+                // Fork: the agent that will answer, where the transcript's header will stand.
+                .overlay(alignment: .top) { QuickAIAgentHeader() }
             } else {
                 ChatTranscriptView(
                     messages: chat.session.messages,

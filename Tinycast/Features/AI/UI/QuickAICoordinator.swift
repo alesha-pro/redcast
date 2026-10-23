@@ -100,7 +100,9 @@ final class QuickAICoordinator {
 
     @discardableResult
     func send(_ input: String) -> Bool {
-        chatCoordinator.send(input, in: chat)
+        // Fork: the agent Quick AI answers with becomes the chat's own as its first message goes.
+        core.agentCoordinator.adoptQuickAIAgent(in: chat)
+        return chatCoordinator.send(input, in: chat)
     }
 
     func startNewChat() {
@@ -146,6 +148,8 @@ final class QuickAICoordinator {
         let draft = palette.query
         palette.query = ""
         paletteCoordinator.hidePalette(restoreFocus: false)
+        // Fork: the agent Quick AI shows goes with the chat, as its transcript and draft do.
+        core.agentCoordinator.adoptQuickAIAgent(in: chat)
         chatCoordinator.continueInWindow(draft: draft)
     }
 

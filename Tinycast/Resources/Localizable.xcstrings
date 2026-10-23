@@ -86886,6 +86886,58 @@
         }
       }
     },
+    "New Quick AI chats run on this agent, with its folder, instructions, tools and permissions. ⌘K in Quick AI switches it for one chat." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Neue Quick-AI-Chats laufen mit diesem Agenten, mit seinem Ordner, seinen Anweisungen, Werkzeugen und Berechtigungen. ⌘K in Quick AI wechselt ihn für einen Chat."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Los chats nuevos de IA rápida usan este agente, con su carpeta, instrucciones, herramientas y permisos. ⌘K en IA rápida lo cambia para un solo chat."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Les nouvelles discussions de Réponse IA passent par cet agent, avec son dossier, ses instructions, ses outils et ses autorisations. ⌘K dans Réponse IA le change pour une seule discussion."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "新しいクイックAIのチャットは、このエージェントのフォルダ、指示、ツール、権限で動きます。クイックAIの⌘Kで、1つのチャットだけ切り替えられます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "새 빠른 AI 채팅은 이 에이전트의 폴더, 지침, 도구와 권한으로 실행됩니다. 빠른 AI에서 ⌘K로 채팅 하나만 바꿀 수 있습니다."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Novos chats da IA Rápida usam este agente, com a pasta, as instruções, as ferramentas e as permissões dele. ⌘K na IA Rápida troca o agente de um único chat."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Новые чаты быстрого ИИ работают через этого агента: с его папкой, инструкциями, инструментами и разрешениями. В быстром ИИ ⌘K меняет агента для одного чата."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "新的快速 AI 聊天会通过此智能体运行，使用它的文件夹、指令、工具和权限。在快速 AI 中按 ⌘K 可只为一个聊天更换。"
+          }
+        }
+      }
+    },
     "New Quick Action" : {
       "localizations" : {
         "de" : {
@@ -104899,6 +104951,58 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "快速 AI"
+          }
+        }
+      }
+    },
+    "Quick AI answers with" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quick AI antwortet mit"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "IA rápida responde con"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Agent de Réponse IA"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "クイックAIの回答に使うもの"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "빠른 AI 답변 주체"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "IA Rápida responde com"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Отвечает в быстром ИИ"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "快速 AI 由谁回答"
           }
         }
       }
@@ -152437,6 +152541,58 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "网页搜索"
+          }
+        }
+      }
+    },
+    "Web search is off" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Websuche ist deaktiviert"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La búsqueda web está desactivada"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La recherche web est désactivée"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Web検索がオフです"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "웹 검색이 꺼져 있음"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A busca na web está desativada"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Поиск в интернете выключен"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "网页搜索已关闭"
           }
         }
       }

@@ -156,6 +156,10 @@ optional chord: see [background and scheduled agents](background-agents.md).
 - **The binding is the fork's, not the chat history's.** Which chat has which agent is
   `agent-chats.json` beside `agents.json` in Application Support, so upstream's SQLite schema is
   untouched. Deleting an agent frees its chats, which stay as plain AI chats, and deletes its notes.
+- **Quick AI can answer with an agent.** Settings → AI → Agents → Quick AI answers with names an
+  agent on the chat's model (`aiQuickAIAgent`); `agent(for:)` gives it to Quick AI's chat until its
+  first message binds it like any other, and ⌘K → Answer with switches it for one chat. ACP agents
+  are not offered there ([why](quick-ai-tools.md#invariants)).
 - **An ACP tool row holds only what it shows.** A call's diffs and output are compacted once, as
   they arrive, by `ChatToolContent(call:)`, and the compacted form is both what the row unfolds and
   what is saved: at most 12 KB a row. It is saved in its own table, `message_tool_content`, keyed
