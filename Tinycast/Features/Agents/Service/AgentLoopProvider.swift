@@ -272,6 +272,7 @@ struct AgentLoopProvider: AIProvider {
                 round.calls.append(call)
             case .reasoningReplay(let replay):
                 round.reasoning = replay
+                continuation.yield(event)
             case .outputLimit:
                 round.cutOff = true
             // `.finished` is the loop's to send, once the model has stopped asking for tools.

@@ -52,6 +52,7 @@ struct AIChatTests {
         await toolOutputIsBoundedBeforeItIsBilled()
         toolUsesPersistAndSettleOnReload()
         await acpToolContentRidesBesideItsRow()
+        await reasoningIsKeptForItsOwnModelsLaterTurns()
         renamesAndPinsSurviveSavesAndSpareRetention()
         transcriptsExportAndDropOnlyATrailingReply()
         await regenerateAsksTheSameQuestionAgain()
@@ -1987,5 +1988,43 @@ extension AIChatTests {
             tamper(database, "PRAGMA foreign_keys = ON; DELETE FROM messages WHERE text = 'ok';")
                 && count(database, "SELECT COUNT(*) FROM message_tool_content") == 0,
             "an older build rewriting the tail takes the content with the rows, leaving nothing orphaned")
+    }
+
+    /// Fork: a reply's reasoning text is kept, stamped, so a later turn can send it back to its model.
+    static func reasoningIsKeptForItsOwnModelsLaterTurns() async {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("tinycast-ai-replay-\(UUID().uuidString)", isDirectory: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let thought = AIReasoningReplay(
+            route: "api.deepseek.com", model: "deepseek-flash", form: .reasoningContent, text: "Think.",
+            items: [.string("opaque")])
+        let signed = AIReasoningReplay(
+            route: "api.anthropic.com", model: "claude-opus-5-5", form: .blocks, text: "",
+            items: [.object(["type": .string("thinking"), "signature": .string("s")])])
+        let chat = AIChatState(history: ChatHistoryStore(directory: directory))
+        let provider = ScriptedProvider(rounds: [
+            [.reasoning("Think."), .text("Answer"), .reasoningReplay(thought), .finished],
+            [.text("Again"), .reasoningReplay(signed), .finished]
+        ])
+        expect(chat.send("Why?", using: provider), "the turn starts")
+        await settle(chat)
+        let stored = AIReasoningReplay(
+            route: "api.deepseek.com", model: "deepseek-flash", form: .reasoningContent, text: "Think.",
+            isStored: true)
+        expect(chat.session.messages.last?.replay == stored, "the reply keeps its reasoning's text, never its opaque part")
+        expect(chat.send("And?", using: provider), "the next turn starts")
+        await settle(chat)
+        expect(
+            provider.requests.last?.messages[1].reasoning == stored,
+            "and the next turn carries it on that reply, for the body to send only to its own model")
+        expect(chat.session.messages.last?.replay == nil, "Claude's signed blocks are never kept past their turn")
+        let database = directory.appendingPathComponent("ai-chats.sqlite3")
+        let reloaded = ChatHistoryStore(directory: directory).session(id: chat.session.id)
+        expect(reloaded?.messages[1].replay == stored, "the kept reasoning reopens with its reply")
+        expect(count(database, "SELECT COUNT(*) FROM message_reasoning_replay") == 1, "only a reply that kept some writes")
+        expect(tamper(database, "UPDATE message_reasoning_replay SET form = 'newer'"), "a newer form can be written")
+        expect(
+            ChatHistoryStore(directory: directory).session(id: chat.session.id)?.messages[1].replay == nil,
+            "a form this build does not know is left out rather than sent the wrong way")
     }
 }

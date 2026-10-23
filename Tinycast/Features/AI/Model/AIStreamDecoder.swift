@@ -65,34 +65,26 @@ struct AIStreamDecoder: Sendable {
     private var usage = AIUsage()
     private var partialToolCalls: [Int: PartialToolCall] = [:]
     private(set) var isTerminal = false
-    // Fork: the reply's reasoning as its model must be sent it again, stamped with that model.
-    private let model: String
-    private var replayText = ""
-    private var replayDetails: [JSONValue] = []
+    // Fork: the reply's reasoning, stamped with the route and model that must be sent it again.
+    private var reasoning: AIReasoningDecoder
     private var hasAnswered = false
 
-    init(shape: AIHTTPConfiguration.APIShape, secrets: [String] = [], model: String = "") {
+    init(
+        shape: AIHTTPConfiguration.APIShape, secrets: [String] = [], model: String = "", route: String = ""
+    ) {
         self.shape = shape
         self.secrets = secrets
-        self.model = model
-    }
-
-    /// Fork: only a reply with calls is ever sent back, and its reasoning goes on that message.
-    private mutating func flushReplay() -> [AIStreamEvent] {
-        guard !replayText.isEmpty || !replayDetails.isEmpty else { return [] }
-        defer {
-            replayText = ""
-            replayDetails = []
-        }
-        return [.reasoningReplay(AIReasoningReplay(model: model, text: replayText, details: replayDetails))]
+        reasoning = AIReasoningDecoder(route: route, model: model)
     }
 
     /// Assembled in index order, so a turn's calls reach the loop as the model listed them.
     private mutating func flushToolCalls() -> [AIStreamEvent] {
-        guard !partialToolCalls.isEmpty else { return [] }
+        // Fork: the reply's reasoning goes first, so the loop has it for the message its calls go on.
+        let replay = reasoning.flush().map { [AIStreamEvent.reasoningReplay($0)] } ?? []
+        guard !partialToolCalls.isEmpty else { return replay }
         let calls = partialToolCalls.sorted { $0.key < $1.key }.map(\.value)
         partialToolCalls.removeAll()
-        return flushReplay() + calls.compactMap { call in
+        return replay + calls.compactMap { call in
             guard !call.name.isEmpty else { return nil }
             return .toolCallRequested(
                 AIToolCall(
@@ -107,7 +99,13 @@ struct AIStreamDecoder: Sendable {
 
     mutating func finish() throws -> [AIStreamEvent] {
         var events = try decode(parser.finish())
-        if shape == .openAICompatible, !isTerminal { events += thinkTags.finish() }
+        if shape == .openAICompatible, !isTerminal { events += tagged(thinkTags.finish()) }
+        return events
+    }
+
+    /// Fork: what the think-tag decoder took out of the answer is the reply's reasoning too.
+    private mutating func tagged(_ events: [AIStreamEvent]) -> [AIStreamEvent] {
+        for case .reasoning(let piece) in events { reasoning.absorb(tagged: piece) }
         return events
     }
 
@@ -116,7 +114,7 @@ struct AIStreamDecoder: Sendable {
         for payload in payloads where !isTerminal {
             if payload == "[DONE]" {
                 isTerminal = true
-                if shape == .openAICompatible { events += thinkTags.finish() }
+                if shape == .openAICompatible { events += tagged(thinkTags.finish()) }
                 events.append(contentsOf: flushToolCalls())
                 events.append(.finished)
                 continue
@@ -157,16 +155,13 @@ struct AIStreamDecoder: Sendable {
         if let choice = chunk.choices?.first {
             if choice.delta?.content?.isEmpty == false || choice.delta?.toolCalls != nil { hasAnswered = true }
             if let content = choice.delta?.content, !content.isEmpty {
-                events += thinkTags.feed(content)
+                events += tagged(thinkTags.feed(content))
             } else if let reasoning = choice.delta?.reasoningText {
                 events += [.thinking, .reasoning(reasoning)]
             }
-            // Fork: kept whole for the replay, whatever the fold above showed of it.
-            if let reasoning = choice.delta?.reasoningText { replayText += reasoning }
-            if choice.delta?.reasoningDetails != nil {
-                for detail in Self.rawReasoningDetails(in: data) {
-                    Self.merge(detail, into: &replayDetails)
-                }
+            // Fork: kept whole for the replay, in the fields it came in, whatever the fold showed.
+            if let delta = choice.delta, delta.reasoningText != nil || delta.reasoningDetails != nil {
+                reasoning.absorb(delta: Self.rawDelta(in: data))
             }
             for fragment in choice.delta?.toolCalls ?? [] { absorb(fragment) }
             // Fork: a reply the output cap cut may hold a call cut mid-argument; the loop must know.
@@ -195,6 +190,8 @@ struct AIStreamDecoder: Sendable {
         partial.arguments += fragment.function?.arguments ?? ""
         if let signature = fragment.extraContent?.google?.thoughtSignature {
             partial.thoughtSignature = signature
+            // Fork: a signed call stamps its reply, so another model is never sent the signature.
+            reasoning.noteSignedCall()
         }
         partialToolCalls[fragment.index ?? 0] = partial
     }
@@ -209,6 +206,11 @@ struct AIStreamDecoder: Sendable {
 
         switch event.type {
         case "content_block_start":
+            // Fork: a thinking block goes back as it came, signature and all, with the turn's calls.
+            if event.contentBlock?.type != "tool_use" {
+                let block = JSONValue(data: data)?.objectValue?["content_block"]?.objectValue
+                if let block { reasoning.open(block: event.index ?? 0, block) }
+            }
             guard event.contentBlock?.type == "tool_use" else { return [] }
             partialToolCalls[event.index ?? 0] = PartialToolCall(
                 id: event.contentBlock?.id ?? "", name: event.contentBlock?.name ?? "",
@@ -222,6 +224,9 @@ struct AIStreamDecoder: Sendable {
                 partialToolCalls[event.index ?? 0]?.arguments += event.delta?.partialJSON ?? ""
                 return []
             }
+            // Fork: the signature arrives last; both go back with the block.
+            reasoning.extend(
+                block: event.index ?? 0, thinking: event.delta?.thinking, signature: event.delta?.signature)
             guard event.delta?.type == "thinking_delta" else { return [] }
             guard let thinking = event.delta?.thinking, !thinking.isEmpty else { return [.thinking] }
             return [.thinking, .reasoning(thinking)]
@@ -258,55 +263,10 @@ struct AIStreamDecoder: Sendable {
 
     private static let stopped = String(localized: "The provider stopped the response with an error.")
 
-    // MARK: - Fork: reasoning details
-
-    /// The chunk's own entries, untouched: an encrypted one must go back byte for byte.
-    private static func rawReasoningDetails(in data: Data) -> [JSONValue] {
-        let object = JSONValue(data: data)?.objectValue
-        let choice = object?["choices"]?.arrayValue?.first?.objectValue
-        return choice?["delta"]?.objectValue?["reasoning_details"]?.arrayValue ?? []
-    }
-
-    /// pi's merge: neighbouring text or summary deltas grow one entry; an encrypted one stays apart.
-    static func merge(_ detail: JSONValue, into details: inout [JSONValue]) {
-        guard let entry = detail.objectValue, isReasoningDetail(entry),
-            let type = entry["type"]?.stringValue
-        else { return }
-        let field: String? =
-            switch type {
-            case "reasoning.text": "text"
-            case "reasoning.summary": "summary"
-            default: nil
-            }
-        guard let field, var last = details.last?.objectValue, last["type"]?.stringValue == type,
-            let head = last[field]?.stringValue, let tail = entry[field]?.stringValue
-        else {
-            details.append(detail)
-            return
-        }
-        last[field] = .string(head + tail)
-        for key in ["signature", "id", "format", "index"] where isUnset(last[key]) {
-            if let value = entry[key], !isUnset(value) { last[key] = value }
-        }
-        details[details.count - 1] = .object(last)
-    }
-
-    private static func isUnset(_ value: JSONValue?) -> Bool {
-        value == nil || value == .null || value == .string("")
-    }
-
-    /// The three shapes OpenRouter documents; anything else is dropped rather than replayed.
-    private static func isReasoningDetail(_ entry: [String: JSONValue]) -> Bool {
-        let id = entry["id"].map { $0 == .null || $0.stringValue != nil } ?? true
-        let format = entry["format"].map { $0.stringValue != nil } ?? true
-        let index = entry["index"].map { if case .number = $0 { true } else { false } } ?? true
-        guard id, format, index else { return false }
-        switch entry["type"]?.stringValue {
-        case "reasoning.text": return entry["text"]?.stringValue != nil
-        case "reasoning.summary": return entry["summary"]?.stringValue != nil
-        case "reasoning.encrypted": return entry["data"]?.stringValue != nil
-        default: return false
-        }
+    /// Fork: the chunk's own delta, untouched: an encrypted entry must go back byte for byte.
+    private static func rawDelta(in data: Data) -> [String: JSONValue] {
+        let choice = JSONValue(data: data)?.objectValue?["choices"]?.arrayValue?.first?.objectValue
+        return choice?["delta"]?.objectValue ?? [:]
     }
 
     private static func anthropicErrorMessage(_ type: String?) -> String {
@@ -445,9 +405,11 @@ private struct AnthropicEvent: Decodable {
         let thinking: String?
         let partialJSON: String?
         let stopReason: String?
+        // Fork: a thinking block's signature, which goes back with it.
+        let signature: String?
 
         enum CodingKeys: String, CodingKey {
-            case type, text, thinking
+            case type, text, thinking, signature
             case partialJSON = "partial_json"
             case stopReason = "stop_reason"
         }

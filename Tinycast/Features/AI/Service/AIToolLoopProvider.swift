@@ -112,8 +112,10 @@ struct AIToolLoopProvider: AIProvider {
                 continuation.yield(.usage(usage))
             case .toolCallRequested(let call):
                 calls.append(call)
+            // Fork: kept for the calls' message, and passed on so the chat keeps it for a later turn.
             case .reasoningReplay(let replay):
                 reasoning = replay
+                continuation.yield(event)
             case .outputLimit:
                 cutOff = true
             // `.finished` is the loop's to send, once the model has stopped asking for tools.

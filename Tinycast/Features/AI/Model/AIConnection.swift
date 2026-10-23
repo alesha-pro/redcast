@@ -70,6 +70,14 @@ struct AIConnection: Codable, Equatable, Identifiable, Sendable {
     /// Models the catalog marked as taking images — only OpenRouter's says, so only it is gated.
     var visionModels: [String]
     var reasoningOptions: [String: ReasoningOptions]?
+    // Fork: nil sends a reply's reasoning back as the route's documented rules say.
+    var reasoningReplay: ReasoningReplay?
+
+    // Fork: for a gateway that needs reasoning back on every turn, or refuses the field.
+    enum ReasoningReplay: String, Codable, CaseIterable, Sendable {
+        case always
+        case never
+    }
 
     init(
         id: UUID = UUID(), name: String = "", provider: AIProviderKind = .openAI,
@@ -364,10 +372,13 @@ struct AIHTTPConfiguration: Equatable, Sendable {
     let effort: String?
     let disablesThinking: Bool
     let headers: [String: String]
+    // Fork: the connection's say on sending reasoning back; nil follows the route's rules.
+    let reasoningReplay: AIConnection.ReasoningReplay?
 
     init(
         provider: AIProviderKind, baseURL: URL, model: String, effort: String? = nil,
-        disablesThinking: Bool = false, headers: [String: String] = [:]
+        disablesThinking: Bool = false, headers: [String: String] = [:],
+        reasoningReplay: AIConnection.ReasoningReplay? = nil
     ) {
         self.provider = provider
         self.baseURL = baseURL
@@ -375,9 +386,13 @@ struct AIHTTPConfiguration: Equatable, Sendable {
         self.effort = effort
         self.disablesThinking = disablesThinking
         self.headers = headers
+        self.reasoningReplay = reasoningReplay
     }
 
     var shape: APIShape { provider.apiShape }
+
+    /// Fork: what stamps a reply's reasoning, beside its model.
+    var route: String { baseURL.host()?.lowercased() ?? "" }
 
     var endpointURL: URL {
         switch shape {

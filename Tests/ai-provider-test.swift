@@ -170,7 +170,11 @@ struct AIProviderTests {
         declaredLevelsNeverReachAVendorOrOutliveTheirDeclaration()
         cachedTokensCountApartFromInput()
         reasoningDetailsMergeAsTheyStream()
-        reasoningGoesBackToTheModelThatWroteIt()
+        reasoningContentIsKeptInItsOwnField()
+        thinkTagsAreKeptAsTags()
+        anthropicThinkingBlocksKeepTheirSignatures()
+        signedCallsStampTheirReply()
+        eachProviderIsSentItsOwnReasoningBack()
         aReplyTheCapCutSaysSo()
         anAgentRoundCarriesItsOwnCap()
         failuresSayWhetherTheyMayPass()
@@ -253,16 +257,40 @@ struct AIProviderTests {
             "a first request that only writes the cache reports no hit")
     }
 
+    private static func json(_ text: String) -> JSONValue { JSONValue(data: Data(text.utf8)) ?? .null }
+
+    private static func replays(_ events: [AIStreamEvent]) -> [AIReasoningReplay] {
+        events.compactMap { event -> AIReasoningReplay? in
+            if case .reasoningReplay(let replay) = event { return replay }
+            return nil
+        }
+    }
+
+    private static func decode(
+        _ shape: AIHTTPConfiguration.APIShape, _ stream: String, slice: Int = .max,
+        route: String = "api.example.com", model: String = "m"
+    ) -> [AIStreamEvent] {
+        let data = Data(stream.utf8)
+        var decoder = AIStreamDecoder(shape: shape, model: model, route: route)
+        var events: [AIStreamEvent] = []
+        var offset = 0
+        while offset < data.count {
+            let end = min(offset + min(slice, data.count), data.count)
+            events += (try? decoder.feed(data[offset..<end])) ?? []
+            offset = end
+        }
+        return events + ((try? decoder.finish()) ?? [])
+    }
+
     /// pi's merge: neighbouring text and summary deltas join, an encrypted entry stays whole.
     static func reasoningDetailsMergeAsTheyStream() {
         guard
             let data = FileManager.default.contents(
                 atPath: "Tests/ai-fixtures/openrouter-reasoning-details-stream.txt")
         else { return expect(false, "the reasoning-details fixture is readable") }
-        func json(_ text: String) -> JSONValue { JSONValue(data: Data(text.utf8)) ?? .null }
         let expected = AIReasoningReplay(
-            model: "google/gemini-3.8-flash", text: "Search first.",
-            details: [
+            route: "openrouter.ai", model: "google/gemini-3.8-flash", form: .details, text: "Search first.",
+            items: [
                 json(#"{"type":"reasoning.text","text":"Search first.","format":"google-gemini-v1","index":0}"#),
                 json(
                     #"{"type":"reasoning.encrypted","data":"CiQB+opaque/sig==","id":"tool_c1","#
@@ -270,23 +298,13 @@ struct AIProviderTests {
                 json(#"{"type":"reasoning.summary","summary":"Plan: search.","index":1}"#)
             ])
         for slice in [data.count, 7] {
-            var decoder = AIStreamDecoder(shape: .openAICompatible, model: "google/gemini-3.8-flash")
-            var events: [AIStreamEvent] = []
-            var offset = 0
-            while offset < data.count {
-                let end = min(offset + slice, data.count)
-                events += (try? decoder.feed(data[offset..<end])) ?? []
-                offset = end
-            }
-            events += (try? decoder.finish()) ?? []
-            let replays = events.compactMap { event -> AIReasoningReplay? in
-                if case .reasoningReplay(let replay) = event { return replay }
-                return nil
-            }
+            let events = decode(
+                .openAICompatible, String(bytes: data, encoding: .utf8) ?? "", slice: slice, route: "openrouter.ai",
+                model: "google/gemini-3.8-flash")
             expect(
-                replays == [expected],
-                "one replay per reply, merged, ordered and stamped with its model (\(slice)-byte slices), "
-                    + "got \(replays)")
+                replays(events) == [expected],
+                "one replay per reply, merged, ordered and stamped with its route and model "
+                    + "(\(slice)-byte slices), got \(replays(events))")
             let replayAt = events.firstIndex { if case .reasoningReplay = $0 { true } else { false } }
             let callAt = events.firstIndex { if case .toolCallRequested = $0 { true } else { false } }
             expect(
@@ -296,107 +314,295 @@ struct AIProviderTests {
                 events.contains(.reasoning("Search")) && !events.contains(.text("Search")),
                 "while the fold still shows the reasoning as it streams")
         }
-        guard
-            let answered = FileManager.default.contents(
-                atPath: "Tests/ai-fixtures/openrouter-nemotron-reasoning.txt")
-        else { return expect(false, "the nemotron fixture is readable") }
+        let split = decode(
+            .openAICompatible,
+            """
+            data: {"choices":[{"delta":{"reasoning_details":[{"type":"reasoning.text","id":"reasoning-text-1",\
+            "format":"MiniMax-response-v1","index":0,"text":"Check the "}]}}]}
+
+            data: {"choices":[{"delta":{"reasoning_details":[{"type":"reasoning.text","id":"reasoning-text-1",\
+            "format":"MiniMax-response-v1","index":0,"text":"file."}]}}]}
+
+            data: {"choices":[{"delta":{"content":"Done."},"finish_reason":"stop"}]}
+
+            data: [DONE]
+
+            """, route: "api.minimax.io", model: "MiniMax-M2.7")
         expect(
-            !decodeAll(answered, slice: answered.count).contains {
-                if case .reasoningReplay = $0 { true } else { false }
-            },
-            "a reply that reasoned but called nothing is never sent back, so it keeps nothing")
+            replays(split) == [
+                AIReasoningReplay(
+                    route: "api.minimax.io", model: "MiniMax-M2.7", form: .details, text: "Check the file.",
+                    items: [
+                        json(
+                            #"{"type":"reasoning.text","id":"reasoning-text-1","format":"MiniMax-response-v1","#
+                                + #""index":0,"text":"Check the file."}"#)
+                    ])
+            ],
+            "MiniMax's split output merges the same way, and its text is the entries', got \(replays(split))")
+        expect(
+            split.last == .finished && split.dropLast().last.map { if case .reasoningReplay = $0 { true } else { false } }
+                == true,
+            "a reply that called nothing still hands over its reasoning, last before it finishes")
     }
 
-    /// DeepSeek's thinking tool turn needs every reply's reasoning back; OpenRouter its details.
-    static func reasoningGoesBackToTheModelThatWroteIt() {
-        let tool = AITool(
-            name: "read_file", description: "Read a file.", parameters: .object(["type": .string("object")]),
-            origin: "Files")
-        let deepSeek = AIHTTPConfiguration(
-            provider: .openAICompatible, baseURL: URL(string: "https://api.deepseek.com")!,
-            model: "deepseek-flash")
-        let turn = [
+    /// DeepSeek, Qwen, Kimi, MiniMax and GLM stream `reasoning_content`; it comes back as that field.
+    static func reasoningContentIsKeptInItsOwnField() {
+        let stream = """
+            data: {"choices":[{"delta":{"role":"assistant","reasoning_content":"Read "}}]}
+
+            data: {"choices":[{"delta":{"reasoning_content":"it first."}}]}
+
+            data: {"choices":[{"delta":{"tool_calls":[{"index":0,"id":"c1","type":"function",\
+            "function":{"name":"read_file","arguments":"{}"}}]}}]}
+
+            data: {"choices":[{"delta":{},"finish_reason":"tool_calls"}]}
+
+            data: [DONE]
+
+            """
+        for slice in [Int.max, 5] {
+            let events = decode(
+                .openAICompatible, stream, slice: slice, route: "api.deepseek.com", model: "deepseek-flash")
+            expect(
+                replays(events) == [
+                    AIReasoningReplay(
+                        route: "api.deepseek.com", model: "deepseek-flash", form: .reasoningContent,
+                        text: "Read it first.")
+                ],
+                "reasoning_content is kept whole, in its own field (\(slice)-byte slices), got \(replays(events))")
+            expect(
+                events.contains(.reasoning("Read ")), "and the fold still shows it as it streams")
+        }
+        let plain = decode(
+            .openAICompatible,
+            """
+            data: {"choices":[{"delta":{"reasoning":"Think."}}]}
+
+            data: {"choices":[{"delta":{"content":"Hi."},"finish_reason":"stop"}]}
+
+            data: [DONE]
+
+            """)
+        expect(
+            replays(plain).map(\.form) == [.reasoning],
+            "OpenRouter's and vLLM's plain `reasoning` field is kept as that field")
+    }
+
+    /// MiniMax M2 and local Qwen3 lead the answer with `<think>`; it goes back inside the content.
+    static func thinkTagsAreKeptAsTags() {
+        guard let data = FileManager.default.contents(atPath: "Tests/ai-fixtures/openai-think-tags.txt")
+        else { return expect(false, "the think-tags fixture is readable") }
+        for slice in [data.count, 3] {
+            let events = decode(
+                .openAICompatible, String(bytes: data, encoding: .utf8) ?? "", slice: slice, route: "api.minimax.io",
+                model: "MiniMax-M2.5")
+            expect(
+                replays(events) == [
+                    AIReasoningReplay(
+                        route: "api.minimax.io", model: "MiniMax-M2.5", form: .thinkTags, text: "Plan carefully.")
+                ],
+                "the tagged reasoning is kept as tags (\(slice)-byte slices), got \(replays(events))")
+            expect(events.contains(.text("The answer.")), "while the answer reads without them")
+        }
+    }
+
+    /// Anthropic's blocks, Claude's own and the gateways', go back whole: text, signature and redaction.
+    static func anthropicThinkingBlocksKeepTheirSignatures() {
+        let stream = """
+            data: {"type":"message_start","message":{"usage":{"input_tokens":10}}}
+
+            data: {"type":"content_block_start","index":0,"content_block":{"type":"thinking","thinking":"","signature":""}}
+
+            data: {"type":"content_block_delta","index":0,"delta":{"type":"thinking_delta","thinking":"Read "}}
+
+            data: {"type":"content_block_delta","index":0,"delta":{"type":"thinking_delta","thinking":"it."}}
+
+            data: {"type":"content_block_delta","index":0,"delta":{"type":"signature_delta","signature":"EqMB"}}
+
+            data: {"type":"content_block_delta","index":0,"delta":{"type":"signature_delta","signature":"Ckal=="}}
+
+            data: {"type":"content_block_stop","index":0}
+
+            data: {"type":"content_block_start","index":1,"content_block":{"type":"redacted_thinking","data":"EmwKAhgB"}}
+
+            data: {"type":"content_block_stop","index":1}
+
+            data: {"type":"content_block_start","index":2,"content_block":{"type":"tool_use","id":"t1","name":"read_file"}}
+
+            data: {"type":"content_block_delta","index":2,"delta":{"type":"input_json_delta","partial_json":"{}"}}
+
+            data: {"type":"message_delta","delta":{"stop_reason":"tool_use"},"usage":{"output_tokens":20}}
+
+            data: {"type":"message_stop"}
+
+            """
+        for slice in [Int.max, 9] {
+            let events = decode(.anthropic, stream, slice: slice, route: "api.anthropic.com", model: "claude-opus-5-5")
+            expect(
+                replays(events) == [
+                    AIReasoningReplay(
+                        route: "api.anthropic.com", model: "claude-opus-5-5", form: .blocks, text: "Read it.",
+                        items: [
+                            json(#"{"type":"thinking","thinking":"Read it.","signature":"EqMBCkal=="}"#),
+                            json(#"{"type":"redacted_thinking","data":"EmwKAhgB"}"#)
+                        ])
+                ],
+                "thinking and its signature, then the redacted block, in order (\(slice)-byte slices), got "
+                    + "\(replays(events))")
+            expect(
+                events.contains(.toolCallRequested(AIToolCall(id: "t1", name: "read_file", arguments: "{}"))),
+                "beside the call they led to")
+        }
+        let omitted = decode(
+            .anthropic,
+            """
+            data: {"type":"content_block_start","index":0,"content_block":{"type":"thinking","thinking":"","signature":""}}
+
+            data: {"type":"content_block_delta","index":0,"delta":{"type":"signature_delta","signature":"Es8C"}}
+
+            data: {"type":"message_stop"}
+
+            """, route: "api.anthropic.com", model: "claude-opus-5-5")
+        expect(
+            replays(omitted).first?.items == [json(#"{"type":"thinking","thinking":"","signature":"Es8C"}"#)],
+            "Claude 5's omitted thinking, empty but signed, is kept too: it must still go back")
+    }
+
+    /// Gemini 3 signs its calls; the reply is stamped so no other model is ever sent the signature.
+    static func signedCallsStampTheirReply() {
+        let events = decode(
+            .openAICompatible,
+            """
+            data: {"choices":[{"delta":{"tool_calls":[{"index":0,"id":"c1","function":{"name":"f","arguments":"{}"},\
+            "extra_content":{"google":{"thought_signature":"sig=="}}}]}}]}
+
+            data: {"choices":[{"delta":{},"finish_reason":"tool_calls"}]}
+
+            data: [DONE]
+
+            """, route: "generativelanguage.googleapis.com", model: "gemini-3.5-flash")
+        expect(
+            replays(events) == [
+                AIReasoningReplay(
+                    route: "generativelanguage.googleapis.com", model: "gemini-3.5-flash", form: nil, text: "")
+            ],
+            "a signed call stamps its reply with no reasoning of its own, got \(replays(events))")
+    }
+
+    // MARK: Fork: request bodies per provider
+
+    /// One conversation per provider: an earlier turn of its own, one of another model, then a tool round.
+    private static func replayConversation(
+        _ form: AIReasoningReplay.Form?, route: String, model: String, items: [JSONValue] = [],
+        signature: String? = nil
+    ) -> [AIMessage] {
+        let stored = form.flatMap { form in
+            AIReasoningReplay(route: route, model: model, form: form, text: "Earlier thought.", items: items).stored
+        }
+        let theirs = AIReasoningReplay(
+            route: route, model: "another-model", form: .reasoningContent, text: "Their thought.", isStored: true)
+        return [
             AIMessage(role: .user, text: "What is in notes.txt?"),
-            AIMessage(role: .assistant, text: "An earlier answer."),
+            AIMessage(role: .assistant, text: "It lists milk.", reasoning: stored),
+            AIMessage(role: .user, text: "Which model wrote that?"),
+            AIMessage(role: .assistant, text: "Another one.", reasoning: theirs),
             AIMessage(role: .user, text: "And now?"),
             AIMessage(
                 role: .assistant, text: "",
-                toolCalls: [AIToolCall(id: "c1", name: "read_file", arguments: #"{"path":"notes.txt"}"#)],
-                reasoning: AIReasoningReplay(model: "deepseek-flash", text: "Read the file first.", details: [])),
-            AIMessage(role: .tool, text: "", toolResult: AIToolResult(callID: "c1", content: "milk, eggs", isError: false)),
+                toolCalls: [
+                    AIToolCall(
+                        id: "c1", name: "read_file", arguments: #"{"path":"notes.txt"}"#, thoughtSignature: signature)
+                ],
+                reasoning: AIReasoningReplay(
+                    route: route, model: model, form: form, text: form == nil ? "" : "Read it again.", items: items)),
             AIMessage(
-                role: .assistant, text: "Checking again.",
-                toolCalls: [AIToolCall(id: "c2", name: "read_file", arguments: "{}")],
-                reasoning: AIReasoningReplay(model: "deepseek-pro", text: "Another model's.", details: [])),
-            AIMessage(role: .tool, text: "", toolResult: AIToolResult(callID: "c2", content: "milk, eggs", isError: false))
+                role: .tool, text: "", toolResult: AIToolResult(callID: "c1", content: "milk, eggs", isError: false))
         ]
-        func body(
-            _ messages: [AIMessage], _ tools: [AITool], _ configuration: AIHTTPConfiguration,
-            instructions: String? = nil
-        ) -> JSONValue? {
+    }
+
+    /// Each provider's documented rules, pinned by the body they produce for one conversation.
+    static func eachProviderIsSentItsOwnReasoningBack() {
+        guard
+            let data = FileManager.default.contents(atPath: "Tests/ai-fixtures/reasoning-replay-bodies.json"),
+            let fixtures = JSONValue(data: data)?.objectValue
+        else { return expect(false, "the reasoning-replay fixture is readable") }
+        let tool = AITool(
+            name: "read_file", description: "Read a file.", parameters: .object(["type": .string("object")]),
+            origin: "Files")
+        let opaque = [
+            json(#"{"type":"reasoning.text","text":"Read it again.","format":"google-gemini-v1","index":0}"#),
+            json(#"{"type":"reasoning.encrypted","data":"CiQB+opaque/sig==","id":"c1","format":"google-gemini-v1","index":0}"#)
+        ]
+        let blocks = [
+            json(#"{"type":"thinking","thinking":"Read it again.","signature":"EqMBCkal=="}"#),
+            json(#"{"type":"redacted_thinking","data":"EmwKAhgB"}"#)
+        ]
+        let minimaxDetails = [
+            json(
+                #"{"type":"reasoning.text","id":"reasoning-text-1","format":"MiniMax-response-v1","index":0,"#
+                    + #""text":"Read it again."}"#)
+        ]
+        typealias Case = (
+            name: String, provider: AIProviderKind, base: String, model: String, form: AIReasoningReplay.Form?,
+            items: [JSONValue], signature: String?, mode: AIConnection.ReasoningReplay?
+        )
+        let cases: [Case] = [
+            ("deepseek", .openAICompatible, "https://api.deepseek.com", "deepseek-flash", .reasoningContent, [], nil, nil),
+            ("deepseek-never", .openAICompatible, "https://api.deepseek.com", "deepseek-flash", .reasoningContent, [],
+             nil, .never),
+            ("qwen", .openAICompatible, "https://dashscope-intl.aliyuncs.com/compatible-mode/v1", "qwen3.7-plus",
+             .reasoningContent, [], nil, nil),
+            ("qwen-always", .openAICompatible, "https://dashscope-intl.aliyuncs.com/compatible-mode/v1",
+             "qwen3.7-plus", .reasoningContent, [], nil, .always),
+            ("moonshot", .openAICompatible, "https://api.moonshot.ai/v1", "kimi-k2.6", .reasoningContent, [], nil, nil),
+            ("minimax", .openAICompatible, "https://api.minimax.io/v1", "MiniMax-M3", .reasoningContent, [], nil, nil),
+            ("minimax-details", .openAICompatible, "https://api.minimax.io/v1", "MiniMax-M2.7", .details,
+             minimaxDetails, nil, nil),
+            ("minimax-tags", .openAICompatible, "https://api.minimax.io/v1", "MiniMax-M2.5", .thinkTags, [], nil, nil),
+            ("zai", .openAICompatible, "https://api.z.ai/api/paas/v4", "glm-4.7", .reasoningContent, [], nil, nil),
+            ("zai-always", .openAICompatible, "https://api.z.ai/api/paas/v4", "glm-4.7", .reasoningContent, [], nil,
+             .always),
+            ("openrouter", .openRouter, "https://openrouter.ai/api/v1", "google/gemini-3.8-flash", .details, opaque,
+             nil, nil),
+            ("gemini", .gemini, "https://generativelanguage.googleapis.com/v1beta/openai", "gemini-3.5-flash", nil, [],
+             "sig==", nil),
+            ("openai", .openAI, "https://api.openai.com/v1", "gpt-5.5", .reasoningContent, [], nil, nil),
+            ("other", .openAICompatible, "https://llm.example.com/v1", "qwen3-32b", .reasoningContent, [], nil, nil),
+            ("other-always", .openAICompatible, "https://llm.example.com/v1", "qwen3-32b", .reasoningContent, [], nil,
+             .always),
+            ("anthropic", .anthropic, "https://api.anthropic.com", "claude-opus-5-5", .blocks, blocks, nil, nil),
+            ("anthropic-gateway", .anthropic, "https://api.minimax.io/anthropic", "MiniMax-M3", .blocks,
+             [json(#"{"type":"thinking","thinking":"Read it again.","signature":"a1b2"}"#)], nil, nil)
+        ]
+        for item in cases {
+            let configuration = AIHTTPConfiguration(
+                provider: item.provider, baseURL: URL(string: item.base)!, model: item.model,
+                reasoningReplay: item.mode)
             let made = AIRequestBody.make(
-                AIRequest(instructions: instructions, messages: messages, tools: tools),
+                AIRequest(
+                    instructions: "Be brief.",
+                    messages: replayConversation(
+                        item.form, route: configuration.route, model: item.model, items: item.items,
+                        signature: item.signature),
+                    tools: [tool]),
                 configuration: configuration)
-            return (try? JSONSerialization.data(withJSONObject: made)).flatMap(JSONValue.init(data:))
-        }
-        func fixture(_ name: String) -> JSONValue? {
-            FileManager.default.contents(atPath: "Tests/ai-fixtures/\(name).json").flatMap(JSONValue.init(data:))
-        }
-        let sent = body(turn, [tool], deepSeek, instructions: "Be brief.")
-        expect(
-            sent != nil && sent == fixture("deepseek-thinking-tools"),
-            "DeepSeek's thinking tool turn matches its fixture: every assistant message carries "
-                + "reasoning_content, its own model's text or an empty one")
-        func reasoningContent(_ body: JSONValue?) -> [String?] {
-            (body?.objectValue?["messages"]?.arrayValue ?? []).compactMap(\.objectValue)
-                .filter { $0["role"] == .string("assistant") }.map { $0["reasoning_content"]?.stringValue }
+            let body = (try? JSONSerialization.data(withJSONObject: made)).flatMap(JSONValue.init(data:))
+            let got = (try? JSONSerialization.data(withJSONObject: made, options: [.sortedKeys]))
+                .flatMap { String(bytes: $0, encoding: .utf8) } ?? ""
+            expect(
+                body != nil && body == fixtures[item.name], "\(item.name): the body matches its fixture, got \(got)")
         }
         let thinkingOff = AIHTTPConfiguration(
             provider: .openAICompatible, baseURL: URL(string: "https://api.deepseek.com/v1")!,
             model: "deepseek-flash", effort: "none", disablesThinking: true)
+        let off = AIRequestBody.make(
+            AIRequest(
+                messages: replayConversation(.reasoningContent, route: "api.deepseek.com", model: "deepseek-flash"),
+                tools: [tool]),
+            configuration: thinkingOff)
         expect(
-            reasoningContent(body(turn, [tool], thinkingOff)).allSatisfy { $0 == nil },
-            "with thinking off nothing is sent back")
-        expect(
-            reasoningContent(body(turn, [], deepSeek)).allSatisfy { $0 == nil },
-            "nor on a turn that offers no tools, where DeepSeek ignores it")
-        let elsewhere = AIHTTPConfiguration(
-            provider: .openAICompatible, baseURL: URL(string: "https://api.example.com/v1")!,
-            model: "deepseek-flash")
-        expect(
-            reasoningContent(body(turn, [tool], elsewhere)).allSatisfy { $0 == nil },
-            "and another host that serves the same model name is sent the body it always was")
-
-        func json(_ text: String) -> JSONValue { JSONValue(data: Data(text.utf8)) ?? .null }
-        let details = [
-            json(#"{"type":"reasoning.text","text":"Search first.","format":"google-gemini-v1","index":0}"#),
-            json(
-                #"{"type":"reasoning.encrypted","data":"CiQB+opaque/sig==","id":"tool_c1","#
-                    + #""format":"google-gemini-v1","index":0}"#)
-        ]
-        let search = AITool(
-            name: "web_search", description: "Search the web.", parameters: .object(["type": .string("object")]),
-            origin: "Web")
-        let openRouter = AIHTTPConfiguration(
-            provider: .openRouter, baseURL: URL(string: "https://openrouter.ai/api/v1")!,
-            model: "google/gemini-3.8-flash")
-        let routed = [
-            AIMessage(role: .user, text: "Find it."),
-            AIMessage(
-                role: .assistant, text: "",
-                toolCalls: [AIToolCall(id: "c1", name: "web_search", arguments: #"{"query":"x"}"#)],
-                reasoning: AIReasoningReplay(model: "google/gemini-3.8-flash", text: "Search first.", details: details)),
-            AIMessage(role: .tool, text: "", toolResult: AIToolResult(callID: "c1", content: "results", isError: false)),
-            AIMessage(
-                role: .assistant, text: "", toolCalls: [AIToolCall(id: "c2", name: "web_search", arguments: "{}")],
-                reasoning: AIReasoningReplay(model: "openai/gpt-oss-120b", text: "Theirs.", details: details)),
-            AIMessage(role: .tool, text: "", toolResult: AIToolResult(callID: "c2", content: "results", isError: false))
-        ]
-        let routedBody = body(routed, [search], openRouter)
-        expect(
-            routedBody != nil && routedBody == fixture("openrouter-reasoning-details"),
-            "OpenRouter's body matches its fixture: details back verbatim and in order to the model "
-                + "that wrote them, none to another, and no reasoning_content")
+            (off["messages"] as? [[String: Any]])?.allSatisfy { $0["reasoning_content"] == nil } == true,
+            "with DeepSeek's thinking off nothing is sent back, not even the empty field")
     }
 
     /// A call from a reply the output cap cut may hold half its arguments, so the loop is told.
@@ -494,7 +700,10 @@ struct AIProviderTests {
         expect(
             kind(400, #"{"error":{"message":"This endpoint's maximum context length is 65536 tokens."}}"#)
                 == .overflow
-                && kind(400, #"{"type":"error","error":{"type":"invalid_request_error","message":"prompt is too long: 213462 tokens > 200000 maximum"}}"#)
+                && kind(
+                    400,
+                    #"{"type":"error","error":{"type":"invalid_request_error","#
+                        + #""message":"prompt is too long: 213462 tokens > 200000 maximum"}}"#)
                     == .overflow && kind(413, "") == .overflow,
             "a full window in OpenRouter's, Anthropic's or a proxy's words is an overflow")
         expect(
@@ -1395,8 +1604,9 @@ struct AIProviderTests {
         var terminated = AIStreamDecoder(shape: .openAICompatible)
         _ = try? terminated.feed(contentFrame("<think>r</thi"))
         expect(
-            (try? terminated.feed(Data("data: [DONE]\n\n".utf8)))
-                == [.thinking, .reasoning("</thi"), .finished],
+            (try? terminated.feed(Data("data: [DONE]\n\n".utf8)))?.filter({
+                if case .reasoningReplay = $0 { false } else { true }
+            }) == [.thinking, .reasoning("</thi"), .finished],
             "think tags: DONE flushes reasoning before completion")
         expect((try? terminated.finish()) == [], "think tags: EOF after DONE never flushes twice")
         let tools = Data(
@@ -1471,7 +1681,8 @@ struct AIProviderTests {
             offset = end
         }
         events += (try? decoder.finish()) ?? []
-        return events
+        // Fork: a reply's reasoning replay is the loop's, and checked on its own above.
+        return events.filter { if case .reasoningReplay = $0 { false } else { true } }
     }
 
     /// A refusal is read, not discarded: the status's line, then what the provider said under it.

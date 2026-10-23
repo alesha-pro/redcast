@@ -24,6 +24,7 @@ struct AgentLoopTests {
         await stopReachesTheRunningCall()
         await aTurnWithoutCallsPassesThrough()
         await reasoningRidesTheCallsItMade()
+        anEditDropsTheThinkingAfterIt()
         await aCutReplysCallsNeverRun()
         await anAgentTurnCostsEveryRound()
         await theSpendMeterHearsEachRoundsCost()
@@ -135,7 +136,8 @@ struct AgentLoopTests {
                 [.searching("q"), .searched("q"), .text("ok"), .usage(AIUsage(inputTokens: 20)), .finished]
             ], maxRounds: 25)
         let thought = AIReasoningReplay(
-            model: "m", text: "check", details: [.object(["type": .string("reasoning.encrypted"), "data": .string("e")])])
+            route: "openrouter.ai", model: "m", form: .details, text: "check",
+            items: [.object(["type": .string("reasoning.encrypted"), "data": .string("e")])])
         await differential(
             "reasoning sent back", rounds: [
                 [.thinking, .reasoning("check"), .reasoningReplay(thought), call("c1")],
@@ -238,7 +240,8 @@ struct AgentLoopTests {
 
     /// DeepSeek refuses a thinking round whose earlier calls come back without their reasoning.
     static func reasoningRidesTheCallsItMade() async {
-        let thought = AIReasoningReplay(model: "deepseek-flash", text: "Read it first.", details: [])
+        let thought = AIReasoningReplay(
+            route: "api.deepseek.com", model: "deepseek-flash", form: .reasoningContent, text: "Read it first.")
         let base = ScriptedProvider(rounds: [
             [.thinking, .reasoning("Read it first."), .reasoningReplay(thought), call("c1")],
             [call("c2")],
@@ -251,8 +254,37 @@ struct AgentLoopTests {
             replies.map(\.reasoning) == [thought, nil],
             "each round's reasoning goes back on the message with its calls, and only there")
         expect(
-            !events.contains { if case .reasoningReplay = $0 { true } else { false } },
-            "and never reaches the transcript")
+            events.filter { if case .reasoningReplay = $0 { true } else { false } } == [.reasoningReplay(thought)],
+            "and is handed on once, for the chat to keep for that model's later turns")
+    }
+
+    /// Claude signs a thinking block over all before it: an elided result voids every later block.
+    static func anEditDropsTheThinkingAfterIt() {
+        let signed = AIReasoningReplay(
+            route: "api.anthropic.com", model: "claude-opus-5-5", form: .blocks, text: "",
+            items: [.object(["type": .string("thinking"), "thinking": .string(""), "signature": .string("s")])])
+        let gemini = AIReasoningReplay(
+            route: "generativelanguage.googleapis.com", model: "gemini-3.5-flash", form: nil, text: "")
+        let page = String(repeating: "p", count: 100 * 1_024)
+        func reply(_ id: String, _ reasoning: AIReasoningReplay) -> AIMessage {
+            AIMessage(
+                role: .assistant, text: "", toolCalls: [AIToolCall(id: id, name: "fs_read", arguments: "{}")],
+                reasoning: reasoning)
+        }
+        func result(_ id: String) -> AIMessage {
+            AIMessage(role: .tool, text: "", toolResult: AIToolResult(callID: id, content: page, isError: false))
+        }
+        var messages = [
+            AIMessage(role: .user, text: "go"), reply("a", signed), result("a"), reply("b", signed), result("b"),
+            reply("c", gemini), result("c"), reply("d", signed), result("d")
+        ]
+        let saved = AgentTurnBudget.elide(&messages, turnStart: 1, keepFrom: 7)
+        expect(saved > 0 && messages[2].toolResult?.content.hasPrefix("[Earlier") == true, "the oldest result went")
+        expect(
+            messages[1].reasoning == signed && messages[3].reasoning?.items.isEmpty == true
+                && messages[7].reasoning?.items.isEmpty == true,
+            "the block before the edit stays, and every later Claude block is dropped for good")
+        expect(messages[5].reasoning == gemini, "while a route that signs no prefix keeps what it had")
     }
 
     /// pi's rule: a call from a reply the output cap cut is answered, never run, and asked again.

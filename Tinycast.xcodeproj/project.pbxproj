@@ -418,6 +418,7 @@
 		614DAAC9331F9C1DE4D76F0D /* EmojiScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 67B6CA2ED2DDD9A89C7EE874 /* EmojiScreen.swift */; };
 		61D0A490A2474619F4D7B6BE /* DictationAudioChunks.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A97F816CB516A9203224A17 /* DictationAudioChunks.swift */; };
 		61D9B055A8A27DBAFA5CA2EB /* SettingsFileIssue.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB68DFBD782D32B5633EC4A7 /* SettingsFileIssue.swift */; };
+		61DE772323471D6CA3997768 /* AIReasoningDecoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 861AA164C55AA853BD8D60D9 /* AIReasoningDecoder.swift */; };
 		624C82CD22F78210DAABD527 /* VoiceCloudTranscriber.swift in Sources */ = {isa = PBXBuildFile; fileRef = 560498AA1DC340221B681FF8 /* VoiceCloudTranscriber.swift */; };
 		6293B6B6B50E09CA75B74654 /* NotesSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6AF26598BE61F114D5999541 /* NotesSettingsView.swift */; };
 		62C75AA7315CDEFE82ECD21B /* ExtensionTintColors.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7751EBF0F632A123B4A2363 /* ExtensionTintColors.swift */; };
@@ -564,6 +565,7 @@
 		89872774514D83EC2BD60F1E /* CommandCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F0A68B2040582996EFBA877 /* CommandCatalog.swift */; };
 		89B3CC1AB417D04CE39FB70C /* Appearance.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8E5F9675F2090C3AA9EEBF65 /* Appearance.swift */; };
 		89FB9BB1A648991D589329B0 /* DictationLanguage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7DCE032DD72DFA1EA930B7EE /* DictationLanguage.swift */; };
+		8A05E15C1EBDB8343337D4F3 /* AIReasoningReplayPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 72F4E3CAAC003CF7DF5052BD /* AIReasoningReplayPolicy.swift */; };
 		8A11D87B31A2BC5D8C778475 /* MarkdownInline.swift in Sources */ = {isa = PBXBuildFile; fileRef = 164DCBE855B7136AE08712D8 /* MarkdownInline.swift */; };
 		8A34168607D3C7EDD83CB485 /* ExtensionDateField.swift in Sources */ = {isa = PBXBuildFile; fileRef = B6915B7D8E6816B7919F5CF4 /* ExtensionDateField.swift */; };
 		8B18F59B0EB93ACDB1F16A84 /* QuicklinkEditorScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE8E49E5D98087ECB64D286B /* QuicklinkEditorScreen.swift */; };
@@ -1532,6 +1534,7 @@
 		71FAFB9D6EBEF275C5430C15 /* AgentToolExecutor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentToolExecutor.swift; sourceTree = "<group>"; };
 		72DF1178CD8AD726AC6F9874 /* CalculatorCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalculatorCardView.swift; sourceTree = "<group>"; };
 		72F0F0DDA5FC1F6ED59E73E9 /* DoubleTapModifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DoubleTapModifier.swift; sourceTree = "<group>"; };
+		72F4E3CAAC003CF7DF5052BD /* AIReasoningReplayPolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIReasoningReplayPolicy.swift; sourceTree = "<group>"; };
 		730BF08D764698989DF963A0 /* MenuSearchShortcut.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuSearchShortcut.swift; sourceTree = "<group>"; };
 		732AEAA3A5C5DE559B739295 /* DictionaryService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DictionaryService.swift; sourceTree = "<group>"; };
 		732C28E00A15CFBE3C8FAD1A /* QuickAICoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuickAICoordinator.swift; sourceTree = "<group>"; };
@@ -1615,6 +1618,7 @@
 		858E08BB313EC330C2D5E50C /* LauncherCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LauncherCoordinator.swift; sourceTree = "<group>"; };
 		85B00A698366E83C7352BC1E /* HotKeyBinding.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotKeyBinding.swift; sourceTree = "<group>"; };
 		85DAEE77ABAC4260C95F9AB5 /* AIProviderFactory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIProviderFactory.swift; sourceTree = "<group>"; };
+		861AA164C55AA853BD8D60D9 /* AIReasoningDecoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIReasoningDecoder.swift; sourceTree = "<group>"; };
 		8623D7924B9BCB60F6BDCC1A /* WebChatTools.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebChatTools.swift; sourceTree = "<group>"; };
 		86545F54669A075FBDA5D1F1 /* CalculatorHistoryScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalculatorHistoryScreen.swift; sourceTree = "<group>"; };
 		867B0475618A01A765AC0DC5 /* WindowSwitchOrder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowSwitchOrder.swift; sourceTree = "<group>"; };
@@ -2571,6 +2575,15 @@
 				054F403BD478830AE32E6A77 /* UI */,
 			);
 			path = MCP;
+			sourceTree = "<group>";
+		};
+		2D0F211FAD658C44DB7D62B8 /* Model */ = {
+			isa = PBXGroup;
+			children = (
+				861AA164C55AA853BD8D60D9 /* AIReasoningDecoder.swift */,
+				72F4E3CAAC003CF7DF5052BD /* AIReasoningReplayPolicy.swift */,
+			);
+			path = Model;
 			sourceTree = "<group>";
 		};
 		2F37DF33894D0E30B694B323 /* Service */ = {
@@ -3651,6 +3664,7 @@
 				159D0342A9846C10226BF6F7 /* QuickActions */,
 				27B168400A42E9DE8841EE20 /* QuickAITools */,
 				60DCE6A46E636364E5C3B5B4 /* Quicklinks */,
+				A64F9A01DDAF6073413A55E0 /* ReasoningReplay */,
 				EF21A440478CC37FEB499727 /* ScreenAwareness */,
 				E3202F504002B7792FC50B2F /* Settings */,
 				7CD438390F8FA4B3C2AE5F28 /* Snippets */,
@@ -3918,6 +3932,14 @@
 				67B6CA2ED2DDD9A89C7EE874 /* EmojiScreen.swift */,
 			);
 			path = UI;
+			sourceTree = "<group>";
+		};
+		A64F9A01DDAF6073413A55E0 /* ReasoningReplay */ = {
+			isa = PBXGroup;
+			children = (
+				2D0F211FAD658C44DB7D62B8 /* Model */,
+			);
+			path = ReasoningReplay;
 			sourceTree = "<group>";
 		};
 		A6583C2229DEBA66DDC693B5 /* Service */ = {
@@ -4943,6 +4965,8 @@
 				50300E827CBD0F54F0360111 /* AIProviderFactory.swift in Sources */,
 				AFAC33BF93E5B61AEB1A2B6A /* AIProviderFailure.swift in Sources */,
 				0DD8A17796AE752342B7C26C /* AIProvidersPanel.swift in Sources */,
+				61DE772323471D6CA3997768 /* AIReasoningDecoder.swift in Sources */,
+				8A05E15C1EBDB8343337D4F3 /* AIReasoningReplayPolicy.swift in Sources */,
 				914402CB38C5D09C611AA8F4 /* AIRequest.swift in Sources */,
 				3B0E1DFB220BCBB7EADF65B7 /* AIRequestBody.swift in Sources */,
 				3D8BD788CC567FBC476D1BC6 /* AIRequestHeaders.swift in Sources */,

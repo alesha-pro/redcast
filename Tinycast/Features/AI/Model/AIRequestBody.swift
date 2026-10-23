@@ -39,32 +39,14 @@ enum AIRequestBody {
         return body
     }
 
-    // Fork: DeepSeek refuses a thinking turn with tools that lacks any reply's reasoning.
-    private static func replayed(
-        _ encoded: [String: Any], of message: AIMessage, _ input: AIRequest,
-        _ configuration: AIHTTPConfiguration
-    ) -> [String: Any] {
-        guard message.role == .assistant else { return encoded }
-        var encoded = encoded
-        let own = message.reasoning.flatMap { $0.model == configuration.model ? $0 : nil }
-        if configuration.provider == .openRouter, let details = own?.details, !details.isEmpty {
-            encoded["reasoning_details"] = details.map(\.jsonObject)
-        }
-        let host = configuration.baseURL.host() ?? ""
-        if host == "deepseek.com" || host.hasSuffix(".deepseek.com"), !configuration.disablesThinking,
-            !input.tools.isEmpty
-        {
-            encoded["reasoning_content"] = own?.text ?? ""
-        }
-        return encoded
-    }
-
     private static func openAI(
         _ input: AIRequest, configuration: AIHTTPConfiguration
     ) -> [String: Any] {
         // Fork: each assistant message carries back what its route needs of the reasoning.
         var messages = input.messages.compactMap { message in
-            openAIMessage(message).map { replayed($0, of: message, input, configuration) }
+            openAIMessage(message).map {
+                AIReasoningReplayPolicy.openAIMessage($0, of: message, input: input, configuration: configuration)
+            }
         }
         if let instructions = input.instructions?.nonEmpty {
             messages.insert(["role": "system", "content": instructions], at: 0)
@@ -94,6 +76,8 @@ enum AIRequestBody {
         if configuration.disablesThinking {
             body["thinking"] = ["type": "disabled"]
         }
+        // Fork: a connection set to Always asks the routes that drop earlier reasoning to keep it.
+        body.merge(AIReasoningReplayPolicy.openAIBody(input, configuration: configuration)) { $1 }
         // Fork: an extension's creativity; a route that refuses it is asked again without it.
         if let temperature = input.temperature { body["temperature"] = temperature }
         // Fork: OpenAI's own API takes only the newer name; DeepSeek and gateways take the older.
@@ -124,7 +108,7 @@ enum AIRequestBody {
             .compactMap { $0?.nonEmpty }
         var body: [String: Any] = [
             "model": configuration.model,
-            "messages": anthropicMessages(input.messages),
+            "messages": anthropicMessages(input.messages, configuration),
             "max_tokens": input.outputCap ?? input.maxOutputTokens,
             "stream": true
         ]
@@ -191,7 +175,9 @@ enum AIRequestBody {
     }
 
     /// Anthropic takes tool results as user content, and a run of them has to arrive as one turn.
-    private static func anthropicMessages(_ messages: [AIMessage]) -> [[String: Any]] {
+    private static func anthropicMessages(
+        _ messages: [AIMessage], _ configuration: AIHTTPConfiguration
+    ) -> [[String: Any]] {
         var encoded: [[String: Any]] = []
         var results: [[String: Any]] = []
         for message in messages {
@@ -206,17 +192,21 @@ enum AIRequestBody {
                 encoded.append(["role": "user", "content": results])
                 results = []
             }
-            if let value = anthropicMessage(message) { encoded.append(value) }
+            if let value = anthropicMessage(message, configuration) { encoded.append(value) }
         }
         if !results.isEmpty { encoded.append(["role": "user", "content": results]) }
         return encoded
     }
 
-    private static func anthropicMessage(_ message: AIMessage) -> [String: Any]? {
+    private static func anthropicMessage(
+        _ message: AIMessage, _ configuration: AIHTTPConfiguration
+    ) -> [String: Any]? {
         guard message.role != .system else { return nil }
         let text = message.text.nonEmpty
         if !message.toolCalls.isEmpty {
-            var parts: [[String: Any]] = text.map { [["type": "text", "text": $0]] } ?? []
+            // Fork: this turn's thinking blocks lead the message, as the tool loop requires.
+            var parts = AIReasoningReplayPolicy.anthropicBlocks(of: message, configuration: configuration)
+            parts += text.map { [["type": "text", "text": $0]] } ?? []
             parts += message.toolCalls.map {
                 [
                     "type": "tool_use", "id": $0.id, "name": $0.name,

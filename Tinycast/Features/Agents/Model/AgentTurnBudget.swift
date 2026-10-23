@@ -55,6 +55,7 @@ struct AgentTurnBudget: Sendable {
         let names = Dictionary(
             messages[turnStart...].flatMap(\.toolCalls).map { ($0.id, $0.name) }, uniquingKeysWith: { $1 })
         var saved = 0
+        var edited: Int?
         for index in results where index < keepFrom && total >= elideTo {
             guard let result = messages[index].toolResult else { continue }
             let name = names[result.callID] ?? "tool"
@@ -67,8 +68,22 @@ struct AgentTurnBudget: Sendable {
             messages[index] = AIMessage(role: .tool, text: messages[index].text, toolResult: elided)
             total -= size - replacement.utf8.count
             saved += size - replacement.utf8.count
+            edited = edited ?? index
         }
+        if let edited { unbind(&messages, after: edited) }
         return saved
+    }
+
+    /// Claude's thinking blocks are signed over what came before them, so an edit voids later ones.
+    static func unbind(_ messages: inout [AIMessage], after index: Int) {
+        for later in messages.indices where later > index {
+            let message = messages[later]
+            guard let reasoning = message.reasoning, reasoning.bindsPrefix else { continue }
+            messages[later] = AIMessage(
+                role: message.role, text: message.text, images: message.images, documents: message.documents,
+                audio: message.audio, toolCalls: message.toolCalls, toolResult: message.toolResult,
+                reasoning: reasoning.unbound)
+        }
     }
 
     /// An overflow with nothing left to elide sheds the older half of the history, from a question.
@@ -81,6 +96,7 @@ struct AgentTurnBudget: Sendable {
         messages.removeFirst(cut)
         turnStart -= cut
         keepFrom -= cut
+        unbind(&messages, after: -1)
         return true
     }
 
