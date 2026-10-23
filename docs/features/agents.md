@@ -102,8 +102,9 @@ in root search or on a schedule: see [background and scheduled agents](backgroun
   `AgentLoopProvider` per call over the turn's own route. The child is the agent made read-only with
   Sub-agents removed, so it has no `delegate` of its own and stops at one level; its toolset offers only
   `AgentToolRisk.reads` (read, network, personal: no change, command, `memory_write` or plan), no MCP,
-  and runs unattended, so anything whose rule would ask is refused. It gets the agent's context prompt for
-  that read-only profile and a sub-task briefing, never the parent's conversation. It stops after 12
+  and runs unattended, so anything whose rule would ask is refused and `screen_context`, which needs a
+  turn the user sent, is not offered. It gets the agent's context prompt for that read-only profile
+  and a sub-task briefing, never the parent's conversation. It stops after 12
   rounds; its answer is the text after its last call, cut to 16 KB. What it spent comes back as
   `AgentToolSignal.spent` and is billed into the parent's reply. Its own calls never show; the parent's
   row reads "delegate: <name>" through `AgentToolProvider.title(for:)`. One runs at a time, and Stop
@@ -239,7 +240,8 @@ because the composer's label and menu styles are private to that file.
 
 The notes family is off for every agent until ticked, and offered only while Notes is on; see
 [notes and AI](notes-ai.md). Sub-agents is off until ticked too, and so is Screen, which is offered only
-while [Screen Awareness](screen-awareness.md) is on and reads the window behind Tinycast as text.
+while [Screen Awareness](screen-awareness.md) is on, only on a turn the user sent from the chat (never a
+background run or a sub-agent), and reads the window behind Tinycast as text.
 
 `run_command` runs through `ShellCommandRunner.stream` with the login shell's environment in the
 agent's folder, stopped after its timeout (120 s by default, 600 s at most); escape sequences are

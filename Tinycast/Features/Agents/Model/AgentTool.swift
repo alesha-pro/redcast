@@ -39,6 +39,14 @@ struct AgentTurn: Sendable {
     let skills: [AgentSkill]
     let memoryURL: URL
     let mode: AgentRunMode
+    /// A schedule's or the launcher's run: nobody sent it, though a dialog may still reach them.
+    var isBackground = false
+
+    /// The user sent this turn from its chat; never a background run or a sub-agent.
+    var isUserTurn: Bool {
+        guard case .chat = mode else { return false }
+        return !isBackground
+    }
 }
 
 enum AgentRunMode: Hashable, Sendable {
@@ -46,6 +54,12 @@ enum AgentRunMode: Hashable, Sendable {
     case chat(UUID)
     /// Nobody to ask, so a rule of ask refuses.
     case unattended(UUID)
+
+    var chatID: UUID {
+        switch self {
+        case .chat(let id), .unattended(let id): id
+        }
+    }
 }
 
 /// What a change or command looks like to the person asked to allow it.
