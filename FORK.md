@@ -48,7 +48,8 @@ upstream's feed, and they keep their settings apart from an installed upstream T
   lines.
 - `Tinycast.xcodeproj` is generated: after a merge, resolve `project.yml` and run `xcodegen generate`
   rather than hand-merging `project.pbxproj`. `Localizable.xcstrings` entries are inserted by hand in
-  catalog order (a local `sync-strings.sh` reorders hundreds of unrelated entries).
+  catalog order (a local `sync-strings.sh` reorders hundreds of unrelated entries). A short key whose
+  meaning depends on where it appears, such as `at`, gets a catalog `comment` for translators.
 - `Scripts/fork/sync-upstream.sh` does the merge: into `sync/upstream-<sha>`, upstream's
   `project.pbxproj` and runtime bundle regenerated, the string catalog merged key by key, an
   `Upstream-Sync:` trailer, then the build, harness, lint and purity gates and a summary of what
