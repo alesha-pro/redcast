@@ -172,6 +172,7 @@
 		295AA3F6F9E005C57698201B /* ExtensionListPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA6DDE1843D16C172AAA1002 /* ExtensionListPanel.swift */; };
 		2975C759E78E36353F470EEC /* VoiceEditReply.swift in Sources */ = {isa = PBXBuildFile; fileRef = 13712DDB6E09AF93D638FF52 /* VoiceEditReply.swift */; };
 		29AE7D39F2969F706A8038A6 /* FileSearchScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 847C792F7F5F31259EB56ACC /* FileSearchScreen.swift */; };
+		29B33ED511B2C60478704F89 /* AgentSpotlight.swift in Sources */ = {isa = PBXBuildFile; fileRef = B448595A6F267BB11DDFA5A5 /* AgentSpotlight.swift */; };
 		2A013DE5237A6DF5A96CC2C6 /* HyperKeyConflictPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50B776C855E29FF18F696676 /* HyperKeyConflictPolicy.swift */; };
 		2BD1103326B02E4F84B4AD11 /* DictationHistoryPreview.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7FFBECD8102C3032D9F74F53 /* DictationHistoryPreview.swift */; };
 		2BEBF78104855A7E0014D223 /* UnitDef.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4E153308EF724D552155C4D2 /* UnitDef.swift */; };
@@ -1825,6 +1826,7 @@
 		B3C43FC91BA2941C988C1F81 /* AgentSessionsLocations.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentSessionsLocations.swift; sourceTree = "<group>"; };
 		B3C7D17F97002FD58E8A5F53 /* PermissionsSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PermissionsSettingsView.swift; sourceTree = "<group>"; };
 		B429F11F5F1AB1C249A3C132 /* ScreenContextReader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenContextReader.swift; sourceTree = "<group>"; };
+		B448595A6F267BB11DDFA5A5 /* AgentSpotlight.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentSpotlight.swift; sourceTree = "<group>"; };
 		B45A6AB1413A8A08EF7F0A9E /* ClipboardFilterButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardFilterButton.swift; sourceTree = "<group>"; };
 		B469959F9681E35617041FF2 /* RegionNumberFormatMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RegionNumberFormatMonitor.swift; sourceTree = "<group>"; };
 		B4984C964DC144E213DF4F63 /* Quarantine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Quarantine.swift; sourceTree = "<group>"; };
@@ -3129,6 +3131,7 @@
 				9E395E7C198455CF31F9AFCA /* AgentSchedule.swift */,
 				635571B6330E1335B5D0D39E /* AgentScheduleSpend.swift */,
 				18F82BE6758E4D08E798FC19 /* AgentSkill.swift */,
+				B448595A6F267BB11DDFA5A5 /* AgentSpotlight.swift */,
 				AA08E16BC2D6FA1C352F28FA /* AgentStore.swift */,
 				2942A642482826B696F6487C /* AgentTaskAddress.swift */,
 				905E52737EFEF57879276A7B /* AgentTool.swift */,
@@ -5077,6 +5080,7 @@
 				CF9CD9A72F4909A0DC14D24E /* AgentSessionsSettingsSection.swift in Sources */,
 				A8F6C8D6EC726CFD5F580E07 /* AgentSkill.swift in Sources */,
 				82AD687677DC9EADF10347DC /* AgentSpendMeter.swift in Sources */,
+				29B33ED511B2C60478704F89 /* AgentSpotlight.swift in Sources */,
 				A15CB30F68A5689B15DE1022 /* AgentStore.swift in Sources */,
 				FBBFB77EBD7032AC56F47528 /* AgentTaskAddress.swift in Sources */,
 				BCBAF37E50FE742D9180BADE /* AgentTaskLauncher.swift in Sources */,

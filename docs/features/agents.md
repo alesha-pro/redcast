@@ -65,7 +65,11 @@ optional chord: see [background and scheduled agents](background-agents.md).
   against the folder and standardizes `..` away; the executor then resolves symlinks on both the path
   and the folder before asking. Reading reaches the folder and the granted skills' folders; writing
   reaches the folder (`workspaceWrite`) or anywhere (`fullAccess`); `readOnly` is offered no write
-  tool and no terminal at all, and the executor refuses them again if called.
+  tool and no terminal at all, and the executor refuses them again if called. Every path Spotlight
+  returns passes the same check before it is shown.
+- **Files beyond the folder are found through Spotlight's own index.** `search_files` with `mode`
+  `spotlight` runs `mdfind` once, without a shell, over the agent's folder, or with full access the
+  home folder or a `path` it may read ([why not a new access level](#finding-files-beyond-the-folder)).
 - **Context is read off-main and kept.** `AgentContextLoader` reads the instruction files, scans the
   skills and the notes on a detached task; `AgentCoordinator` caches the result per agent and
   refreshes it after each use, so a send never waits on the disk past an agent's very first turn.
@@ -377,7 +381,8 @@ off by default per agent, bounded by `AgentPathPolicy` and asked through the age
 | `Model/AgentPlan.swift` | `update_plan`'s definition and arguments, and the checklist ACP plans share |
 | `Service/AgentContextLoader.swift` | Reads `AGENTS.md` (or a lone `CLAUDE.md`), `~/.agents/AGENTS.md`, skills, notes |
 | `Model/AgentWebScope.swift` | What one turn's `web_fetch` may open: unattended or narrowed by a personal read, the user's links and what was found |
-| `Service/AgentToolExecutor.swift` | `AgentBuiltInTools`, the first provider; the executor runs each call: reads by kind, ripgrep search, terminal with timeout, `web_fetch` through `WebPageReader` |
+| `Model/AgentSpotlight.swift` | `search_files`'s Spotlight mode: the `mdfind` query from the model's words, kind and date, what is shown, the listing |
+| `Service/AgentToolExecutor.swift` | `AgentBuiltInTools`, the first provider; the executor runs each call: reads by kind, ripgrep or Spotlight search, terminal with timeout, `web_fetch` through `WebPageReader` |
 | `Service/AgentWebRounds.swift` | The parent turn's route, so its web scope sees each round's messages first |
 | `Service/AgentLoopProvider.swift` | The agent chats' tool loop: cross-turn notes, rounds, batches, budget, Stop |
 | `Service/AgentPlanTools.swift` | `update_plan`: shows the checklist it is sent |
@@ -432,19 +437,41 @@ reads the window behind Tinycast as text.
 `run_command` runs through `ShellCommandRunner.stream` with the login shell's environment in the
 agent's folder, stopped after its timeout (120 s by default, 600 s at most); escape sequences are
 stripped and only the output's tail is kept. `search_files` prefers ripgrep and falls back to
-`grep -rnIE`, run without a shell so a pattern is never interpreted. `read_file` hands a PDF, an
-image or a Word, RTF or ODT file to the document helper, one child process per read
-([document text](document-text.md)). `web_fetch` uses a private
+`grep -rnIE`, run without a shell so a pattern is never interpreted; in `mode` `spotlight` it runs
+`/usr/bin/mdfind` the same way, for 20 s and 512 KB of paths at most, and lists 50, newest first,
+with date and size. `read_file` hands a PDF, an image or a Word, RTF or ODT file to the document
+helper, one child process per read ([document text](document-text.md)). `web_fetch` uses a private
 `.ephemeral` session per fetch, with no cache and a cookie jar of its own, 20 s idle and 60 s in
 all, follows no redirect onto a local host it did not start at ([why](web-search.md#invariants)),
 reads at most 2 MB of a page or streams a PDF of up to 32 MB to a temporary file it removes, and
-converts a page in one pass, saying so when a page's scripts would have drawn what is missing. `web_search` runs
-through [web search](web-search.md)'s engine chain, not the executor; it asks under the same Web
-rule and shows a search row between its own row's opening and closing.
+converts a page in one pass, saying so when a page's scripts would have drawn what is missing.
+`web_search` runs through [web search](web-search.md)'s engine chain, not the executor; it asks
+under the same Web rule and shows a search row between its own row's opening and closing.
+
+### Finding files beyond the folder
+
+An agent that should find "the PDF about the lease" anywhere in the user's files gets it from
+Spotlight, not from a new access level. `search_files` takes `mode: "spotlight"` with words (each must
+match a file's name, its title or the text Spotlight extracted, as a word prefix), an optional `kind`
+(pdf, document, spreadsheet, presentation, image, audio, video, text, code, folder, archive),
+`modified_after` (`YYYY-MM-DD`) and `names_only`. `AgentSpotlightQuery` builds the query itself:
+quotes only bound a phrase, a backslash and the wildcards are escaped, a date is checked digit by
+digit, and the query is one argument to `mdfind`, so the model never writes query language. It
+searches the agent's folder, or with full access the home folder or a folder it names; hidden paths
+and `~/Library` (mail, messages, caches) are left out unless the search began there, and every path
+passes `AgentPathPolicy` before it is listed. A path beyond the folder narrows the turn's web reach
+like any other read of the user's files.
+
+A "read anywhere, write in its folder" level was the other way, and was left for later: a new
+`AgentAccess` case would make `agents.json` unreadable to the previous build (or need the side file
+`addedTools` needed), and without a command sandbox its write boundary would hold only for the file
+tools, since `run_command` already reaches past the folder at workspace level. Spotlight needs
+neither: it is an index macOS already keeps, nothing is crawled or kept running, and what it finds
+is read with the access the agent already has.
 
 Neighbouring calls that may share a round run together, four at most (`AgentLoopProvider.width`),
-which bounds memory to four 2 MB fetch buffers and processes to four ripgreps or document helpers:
-reads, `web_fetch`,
+which bounds memory to four 2 MB fetch buffers and processes to four ripgreps, `mdfind`s or document
+helpers: reads, `web_fetch`,
 `web_search` and `load_skill` (`AgentToolSpec.concurrent`). Every row of a batch opens first, each
 closes as its call ends, and the model reads the results in the order it asked. A call whose rule
 can ask, an MCP call (a second dialog would be refused while the first is up), `memory_write` (two
@@ -496,9 +523,10 @@ this way, as one provider. Nothing else changes: no router edit, no upstream lin
   and the screenshot's words come back by OCR. Ask for pages 20–22 of a long report: one row.
 - Ask it to read a long Wikipedia article: the row's result says "Part 1 of N", and asking for the
   end makes it call `web_fetch` again with a later part. Ask it to read a PDF report by URL.
-- With full access, have it read a file outside its folder, then ask it to fetch a made-up URL that
-  carries a word from that file: the row fails, saying the turn read the user's files. A search
-  result still opens. A scheduled run's fetch of an address it found nowhere fails the same way.
+- With full access, ask it to find "the invoice from last month" anywhere: one `search_files` row
+  in Spotlight mode, newest first. Then ask it to fetch a made-up URL that carries a word from that
+  file: the row fails, saying the turn read the user's files. A search result still opens. A
+  scheduled run's fetch of an address it found nowhere fails the same way.
 - Tell it to remember something, start a new chat with the same agent, ask about it.
 - A read-only agent is never offered the terminal or writes; a chat without an agent is unchanged.
 - Ask it to run `sleep 30`, then Stop: `ps` shows no `sleep`. Ask for a change, Stop while the dialog
@@ -577,12 +605,14 @@ this way, as one provider. Nothing else changes: no router edit, no upstream lin
   the prompt and the rules it states, persistence and the bindings a gone chat leaves behind, the
   plan checklist shared with ACP, newer families kept out of the previous build's way and given back
   after its save, a reading-only toolset and per-call row titles, compaction's coverage, reuse,
-  bounds, a long newest question and notes kept per chat); `agent-tools-test` (the executor against a real folder: reads, writes with
+  bounds, a long newest question and notes kept per chat, the reading tools' arguments, and the
+  Spotlight query: terms, escaping, kinds, dates, arguments, what is shown and the listing);
+  `agent-tools-test` (the executor against a real folder: reads, writes with
   consent, link escapes, commands, timeouts and Stop, memory, skills; documents by kind through the
   harness acting as its helper: a PDF by pages with a scanned page, a Word file by line, a saved page
   as Markdown and as its source, an image by OCR, a binary file, a folder and a missing helper; reads
-  beyond the folder narrowing `web_fetch` and its refusal; the built-ins through a toolset, with and
-  without an agent's own rules; every refused effect; `update_plan`); `document-text-test` (see
+  beyond the folder narrowing `web_fetch` and its refusal; Spotlight's refusals; the built-ins
+  through a toolset, with and without an agent's own rules; every refused effect; `update_plan`); `document-text-test` (see
   [document text](document-text.md)); and
   `agent-loop-test` (the fork's loop and upstream's on the same scripts under 128 KB; routing,
   signals, Stop, parallel batches, a long turn that elides; `delegate`'s spec and name, a

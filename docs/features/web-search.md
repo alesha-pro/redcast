@@ -249,4 +249,4 @@ session: a declared charset, a PDF by type, by its first bytes and by name read 
 harness acting as the document helper, plain text, a 404, a missing helper and a page past 2 MB in
 parts; another part not counting as a read; and an agent's web scope, see
 [agents](agents.md#manual-sweep)). `agent-tools-test` reads a saved page as Markdown and holds
-`web_fetch`'s refusals.
+`web_fetch`'s refusals, and `agent-test` its arguments.

@@ -155,6 +155,7 @@ struct AgentToolsTests {
         await thePlanToolOnlyShows(folder: folder, memory: memory)
         await documentsReadByKind(folder: folder, memory: memory)
         await personalReadsNarrowTheWeb(folder: folder, outside: outside, skill: skill, memory: memory)
+        await spotlightSearchesItsReach(folder: folder, outside: outside, memory: memory)
 
         print("\(passes) passed, \(failures) failed")
         if failures > 0 { exit(1) }
@@ -530,6 +531,27 @@ extension AgentToolsTests {
             consent: { _ in true }
         ).run(AIToolCall(id: "w", name: AgentToolbox.webFetch, arguments: #"{"url":"https://me:pw@example.com/"}"#))
         expect(invalid.isError && invalid.content.contains("no user name or password"), "an address with a user")
+    }
+
+    /// Spotlight's mode: what it may search, and what a query the model writes may not do.
+    static func spotlightSearchesItsReach(folder: String, outside: String, memory: URL) async {
+        func search(_ access: AgentAccess, _ arguments: String) async -> AIToolResult {
+            await AgentToolExecutor(
+                profile: AgentProfile(name: "T", directory: folder, access: access), skills: [],
+                memoryURL: memory, consent: { _ in true }
+            ).run(AIToolCall(id: "s", name: AgentToolbox.searchFiles, arguments: arguments))
+        }
+        let kind = await search(.workspaceWrite, #"{"pattern":"x","mode":"spotlight","kind":"movie"}"#)
+        expect(kind.isError && kind.content.hasPrefix("kind is one of: archive, audio"), "an unknown kind")
+        let date = await search(.workspaceWrite, #"{"pattern":"x","mode":"spotlight","modified_after":"2026-1-1"}"#)
+        expect(date.isError && date.content.contains("YYYY-MM-DD"), "a date that is not one")
+        let beyond = await search(.workspaceWrite, "{\"pattern\":\"x\",\"mode\":\"spotlight\",\"path\":\"\(outside)\"}")
+        expect(beyond.isError && beyond.content.contains("is outside"), "a folder it may not read")
+        let ran = await search(.readOnly, #"{"pattern":"needle","mode":"spotlight"}"#)
+        expect(
+            !ran.isError
+                && (ran.content.contains("/src/a.txt") || ran.content.hasPrefix("Spotlight found nothing")),
+            "a read-only agent searches its own folder, got \(ran.content)")
     }
 
     /// One page a line of text; nil is a scanned page, an image with no text layer.

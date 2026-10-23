@@ -33,6 +33,9 @@ nonisolated struct AgentToolExecutor: Sendable {
     private static let documentTextBytes = 1_048_576
     private static let maxLines = 2_000
     private static let pageLabel = "HTML as Markdown; raw: true reads its source"
+    private static let maxSpotlightBytes = 512 * 1_024
+    /// Each is checked and dated before the newest are listed, so their number is bounded too.
+    private static let maxSpotlightPaths = 5_000
     private static let maxListed = 1_000
     private static let defaultTimeout = 120
     private static let maxTimeout = 600
@@ -167,6 +170,9 @@ nonisolated struct AgentToolExecutor: Sendable {
     }
 
     private func searchFiles(_ arguments: [String: JSONValue]) async -> Result<String, AgentToolFailure> {
+        if arguments["mode"]?.stringValue?.lowercased() == AgentSpotlightQuery.mode {
+            return await spotlight(arguments)
+        }
         guard let pattern = arguments["pattern"]?.stringValue, !pattern.isEmpty else {
             return .failure(.missing("pattern"))
         }
@@ -189,6 +195,46 @@ nonisolated struct AgentToolExecutor: Sendable {
         guard !text.isEmpty else { return .success("No matches.") }
         notePersonal(path)
         return .success(Self.tail(text, keepingHead: true))
+    }
+
+    /// Spotlight's own index, in the folder or, with full access, the home folder; nothing crawls.
+    private func spotlight(_ arguments: [String: JSONValue]) async -> Result<String, AgentToolFailure> {
+        let query: AgentSpotlightQuery
+        switch AgentSpotlightQuery.parse(arguments) {
+        case .success(let parsed): query = parsed
+        case .failure(let failure): return .failure(.init(failure.message))
+        }
+        let root: String
+        if let raw = arguments["path"]?.stringValue, !raw.trimmingCharacters(in: .whitespaces).isEmpty {
+            switch readablePath(raw) {
+            case .success(let resolved): root = resolved
+            case .failure(let failure): return .failure(failure)
+            }
+        } else {
+            root = Self.resolvingLinks(profile.access == .fullAccess ? home : profile.directory)
+        }
+        let result = await AgentProcess.run(
+            "/usr/bin/mdfind", arguments: query.arguments(in: [root]), timeout: 20, limit: Self.maxSpotlightBytes)
+        guard result.status == 0 || result.cut else {
+            return .failure(.init("Spotlight could not search \(root): \(result.output.prefix(300))"))
+        }
+        var lines = result.output.split(separator: "\n").map(String.init)
+        if result.cut, !lines.isEmpty { lines.removeLast() }
+        let shown = lines.prefix(Self.maxSpotlightPaths).filter {
+            AgentSpotlightQuery.isShown($0, roots: [root], home: home)
+                && (try? readablePath($0).get()) != nil
+        }
+        let hits = shown.map { path in
+            let values = try? URL(fileURLWithPath: path).resourceValues(
+                forKeys: [.isDirectoryKey, .fileSizeKey, .contentModificationDateKey])
+            return AgentSpotlightQuery.Hit(
+                path: path, isFolder: values?.isDirectory ?? false, size: values?.fileSize,
+                modified: values?.contentModificationDate)
+        }
+        let listing = AgentSpotlightQuery.listing(
+            hits, matched: shown.count, cut: result.cut || lines.count > Self.maxSpotlightPaths, timeZone: .current)
+        for hit in hits.prefix(AgentSpotlightQuery.maxShown) { notePersonal(hit.path) }
+        return .success(Self.tail(listing, keepingHead: true))
     }
 
     private func writeFile(_ arguments: [String: JSONValue]) async -> Result<String, AgentToolFailure> {
@@ -501,12 +547,22 @@ struct AgentToolFailure: Error, Sendable {
 
 /// A short child process for read-only helpers; no shell, so a pattern is never interpreted.
 nonisolated enum AgentProcess {
+    /// UTF-8 forgiving a character the limit cut, else Latin-1, which reads any bytes.
+    static func text(_ data: Data) -> String {
+        for drop in 0...min(3, data.count) {
+            if let text = String(data: data.dropLast(drop), encoding: .utf8) { return text }
+        }
+        return String(data: data, encoding: .isoLatin1) ?? ""
+    }
+
     struct Result: Sendable {
         let status: Int32
         let output: String
+        /// The output passed `limit`, so the process was stopped and the last line may be partial.
+        var cut = false
     }
 
-    static func run(_ executable: String, arguments: [String], timeout: Int) async -> Result {
+    static func run(_ executable: String, arguments: [String], timeout: Int, limit: Int = .max) async -> Result {
         await withCheckedContinuation { continuation in
             let process = Process()
             process.executableURL = URL(fileURLWithPath: executable)
@@ -526,12 +582,22 @@ nonisolated enum AgentProcess {
                 if process.isRunning { process.terminate() }
             }
             DispatchQueue.global().async {
-                let data = pipe.fileHandleForReading.readDataToEndOfFile()
+                let reader = pipe.fileHandleForReading
+                var data = Data()
+                var cut = false
+                while let chunk = try? reader.read(upToCount: 65_536), !chunk.isEmpty {
+                    data.append(chunk)
+                    guard data.count > limit else { continue }
+                    cut = true
+                    if process.isRunning { process.terminate() }
+                    break
+                }
+                try? reader.close()
                 exit.wait()
                 continuation.resume(
                     returning: Result(
                         status: process.terminationStatus,
-                        output: String(bytes: data, encoding: .utf8) ?? ""))
+                        output: text(data.prefix(limit)), cut: cut))
             }
         }
     }
