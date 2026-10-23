@@ -116,10 +116,13 @@ optional chord: see [background and scheduled agents](background-agents.md).
   parent's last round's. Its own calls never show; the parent's
   row reads "delegate: <name>" through `AgentToolProvider.title(for:)`. One runs at a time, and Stop
   cancels the parent's task group, which ends the child's stream and its task.
-- **A newer family never breaks the previous build.** `AgentProfile` writes `tools` with only the
-  families the build before Screen and Sub-agents could decode, and those two under `addedTools`, a key
-  that build ignores; reading merges both and drops a family name it does not know. A family added later
-  joins `AgentToolKind.unknownToOlderBuilds`.
+- **A newer family never breaks the previous build, and survives its save.** `AgentProfile` writes
+  `tools` with only the families the build before Screen and Sub-agents could decode, and those two
+  under `addedTools`, a key that build ignores; reading merges both and drops a family name it does not
+  know. That build's own save of agents.json drops the key, so `AgentStore.commit` first writes each
+  agent's newer families to `agent-newer-tools.json` (removed when none are ticked), and `load` gives
+  them back only to an agent whose saved object lacks `addedTools`, so a family unticked here stays
+  off. A family added later joins `AgentToolKind.unknownToOlderBuilds`.
 - **A long agent chat keeps notes on what no longer fits, made once and grown rarely.**
   `ChatSession.requestMessages` drops a chat's oldest turns past its text budget. For an agent chat on
   Tinycast's loop, `AgentLoopProvider` first reads the chat's history (`AgentCompaction.Source`, read on
@@ -446,7 +449,7 @@ this way, as one provider. Nothing else changes: no router edit, no upstream lin
   store from before the table, the cascade); `agent-test` (skills, catalog, path policy, tool sets,
   specs, consent policy and per-agent rules, toolset order and routing, batches, budget, elision,
   the prompt and the rules it states, persistence, the plan checklist shared with ACP, newer
-  families kept out of the previous build's way, a reading-only toolset and per-call row titles,
+  families kept out of the previous build's way and given back after its save, a reading-only toolset and per-call row titles,
   compaction's coverage, reuse, bounds, a long newest question and notes kept per chat);
   `agent-tools-test` (the executor against a real folder: reads, writes with consent, link escapes,
   commands, timeouts and Stop, memory, skills, HTML; the built-ins through a toolset, with and

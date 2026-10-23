@@ -638,6 +638,51 @@ extension AgentTests {
         expect(
             AgentToolKind.defaults.isDisjoint(with: AgentToolKind.unknownToOlderBuilds),
             "neither starts on for a new agent")
+        newerFamiliesSurviveTheOlderBuildsRewrite()
+    }
+
+    /// What the previous build's generated `Codable` does to agents.json: unknown keys are dropped.
+    static func rewriteAsOlderBuild(_ file: URL) {
+        guard let data = try? Data(contentsOf: file),
+            var objects = (try? JSONSerialization.jsonObject(with: data)) as? [[String: Any]]
+        else { return }
+        for index in objects.indices { objects[index]["addedTools"] = nil }
+        try? JSONSerialization.data(withJSONObject: objects).write(to: file)
+    }
+
+    static func newerFamiliesSurviveTheOlderBuildsRewrite() {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("AgentNewerTools-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let file = directory.appendingPathComponent("agents.json")
+        let store = AgentStore(directory: directory)
+        var draft = AgentProfile(name: "Rig", directory: folder)
+        draft.tools = [.files, .screen, .delegate]
+        guard var agent = try? store.add(draft),
+            let plain = try? store.add(AgentProfile(name: "Plain", directory: folder))
+        else { return expect(false, "two agents are saved") }
+        func reloaded() -> AgentStore {
+            let store = AgentStore(directory: directory)
+            store.load()
+            return store
+        }
+        rewriteAsOlderBuild(file)
+        expect(
+            reloaded().agent(id: agent.id)?.tools == [.files, .screen, .delegate]
+                && reloaded().agent(id: plain.id)?.tools == AgentToolKind.defaults,
+            "an agents.json the previous build rewrote gets Screen and Sub-agents back, and only where set")
+        agent.tools = [.files, .delegate]
+        try? store.update(agent)
+        rewriteAsOlderBuild(file)
+        expect(
+            reloaded().agent(id: agent.id)?.tools == [.files, .delegate],
+            "a family unticked since stays unticked")
+        agent.tools = [.files]
+        try? store.update(agent)
+        let side = directory.appendingPathComponent("agent-newer-tools.json")
+        expect(!FileManager.default.fileExists(atPath: side.path), "with none left, the side file goes")
+        rewriteAsOlderBuild(file)
+        expect(reloaded().agent(id: agent.id)?.tools == [.files], "and nothing comes back")
     }
 
     static func aToolsetCanOfferReadingOnly() {
