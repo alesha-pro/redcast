@@ -155,6 +155,12 @@ final class ACPConnection {
         }
     }
 
+    /// A live session moved to one of an option's values; the answer may carry the whole new list.
+    func set(_ value: String, for option: ACPConfigOption, sessionID: String) async throws -> JSONValue {
+        let call = option.request(setting: value, session: sessionID)
+        return try await request(call.method, params: call.params)
+    }
+
     func notify(_ method: String, params: [String: Any]) {
         try? send(ACPProtocol.notification(method: method, params: params))
     }

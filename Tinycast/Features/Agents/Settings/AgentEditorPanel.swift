@@ -50,6 +50,7 @@ struct AgentEditorPanel: View {
                     folderField
                     if let existing { shortcutField(for: existing) }
                     runtimeField
+                    if draft.runtime != nil { acpModelField }
                     field("Instructions") {
                         TextEditor(text: $draft.instructions)
                             .font(.body)
@@ -197,9 +198,53 @@ struct AgentEditorPanel: View {
         Binding(
             get: { draft.runtime?.kind },
             set: { kind in
+                if kind != draft.runtime?.kind { draft.acpChoices = ACPChoices() }
                 draft.runtime = kind.map(AgentRuntime.preset)
                 argumentsText = draft.runtime?.arguments.joined(separator: " ") ?? ""
             })
+    }
+
+    /// The list this agent's last session offered, while it still runs the same program.
+    @ViewBuilder
+    private var acpModelField: some View {
+        let offered =
+            existing?.runtime == draft.runtime
+            ? existing.flatMap { core.agentCoordinator.offeredModels(of: $0.id) } : nil
+        field("Model") {
+            if let offered {
+                Picker("Model", selection: $draft.acpModel) {
+                    Text("The agent's default").tag(String?.none)
+                    Divider()
+                    if let kept = draft.acpModel, !offered.offers(kept) {
+                        Text(verbatim: kept).tag(String?.some(kept))
+                    }
+                    ForEach(offered.choices) { choice in
+                        Text(verbatim: choice.name).tag(String?.some(choice.value))
+                    }
+                }
+                .labelsHidden()
+                Text("Each new session starts on it, and a model picked in a chat changes it here too.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            } else {
+                TextField("The agent's default", text: acpModelText)
+                    .settingsEditorTextField()
+                Text(
+                    """
+                    The agent's own name for the model, such as sonnet. Its list shows here once a chat \
+                    with the agent has started.
+                    """
+                )
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            }
+        }
+    }
+
+    private var acpModelText: Binding<String> {
+        Binding(
+            get: { draft.acpModel ?? "" },
+            set: { draft.acpModel = $0.isEmpty ? nil : $0 })
     }
 
     private var runtimeCommand: Binding<String> {
@@ -445,6 +490,8 @@ struct AgentEditorPanel: View {
 
     private func save() {
         var value = draft
+        value.acpModel = draft.acpModel?.trimmingCharacters(in: .whitespaces)
+        if value.acpModel?.isEmpty == true { value.acpModel = nil }
         value.directory = AgentPathPolicy.resolve(
             draft.directory, in: AgentContextLoader.home, home: AgentContextLoader.home)
         var isDirectory: ObjCBool = false

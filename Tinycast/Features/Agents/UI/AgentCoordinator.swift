@@ -34,9 +34,9 @@ final class AgentCoordinator {
             briefing: { [weak self] chatID in
                 self?.backgroundRuns?.isUnattended(chatID) == true ? AgentBackgroundBriefing.acp : nil
             })
-        host.onModes = { [weak self] chatID, agentID, modes in
-            self?.chatModes[chatID] = modes
-            self?.agentModes[agentID] = modes.available
+        host.onOptions = { [weak self] chatID, agentID, options in
+            self?.chatOptions[chatID] = options
+            if let options { self?.agentOptions[agentID] = options }
         }
         host.onCommands = { [weak self] chatID, agentID, commands in
             if let chatID { self?.chatCommands[chatID] = commands }
@@ -49,6 +49,7 @@ final class AgentCoordinator {
 
     /// A chat's ACP session and briefing go; with no host built, only the stored id is left.
     func forgetACPSession(ofChat id: UUID) {
+        chatOptions[id] = nil
         if let builtACPHost {
             builtACPHost.forget(chatID: id)
         } else {
@@ -56,11 +57,11 @@ final class AgentCoordinator {
         }
     }
 
-    /// Observed: the composer's mode menu follows the session, including the agent's own moves.
-    private(set) var chatModes: [UUID: ACPModes] = [:]
-    /// What the agent offered last time, so a new chat can pick a mode before its first message.
-    private(set) var agentModes: [UUID: [ACPModes.Mode]] = [:]
-    /// Observed like the modes: a live session's slash commands, then the agent's last list.
+    /// Observed: the composer's selects follow the session, including the agent's own moves.
+    private(set) var chatOptions: [UUID: ACPSessionOptions] = [:]
+    /// What the agent offered last, so a new chat and the editor can pick before a session starts.
+    private(set) var agentOptions: [UUID: ACPSessionOptions] = [:]
+    /// Observed like the selects: a live session's slash commands, then the agent's last list.
     private(set) var chatCommands: [UUID: [ACPCommand]] = [:]
     private(set) var agentCommands: [UUID: [ACPCommand]] = [:]
 
@@ -128,11 +129,32 @@ final class AgentCoordinator {
         background.apply()
     }
 
-    func modes(for chat: AIChatState) -> ACPModes? {
+    /// The live session's selects, else the agent's last list on what the chat or agent keeps.
+    func options(for chat: AIChatState) -> ACPSessionOptions? {
         guard let agent = agent(for: chat), agent.runtime != nil else { return nil }
-        if let live = chatModes[chat.session.id] { return live }
-        guard let offered = agentModes[agent.id] else { return nil }
-        return ACPModes(current: agent.acpMode, available: offered)
+        if let live = chatOptions[chat.session.id] { return live }
+        let kept = store.acpChoices(forChat: chat.session.id) ?? agent.acpChoices
+        return agentOptions[agent.id]?.applying(kept)
+    }
+
+    /// The models this agent's last session offered, for its editor; nil until one has started.
+    func offeredModels(of agentID: UUID) -> ACPConfigOption? {
+        agentOptions[agentID]?.model
+    }
+
+    /// The brand the model's own name gives, else that of the CLI that runs it.
+    func modelIcon(for chat: AIChatState) -> PopoverMenuIcon {
+        let model = options(for: chat)?.model
+        let named = model.flatMap { AIBrand.resolve(model: $0.current + " " + $0.currentTitle) }
+        let vendor: AIBrand? =
+            switch agent(for: chat)?.runtime?.kind {
+            case .claudeCode?: .claude
+            case .codex?: .openAI
+            case .gemini?: .gemini
+            case .openCode?: .openCode
+            default: nil
+            }
+        return AIModelOption.icon(named ?? vendor)
     }
 
     /// Empty for a chat without an ACP agent, so the composer offers nothing there.
@@ -141,19 +163,24 @@ final class AgentCoordinator {
         return chatCommands[chat.session.id] ?? agentCommands[agent.id] ?? []
     }
 
-    /// Remembered on the agent for every new session, and applied now to a live one.
-    func setMode(_ modeID: String, for chat: AIChatState) {
-        guard var agent = agent(for: chat) else { return }
-        agent.acpMode = modeID
+    /// The agent's default for every new session, and this chat's own, now or when it reloads.
+    func setOption(_ value: String, of option: ACPConfigOption, for chat: AIChatState) {
+        guard var agent = agent(for: chat), let shown = options(for: chat) else { return }
+        let slot = shown.slot(of: option)
+        agent.acpChoices[slot] = value
         try? store.update(agent)
         let chatID = chat.session.id
-        if var live = chatModes[chatID] {
-            live.current = modeID
-            chatModes[chatID] = live
+        guard var live = chatOptions[chatID], let host = builtACPHost else {
+            var own = store.acpChoices(forChat: chatID) ?? ACPChoices(shown)
+            own[slot] = value
+            store.setACPChoices(own, forChat: chatID)
+            return
         }
+        live.select(value, in: option.id)
+        chatOptions[chatID] = live
         Task { [weak self] in
             do {
-                try await self?.acpHost.setMode(modeID, chatID: chatID)
+                try await host.setOption(value, for: slot, chatID: chatID)
             } catch {
                 self?.core.showMessage(error.localizedDescription, tone: .danger)
             }
@@ -414,6 +441,7 @@ final class AgentCoordinator {
         // A different program or folder is a different agent: its old sessions mean nothing.
         if previous?.runtime != draft.runtime || previous?.directory != draft.directory {
             agentCommands[draft.id] = nil
+            agentOptions[draft.id] = nil
             for (chat, agent) in store.chatAgents where agent == draft.id {
                 forgetACPSession(ofChat: chat)
             }
@@ -443,6 +471,7 @@ final class AgentCoordinator {
         }
         contexts[id] = nil
         agentCommands[id] = nil
+        agentOptions[id] = nil
         chatCommands = chatCommands.filter { store.agent(forChat: $0.key) != nil }
         try? FileManager.default.removeItem(at: store.memoryURL(for: id).deletingLastPathComponent())
         removeLauncherReferences(of: id)
