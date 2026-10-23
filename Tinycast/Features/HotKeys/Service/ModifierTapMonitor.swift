@@ -58,6 +58,7 @@ final class ModifierTapMonitor: HealthCheckable {
     @ObservationIgnored private var pendingHold: Task<Void, Never>?
     @ObservationIgnored private var pendingBinding: HotKeyBinding?
     private var globeDown = false
+    /// Fork: a key per action held to talk; `holding` is the one whose hold has begun.
     private var holdKeys: Set<ModifierKey> = []
     private var holding: ModifierKey?
     @ObservationIgnored private var tapPort: CFMachPort?
@@ -79,6 +80,7 @@ final class ModifierTapMonitor: HealthCheckable {
     }
 
     /// Modifier-only bindings currently assigned; an empty set tears the tap down entirely.
+    /// Fork: `holdKeys` replaces Dictation's single hold key, since voice commands hold theirs.
     func update(bound: Set<HotKeyBinding>, holdKeys: Set<ModifierKey> = []) {
         guard bound != self.bound || holdKeys != self.holdKeys else { return }
         self.bound = bound
@@ -125,6 +127,7 @@ final class ModifierTapMonitor: HealthCheckable {
     }
 
     private func handleModifier(_ event: ModifierKeyDetector.Event) {
+        // Fork: holds are per key, so each press, release and cancel names the key that holds.
         switch event {
         case .pressed(let key):
             if holdKeys.contains(key) {
@@ -187,6 +190,7 @@ final class ModifierTapMonitor: HealthCheckable {
     private func cancelHold() {
         pendingHold?.cancel()
         pendingHold = nil
+        // Fork: named, so the cancel reaches the action whose key was held.
         guard let key = holding else { return }
         holding = nil
         onHoldCancelled?(key)
