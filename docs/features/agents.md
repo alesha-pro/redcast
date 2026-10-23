@@ -100,8 +100,9 @@ optional chord: see [background and scheduled agents](background-agents.md).
 - **A run has a budget, and always hands over.** An agent's Effort (`AgentEffort`, picked in its
   editor and stored only when it is not Balanced; a schedule may pick its own for its runs) sets the
   run's `AgentRunBudget`: Quick 8 tool rounds, 256 KB of tool output, 5 minutes in the background
-  and no sub-agents; Balanced 25, 512 KB, 15 minutes, 2; Thorough 60, 1 MB, 45 minutes, 4. Settings'
-  Tool call rounds no longer reaches agents. After each round `AgentBudgetPolicy` decides: past 80% of
+  and no sub-agents; Balanced 25, 512 KB, 15 minutes, 2; Thorough 60, 1 MB, 45 minutes, 4; an ACP
+  agent's runs keep only the time, and its editor says so. Settings' Tool call rounds no longer
+  reaches agents. After each round `AgentBudgetPolicy` decides: past 80% of
   the rounds, the output or the time, the model is told once to wrap up; at a limit (or the history
   wall) it is told the budget is spent, tools are off, and it must answer with the result, what is
   done, what is not and why, and what to do next. That last round still lists the tools, so the
