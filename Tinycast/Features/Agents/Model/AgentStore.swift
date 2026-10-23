@@ -318,6 +318,11 @@ final class AgentStore {
         bind([chatID], to: id)
     }
 
+    /// Chats that are gone lose their agent; the file is written only when one of them had one.
+    func unbind(_ chats: some Sequence<UUID>) {
+        bind(chats.filter { chatAgents[$0] != nil }, to: nil)
+    }
+
     private func bind(_ chats: [UUID], to agent: UUID?) {
         guard !chats.isEmpty else { return }
         for chat in chats { chatAgents[chat] = agent }

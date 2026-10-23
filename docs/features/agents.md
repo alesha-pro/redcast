@@ -156,6 +156,12 @@ optional chord: see [background and scheduled agents](background-agents.md).
 - **The binding is the fork's, not the chat history's.** Which chat has which agent is
   `agent-chats.json` beside `agents.json` in Application Support, so upstream's SQLite schema is
   untouched. Deleting an agent frees its chats, which stay as plain AI chats, and deletes its notes.
+  Deleting a chat drops its line, and the retention prune and Delete All drop those of chats gone
+  from history and not open, so the file holds no more lines than there are agent chats.
+- **Quick AI can answer with an agent.** Settings → AI → Agents → Quick AI answers with names an
+  agent on the chat's model (`aiQuickAIAgent`); `agent(for:)` gives it to Quick AI's chat until its
+  first message binds it like any other, and ⌘K → Answer with switches it for one chat. ACP agents
+  are not offered there ([why](quick-ai-tools.md#invariants)).
 - **An ACP tool row holds only what it shows.** A call's diffs and output are compacted once, as
   they arrive, by `ChatToolContent(call:)`, and the compacted form is both what the row unfolds and
   what is saved: at most 12 KB a row. It is saved in its own table, `message_tool_content`, keyed
@@ -406,9 +412,9 @@ stripped and only the output's tail is kept. `search_files` prefers ripgrep and 
 `grep -rnIE`, run without a shell so a pattern is never interpreted. `web_fetch` uses a private
 `.ephemeral` session per fetch, with no cache and a cookie jar of its own, follows no redirect onto
 a local host it did not start at ([why](web-search.md#invariants)), reads at most 2 MB, and turns
-HTML into text. `web_search` runs through [web search](web-search.md)'s engine chain, not the
-executor; it asks under the same Web rule and shows a search row between its own row's opening and
-closing.
+HTML into text, saying so when a page's scripts would have drawn what is missing. `web_search` runs
+through [web search](web-search.md)'s engine chain, not the executor; it asks under the same Web
+rule and shows a search row between its own row's opening and closing.
 
 Neighbouring calls that may share a round run together, four at most (`AgentLoopProvider.width`),
 which bounds memory to four 2 MB fetch buffers and processes to four ripgreps: reads, `web_fetch`,
@@ -533,10 +539,10 @@ this way, as one provider. Nothing else changes: no router edit, no upstream lin
   `ai-chat-test`'s fork case (content on its row, saved beside it, unreadable or absent content, a
   store from before the table, the cascade); `agent-test` (skills, catalog, path policy, tool sets,
   specs, consent policy and per-agent rules, toolset order and routing, batches, budget, elision,
-  the prompt and the rules it states, persistence, the plan checklist shared with ACP, newer
-  families kept out of the previous build's way and given back after its save, a reading-only
-  toolset and per-call row titles, compaction's coverage, reuse, bounds, a long newest question and
-  notes kept per chat); `agent-tools-test` (the executor against a real folder: reads, writes with
+  the prompt and the rules it states, persistence and the bindings a gone chat leaves behind, the
+  plan checklist shared with ACP, newer families kept out of the previous build's way and given back
+  after its save, a reading-only toolset and per-call row titles, compaction's coverage, reuse,
+  bounds, a long newest question and notes kept per chat); `agent-tools-test` (the executor against a real folder: reads, writes with
   consent, link escapes, commands, timeouts and Stop, memory, skills, HTML; the built-ins through a
   toolset, with and without an agent's own rules; every refused effect; `update_plan`); and
   `agent-loop-test` (the fork's loop and upstream's on the same scripts under 128 KB; routing,

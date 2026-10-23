@@ -173,6 +173,10 @@ enum SettingsBackupCoverage {
         AppSettingsKey.aiInstalledOverrides.rawValue:
             "Names a command to run and the variables to run it with; an import must never decide "
             + "which program this Mac launches.",
+        // Fork: Quick AI's agent.
+        AppSettingsKey.aiQuickAIAgent.rawValue:
+            "Names an agent on this Mac that Quick AI's chats run as, with its tools and folder; "
+            + "agents never travel in a backup.",
         AppSettingsKey.mcpEnabled.rawValue:
             "Doubles as consent to run third-party MCP servers, one of which is a local process; a "
             + "flag that grants a capability is never carried by a backup.",
