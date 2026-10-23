@@ -552,6 +552,22 @@ extension AgentToolsTests {
             !ran.isError
                 && (ran.content.contains("/src/a.txt") || ran.content.hasPrefix("Spotlight found nothing")),
             "a read-only agent searches its own folder, got \(ran.content)")
+        // Foundation raises on a NUL in a process's arguments, which would end the app mid-turn.
+        let nul = await search(.readOnly, #"{"pattern":"a\u0000b","mode":"spotlight"}"#)
+        expect(!nul.isError, "a NUL in a Spotlight pattern is dropped, so the search still runs, got \(nul.content)")
+        let text = await search(.readOnly, #"{"pattern":"a\u0000b"}"#)
+        expect(text.isError && text.content.contains("NUL"), "and refused in a text search, got \(text.content)")
+        let command = await AgentToolExecutor(
+            profile: AgentProfile(name: "T", directory: folder, access: .workspaceWrite), skills: [],
+            memoryURL: memory, consent: { _ in true }
+        ).run(AIToolCall(id: "c", name: AgentToolbox.runCommand, arguments: #"{"command":"echo a\u0000b"}"#))
+        expect(command.isError && command.content.contains("NUL"), "and in a command, got \(command.content)")
+        let process = await AgentProcess.run("/bin/echo", arguments: ["a\u{0}b"], timeout: 5)
+        expect(process.status == -1 && process.output.contains("NUL"), "the process runner refuses one itself")
+        let document = await DocumentTextService(executable: URL(fileURLWithPath: "/bin/echo"))
+            .read(DocumentTextRequest(path: "/tmp/a\u{0}b.pdf", kind: .pdf, budget: 1_024))
+        guard case .failure(let refusal) = document else { return expect(false, "a NUL path reached the reader") }
+        expect(refusal.message.contains("NUL"), "and so does the document reader")
     }
 
     /// One page a line of text; nil is a scanned page, an image with no text layer.

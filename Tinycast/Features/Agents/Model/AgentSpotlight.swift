@@ -63,7 +63,7 @@ nonisolated struct AgentSpotlightQuery: Equatable, Sendable {
         for (index, piece) in pattern.split(separator: "\"", omittingEmptySubsequences: false).enumerated() {
             let words = index.isMultiple(of: 2) ? piece.split(whereSeparator: \.isWhitespace) : [piece]
             for word in words {
-                let term = word.trimmingCharacters(in: .whitespacesAndNewlines)
+                let term = String(word.filter { !isControl($0) }).trimmingCharacters(in: .whitespacesAndNewlines)
                 guard !term.isEmpty, term.contains(where: { $0.isLetter || $0.isNumber }) else { continue }
                 terms.append(String(term.prefix(maxTermLength)))
             }
@@ -95,11 +95,16 @@ nonisolated struct AgentSpotlightQuery: Equatable, Sendable {
     /// Inside a quoted value only a backslash, a quote and the wildcards mean anything.
     static func escaped(_ text: String) -> String {
         var escaped = ""
-        for character in text where !character.isNewline {
+        for character in text where !character.isNewline && !isControl(character) {
             if "\\\"*?".contains(character) { escaped.append("\\") }
             escaped.append(character)
         }
         return escaped
+    }
+
+    /// A NUL makes no argument a process can be given, and no control character names a file.
+    private static func isControl(_ character: Character) -> Bool {
+        character.unicodeScalars.contains { $0.properties.generalCategory == .control }
     }
 
     private static func isDate(_ text: String) -> Bool {
@@ -119,13 +124,22 @@ nonisolated struct AgentSpotlightQuery: Equatable, Sendable {
         let modified: Date?
     }
 
-    /// Hidden paths and `~/Library` (mail, messages, caches) stay out unless a search began there.
+    /// Hidden paths and `~/Library` (mail, messages, caches) stay out unless a search began there;
+    /// iCloud Drive and the cloud folders kept in it are the user's documents, so they are shown.
     static func isShown(_ path: String, roots: [String], home: String) -> Bool {
         guard let root = roots.first(where: { AgentPathPolicy.isInside(path, root: $0) }) else { return false }
         let relative = path.dropFirst(root.count).split(separator: "/")
         guard !relative.contains(where: { $0.hasPrefix(".") }) else { return false }
         let library = (home as NSString).appendingPathComponent("Library")
-        return !AgentPathPolicy.isInside(path, root: library) || AgentPathPolicy.isInside(root, root: library)
+        guard AgentPathPolicy.isInside(path, root: library), !AgentPathPolicy.isInside(root, root: library) else {
+            return true
+        }
+        if AgentPathPolicy.isInside(path, root: library + "/CloudStorage") { return true }
+        let drive = library + "/Mobile Documents"
+        guard AgentPathPolicy.isInside(path, root: drive) else { return false }
+        // iCloud Drive's own folder, and each app's Documents folder, as Finder lists them.
+        let inner = path.dropFirst(drive.count).split(separator: "/")
+        return inner.first == "com~apple~CloudDocs" || (inner.count > 2 && inner[1] == "Documents")
     }
 
     /// One line a file, newest first, and what was left out.

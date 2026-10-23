@@ -176,6 +176,7 @@ nonisolated struct AgentToolExecutor: Sendable {
         guard let pattern = arguments["pattern"]?.stringValue, !pattern.isEmpty else {
             return .failure(.missing("pattern"))
         }
+        guard !pattern.utf8.contains(0) else { return .failure(.init("pattern cannot hold a NUL character.")) }
         let path: String
         switch readablePath(arguments["path"]?.stringValue ?? ".") {
         case .success(let resolved): path = resolved
@@ -307,6 +308,7 @@ nonisolated struct AgentToolExecutor: Sendable {
         guard let command = arguments["command"]?.stringValue,
             !command.trimmingCharacters(in: .whitespaces).isEmpty
         else { return .failure(.missing("command")) }
+        guard !command.utf8.contains(0) else { return .failure(.init("A command cannot hold a NUL character.")) }
         let timeout = min(
             Self.maxTimeout, max(1, arguments["timeout_seconds"]?.intValue ?? Self.defaultTimeout))
         let request = AgentConsentRequest(summary: command, detail: "in \(profile.directory)")
@@ -563,7 +565,11 @@ nonisolated enum AgentProcess {
     }
 
     static func run(_ executable: String, arguments: [String], timeout: Int, limit: Int = .max) async -> Result {
-        await withCheckedContinuation { continuation in
+        // Foundation raises rather than throws on one, which would end the app, not the call.
+        guard !([executable] + arguments).contains(where: { $0.utf8.contains(0) }) else {
+            return Result(status: -1, output: "A NUL character cannot be passed to \(executable).")
+        }
+        return await withCheckedContinuation { continuation in
             let process = Process()
             process.executableURL = URL(fileURLWithPath: executable)
             process.arguments = arguments
