@@ -237,7 +237,8 @@ Run in `Tinycast Dev.app` with AI on.
 3. ↵ on a Claude CLI session resumes it in Terminal (Automation prompt once); repeat with iTerm2,
    Ghostty ≥ 1.3, Warp (new tab plus a copied command) and **Zap** — the `.command` must *run* in
    Zap; if it opens in Zap's editor, Zap's launch kind becomes `.folderURL("zap")`.
-4. ⌃⌘↵ forks; ⌘↵ copies the command and pasting it works.
+4. ⌃⌘↵ forks; ⌘↵ copies the command and pasting it works. In Russian, ⌘K's items read in full beside
+   their shortcuts ("Скопировать команду запуска ⌘↵").
 5. A Codex thread resumes with `codex resume`; ⌘O opens it in the Codex app.
 6. A Claude app session: ⌘O opens that very session in Claude.app, with Claude running and with it
    quit; an archived one shows Claude's Code home. A Claude CLI session has no Open in Claude.
