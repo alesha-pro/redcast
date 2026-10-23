@@ -73,10 +73,11 @@ next to Redcast in `/Applications`.
   keeps the name.
 - `Scripts/fork/sync-upstream.sh` does the merge: into `sync/upstream-<sha>`, upstream's
   `project.pbxproj` and runtime bundle regenerated, both string catalogs merged key by key and
-  rebranded, an `Upstream-Sync:` trailer, then the build, harness, lint and purity gates and a summary
-  of what upstream changed. Other conflicts stop it for `--continue`. Upstream force-pushes `main` now and
-  then; the script re-anchors on commits it can prove are already merged and otherwise stops with a
-  `git range-diff` to read. Details: [fork tooling](docs/fork-tooling.md#scriptsforksync-upstreamsh).
+  rebranded, the fork's own `README.md` kept whatever upstream did to its copy, an `Upstream-Sync:`
+  trailer, then the build, harness, lint and purity gates and a summary of what upstream changed.
+  Other conflicts stop it for `--continue`. Upstream force-pushes `main` now and then; the script
+  re-anchors on commits it can prove are already merged and otherwise stops with a `git range-diff`
+  to read. Details: [fork tooling](docs/fork-tooling.md#scriptsforksync-upstreamsh).
 - **A sync branch lands by fast-forward or a merge commit, never squash or rebase**: either drops
   upstream's ancestry, and the next sync replays everything.
 - Upstream's five workflows must be disabled before Actions is ever enabled on the fork (one `gh`

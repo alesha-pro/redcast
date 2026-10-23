@@ -14,6 +14,8 @@ RUNTIME=Tinycast/Resources/RaycastRuntime.generated.js
 RUNTIME_SOURCES=Scripts/raycast-runtime
 CATALOG=Tinycast/Resources/Localizable.xcstrings
 INFO_CATALOG=Tinycast/Resources/InfoPlist.xcstrings
+# The fork's own files: every sync keeps them as they are, whatever upstream did to its copy.
+FORK_OWNED="README.md"
 # Display- or load-bound: reported, never a reason to hold a sync back.
 ENVIRONMENTAL=" form-input-test onboarding-test icon-cache-test "
 RULE_DOCS=" AGENTS.md CLAUDE.md CONTRIBUTING.md docs/architecture.md docs/standards.md \
@@ -28,8 +30,9 @@ Usage: Scripts/fork/sync-upstream.sh [--branch NAME] [--skip-gates] [--summary F
 Merges $UPSTREAM_URL main into sync/upstream-<sha> (--ci: the rolling
 sync/upstream), re-anchoring on patch-equivalent commits when upstream rewrote its history. It
 takes upstream's project.pbxproj and runtime bundle and regenerates both, merges the string
-catalog key by key, commits with an Upstream-Sync trailer, runs the build, harnesses, lint and
-purity gates, and writes a markdown summary (default build/sync/summary-<sha>.md).
+catalog key by key, keeps the fork's own README.md, commits with an Upstream-Sync trailer, runs
+the build, harnesses, lint and purity gates, and writes a markdown summary (default
+build/sync/summary-<sha>.md).
 
 Exit codes: 0 merged, gates passed · 1 merged, a gate failed · 2 conflicts left ·
 3 upstream rewrote history in a way that needs a human · 4 precondition failed ·
@@ -191,7 +194,8 @@ merge_catalog() {
     renamed_keys "$output"
 }
 
-# Generated files take upstream's side and are rebuilt; the catalogs merge key by key.
+# Generated files take upstream's side and are rebuilt; the catalogs merge key by key; the fork's
+# own files stay the fork's, whether git merged upstream's edit on its own or left a conflict.
 resolve_known() {
     UNRESOLVED=""
     local path base
@@ -201,6 +205,12 @@ resolve_known() {
         git diff --quiet "$base" MERGE_HEAD -- "$path" && continue
         merge_catalog "$path" ||
             NOTES="${NOTES}- merge-xcstrings.mjs could not merge $path; it stays as git merged it"$'\n'
+    done
+    for path in $FORK_OWNED; do
+        git diff --quiet "$base" MERGE_HEAD -- "$path" && continue
+        git cat-file -e "HEAD:$path" 2>/dev/null || continue
+        git checkout -q HEAD -- "$path"
+        note "kept the fork's $path; upstream changed its own"
     done
     while IFS= read -r path; do
         [ -n "$path" ] || continue
@@ -400,10 +410,15 @@ harness_names() {
 }
 
 attention() {
-    local both workflows rules declined capabilities harnesses review renamed count noun
+    local both workflows rules declined capabilities harnesses review renamed count noun path
     both="$(comm -12 <(git diff --name-only "$OLD_UP" "$FORK_TIP" | sort) \
         <(upstream_changed | sort) | tr '\n' ' ')"
     [ -z "$both" ] || printf -- '- Both sides changed: %s\n' "${both% }"
+    for path in $FORK_OWNED; do
+        git diff --quiet "$BASE" "$UP" -- "$path" ||
+            printf -- "- Kept the fork's %s; upstream's change, to port by hand if it matters: %s\n" \
+                "$path" "\`git diff $(short "$BASE") $(short "$UP") -- $path\`"
+    done
     if [ -n "${CATALOG_NOTE:-}" ]; then
         review="$(head -10 "$WORK/xcstrings-review.txt" 2>/dev/null |
             sed -E 's/^(.*)  \((.*)\)$/"\1"(\2)/' | tr '\n' ' ' || true)"
@@ -823,6 +838,24 @@ self_test() {
         "$summary"
     check "leaving a clean tree" [ -z "$(git -C "$FORK" status --porcelain --untracked-files=no)" ]
 
+    new_case readme
+    readme_case
+    up="$(git -C "$UPR" rev-parse HEAD)"
+    status="$(run_sync)"
+    check "an upstream README.md edit git would merge on its own syncs (exit $status)" \
+        [ "$status" = 0 ]
+    check "keeping the fork's README.md as it was" \
+        [ "$(git -C "$FORK" show HEAD:README.md)" = "$FORK_README" ]
+    check "while the rest of upstream's commit lands" test -f "$FORK/up.txt"
+    check "and the summary names upstream's change" \
+        grep -q "Kept the fork's README.md.*git diff" "$FORK/build/sync/summary-${up:0:7}.md"
+    land "sync/upstream-${up:0:7}"
+    commit_file "$UPR" README.md "# Tinycast, renamed"$'\n\n'"A launcher." "Upstream retitles its README"
+    status="$(run_sync)"
+    check "one that conflicts syncs too (exit $status)" [ "$status" = 0 ]
+    check "with the fork's README.md kept" \
+        [ "$(git -C "$FORK" show HEAD:README.md)" = "$FORK_README" ]
+
     printf '%d passed, %d failed\n' "$PASSES" "$FAILURES"
     [ "$FAILURES" -eq 0 ] || exit 1
     ok "sync-upstream self-test passed"
@@ -887,6 +920,20 @@ rebrand_case() {
         NSMicrophoneUsageDescription "Tinycast nimmt auf." \
         "Tinycast backup" "Tinycast-Sicherung" >"$UPR/$INFO_CATALOG"
     git -C "$UPR" commit -q -am "Upstream's strings"
+}
+
+# Upstream's README.md, the fork's own rewrite of its title, then an upstream commit that edits its
+# last line, away from the fork's, and adds a file: git would merge the README on its own.
+readme_case() {
+    commit_file "$UPR" README.md "# Tinycast"$'\n\n'"A launcher."$'\n\n'"Install with Homebrew." \
+        "Upstream's README"
+    git -C "$FORK" pull -q --no-rebase --no-edit upstream main
+    FORK_README="# Redcast"$'\n\n'"A launcher."$'\n\n'"Install with Homebrew."
+    commit_file "$FORK" README.md "$FORK_README" "The fork's README"
+    printf 'upstream\n' >"$UPR/up.txt"
+    printf '%s\n' "# Tinycast"$'\n\n'"A launcher."$'\n\n'"Install with Homebrew or a DMG." \
+        >"$UPR/README.md"
+    git -C "$UPR" add -A && git -C "$UPR" commit -q -m "Upstream edits its README"
 }
 
 # The gates' tools, and pnpm for the runtime rebuild: none of them may reach Xcode or the network.
