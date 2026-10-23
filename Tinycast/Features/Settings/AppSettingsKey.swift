@@ -139,6 +139,8 @@ enum AppSettingsKey: String, CaseIterable {
     case dictationLiveInsertion = "dictationLiveInsertion"
     case dictationIdleRelease = "dictationIdleReleaseMinutes"
     case dictationLanguage = "dictationLanguage"
+    // Fork: how long Dictation History keeps transcripts; per Mac, like chat retention.
+    case dictationHistoryRetention = "dictationHistoryRetentionDays"
     case supportReminders = "supportReminders"
     case settingsFileEnabled = "settingsFileEnabled"
 }

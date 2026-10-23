@@ -413,7 +413,13 @@ enum SettingsSearchCatalog {
             keywords: [
                 "translate", "english", "polish", "message", "rewrite", "tone", "style", "prompt",
                 "default mode", "add mode", "custom", "instructions", "per app", "add application", "tab"
-            ])
+            ]),
+        // Fork: Dictation History's retention and its Clear row.
+        .init(
+            .dictationHistory, "Keep history",
+            keywords: ["dictation history", "transcripts", "retention", "voice history", "off"]),
+        .init(.dictationHistory, "Clear history", keywords: ["delete", "transcripts", "erase"]),
+        .init(group: .dictationHistory, "Dictation History", keywords: ["shortcut", "command", "hotkey"])
     ]
 
     private static let fileSearch: [SettingsSearchEntry] = [

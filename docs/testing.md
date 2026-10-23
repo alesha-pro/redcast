@@ -198,7 +198,8 @@ If a change touches anything in the right column, the harness on the left is man
 | `agent-sessions-test` | `AgentSessions/Model/` plus `AgentSessionsScanner`, `AgentTranscriptSearch`, `AgentHookRepository`, `ClaudeLiveSessionsProbe` and `ProcessTree` — the line filter, head and tail reads, titles, the rescan policy, a Codex database built per run, ranking, resume commands with hostile folders and moved agent folders, Gemini CLI chats (head, tail, a reply written twice, a rewind, legacy `.json`, a subagent's chat, the cache steps), an OpenCode database built per run (prompts, placeholders, children, archived, turns, search), Gemini and OpenCode found by transcript search, the Claude app record lookup and its `claude://code/continue` URL, hook-file install and removal byte for byte, the hook command run against shims, deep links, activity and which sessions it tracks, event resolution, the hook files written in a scratch home (a file changed after its diff, every file checked before any is written, backups and their rotation, symlinks written through, permissions kept, `live-status.json`), and `claude agents --json` run as a shim (decoding, a failed run, the watchdog and cancellation reaping a detached grandchild); synthetic fixtures in `Tests/agent-sessions-fixtures/` |
 | `mcp-oauth-test` | OAuth parsing, RFC 7636 PKCE, discovery and resource binding, loopback callback validation/cancellation, dynamic registration, supplied client credentials and their token-endpoint authentication, Keychain token rotation, concurrent refresh, the wider margin for a token lent to a CLI, redirects and one-retry 401 handling |
 | `voice-ai-test` | `VoiceAI/Model/` — the speech gate and WAV encoder, dictation and Ask prompts, `input_audio` request bodies, the streamed reply header and reply session, transcript cleanup, the consented route and the proposal, the insert policy, dictation modes in one and two steps, edit and agent request bodies, and mode settings |
-| `voice-coordinator-test` | `VoiceCloudTranscriber` and `VoiceAskCoordinator` — consent saving what it named, no rerouting, session tokens, supersede, dismissal and the recorder's start/stop order; dictation modes on the capsule; Edit Selection by Voice replacing, showing a moved selection and refusing an unreadable one; an agent answering, and the refusal while busy; recorded network, microphone and injection effects only |
+| `voice-coordinator-test` | `VoiceCloudTranscriber` and `VoiceAskCoordinator` — consent saving what it named, no rerouting, session tokens, supersede, dismissal and the recorder's start/stop order; dictation modes on the capsule; Edit Selection by Voice replacing, showing a moved selection and refusing an unreadable one; an agent answering, and the refusal while busy; what Dictation History is handed (the model, mode and rewritten transcript noted, an Ask's and an edit's reply with what was said, nothing for no speech); recorded network, microphone and injection effects only |
+| `dictation-history-test` | `DictationHistory/Model/` and `DictationHistoryFile` (fork) — the line format both ways, a pinned first-build line, a later build's line read and kept byte for byte, unreadable and cut-short lines, the text cap, the retention spans, append, the trim and its slack, load, delete, clear and Off on a scratch folder, and the every-word folded search |
 
 `mcp-stdio-test` copies `Tests/ai-fixtures/mcp-stub.js` into a scratch directory. The stub
 reads fd 0 synchronously and writes replies with `fs.writeSync`, so a reply reaches the pipe before
@@ -904,6 +905,14 @@ In short:
 - With Tinycast quit an agent runs normally, and a URL with a wrong token does nothing
 - A Claude Code or Codex folder set in Settings is listed, resumed with `env CLAUDE_CONFIG_DIR=…` /
   `CODEX_HOME=…`, and is where live status writes its hooks
+
+### Dictation History
+
+The fork's steps: [dictation-history.md](features/dictation-history.md#manual-sweep). In short, an
+on-device, a cloud and a mode dictation, an Ask and an edit each add one entry with the right app,
+mode, engine and length; ↵ pastes it where the caret was and keeps the clipboard; ⌘C copies unless
+query text is selected; a shorter Keep history trims the file at once and Off removes it; Clear asks
+first; and an exported backup holds no transcript.
 
 ### Clean install
 

@@ -3,6 +3,15 @@ import AppKit
 /// The cloud engine behind the Dictation shortcut; capture, panel and insertion stay Dictation's.
 @MainActor
 final class VoiceCloudTranscriber {
+    /// A finished transcript and how it was made, which Dictation History records.
+    struct Transcription: Equatable {
+        let text: String
+        /// What the model heard, when a mode's second request rewrote it.
+        let transcript: String?
+        let mode: String?
+        let model: String
+    }
+
     private let settings: AppSettings
     private let voice: VoiceAISettings
     private let aiSettings: AISettingsStore
@@ -14,6 +23,8 @@ final class VoiceCloudTranscriber {
     private var session: (bundleID: String?, frame: NSRect)?
     private(set) var activeMode: VoiceMode?
     private var caption: VoiceModeCaption?
+    /// Read while the capsule is still up, and gone with it.
+    private(set) var lastTranscription: Transcription?
 
     init(
         settings: AppSettings, voice: VoiceAISettings, aiSettings: AISettingsStore,
@@ -104,6 +115,7 @@ final class VoiceCloudTranscriber {
         guard let frame, isOn else {
             session = nil
             activeMode = nil
+            lastTranscription = nil
             caption?.close()
             caption = nil
             return
@@ -138,6 +150,7 @@ final class VoiceCloudTranscriber {
     // MARK: - Transcription
 
     func transcribe(_ samples: [Float], language: String?) async throws -> String {
+        lastTranscription = nil
         guard let selection = route else { throw VoiceAIFailure.noDictationModel }
         let provider = try VoiceAIRoute.provider(for: selection, settings: aiSettings)
         let mode = activeMode
@@ -147,12 +160,23 @@ final class VoiceCloudTranscriber {
         let options = VoicePrompt.DictationOptions(
             cleanup: voice.cleanup, language: language, vocabulary: voice.vocabulary)
         let plain = VoicePrompt.dictationRequest(audio: audio, options: options)
-        guard let mode else { return try await collect(plain, on: provider) }
+        guard let mode else { return noted(try await collect(plain, on: provider), model: selection.model) }
         if case .api(_, let model, _) = selection, !VoiceRoutePolicy.rewritesWhileTranscribing(model) {
             let transcript = try await collect(plain, on: provider)
-            return try await collect(VoicePrompt.rewriteRequest(transcript: transcript, mode: mode), on: provider)
+            let rewritten = try await collect(
+                VoicePrompt.rewriteRequest(transcript: transcript, mode: mode), on: provider)
+            return noted(rewritten, transcript: transcript, mode: mode, model: model)
         }
-        return try await collect(VoicePrompt.modeRequest(audio: audio, mode: mode, options: options), on: provider)
+        let rewritten = try await collect(
+            VoicePrompt.modeRequest(audio: audio, mode: mode, options: options), on: provider)
+        return noted(rewritten, mode: mode, model: selection.model)
+    }
+
+    private func noted(
+        _ text: String, transcript: String? = nil, mode: VoiceMode? = nil, model: String
+    ) -> String {
+        lastTranscription = Transcription(text: text, transcript: transcript, mode: mode?.name, model: model)
+        return text
     }
 
     /// The streamed text, cleaned; the sentinel or nothing at all is no speech.

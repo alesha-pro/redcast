@@ -29,7 +29,7 @@ enum GlyphCategory: CaseIterable, Sendable {
                 .quickAI, .aiChat, .askAboutScreen, .runAgentTask, .searchAgentSessions, .jumpToAgent,
                 .aiUsage, .fixGrammar, .rewrite, .translate, .summarize
             ],
-            .voice: [.askByVoice, .editByVoice],
+            .voice: [.askByVoice, .editByVoice, .dictationHistory],
             .clipboard: [.clipboardHistory, .pasteSequentially],
             .snippets: [.searchSnippets, .createSnippet],
             .notes: [.showNotes, .createNote, .searchNotes],

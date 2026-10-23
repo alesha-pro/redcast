@@ -438,6 +438,12 @@ final class PaletteWindowController: NSObject, NSWindowDelegate {
                 return true
             }
             guard Self.commandCharacter(from: event) != nil else { return false }
+            // Fork: ⌘C copies a Dictation History entry, unless the query has text selected.
+            if self.core.palette.mode == .dictationHistory, Self.commandCharacter(from: event) == "c",
+                ((self.panel?.firstResponder as? NSTextView)?.selectedRange().length ?? 0) == 0
+            {
+                return self.core.dictationHistoryCoordinator.copySelection()
+            }
             if self.core.palette.mode == .launcher || self.core.palette.mode == .clipboard,
                 let index = FavoriteSlots.index(forKeyCode: event.keyCode)
             {
