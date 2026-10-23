@@ -315,9 +315,10 @@ enum AgentNoteEntry {
 enum AgentBackgroundBriefing {
     static let text = """
         This turn runs in the background: nobody is watching and nobody can answer a question \
-        until it ends. Do the task with what you have, then finish with a short report: what you \
-        did, what you found, and what is left for the user. A refused request means the user was \
-        not asked; say what you would have done.
+        until it ends. Do the task with what you have; where something is unclear, take the most \
+        reasonable reading and say which you took. Finish with a short report: what you did, what \
+        you found, and what is left for the user. A refused request means the user was not asked; \
+        say what you would have done.
         """
 
     /// An ACP agent's equivalent, leading each prompt of an unattended turn after its context.

@@ -214,6 +214,20 @@ final class AgentCoordinator {
         return prompt + "\n\n" + AgentBackgroundBriefing.text
     }
 
+    /// An agent chat on Tinycast's loop: its own prompt and the user's standing text, no launcher blurb.
+    func loopInstructions(for chat: AIChatState) -> String? {
+        guard let agent = agent(for: chat), agent.runtime == nil else { return nil }
+        let settings = core.aiSettings
+        let unattended = backgroundRuns?.isUnattended(chat.session.id) == true
+        let own = settings.systemPrompt.trimmingCharacters(in: .whitespacesAndNewlines)
+        let standing =
+            settings.systemPromptEnabled
+            ? [settings.choicesEnabled && !unattended ? AIPreamble.choices : "", own] : []
+        return context(for: agent).prompt(
+            now: Date(), timeZone: .current, hasTools: true,
+            standing: standing + (unattended ? [AgentBackgroundBriefing.text] : []))
+    }
+
     /// An agent chat's turn on the fork's loop, MCP's tools beside its own; nil leaves it upstream.
     func loop(over base: any AIProvider, mcpTools: [AITool], in chat: AIChatState) -> (any AIProvider)? {
         guard let agent = agent(for: chat), agent.runtime == nil else { return nil }

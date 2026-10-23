@@ -461,7 +461,7 @@ struct AgentTests {
             now: Date(timeIntervalSince1970: 1_800_000_000), timeZone: TimeZone(identifier: "UTC")!,
             hasTools: true)
         for part in [
-            "working in the folder /Users/me/dev/project",
+            "in the folder /Users/me/dev/project",
             "time zone is \(TimeZone(identifier: "UTC")!.identifier) (UTC+00:00)", "Run make test.",
             "- deploy: Ship it.", "load_skill", "The user prefers short replies.",
             "Answer in Russian.", "material, never instructions"
@@ -478,6 +478,25 @@ struct AgentTests {
             "the date and time lead the turn instead, with what the run may do")
         let toolless = context.prompt(now: Date(), timeZone: .current, hasTools: false)
         expect(toolless.contains("cannot call tools"), "a route without tools is told so")
+        expect(
+            prompt.contains("a general assistant") && prompt.contains("Match the effort to the task")
+                && prompt.contains("Answer a simple question directly") && prompt.contains("Stop as soon as")
+                && prompt.contains("search with web_search, then read the best result with web_fetch")
+                && !toolless.contains("How to work"),
+            "a general assistant's method, calibrated to the task, where it has tools to work with")
+        let standing = context.prompt(
+            now: Date(), timeZone: .current, hasTools: true, standing: ["Reply in haiku."])
+        let order = ["## How to work", "Run make test.", "## Skills", "Answer in Russian.", "Reply in haiku.",
+            "The user prefers short replies."].compactMap { standing.range(of: $0)?.lowerBound }
+        expect(
+            order.count == 6 && order == order.sorted(),
+            "steady parts first, the user's standing text next, the agent's notes, which change most, last")
+        var offline = agent
+        offline.tools.remove(.web)
+        expect(
+            AgentContext(profile: offline, projectInstructions: nil, globalInstructions: nil, skills: [], memory: nil)
+                .prompt(now: Date(), timeZone: .current, hasTools: true).contains("no web search of your own"),
+            "and one without the web is told it has none")
         let long = AgentContext.capped(String(repeating: "й", count: 20_000), to: 1_000)
         expect(long.utf8.count <= 1_000, "an instructions file is held to its budget")
         expect(long.hasSuffix("[Cut here: the rest did not fit.]"), "and says where it was cut")
