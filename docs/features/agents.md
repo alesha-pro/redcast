@@ -98,6 +98,24 @@ optional chord: see [background and scheduled agents](background-agents.md).
   bytes nobody reads back. A write costs a quarter more than plain input and a read a tenth, so a turn
   of two rounds or a reply within five minutes pays for it; a prompt under the model's minimum is simply
   not cached.
+- **Reasoning goes back to the model that wrote it.** DeepSeek's own API refuses a request in
+  thinking mode with tools (400) unless every assistant message carries its `reasoning_content`, and
+  Gemini on OpenRouter keeps its thought signatures in encrypted `reasoning_details`. So
+  `AIStreamDecoder` keeps a reply's reasoning text and its `reasoning_details`, merged as pi's
+  `openai-completions.ts` merges them (neighbouring text or summary deltas grow one entry, an
+  encrypted one stays whole and opaque), stamps it with the connection's model and hands it to the
+  loop as `.reasoningReplay` beside the calls, never to the transcript. Both loops keep it on the
+  assistant message with those calls (`AIMessage.reasoning`), and `AIRequestBody` sends it back:
+  `reasoning_details` verbatim and in order on OpenRouter, only to the same model; on
+  `api.deepseek.com`, while thinking is on and the turn offers tools, `reasoning_content` on every
+  assistant message, that model's own text or an empty string for a reply from history or from
+  another model, as pi does. A reply that called nothing keeps nothing, since it is never resent
+  with its reasoning. Anthropic-shape thinking blocks are not replayed: Tinycast never asks for them.
+- **A cache hit is counted apart from input on every route.** OpenAI's and OpenRouter's
+  `prompt_tokens_details.cached_tokens` and DeepSeek's `prompt_cache_hit_tokens` leave
+  `AIUsage.inputTokens` for `cachedInputTokens`, as Anthropic's `cache_read_input_tokens` always did;
+  an Anthropic cache write is new input billed above it, so it counts as input. Prompt = input +
+  cached on every route, and the usage card's "cached" share is the hit rate.
 - **A plan is shown, never kept.** `update_plan` belongs to no family and is the agent's own (risk
   own), so every agent on Tinycast's loop has it and it never asks. The model sends the whole checklist
   each time; `AgentPlanTools` shows it as a reasoning fold with the same lines `ACPEventMapper` draws for

@@ -32,7 +32,9 @@ struct HTTPAIProvider: AIProvider {
                                 retryAfter: response.value(forHTTPHeaderField: "Retry-After"),
                                 secrets: secrets))
                     }
-                    var decoder = AIStreamDecoder(shape: configuration.shape, secrets: secrets)
+                    // Fork: the model stamps the reasoning it keeps, so only that model is sent it again.
+                    var decoder = AIStreamDecoder(
+                        shape: configuration.shape, secrets: secrets, model: configuration.model)
                     var chunk = Data()
                     chunk.reserveCapacity(2_048)
                     // Per line, not per 2 KB: a short reply must show before the stream closes.

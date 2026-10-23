@@ -39,10 +39,33 @@ enum AIRequestBody {
         return body
     }
 
+    // Fork: DeepSeek refuses a thinking turn with tools that lacks any reply's reasoning.
+    private static func replayed(
+        _ encoded: [String: Any], of message: AIMessage, _ input: AIRequest,
+        _ configuration: AIHTTPConfiguration
+    ) -> [String: Any] {
+        guard message.role == .assistant else { return encoded }
+        var encoded = encoded
+        let own = message.reasoning.flatMap { $0.model == configuration.model ? $0 : nil }
+        if configuration.provider == .openRouter, let details = own?.details, !details.isEmpty {
+            encoded["reasoning_details"] = details.map(\.jsonObject)
+        }
+        let host = configuration.baseURL.host() ?? ""
+        if host == "deepseek.com" || host.hasSuffix(".deepseek.com"), !configuration.disablesThinking,
+            !input.tools.isEmpty
+        {
+            encoded["reasoning_content"] = own?.text ?? ""
+        }
+        return encoded
+    }
+
     private static func openAI(
         _ input: AIRequest, configuration: AIHTTPConfiguration
     ) -> [String: Any] {
-        var messages = input.messages.compactMap(openAIMessage)
+        // Fork: each assistant message carries back what its route needs of the reasoning.
+        var messages = input.messages.compactMap { message in
+            openAIMessage(message).map { replayed($0, of: message, input, configuration) }
+        }
         if let instructions = input.instructions?.nonEmpty {
             messages.insert(["role": "system", "content": instructions], at: 0)
         }
