@@ -44,11 +44,14 @@ in the background or adds a setting: each one runs when you start it and leaves 
   whole group that started the script, and a Release build outlasts the watchdog. Only the refusals
   that need no build, an ambiguous identity and a foreign installed bundle, answer the caller first.
 - **`sync-upstream.sh` never pushes and never guesses.** It merges into a branch of its own, resolves
-  only the five files whose resolution is mechanical, and stops on anything else. When upstream
+  only the seven files whose resolution is mechanical, and stops on anything else. When upstream
   rewrote history it re-anchors only on commits it can prove are already merged.
 - **`README.md` is the fork's own.** It is Redcast's page, rewritten from scratch, so a sync never
   takes upstream's edits to it, whether git would merge them or not; the summary links what upstream
-  changed, to port by hand if it matters.
+  changed, to port by hand if it matters. `.github/FUNDING.yml` (empty: no Sponsor button) and
+  `.github/ISSUE_TEMPLATE/config.yml` (no Discord) are kept the same way. They stay as files,
+  because a deleted one would conflict on every upstream edit, and the sync only keeps a file the
+  fork has.
 - **A sync branch lands by fast-forward or a merge commit, never squash or rebase.** Either drops
   upstream's ancestry, and the next sync would replay everything.
 
@@ -279,7 +282,7 @@ remote when it is missing.
    | `Tinycast.xcodeproj/project.pbxproj` | upstream's, then `xcodegen generate` |
    | `Tinycast/Resources/RaycastRuntime.generated.js` | upstream's, then rebuilt from the merged sources when the fork patches them |
    | `Tinycast/Resources/Localizable.xcstrings`, `InfoPlist.xcstrings` | `merge-xcstrings.mjs`, key by key and rebranded, whenever upstream changed the catalog, conflicted or not; a key both sides changed keeps the fork's value and is listed |
-   | `README.md` (`FORK_OWNED`) | the fork's, whenever upstream changed it, conflicted or not: `HEAD`'s copy is checked out, and the summary's "Kept the fork's README.md" line gives the `git diff` of upstream's change |
+   | `README.md`, `.github/FUNDING.yml`, `.github/ISSUE_TEMPLATE/config.yml` (`FORK_OWNED`) | the fork's, whenever upstream changed it, conflicted or not: `HEAD`'s copy is checked out, and the summary's "Kept the fork's …" line gives the `git diff` of upstream's change, never repeated under "Both sides changed" |
    | anything else | left for a human |
 
    A catalog git merges on its own is merged again key by key because git's line merge is wrong for
@@ -524,7 +527,7 @@ the token out of every other job and step.
    to review; in a catalog git merges cleanly, a string upstream adds arrives renamed and a key it
    rewords in place takes English from its new text; and the summary names every string renamed. It
    keeps the fork's `README.md` over an upstream edit git merges on its own and over one that
-   conflicts.
+   conflicts, and names it once in the summary.
 2. `node Scripts/fork/merge-xcstrings.mjs --self-test` and `node Scripts/fork/rebrand.mjs --self-test`
    pass, and `node Scripts/fork/rebrand.mjs --check` prints "nothing to rename" for both catalogs.
 3. A real sync on a clean `main` ends with a summary whose gates are green, and its branch lands with

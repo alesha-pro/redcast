@@ -1,5 +1,5 @@
 blank_issues_enabled: false
 contact_links:
-  - name: Discord
-    url: https://discord.gg/v2Eeb4QQy3
-    about: Questions, ideas, and general chat.
+  - name: Redcast docs
+    url: https://github.com/alesha-pro/redcast/blob/main/FORK.md
+    about: What the fork ships, with a page per feature.
