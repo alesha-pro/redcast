@@ -73,6 +73,10 @@ optional chord: see [background and scheduled agents](background-agents.md).
   returns the `SKILL.md` body and the skill's file list, the progressive disclosure Codex and Claude
   Code use. A project skill shadows a global one of the same name; a skill switched off in the editor
   is left out by name, so one added later is in until switched off.
+- **Documents are read, not refused.** `read_file` reads text with line numbers and, through
+  [document text](document-text.md), a PDF by `pages` (a scanned page by OCR), an image's text by
+  OCR, and Word, RTF and ODT as text; only a binary file it has no reader for is refused, by name.
+  Whatever does not fit says how to read on.
 - **What tools return is material, and bounded three times.** The agent's prompt says so. A
   provider cuts its own output first, under 28 KB, so the cut can say where to continue;
   `AgentTurnBudget` then holds each result to 32 KB, as upstream's loop does, and a turn's results to
@@ -355,7 +359,7 @@ off by default per agent, bounded by `AgentPathPolicy` and asked through the age
 | `Model/AgentCompaction.swift` | Cross-turn notes: what was dropped, what they cover, when they grow, the request that makes them, `AgentChatSummary` |
 | `Model/AgentPlan.swift` | `update_plan`'s definition and arguments, and the checklist ACP plans share |
 | `Service/AgentContextLoader.swift` | Reads `AGENTS.md` (or a lone `CLAUDE.md`), `~/.agents/AGENTS.md`, skills, notes |
-| `Service/AgentToolExecutor.swift` | `AgentBuiltInTools`, the first provider; the executor runs each call: ripgrep search, terminal with timeout, web fetch, HTML to text |
+| `Service/AgentToolExecutor.swift` | `AgentBuiltInTools`, the first provider; the executor runs each call: reads by kind, ripgrep search, terminal with timeout, web fetch, HTML to text |
 | `Service/AgentLoopProvider.swift` | The agent chats' tool loop: cross-turn notes, rounds, batches, budget, Stop |
 | `Service/AgentPlanTools.swift` | `update_plan`: shows the checklist it is sent |
 | `Service/AgentDelegateTools.swift` | `delegate`: one read-only sub-agent per call, its answer bounded and its cost billed |
@@ -409,7 +413,9 @@ reads the window behind Tinycast as text.
 `run_command` runs through `ShellCommandRunner.stream` with the login shell's environment in the
 agent's folder, stopped after its timeout (120 s by default, 600 s at most); escape sequences are
 stripped and only the output's tail is kept. `search_files` prefers ripgrep and falls back to
-`grep -rnIE`, run without a shell so a pattern is never interpreted. `web_fetch` uses a private
+`grep -rnIE`, run without a shell so a pattern is never interpreted. `read_file` hands a PDF, an
+image or a Word, RTF or ODT file to the document helper, one child process per read
+([document text](document-text.md)). `web_fetch` uses a private
 `.ephemeral` session per fetch, with no cache and a cookie jar of its own, follows no redirect onto
 a local host it did not start at ([why](web-search.md#invariants)), reads at most 2 MB, and turns
 HTML into text, saying so when a page's scripts would have drawn what is missing. `web_search` runs
@@ -417,7 +423,8 @@ through [web search](web-search.md)'s engine chain, not the executor; it asks un
 rule and shows a search row between its own row's opening and closing.
 
 Neighbouring calls that may share a round run together, four at most (`AgentLoopProvider.width`),
-which bounds memory to four 2 MB fetch buffers and processes to four ripgreps: reads, `web_fetch`,
+which bounds memory to four 2 MB fetch buffers and processes to four ripgreps or document helpers:
+reads, `web_fetch`,
 `web_search` and `load_skill` (`AgentToolSpec.concurrent`). Every row of a batch opens first, each
 closes as its call ends, and the model reads the results in the order it asked. A call whose rule
 can ask, an MCP call (a second dialog would be refused while the first is up), `memory_write` (two
@@ -464,6 +471,9 @@ this way, as one provider. Nothing else changes: no router edit, no upstream lin
   "delegate: <name>", none of the sub-agent's own calls show, and the reply's cost is above what its own
   rounds cost. Ask for a sub-agent to change a file: it reports that it cannot. Stop while the sub-agent
   works: the turn ends at once. Untick it: the agent no longer offers to delegate.
+- Put a PDF (one with a scanned page), a DOCX and a screenshot in the folder and ask for a summary of
+  each: the PDF's rows name its pages and the answer says which follow, the scan's text is there,
+  and the screenshot's words come back by OCR. Ask for pages 20–22 of a long report: one row.
 - Tell it to remember something, start a new chat with the same agent, ask about it.
 - A read-only agent is never offered the terminal or writes; a chat without an agent is unchanged.
 - Ask it to run `sleep 30`, then Stop: `ps` shows no `sleep`. Ask for a change, Stop while the dialog
@@ -543,8 +553,11 @@ this way, as one provider. Nothing else changes: no router edit, no upstream lin
   plan checklist shared with ACP, newer families kept out of the previous build's way and given back
   after its save, a reading-only toolset and per-call row titles, compaction's coverage, reuse,
   bounds, a long newest question and notes kept per chat); `agent-tools-test` (the executor against a real folder: reads, writes with
-  consent, link escapes, commands, timeouts and Stop, memory, skills, HTML; the built-ins through a
-  toolset, with and without an agent's own rules; every refused effect; `update_plan`); and
+  consent, link escapes, commands, timeouts and Stop, memory, skills, HTML; documents by kind through
+  the harness acting as its helper: a PDF by pages with a scanned page, a Word file by line, an image
+  by OCR, a binary file, a folder and a missing helper; the built-ins through a toolset, with and
+  without an agent's own rules; every refused effect; `update_plan`); `document-text-test` (see
+  [document text](document-text.md)); and
   `agent-loop-test` (the fork's loop and upstream's on the same scripts under 128 KB; routing,
   signals, Stop, parallel batches, a long turn that elides; `delegate`'s spec and name, a
   sub-agent's request, tools, answer, cost, bounds and Stop, and its spend heard by the meter round

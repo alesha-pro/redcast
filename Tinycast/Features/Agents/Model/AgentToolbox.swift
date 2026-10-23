@@ -89,9 +89,11 @@ enum AgentToolbox {
                  required: [])
             tool(
                 readFile,
-                "Read a text file with line numbers. Use offset and limit to page through a long one.",
+                "Read a file with line numbers: text, Word, RTF or ODT as text, an image's text by OCR, or a "
+                    + "PDF by pages (scans too). offset and limit page by line; a PDF takes pages instead.",
                 ["path": path, "offset": integer("First line, from 1."),
-                 "limit": integer("How many lines, at most 2000.")],
+                 "limit": integer("How many lines, at most 2000."),
+                 "pages": WebPageTool.pagesProperty],
                 required: ["path"])
             tool(
                 searchFiles, "Search file contents for a regular expression, like ripgrep.",

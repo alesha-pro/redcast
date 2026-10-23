@@ -21,10 +21,14 @@ nonisolated struct AgentToolExecutor: Sendable {
     let skills: [AgentSkill]
     let memoryURL: URL
     let consent: @Sendable (AgentConsentRequest) async -> Bool
+    var documents: DocumentTextService = .bundled
 
     /// Under the loop's own 32 KB cap per result, so a cut here can still say where to continue.
     private static let maxOutputBytes = 28 * 1_024
-    private static let maxReadBytes = 10 * 1_048_576
+    /// A PDF's pages per read, so their headings and the way on still fit `maxOutputBytes`.
+    private static let pdfBudget = 24 * 1_024
+    /// Text the helper hands back from a document, paged here by line like a text file.
+    private static let documentTextBytes = 1_048_576
     private static let maxLines = 2_000
     private static let maxListed = 1_000
     private static let defaultTimeout = 120
@@ -40,7 +44,7 @@ nonisolated struct AgentToolExecutor: Sendable {
         let outcome: Result<String, AgentToolFailure>
         switch call.name {
         case AgentToolbox.listDirectory: outcome = listDirectory(arguments)
-        case AgentToolbox.readFile: outcome = readFile(arguments)
+        case AgentToolbox.readFile: outcome = await readFile(arguments)
         case AgentToolbox.searchFiles: outcome = await searchFiles(arguments)
         case AgentToolbox.writeFile: outcome = await writeFile(arguments)
         case AgentToolbox.editFile: outcome = await editFile(arguments)
@@ -78,41 +82,80 @@ nonisolated struct AgentToolExecutor: Sendable {
         return .success(entries.isEmpty ? "(empty)" : entries.joined(separator: "\n") + more)
     }
 
-    private func readFile(_ arguments: [String: JSONValue]) -> Result<String, AgentToolFailure> {
+    private func readFile(_ arguments: [String: JSONValue]) async -> Result<String, AgentToolFailure> {
         guard let raw = arguments["path"]?.stringValue else { return .failure(.missing("path")) }
         let path: String
         switch readablePath(raw) {
         case .success(let resolved): path = resolved
         case .failure(let failure): return .failure(failure)
         }
+        var isFolder: ObjCBool = false
+        guard FileManager.default.fileExists(atPath: path, isDirectory: &isFolder) else {
+            return .failure(.init("\(path) does not exist."))
+        }
+        guard !isFolder.boolValue else { return .failure(.init("\(path) is a folder; list it with list_dir.")) }
+        let head = FileHandle(forReadingAtPath: path).flatMap { handle in
+            defer { try? handle.close() }
+            return try? handle.read(upToCount: 8_192)
+        } ?? Data()
+        let kind = DocumentKind.of(path: path, head: head)
         let size = (try? FileManager.default.attributesOfItem(atPath: path)[.size] as? Int) ?? 0
-        guard size <= Self.maxReadBytes else {
+        guard size <= kind.maxFileBytes else {
             return .failure(.init("\(path) is \(size) bytes, too large to read here."))
         }
-        guard let data = FileManager.default.contents(atPath: path) else {
-            return .failure(.init("\(path) could not be read."))
+        let outcome: Result<String, AgentToolFailure>
+        switch kind {
+        case .binary:
+            outcome = .failure(.init(
+                "\(path) is a binary file. read_file reads text, PDFs, images, Word, RTF and ODT."))
+        case .text, .html:
+            guard let data = FileManager.default.contents(atPath: path) else {
+                return .failure(.init("\(path) could not be read."))
+            }
+            guard let text = String(data: data, encoding: .utf8) else {
+                return .failure(.init("\(path) is not a UTF-8 text file."))
+            }
+            outcome = Self.numbered(text, path: path, arguments)
+        case .pdf: outcome = await readPDF(path, arguments)
+        case .image, .richText: outcome = await readDocument(path, kind: kind, arguments)
         }
-        guard !data.prefix(8_192).contains(0), let text = String(data: data, encoding: .utf8) else {
-            return .failure(.init("\(path) is not a UTF-8 text file."))
+        return outcome
+    }
+
+    private func readPDF(_ path: String, _ arguments: [String: JSONValue]) async -> Result<String, AgentToolFailure> {
+        let range: DocumentPageRange
+        switch WebPageTool.position(in: arguments).pages {
+        case nil: range = .all
+        case let pages?:
+            guard let parsed = DocumentPageRange(pages) else {
+                return .failure(.init("pages takes a page, a range or an open range: \"3\", \"3-5\", \"8-\"."))
+            }
+            range = parsed
         }
-        let lines = text.components(separatedBy: "\n")
-        let offset = max(1, arguments["offset"]?.intValue ?? 1)
-        let limit = min(Self.maxLines, max(1, arguments["limit"]?.intValue ?? Self.maxLines))
-        guard offset <= lines.count else {
-            return .failure(.init("\(path) has \(lines.count) lines; offset \(offset) is past the end."))
+        let request = DocumentTextRequest(path: path, kind: .pdf, pages: range, budget: Self.pdfBudget)
+        switch await documents.read(request) {
+        case .success(let text): return .success(text.pdfAnswer(for: path, asked: range))
+        case .failure(let failure): return .failure(.init(failure.message))
         }
-        var output = ""
-        var line = offset
-        while line < min(lines.count + 1, offset + limit) {
-            let next = String(format: "%6d\t", line) + lines[line - 1] + "\n"
-            guard output.utf8.count + next.utf8.count <= Self.maxOutputBytes else { break }
-            output += next
-            line += 1
+    }
+
+    /// An image's OCR text or a document's text, paged by line like a text file.
+    private func readDocument(
+        _ path: String, kind: DocumentKind, _ arguments: [String: JSONValue]
+    ) async -> Result<String, AgentToolFailure> {
+        let request = DocumentTextRequest(path: path, kind: kind, budget: Self.documentTextBytes)
+        switch await documents.read(request) {
+        case .success(let text):
+            let body = text.pages.map(\.text).joined(separator: "\n").trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !body.isEmpty else {
+                return .success(kind == .image ? "No text was recognized in \(path)." : "\(path) holds no text.")
+            }
+            let label = kind == .image ? "image, its text recognized by OCR" : "document, as plain text"
+            let read = Self.numbered(body, path: path, arguments, as: label)
+            guard text.cut, case .success(let shown) = read, !shown.contains("continue with offset") else { return read }
+            return .success(shown + "\n[The text goes on past the \(Self.documentTextBytes / 1_048_576) MB read here.]")
+        case .failure(let failure): return .failure(.init(failure.message))
         }
-        if line <= lines.count {
-            output += "… \(lines.count - line + 1) more lines; continue with offset \(line)."
-        }
-        return .success(output)
     }
 
     private func searchFiles(_ arguments: [String: JSONValue]) async -> Result<String, AgentToolFailure> {
@@ -403,6 +446,39 @@ nonisolated struct AgentToolExecutor: Sendable {
             kept.append(scalar)
         }
         return "[Earlier output cut.]\n" + String(String.UnicodeScalarView(kept.reversed()))
+    }
+
+    /// Lines with their numbers from `offset`, within the output cap, and where to continue.
+    private static func numbered(
+        _ text: String, path: String, _ arguments: [String: JSONValue], as label: String? = nil
+    ) -> Result<String, AgentToolFailure> {
+        let lines = text.components(separatedBy: "\n")
+        let offset = max(1, integer(arguments["offset"]) ?? 1)
+        let limit = min(maxLines, max(1, integer(arguments["limit"]) ?? maxLines))
+        guard offset <= lines.count else {
+            return .failure(.init("\(path) has \(lines.count) lines; offset \(offset) is past the end."))
+        }
+        var output = label.map { "\(path) (\($0)):\n" } ?? ""
+        var line = offset
+        while line < min(lines.count + 1, offset + limit) {
+            let next = String(format: "%6d\t", line) + lines[line - 1] + "\n"
+            guard output.utf8.count + next.utf8.count <= maxOutputBytes - 128 else { break }
+            output += next
+            line += 1
+        }
+        if line <= lines.count {
+            output += "… \(lines.count - line + 1) more lines; continue with offset \(line)."
+        }
+        return .success(output)
+    }
+
+    /// A whole number however the model wrote it; anything else, or out of range, is nil.
+    private static func integer(_ value: JSONValue?) -> Int? {
+        switch value {
+        case .number(let number)?: number.isFinite && abs(number) < 1e9 ? Int(number) : nil
+        case .string(let text)?: Int(text.trimmingCharacters(in: .whitespaces))
+        default: nil
+        }
     }
 
     private static func preview(_ text: String) -> String {
