@@ -123,6 +123,16 @@ enum WebPageTool {
     static let readsUsed =
         "read_page has read \(maxReads) pages this turn. Ask the user before reading more."
 
+    /// Why an agent's `web_fetch` refused an address it was not given.
+    static func outOfAgentScope(_ url: URL, unattended: Bool) -> String {
+        let reason =
+            unattended
+            ? "nobody is watching this run" : "this turn has read the user's files, notes or screen"
+        return "web_fetch can open only a page this turn was given, because \(reason): a link the user "
+            + "wrote, a web_search result, or a link on a page already read. \(url.absoluteString) is "
+            + "none of those. Search for it, or say what you would need to read."
+    }
+
     static func outOfScope(_ url: URL) -> String {
         "read_page opens only a page the user linked or a web_search result from this turn, and "
             + "\(url.absoluteString) is neither. Search for it, or ask the user for the link."

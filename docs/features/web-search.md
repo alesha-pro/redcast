@@ -247,5 +247,6 @@ sentences are replaced, a weather forecast and a page only its scripts fill; `li
 lists those reads and a PDF report's); parts and their limits; `WebPageReader` over a stubbed
 session: a declared charset, a PDF by type, by its first bytes and by name read through the
 harness acting as the document helper, plain text, a 404, a missing helper and a page past 2 MB in
-parts; and another part not counting as a read). `agent-tools-test` reads a saved page as
-Markdown.
+parts; another part not counting as a read; and an agent's web scope, see
+[agents](agents.md#manual-sweep)). `agent-tools-test` reads a saved page as Markdown and holds
+`web_fetch`'s refusals.
