@@ -50,7 +50,7 @@ struct SupportWindowView: View {
                 .frame(width: Self.iconSize, height: Self.iconSize)
                 .shadow(color: .black.opacity(0.35), radius: 12, y: 6)
             VStack(spacing: Theme.Spacing.sm) {
-                Text("Support \(Bundle.main.appDisplayName)")
+                Text("Support \(SupportCoordinator.upstreamName)")  // Fork: upstream's checkout
                     .font(.title2.weight(.semibold))
                 Text("Built with love.")
                     .font(.callout)
@@ -65,7 +65,7 @@ struct SupportWindowView: View {
     private var action: some View {
         VStack(spacing: Theme.Spacing.lg) {
             SupportActionButton(
-                title: String(localized: "Support \(Bundle.main.appDisplayName)"), icon: "heart"
+                title: String(localized: "Support \(SupportCoordinator.upstreamName)"), icon: "heart"  // Fork: upstream's
             ) {
                 support.openCheckout()
             }

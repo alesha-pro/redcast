@@ -6,6 +6,8 @@ import SwiftUI
 final class SupportCoordinator {
     /// The one place the support page URL is written down; every surface links to this.
     static let supportPage = URL(string: "https://tinycast.dev/support")!
+    // Fork: the checkout funds upstream's author, so the support surfaces name upstream, not Redcast.
+    static let upstreamName = "Tinycast"
 
     private let store: SupportReminderStore
     /// Environment injection and activity reads only — never for state this type owns.

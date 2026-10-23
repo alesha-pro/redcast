@@ -25,7 +25,8 @@ struct MenuBarMenu: View {
         }
         Divider()
         Button("Check for Updates…") { AppCore.shared.updateCoordinator.checkForUpdates() }
-        Button("Support \(appName)…") { AppCore.shared.supportCoordinator.showSupport() }
+        // Fork: the support checkout is upstream's, so the row names it rather than the app.
+        Button("Support \(SupportCoordinator.upstreamName)…") { AppCore.shared.supportCoordinator.showSupport() }
         Button("Settings…") { AppCore.shared.settingsCoordinator.showSettings() }
             .keyboardShortcut(",")
         Divider()

@@ -28,10 +28,9 @@ ENTITLEMENTS="$(mktemp)"
 trap 'rm -f "$ENTITLEMENTS"' EXIT
 codesign -d --entitlements - --xml "$APP" > "$ENTITLEMENTS" 2>/dev/null
 
-DICTATION="${TINYCAST_DICTATION_NAME:-Tinycast Dictation}"  # Fork: install.sh passes Redcast's
 # The helper is signed by its own embed phase, which is where the runtime flag goes missing.
-HELPER="$APP/Contents/Helpers/$DICTATION.app"
-for BIN in "$APP/Contents/MacOS/$NAME" "$APP/Contents/Helpers/ClipboardTextHelper" "$HELPER/Contents/MacOS/$DICTATION"; do
+HELPER="$APP/Contents/Helpers/$NAME Dictation.app"  # Fork: named with the app, as DictationWorker finds it
+for BIN in "$APP/Contents/MacOS/$NAME" "$APP/Contents/Helpers/ClipboardTextHelper" "$HELPER/Contents/MacOS/$NAME Dictation"; do
     INFO="$(codesign -dv --verbose=2 "$BIN" 2>&1)"
     [[ "$INFO" =~ flags=0x[0-9a-f]+\([^\)]*runtime ]] ||
         fail "${BIN##*/}: hardened runtime not enabled"

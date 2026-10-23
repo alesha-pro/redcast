@@ -2,7 +2,7 @@ import Foundation
 
 /// The one request each engine takes; pure, so a wrong shape fails a harness, not a turn.
 enum WebSearchEndpoint {
-    static let userAgent = "Tinycast (+https://github.com/alesha-pro/tinycast)"
+    static let userAgent = "Tinycast (+https://github.com/alesha-pro/redcast)"
     static let exa = URL(string: "https://mcp.exa.ai/mcp")!
     static let parallel = URL(string: "https://search.parallel.ai/mcp")!
     static let duckDuckGo = URL(string: "https://html.duckduckgo.com/html/")!
