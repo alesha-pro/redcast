@@ -79,11 +79,10 @@ final class AgentCoordinator {
 
     /// The chat's own agent, or its surface's from Settings until the first message binds it.
     func agent(for chat: AIChatState) -> AgentProfile? {
-        let id = ChatToolPolicy.agent(
-            bound: store.agent(forChat: chat.session.id)?.id, quickAI: quickAIAgent?.id,
-            window: chatAgent?.id, surface: surface(of: chat), isUnsent: chat.session.messages.isEmpty,
+        ChatToolPolicy.agent(
+            bound: store.agent(forChat: chat.session.id), quickAI: quickAIAgent, window: chatAgent,
+            surface: surface(of: chat), isUnsent: chat.session.messages.isEmpty,
             declined: declinedDefault.contains(chat.session.id))
-        return id.flatMap(store.agent(id:))
     }
 
     func setAgent(_ agent: AgentProfile?, for chat: AIChatState) {
@@ -337,6 +336,12 @@ final class AgentCoordinator {
         let loaded = AgentContextLoader.load(agent, memoryURL: store.memoryURL(for: agent.id))
         contexts[agent.id] = loaded
         return loaded
+    }
+
+    /// Read off-main ahead of a first send, unless the cached reading is still this agent's.
+    func warmContext(for agent: AgentProfile) {
+        guard contexts[agent.id]?.profile != agent else { return }
+        refresh(agent)
     }
 
     func refresh(_ agent: AgentProfile) {

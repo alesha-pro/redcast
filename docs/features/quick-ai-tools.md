@@ -23,15 +23,16 @@ and `SettingsSearchCatalog`.
   Quick AI's chat with no message yet takes `aiQuickAIAgent` unless ⌘K said No Agent for that chat
   (`chooseAgent` keeps it in `declinedDefault`, in memory, by chat id). A first message the chat
   took, and a ⌘J that moves it, bind it through `setAgent`, so later turns, AI Chat and the history
-  keep it, and a later change in Settings never moves a chat that has spoken; ⌘J on an unsent chat
-  with staged files and no agent marks it No Agent, so AI Chat's own
-  [agent for new chats](agents.md#a-new-chats-agent) stays out of it too. The agent is read before
-  the send and bound only once it went (`AIChatCoordinator.sendBindingAgent`, AI Chat's send too),
-  so Return on an empty Quick AI or a refused send leaves no binding. A chat Quick AI resumes
-  without an agent stays plain; AI Chat's window never takes Quick AI's pick, nor Quick AI the
-  window's. Everything that asks `agent(for:)` — the route, the agent's prompt, the model the chat
-  runs on, the capabilities and the context card — sees the agent before the first message, so the
-  header's model is the agent's and the first turn is already the agent's.
+  keep it, and a later change in Settings never moves a chat that has spoken. ⌘J on a chat showing
+  no agent binds nothing: moved with only staged files, it takes AI Chat's own
+  [agent for new chats](agents.md#a-new-chats-agent) there, unless ⌘K said No Agent for it, which
+  `declinedDefault` carries with the chat. The agent is read before the send and bound only once
+  it went (`AIChatCoordinator.sendBindingAgent`, AI Chat's send too), so Return on an empty Quick
+  AI or a refused send leaves no binding. A chat Quick AI resumes without an agent stays plain; AI
+  Chat's window never takes Quick AI's pick, nor Quick AI the window's. Everything that asks
+  `agent(for:)` — the route, the agent's prompt, the model the chat runs on, the capabilities and
+  the context card — sees the agent before the first message, so the header's model is the agent's
+  and the first turn is already the agent's.
 - **A binding lasts as long as its chat.** Every Quick AI chat that answers with an agent adds a
   line to `agent-chats.json`, as an AI Chat agent chat does. Deleting a chat drops its line
   (`AgentCoordinator.chatDeleted`), and the history's retention prune and Delete All sweep the lines
@@ -70,9 +71,9 @@ and `SettingsSearchCatalog`.
   lost whenever they change, so the time is a fifteen-minute window (`ChatBriefing.clockStep`)
   rather than the minute: the prompt changes four times an hour, not on every turn. Model-facing
   text is English, its weekday from an `en_US_POSIX` calendar.
-- **Nothing resident.** `AgentDefaultStore` reads one default the first time an agent is
-  resolved; the ⌘K rows are built when the menu opens; the briefing is a string built per send. No
-  timer, no file of its own, no network but the turn's own.
+- **Nothing resident.** `AgentDefaultStore` reads `aiQuickAIAgent` the first time Quick AI's unsent
+  chat asks for its agent; the ⌘K rows are built when the menu opens; the briefing is a string built
+  per send. No timer, no file of its own, no network but the turn's own.
 - **The setting never travels.** `aiQuickAIAgent` names an agent on this Mac and lends it Quick AI's
   questions, so it is excluded from backups and has no `settings.json` key, as `voiceAskAgent`. The
   previous build ignores the key.
@@ -128,5 +129,6 @@ binding send are `Agents/UI/NewChatAgent.swift`'s, shared with AI Chat's
 Harness: `quick-ai-tools-test` (the clock across zones and quarter-hour edges, the briefing with and
 without tools, search or an MCP server, the offering rules for Quick AI with Web Search on and off
 and with and without an agent, Codex, the Claude command, the on-device model and AI Chat, which
-agent answers on either surface, and both settings across launches). `agent-test` holds the
-bindings a gone chat leaves behind, and `agent-tools-test` and `web-search-test` the page reads.
+agent answers on either surface and when a default is worked out at all, which chats keep No
+Agent, and both settings across launches). `agent-test` holds the bindings a gone chat leaves
+behind, and `agent-tools-test` and `web-search-test` the page reads.

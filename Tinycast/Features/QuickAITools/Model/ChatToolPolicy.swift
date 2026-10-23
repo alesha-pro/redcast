@@ -48,22 +48,28 @@ enum ChatToolPolicy {
     }
 
     /// The chat's own agent, else its surface's pick while it is unsent and nobody said none.
-    static func agent(
-        bound: UUID?, quickAI: UUID?, window: UUID?, surface: Surface, isUnsent: Bool, declined: Bool
-    ) -> UUID? {
+    static func agent<Agent>(
+        bound: Agent?, quickAI: @autoclosure () -> Agent?, window: @autoclosure () -> Agent?,
+        surface: Surface, isUnsent: Bool, declined: Bool
+    ) -> Agent? {
         if let bound { return bound }
         guard isUnsent, !declined else { return nil }
-        return surface == .quickAI ? quickAI : window
+        return surface == .quickAI ? quickAI() : window()
     }
 
-    /// AI Chat's pick while AI is on and the agent still exists; otherwise chats start plain.
-    static func windowAgent(picked: UUID?, among agents: some Sequence<UUID>, aiEnabled: Bool) -> UUID? {
-        guard aiEnabled, let picked, agents.contains(picked) else { return nil }
-        return picked
+    /// AI Chat's pick while AI is on and `lookup` still finds its agent; otherwise chats start plain.
+    static func windowAgent<Agent>(picked: UUID?, aiEnabled: Bool, lookup: (UUID) -> Agent?) -> Agent? {
+        guard aiEnabled, let picked else { return nil }
+        return lookup(picked)
     }
 
-    /// No Agent on a chat that has not spoken, picked or carried over, keeps the pick out of it.
-    static func declines(_ agent: UUID?, isUnsent: Bool) -> Bool {
-        agent == nil && isUnsent
+    /// No Agent on an unsent chat keeps the pick out of it; another pick, or the chat gone, lets it in.
+    static func declined(
+        _ declined: Set<UUID>, choosing agent: UUID?, for chat: UUID, isUnsent: Bool,
+        live: some Sequence<UUID>
+    ) -> Set<UUID> {
+        var kept = declined.intersection(live)
+        if agent == nil && isUnsent { kept.insert(chat) } else { kept.remove(chat) }
+        return kept
     }
 }

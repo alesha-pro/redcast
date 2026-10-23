@@ -16,11 +16,12 @@ extension AgentCoordinator {
         core.aiChats.quickAI === chat ? .quickAI : .window
     }
 
-    /// What Quick AI shows goes with a chat ⌘J moves, No Agent included, so the window agrees.
+    /// A chat ⌘J moves keeps the agent Quick AI showed; with none, it is left to the window's rules.
     func adoptQuickAIAgent(in chat: AIChatState) {
         guard store.agent(forChat: chat.session.id) == nil,
-            !chat.session.messages.isEmpty || !chat.pendingAttachments.isEmpty
+            !chat.session.messages.isEmpty || !chat.pendingAttachments.isEmpty,
+            let agent = agent(for: chat)
         else { return }
-        chooseAgent(agent(for: chat), for: chat)
+        setAgent(agent, for: chat)
     }
 }

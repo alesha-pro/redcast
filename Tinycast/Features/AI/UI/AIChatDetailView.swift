@@ -254,10 +254,9 @@ private struct AIChatComposer: View {
     }
 
     private func submit() {
-        // Fork: the agent a new chat shows becomes its own once its first message goes.
         if chat.isStreaming {
             coordinator.stopResponse(in: chat)
-        } else if coordinator.sendBindingAgent(chat.draft, in: chat) {
+        } else if coordinator.sendBindingAgent(chat.draft, in: chat) {  // Fork: binds a new chat's agent
             chat.draft = ""
         }
     }
