@@ -84,14 +84,15 @@ enum AgentCompaction {
         return .extend(from: valid?.covered ?? 0, to: reach, previous: valid)
     }
 
-    /// Past what was dropped, to the first question from which at most half of what went out is left.
+    /// Past what was dropped, to the first question from which at most half of what fitted is left.
     static func coverage(of history: [Entry], dropped: Int) -> Int {
-        let newest = history.lastIndex(where: \.isUser) ?? dropped
-        var tail = history[dropped...].reduce(0) { $0 + $1.text.utf8.count }
-        let limit = tail / 2
+        let newest = max(history.lastIndex(where: \.isUser) ?? dropped, dropped)
+        // The newest question goes out whole and outside the budget, so its size moves nothing here.
+        var fitted = history[dropped..<newest].reduce(0) { $0 + $1.text.utf8.count }
+        let limit = fitted / 2
         for index in dropped..<newest {
-            if index > dropped, history[index].isUser, tail <= limit { return index }
-            tail -= history[index].text.utf8.count
+            if index > dropped, history[index].isUser, fitted <= limit { return index }
+            fitted -= history[index].text.utf8.count
         }
         return newest
     }

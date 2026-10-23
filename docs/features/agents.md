@@ -121,8 +121,10 @@ in root search or on a schedule: see [background and scheduled agents](backgroun
   Dropped past them: one request to the chat's own model, with no tools, folds the notes so far and only
   the newly dropped messages into new notes (at most 64 KB read, newest first, 6 KB a message; 8 KB
   kept). The new notes reach past what was dropped, to the first question from which at most half of
-  what the budget sent is left, so later turns reuse them for a while. They lead the first question
-  sent, inside `<earlier_conversation>`, rather than as a message of their own, since some chat
+  the history that fitted the budget is left, so later turns reuse them for a while. The newest question
+  is not part of that measure: it always goes out whole, outside the budget, so a long pasted question
+  cannot push the notes over the conversation that fitted. They lead the first question sent, inside
+  `<earlier_conversation>`, rather than as a message of their own, since some chat
   templates reject two questions in a row, and nothing they cover is sent again. Their cost is billed
   into the reply; tokens are left alone. A tool row, "Summary of earlier messages", opens while they are
   made and closes when done (failed when the request fails, and the turn then goes as it was built);
@@ -334,9 +336,10 @@ this way, as one provider. Nothing else changes: no router edit, no upstream lin
   policy and per-agent rules, toolset order and routing, batches, budget, elision, the prompt and the
   rules it states, persistence, the plan checklist shared with ACP, newer families kept out of the
   previous build's way, a reading-only toolset and per-call row titles, compaction's coverage, reuse,
-  bounds and notes kept per chat); `agent-tools-test` (the executor against a real folder: reads,
-  writes with consent, link escapes, commands, timeouts and Stop, memory, skills, HTML; the built-ins
-  through a toolset, with and without an agent's own rules; every refused effect; `update_plan`); and
+  bounds, a long newest question and notes kept per chat); `agent-tools-test` (the executor against
+  a real folder: reads, writes with consent, link escapes, commands, timeouts and Stop, memory, skills,
+  HTML; the built-ins through a toolset, with and without an agent's own rules; every refused effect;
+  `update_plan`); and
   `agent-loop-test` (the fork's loop and upstream's on the same scripts under 128 KB; routing,
   signals, Stop, parallel batches, a long turn that elides; `delegate`'s spec and name, a sub-agent's
   request, tools, answer, cost, bounds and Stop; compaction with nothing dropped, made once then

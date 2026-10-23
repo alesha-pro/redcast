@@ -695,13 +695,19 @@ extension AgentTests {
             "as is one longer than the history")
 
         expect(
-            AgentCompaction.coverage(of: chat, dropped: 10) == 16,
-            "notes reach the first question from which at most half of what went out is left")
+            AgentCompaction.coverage(of: chat, dropped: 10) == 14,
+            "notes reach the first question from which at most half of what fitted is left")
         expect(
             AgentCompaction.coverage(of: chat, dropped: 18) == 18,
             "and never past the newest question")
+        var pasted = chat
+        pasted[18] = AgentCompaction.Entry(
+            id: chat[18].id, isUser: true, text: String(repeating: "q", count: 110_000))
+        expect(
+            AgentCompaction.coverage(of: pasted, dropped: 10) == 14,
+            "a long pasted question goes out whole, so it never pushes the notes over what fitted")
         let first = AgentCompaction.plan(history: chat, dropped: 10, summary: nil)
-        expect(first == .extend(from: 0, to: 16, previous: nil), "the first notes cover from the start")
+        expect(first == .extend(from: 0, to: 14, previous: nil), "the first notes cover from the start")
 
         let notes = AgentChatSummary(text: "notes", covered: 16, lastCoveredID: chat[15].id)
         expect(
@@ -717,11 +723,11 @@ extension AgentTests {
         let stale = AgentChatSummary(text: "notes", covered: 14, lastCoveredID: UUID())
         expect(
             AgentCompaction.plan(history: chat, dropped: 10, summary: stale)
-                == .extend(from: 0, to: 16, previous: nil),
+                == .extend(from: 0, to: 14, previous: nil),
             "notes on a history that changed underneath start over")
         let odd = AgentChatSummary(text: "notes", covered: 13, lastCoveredID: chat[12].id)
         expect(
-            AgentCompaction.plan(history: chat, dropped: 10, summary: odd) == .extend(from: 0, to: 16, previous: nil),
+            AgentCompaction.plan(history: chat, dropped: 10, summary: odd) == .extend(from: 0, to: 14, previous: nil),
             "as do notes that would leave a reply opening the request")
     }
 
