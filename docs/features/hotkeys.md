@@ -144,8 +144,8 @@ It shares the double-tap's listen-only monitor, permission warning, lifecycle an
 recording. macOS may perform its own Globe action too; set “Press fn/Globe key to” to “Do Nothing” in
 Keyboard settings if it conflicts. Globe+key chords use Carbon registration, like other combos.
 
-Dictation's hold-to-talk mode, and a command in `HotKeyManager.heldCommands` (Ask by Voice in Hold to
-talk), reserves its single physical modifier across both tap gestures. It
+Dictation's hold-to-talk mode, and a command in `HotKeyManager.heldCommands` (Ask by Voice and Edit
+Selection by Voice in Hold to talk), reserves its single physical modifier across both tap gestures. It
 starts after 250 ms held alone, so ordinary modifier+key chords do not briefly start recording. Another
 key, modifier or mouse click cancels a pending or active hold; Return, Escape and Tab belong to the
 dictation capsule while listening. Once a hold has begun, Shift may come and go beside it, so ⇧Tab
