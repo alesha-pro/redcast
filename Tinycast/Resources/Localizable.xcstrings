@@ -155092,6 +155092,7 @@
       }
     },
     "at" : {
+      "comment" : "Schedule editor: label before the run time, as in “Daily ▾ at 09:00” or “Weekdays ▾ at 09:00”",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -156034,6 +156035,7 @@
       }
     },
     "from" : {
+      "comment" : "Schedule editor: label before the first run time, as in “Every 2 hours ▾ from 09:00”",
       "localizations" : {
         "de" : {
           "stringUnit" : {
