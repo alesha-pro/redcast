@@ -114,12 +114,12 @@ final class VoiceCloudTranscriber {
         showCaption()
     }
 
-    /// Tab while listening: the next mode for this recording, remembered for the app in front.
+    /// Tab while listening: this recording's next mode, remembered for an app with a bundle id.
     private func switchMode(backward: Bool) -> Bool {
         guard isOn, let session, capsule?.state.phase == .listening else { return false }
         let next = voice.modes.next(after: activeMode?.id, backward: backward)
         activeMode = next
-        voice.modes.assign(next?.id, to: session.bundleID)
+        if let bundleID = session.bundleID { voice.modes.assign(next?.id, to: bundleID) }
         showCaption()
         return true
     }

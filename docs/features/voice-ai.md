@@ -150,7 +150,8 @@ When the capsule shows, `VoiceCloudTranscriber` reads the app in front and takes
 by app**, else the **Default mode**, else none. The chip above the capsule (`VoiceModeCaption`, a
 nonactivating, mouse-transparent panel) names it and shows ⇥. Tab and ⇧Tab cycle none → each mode
 not left out → none while listening, and the choice is that app's from then on (an entry equal to the
-default is dropped, so the app follows the default again). Tab is the capsule's even during a held
+default is dropped, so the app follows the default again). An app without a bundle id keeps the
+choice for that recording only; the Default mode changes only in Settings. Tab is the capsule's even during a held
 shortcut, as Return and Escape are, and so is ⇧Tab: Shift joining a held Fn or single modifier
 doesn't cancel the hold (see [hotkeys.md](hotkeys.md#modifier-only-shortcuts)).
 
@@ -429,7 +430,8 @@ ends.
   policy, mode settings); `voice-coordinator-test` (the shipped `VoiceCloudTranscriber` and
   `VoiceAskCoordinator` against recorded effects: consent saving exactly what it named and asking
   again for another connection, no rerouting, the session token through capture, delivery, supersede
-  and dismissal, and the recorder's start and stop order; dictation modes on the capsule; Edit
+  and dismissal, and the recorder's start and stop order; dictation modes on the capsule, Tab over an app with no
+  bundle id leaving the default alone; Edit
   Selection by Voice replacing an unchanged selection, showing a moved one, refusing an unreadable
   one; an agent getting the transcript and the window while the route gets the audio alone, and
   refusing a press while it or three agents are busy); `dictation-field-test` (the cloud seam in

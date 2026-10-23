@@ -58,11 +58,7 @@ struct VoiceModeSettings: Codable, Equatable, Sendable {
     }
 
     /// An app's choice; one equal to the default is no entry at all, so it follows the default.
-    mutating func assign(_ id: UUID?, to bundleID: String?) {
-        guard let bundleID else {
-            defaultMode = id
-            return
-        }
+    mutating func assign(_ id: UUID?, to bundleID: String) {
         apps[bundleID] = id == defaultMode ? nil : id?.uuidString ?? Self.plain
     }
 

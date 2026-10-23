@@ -199,6 +199,17 @@ struct VoiceCoordinatorTests {
         capsule.state.phase = .listening
         capsule.onPlacement?(frame)
         expect(cloud.activeMode == nil, "An app without a mode of its own follows the default, here none")
+
+        world.frontmost = nil
+        capsule.onPlacement?(nil)
+        capsule.onPlacement?(frame)
+        let remembered = (world.voice.modes.defaultMode, world.voice.modes.apps)
+        expect(
+            capsule.onTab?(false) == true && cloud.activeMode?.id == VoiceModeCatalog.translateToEnglish,
+            "Over an app with no bundle id, Tab still switches this recording's mode")
+        expect(
+            world.voice.modes.defaultMode == remembered.0 && world.voice.modes.apps == remembered.1,
+            "but remembers nothing, so the default mode for every app stays as it was")
     }
 
     static func cloudModesTranscribeFirst() async throws {
@@ -210,7 +221,7 @@ struct VoiceCoordinatorTests {
         try await wait { world.voice.cloudDictation }
         let capsule = DictationPanelController()
         world.cloud.attach(to: capsule)
-        world.voice.modes.assign(VoiceModeCatalog.asMessage, to: nil)
+        world.voice.modes.defaultMode = VoiceModeCatalog.asMessage
         capsule.onPlacement?(frame)
         let transcription = Task { try await world.cloud.transcribe(speech, language: nil) }
         try await wait { Network.streams.count == 1 }
