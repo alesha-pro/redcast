@@ -237,7 +237,7 @@ final class AgentBackgroundCoordinator {
 
     // MARK: - Lifecycle
 
-    /// AI on or off, agents or schedules changed: the scheduler, notifier and item follow.
+    /// AI on or off, agents or schedules changed: the scheduler and notifier follow.
     func apply() {
         guard core.settings.aiEnabled else {
             stopAll()

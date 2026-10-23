@@ -722,8 +722,10 @@ final class AppIndex {
                 extensionEntries + quicklinkEntries + appleShortcutEntries + snippetEntries
                     + Self.systemActionEntries + windowLayoutEntries + windowRoomEntries
                     + windowCommandEntries
-                    + customWindowSizeEntries + customCommandEntries + agentEntries
-                    + quickActionEntries + commandEntries)
+                    + customWindowSizeEntries + customCommandEntries
+                    // Fork: agent rows, between custom commands and Quick Actions.
+                    + agentEntries + quickActionEntries
+                    + commandEntries)
         guard updated != searchEntries else { return }
         searchEntries = updated
         apps = updated.filter(\.isPrimaryInstallation)
