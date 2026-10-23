@@ -17,8 +17,12 @@ struct NewChatAgentRow: View {
 
     /// A deleted agent reads as No Agent, which is what a new chat then starts with.
     private var agentBinding: Binding<UUID?> {
-        Binding(
-            get: { core.agentCoordinator.chatAgent?.id },
-            set: { core.agentCoordinator.chatDefault.agentID = $0 })
+        let agents = core.agentCoordinator
+        return Binding(
+            get: { agents.chatDefault.agentID.flatMap(agents.store.agent(id:))?.id },
+            set: {
+                agents.chatDefault.agentID = $0
+                agents.warmChatAgent()
+            })
     }
 }

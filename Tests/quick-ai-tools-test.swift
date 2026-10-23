@@ -22,6 +22,7 @@ struct QuickAIToolsTests {
         offeringElsewhere()
         whichAgentAnswers()
         theDefaultFallsBack()
+        theDeclinedChats()
         theSettingPersists()
 
         print("\(passes) passed, \(failures) failed")
@@ -267,29 +268,61 @@ struct QuickAIToolsTests {
         expect(
             answers(bound: own, on: .window, isUnsent: false) == own,
             "a chat the default started keeps it once its first message bound it")
+
+        var worked = 0
+        func pick(_ id: UUID) -> UUID? {
+            worked += 1
+            return id
+        }
+        _ = ChatToolPolicy.agent(
+            bound: own, quickAI: pick(quick), window: pick(window), surface: .window, isUnsent: true,
+            declined: false)
+        _ = ChatToolPolicy.agent(
+            bound: nil, quickAI: pick(quick), window: pick(window), surface: .window, isUnsent: false,
+            declined: false)
+        _ = ChatToolPolicy.agent(
+            bound: nil, quickAI: pick(quick), window: pick(window), surface: .quickAI, isUnsent: true,
+            declined: false)
+        expect(worked == 1, "only an unbound, unsent chat works out a pick, and only its surface's")
     }
 
     static func theDefaultFallsBack() {
         let agent = UUID()
         let others = [UUID(), UUID()]
+        let exists = { (id: UUID) in (others + [agent]).contains(id) ? id : nil }
+        let deleted = { (id: UUID) in others.contains(id) ? id : nil }
         expect(
-            ChatToolPolicy.windowAgent(picked: agent, among: others + [agent], aiEnabled: true) == agent,
+            ChatToolPolicy.windowAgent(picked: agent, aiEnabled: true, lookup: exists) == agent,
             "AI Chat's pick holds while its agent exists")
         expect(
-            ChatToolPolicy.windowAgent(picked: agent, among: others, aiEnabled: true) == nil,
+            ChatToolPolicy.windowAgent(picked: agent, aiEnabled: true, lookup: deleted) == nil,
             "a deleted agent reads as none, so new chats start plain")
         expect(
-            ChatToolPolicy.windowAgent(picked: agent, among: [agent], aiEnabled: false) == nil,
+            ChatToolPolicy.windowAgent(picked: agent, aiEnabled: false, lookup: exists) == nil,
             "with AI off there is no default agent")
         expect(
-            ChatToolPolicy.windowAgent(picked: nil, among: [agent], aiEnabled: true) == nil,
+            ChatToolPolicy.windowAgent(picked: nil, aiEnabled: true, lookup: exists) == nil,
             "No Agent picks none")
+    }
 
-        expect(ChatToolPolicy.declines(nil, isUnsent: true), "No Agent on a new chat declines the default")
-        expect(!ChatToolPolicy.declines(agent, isUnsent: true), "picking an agent declines nothing")
+    static func theDeclinedChats() {
+        let window = UUID()
+        let quick = UUID()
+        let closed = UUID()
+        func after(_ declined: Set<UUID>, _ agent: UUID?, in chat: UUID, isUnsent: Bool = true) -> Set<UUID> {
+            ChatToolPolicy.declined(
+                declined, choosing: agent, for: chat, isUnsent: isUnsent, live: [quick, window])
+        }
+        expect(after([], nil, in: window) == [window], "No Agent on a new chat keeps the default out of it")
+        expect(after([window], UUID(), in: window).isEmpty, "picking an agent there declines nothing")
         expect(
-            !ChatToolPolicy.declines(nil, isUnsent: false),
+            after([], nil, in: window, isUnsent: false).isEmpty,
             "No Agent on a chat that has spoken only unbinds it; the default is past it anyway")
+        expect(after([window], nil, in: quick) == [window, quick], "each chat says No Agent for itself")
+        expect(
+            after([closed, window], nil, in: quick) == [window, quick],
+            "a chat no longer open is forgotten on the next pick")
+        expect(after([closed], UUID(), in: window).isEmpty, "whatever that pick is")
     }
 
     // MARK: - The setting

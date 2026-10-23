@@ -96,8 +96,9 @@ row and chord, `AppIndex`, `LauncherList`, `LauncherCoordinator`, `AppActionsMen
   run and whether it finished; the answer stays in the chat. `AgentRunNotifier` and its delegate
   exist only while some agent opts in, and macOS asks for permission on the toggle's own click.
 - **ACP agents are released as soon as an unattended run ends**, through `AgentACPHost.release`,
-  unless a window or Quick AI chat is using the same agent, so its `npx`, adapter and vendor CLI
-  tree is gone at once instead of after the two-minute idle stop.
+  unless a window or Quick AI chat is bound to the same agent (an empty chat that only shows it as
+  the agent for new chats is not), so its `npx`, adapter and vendor CLI tree is gone at once
+  instead of after the two-minute idle stop.
 - **The network is used only for the turn itself**, on the user's `@`, Ask by Voice or Run Now, or
   at a schedule's due time. A scheduled run names its chat itself, so it spends no extra title request.
 
