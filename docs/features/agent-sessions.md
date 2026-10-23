@@ -50,6 +50,11 @@ you. The feature lives in `Features/AgentSessions/`, plus the few lines that wir
   them at each use, feeds reading, the cache root, the live probe, event lookup, the hook files and
   resume commands, which set the variable with `env` only for a folder that differs from the default.
   Neither field travels in a backup or has a settings-file key.
+- **A folder never moves under its hooks.** Turn On, Update and Turn Off see only the folders set now,
+  so both folder fields are locked, and their setter refuses, while live status is on, while either
+  folder's file holds this channel's hooks, and from a live-status button until its panel closes and
+  the status is read again. The note under each field then says to turn live status off first; an
+  unsaved edit in a field reverts when it locks.
 - **Tinycast's own ACP sessions show once.** A session of any of the four agents whose id is in
   `AgentStore.acpSessions` is a Tinycast chat and is listed only as that chat; Codex threads with the
   `tinycast` originator are dropped for the same reason.
@@ -201,8 +206,8 @@ Claude Code gets `UserPromptSubmit` (working), `Notification` matching `permissi
 `elicitation_dialog`, `elicitation_url_dialog` and `agent_needs_input` (waiting), `Stop` (finished),
 `StopFailure` (failed) and `SessionEnd` (ended) in `~/.claude/settings.json`; Codex gets
 `UserPromptSubmit`, `PermissionRequest`, `Stop` and `SessionEnd` in `~/.codex/hooks.json`, created
-when absent and deleted again when it held only these. A moved folder moves the file with it; turn
-live status off before moving one, or the old folder keeps hooks that Tinycast no longer lists.
+when absent and deleted again when it held only these. A moved folder moves the file with it, so the
+folder fields are locked while live status is on (see Invariants): Turn Off, move, Turn On.
 Codex's `notify` is never touched: it is already taken by Computer Use, and Codex allows one. Codex runs new hooks only after `/hooks` trusts
 them; **Update…** keeps the token, so the command and the trust survive it. The `hooks` value is
 re-rendered in the file's own indent and line endings with its keys in their original order; every
@@ -260,7 +265,9 @@ Run in `Tinycast Dev.app` with AI on.
 18. Set **Claude Code folder** to a folder you use with `CLAUDE_CONFIG_DIR` (and **Codex folder** for
     `CODEX_HOME`): the next open lists its sessions; ⌘↵ copies `… && env CLAUDE_CONFIG_DIR='…' claude
     --resume …` and ↵ resumes it; **Turn On…** diffs that folder's `settings.json`; a path that is not a
-    folder says so under the field; clearing the field reads `~/.claude` again.
+    folder says so under the field; clearing the field reads `~/.claude` again. With live status on,
+    both fields are greyed and say to turn it off; after **Turn Off…** they edit again. Type a new path
+    without Return and click **Turn On…**: the diff names the file in the folder the field then shows.
 19. With Gemini CLI installed, a chat in a project lists with its summary or first prompt and its
     folder; ↵ resumes it with `gemini --resume <id>` in that folder; there is no Fork. ⌘K → Show →
     Gemini CLI narrows to them, a word said mid-chat is found by Search inside transcripts, and a
