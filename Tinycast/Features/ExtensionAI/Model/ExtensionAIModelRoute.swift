@@ -6,7 +6,7 @@ enum ExtensionAIModelRoute {
     static func selection(
         for requested: String, fallback: AIModelSelection?, offered connections: [AIConnection]
     ) -> AIModelSelection? {
-        guard let brand = AIBrand.resolve(model: requested) else { return nil }
+        guard let brand = vendor(of: requested) else { return nil }
         if let fallback, self.brand(of: fallback, among: connections) == brand { return nil }
         let wanted = tokens(of: requested)
         var best: (rank: Rank, selection: AIModelSelection)?
@@ -24,6 +24,11 @@ enum ExtensionAIModelRoute {
             }
         }
         return best?.selection
+    }
+
+    /// The first word is the host (`OpenAI_`, `groq-`) or an old family; Groq or Vercel name none.
+    private static func vendor(of requested: String) -> AIBrand? {
+        AIBrand.resolve(model: String(requested.prefix { !"_-/".contains($0) }))
     }
 
     /// The vendor behind a pick: its connection's preset, or the model id a router or CLI names.
