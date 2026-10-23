@@ -635,6 +635,17 @@ extension ACPTests {
             ACPCommand.matches(for: "/CO", in: listed).map(\.name) == ["compact", "pr-comments"],
             "names it starts come first, then the ones it appears in, in any case")
         expect(ACPCommand.matches(for: "/zzz", in: listed).isEmpty, "a name nothing has offers nothing")
+        let longerFirst = ACPCommand.list(.array(["statusline", "status", "my-status"].map {
+            .object(["name": .string($0)])
+        }))
+        let typed = ACPCommand.matches(for: "/Status", in: longerFirst)
+        expect(
+            typed.map(\.name) == ["status", "statusline", "my-status"],
+            "a name typed out in full leads, wherever the agent listed it, got \(typed.map(\.name))")
+        expect(
+            typed.first?.isTypedOut(in: "/status") == true && typed.first?.isTypedOut(in: "/Status") == false,
+            "so Return sends it as typed, and a name in another case completes to the agent's spelling")
+        expect(typed[1].isTypedOut(in: "/status") == false, "while a longer one is only ever completed")
         expect(listed[0].completion == "/review ", "completing leaves the name and room for its input")
         expect(ACPCommand.invocation(in: "/review the diff", offered: listed) == "review", "an offered command runs")
         expect(ACPCommand.invocation(in: "/Review", offered: listed) == "review", "in any case")

@@ -42,15 +42,24 @@ struct ACPCommand: Equatable, Identifiable, Sendable {
         return name.contains(where: \.isWhitespace) ? nil : name
     }
 
-    /// Commands the typed name could become: those it starts first, then those it appears in.
+    /// Commands the typed name could become: itself, those it starts, then those it appears in.
     static func matches(for draft: String, in commands: [ACPCommand]) -> [ACPCommand] {
         guard let typed = typedName(in: draft) else { return [] }
         guard !typed.isEmpty else { return commands }
-        let leading = commands.filter { $0.name.range(of: typed, options: [.caseInsensitive, .anchored]) != nil }
-        let inner = commands.filter {
-            $0.name.range(of: typed, options: .caseInsensitive) != nil && !leading.contains($0)
+        var exact: [ACPCommand] = []
+        var leading: [ACPCommand] = []
+        var inner: [ACPCommand] = []
+        for command in commands {
+            // A name typed out in full goes first, so Return runs it rather than a longer one.
+            if command.name.caseInsensitiveCompare(typed) == .orderedSame {
+                exact.append(command)
+            } else if command.name.range(of: typed, options: [.caseInsensitive, .anchored]) != nil {
+                leading.append(command)
+            } else if command.name.range(of: typed, options: .caseInsensitive) != nil {
+                inner.append(command)
+            }
         }
-        return leading + inner
+        return exact + leading + inner
     }
 
     /// The command a turn's text runs: one the session offered, or before any list, any name.
@@ -64,6 +73,11 @@ struct ACPCommand: Equatable, Identifiable, Sendable {
 
     /// What Tab or Return leaves in the draft: the name, and a space for its input.
     var completion: String { "/" + name + " " }
+
+    /// Return sends a draft that names this command as spelled; any other draft completes it.
+    func isTypedOut(in draft: String) -> Bool {
+        Self.typedName(in: draft) == Substring(name)
+    }
 
     private static func isName(_ name: String) -> Bool {
         !name.isEmpty && name.count <= maxNameLength

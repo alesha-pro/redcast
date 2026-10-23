@@ -94,7 +94,8 @@ in root search or on a schedule: see [background and scheduled agents](backgroun
   session in `AgentACPHost` and mirrored to the coordinator like the modes; a chat's copy goes when
   its session or the agent's process does, leaving one list per agent, and nothing is written down.
   The composer's list exists only while the draft is typing a command name in an ACP chat, and so
-  does the key monitor behind it.
+  does the key monitor behind it. A name typed out in full leads the list wherever the agent put it,
+  so Return sends that command and never completes a longer one that starts with it.
 - **A session hears only what it does not already have.** A new session's briefing carries the
   chat's turns from before it, captured as `session/new` answers, keyed by chat; when a slash
   command opens the session, the briefing waits for the next ordinary turn and still carries only
@@ -167,14 +168,16 @@ They run on the user's own logins and subscriptions; Tinycast never sees a key.
   to the chat once the session is bound; the coordinator falls back to the agent's last list for a
   chat whose session has not started. A list holds 200 commands, names of up to 64 characters
   without spaces or `/`, one-line descriptions of 200. While the draft is `/` and a name with no
-  space yet, a card over the composer lists the matches, names starting with the text first: ↑ and ↓
-  move, Tab completes to `/name ` through the text view, so ⌘Z undoes it, Return completes too
-  unless the draft already names the selected command, when it sends, and Esc hides the card until
-  the draft changes. Keys reach it only while the composer is first responder and no input method
-  is composing. A command goes as plain text, as ACP says, and its turn leads with it, because the
-  adapters read only the first block (Codex) or the joined text (Hermes): attachments follow, the
-  briefing waits. A text is a command when its name is one the session offered, or, before any list
-  arrived, any name without a `/`, so `/Users/me` stays text. Other chats never show the card.
+  space yet, a card over the composer lists the matches: the name typed out in full, then names
+  starting with the text, then names containing it, each in the agent's order. ↑ and ↓ move, Tab
+  completes to `/name ` through the text view, so ⌘Z undoes it, Return completes too unless the
+  draft already names the selected command as the agent spells it, when it sends, and Esc hides the
+  card until the draft changes. Keys reach it only while the composer is first responder and no
+  input method is composing. A command goes as plain text, as ACP says, and its turn leads with it,
+  because the adapters read only the first block (Codex) or the joined text (Hermes): attachments
+  follow, the briefing waits. A text is a command when its name is one the session offered, or,
+  before any list arrived, any name without a `/`, so `/Users/me` stays text. Other chats never show
+  the card.
 - **Modes are the agent's.** The modes a session offers (Claude Code's plan, Codex's read-only…)
   replace the model and reasoning pickers in the composer. The choice is stored on the agent as
   `acpMode`, applied with `session/set_mode` to a live session and to each new one, and the menu
@@ -332,13 +335,15 @@ prompt edit.
   context, or to the command's output without colour codes or a `console` fence; Copy Output copies
   it. Quit and reopen the chat: the rows open the same. Ask for a 500-line file: the row shows 60
   lines and a count. Repeat with Codex (`apply_patch` hunks, command output at its end).
-- ACP commands: in a Claude Code chat type `/`: the card lists its commands with descriptions;
-  type `/rev`, ↓, Tab: the draft is `/review ` and ⌘Z restores `/rev`. Type `/compact` and Return:
-  it sends at once, and the agent compacts. Esc hides the card until the next keystroke; Japanese
-  input's Return confirms the composition, not the card. A new chat with the same agent offers the
-  commands before its first message; a chat on an API model or with no agent never shows the card.
-  With Codex, `/status` answers with its status; in a fresh chat it is the first block (its reply is
-  the command's, not a model's).
+- ACP commands: in a Claude Code chat type `/`: the card lists its commands with descriptions; type
+  `/rev`, ↓, Tab: the draft is `/review ` and ⌘Z restores `/rev`. Type `/compact` and Return: it
+  sends at once, and the agent compacts. With `deploy.md` and `deploy-prod.md` in the folder's
+  `.claude/commands/`, type `/deploy`: `deploy` is the selected row in whatever order the agent
+  lists them, and Return sends it. Esc hides the card until the next keystroke; Japanese input's
+  Return confirms the composition, not the card. A new chat with the same agent offers the commands
+  before its first message; a chat on an API model or with no agent never shows the card. With
+  Codex, `/status` answers with its status; in a fresh chat it is the first block (its reply is the
+  command's, not a model's).
 - Harnesses: `acp-test` (framing, updates, permissions, prompts, modes, tool content compaction,
   slash commands, and a scripted agent process in `Tests/acp-fixtures/fake-agent.mjs`: streaming,
   consent, reuse, refusal, cancel, reload, lost sessions, a missing command, two agents sharing a

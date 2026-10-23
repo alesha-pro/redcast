@@ -83,7 +83,7 @@ private final class ACPCommandPicker {
             complete(command)
         case kVK_Return, kVK_ANSI_KeypadEnter:
             // A name typed out in full sends, so `/compact` and Return run it at once.
-            guard ACPCommand.typedName(in: chat.draft) != Substring(command.name) else { return false }
+            guard !command.isTypedOut(in: chat.draft) else { return false }
             complete(command)
         case kVK_Escape:
             hiddenDraft = chat.draft
