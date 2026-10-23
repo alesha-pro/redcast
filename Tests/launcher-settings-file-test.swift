@@ -230,6 +230,7 @@ struct AppEntry: Sendable {
     var settingsOwner: SettingsTab?
     var subtitle: String?
     var alternateTitles: [String] = []
+    var keywords: [String] = []
     var preferenceKey: String { bundleID ?? id }
 }
 

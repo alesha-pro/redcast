@@ -192,6 +192,8 @@ struct DictationSettingsView: View {
                 }
 
             }
+
+            DictationHistorySection()  // Fork: outside the switch, so Clear stays reachable
         }
         .formStyle(.grouped)
         .settingsScrollTarget(.dictation)

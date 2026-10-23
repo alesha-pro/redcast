@@ -179,6 +179,8 @@ final class LauncherCoordinator {
             core.agentCoordinator.showTaskPrompt()
         case .askByVoice, .editByVoice:
             core.voiceAskCoordinator.pressed(id)
+        case .dictationHistory:  // Fork: Dictation History
+            core.dictationHistoryCoordinator.show()
         case .searchAgentSessions:
             core.agentSessionsCoordinator.show()
         case .jumpToAgent:

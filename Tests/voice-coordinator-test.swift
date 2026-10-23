@@ -125,12 +125,17 @@ struct VoiceCoordinatorTests {
         Network.streams[0].finish()
         let transcript = try await transcription.value
         expect(transcript == "Привет, мир", "The streamed transcript is assembled and cleaned")
+        expect(
+            cloud.lastTranscription
+                == .init(text: "Привет, мир", transcript: nil, mode: nil, model: "voxtral"),
+            "Dictation History learns the model that heard it, with no mode")
 
         do {
             _ = try await cloud.transcribe([Float](repeating: 0, count: 32_000), language: nil)
             expect(false, "Silence is refused")
         } catch {
             expect(error as? VoiceAIFailure == .noSpeech, "Silence is no speech")
+            expect(cloud.lastTranscription == nil, "and leaves no transcript for the history")
         }
         try await settle()
         expect(Network.requests.count == 1, "and never leaves the Mac")
@@ -192,9 +197,15 @@ struct VoiceCoordinatorTests {
         Network.streams[0].finish()
         let typed = try await transcription.value
         expect(typed == "Готово.", "and its text is what is typed")
+        expect(
+            cloud.lastTranscription
+                == .init(
+                    text: "Готово.", transcript: nil, mode: "Polish", model: "google/gemini-3.1-flash-lite"),
+            "Dictation History learns the mode, and one request leaves no separate transcript")
 
         capsule.onPlacement?(nil)
         expect(cloud.activeMode == nil && caption?.shown == nil, "Closing the capsule forgets the mode and the chip")
+        expect(cloud.lastTranscription == nil, "and the transcript it noted")
         world.frontmost = "com.apple.mail"
         capsule.state.phase = .listening
         capsule.onPlacement?(frame)
@@ -244,6 +255,12 @@ struct VoiceCoordinatorTests {
         Network.streams[1].finish()
         let rewritten = try await transcription.value
         expect(rewritten == "Завтра в десять.", "and the rewrite is typed")
+        expect(
+            world.cloud.lastTranscription
+                == .init(
+                    text: "Завтра в десять.", transcript: "ну короче завтра в десять", mode: "As a message",
+                    model: "voxtral"),
+            "Dictation History keeps the transcript the mode rewrote")
     }
 
     static func expectRefusal(_ cloud: VoiceCloudTranscriber, _ message: String) async throws {
@@ -348,6 +365,12 @@ struct VoiceCoordinatorTests {
         Network.streams[0].finish()
         try await wait { panel.finished != nil }
         expect(panel.finished == "Это окно." && panel.text == "Это окно.", "and streams the rest into it")
+        let asked = world.history.first
+        expect(
+            world.history.count == 1 && asked?.kind == .ask && asked?.text == "Это окно."
+                && asked?.transcript == "Что это?" && asked?.model == "google/gemini-3.8-flash"
+                && asked?.engine == .cloud && asked?.duration == nil,
+            "Dictation History keeps the question and the answer, marked as an Ask")
 
         world.panel?.onReplace?("Это окно.")
         world.injector.drain()
@@ -367,6 +390,9 @@ struct VoiceCoordinatorTests {
         try await wait { world.injector.queued == 1 }
         world.injector.drain()
         expect(world.injector.delivered == ["Приду в десять"], "An INSERT is typed into the focused field")
+        expect(
+            world.history.last?.text == "Приду в десять" && world.history.last?.transcript == "Ответь",
+            "and kept in Dictation History with what was asked")
         expect(world.panel == nil, "with no panel")
 
         try await world.askAndReply("INSERT\nQ: Ответь\n\nПоздно", stream: 1)
@@ -412,6 +438,7 @@ struct VoiceCoordinatorTests {
         expect(
             world.core.messages.last == "No speech was recorded" && world.panel == nil,
             "The no-speech sentinel is a message, never a panel")
+        expect(world.history.isEmpty, "and nothing reaches Dictation History")
 
         world.settings.dictationEnabled = true
         world.core.dictationCoordinator.isBusy = true
@@ -712,6 +739,10 @@ struct VoiceCoordinatorTests {
         try await wait { world.injector.queued == 1 }
         world.injector.drain()
         expect(world.injector.replaced == ["  Hi.\n"], "The unchanged selection is replaced, keeping its outer space")
+        expect(
+            world.history.count == 1 && world.history[0].kind == .edit && world.history[0].text == "  Hi.\n"
+                && world.history[0].transcript == "Короче" && world.history[0].bundleID == "com.apple.dock",
+            "Dictation History keeps the edit and the instruction, marked as an edit")
         expect(QuickActionRunner.reads == 2 && world.panel == nil, "after reading it again, with no panel")
         expect(world.ducker.begins == world.ducker.ends, "and the volume is back")
 
@@ -829,6 +860,7 @@ final class World {
     let appIndex = AppIndex()
     var microphone = true
     var microphoneRequests = 0
+    var history: [DictationHistoryEntry] = []
     var frontmost: String?
     var screen: ScreenAwarenessCoordinator { core.screenAwarenessCoordinator }
     var recorder: DictationCapture? { DictationCapture.latest }
@@ -849,7 +881,8 @@ final class World {
             guard let self else { return false }
             microphoneRequests += 1
             return microphone
-        })
+        },
+        history: { [weak self] in self?.history.append($0) })
 
     init(connections: [AIConnection]) {
         defaults = UserDefaults(suiteName: suite)!

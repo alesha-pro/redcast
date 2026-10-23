@@ -46,16 +46,27 @@ struct VoiceAskSettingsSection: View {
         } header: {
             SettingsSectionHeader(.aiAskByVoice)
         } footer: {
-            Text(
+            footer
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+    }
+
+    private var footer: Text {
+        core.dictationHistoryCoordinator.keepsVoiceReplies
+            ? Text(
+                """
+                Set their shortcuts under Commands. Edit Selection by Voice rewrites the text you \
+                selected as you say. A recording is never saved. Dictation History keeps the text of \
+                a question and its answer, and of an edit; what was read is kept only if you continue \
+                in AI Chat, or as the chat of an agent's run.
+                """)
+            : Text(
                 """
                 Set their shortcuts under Commands. Edit Selection by Voice rewrites the text you \
                 selected as you say. A recording is never saved. A question and what was read are \
                 kept only if you continue in AI Chat, or as the chat of an agent's run.
-                """
-            )
-            .font(.caption)
-            .foregroundStyle(.secondary)
-        }
+                """)
     }
 
     private var agentPicker: some View {

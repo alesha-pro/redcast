@@ -49,7 +49,11 @@ tables and `AppCore`.
   session with `urlCache = nil` and never written to disk, logged or put in chat history. A question
   reaches chat history only if the reader continues it in AI Chat, or when an agent answers it: the
   run's chat is saved like any `@handle` run's, with the transcribed request, the window's text and
-  any picture, and the **Answer with** caption and the section footer say so.
+  any picture, and the **Answer with** caption and the section footer say so. Unless Keep history is
+  Off, [Dictation History](dictation-history.md) keeps the text of each finished dictation, with the
+  transcript a mode rewrote, never the audio or the window; each Ask's answer and each edit with
+  what was said only once its **Include Ask by Voice and voice edits** switch is on, which it is not
+  by default. The section footer follows that switch.
 - **Silence never leaves the Mac.** `VoiceAudio.speechRange` trims silence at both ends with 300 ms of
   padding and returns nil for a recording without 200 ms of speech; nil means "No speech was
   recorded" and no request. A `[[NO_SPEECH]]` reply covers what slips through, and is never shown.
@@ -94,10 +98,11 @@ tables and `AppCore`.
   Selection by Voice always answers with the model.
 - **Insert while recording is off with the cloud engine.** Each chunk would be a paid request, so
   `DictationCoordinator` never starts the live loop while `cloudIsOn()`.
-- **Retention is the provider's.** Tinycast keeps no copy. What OpenRouter and Google keep follows the
-  OpenRouter account's privacy settings (data collection and Zero Data Retention); Tinycast adds no
-  body field for them. `VoiceAIRoute` wraps both uses in the usage log's recorder, so only the tokens
-  and cost a reply reported are written (see [usage-dashboard.md](usage-dashboard.md)).
+- **Retention is the provider's.** Tinycast keeps no copy of the audio. What OpenRouter and Google
+  keep follows the OpenRouter account's privacy settings (data collection and Zero Data Retention);
+  Tinycast adds no body field for them. `VoiceAIRoute` wraps both uses in the usage log's recorder,
+  so only the tokens and cost a reply reported are written (see
+  [usage-dashboard.md](usage-dashboard.md)).
 
 ## Layout
 
@@ -116,7 +121,7 @@ tables and `AppCore`.
 | `Service/VoiceAIRoute.swift` | A selection to an `HTTPAIProvider`: Keychain key and headers, endpoint policy |
 | `Service/VoiceMediaEncoder.swift` | Off the main actor: samples to WAV, the window's PNG to a bounded JPEG |
 | `Service/VoiceSelectionAccess.swift` | Whether the focused element's selected text can be written in place |
-| `Service/VoiceCloudTranscriber.swift` | The engine `DictationCoordinator` calls, its consent dialogs and the active mode |
+| `Service/VoiceCloudTranscriber.swift` | The engine `DictationCoordinator` calls, its consent dialogs, the active mode and the last transcript, for Dictation History |
 | `UI/VoiceAskCoordinator.swift` | The funnel for both voice commands: shortcuts, launcher rows, capsule keys and panel |
 | `UI/VoiceModeCaption.swift` | The chip above the dictation capsule naming the active mode |
 | `Settings/VoiceAISettings.swift` | The fork's own `@Observable` store over `AppSettingsKey` keys |
@@ -264,7 +269,9 @@ agents](background-agents.md)). Escape while the request is being written down s
 That chat is saved to AI Chat's history as it goes, like every background run's, so the request, the
 window's Markdown and the picture stay on disk until the reader deletes the chat. The caption under
 **Answer with** says so where the agent is chosen, and the section footer names the agent's run as
-the one place besides AI Chat where a question is kept. The recording itself is never saved.
+the one place besides AI Chat where what was read is kept and, while Dictation History keeps voice
+replies, that history as where a question's text and its answer are. The recording itself is never
+saved.
 
 ## Routes and models
 
@@ -437,6 +444,8 @@ ends.
   an app with no bundle id leaving the default alone; Edit Selection by Voice replacing an unchanged
   selection, showing a moved one, refusing an unreadable one; an agent getting the transcript and
   the window while the route gets the audio alone, and refusing a press while it or three agents are
-  busy); `dictation-field-test` (the cloud seam in `DictationCoordinator`); `hotkey-dispatch-test`
+  busy; the model, mode and rewritten transcript noted for Dictation History, and each Ask's and
+  edit's reply handed to it with what was said); `dictation-field-test` (the cloud seam in
+  `DictationCoordinator`); `hotkey-dispatch-test`
   (a command's release, Secure Input's included, and a voice command held on a single modifier);
   `hotkey-test` (Shift joining and leaving a held key while another modifier still cancels it).

@@ -71,6 +71,7 @@ extension SettingsAnchor {
     static let dictationCloudTranscription = Self(tab: .dictation, title: "Cloud transcription")
     static let dictationModes = Self(tab: .dictation, title: "Dictation modes")
     static let dictationModesByApp = Self(tab: .dictation, title: "Modes by app")
+    static let dictationHistory = Self(tab: .dictation, title: "History")  // Fork: transcripts
 
     static let fileSearchFileSearch = Self(tab: .fileSearch, title: "File Search")
     static let fileSearchFullDiskAccess = Self(tab: .fileSearch, title: "Full Disk Access")
