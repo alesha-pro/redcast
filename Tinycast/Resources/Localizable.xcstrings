@@ -54831,6 +54831,64 @@
         }
       }
     },
+    "Each finished recording goes to %@ to be transcribed by %@, with the name and window title of the app you dictate into, and a screenshot if you chose one. Tinycast keeps no copy; your provider's data policy applies." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jede beendete Aufnahme geht an %1$@ und wird von %2$@ transkribiert, zusammen mit dem Namen und dem Fenstertitel der App, in die du diktierst, und einem Bildschirmfoto, falls du das gewählt hast. Redcast behält keine Kopie; es gilt die Datenrichtlinie deines Anbieters."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Each finished recording goes to %1$@ to be transcribed by %2$@, with the name and window title of the app you dictate into, and a screenshot if you chose one. Redcast keeps no copy; your provider's data policy applies."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cada grabación terminada se envía a %1$@ para que %2$@ la transcriba, junto con el nombre y el título de la ventana de la app en la que dictas, y una captura si la elegiste. Redcast no guarda ninguna copia; se aplica la política de datos de tu proveedor."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chaque enregistrement terminé est envoyé à %1$@ pour être transcrit par %2$@, avec le nom et le titre de fenêtre de l’app dans laquelle vous dictez, et une capture d’écran si vous l’avez choisie. Redcast ne conserve aucune copie ; la politique de données de votre fournisseur s’applique."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "録音を終えるたびに、音声入力先のアプリの名前とウインドウのタイトル（選んだ場合はスクリーンショットも）とともに%1$@に送られ、%2$@で文字起こしされます。Redcastはコピーを保持しません。プロバイダのデータポリシーが適用されます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "녹음을 마칠 때마다 받아쓰는 앱의 이름과 윈도우 제목(선택한 경우 스크린샷도)과 함께 %1$@(으)로 전송되어 %2$@이(가) 받아씁니다. Redcast는 사본을 보관하지 않으며, 제공업체의 데이터 정책이 적용됩니다."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cada gravação concluída vai para %1$@ para ser transcrita por %2$@, com o nome e o título da janela do app em que você dita, e uma captura de tela se você escolheu uma. O Redcast não guarda cópia; vale a política de dados do seu provedor."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Каждая законченная запись отправляется в %1$@ для расшифровки моделью %2$@ вместе с названием приложения, в которое вы диктуете, заголовком его окна и скриншотом, если вы его выбрали. Redcast не хранит копий; действует политика данных вашего провайдера."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "每段结束的录音都会连同你正在听写的 App 的名称和窗口标题（如果你选择了，还有截图）一起发送到 %1$@，由 %2$@ 转写。Redcast 不保留副本；适用你的服务提供商的数据政策。"
+          }
+        }
+      }
+    },
     "Each finished recording goes to %@ to be transcribed by %@. Tinycast keeps no copy of the audio; your provider's data policy applies." : {
       "localizations" : {
         "de" : {

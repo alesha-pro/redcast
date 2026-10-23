@@ -4,7 +4,7 @@ import Foundation
 enum VoiceLanguagePolicy {
     static let limit = 3
 
-    /// The Mac's own languages that dictation knows, in its order, at most `limit`.
+    /// The Mac's own languages that dictation knows, in its order, then English, at most `limit`.
     static func defaults(preferred: [String]) -> [String] {
         let english = Locale(identifier: "en")
         var chosen: [String] = []
@@ -18,6 +18,10 @@ enum VoiceLanguagePolicy {
             else { continue }
             chosen.append(language.rawValue)
             if chosen.count == limit { break }
+        }
+        // Technical terms come in English whatever the Mac's language, and a Russian Mac lists no other.
+        if !chosen.isEmpty, chosen.count < limit, !chosen.contains(DictationLanguage.english.rawValue) {
+            chosen.append(DictationLanguage.english.rawValue)
         }
         return chosen
     }

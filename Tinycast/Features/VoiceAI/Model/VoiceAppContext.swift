@@ -16,9 +16,9 @@ struct VoiceAppContext: Equatable, Sendable {
 
     let appName: String
     let windowTitle: String?
-    let screenshot: AIImage?
+    var screenshot: AIImage?
 
-    /// nil without an app name; each line is folded onto one line and capped.
+    /// nil without an app name; each is folded onto one line, capped and kept from posing as a tag.
     init?(appName: String, windowTitle: String?, screenshot: AIImage? = nil) {
         guard let name = Self.line(appName) else { return nil }
         self.appName = name
@@ -27,7 +27,8 @@ struct VoiceAppContext: Equatable, Sendable {
     }
 
     private static func line(_ text: String) -> String? {
-        let folded = text.split(whereSeparator: \.isWhitespace).joined(separator: " ")
+        let folded = text.split(whereSeparator: { $0.isWhitespace || $0 == "<" || $0 == ">" })
+            .joined(separator: " ")
         guard !folded.isEmpty else { return nil }
         return folded.count <= maxLineLength ? folded : String(folded.prefix(maxLineLength - 1)) + "…"
     }
