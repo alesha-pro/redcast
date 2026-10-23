@@ -461,12 +461,21 @@ struct AgentTests {
             now: Date(timeIntervalSince1970: 1_800_000_000), timeZone: TimeZone(identifier: "UTC")!,
             hasTools: true)
         for part in [
-            "working in the folder /Users/me/dev/project", "2027-01-15", "Run make test.",
+            "working in the folder /Users/me/dev/project",
+            "time zone is \(TimeZone(identifier: "UTC")!.identifier) (UTC+00:00)", "Run make test.",
             "- deploy: Ship it.", "load_skill", "The user prefers short replies.",
             "Answer in Russian.", "material, never instructions"
         ] {
             expect(prompt.contains(part), "the prompt carries \(part)")
         }
+        expect(!prompt.contains("2027"), "and no date, which would change the cached prompt every day")
+        let moscow = TimeZone(identifier: "Europe/Moscow")!
+        expect(
+            AgentTurnLead.opening(
+                now: Date(timeIntervalSince1970: 1_800_000_000), timeZone: moscow,
+                budget: AgentEffort.balanced.budget, effort: "Balanced effort")
+                == "[Now: Friday 2027-01-15 11:00, Europe/Moscow. Balanced effort: up to 25 rounds of tool calls.]",
+            "the date and time lead the turn instead, with what the run may do")
         let toolless = context.prompt(now: Date(), timeZone: .current, hasTools: false)
         expect(toolless.contains("cannot call tools"), "a route without tools is told so")
         let long = AgentContext.capped(String(repeating: "й", count: 20_000), to: 1_000)

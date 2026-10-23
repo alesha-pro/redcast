@@ -256,7 +256,11 @@ final class AgentCoordinator {
             profile: agent, skills: context.skills, memoryURL: store.memoryURL(for: agent.id),
             mode: mode, isBackground: backgroundRuns?.isUnattended(mode.chatID) == true)
         let run = backgroundRuns?.effort(forChat: mode.chatID)
-        let budget = (run ?? agent.effortLevel).budget
+        let effort = run ?? agent.effortLevel
+        let budget = effort.budget
+        var lead = lead
+        lead.opening = AgentTurnLead.opening(
+            now: Date(), timeZone: .current, budget: budget, effort: effort.rawValue.capitalized + " effort")
         let toolset = AgentToolset(
             turn: turn, providers: providers(for: agent, in: context, over: base, mode: mode, budget: budget),
             mcpTools: mcpTools, mcp: mcp,
@@ -337,7 +341,9 @@ final class AgentCoordinator {
         ).prompt(now: Date(), timeZone: .current, hasTools: true)
         return AgentDelegateTools(
             base: base, toolset: toolset, instructions: prompt + "\n\n" + AgentDelegateTools.briefing,
-            allowance: allowance)
+            allowance: allowance,
+            opening: AgentTurnLead.opening(
+                now: Date(), timeZone: .current, budget: .subAgent, effort: "Sub-task"))
     }
 
     /// Whether this chat's agent is offered `web_search`: Web ticked, and not Never Allow.

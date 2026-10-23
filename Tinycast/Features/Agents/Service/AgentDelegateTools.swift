@@ -23,15 +23,19 @@ struct AgentDelegateTools: AgentToolProvider {
     let instructions: String
     /// How many children the parent's run may still start, shared by every call of the run.
     let allowance: AgentSubAgentAllowance
+    /// The time and the child's budget, leading its task as a parent's turn is led.
+    let opening: String?
 
     init(
         base: any AIProvider, toolset: AgentToolset, instructions: String,
-        allowance: AgentSubAgentAllowance = AgentSubAgentAllowance(AgentEffort.thorough.budget.subAgents)
+        allowance: AgentSubAgentAllowance = AgentSubAgentAllowance(AgentEffort.thorough.budget.subAgents),
+        opening: String? = nil
     ) {
         self.base = base
         self.toolset = toolset
         self.instructions = instructions
         self.allowance = allowance
+        self.opening = opening
     }
 
     func specs(for turn: AgentTurn) -> [AgentToolSpec] {
@@ -59,7 +63,7 @@ struct AgentDelegateTools: AgentToolProvider {
         // At its budget the child is asked for its findings once more, tools off, so none are lost.
         let child = AgentLoopProvider(
             base: base, toolset: toolset, budget: .subAgent, outputCap: AgentTurnBudget.outputTokens,
-            answersAnAgent: true)
+            lead: AgentTurnLead(opening: opening), answersAnAgent: true)
         let request = AIRequest(
             instructions: instructions, messages: [AIMessage(role: .user, text: task.text)])
         var answer = ""

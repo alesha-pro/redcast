@@ -128,14 +128,13 @@ struct AgentContext: Equatable, Sendable {
         return sections.joined(separator: "\n\n")
     }
 
+    /// The zone, never the date: a date here would change the cached prompt every day.
     private func header(now: Date, timeZone: TimeZone, hasTools: Bool) -> String {
-        let formatter = ISO8601DateFormatter()
-        formatter.timeZone = timeZone
-        formatter.formatOptions = [.withFullDate]
         var lines = [
             "# Agent: \(profile.name)",
             "You are \(profile.name), an agent working in the folder \(profile.directory). "
-                + "Relative paths are relative to it. Today is \(formatter.string(from: now)).",
+                + "Relative paths are relative to it. The user's time zone is "
+                + "\(AgentTurnLead.zone(timeZone, at: now)); each turn opens with the current time.",
             access
         ]
         lines.append(
