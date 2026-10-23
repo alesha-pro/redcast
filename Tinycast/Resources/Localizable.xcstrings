@@ -118991,54 +118991,54 @@
         }
       }
     },
-    "Set their shortcuts under Commands. Edit Selection by Voice rewrites the text you selected as you say. A recording is sent with what was read and never saved; it is kept only if you continue it in AI Chat." : {
+    "Set their shortcuts under Commands. Edit Selection by Voice rewrites the text you selected as you say. A recording is never saved. A question and what was read are kept only if you continue in AI Chat, or as the chat of an agent's run." : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Lege die Kurzbefehle unter „Befehle“ fest. „Auswahl per Sprache bearbeiten“ schreibt den ausgewählten Text so um, wie du es sagst. Eine Aufnahme wird mit dem Gelesenen gesendet und nie gespeichert; sie bleibt nur erhalten, wenn du sie im KI-Chat fortsetzt."
+            "value" : "Lege die Kurzbefehle unter „Befehle“ fest. „Auswahl per Sprache bearbeiten“ schreibt den ausgewählten Text so um, wie du es sagst. Eine Aufnahme wird nie gespeichert. Eine Frage und das Gelesene bleiben nur erhalten, wenn du im KI-Chat weitermachst, oder als Chat eines Agentenlaufs."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Define sus atajos en Comandos. Editar la selección por voz reescribe el texto seleccionado como digas. Una grabación se envía con lo leído y nunca se guarda; solo se conserva si la continúas en el chat de IA."
+            "value" : "Define sus atajos en Comandos. Editar la selección por voz reescribe el texto seleccionado como digas. Una grabación nunca se guarda. Una pregunta y lo leído solo se conservan si continúas en el chat de IA, o como el chat de la ejecución de un agente."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Définissez leurs raccourcis dans Commandes. Modifier la sélection à voix haute réécrit le texte sélectionné comme vous le dites. Un enregistrement est envoyé avec ce qui a été lu et n’est jamais conservé ; il n’est gardé que si vous le poursuivez dans Conversation IA."
+            "value" : "Définissez leurs raccourcis dans Commandes. Modifier la sélection à voix haute réécrit le texte sélectionné comme vous le dites. Un enregistrement n’est jamais conservé. Une question et ce qui a été lu ne sont gardés que si vous continuez dans Conversation IA, ou comme conversation de l’exécution d’un agent."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "ショートカットは「コマンド」で設定します。「選択範囲を音声で編集」は、選択したテキストを話したとおりに書き直します。録音は読み取った内容と一緒に送信され、保存されません。AIチャットで続けた場合にのみ残ります。"
+            "value" : "ショートカットは「コマンド」で設定します。「選択範囲を音声で編集」は、選択したテキストを話したとおりに書き直します。録音は保存されません。質問と読み取った内容は、AIチャットで続けた場合か、エージェントの実行のチャットとしてのみ残ります。"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "단축키는 명령에서 설정하세요. 선택 영역을 음성으로 편집은 선택한 텍스트를 말한 대로 다시 씁니다. 녹음은 읽은 내용과 함께 전송되며 저장되지 않습니다. AI 채팅에서 이어갈 때만 남습니다."
+            "value" : "단축키는 명령에서 설정하세요. 선택 영역을 음성으로 편집은 선택한 텍스트를 말한 대로 다시 씁니다. 녹음은 저장되지 않습니다. 질문과 읽은 내용은 AI 채팅에서 이어가거나 에이전트 실행의 채팅으로만 남습니다."
           }
         },
         "pt" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Defina os atalhos em Comandos. Editar seleção por Voz reescreve o texto selecionado como você disser. Uma gravação é enviada com o que foi lido e nunca é salva; ela só é mantida se você a continuar no Chat de IA."
+            "value" : "Defina os atalhos em Comandos. Editar seleção por Voz reescreve o texto selecionado como você disser. Uma gravação nunca é salva. Uma pergunta e o que foi lido só são mantidos se você continuar no Chat de IA, ou como o chat da execução de um agente."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Сочетания клавиш задаются в разделе «Команды». «Изменить выделение голосом» переписывает выделенный текст так, как вы скажете. Запись отправляется вместе с прочитанным и не сохраняется; она остаётся, только если вы продолжите её в ИИ-чате."
+            "value" : "Сочетания клавиш задаются в разделе «Команды». «Изменить выделение голосом» переписывает выделенный текст так, как вы скажете. Запись не сохраняется. Вопрос и прочитанное остаются, только если вы продолжите в ИИ-чате или как чат запуска агента."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "在“命令”中设置它们的快捷键。“语音编辑所选内容”会按你说的改写选中的文本。录音会随读取的内容一起发送，绝不保存；只有在 AI 聊天中继续时才会保留。"
+            "value" : "在“命令”中设置它们的快捷键。“语音编辑所选内容”会按你说的改写选中的文本。录音绝不保存。问题和读取的内容只有在 AI 聊天中继续时，或作为智能体运行的聊天时才会保留。"
           }
         }
       }
@@ -151005,54 +151005,54 @@
         }
       }
     },
-    "With an agent, the model above only writes down your request, and the agent works on it in the background with the window in front attached." : {
+    "With an agent, the model above only writes down your request, and the agent works on it in the background with the window in front attached. Each run is saved as a chat with the agent, including the window's text and any screenshot." : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Mit einem Agenten schreibt das Modell oben deine Bitte nur auf, und der Agent bearbeitet sie im Hintergrund, mit dem Fenster vor dir im Anhang."
+            "value" : "Mit einem Agenten schreibt das Modell oben deine Bitte nur auf, und der Agent bearbeitet sie im Hintergrund, mit dem Fenster vor dir im Anhang. Jeder Lauf wird als Chat mit dem Agenten gespeichert, samt dem Text des Fensters und einem etwaigen Bildschirmfoto."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Con un agente, el modelo de arriba solo transcribe tu petición, y el agente trabaja en ella en segundo plano con la ventana que tienes delante adjunta."
+            "value" : "Con un agente, el modelo de arriba solo transcribe tu petición, y el agente trabaja en ella en segundo plano con la ventana que tienes delante adjunta. Cada ejecución se guarda como un chat con el agente, con el texto de la ventana y cualquier captura de pantalla."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Avec un agent, le modèle ci-dessus ne fait que transcrire votre demande, et l’agent la traite en arrière-plan, avec la fenêtre au premier plan en pièce jointe."
+            "value" : "Avec un agent, le modèle ci-dessus ne fait que transcrire votre demande, et l’agent la traite en arrière-plan, avec la fenêtre au premier plan en pièce jointe. Chaque exécution est enregistrée comme une conversation avec l’agent, avec le texte de la fenêtre et toute capture d’écran."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "エージェントを選ぶと、上のモデルは依頼を書き起こすだけで、エージェントが前面のウインドウを添付してバックグラウンドで作業します。"
+            "value" : "エージェントを選ぶと、上のモデルは依頼を書き起こすだけで、エージェントが前面のウインドウを添付してバックグラウンドで作業します。各実行は、ウインドウのテキストとスクリーンショット（ある場合）を含めて、エージェントとのチャットとして保存されます。"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "에이전트를 선택하면 위의 모델은 요청을 받아 적기만 하고, 에이전트가 앞에 있는 윈도우를 첨부해 백그라운드에서 작업합니다."
+            "value" : "에이전트를 선택하면 위의 모델은 요청을 받아 적기만 하고, 에이전트가 앞에 있는 윈도우를 첨부해 백그라운드에서 작업합니다. 각 실행은 윈도우의 텍스트와 스크린샷(있는 경우)을 포함해 에이전트와의 채팅으로 저장됩니다."
           }
         },
         "pt" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Com um agente, o modelo acima apenas transcreve seu pedido, e o agente trabalha nele em segundo plano com a janela à sua frente anexada."
+            "value" : "Com um agente, o modelo acima apenas transcreve seu pedido, e o agente trabalha nele em segundo plano com a janela à sua frente anexada. Cada execução é salva como um chat com o agente, incluindo o texto da janela e qualquer captura de tela."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "С агентом модель выше только записывает вашу просьбу, а агент выполняет её в фоне, получив окно перед вами во вложении."
+            "value" : "С агентом модель выше только записывает вашу просьбу, а агент выполняет её в фоне, получив окно перед вами во вложении. Каждый запуск сохраняется как чат с агентом вместе с текстом окна и скриншотом, если он есть."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "选择智能体时，上面的模型只负责转写你的请求，智能体会附上你面前的窗口，在后台处理它。"
+            "value" : "选择智能体时，上面的模型只负责转写你的请求，智能体会附上你面前的窗口，在后台处理它。每次运行都会保存为与智能体的聊天，包括窗口的文本和截图（如有）。"
           }
         }
       }
