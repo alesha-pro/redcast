@@ -248,8 +248,8 @@ struct AgentEditorPanel: View {
             .foregroundStyle(.secondary)
             Text(
                 """
-                Screen reads the text of the window behind Tinycast when the agent asks, never a \
-                picture. Screen Awareness must be on.
+                Screen reads the text of the window behind Tinycast, never a picture, and always \
+                asks first, naming the app. Screen Awareness must be on.
                 """
             )
             .font(.caption)

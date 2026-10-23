@@ -320,14 +320,15 @@ because the composer's label and menu styles are private to that file.
 | `load_skill` | — (when skills exist) | read | any | always | — |
 | `update_plan` | — | own | any | always | — |
 | `delegate` | sub-agents | read (each of its calls meets its own rule) | any | always | — |
-| `screen_context` | screen (while Screen Awareness is on) | personal | any | always | — |
+| `screen_context` | screen (while Screen Awareness is on) | personal | any | ask | — (always asks) |
 | `notes_search`, `notes_read` | notes | personal | any | always | — |
 | `notes_append` | notes | change | workspace, full | ask | — (always asks) |
 
 The notes family is off for every agent until ticked, and offered only while Notes is on; see
 [notes and AI](notes-ai.md). Sub-agents is off until ticked too, and so is Screen, which is offered only
 while [Screen Awareness](screen-awareness.md) is on, only on a turn the user sent from the chat (never a
-background run or a sub-agent), and reads the window behind Tinycast as text.
+background run or a sub-agent), asks before each read unless allowed for the chat, and reads the window
+behind Tinycast as text.
 
 `run_command` runs through `ShellCommandRunner.stream` with the login shell's environment in the
 agent's folder, stopped after its timeout (120 s by default, 600 s at most); escape sequences are

@@ -67,6 +67,8 @@ enum AgentConsentPolicy {
         }
         // Note text may carry an injected prompt, so Changes never makes a Notes addition silent.
         if family == .notes, risk == .change { return .ask }
+        // The window is the one in front when the model calls, so each read names its app first.
+        if family == .screen, risk == .personal, rule(for: risk, of: profile) != .never { return .ask }
         return rule(for: risk, of: profile)
     }
 

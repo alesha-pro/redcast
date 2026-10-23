@@ -3908,6 +3908,58 @@
         }
       }
     },
+    "%@ wants to read your screen" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ möchte deinen Bildschirm lesen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ quiere leer tu pantalla"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ veut lire votre écran"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@が画面を読み取ろうとしています"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@이(가) 화면을 읽으려고 합니다"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ quer ler sua tela"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ хочет прочитать ваш экран"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 想要读取你的屏幕"
+          }
+        }
+      }
+    },
     "%@ wants to run a command" : {
       "localizations" : {
         "de" : {
@@ -115335,54 +115387,54 @@
         }
       }
     },
-    "Screen reads the text of the window behind Tinycast when the agent asks, never a picture. Screen Awareness must be on." : {
+    "Screen reads the text of the window behind Tinycast, never a picture, and always asks first, naming the app. Screen Awareness must be on." : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Mit „Bildschirm“ liest der Agent auf Anfrage den Text des Fensters hinter Tinycast, nie ein Bild. Die Bildschirmerkennung muss aktiviert sein."
+            "value" : "Mit „Bildschirm“ liest der Agent den Text des Fensters hinter Tinycast, nie ein Bild, und fragt immer vorher, mit dem Namen der App. Die Bildschirmerkennung muss aktiviert sein."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Con «Pantalla», el agente lee, cuando lo pide, el texto de la ventana que hay detrás de Tinycast, nunca una imagen. Screen Awareness debe estar activado."
+            "value" : "Con «Pantalla», el agente lee el texto de la ventana que hay detrás de Tinycast, nunca una imagen, y siempre pregunta antes, indicando la app. Screen Awareness debe estar activado."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Avec « Écran », l’agent lit à sa demande le texte de la fenêtre derrière Tinycast, jamais une image. La reconnaissance de l’écran doit être activée."
+            "value" : "Avec « Écran », l’agent lit le texte de la fenêtre derrière Tinycast, jamais une image, et demande toujours avant, en nommant l’app. La reconnaissance de l’écran doit être activée."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "「画面」では、エージェントが求めたときにTinycastの背後にあるウインドウのテキストを読み取ります。画像は読み取りません。画面認識をオンにする必要があります。"
+            "value" : "「画面」では、エージェントがTinycastの背後にあるウインドウのテキストを読み取ります。画像は読み取らず、読み取る前に必ずアプリ名を示して確認します。画面認識をオンにする必要があります。"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "'화면'을 사용하면 에이전트가 요청할 때 Tinycast 뒤에 있는 윈도우의 텍스트를 읽습니다. 이미지는 읽지 않습니다. 화면 인식이 켜져 있어야 합니다."
+            "value" : "'화면'을 사용하면 에이전트가 Tinycast 뒤에 있는 윈도우의 텍스트를 읽습니다. 이미지는 읽지 않으며, 읽기 전에 항상 앱 이름을 밝히고 묻습니다. 화면 인식이 켜져 있어야 합니다."
           }
         },
         "pt" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Com “Tela”, o agente lê, quando pede, o texto da janela atrás do Tinycast, nunca uma imagem. O Reconhecimento da tela precisa estar ativado."
+            "value" : "Com “Tela”, o agente lê o texto da janela atrás do Tinycast, nunca uma imagem, e sempre pergunta antes, dizendo qual é o app. O Reconhecimento da tela precisa estar ativado."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "С «Экраном» агент по запросу читает текст окна за Tinycast — только текст, без изображения. Screen Awareness должен быть включён."
+            "value" : "С «Экраном» агент читает текст окна за Tinycast — только текст, без изображения — и всегда сначала спрашивает, называя приложение. Screen Awareness должен быть включён."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "启用“屏幕”后，代理会在需要时读取 Tinycast 后面窗口中的文字，从不读取图像。需要先开启屏幕感知。"
+            "value" : "启用“屏幕”后，代理会读取 Tinycast 后面窗口中的文字，从不读取图像，并且读取前总会先说明是哪个应用并征求你的同意。需要先开启屏幕感知。"
           }
         }
       }

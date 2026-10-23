@@ -58,10 +58,11 @@ plus the few lines that wire it in.
   (`AgentTurn.isBackground`, set while `AgentBackgroundCoordinator` holds the chat's run, even when its
   dialogs may still reach someone) or of a sub-agent (unattended) is not offered it, and a call there
   is refused before anything is asked or read, since the window in front is whatever the user happens to
-  have open. It is personal data, so the agent's rule for that risk applies: Always by default, and the
-  editor has no row for it, so ticking Screen is the grant. `context.consent` still runs before the read,
-  so a rule other than Always would be honoured. Without Accessibility it says so rather than
-  prompting.
+  have open. The same holds for a later round of a user turn, so every read asks first:
+  `AgentConsentPolicy` puts the Screen family's personal risk on ask (Never Allow on personal data still
+  withholds the tool), and the dialog, "<agent> wants to read your screen", names the app it would read.
+  Allow for This Chat grants only the Screen family, never a Notes read, and an asking call never shares
+  a round. Without Accessibility it says so rather than prompting.
 - **A picture the route cannot see stays behind.** `AIChatCoordinator.stage` checks
   `AIModelCapabilities.images`; on a text-only route only the text is staged and a HUD says so, rather
   than staging an image the send would refuse.
@@ -123,11 +124,13 @@ bounded to 1568px like any pasted picture.
 - With Tinycast's Settings in front, press the shortcut: refused with a HUD.
 - Turn the feature off: the launcher row disappears and the shortcut does nothing.
 - Tick Screen for an agent (Settings → AI → Agents), open a page in Safari, then ask the agent in AI Chat
-  what is on the page: the transcript shows `screen_context` and the answer quotes the page. Turn
+  what is on the page: a dialog names Safari first; allowed, the transcript shows `screen_context` and
+  the answer quotes the page. Don't Allow: nothing is read and the agent says so. Turn
   Screen Awareness off: the checkbox greys out and the agent says it cannot read the screen.
 - With Screen still ticked, run the same agent from the launcher (**Run Agent Task**) asking what is on
   screen, and ask it in a chat to delegate that question to a sub-agent: neither transcript shows a
   `screen_context` row, and the agent says it cannot see the screen from there.
 - Harness: `screen-awareness-test` (section order, budget and cut markers, forged titles, secure roles,
   line normalizing; the agent tool's spec, opt-in, consent before any read, the off and untrusted paths,
-  no offer and no read in a background run or a sub-agent, and its cut).
+  no offer and no read in a background run or a sub-agent, its cut, and the default rules asking for
+  the Screen grant alone through a toolset).
