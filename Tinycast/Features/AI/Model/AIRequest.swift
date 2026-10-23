@@ -118,6 +118,13 @@ struct AIReasoningReplay: Equatable, Sendable {
         case blocks
     }
 
+    /// Where a block stood among the reply's text and calls: Claude signs it over what preceded it.
+    enum Slot: Equatable, Sendable {
+        case item(Int)
+        case text
+        case call(String)
+    }
+
     /// The host and model that wrote it; no other is ever sent it.
     let route: String
     let model: String
@@ -128,10 +135,12 @@ struct AIReasoningReplay: Equatable, Sendable {
     let items: [JSONValue]
     /// Read back from the chat's history, as a later turn sends it.
     let isStored: Bool
+    /// The reply's blocks in stream order; empty where the order is not the provider's concern.
+    let layout: [Slot]
 
     init(
         route: String, model: String, form: Form?, text: String, items: [JSONValue] = [],
-        isStored: Bool = false
+        isStored: Bool = false, layout: [Slot] = []
     ) {
         self.route = route
         self.model = model
@@ -139,6 +148,7 @@ struct AIReasoningReplay: Equatable, Sendable {
         self.text = text
         self.items = items
         self.isStored = isStored
+        self.layout = layout
     }
 
     /// What the chat keeps for a later turn: the text alone, since an opaque entry is the turn's.

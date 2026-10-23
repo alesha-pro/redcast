@@ -206,8 +206,11 @@ struct AIStreamDecoder: Sendable {
 
         switch event.type {
         case "content_block_start":
-            // Fork: a thinking block goes back as it came, signature and all, with the turn's calls.
-            if event.contentBlock?.type != "tool_use" {
+            // Fork: a thinking block goes back as it came, signature and all, where it stood.
+            switch event.contentBlock?.type {
+            case "tool_use": reasoning.place(.call(event.contentBlock?.id ?? ""))
+            case "text": reasoning.place(.text)
+            default:
                 let block = JSONValue(data: data)?.objectValue?["content_block"]?.objectValue
                 if let block { reasoning.open(block: event.index ?? 0, block) }
             }

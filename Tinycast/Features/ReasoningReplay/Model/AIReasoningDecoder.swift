@@ -10,6 +10,7 @@ struct AIReasoningDecoder: Sendable {
     private var signed = false
     /// An Anthropic block's stream index, to its place in `items`.
     private var blocks: [Int: Int] = [:]
+    private var layout: [AIReasoningReplay.Slot] = []
 
     init(route: String, model: String) {
         self.route = route
@@ -41,6 +42,7 @@ struct AIReasoningDecoder: Sendable {
         else { return }
         form = .blocks
         blocks[index] = items.count
+        layout.append(.item(items.count))
         items.append(.object(block))
         text += block["thinking"]?.stringValue ?? ""
     }
@@ -57,6 +59,11 @@ struct AIReasoningDecoder: Sendable {
         items[position] = .object(block)
     }
 
+    /// An Anthropic text or tool-use block opening, so a thinking block goes back where it stood.
+    mutating func place(_ slot: AIReasoningReplay.Slot) {
+        layout.append(slot)
+    }
+
     /// A call that carries a thought signature: the reply is stamped even when it shows no text.
     mutating func noteSignedCall() {
         signed = true
@@ -71,9 +78,11 @@ struct AIReasoningDecoder: Sendable {
             items = []
             signed = false
             blocks = [:]
+            layout = []
         }
         let said = text.isEmpty && form == .details ? items.compactMap(Self.text(of:)).joined() : text
-        return AIReasoningReplay(route: route, model: model, form: form, text: said, items: items)
+        return AIReasoningReplay(
+            route: route, model: model, form: form, text: said, items: items, layout: form == .blocks ? layout : [])
     }
 
     private static func text(of detail: JSONValue) -> String? {
