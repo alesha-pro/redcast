@@ -193,7 +193,7 @@ If a change touches anything in the right column, the harness on the left is man
 | `syntax-highlight-test` | `AI/Model/SyntaxGrammar.swift`, `SyntaxHighlighter.swift`, `SyntaxStructuredLexers.swift` — every grammar's tokens, language aliases, the size limit and streaming prefixes |
 | `mcp-test` | `MCP/Model/` and `MCPSettingsStore` — JSON-RPC framing, handles, tool names, output flattening, trust, `@server` addressing, the shape a vendor CLI is handed, and which servers Tinycast leaves to that CLI |
 | `mcp-stdio-test` | `MCP/Service/` against a stub server — handshake, listing, calling, and every way one can go away |
-| `agent-sessions-test` | `AgentSessions/Model/` plus `AgentSessionsScanner`, `AgentTranscriptSearch`, `AgentHookRepository`, `ClaudeLiveSessionsProbe` and `ProcessTree` — the line filter, head and tail reads, titles, the rescan policy, a Codex database built per run, ranking, resume commands with hostile folders, hook-file install and removal byte for byte, the hook command run against shims, deep links, activity and which sessions it tracks, event resolution, the hook files written in a scratch home (a file changed after its diff, every file checked before any is written, backups and their rotation, symlinks written through, permissions kept, `live-status.json`), and `claude agents --json` run as a shim (decoding, a failed run, the watchdog and cancellation reaping a detached grandchild); synthetic fixtures in `Tests/agent-sessions-fixtures/` |
+| `agent-sessions-test` | `AgentSessions/Model/` plus `AgentSessionsScanner`, `AgentTranscriptSearch`, `AgentHookRepository`, `ClaudeLiveSessionsProbe` and `ProcessTree` — the line filter, head and tail reads, titles, the rescan policy, a Codex database built per run, ranking, resume commands with hostile folders and moved agent folders, Gemini CLI chats (head, tail, a reply written twice, a rewind, legacy `.json`, a subagent's chat, the cache steps), an OpenCode database built per run (prompts, placeholders, children, archived, turns, search), Gemini and OpenCode found by transcript search, the Claude app record lookup and its `claude://code/continue` URL, hook-file install and removal byte for byte, the hook command run against shims, deep links, activity and which sessions it tracks, event resolution, the hook files written in a scratch home (a file changed after its diff, every file checked before any is written, backups and their rotation, symlinks written through, permissions kept, `live-status.json`), and `claude agents --json` run as a shim (decoding, a failed run, the watchdog and cancellation reaping a detached grandchild); synthetic fixtures in `Tests/agent-sessions-fixtures/` |
 | `mcp-oauth-test` | OAuth parsing, RFC 7636 PKCE, discovery and resource binding, loopback callback validation/cancellation, dynamic registration, supplied client credentials and their token-endpoint authentication, Keychain token rotation, concurrent refresh, the wider margin for a token lent to a CLI, redirects and one-retry 401 handling |
 | `voice-ai-test` | `VoiceAI/Model/` — the speech gate and WAV encoder, dictation and Ask prompts, `input_audio` request bodies, the streamed reply header and reply session, transcript cleanup, the consented route and the proposal, and the insert policy |
 | `voice-coordinator-test` | `VoiceCloudTranscriber` and `VoiceAskCoordinator` — consent saving what it named, no rerouting, session tokens, supersede, dismissal and the recorder's start/stop order; recorded network, microphone and injection effects only |
@@ -887,8 +887,9 @@ caches, TCC grants and login item, so this cannot disturb an installed copy.
 
 ### Agent Sessions
 
-Seventeen steps, from search and resume in each terminal to the live-status diff, the HUDs, the
-menu-bar item and a spoofed event: [agent-sessions.md](features/agent-sessions.md#manual-sweep).
+Eighteen steps, from search and resume in each terminal to the live-status diff, the HUDs, the
+menu-bar item, a spoofed event and moved agent folders:
+[agent-sessions.md](features/agent-sessions.md#manual-sweep).
 In short:
 
 - Search Agent Sessions lists Claude Code, Codex and Tinycast rows, fast again after a relaunch
@@ -898,6 +899,8 @@ In short:
 - Turn On… shows only the inserted hook lines, writes them with a backup, and Turn Off… restores the
   original bytes; a file edited while the panel is open is re-diffed, never overwritten
 - With Tinycast quit an agent runs normally, and a URL with a wrong token does nothing
+- A Claude Code or Codex folder set in Settings is listed, resumed with `env CLAUDE_CONFIG_DIR=…` /
+  `CODEX_HOME=…`, and is where live status writes its hooks
 
 ### Clean install
 

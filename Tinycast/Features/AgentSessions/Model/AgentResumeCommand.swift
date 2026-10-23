@@ -53,11 +53,12 @@ enum AgentResumeAction: Equatable, Sendable { case resume, fork, openFolder, att
 
 /// Every command and script the hub hands a terminal; no unvalidated text ever reaches one.
 enum AgentResumeCommand {
-    static func isSafeID(_ id: String) -> Bool {
+    /// Letters, digits and `-`; OpenCode's `ses_…` ids and Gemini's own ones may also hold `_`.
+    static func isSafeID(_ id: String, underscore: Bool = false) -> Bool {
         (1...64).contains(id.utf8.count)
             && id.utf8.allSatisfy { byte in
                 (0x30...0x39).contains(byte) || (0x41...0x5A).contains(byte) || (0x61...0x7A).contains(byte)
-                    || byte == UInt8(ascii: "-")
+                    || byte == UInt8(ascii: "-") || (underscore && byte == UInt8(ascii: "_"))
             }
     }
 
@@ -66,23 +67,35 @@ enum AgentResumeCommand {
         "'" + text.replacingOccurrences(of: "'", with: "'\\''") + "'"
     }
 
-    static func command(for session: AgentSession, action: AgentResumeAction) -> String? {
+    /// `environment` names a moved folder; `env` sets it, so the `.command` body can still `exec`.
+    static func command(
+        for session: AgentSession, action: AgentResumeAction, environment: [String: String] = [:]
+    ) -> String? {
         let cd = session.directory.map { "cd " + shellQuoted($0) }
-        func inFolder(_ command: String) -> String { cd.map { $0 + " && " + command } ?? command }
+        let assignments = environment.filter { isVariableName($0.key) }.sorted { $0.key < $1.key }
+            .map { $0.key + "=" + shellQuoted($0.value) + " " }.joined()
+        let env = assignments.isEmpty ? "" : "env " + assignments
+        func inFolder(_ command: String) -> String { cd.map { $0 + " && " + env + command } ?? env + command }
         switch action {
         case .openFolder:
             return cd
         case .attach(let shortID):
             guard session.source == .claude, isSafeID(shortID) else { return nil }
-            return "claude attach " + shortID
+            return env + "claude attach " + shortID
         case .resume, .fork:
-            guard isSafeID(session.sessionID) else { return nil }
+            let underscore = session.source == .gemini || session.source == .openCode
+            guard isSafeID(session.sessionID, underscore: underscore) else { return nil }
             let id = session.sessionID
             switch (session.source, action == .fork) {
             case (.claude, false): return inFolder("claude --resume " + id)
             case (.claude, true): return inFolder("claude --resume " + id + " --fork-session")
             case (.codex, false): return inFolder("codex resume " + id)
             case (.codex, true): return inFolder("codex fork " + id)
+            // Gemini looks a session up only among its folder's chats, and cannot fork one.
+            case (.gemini, false): return cd == nil ? nil : inFolder("gemini --resume " + id)
+            case (.gemini, true): return nil
+            case (.openCode, false): return inFolder("opencode --session " + id)
+            case (.openCode, true): return inFolder("opencode --session " + id + " --fork")
             case (.tinycast, _): return nil
             }
         }
@@ -169,14 +182,11 @@ enum AgentResumeCommand {
     }
 
     /// The `.command` body: it deletes itself first, so a crash midway leaves nothing behind.
-    static func script(command: String) -> String {
-        let body: String
-        if let range = command.range(of: " && ") {
-            body = command.replacingCharacters(in: range, with: " && exec ")
-        } else {
-            body = "exec " + command
-        }
-        return "#!/bin/sh\n/bin/rm -f -- \"$0\"\n" + body + "\n"
+    static func script(command: String, directory: String?) -> String {
+        let header = "#!/bin/sh\n/bin/rm -f -- \"$0\"\n"
+        let rest = withoutFolder(command, directory: directory)
+        guard let directory, rest != command else { return header + "exec " + command + "\n" }
+        return header + "cd " + shellQuoted(directory) + " && exec " + rest + "\n"
     }
 
     /// `warp://action/new_tab?path=…`, the path encoded so no character can end the query.
@@ -186,6 +196,13 @@ enum AgentResumeCommand {
             charactersIn: "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-._~/")
         guard let path = directory.addingPercentEncoding(withAllowedCharacters: allowed) else { return nil }
         return URL(string: scheme + "://action/new_tab?path=" + path)
+    }
+
+    static func isVariableName(_ name: String) -> Bool {
+        guard let first = name.utf8.first, !(0x30...0x39).contains(first) else { return false }
+        return name.utf8.allSatisfy { byte in
+            (0x41...0x5A).contains(byte) || (0x30...0x39).contains(byte) || byte == UInt8(ascii: "_")
+        }
     }
 
     static func isSafeTTY(_ tty: String) -> Bool {

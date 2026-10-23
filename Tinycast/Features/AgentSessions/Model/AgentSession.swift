@@ -1,13 +1,17 @@
 import Foundation
 
 enum AgentSource: String, Codable, Sendable, CaseIterable {
-    case claude, codex, tinycast
+    case claude, codex, gemini
+    case openCode = "opencode"
+    case tinycast
 
     /// Product names, never translated.
     var productName: String {
         switch self {
         case .claude: "Claude Code"
         case .codex: "Codex"
+        case .gemini: "Gemini CLI"
+        case .openCode: "OpenCode"
         case .tinycast: "Tinycast"
         }
     }
@@ -132,6 +136,14 @@ enum AgentSessionText {
         guard let space = head.lastIndex(of: " "), head.distance(from: head.startIndex, to: space) > limit / 2
         else { return String(head) + "…" }
         return String(head[..<space]) + "…"
+    }
+
+    /// A JSON value that is a string with something other than whitespace in it.
+    static func nonEmpty(_ value: Any?) -> String? {
+        guard let text = value as? String, !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            return nil
+        }
+        return text
     }
 
     /// Cut to `bytes` of UTF-8 on a scalar boundary, so a preview never splits a character.
