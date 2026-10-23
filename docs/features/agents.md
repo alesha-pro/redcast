@@ -159,7 +159,8 @@ optional chord: see [background and scheduled agents](background-agents.md).
   `acpOptions` (by the agent's option ids) beside `acpMode`, each written only once picked, so an
   untouched agent's `agents.json` is unchanged and the build before them decodes it, ignoring the
   keys. That build's own save drops them (only a preference is lost; the agent then starts on its
-  own defaults), so unlike the newer tool families they have no side file.
+  own defaults), so unlike the newer tool families they have no side file. Picking another program
+  under the editor's Runs on clears all four: one program's names mean nothing to the next.
 - **The picks reach every session before its first prompt.** `AgentACPHost.adopt` runs on each
   `session/new` and `session/load` answer, the one path chats, background runs, schedules,
   voice-to-agent and launcher runs share, and sends the remembered values in order — model,
@@ -169,8 +170,9 @@ optional chord: see [background and scheduled agents](background-agents.md).
   picked again meanwhile); an option the session does not offer at all keeps its value; a refused
   set is ignored for that session. Nothing else is started to learn a list: it comes with a session.
 - **A session's selects live with it.** `AgentACPHost` keeps them per live chat and mirrors them to
-  the coordinator, which also keeps the agent's last list, so a new chat can pick before a session
-  exists; a chat's copy goes when its session, its agent's process or the chat's agent does.
+  the coordinator, which also keeps the agent's last list, so a new chat and the editor can pick
+  before a session exists; a chat's copy goes when its session, its agent's process or the chat's
+  agent does.
 - **A slash command list lives with its session.** `available_commands_update` is kept per live
   session in `AgentACPHost` and mirrored to the coordinator like the selects; a chat's copy goes when
   its session or the agent's process does, leaving one list per agent, and nothing is written down.
@@ -346,7 +348,9 @@ Background runs and schedules add their own files, listed in
 
 The composer's agent menu is `AIAgentPicker` in `AIChatDetailView.swift`, beside the model picker,
 and an ACP chat's pickers are `AIAgentOptionPickers` there, because the composer's label and menu
-styles are private to that file.
+styles are private to that file. The agent editor's Model row for an ACP agent lists the models its
+last session in this run of Tinycast offered (and "The agent's default"), or is a text field until
+one has started.
 
 ## Tools
 
@@ -461,12 +465,14 @@ this way, as one provider. Nothing else changes: no router edit, no upstream lin
   reloads. Repeat with Codex and with `hermes acp`, and with a command that does not exist (an error
   names it).
 - ACP models: in a Claude Code chat pick Sonnet and High effort, then ask which model it is; open a
-  new chat with the agent: before its first message the pickers already show Sonnet and High. Pick
-  Haiku: Fast mode
+  new chat with the agent: before its first message the pickers already show Sonnet and High, and
+  Settings → AI → Agents → the agent's editor shows Sonnet in its Model row. Pick Haiku: Fast mode
   leaves the ⋯ menu and comes back with Opus. Repeat with Codex (a model's own efforts; Plan under
   ⋯ as Collaboration mode) and with `hermes acp` (its provider models, no effort). Quit Tinycast and
-  continue a chat: the reloaded session is on the remembered model. Run the agent in the background
-  and on a schedule: the run's chat shows the remembered model.
+  continue a chat: the reloaded session is on the remembered model. After a relaunch, before any
+  chat with it, type a model the agent does not have in the editor and start a chat: the turn goes
+  on the agent's default, and the editor's row lists the agent's models with none picked. Run the
+  agent in the background and on a schedule: the run's chat shows the remembered model.
 - ACP rows: ask Claude Code to change two lines far apart in a file, then to run `ls -la` and a
   failing test. Each row has a chevron and opens to the path and red and green lines with two of
   context, or to the command's output without colour codes or a `console` fence; Copy Output copies

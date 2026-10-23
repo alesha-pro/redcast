@@ -54311,6 +54311,58 @@
         }
       }
     },
+    "Each new session starts on it, and a model picked in a chat changes it here too." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jede neue Sitzung startet mit diesem Modell, und ein in einem Chat gewähltes Modell ändert es auch hier."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cada sesión nueva empieza con este modelo, y elegir un modelo en un chat también lo cambia aquí."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chaque nouvelle session démarre avec ce modèle, et un modèle choisi dans une discussion le change aussi ici."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "新しいセッションはこのモデルで始まります。チャットでモデルを選ぶと、ここも変わります。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "새 세션은 이 모델로 시작하며, 채팅에서 모델을 고르면 여기도 바뀝니다."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cada nova sessão começa com este modelo, e um modelo escolhido em um chat também o altera aqui."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "С неё начинается каждая новая сессия, а выбор модели в чате меняет её и здесь."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "每个新会话都从这个模型开始；在聊天中选择模型也会同时更改这里。"
+          }
+        }
+      }
+    },
     "Earlier" : {
       "localizations" : {
         "de" : {
@@ -132509,6 +132561,110 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "智能体已停止。"
+          }
+        }
+      }
+    },
+    "The agent's default" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Standard des Agenten"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Predeterminado del agente"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Par défaut de l’agent"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "エージェントのデフォルト"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "에이전트 기본값"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Padrão do agente"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "По умолчанию у агента"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "智能体默认"
+          }
+        }
+      }
+    },
+    "The agent's own name for the model, such as sonnet. Its list shows here once a chat with the agent has started." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der eigene Name des Agenten für das Modell, etwa sonnet. Die Liste erscheint hier, sobald ein Chat mit dem Agenten begonnen hat."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El nombre que el propio agente da al modelo, como sonnet. Su lista aparece aquí en cuanto empieza un chat con el agente."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le nom que l’agent donne lui-même au modèle, par exemple sonnet. Sa liste s’affiche ici dès qu’une discussion avec l’agent a commencé."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "エージェント自身のモデル名（例: sonnet）。エージェントとのチャットが始まると、ここに一覧が表示されます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "에이전트가 쓰는 모델 이름입니다(예: sonnet). 에이전트와 채팅을 시작하면 여기에 목록이 표시됩니다."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O nome que o próprio agente dá ao modelo, como sonnet. A lista aparece aqui assim que um chat com o agente começar."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Имя модели, как его называет сам агент, например sonnet. Список появится здесь, как только начнётся чат с агентом."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "智能体自己对该模型的名称，例如 sonnet。与该智能体的聊天开始后，这里会显示列表。"
           }
         }
       }
