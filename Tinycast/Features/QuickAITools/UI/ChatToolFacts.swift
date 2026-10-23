@@ -14,9 +14,10 @@ extension AIChatCoordinator {
             hasToolServers: mcpServers.contains { scope.allows($0.slug) && $0.trust != .never })
     }
 
-    /// Read when a turn is sent, so the time is the send's.
-    func briefing(for chat: AIChatState) -> String {
+    /// Read when a turn is sent, so the time is the send's; an agent's own loop leads its turn with it.
+    func briefing(for chat: AIChatState) -> String? {
         let facts = toolFacts(for: chat)
+        guard !(facts.hasAgent && facts.runsTinycastLoop && !agents.runsOwnRuntime(chat)) else { return nil }
         return ChatBriefing.text(
             now: Date(), timeZone: .current, tools: ChatToolPolicy.namedTools(facts),
             serverTools: ChatToolPolicy.mentionsServerTools(facts),

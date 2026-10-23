@@ -342,7 +342,9 @@ final class AIChatCoordinator {
         let attachesTools =
             capabilities(for: chat).tools && model(for: chat)?.runsItsOwnTools != true
         // Fork: the shared prompt ends with the time and, in a plain chat, what it can look up.
-        let instructions = self.instructions.map { $0 + "\n\n" + briefing(for: chat) }
+        let instructions = self.instructions.map {
+            [$0, briefing(for: chat)].compactMap { $0 }.joined(separator: "\n\n")
+        }
         guard let agent = core.agentCoordinator.prompt(for: chat, hasTools: attachesTools) else {
             return instructions
         }
