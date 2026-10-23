@@ -14,8 +14,9 @@ RUNTIME=Tinycast/Resources/RaycastRuntime.generated.js
 RUNTIME_SOURCES=Scripts/raycast-runtime
 CATALOG=Tinycast/Resources/Localizable.xcstrings
 INFO_CATALOG=Tinycast/Resources/InfoPlist.xcstrings
-# The fork's own files: every sync keeps them as they are, whatever upstream did to its copy.
-FORK_OWNED="README.md"
+# The fork's own files: every sync keeps them as they are, whatever upstream did to its copy. The
+# two GitHub files carried upstream's donation link and Discord; deleting them would conflict instead.
+FORK_OWNED="README.md .github/FUNDING.yml .github/ISSUE_TEMPLATE/config.yml"
 # Display- or load-bound: reported, never a reason to hold a sync back.
 ENVIRONMENTAL=" form-input-test onboarding-test icon-cache-test "
 RULE_DOCS=" AGENTS.md CLAUDE.md CONTRIBUTING.md docs/architecture.md docs/standards.md \
@@ -30,9 +31,10 @@ Usage: Scripts/fork/sync-upstream.sh [--branch NAME] [--skip-gates] [--summary F
 Merges $UPSTREAM_URL main into sync/upstream-<sha> (--ci: the rolling
 sync/upstream), re-anchoring on patch-equivalent commits when upstream rewrote its history. It
 takes upstream's project.pbxproj and runtime bundle and regenerates both, merges the string
-catalog key by key, keeps the fork's own README.md, commits with an Upstream-Sync trailer, runs
-the build, harnesses, lint and purity gates, and writes a markdown summary (default
+catalog key by key, keeps the fork's own files as they are, commits with an Upstream-Sync
+trailer, runs the build, harnesses, lint and purity gates, and writes a markdown summary (default
 build/sync/summary-<sha>.md).
+The fork's own files: ${FORK_OWNED// /, }.
 
 Exit codes: 0 merged, gates passed · 1 merged, a gate failed · 2 conflicts left ·
 3 upstream rewrote history in a way that needs a human · 4 precondition failed ·
@@ -411,8 +413,8 @@ harness_names() {
 
 attention() {
     local both workflows rules declined capabilities harnesses review renamed count noun path
-    both="$(comm -12 <(git diff --name-only "$OLD_UP" "$FORK_TIP" | sort) \
-        <(upstream_changed | sort) | tr '\n' ' ')"
+    both="$(comm -12 <(git diff --name-only "$OLD_UP" "$FORK_TIP" | sort) <(upstream_changed | sort) |
+        { grep -vxF "$(tr ' ' '\n' <<<"$FORK_OWNED")" || true; } | tr '\n' ' ')"
     [ -z "$both" ] || printf -- '- Both sides changed: %s\n' "${both% }"
     for path in $FORK_OWNED; do
         git diff --quiet "$BASE" "$UP" -- "$path" ||
@@ -849,6 +851,8 @@ self_test() {
     check "while the rest of upstream's commit lands" test -f "$FORK/up.txt"
     check "and the summary names upstream's change" \
         grep -q "Kept the fork's README.md.*git diff" "$FORK/build/sync/summary-${up:0:7}.md"
+    check "once, not again under both sides changed" \
+        sh -c '! grep -q "Both sides changed:.*README.md" "$1"' - "$FORK/build/sync/summary-${up:0:7}.md"
     land "sync/upstream-${up:0:7}"
     commit_file "$UPR" README.md "# Tinycast, renamed"$'\n\n'"A launcher." "Upstream retitles its README"
     status="$(run_sync)"
