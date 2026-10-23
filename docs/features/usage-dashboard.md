@@ -175,7 +175,9 @@ search keywords in `SettingsSearchCatalog`.
 - Delete a chat: its usage leaves the section the next time it shows.
 - Check Balance on an OpenRouter connection: UTC spend today, this week and this month, the key's
   limit or "No spending limit on this key", and the management-key caption. A wrong key reads
-  "OpenRouter rejected the key."; with the network off, "OpenRouter didn't answer. Try again."
+  "OpenRouter rejected the key."; with the network off, "OpenRouter didn't answer. Try again." In
+  Russian or Portuguese at Settings' narrowest width, a line too long for the space beside the two
+  buttons wraps rather than losing its middle.
 - Nothing refreshes by itself: watch with Little Snitch or `nettop` while the section is open.
 - Settings search for "usage", "tokens", "cost", "openrouter" or "management key" lands on the
   section.

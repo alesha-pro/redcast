@@ -232,7 +232,7 @@ private struct OpenRouterBalanceRow: View {
         let brand = AIProviderKind.openRouter.title
         SettingsRow(
             title: showsName ? "\(brand) (\(connection.title))" : brand, subtitle: subtitle,
-            subtitleLineLimit: 3
+            subtitleLineLimit: 6
         ) {
             HStack(spacing: Theme.Spacing.md) {
                 Button("Management Key…") { editsManagementKey = true }
