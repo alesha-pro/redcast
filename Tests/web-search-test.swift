@@ -51,6 +51,7 @@ struct WebSearchTests {
         await theReaderRoutesEachKind()
         await anotherPartIsNotAnotherRead()
         await anAgentsFetchKeepsToWhatItWasGiven()
+        aNarrowedTurnReadsAFewPagesOnTheirSites()
 
         print("\(passes) passed, \(failures) failed")
         if failures > 0 { exit(1) }
@@ -1554,6 +1555,62 @@ extension WebSearchTests {
         expect(parent.fetchable(url("https://brief.example/x")) == nil, "a link in the brief the model wrote is not")
     }
 
+    /// How much a narrowed turn's choice of pages can say: few reads, links only within a site.
+    static func aNarrowedTurnReadsAFewPagesOnTheirSites() {
+        func url(_ text: String) -> URL { URL(string: text)! }
+        let tools = [AITool(name: "web_fetch", description: "", parameters: .object([:]), origin: "A")]
+        let links = (1...10).map { "https://user.example/\($0)" }.joined(separator: " ")
+        let scope = AgentWebScope(unattended: true)
+        scope.note(AIRequest(messages: [AIMessage(role: .user, text: "Compare " + links)], tools: tools))
+        scope.found(
+            (0..<256).map { url("https://evil.example/\($0)") } + [url("https://www.user.example/next")],
+            on: url("https://user.example/1"))
+        scope.note(AIRequest(messages: [AIMessage(role: .user, text: "Compare " + links)], tools: tools))
+        expect(
+            scope.fetchable(url("https://evil.example/7")) == nil
+                && scope.fetchable(url("https://user.example/next")) == url("https://www.user.example/next"),
+            "a page's links to another site are not given, while its own site's are")
+        let admitted = (1...8).map { scope.admit(url("https://user.example/\($0)")) }
+        expect(
+            admitted == (1...8).map { .open(url("https://user.example/\($0)")) },
+            "a narrowed turn reads its first \(WebPageTool.maxNarrowedReads) pages")
+        expect(scope.admit(url("https://user.example/9")) == .readsUsed, "and no more")
+        expect(scope.admit(url("https://user.example/3")) == .open(url("https://user.example/3")), "but parts of those")
+        expect(
+            WebPageTool.agentReadsUsed(unattended: true).hasPrefix("web_fetch has read 8 pages this turn"),
+            "and says so")
+        let open = AgentWebScope(unattended: false)
+        expect(
+            (1...20).allSatisfy { open.admit(url("https://any.example/\($0)")) == .open(url("https://any.example/\($0)")) },
+            "a turn that is not narrowed reads as many as it needs")
+
+        let marks = Marks()
+        let carried = AgentWebScope(unattended: false, personal: true) { marks.add() }
+        expect(carried.isRestricted, "an earlier turn's personal reads narrow the next turn from its start")
+        carried.notePersonal()
+        expect(marks.count == 0, "without marking the chat again")
+        let fresh = AgentWebScope(unattended: false) { marks.add() }
+        fresh.notePersonal()
+        fresh.notePersonal()
+        expect(fresh.isRestricted && marks.count == 1, "a first personal read marks the chat once")
+
+        let pictured = AgentWebScope(unattended: false)
+        let screenshot = AIImage(data: Data([1]), mimeType: "image/png")
+        pictured.note(AIRequest(messages: [AIMessage(role: .user, text: "What is this?", images: [screenshot])]))
+        expect(!pictured.isRestricted, "a request with no tools says nothing")
+        pictured.note(AIRequest(
+            messages: [AIMessage(role: .user, text: "What is this?", images: [screenshot])], tools: tools))
+        expect(pictured.isRestricted, "an attached image, as a screen capture is, narrows the turn")
+        let inlined = AgentWebScope(unattended: false)
+        let attached = AIAttachmentPolicy.prompt(
+            text: "Summarise it", documents: [AIDocument(data: Data("x".utf8), mimeType: "text/plain", name: "a.txt")])
+        inlined.note(AIRequest(messages: [AIMessage(role: .user, text: attached)], tools: tools))
+        expect(inlined.isRestricted, "and so does a file inlined into the question")
+        let typed = AgentWebScope(unattended: false)
+        typed.note(AIRequest(messages: [AIMessage(role: .user, text: "Read https://a.example/")], tools: tools))
+        expect(!typed.isRestricted, "a question the user typed does not")
+    }
+
     static func makePDF(at url: URL, pages: [String]) {
         var box = CGRect(x: 0, y: 0, width: 1000, height: 300)
         let context = CGContext(consumer: CGDataConsumer(url: url as CFURL)!, mediaBox: &box, nil)!
@@ -1586,6 +1643,16 @@ struct PersonalReads: AgentToolProvider {
 }
 
 /// Serves pages from memory to a reader's own session, the way a site would.
+/// How often a scope marked its chat.
+final class Marks: @unchecked Sendable {
+    private let lock = NSLock()
+    private var value = 0
+
+    var count: Int { lock.withLock { value } }
+
+    func add() { lock.withLock { value += 1 } }
+}
+
 final class StubPages: URLProtocol, @unchecked Sendable {
     private static let lock = NSLock()
     nonisolated(unsafe) private static var pages: [String: (Int, String, Data)] = [:]

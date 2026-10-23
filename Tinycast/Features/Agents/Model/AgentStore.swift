@@ -21,6 +21,8 @@ final class AgentStore {
     private(set) var schedulesAvailable = true
     /// The daily cap and what scheduled runs spent today; a file that won't read caps at zero.
     private(set) var scheduleSpend = AgentScheduleSpend()
+    /// Chats whose agent read the user's files, notes, screen or attachments; see `AgentWebScope`.
+    private(set) var personalChats: Set<UUID> = []
 
     private let agentsURL: URL
     /// Families the previous build cannot read, per agent; its rewrite of agents.json drops them.
@@ -34,6 +36,7 @@ final class AgentStore {
     /// Kept apart from the schedules, so a run never rewrites what the user wrote.
     private let scheduleBaselinesURL: URL
     private let scheduleSpendURL: URL
+    private let personalChatsURL: URL
     /// Until the cap is set again, a run's spend is kept in memory over a file that won't read.
     private var scheduleSpendWritable = true
     let directory: URL
@@ -50,6 +53,7 @@ final class AgentStore {
         schedulesURL = base.appendingPathComponent("agent-schedules.json")
         scheduleBaselinesURL = base.appendingPathComponent("agent-schedule-runs.json")
         scheduleSpendURL = base.appendingPathComponent("agent-schedule-spend.json")
+        personalChatsURL = base.appendingPathComponent("agent-personal-chats.json")
         try? FileManager.default.createDirectory(at: base, withIntermediateDirectories: true)
     }
 
@@ -120,6 +124,11 @@ final class AgentStore {
             let decoded = try? JSONDecoder().decode([UUID: ACPChoices].self, from: data)
         {
             acpChoices = decoded.filter { acpSessions[$0.key] != nil }
+        }
+        if let data = try? Data(contentsOf: personalChatsURL),
+            let decoded = try? JSONDecoder().decode([UUID].self, from: data)
+        {
+            personalChats = Set(decoded)
         }
         loadSchedules()
     }
@@ -316,6 +325,27 @@ final class AgentStore {
     /// A chat's agent; nil takes the chat back to plain AI.
     func setAgent(_ id: UUID?, forChat chatID: UUID) {
         bind([chatID], to: id)
+    }
+
+    /// Written once a chat; a mark that fails to save leaves only that chat's next turns unnarrowed.
+    func notePersonal(forChat chatID: UUID) {
+        guard personalChats.insert(chatID).inserted else { return }
+        writePersonalChats()
+    }
+
+    /// Chats that are gone lose their mark; the file is written only when one of them had one.
+    func forgetPersonal(_ chats: some Sequence<UUID>) {
+        let gone = personalChats.intersection(chats)
+        guard !gone.isEmpty else { return }
+        personalChats.subtract(gone)
+        writePersonalChats()
+    }
+
+    private func writePersonalChats() {
+        guard let data = try? JSONEncoder().encode(personalChats.sorted { $0.uuidString < $1.uuidString }) else {
+            return
+        }
+        try? data.write(to: personalChatsURL, options: .atomic)
     }
 
     /// Chats that are gone lose their agent; the file is written only when one of them had one.

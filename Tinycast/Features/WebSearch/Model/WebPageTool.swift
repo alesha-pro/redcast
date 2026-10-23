@@ -125,12 +125,23 @@ enum WebPageTool {
 
     /// Why an agent's `web_fetch` refused an address it was not given.
     static func outOfAgentScope(_ url: URL, unattended: Bool) -> String {
-        let reason =
-            unattended
-            ? "nobody is watching this run" : "this turn has read the user's files, notes or screen"
-        return "web_fetch can open only a page this turn was given, because \(reason): a link the user "
-            + "wrote, a web_search result, or a link on a page already read. \(url.absoluteString) is "
-            + "none of those. Search for it, or say what you would need to read."
+        "web_fetch can open only a page this turn was given, because \(narrowing(unattended)): a link the "
+            + "user wrote, a web_search result, or a link on a page already read that stays on that page's "
+            + "site. \(url.absoluteString) is none of those. Search for it, or say what you would need to read."
+    }
+
+    /// An agent's pages a narrowed turn, for the same reason as `maxReads`; see `AgentWebScope`.
+    static let maxNarrowedReads = 8
+
+    /// Why an agent's `web_fetch` refused one more page in a narrowed turn.
+    static func agentReadsUsed(unattended: Bool) -> String {
+        "web_fetch has read \(maxNarrowedReads) pages this turn, the most it may because "
+            + "\(narrowing(unattended)); other parts of those pages still open. Answer from what you have, "
+            + "and say what you would still need to read."
+    }
+
+    private static func narrowing(_ unattended: Bool) -> String {
+        unattended ? "nobody is watching this run" : "this chat holds the user's files, notes, screen or attachments"
     }
 
     static func outOfScope(_ url: URL) -> String {

@@ -248,7 +248,12 @@ final class AgentCoordinator {
         var turn = AgentTurn(
             profile: agent, skills: context.skills, memoryURL: store.memoryURL(for: agent.id),
             mode: mode, isBackground: backgroundRuns?.isUnattended(mode.chatID) == true)
-        let web = AgentWebScope(unattended: !turn.isUserTurn)
+        let chatID = mode.chatID
+        // An earlier turn's personal reads stay in its replies, so this turn starts narrowed too.
+        let personal = store.personalChats.contains(chatID)
+        let web = AgentWebScope(unattended: !turn.isUserTurn, personal: personal) { [weak self] in
+            Task { @MainActor in self?.store.notePersonal(forChat: chatID) }
+        }
         turn.web = web
         let toolset = AgentToolset(
             turn: turn, providers: providers(for: agent, in: context, over: base, mode: mode, web: web),
@@ -496,6 +501,7 @@ final class AgentCoordinator {
     /// A deleted chat's agent, notes and pending ACP briefing go with it.
     func chatDeleted(_ id: UUID) {
         store.removeSummary(forChat: id)
+        store.forgetPersonal([id])
         forgetACPSession(ofChat: id)
         store.unbind([id])
     }
@@ -551,5 +557,6 @@ extension AppCore {
         // An open chat with no message yet keeps the agent picked for it.
         let open = kept.union(aiChats.live.map(\.session.id))
         agentStore.unbind(agentStore.chatAgents.keys.filter { !open.contains($0) })
+        agentStore.forgetPersonal(agentStore.personalChats.subtracting(open))
     }
 }
