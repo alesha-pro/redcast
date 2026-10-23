@@ -178,8 +178,10 @@ optional chord: see [background and scheduled agents](background-agents.md).
   list the previous answer carried, since a model switch changes the levels and options on offer.
   A value already in effect is not sent; an option the session does not offer at all keeps its
   value. An agent's value the option no longer lists is not sent and is forgotten on the agent
-  (unless it was picked again meanwhile). A refused set is ignored for that session. Nothing else
-  is started to learn a list: it comes with a session.
+  (unless it was picked again meanwhile), but only while every set so far succeeded: once one is
+  refused or times out, the session is on a list the agent never confirmed, so nothing is
+  forgotten, and the remaining values that are offered are still sent. A refused set is ignored
+  for that session. Nothing else is started to learn a list: it comes with a session.
 - **A session's selects live with it.** `AgentACPHost` keeps them per live chat and mirrors them to
   the coordinator, which also keeps the agent's last list, so a new chat and the editor can pick
   before a session exists; a chat's copy goes when its session, its agent's process or the chat's
@@ -510,11 +512,12 @@ this way, as one provider. Nothing else changes: no router edit, no upstream lin
   `Tests/acp-fixtures/fake-agent.mjs`, run as the older shapes or with `config`: picks applied
   model first before the first prompt of a new, unattended or reloaded session, a vanished value
   forgotten on disk, a live switch, a refused one and the agent's own change, two chats reloading
-  on their own picks while a new one starts on the agent's, a chat from before its own picks,
-  streaming, consent, reuse, refusal, cancel, reload, lost sessions, a missing command, two agents
-  sharing a session id, commands that beat the session's binding, a command turn and the briefing
-  after it with only the turns from before the session, a fresh process's `/word` turn waiting for
-  the list and going as an ordinary, briefed one, diffs and output reaching their rows once);
+  on their own picks while a new one starts on the agent's, a chat from before its own picks, and
+  with `refuse-model` a refused model switch that forgets nothing, streaming, consent, reuse,
+  refusal, cancel, reload, lost sessions, a missing command, two agents sharing a session id,
+  commands that beat the session's binding, a command turn and the briefing after it with only the
+  turns from before the session, a fresh process's `/word` turn waiting for the list and going as
+  an ordinary, briefed one, diffs and output reaching their rows once);
   `ai-chat-test`'s fork case (content on its row, saved beside it, unreadable or absent content, a
   store from before the table, the cascade); `agent-test` (skills, catalog, path policy, tool sets,
   specs, consent policy and per-agent rules, toolset order and routing, batches, budget, elision,

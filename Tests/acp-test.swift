@@ -36,6 +36,7 @@ struct ACPTests {
         await commandsReachTheChatAndLeadTheirTurn()
         await aFreshProcessWaitsForItsCommands()
         await configOptionsApplyBeforeTheFirstPrompt()
+        await aRefusedModelForgetsNothing()
 
         print("\(passes) passed, \(failures) failed")
         if failures > 0 { exit(1) }
@@ -1151,5 +1152,33 @@ extension ACPTests {
         expect(
             older.contains("turn 11") && older.contains("sets model=large,mode=plan,fast=on"),
             "a chat from a build before its own picks reloads on the agent's, got \(older)")
+    }
+
+    /// A refused model switch leaves the agent's other picks to be judged by the real model later.
+    static func aRefusedModelForgetsNothing() async {
+        guard let node = await ExecutableLocator.locate("node") else { return }
+        let fixture = FileManager.default.currentDirectoryPath + "/Tests/acp-fixtures/fake-agent.mjs"
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent("ACPTests-\(UUID().uuidString)")
+        try? FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        let store = AgentStore(directory: root.appendingPathComponent("support"))
+        var draft = AgentProfile(
+            name: "Refusing", directory: root.path,
+            runtime: AgentRuntime(kind: .custom, command: node.path, arguments: [fixture, "config", "refuse-model"]))
+        draft.acpChoices = ACPChoices(model: "huge", reasoning: "max", mode: "plan")
+        guard let agent = try? store.add(draft) else { return expect(false, "the agent saves") }
+        let host = AgentACPHost(
+            store: store, permit: { _, request in request.dialogOptions.first?.id }, context: { _ in nil })
+        defer {
+            host.stopAll()
+            try? FileManager.default.removeItem(at: root)
+        }
+        let reply = replyText(await stream("Hello", chat: UUID(), agent: agent, host: host))
+        expect(
+            reply.contains("on small/low/plan/off; sets mode=plan"),
+            "after a refused model the rest still goes where offered, got \(reply)")
+        let kept = store.agent(id: agent.id)?.acpChoices
+        expect(
+            kept == ACPChoices(model: "huge", reasoning: "max", mode: "plan"),
+            "and a level the default model lacks is not forgotten, got \(String(describing: kept))")
     }
 }
