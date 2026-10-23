@@ -968,6 +968,24 @@ run agent-loop-test        Tinycast/Features/Agents/Model/*.swift \
                            Tinycast/Features/AI/Service/AIToolLoopProvider.swift \
                            Tinycast/Features/WebSearch/Model/*.swift \
                            Tinycast/Features/AI/Model/AIAttachmentPolicy.swift
+# Fork: the native agent end to end, real loop and tools on each provider's wire; it is its own helper.
+run agent-scenario-test    Tinycast/Features/Agents/Model/*.swift \
+                           Tinycast/Features/Agents/Service/*.swift \
+                           Tinycast/Features/AI/Model/*.swift \
+                           Tinycast/Features/ReasoningReplay/Model/*.swift \
+                           Tinycast/Features/AI/Service/AIProvider.swift \
+                           Tinycast/Features/WebSearch/Model/*.swift \
+                           Tinycast/Features/WebSearch/Service/*.swift \
+                           Tinycast/Features/DocumentText/Model/*.swift \
+                           Tinycast/Features/DocumentText/Service/*.swift \
+                           Tinycast/Features/DocumentText/Helper/*.swift \
+                           Tinycast/Features/Clipboard/Service/ClipboardTextExtractor.swift \
+                           Tinycast/Features/Settings/AppSettingsKey.swift \
+                           Tinycast/Platform/NotificationToken.swift \
+                           Tinycast/Platform/ExecutableLocator.swift \
+                           Tinycast/Platform/PseudoTerminal.swift \
+                           Tinycast/Platform/ProcessExit.swift \
+                           Tinycast/Features/CustomCommands/Service/ShellCommandRunner.swift
 run web-search-test        Tinycast/Features/WebSearch/Model/*.swift \
                            Tinycast/Features/AI/Model/AIAttachmentPolicy.swift \
                            Tinycast/Features/WebSearch/Service/*.swift \

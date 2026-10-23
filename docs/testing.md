@@ -127,6 +127,7 @@ If a change touches anything in the right column, the harness on the left is man
 | `clipboard-search-test` | Ordinary and OCR result ordering, opt-in lifecycle, cancellation, pins and type filters |
 | `clipboard-text-test` | Apple Vision/PDF extraction, scheduling, retry backoff and recovery |
 | `document-text-test` | `DocumentText/` (fork): kinds, page ranges, the helper's PDF, OCR and rich-text reads, archive sizes, and the service running the harness as its helper — timeout, bound, footprint, Stop, a bomb refused unopened |
+| `agent-scenario-test` | The native agent end to end (fork): the real loop and tools on each provider's wire with a scripted model — a simple question, a web question, a planned task with a PDF, Quick's hand-over, retries, and every provider's reasoning sent back to its own model only ([agent harness](features/agent-harness.md#testing)) |
 | `paste-sequence-test` | `Clipboard/Model/PasteSequence.swift` — the walk's order, its end, and what starts it over |
 | `clipboard-test` | `Clipboard/Model/ClipboardStore.swift`, `ClipboardFilter.swift`, `ClipboardFileKind.swift`, the colour trio |
 | `clipboard-coordinator-test` | Edit Entry selection across query/type changes and pins, failed writes, deletion during editing and cancellation; isolated database and recorded clipboard effects |
