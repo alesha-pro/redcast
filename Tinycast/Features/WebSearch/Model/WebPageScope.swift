@@ -44,6 +44,25 @@ enum WebPageScope {
         return components.url ?? url
     }
 
+    /// A redirect stays on the open web, or on the local host the read began at.
+    static func follows(from start: URL?, to target: URL?) -> Bool {
+        guard let target, let components = URLComponents(url: target, resolvingAgainstBaseURL: false),
+            ["http", "https"].contains(components.scheme?.lowercased() ?? ""),
+            components.user == nil, components.password == nil,
+            let host = target.host()?.lowercased(), !host.isEmpty
+        else { return false }
+        return !isLocal(host) || start?.host()?.lowercased() == host
+    }
+
+    /// Loopback, `.local`, one label or an address literal, in any form `inet_aton` reads.
+    static func isLocal(_ host: String) -> Bool {
+        let name = host.hasSuffix(".") ? String(host.dropLast()) : host
+        let last = name.split(separator: ".").last ?? Substring(name)
+        return name.contains(":") || last.allSatisfy { ("0"..."9").contains($0) } || last.hasPrefix("0x")
+            || name == "localhost" || name.hasSuffix(".localhost")
+            || WebSearchEndpoint.allowsPlainHTTP(to: name)
+    }
+
     /// Links as a reader sees them, a bare domain included; only http and https count.
     static func links(in text: String) -> [URL] {
         guard !text.isEmpty,

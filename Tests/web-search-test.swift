@@ -32,6 +32,7 @@ struct WebSearchTests {
         await agentsSearchThroughTheirWebFamily()
         readPageKeepsToTheCommonSchema()
         pagesComeOnlyFromTheUserOrASearch()
+        aRedirectNeverLeavesForALocalHost()
         await aPlainChatReadsOnlyWhatItWasGiven()
         await aQueryOrASpellingCarriesNothing()
 
@@ -652,6 +653,31 @@ struct WebSearchTests {
 
     static func key(_ address: String) -> String? {
         URL(string: address).flatMap(WebPageScope.key(for:))
+    }
+
+    static func aRedirectNeverLeavesForALocalHost() {
+        func follows(_ from: String, _ to: String) -> Bool {
+            WebPageScope.follows(from: URL(string: from), to: URL(string: to))
+        }
+        let page = "https://seo-page.example/x"
+        for local in [
+            "http://localhost:11434/api/tags", "http://LOCALHOST./a", "http://app.localhost/",
+            "http://127.0.0.1/", "http://[::1]:8080/", "http://router.local/status",
+            "http://llm-server:8188/history", "https://192.168.1.3/", "http://0x7f.0.0.1/",
+            "http://2130706433/"
+        ] {
+            expect(!follows(page, local), "a page may not send a read on to \(local)")
+        }
+        expect(follows(page, "https://other.example/y"), "the open web may send it on")
+        expect(
+            follows(page, "https://3com.com/a") && follows(page, "http://1.example/"),
+            "digits in a name are not an address")
+        expect(
+            follows("http://router.local/status", "http://router.local/login"),
+            "a local page the user linked may move within its own host")
+        expect(!follows("http://router.local/status", "http://nas.local/"), "but not to another local host")
+        expect(!follows(page, "https://user@other.example/y"), "a target carrying a user is refused")
+        expect(!follows(page, "ftp://other.example/y"), "and so is another scheme")
     }
 
     static func pagesComeOnlyFromTheUserOrASearch() {

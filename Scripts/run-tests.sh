@@ -842,6 +842,7 @@ run voice-coordinator-test Tinycast/Features/VoiceAI/Model/*.swift \
                            Tinycast/Features/QuickActions/Model/QuickActionFailure.swift
 run alias-actions-test     Tinycast/Features/AliasActions/Model/*.swift
 run acp-test               Tinycast/Features/Agents/Model/*.swift \
+                           Tinycast/Features/WebSearch/Model/*.swift \
                            Tinycast/Features/Agents/Service/*.swift \
                            Tinycast/Platform/NotificationToken.swift \
                            Tinycast/Features/Settings/AppSettingsKey.swift \
@@ -859,6 +860,7 @@ run acp-test               Tinycast/Features/Agents/Model/*.swift \
                            Tinycast/Platform/ProcessExit.swift \
                            Tinycast/Features/CustomCommands/Service/ShellCommandRunner.swift
 run agent-tools-test       Tinycast/Features/Agents/Model/*.swift \
+                           Tinycast/Features/WebSearch/Model/*.swift \
                            Tinycast/Features/AI/Model/AIRequest.swift \
                            Tinycast/Features/AI/Model/AIToolServer.swift \
                            Tinycast/Features/AI/Service/AIProvider.swift \
