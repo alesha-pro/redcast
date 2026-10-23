@@ -1,164 +1,196 @@
-<!-- Fork: the fork's one README hunk; upstream's README follows unchanged. -->
-> **This is Redcast**, [alesha-pro/redcast](https://github.com/alesha-pro/redcast): an unofficial,
-> agent-native fork of Tinycast by Abue Ammar. What it adds, how it installs and how it follows
-> upstream are in [FORK.md](FORK.md). Everything below is upstream's README.
-
-# Tinycast
-
-**A tiny, fully native macOS launcher. One hotkey, everything you reach for all day, under 100 MB of
-RAM.**
-
 <p align="center">
-  <a href="https://github.com/abue-ammar/tinycast/releases/latest">
-    <img alt="Latest release"
-         src="https://img.shields.io/github/v/release/abue-ammar/tinycast?sort=semver&style=flat&label=release&color=1F6FEB"></a>
-  <img alt="Swift 6.0"
-       src="https://img.shields.io/badge/Swift-6.0-F05138?style=flat&logo=swift&logoColor=white">
-  <img alt="macOS 26 or later"
-       src="https://img.shields.io/badge/macOS-26%2B-000000?style=flat&logo=apple&logoColor=white">
-  <a href="LICENSE">
-    <img alt="License: AGPL-3.0"
-         src="https://img.shields.io/badge/License-AGPL--3.0-3DA639?style=flat"></a>
-  <a href="https://discord.gg/v2Eeb4QQy3">
-    <img alt="Join the Tinycast Discord"
-         src="https://img.shields.io/badge/Discord-Join-5865F2?style=flat&logo=discord&logoColor=white"></a>
+  <img src="docs/brand/redcast-icon-256.png" width="128" height="128" alt="Redcast icon: the command key, its top-right loop burning into an ember">
 </p>
 
-SwiftUI and AppKit, **zero third-party dependencies**, no Electron and no telemetry. It also **runs
-real Raycast extensions**, rendered as native SwiftUI. Free, open source, and staying that way.
-
-For anything private, email [iabueammar@gmail.com](mailto:iabueammar@gmail.com).
+<h1 align="center">Redcast</h1>
 
 <p align="center">
-  <img src="docs/screenshot.png" alt="Tinycast command palette" width="720">
+  <strong>An agent-native, Raycast-style launcher for macOS.</strong><br>
+  Fast, native and local-first, with your own models and agents.
 </p>
-
-## Support
-
-Tinycast is **free, and it stays that way**. If you enjoy it, consider buying a wallpaper pack and get a discord role. It would help me a lot.
 
 <p align="center">
-  <a href="https://tinycast.dev/support">
-    <img alt="Support Tinycast" width="188" height="44" src="docs/support-button.svg"></a><br>
-  <sub>Payments are handled securely by <a href="https://polar.sh">Polar.sh</a>.</sub>
+  <a href="LICENSE"><img alt="License: AGPL-3.0" src="https://img.shields.io/badge/license-AGPL--3.0-F23D32?style=flat"></a>
+  <img alt="macOS 26 or later" src="https://img.shields.io/badge/macOS-26%2B-F23D32?style=flat&logo=apple&logoColor=white">
+  <img alt="Swift 6" src="https://img.shields.io/badge/Swift-6-F23D32?style=flat&logo=swift&logoColor=white">
+  <a href="https://github.com/abue-ammar/tinycast"><img alt="Fork of Tinycast" src="https://img.shields.io/badge/fork%20of-Tinycast-F23D32?style=flat"></a>
 </p>
 
-## Features
+Redcast is a launcher for the Mac: one hotkey, a palette, and the apps, text, windows and commands you
+reach for all day. It is a fork of [Tinycast](https://github.com/abue-ammar/tinycast), a native SwiftUI
+and AppKit launcher that runs real Raycast extensions, and it keeps all of that. What it adds is built
+around agents: AI that sees the window in front of you, voice, agents that live in a folder, and the
+coding agents you already run (Claude Code, Codex, Gemini CLI, OpenCode, Goose, Hermes), all on your
+own keys, logins and machines.
 
-- **App launcher** — fuzzy-search and launch anything, pin favorites, see what's running, quit an app
-  or every app at once.
-- **Global hotkey** — one shortcut summons the palette from anywhere.
-- **Per-app hotkeys** — bind a key to an app; press it to toggle (focus/hide).
-- **Search Files** — open files and folders from the folders you choose, through Spotlight, with no
-  index of our own.
-- **Dictionary** — look a word up with the Define Word command, or define whatever you typed from the
-  launcher's fallbacks, read from the Mac's own dictionaries.
-- **Clipboard history** — text and images, searchable, pasted back into the app you were using.
-- **Calculator** — do math, unit, live currency and crypto conversions inline, right in the palette.
-- **Quicklinks** — turn a URL, search, file or deeplink into a command, with placeholders for typed
-  input, the clipboard or the date.
-- **Apple Shortcuts** — search and run the shortcuts you built in the Shortcuts app, with aliases and
-  global hotkeys.
-- **Snippets** — reusable Markdown templates with dynamic placeholders, arguments, nested references
-  and optional keyword expansion.
-- **Custom commands** — run named shell commands through fuzzy search or their own global hotkeys.
-- **Window management** — 34 Rectangle-style actions: halves, quarters, thirds, sizing, nudging,
-  display moves, fullscreen and Spaces.
-- **System actions** — lock, sleep, restart, empty trash, toggle appearance, Bluetooth, mute, hidden
-  files, and more.
-- **Calendar and meetings** — your next meeting on the empty palette and in the menu bar, one key to
-  join it, or let it join itself.
-- **Notes** — an unlimited collection of plain Markdown files in one floating editor, searchable from
-  the palette and rendered as you write.
-- **Emoji picker** — a searchable emoji grid, one keystroke away.
-- **AI chat** — use your own key or an installed AI account: ask Quick AI from the palette, or keep
-  longer conversations in the AI Chat window, with a searchable, pinnable history. Off out of the box,
-  like every AI feature.
-- **Quick Actions** — fix grammar, rewrite, translate or summarize the selected text in any app.
-- **Raycast extensions** — run the ones you already have natively, rendered as SwiftUI.
-- **Backup and import** — export your settings to a file, or import your setup from Raycast.
+## What Redcast adds
+
+### Agents
+
+- **[Agents](docs/features/agents.md)**: a chat that lives in a folder, reads its `AGENTS.md`, skills
+  and notes, and works there with built-in tools for files, terminal, web and memory, on any
+  tool-calling API model. Every change and command is asked first unless the agent's permissions say
+  otherwise.
+- **[ACP agents](docs/features/agents.md#acp-agents)**: Claude Code, Codex, Gemini CLI, OpenCode,
+  Goose, Hermes or any other command runs as its own CLI over the Agent Client Protocol, on your own
+  logins, with its diffs, plans, slash commands and model pickers in AI Chat.
+- **[Background and scheduled runs](docs/features/background-agents.md)**: `@agent do X` in the
+  launcher runs with no window and ends as a chat. Schedules run an agent daily, on working days or
+  every few hours while Redcast is open, with an optional daily spend cap.
+- **[Agent Sessions](docs/features/agent-sessions.md)**: every past Claude Code, Codex, Gemini CLI,
+  OpenCode and Redcast session, searchable from the launcher and resumed in its folder and terminal
+  with one key. Opt-in live status shows which agent is waiting for you.
+
+### AI
+
+- **[Web search](docs/features/web-search.md)**: Exa, Parallel or DuckDuckGo with no key, or your
+  SearXNG, Brave or Tavily, for agents and every API model in AI Chat, then the pages it finds or you
+  link.
+- **[Quick AI with tools](docs/features/quick-ai-tools.md)**: web search from Quick AI's ⌘K, and an
+  agent of your choice answering there with its tools, folder and permissions.
+- **[Screen Awareness](docs/features/screen-awareness.md)**: double-tap right ⌘ and the window in front
+  (title, URL, selection, focused field, readable text and, if you allow it, a screenshot) is attached
+  to a chat.
+- **[Quick Actions](docs/features/quick-actions.md#placeholders)**: `{clipboard}`, `{date}` and
+  `{argument}` placeholders in your own actions, and ⌘J to continue a result in AI Chat.
+- **[Notes and AI](docs/features/notes-ai.md)**: attach a note with `@note`. Agents with the Notes tools
+  search, read and append to your notes, and ask before every addition.
+- **[Raycast extensions with AI](docs/features/extension-ai.md)**: `AI.ask` and `useAI` are answered by
+  your own model, once you allow each extension.
+- **[Usage](docs/features/usage-dashboard.md)**: tokens and cost per model or agent for a day, a week
+  or a month, counted from what is on this Mac, and your OpenRouter balance on request.
+
+### Voice
+
+- **[Cloud dictation](docs/features/voice-ai.md)**: Gemini Flash on your own OpenRouter, Gemini or
+  OpenAI-compatible connection, with spoken punctuation, lists and corrections, the languages you
+  speak, your own spellings, and modes (Translate to English, Polish, As a message, or your own) that
+  Tab switches mid-dictation.
+- **[Ask and Edit by Voice](docs/features/voice-ai.md)**: ask about the window in front and get the
+  answer beside it or typed into the field, hand the request to an agent, or say how to change the
+  selected text.
+- **[Dictation History](docs/features/dictation-history.md)**: every transcript kept as text, never
+  audio, searchable from the launcher and pasted again with ↵.
+
+### Look and feel
+
+- **[Raycast look](docs/ui.md#colour-the-raycast-palette-fork)**: Raycast's palette and red accent,
+  command tiles coloured by family, and a colour for every agent. Colorful icons in Settings › General
+  brings back Tinycast's.
+- **[Alias + Space](docs/features/alias-actions.md)**: type an entry's alias and press Space to open it.
+  Change an alias or a shortcut right from ⌘K.
+
+## Kept from Tinycast
+
+Everything Tinycast does, Redcast does too:
+
+- **Launch:** apps, files and folders, Apple Shortcuts, custom shell commands, global and per-app hotkeys
+- **Text:** clipboard history with images, snippets with keyword expansion, quicklinks, a calculator
+  with units and currencies, the dictionary, an emoji picker
+- **Windows:** 35 Rectangle-style actions, saved layouts and rooms, a window switcher, menu bar search
+- **Your day:** Markdown notes, your calendar with one-key meeting join, a camera preview
+- **System:** lock, sleep, restart, empty the Trash, appearance, Bluetooth and more; uninstall an app
+  with everything it left behind
+- **AI:** Quick AI and AI Chat on your own keys or installed accounts, MCP servers, Quick Actions on
+  selected text, on-device dictation
+- **Raycast:** real Raycast extensions rendered as native SwiftUI, import from Raycast, backups and a
+  `settings.json` mirror
+
+Each one has its own page in [docs/](docs/README.md#features).
+
+## Light by design
+
+- **Native and small.** SwiftUI and AppKit, no Electron, no third-party dependencies and no
+  telemetry, held to Tinycast's ceiling of 100 MB of resident memory.
+- **Quiet when idle.** The fork's features wait for you: ACP agents stop after two idle minutes, voice
+  keeps no timer, tap or process between presses, schedules wait as one sleeping task, and histories
+  and sessions are read when you open them.
+- **The network on your terms.** AI requests go to the providers you connect, with your keys and
+  logins, when you ask. A Redcast build never checks for updates. Timed requests are the ones you set
+  up (a schedule, an extension's background refresh) and the calculator's daily exchange rates.
+- **Local data.** Chats, notes, clipboard, dictation history and usage stay on this Mac, and AI is off
+  until you connect a provider in Settings → AI.
 
 ## Install
 
-First, add the tap:
+Redcast is built from source on your Mac. There are no release downloads, no Homebrew cask and no
+auto-updates: to update, pull and run the installer again.
+
+**You need** macOS 26 or later, Xcode 26, and one Apple Development signing identity in your keychain.
+Xcode makes one in Settings → Accounts → Manage Certificates, and a free Apple ID is enough; with
+several, name yours in `TINYCAST_SIGN_IDENTITY`.
 
 ```sh
-brew trust --tap abue-ammar/tinycast   # required for third-party taps
-brew tap abue-ammar/tinycast
+git clone https://github.com/alesha-pro/redcast.git && cd redcast
+git remote add upstream https://github.com/abue-ammar/tinycast.git
+git fetch upstream --tags              # About's version counts from upstream's tags
+Scripts/fork/install.sh --self-check   # what an install would do; builds nothing
+Scripts/fork/install.sh                # build, install /Applications/Redcast.app, relaunch
 ```
 
-Then run the one line that matches your Mac:
+`install.sh` builds a Release for this Mac, signs it with your identity, verifies it, quits the running
+Redcast gracefully and swaps the new copy in by rename, so an app is always installed.
 
-| Your Mac                         | Install                                  |
-| -------------------------------- | ---------------------------------------- |
-| Apple silicon, macOS 26 or newer | `brew install --cask tinycast`           |
-| Intel, macOS 26                  | `brew install --cask tinycast-universal` |
+- `--self-check` resolves the identity, version and paths and lists the steps; it builds, quits, moves
+  and registers nothing.
+- `--rollback` puts back the copy the last install replaced, and a second `--rollback` undoes it.
+- Privacy grants survive a reinstall: they follow the bundle id and your certificate. A build whose
+  code requirement would change is refused; `--accept-new-identity` installs it anyway and prints the
+  `tccutil` lines to run.
+- Redcast keeps its own settings (bundle id `com.tinycast.app.fork`), so it can sit beside Tinycast.
 
-Not sure which you have? **Apple menu → About This Mac.** Homebrew checks too, and refuses the
-wrong one.
-
-Want early builds? `brew install --cask tinycast@beta` puts `Tinycast Beta.app` beside the stable
-app, with its own settings and permissions. Apple silicon, macOS 26+.
-
-Homebrew clears the macOS quarantine flag on every install and update, so there is nothing else to
-run. Downloading a DMG from [Releases](https://github.com/abue-ammar/tinycast/releases) instead?
-Tinycast is self-signed, so clear the flag once:
-`xattr -dr com.apple.quarantine "/Applications/Tinycast.app"`.
+Then open Settings → General, record a hotkey and press it anywhere.
 
 ## Permissions
 
-**Accessibility** — needed when Tinycast pastes or expands text into another app, and the only
-permission snippet keyword expansion needs. You're prompted when you first use a feature that needs
-it; grant access in **System Settings → Privacy & Security → Accessibility**. Snippets ship
-disabled, and keystrokes are matched locally, never stored and never sent anywhere.
+Each permission is asked for the first time a feature needs it, and lives in System Settings → Privacy
+& Security.
 
-## Using it
+| Permission | Asked when you first |
+| :-- | :-- |
+| Accessibility | paste from clipboard history, expand a snippet, run a Quick Action, move a window, or read the window in front |
+| Microphone | dictate, or ask or edit by voice |
+| Screen Recording | turn on a window screenshot for Screen Awareness or voice |
+| Calendars | use the calendar and meeting join |
+| Automation | run a system action that scripts another app, such as Empty Trash |
+| Camera, Bluetooth, Reminders | open the camera, toggle Bluetooth, or run an extension that uses reminders |
 
-1. Open **Settings → General** and record a global shortcut to summon Tinycast.
-2. Press it anywhere → the palette floats in. Type to filter, **↵** to launch.
-3. **Tab** switches between Apps and Clipboard; **↑/↓** move, **Esc** dismisses.
-4. **Settings → Shortcuts** — search an app or custom command and record a global shortcut.
-5. **Settings → Snippets** — enable the feature, then create templates with expansion keywords.
+Snippets ship off, and their keywords are matched on your Mac, never stored and never sent anywhere.
+Voice audio goes only to the connection you approved and is never saved.
 
-## Building from source
+## Documentation
 
-See **[docs/development.md](docs/development.md)** for the toolchain, build, packaging, release and
-website workflows. **[docs/](docs/README.md)** indexes everything else — architecture, engineering
-standards, the design system and one document per feature.
+- [FORK.md](FORK.md): everything the fork ships, its roadmap, and how it lives with upstream
+- [docs/](docs/README.md): architecture, standards, testing, the design system and a page per feature
+- [docs/fork-tooling.md](docs/fork-tooling.md): `install.sh`, `sync-upstream.sh` and the rebrand script
+- [AGENTS.md](AGENTS.md): the short version, for coding agents working on this repository
 
-## Contributing
+## Staying in sync with Tinycast
 
-> [!IMPORTANT]
-> **Open an issue before you write code — this is mandatory.** Get the bug or the feature agreed on
-> first; discussing it in the issue (or on [Discord](https://discord.gg/v2Eeb4QQy3)) is strongly
-> encouraged. A PR that doesn't close an issue marked `approved` is closed automatically however good
-> the patch is, and the work is wasted. Docs-only fixes are the one exception.
->
-> Tinycast's feature set is deliberately closed, and "another launcher has it" is not a reason on its
-> own. Ask whether a feature is wanted before you ask for it.
+Redcast follows Tinycast's `main`, which lands almost daily. Fork features live in folders of their own
+and touch shared files in as few lines as possible, so a sync stays mechanical. `sync-upstream.sh`
+merges upstream into a branch of its own, regenerates the Xcode project, merges the string catalogs
+key by key, keeps this README as it is, and runs the build, harness and lint gates before anything
+lands. How it works is in [docs/fork-tooling.md](docs/fork-tooling.md#scriptsforksync-upstreamsh).
 
-Read **[CONTRIBUTING.md](CONTRIBUTING.md)** first — it covers the memory budget every PR is held to,
-the before/after video requirement for visual changes, and why features get declined. Every PR fills
-in the **[pull request template](.github/PULL_REQUEST_TEMPLATE.md)**. Security issues go through
-[SECURITY.md](SECURITY.md), not the issue tracker.
+## Credits and license
 
-Questions, ideas, or just want to follow along? **[Join the Discord](https://discord.gg/v2Eeb4QQy3)**.
+Redcast is an unofficial fork of [Tinycast](https://github.com/abue-ammar/tinycast) by Abue Ammar. The
+launcher and most of its code come from Tinycast, Copyright © 2026 Abue Ammar, and Redcast is
+distributed under the same [GNU Affero General Public License v3.0](LICENSE). The app's About window
+says so too.
 
-## Star History
+Ported from other Tinycast forks under the same licence: alias + Space and the extension-runtime fixes
+from [sermelipharo/tinycast-space](https://github.com/sermelipharo/tinycast-space), ⌘K alias and
+shortcut editing from [jhasubhash/tinycast](https://github.com/jhasubhash/tinycast), and the alias +
+Space idea from [mSarheed/pipcast](https://github.com/mSarheed/pipcast). The commits are listed in
+[FORK.md](FORK.md#credits).
 
-<a href="https://www.star-history.com/?repos=abue-ammar%2Ftinycast&type=date&legend=top-left">
- <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=abue-ammar/tinycast&type=date&theme=dark&legend=top-left" />
-   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=abue-ammar/tinycast&type=date&legend=top-left" />
-   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=abue-ammar/tinycast&type=date&legend=top-left" />
- </picture>
-</a>
+Third-party work keeps its own licence, recorded in [NOTICE.md](NOTICE.md): window rooms adapted from
+[Rooms](https://github.com/saragordic/rooms) by Sara Gordić and the file index after
+[fsearch](https://github.com/noahdunnagan/fsearch) by Noah Dunnagan (both MIT), the model brand marks
+from Simple Icons, Lobe Icons and OpenCode, and the optional dictation models (NVIDIA Parakeet, CC BY
+4.0; Qwen3-ASR, Apache 2.0).
 
-## Shoutout
-
-Big thanks to **[Rueya Supply](https://rueya.supply)**, which makes wallpapers and graphics for your
-desktop. Go check them out.
-
-## License
-
-[AGPL-3.0](LICENSE)
+Raycast is a trademark of its owner. Redcast is not affiliated with Raycast, and not endorsed by
+Tinycast's author.
