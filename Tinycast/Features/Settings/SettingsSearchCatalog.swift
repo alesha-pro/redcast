@@ -300,6 +300,10 @@ enum SettingsSearchCatalog {
         .init(
             .aiAgents, "Add Agent",
             keywords: ["agent", "folder", "skills", "agents.md", "workspace", "tools", "terminal"]),
+        // Fork: the agent AI Chat's new chats start with.
+        .init(
+            .aiAgents, "Agent for new chats",
+            keywords: ["agent", "ai chat", "default", "new chat", "composer", "acp", "claude code"]),
         // Fork: the agent Quick AI's new chats answer with.
         .init(
             .aiAgents, "Quick AI answers with",

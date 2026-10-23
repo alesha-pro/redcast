@@ -184,6 +184,10 @@ enum SettingsBackupCoverage {
         AppSettingsKey.aiQuickAIAgent.rawValue:
             "Names an agent on this Mac that Quick AI's chats run as, with its tools and folder; "
             + "agents never travel in a backup.",
+        // Fork: AI Chat's agent for new chats.
+        AppSettingsKey.aiChatAgent.rawValue:
+            "Names an agent on this Mac that AI Chat's new chats start with, with its tools, folder "
+            + "and command; agents never travel in a backup.",
         AppSettingsKey.mcpEnabled.rawValue:
             "Doubles as consent to run third-party MCP servers, one of which is a local process; a "
             + "flag that grants a capability is never carried by a backup.",

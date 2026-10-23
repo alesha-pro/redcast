@@ -23732,6 +23732,58 @@
         }
       }
     },
+    "Agent for new chats" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Agent für neue Chats"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Agente para chats nuevos"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Agent des nouvelles discussions"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "新しいチャットのエージェント"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "새 채팅의 에이전트"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Agente para novos chats"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Агент для новых чатов"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "新聊天的智能体"
+          }
+        }
+      }
+    },
     "Agent schedules" : {
       "localizations" : {
         "de" : {
@@ -87931,6 +87983,58 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "新建窗口布局"
+          }
+        }
+      }
+    },
+    "New chats in AI Chat start with this agent, as if picked in the composer. The composer switches it for one chat." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Neue Chats im KI-Chat starten mit diesem Agenten, als wäre er im Eingabefeld gewählt. Dort lässt er sich für einen Chat wechseln."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Los chats nuevos del Chat de IA empiezan con este agente, como si lo hubieras elegido en el redactor. El redactor lo cambia para un solo chat."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Les nouvelles discussions de Conversation IA commencent avec cet agent, comme s’il était choisi dans la zone de saisie. La zone de saisie le change pour une seule discussion."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AIチャットの新しいチャットは、入力欄で選んだときと同じく、このエージェントで始まります。入力欄で1つのチャットだけ切り替えられます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AI 채팅의 새 채팅은 입력창에서 고른 것처럼 이 에이전트로 시작합니다. 입력창에서 채팅 하나만 바꿀 수 있습니다."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Novos chats no Chat de IA começam com este agente, como se escolhido no campo de mensagem. O campo de mensagem troca o agente de um único chat."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Новые чаты в ИИ-чате сразу начинаются с этим агентом, будто вы выбрали его в поле ввода. Там же его можно сменить для одного чата."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AI 聊天中的新聊天会以此智能体开始，如同在输入框中选择了它。可在输入框中只为一个聊天更换。"
           }
         }
       }

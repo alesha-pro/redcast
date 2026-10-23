@@ -21,6 +21,7 @@ struct QuickAIToolsTests {
         offeringInQuickAI()
         offeringElsewhere()
         whichAgentAnswers()
+        theDefaultFallsBack()
         theSettingPersists()
 
         print("\(passes) passed, \(failures) failed")
@@ -229,34 +230,66 @@ struct QuickAIToolsTests {
     static func whichAgentAnswers() {
         let own = UUID()
         let quick = UUID()
+        let window = UUID()
+        func answers(
+            bound: UUID? = nil, quickAI: UUID? = quick, window: UUID? = window,
+            on surface: ChatToolPolicy.Surface, isUnsent: Bool = true, declined: Bool = false
+        ) -> UUID? {
+            ChatToolPolicy.agent(
+                bound: bound, quickAI: quickAI, window: window, surface: surface, isUnsent: isUnsent,
+                declined: declined)
+        }
+        expect(answers(bound: own, on: .quickAI) == own, "a chat's own agent wins over Quick AI's")
         expect(
-            ChatToolPolicy.agent(bound: own, quickAI: quick, surface: .quickAI, isUnsent: true, declined: false)
-                == own,
-            "a chat's own agent wins over Quick AI's")
-        expect(
-            ChatToolPolicy.agent(bound: own, quickAI: quick, surface: .quickAI, isUnsent: false, declined: true)
-                == own,
+            answers(bound: own, on: .quickAI, isUnsent: false, declined: true) == own,
             "and keeps answering once picked, whatever else was said")
+        expect(answers(on: .quickAI) == quick, "a new Quick AI chat answers with Settings' agent")
         expect(
-            ChatToolPolicy.agent(bound: nil, quickAI: quick, surface: .quickAI, isUnsent: true, declined: false)
-                == quick,
-            "a new Quick AI chat answers with Settings' agent")
-        expect(
-            ChatToolPolicy.agent(bound: nil, quickAI: quick, surface: .quickAI, isUnsent: false, declined: false)
-                == nil,
+            answers(on: .quickAI, isUnsent: false) == nil,
             "a plain chat Quick AI resumes stays plain; only a first message binds the agent")
         expect(
-            ChatToolPolicy.agent(bound: nil, quickAI: quick, surface: .quickAI, isUnsent: true, declined: true)
-                == nil,
+            answers(on: .quickAI, declined: true) == nil,
             "⌘K's No Agent keeps Settings' agent out of this chat")
+        expect(answers(window: nil, on: .window) == nil, "AI Chat's window never takes Quick AI's agent")
         expect(
-            ChatToolPolicy.agent(bound: nil, quickAI: quick, surface: .window, isUnsent: true, declined: false)
-                == nil,
-            "AI Chat's window never takes Quick AI's agent")
-        expect(
-            ChatToolPolicy.agent(bound: nil, quickAI: nil, surface: .quickAI, isUnsent: true, declined: false)
-                == nil,
+            answers(quickAI: nil, on: .quickAI) == nil,
             "with none set, Quick AI answers with the chat's model")
+
+        expect(answers(on: .window) == window, "a new AI Chat chat starts with Settings' agent for new chats")
+        expect(answers(quickAI: nil, on: .quickAI) == nil, "Quick AI never takes AI Chat's agent")
+        expect(answers(bound: own, on: .window) == own, "a picked agent wins over AI Chat's default")
+        expect(
+            answers(on: .window, isUnsent: false) == nil,
+            "a chat that has spoken never takes the default: existing chats are untouched")
+        expect(
+            answers(on: .window, declined: true) == nil,
+            "the composer's No Agent on a new chat keeps the default out of it")
+        expect(
+            answers(bound: own, on: .window, isUnsent: false) == own,
+            "a chat the default started keeps it once its first message bound it")
+    }
+
+    static func theDefaultFallsBack() {
+        let agent = UUID()
+        let others = [UUID(), UUID()]
+        expect(
+            ChatToolPolicy.windowAgent(picked: agent, among: others + [agent], aiEnabled: true) == agent,
+            "AI Chat's pick holds while its agent exists")
+        expect(
+            ChatToolPolicy.windowAgent(picked: agent, among: others, aiEnabled: true) == nil,
+            "a deleted agent reads as none, so new chats start plain")
+        expect(
+            ChatToolPolicy.windowAgent(picked: agent, among: [agent], aiEnabled: false) == nil,
+            "with AI off there is no default agent")
+        expect(
+            ChatToolPolicy.windowAgent(picked: nil, among: [agent], aiEnabled: true) == nil,
+            "No Agent picks none")
+
+        expect(ChatToolPolicy.declines(nil, isUnsent: true), "No Agent on a new chat declines the default")
+        expect(!ChatToolPolicy.declines(agent, isUnsent: true), "picking an agent declines nothing")
+        expect(
+            !ChatToolPolicy.declines(nil, isUnsent: false),
+            "No Agent on a chat that has spoken only unbinds it; the default is past it anyway")
     }
 
     // MARK: - The setting
@@ -265,18 +298,27 @@ struct QuickAIToolsTests {
         let suite = "tinycast-quick-ai-tools-\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: suite)!
         defer { defaults.removePersistentDomain(forName: suite) }
-        expect(QuickAISettingsStore(defaults: defaults).agentID == nil, "Quick AI starts with no agent")
-        let agent = UUID()
-        QuickAISettingsStore(defaults: defaults).agentID = agent
-        expect(QuickAISettingsStore(defaults: defaults).agentID == agent, "the pick survives a relaunch")
+        for key in [AppSettingsKey.aiQuickAIAgent, .aiChatAgent] {
+            expect(AgentDefaultStore(key, defaults: defaults).agentID == nil, "\(key) starts with no agent")
+            let agent = UUID()
+            AgentDefaultStore(key, defaults: defaults).agentID = agent
+            expect(AgentDefaultStore(key, defaults: defaults).agentID == agent, "\(key) survives a relaunch")
+            expect(
+                defaults.string(forKey: key.rawValue) == agent.uuidString,
+                "\(key) is stored as the agent's id under its own key")
+            AgentDefaultStore(key, defaults: defaults).agentID = nil
+            expect(defaults.object(forKey: key.rawValue) == nil, "\(key): No Agent leaves nothing behind")
+            defaults.set("not an id", forKey: key.rawValue)
+            expect(
+                AgentDefaultStore(key, defaults: defaults).agentID == nil,
+                "\(key): an unreadable value means none")
+        }
+        let quick = UUID()
+        AgentDefaultStore(.aiQuickAIAgent, defaults: defaults).agentID = quick
+        AgentDefaultStore(.aiChatAgent, defaults: defaults).agentID = nil
         expect(
-            defaults.string(forKey: AppSettingsKey.aiQuickAIAgent.rawValue) == agent.uuidString,
-            "stored as the agent's id under its own key")
-        QuickAISettingsStore(defaults: defaults).agentID = nil
-        expect(
-            defaults.object(forKey: AppSettingsKey.aiQuickAIAgent.rawValue) == nil,
-            "No Agent leaves nothing behind")
-        defaults.set("not an id", forKey: AppSettingsKey.aiQuickAIAgent.rawValue)
-        expect(QuickAISettingsStore(defaults: defaults).agentID == nil, "an unreadable value means none")
+            AgentDefaultStore(.aiQuickAIAgent, defaults: defaults).agentID == quick
+                && AgentDefaultStore(.aiChatAgent, defaults: defaults).agentID == nil,
+            "Quick AI's and AI Chat's picks are kept apart")
     }
 }

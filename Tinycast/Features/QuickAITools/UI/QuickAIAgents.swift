@@ -9,30 +9,18 @@ extension AgentCoordinator {
 
     /// Settings' pick while it still names an agent Quick AI may answer with.
     var quickAIAgent: AgentProfile? {
-        quickAISettings.agentID.flatMap(store.agent(id:)).flatMap { $0.runtime == nil ? $0 : nil }
+        quickAIDefault.agentID.flatMap(store.agent(id:)).flatMap { $0.runtime == nil ? $0 : nil }
     }
 
     func surface(of chat: AIChatState) -> ChatToolPolicy.Surface {
         core.aiChats.quickAI === chat ? .quickAI : .window
     }
 
-    /// The agent Quick AI shows becomes the chat's own, so its later turns and AI Chat keep it.
+    /// What Quick AI shows goes with a chat ⌘J moves, No Agent included, so the window agrees.
     func adoptQuickAIAgent(in chat: AIChatState) {
-        guard store.agent(forChat: chat.session.id) == nil, let agent = agent(for: chat) else { return }
-        setAgent(agent, for: chat)
-    }
-
-    /// Bound only once `send` took the message: Return on an empty chat must leave no binding.
-    func bindingQuickAIAgent(in chat: AIChatState, _ send: () -> Bool) -> Bool {
-        let shown = store.agent(forChat: chat.session.id) == nil ? agent(for: chat) : nil
-        guard send() else { return false }
-        if let shown { setAgent(shown, for: chat) }
-        return true
-    }
-
-    /// ⌘K's choice for this chat; No Agent on an unsent one also keeps Settings' agent out of it.
-    func chooseQuickAIAgent(_ agent: AgentProfile?, for chat: AIChatState) {
-        quickAIDeclined = agent == nil && chat.session.messages.isEmpty ? chat.session.id : nil
-        setAgent(agent, for: chat)
+        guard store.agent(forChat: chat.session.id) == nil,
+            !chat.session.messages.isEmpty || !chat.pendingAttachments.isEmpty
+        else { return }
+        chooseAgent(agent(for: chat), for: chat)
     }
 }
