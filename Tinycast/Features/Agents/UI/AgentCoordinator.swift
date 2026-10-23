@@ -245,11 +245,13 @@ final class AgentCoordinator {
         }
     ) -> AgentLoopProvider? {
         let context = context(for: agent)
-        let turn = AgentTurn(
+        var turn = AgentTurn(
             profile: agent, skills: context.skills, memoryURL: store.memoryURL(for: agent.id),
             mode: mode, isBackground: backgroundRuns?.isUnattended(mode.chatID) == true)
+        let web = AgentWebScope(unattended: !turn.isUserTurn)
+        turn.web = web
         let toolset = AgentToolset(
-            turn: turn, providers: providers(for: agent, in: context, over: base, mode: mode),
+            turn: turn, providers: providers(for: agent, in: context, over: base, mode: mode, web: web),
             mcpTools: mcpTools, mcp: mcp,
             refused: { [weak self] _ in
                 guard case .unattended(let chatID) = mode else { return }
@@ -261,18 +263,20 @@ final class AgentCoordinator {
         }
         guard !toolset.tools.isEmpty else { return nil }
         return AgentLoopProvider(
-            base: base, toolset: toolset, maxRounds: core.aiSettings.toolRounds.limit,
+            base: AgentWebRounds(base: base, scope: web), toolset: toolset,
+            maxRounds: core.aiSettings.toolRounds.limit,
             compaction: compaction)
     }
 
     /// The registry: one line per family, built per turn so nothing stays resident between turns.
     private func providers(
-        for agent: AgentProfile, in context: AgentContext, over base: any AIProvider, mode: AgentRunMode
+        for agent: AgentProfile, in context: AgentContext, over base: any AIProvider, mode: AgentRunMode,
+        web: AgentWebScope
     ) -> [any AgentToolProvider] {
         var providers = familyProviders(for: agent)
         providers.append(AgentPlanTools())
         if agent.tools.contains(.delegate) {
-            providers.append(delegate(for: agent, in: context, over: base, parent: mode.chatID))
+            providers.append(delegate(for: agent, in: context, over: base, parent: mode.chatID, web: web))
         }
         return providers
     }
@@ -296,7 +300,8 @@ final class AgentCoordinator {
 
     /// A read-only copy of the agent with no delegate of its own, so sub-agents stop at one level.
     private func delegate(
-        for agent: AgentProfile, in context: AgentContext, over base: any AIProvider, parent: UUID
+        for agent: AgentProfile, in context: AgentContext, over base: any AIProvider, parent: UUID,
+        web: AgentWebScope
     ) -> AgentDelegateTools {
         var reader = agent
         reader.access = .readOnly
@@ -304,7 +309,7 @@ final class AgentCoordinator {
         let toolset = AgentToolset(
             turn: AgentTurn(
                 profile: reader, skills: context.skills, memoryURL: store.memoryURL(for: agent.id),
-                mode: .unattended(parent)),
+                mode: .unattended(parent), web: web),
             providers: familyProviders(for: reader), mcpTools: [], offering: AgentToolRisk.reads,
             mcp: { .failure($0.id, "There is no tool called \($0.name).") },
             // A sub-agent never asks, so what it is refused counts toward its parent's active run.

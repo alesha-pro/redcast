@@ -48,6 +48,7 @@ struct WebSearchTests {
         longPagesComeInParts()
         await theReaderRoutesEachKind()
         await anotherPartIsNotAnotherRead()
+        await anAgentsFetchKeepsToWhatItWasGiven()
 
         print("\(passes) passed, \(failures) failed")
         if failures > 0 { exit(1) }
@@ -1117,7 +1118,7 @@ extension Result {
     }
 }
 
-// MARK: - Reading v2: Markdown, parts, kinds
+// MARK: - Reading v2: Markdown, parts, kinds, an agent's scope
 
 extension WebSearchTests {
     static func markdown(_ html: String, base: String = "https://site.test/docs/page") -> String {
@@ -1369,6 +1370,74 @@ extension WebSearchTests {
         expect(reads.results["r6"]?.content == WebPageTool.readsUsed, "a sixth page still is")
     }
 
+    /// 0.6: what an agent's turn may fetch once nobody watches or it read the user's own data.
+    static func anAgentsFetchKeepsToWhatItWasGiven() async {
+        func url(_ text: String) -> URL { URL(string: text)! }
+        let open = AgentWebScope(unattended: false)
+        expect(
+            open.fetchable(url("http://anything.example/x?q=1")) == url("https://anything.example/x?q=1"),
+            "a watched turn that read nothing personal opens any page, over HTTPS")
+        let tools = [AITool(name: "web_fetch", description: "", parameters: .object([:]), origin: "A")]
+        let question = AgentCompaction.preface("Earlier the agent found https://notes.example/a.") +
+            "Compare https://user.example/page with what you find."
+        open.note(AIRequest(messages: [AIMessage(role: .user, text: "https://untooled.example/")]))
+        open.note(AIRequest(messages: [AIMessage(role: .user, text: question)], tools: tools))
+        open.found([url("https://found.example/1")])
+        open.notePersonal()
+        expect(open.isRestricted, "reading something personal narrows it")
+        expect(open.fetchable(url("https://user.example/page")) == url("https://user.example/page"), "the user's link")
+        expect(open.fetchable(url("https://notes.example/a")) == nil, "never a link the notes on earlier turns hold")
+        expect(open.fetchable(url("https://untooled.example/")) == nil, "nor one from a request without tools")
+        expect(open.fetchable(url("https://found.example/1")) == nil, "a result the model was not yet shown is not given")
+        open.note(AIRequest(messages: [AIMessage(role: .user, text: question)], tools: tools))
+        expect(open.fetchable(url("http://www.found.example/1/")) == url("https://found.example/1"), "until a round")
+        expect(open.fetchable(url("https://found.example/1?d=secret")) == nil, "never a given page rewritten")
+        expect(open.fetchable(url("https://evil.example/c?d=secret")) == nil, "nor any other")
+
+        let unattended = AgentWebScope(unattended: true)
+        unattended.note(AIRequest(messages: [AIMessage(role: .user, text: "Summarise https://user.example/x")], tools: tools))
+        expect(
+            unattended.isRestricted && unattended.fetchable(url("https://user.example/x")) != nil
+                && unattended.fetchable(url("https://other.example/")) == nil,
+            "a run nobody watches opens only what it was given from the start")
+
+        let marked = AgentWebScope(unattended: false)
+        var profile = AgentProfile(name: "A", directory: "/tmp")
+        profile.tools.insert(.notes)
+        func toolset(_ provider: any AgentToolProvider) -> AgentToolset {
+            AgentToolset(
+                turn: AgentTurn(
+                    profile: profile, skills: [], memoryURL: URL(fileURLWithPath: "/tmp/m.md"), mode: .chat(UUID()),
+                    web: marked),
+                providers: [provider], mcpTools: [], mcp: { .failure($0.id, "no MCP") }, ask: { _, _ in true })
+        }
+        let quiet: @Sendable (AgentToolSignal) -> Void = { _ in }
+        let notesRead = AIToolCall(id: "p", name: "notes_read", arguments: "{}")
+        _ = await toolset(PersonalReads(fails: true)).run(notesRead, signal: quiet)
+        expect(!marked.isRestricted, "a personal read that failed read nothing")
+        _ = await toolset(PersonalReads(fails: false)).run(notesRead, signal: quiet)
+        expect(marked.isRestricted, "one that answered narrows the turn's web")
+
+        let transport = FakeTransport(["search.parallel.ai": (fixture("parallel.json"), 200)])
+        let search = WebSearchAgentTools(runner: runner([.parallel], transport: transport, reader: "web_fetch"))
+        let scoped = AgentWebScope(unattended: true)
+        let searchTurn = AgentTurn(
+            profile: profile, skills: [], memoryURL: URL(fileURLWithPath: "/tmp/m.md"), mode: .unattended(UUID()),
+            web: scoped)
+        let searchSet = AgentToolset(
+            turn: searchTurn, providers: [search], mcpTools: [], mcp: { .failure($0.id, "no MCP") }, ask: { _, _ in true })
+        let base = ScriptedProvider(rounds: [
+            [.toolCallRequested(AIToolCall(id: "s1", name: "web_search", arguments: #"{"query":"q"}"#))],
+            [.text("ok"), .finished]
+        ])
+        let loop = AgentLoopProvider(base: AgentWebRounds(base: base, scope: scoped), toolset: searchSet, maxRounds: 3)
+        _ = await collect(loop)
+        expect(
+            scoped.fetchable(url("https://docs.searxng.org/dev/search_api.html"))
+                == url("https://docs.searxng.org//dev/search_api.html"),
+            "a search result the next round showed is given, at the address the engine wrote")
+    }
+
     static func makePDF(at url: URL, pages: [String]) {
         var box = CGRect(x: 0, y: 0, width: 1000, height: 300)
         let context = CGContext(consumer: CGDataConsumer(url: url as CFURL)!, mediaBox: &box, nil)!
@@ -1382,6 +1451,21 @@ extension WebSearchTests {
             context.endPDFPage()
         }
         context.closePDF()
+    }
+}
+
+/// A personal-data read, as notes_read is, answering or failing.
+struct PersonalReads: AgentToolProvider {
+    let fails: Bool
+
+    func specs(for turn: AgentTurn) -> [AgentToolSpec] {
+        [AgentToolSpec(
+            tool: AITool(name: "notes_read", description: "", parameters: .object([:]), origin: "Notes"),
+            family: .notes, risk: .personal, concurrent: true)]
+    }
+
+    func run(_ call: AIToolCall, in context: AgentToolContext) async -> AIToolResult {
+        fails ? .failure(call.id, "No such note.") : AIToolResult(callID: call.id, content: "A note", isError: false)
     }
 }
 

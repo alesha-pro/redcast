@@ -10,7 +10,7 @@ struct AgentBuiltInTools: AgentToolProvider {
     func run(_ call: AIToolCall, in context: AgentToolContext) async -> AIToolResult {
         await AgentToolExecutor(
             profile: context.turn.profile, skills: context.turn.skills,
-            memoryURL: context.turn.memoryURL, consent: context.consent
+            memoryURL: context.turn.memoryURL, consent: context.consent, web: context.turn.web
         ).run(call)
     }
 }
@@ -21,6 +21,8 @@ nonisolated struct AgentToolExecutor: Sendable {
     let skills: [AgentSkill]
     let memoryURL: URL
     let consent: @Sendable (AgentConsentRequest) async -> Bool
+    /// Told when a read reaches the user's files beyond the folder, and what `web_fetch` may open.
+    var web: AgentWebScope?
     var documents: DocumentTextService = .bundled
 
     /// Under the loop's own 32 KB cap per result, so a cut here can still say where to continue.
@@ -79,6 +81,7 @@ nonisolated struct AgentToolExecutor: Sendable {
             return isDirectory.boolValue ? name + "/" : name
         }
         let more = names.count > Self.maxListed ? "\n… \(names.count - Self.maxListed) more" : ""
+        notePersonal(path)
         return .success(entries.isEmpty ? "(empty)" : entries.joined(separator: "\n") + more)
     }
 
@@ -123,6 +126,7 @@ nonisolated struct AgentToolExecutor: Sendable {
         case .pdf: outcome = await readPDF(path, arguments)
         case .image, .richText: outcome = await readDocument(path, kind: kind, arguments)
         }
+        if case .success = outcome { notePersonal(path) }
         return outcome
     }
 
@@ -183,6 +187,7 @@ nonisolated struct AgentToolExecutor: Sendable {
         let result = await AgentProcess.run(executable, arguments: arguments, timeout: 20)
         let text = result.output.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty else { return .success("No matches.") }
+        notePersonal(path)
         return .success(Self.tail(text, keepingHead: true))
     }
 
@@ -307,7 +312,15 @@ nonisolated struct AgentToolExecutor: Sendable {
             let asked = URL(string: raw.trimmingCharacters(in: CharacterSet(charactersIn: " \n\t<>"))),
             WebPageScope.key(for: asked) != nil
         else { return .failure(.init("web_fetch takes an http or https URL with no user name or password.")) }
-        let url = WebPageScope.secured(asked)
+        let url: URL
+        if let web {
+            guard let given = web.fetchable(asked) else {
+                return .failure(.init(WebPageTool.outOfAgentScope(asked, unattended: web.unattended)))
+            }
+            url = given
+        } else {
+            url = WebPageScope.secured(asked)
+        }
         guard await consent(AgentConsentRequest(summary: "Fetch " + url.absoluteString, detail: "")) else {
             return .failure(.declined)
         }
@@ -315,8 +328,11 @@ nonisolated struct AgentToolExecutor: Sendable {
         let read = await WebPageReader.read(
             url, part: position.part, pages: position.pages, tool: AgentToolbox.webFetch, documents: documents)
         switch read {
-        case .success(let page): return .success(WebPageTool.answer(page.text, from: url))
-        case .failure(let failure): return .failure(.init(failure.message))
+        case .success(let page):
+            web?.found(page.links)
+            return .success(WebPageTool.answer(page.text, from: url))
+        case .failure(let failure):
+            return .failure(.init(failure.message))
         }
     }
 
@@ -396,6 +412,14 @@ nonisolated struct AgentToolExecutor: Sendable {
 
     private static func resolvingLinks(_ path: String) -> String {
         URL(fileURLWithPath: path).resolvingSymlinksInPath().path
+    }
+
+    /// A read past the folder and the skills reached the user's own files.
+    private func notePersonal(_ path: String) {
+        guard let web else { return }
+        let roots = ([profile.directory] + skills.map(\.directory)).map(Self.resolvingLinks)
+        guard !roots.contains(where: { AgentPathPolicy.isInside(path, root: $0) }) else { return }
+        web.notePersonal()
     }
 
     // MARK: - Text

