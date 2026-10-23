@@ -11,15 +11,18 @@ struct AgentLoopProvider: AIProvider {
     private let maxRounds: Int?
     /// An agent chat's; nil sends the turn as it was built, as upstream's loop does.
     private let compaction: AgentCompaction.Source?
+    /// Each round's own output cap, so a long `write_file` is not cut at a route's 4K default.
+    private let outputCap: Int?
 
     init(
         base: any AIProvider, toolset: AgentToolset, maxRounds: Int?,
-        compaction: AgentCompaction.Source? = nil
+        compaction: AgentCompaction.Source? = nil, outputCap: Int? = nil
     ) {
         self.base = base
         self.toolset = toolset
         self.maxRounds = maxRounds
         self.compaction = compaction
+        self.outputCap = outputCap
     }
 
     func stream(_ request: AIRequest) -> AIProviderStream {
@@ -57,8 +60,8 @@ struct AgentLoopProvider: AIProvider {
             try Task.checkCancellation()
             rounds += 1
             let round = try await streamRound(
-                request.continuing(with: messages, tools: toolset.tools), billedBefore: billed,
-                spend: spend, into: continuation)
+                request.continuing(with: messages, tools: toolset.tools).capped(at: outputCap ?? request.outputCap),
+                billedBefore: billed, spend: spend, into: continuation)
             if let cost = round.cost { billed = (billed ?? 0) + cost }
             guard !round.calls.isEmpty else {
                 continuation.yield(.finished)
@@ -78,7 +81,10 @@ struct AgentLoopProvider: AIProvider {
                     let title = toolset.title(for: call) ?? tool?.title ?? call.name
                     continuation.yield(.toolCall(id: call.id, origin: tool?.origin ?? "", title: title))
                 }
-                let results = await run(calls, signal: signal, budget: &budget, into: continuation)
+                let results =
+                    round.cutOff
+                    ? refused(calls, budget: &budget, into: continuation)
+                    : await run(calls, signal: signal, budget: &budget, into: continuation)
                 messages += results.map { AIMessage(role: .tool, text: "", toolResult: $0) }
                 if let spent = spend.take() { billed = (billed ?? 0) + spent }
             }
@@ -137,6 +143,18 @@ struct AgentLoopProvider: AIProvider {
         return (text, cost)
     }
 
+    /// A reply the output cap cut may have cut its calls' arguments too: none of them runs.
+    private func refused(
+        _ calls: [AIToolCall], budget: inout AgentTurnBudget,
+        into continuation: AIProviderStream.Continuation
+    ) -> [AIToolResult] {
+        calls.map { call in
+            let result = budget.admit(.cutOff(call))
+            continuation.yield(.toolResult(id: call.id, isError: true))
+            return result
+        }
+    }
+
     /// A batch's admitted results in call order; each row closes as its own call ends.
     private func run(
         _ calls: [AIToolCall], signal: @escaping @Sendable (AgentToolSignal) -> Void,
@@ -161,11 +179,14 @@ struct AgentLoopProvider: AIProvider {
     private func streamRound(
         _ request: AIRequest, billedBefore: Double?, spend: Spend,
         into continuation: AIProviderStream.Continuation
-    ) async throws -> (text: String, calls: [AIToolCall], cost: Double?, reasoning: AIReasoningReplay?) {
+    ) async throws -> (
+        text: String, calls: [AIToolCall], cost: Double?, reasoning: AIReasoningReplay?, cutOff: Bool
+    ) {
         var text = ""
         var calls: [AIToolCall] = []
         var cost: Double?
         var reasoning: AIReasoningReplay?
+        var cutOff = false
         for try await event in base.stream(request) {
             try Task.checkCancellation()
             switch event {
@@ -181,6 +202,8 @@ struct AgentLoopProvider: AIProvider {
                 calls.append(call)
             case .reasoningReplay(let replay):
                 reasoning = replay
+            case .outputLimit:
+                cutOff = true
             // `.finished` is the loop's to send, once the model has stopped asking for tools.
             case .finished:
                 break
@@ -188,7 +211,7 @@ struct AgentLoopProvider: AIProvider {
                 continuation.yield(event)
             }
         }
-        return (text, calls, cost, reasoning)
+        return (text, calls, cost, reasoning, cutOff)
     }
 }
 

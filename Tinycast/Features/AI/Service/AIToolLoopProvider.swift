@@ -74,7 +74,8 @@ struct AIToolLoopProvider: AIProvider {
                     search.map { AIStreamEvent.searching($0) }
                         ?? .toolCall(
                             id: call.id, origin: tool?.origin ?? "", title: tool?.title ?? call.name))
-                let result = await bounded(invoke(call), spent: &spent)
+                // Fork: a call from a reply the output cap cut is never run, as pi refuses it.
+                let result = round.cutOff ? .cutOff(call) : await bounded(invoke(call), spent: &spent)
                 continuation.yield(
                     search.map { AIStreamEvent.searched($0) }
                         ?? .toolResult(id: call.id, isError: result.isError))
@@ -90,11 +91,14 @@ struct AIToolLoopProvider: AIProvider {
     private func streamRound(
         _ request: AIRequest, billedBefore: Double?,
         into continuation: AIProviderStream.Continuation
-    ) async throws -> (text: String, calls: [AIToolCall], cost: Double?, reasoning: AIReasoningReplay?) {
+    ) async throws -> (
+        text: String, calls: [AIToolCall], cost: Double?, reasoning: AIReasoningReplay?, cutOff: Bool
+    ) {
         var text = ""
         var calls: [AIToolCall] = []
         var cost: Double?
         var reasoning: AIReasoningReplay?
+        var cutOff = false
         for try await event in base.stream(request) {
             try Task.checkCancellation()
             switch event {
@@ -110,6 +114,8 @@ struct AIToolLoopProvider: AIProvider {
                 calls.append(call)
             case .reasoningReplay(let replay):
                 reasoning = replay
+            case .outputLimit:
+                cutOff = true
             // `.finished` is the loop's to send, once the model has stopped asking for tools.
             case .finished:
                 break
@@ -117,7 +123,7 @@ struct AIToolLoopProvider: AIProvider {
                 continuation.yield(event)
             }
         }
-        return (text, calls, cost, reasoning)
+        return (text, calls, cost, reasoning, cutOff)
     }
 
     private func bounded(_ result: AIToolResult, spent: inout Int) -> AIToolResult {

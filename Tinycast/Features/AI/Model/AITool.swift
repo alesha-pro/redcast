@@ -46,4 +46,12 @@ struct AIToolResult: Equatable, Sendable {
     static func failure(_ callID: String, _ message: String) -> AIToolResult {
         AIToolResult(callID: callID, content: message, isError: true)
     }
+
+    /// Fork: pi's answer to a call from a reply the output cap cut, which is never run.
+    static func cutOff(_ call: AIToolCall) -> AIToolResult {
+        .failure(
+            call.id,
+            "Tool call \"\(call.name)\" was not executed: the response hit the output token limit, so its "
+                + "arguments may be truncated. Re-issue the tool call with complete arguments.")
+    }
 }

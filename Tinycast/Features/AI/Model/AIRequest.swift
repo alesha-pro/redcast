@@ -124,12 +124,14 @@ struct AIRequest: Equatable, Sendable {
     let tools: [AITool]
     // Fork: an extension's `creativity` on OpenAI's 0–2 scale; nil keeps each route's own default.
     let temperature: Double?
+    // Fork: an agent round's cap, sent on both shapes; nil leaves the OpenAI shape the route's own.
+    let outputCap: Int?
 
     init(
         instructions: String? = nil, messages: [AIMessage],
         maxOutputTokens: Int = defaultMaxOutputTokens,
         webSearch: Bool = false, tools: [AITool] = [], conversationID: UUID? = nil,
-        temperature: Double? = nil
+        temperature: Double? = nil, outputCap: Int? = nil
     ) {
         self.conversationID = conversationID
         self.instructions = instructions
@@ -138,6 +140,7 @@ struct AIRequest: Equatable, Sendable {
         self.webSearch = webSearch
         self.tools = tools
         self.temperature = temperature
+        self.outputCap = outputCap
     }
 
     /// The same turn carried forward, armed with what the loop wrapping it may call.
@@ -145,7 +148,15 @@ struct AIRequest: Equatable, Sendable {
         AIRequest(
             instructions: instructions, messages: messages, maxOutputTokens: maxOutputTokens,
             webSearch: webSearch, tools: tools, conversationID: conversationID,
-            temperature: temperature)
+            temperature: temperature, outputCap: outputCap)
+    }
+
+    /// Fork: the same request with its own output cap, or none.
+    func capped(at tokens: Int?) -> AIRequest {
+        AIRequest(
+            instructions: instructions, messages: messages, maxOutputTokens: maxOutputTokens,
+            webSearch: webSearch, tools: tools, conversationID: conversationID,
+            temperature: temperature, outputCap: tokens)
     }
 }
 
@@ -187,6 +198,8 @@ enum AIStreamEvent: Equatable, Sendable {
     case toolOutput(id: String, content: ChatToolContent)
     /// Fork: a reply's reasoning for a tool loop to send back with its calls; never shown.
     case reasoningReplay(AIReasoningReplay)
+    /// Fork: the output cap cut the reply, so a call in it may have lost the end of its arguments.
+    case outputLimit
     case usage(AIUsage)
     case finished
 }

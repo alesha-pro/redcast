@@ -160,6 +160,8 @@ struct AIStreamDecoder: Sendable {
                 }
             }
             for fragment in choice.delta?.toolCalls ?? [] { absorb(fragment) }
+            // Fork: a reply the output cap cut may hold a call cut mid-argument; the loop must know.
+            if choice.finishReason == "length" { events.append(.outputLimit) }
             if choice.finishReason == "tool_calls" { events.append(contentsOf: flushToolCalls()) }
         }
         if let reported = chunk.usage {
@@ -223,6 +225,8 @@ struct AIStreamDecoder: Sendable {
             return [.usage(usage)]
         case "message_delta":
             usage.outputTokens = event.usage?.outputTokens ?? usage.outputTokens
+            // Fork: the cap cut this reply, so a call still open in it may be cut too.
+            if event.delta?.stopReason == "max_tokens" { return [.usage(usage), .outputLimit] }
             // The calls are complete here, and `message_stop` may never arrive on a tool turn.
             guard event.delta?.stopReason == "tool_use" else { return [.usage(usage)] }
             return [.usage(usage)] + flushToolCalls()
