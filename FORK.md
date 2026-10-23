@@ -1,10 +1,21 @@
-# alesha-pro/tinycast — the agent-native fork
+# Redcast — the agent-native fork of Tinycast
 
-An unofficial fork of [Tinycast](https://github.com/abue-ammar/tinycast) by Abue Ammar. Everything that
-makes Tinycast fast, native and small is upstream's work; this fork adds what upstream has chosen not to
-build — screen-aware AI, agents that live in a folder, and a launcher that works *with* the coding agents
-you already run. Upstream's reasons are on record in [not planned](docs/not-planned.md) (#1151, #1550):
-this fork exists for exactly those features, and keeps everything else as close to upstream as it can.
+[alesha-pro/redcast](https://github.com/alesha-pro/redcast) is an unofficial fork of
+[Tinycast](https://github.com/abue-ammar/tinycast) by Abue Ammar. Everything that makes Tinycast fast,
+native and small is upstream's work; this fork adds what upstream has chosen not to build — screen-aware
+AI, agents that live in a folder, and a launcher that works *with* the coding agents you already run.
+Upstream's reasons are on record in [not planned](docs/not-planned.md) (#1151, #1550): this fork exists
+for exactly those features, and keeps everything else as close to upstream as it can.
+
+**Redcast is the name you see, and only that.** The installed app is `Redcast.app` with a
+`Redcast Dictation` helper, and its menus, windows, onboarding and privacy prompts say Redcast in
+English and all eight translations; About still says it is based on Tinycast by Abue Ammar.
+Underneath it stays Tinycast, so upstream merges stay mechanical and an upgrade keeps everything: the
+Xcode project, targets, sources and type names, the bundle id `com.tinycast.app.fork` (and with it
+settings, Application Support, privacy grants and Keychain items), `.tinycast` backups, the
+`tinycast://` scheme, file paths and log subsystems. The name is set at build time and in the string
+catalogs, never in `project.yml` ([how](docs/fork-tooling.md#scriptsforkrebrandmjs)). Older sections
+below say Tinycast where they mean the app.
 
 **Positioning.** Spotlight in macOS 26 now covers a launcher's basics — app actions, quick keys,
 clipboard history. Raycast is moving to agents and skills behind a subscription. The space left is a
@@ -34,7 +45,8 @@ OpenCode, Goose, Hermes, local models — on the subscriptions and machines you 
 | Change Alias / Change Shortcut | Edit an entry's alias in place, or record its global shortcut, from its ⌘K menu. From `jhasubhash/tinycast`, as reshaped in `sermelipharo/tinycast-space` | [alias actions](docs/features/alias-actions.md#change-alias--change-shortcut) |
 
 Builds of this fork use the bundle id `com.tinycast.app.fork`: they never update themselves from
-upstream's feed, and they keep their settings apart from an installed upstream Tinycast.
+upstream's feed, and they keep their settings apart from an installed upstream Tinycast, which can sit
+next to Redcast in `/Applications`.
 
 ## Living with upstream
 
@@ -51,10 +63,14 @@ upstream's feed, and they keep their settings apart from an installed upstream T
   rather than hand-merging `project.pbxproj`. `Localizable.xcstrings` entries are inserted by hand in
   catalog order (a local `sync-strings.sh` reorders hundreds of unrelated entries). A short key whose
   meaning depends on where it appears, such as `at`, gets a catalog `comment` for translators.
+- New UI text is written with Tinycast in its key, as upstream would, and translated the same way;
+  `node Scripts/fork/rebrand.mjs` then gives it an English value and translations that say Redcast,
+  and `--check` fails while any key still needs that. Text about upstream itself (About's credit and
+  its Discord row) is listed in the script and keeps the name.
 - `Scripts/fork/sync-upstream.sh` does the merge: into `sync/upstream-<sha>`, upstream's
-  `project.pbxproj` and runtime bundle regenerated, the string catalog merged key by key, an
-  `Upstream-Sync:` trailer, then the build, harness, lint and purity gates and a summary of what
-  upstream changed. Other conflicts stop it for `--continue`. Upstream force-pushes `main` now and
+  `project.pbxproj` and runtime bundle regenerated, both string catalogs merged key by key and
+  rebranded, an `Upstream-Sync:` trailer, then the build, harness, lint and purity gates and a summary
+  of what upstream changed. Other conflicts stop it for `--continue`. Upstream force-pushes `main` now and
   then; the script re-anchors on commits it can prove are already merged and otherwise stops with a
   `git range-diff` to read. Details: [fork tooling](docs/fork-tooling.md#scriptsforksync-upstreamsh).
 - **A sync branch lands by fast-forward or a merge commit, never squash or rebase**: either drops
@@ -73,18 +89,28 @@ upstream's feed, and they keep their settings apart from an installed upstream T
 
 ## Installing the fork
 
-`Scripts/fork/install.sh` builds the fork in Release for this Mac, signs it with the keychain's one
-`Apple Development` identity, quits the installed app gracefully, swaps the new bundle in by rename and
-relaunches it. About shows the `git describe` version and the commit count (a fresh clone needs
-`git fetch upstream --tags` first). Details and the manual sweep are in
+`Scripts/fork/install.sh` builds the fork in Release for this Mac as `/Applications/Redcast.app`, signs
+it with the keychain's one `Apple Development` identity, quits the installed app gracefully, swaps the
+new bundle in by rename and relaunches it. About shows the `git describe` version and the commit count
+(a fresh clone needs `git fetch upstream --tags` first). Details and the manual sweep are in
 [fork tooling](docs/fork-tooling.md#scriptsforkinstallsh).
 
-- `--self-check` resolves the identity, version and paths and builds nothing; `--self-test`
-  rehearses an install, a rollback and a start from Tinycast with a stubbed build in `$TMPDIR`;
+- **From Tinycast.app to Redcast.app.** When `/Applications/Tinycast.app` is this fork (its bundle id,
+  and the same code requirement as the new build), the first install quits it, installs
+  `Redcast.app`, moves the old copy into the rollback slot and unregisters it from LaunchServices;
+  `--rollback` puts `Tinycast.app` back, and a second `--rollback` redoes the move. Privacy grants are
+  keyed by bundle id and code requirement, so they carry over. Launch at login may still name the old
+  path: if Redcast does not open at login, switch it off and on in Settings › General.
+  Upstream's own `Tinycast.app` (another bundle id) is never touched; the script only says both are
+  installed.
+
+- `--self-check` resolves the identity, version and paths, prints the migration it would do, and
+  builds nothing; `--self-test` rehearses an install, a rollback, the migration and its rollback, and
+  a start from the app, with a stubbed build in `$TMPDIR`;
   `--rollback` puts back the copy the last install replaced; `--no-launch` and `--force-quit` do
   what they say. A build rolled back to reads this one's files; continuing an ACP chat there drops
   the saved diffs and output of the reply it rewrites ([why](docs/features/agents.md#invariants)).
-- It refuses to replace upstream's same-named `Tinycast.app`, and to install a build whose code
+- It refuses to replace a bundle that is not the fork's, and to install a build whose code
   requirement differs from the installed one: that would cost every privacy grant.
   `--accept-new-identity` goes ahead and prints the `tccutil reset` lines; it never runs them itself.
 - Started from a Tinycast agent or command, it moves to a session of its own before it builds and

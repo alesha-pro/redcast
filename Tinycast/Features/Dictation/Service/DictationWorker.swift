@@ -37,7 +37,7 @@ final class DictationWorker: Sendable {
         #if DEBUG
             "Tinycast Dev Dictation"
         #else
-            "Tinycast Dictation"
+            "\(Bundle.main.executableURL?.lastPathComponent ?? "Tinycast") Dictation"  // Fork: named with the app
         #endif
     }
 

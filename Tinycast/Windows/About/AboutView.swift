@@ -39,6 +39,11 @@ struct AboutView: View {
             .formStyle(.grouped)
             .settingsScrollTarget(.about)
 
+            // Fork: the AGPL credit a renamed build owes upstream; rebrand.mjs never renames it.
+            Text("Based on Tinycast by Abue Ammar")
+                .font(.caption2)
+                .foregroundStyle(.tertiary)
+                .padding(.bottom, Theme.Spacing.xs)
             // Outside the form, so the copyright stays pinned to the bottom edge.
             footer
                 .padding(.bottom, Theme.Spacing.xxl)

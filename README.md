@@ -1,3 +1,8 @@
+<!-- Fork: the fork's one README hunk; upstream's README follows unchanged. -->
+> **This is Redcast**, [alesha-pro/redcast](https://github.com/alesha-pro/redcast): an unofficial,
+> agent-native fork of Tinycast by Abue Ammar. What it adds, how it installs and how it follows
+> upstream are in [FORK.md](FORK.md). Everything below is upstream's README.
+
 # Tinycast
 
 **A tiny, fully native macOS launcher. One hotkey, everything you reach for all day, under 100 MB of

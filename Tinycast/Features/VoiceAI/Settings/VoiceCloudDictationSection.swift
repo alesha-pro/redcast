@@ -35,7 +35,7 @@ struct VoiceCloudDictationSection: View {
                 }
                 TextField(
                     text: vocabularyBinding,
-                    prompt: Text(verbatim: "Tinycast, OpenRouter, Kubernetes")
+                    prompt: Text(verbatim: "Redcast, OpenRouter, Kubernetes")
                 ) {
                     SettingsRowTitle(.dictationCloudTranscription, "Words to spell exactly")
                 }
