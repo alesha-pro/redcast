@@ -90,9 +90,13 @@ in root search or on a schedule: see [background and scheduled agents](backgroun
   as the conversation grows. On Anthropic's own API it also marks the system prompt and the last tool,
   so a new chat with the same agent reads them from the cache: three breakpoints of the four allowed.
   An Anthropic preset pointed at another host is a gateway, which may refuse a field it does not know,
-  so it is left alone. Every request on those routes asks, chats and Quick Actions included: a prompt
-  under the model's minimum is simply not cached, a write costs a quarter more than plain input and a
-  read a tenth, so a turn of two rounds or a reply within five minutes already pays for it.
+  so it is left alone. Only a request that will be sent again asks: one that offers tools (each round of
+  an agent's or a sub-agent's turn) or carries more than one message (a chat's follow-up). A lone
+  question, as a Quick Action, extension AI or the compaction summary, goes out unmarked, since the
+  automatic breakpoint would land after its unique tail and every run would pay the write premium on
+  bytes nobody reads back. A write costs a quarter more than plain input and a read a tenth, so a turn
+  of two rounds or a reply within five minutes pays for it; a prompt under the model's minimum is simply
+  not cached.
 - **A plan is shown, never kept.** `update_plan` belongs to no family and is the agent's own (risk
   own), so every agent on Tinycast's loop has it and it never asks. The model sends the whole checklist
   each time; `AgentPlanTools` shows it as a reasoning fold with the same lines `ACPEventMapper` draws for
@@ -344,6 +348,6 @@ this way, as one provider. Nothing else changes: no router edit, no upstream lin
   signals, Stop, parallel batches, a long turn that elides; `delegate`'s spec and name, a sub-agent's
   request, tools, answer, cost, bounds and Stop; compaction with nothing dropped, made once then
   reused then grown, a failed summary and Stop while it is made); `web-search-test` covers the search
-  provider through a toolset and the loop; `ai-provider-test` pins which routes are asked to cache and
-  where the marks go; and `agent-schedule-test` covers background runs and
+  provider through a toolset and the loop; `ai-provider-test` pins which routes and which requests
+  are asked to cache and where the marks go; and `agent-schedule-test` covers background runs and
   schedules (see [background-agents.md](background-agents.md#manual-sweep)).
