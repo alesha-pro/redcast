@@ -17,10 +17,11 @@ row and chord, `AppIndex`, `LauncherList`, `LauncherCoordinator`, `AppActionsMen
 - **A background run is an ordinary chat.** `AgentBackgroundCoordinator` makes a fresh
   `AIChatState`, sends through `AIChatCoordinator.send` and parks the chat in
   `AIChatSurfacesState.answeringElsewhere` (`park`), where a window chat left mid-reply already waits.
-  There is no second execution path: tools, MCP, ACP, history, titles and the sidebar's spinner work
-  unchanged, and `holder(of:)` finds the run, so no second writer can open it. Clicking it in the
-  sidebar takes the live chat over and the reply keeps streaming on screen. When the reply ends the
-  chat is unparked, so its transcript is freed.
+  There is no second execution path: tools, MCP, ACP (an agent's remembered model and options
+  included), history, titles and the sidebar's spinner work unchanged, and `holder(of:)` finds the
+  run, so no second writer can open it. Clicking it in the sidebar takes the live chat over and the
+  reply keeps streaming on screen. When the reply ends the chat is unparked, so its transcript is
+  freed.
 - **Nothing exists until something needs it.** With no enabled schedule and no agent asking for
   banners, `AgentCoordinator` makes no `AgentBackgroundCoordinator` at all; `AgentBackgroundNeeds`
   decides, and `agent-schedule-test` proves that agents alone, a switched-off schedule or AI off need
@@ -303,7 +304,7 @@ persistence and its refusals, the scheduler's arming and its settle after sleep,
 gate waiting for a dialog in order, and the spend cap: days, starts at and below the cap, stops past
 it, a new day, nonsense costs and caps, the capped origin, its running spend and what it adds
 however it ends, its end state, the file's persistence and an unreadable file failing closed.
-`acp-test` covers the refusal option, two agents sharing a session id, and the briefing: on an
+`acp-test` covers the refusal option, two agents sharing a session id, the briefing (on an
 unattended chat's every turn, after the context, never on a chat someone started, and on a fresh
-process's `/word` turn. `agent-loop-test` runs `AgentSpendMeter` over the loop: unchanged events and
+process's `/word` turn) and an unattended session started on the agent's remembered picks. `agent-loop-test` runs `AgentSpendMeter` over the loop: unchanged events and
 a growing cost after each round, a sub-agent's rounds included.

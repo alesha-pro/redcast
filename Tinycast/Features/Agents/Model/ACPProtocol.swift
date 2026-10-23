@@ -139,37 +139,6 @@ enum ACPUpdate: Equatable, Sendable {
     }
 }
 
-/// The modes a session offers, from `session/new` or `session/load`, and the one it is in.
-struct ACPModes: Equatable, Sendable {
-    struct Mode: Equatable, Identifiable, Sendable {
-        let id: String
-        let name: String
-        let description: String?
-    }
-
-    var current: String?
-    let available: [Mode]
-
-    init(current: String?, available: [Mode]) {
-        self.current = current
-        self.available = available
-    }
-
-    init?(result: JSONValue) {
-        guard let modes = result.objectValue?["modes"]?.objectValue else { return nil }
-        let available: [Mode] = (modes["availableModes"]?.arrayValue ?? []).compactMap { value in
-            guard let mode = value.objectValue, let id = mode["id"]?.stringValue else { return nil }
-            return Mode(
-                id: id, name: mode["name"]?.stringValue ?? id,
-                description: mode["description"]?.stringValue)
-        }
-        guard !available.isEmpty else { return nil }
-        self.init(current: modes["currentModeId"]?.stringValue, available: available)
-    }
-
-    var currentMode: Mode? { available.first { $0.id == current } }
-}
-
 struct ACPDiff: Equatable, Sendable {
     let path: String
     let oldText: String?
