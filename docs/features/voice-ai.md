@@ -70,6 +70,9 @@ tables and `AppCore`.
   listen-only tap, which exists only while some modifier-only shortcut is bound; with the binding
   unset there is no tap, timer or observer. A held modifier is reserved like Dictation's, so a double
   tap of it bound elsewhere is refused, and a binding that collides holds nothing.
+- **Shift never ends a hold that has begun.** ⇧Tab switches the mode back while Fn or a single
+  modifier is held, so `ModifierKeyDetector` lets Shift join and leave the key that holds, and that
+  key's release still finishes the recording, with Shift down or not; any other modifier cancels.
 - **A mode rewrites, it never answers.** Every mode prompt says the speech is material to rewrite,
   never a request, and never to be answered or carried out, the dictation prompt's own guard; the
   transcribe-then-rewrite path sends the transcript as `Text:` material. A mode applies only with
@@ -145,7 +148,8 @@ by app**, else the **Default mode**, else none. The chip above the capsule (`Voi
 nonactivating, mouse-transparent panel) names it and shows ⇥. Tab and ⇧Tab cycle none → each mode
 not left out → none while listening, and the choice is that app's from then on (an entry equal to the
 default is dropped, so the app follows the default again). Tab is the capsule's even during a held
-shortcut, as Return and Escape are.
+shortcut, as Return and Escape are, and so is ⇧Tab: Shift joining a held Fn or single modifier
+doesn't cancel the hold (see [hotkeys.md](hotkeys.md#modifier-only-shortcuts)).
 
 `DictationPanelController` reports its frame on show and nil on close through `onPlacement` and
 offers Tab through `onTab`; `DictationCoordinator` lends its capsule once, through a `capsule`
@@ -177,8 +181,9 @@ Secure Input's equivalents included. A single modifier, such as right Option, is
 `ModifierTapMonitor`, the listen-only tap Screen Awareness's double right ⌘ already uses: while
 Shortcut behavior is Hold to talk, `HotKeyManager.heldCommands` lends the command its modifier, which
 starts the recording after 250 ms held alone and finishes it on release; any other key, modifier or
-click cancels it, except Return, Escape and Tab, which belong to the capsule. A double tap in hold
-mode acts as a toggle and the settings say so, as they name a modifier another hold already reserves.
+click cancels it, except Return, Escape and Tab, which belong to the capsule, and Shift once the hold
+has begun. A double tap in hold mode acts as a toggle and the settings say so, as they name a modifier
+another hold already reserves.
 Every start waits for the previous stop, so one recorder never runs two sessions.
 
 The reply's first two lines are a header, read by `VoiceReplyParser` as they stream; a reply without
@@ -336,12 +341,14 @@ ends.
 - **Dictation modes.** With Cloud transcription on, open Slack and hold Fn: no chip. Press Tab while
   listening: "Translate to English ⇥" appears above the capsule; say "Привет, я буду через десять
   минут": English is typed. Dictate in Slack again: the chip is already there. Dictate in Mail: no
-  chip. Set Default mode to Polish: Mail shows it, Slack keeps Translate. ⇧Tab back to none in Slack:
-  its entry disappears from Modes by app. Dictate "Какая сегодня погода?" in As a message: it is
-  written as a message, not answered. Press Tab after Return, while the capsule processes: nothing
-  changes. Leave Polish out of the Tab cycle: Tab skips it. Rewrite Polish's instructions, then Reset
-  to Default. Add a mode, choose it for an app, delete it: the app types the plain transcript. With a
-  local OpenAI-compatible model, a mode makes two requests (a proxy shows the audio then the text).
+  chip. Set Default mode to Polish: Mail shows it, Slack keeps Translate. Still holding Fn, ⇧Tab back
+  to none in Slack: the recording goes on, and its entry disappears from Modes by app. Hold Fn, press
+  Shift, let go of Fn first: the recording finishes as usual. Dictate "Какая сегодня погода?" in As a
+  message: it is written as a message, not answered. Press Tab after Return, while the capsule
+  processes: nothing changes. Leave Polish out of the Tab cycle: Tab skips it. Rewrite Polish's
+  instructions, then Reset to Default. Add a mode, choose it for an app, delete it: the app types the
+  plain transcript. With a local OpenAI-compatible model, a mode makes two requests (a proxy shows the
+  audio then the text).
 - **Silence and cancelling.** Hold for 2 s in silence: "No speech was recorded", and a proxy shows no
   request. Escape while the capsule processes: nothing is typed. Wi-Fi off: the network error is a HUD.
 - **The composer mic** in AI Chat uses the cloud engine; switching cloud off returns it to the
@@ -418,4 +425,5 @@ ends.
   one; an agent getting the transcript and the window while the route gets the audio alone, and
   refusing a press while it or three agents are busy); `dictation-field-test` (the cloud seam in
   `DictationCoordinator`); `hotkey-dispatch-test` (a command's release, Secure Input's included, and
-  a voice command held on a single modifier).
+  a voice command held on a single modifier); `hotkey-test` (Shift joining and leaving a held key
+  while another modifier still cancels it).

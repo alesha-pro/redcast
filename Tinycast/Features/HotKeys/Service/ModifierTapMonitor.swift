@@ -99,7 +99,8 @@ final class ModifierTapMonitor: HealthCheckable {
             let modifiers = Self.modifiers(in: flags)
             if keyCode == kVK_Function { globeDown = flags.contains(.maskSecondaryFn) }
             let keys = ModifierKey.held(in: flagsRaw, globeDown: globeDown)
-            if let event = modifierDetector.handle(keys, at: now) {
+            // Fork: a hold under way lets Shift come and go, so ⇧Tab can switch a dictation mode.
+            if let event = modifierDetector.handle(keys, at: now, holding: holding) {
                 handleModifier(event)
             }
             input = .modifiers(modifiers, hasOtherModifiers: Self.hasOtherModifiers(in: flags))
