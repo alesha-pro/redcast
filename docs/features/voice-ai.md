@@ -1,6 +1,6 @@
 # Voice AI
 
-Two features over one small folder, both on a Gemini Flash model through the user's own OpenRouter or
+One small folder with four parts, all on a Gemini Flash model through the user's own OpenRouter or
 Gemini connection:
 
 - **Cloud transcription** is a second engine for the Dictation shortcut. Whatever the shortcut is
@@ -41,8 +41,9 @@ tables and `AppCore`.
   that only transcribes), plus an agent's own turn when one answers; the model list is fetched
   only when **Choose…** is clicked. While idle there is no timer, observer, tap, session or process:
   `VoiceCloudTranscriber` holds only references, and `VoiceAskCoordinator` builds its recorder,
-  capsule and panel controller on the first press. Ask by Voice registers one Carbon hotkey, only when
-  bound.
+  capsule and panel controller on the first press. Ask by Voice and Edit Selection by Voice each
+  register one Carbon hotkey, only when bound to a key combination; a single-modifier hold uses the
+  shared tap instead.
 - **Audio stays in memory and is never stored.** The recording becomes a WAV `Data` in memory and the
   float samples are released once encoded; it is sent once on `HTTPAIProvider`'s private `.ephemeral`
   session with `urlCache = nil` and never written to disk, logged or put in chat history. A question
