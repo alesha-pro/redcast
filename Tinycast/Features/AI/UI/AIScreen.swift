@@ -72,6 +72,16 @@ struct AIScreen: PaletteScreen {
                     coordinator.clearAttachments()
                 })
         }
+        // Fork: a note picked here rides the next Quick AI request, like a staged text file.
+        if chatCoordinator.notes.isAvailable {
+            items.append(
+                PopoverMenuItem(
+                    title: String(localized: "Attach Note…"), systemImage: "note.text",
+                    startsSection: chat.lastAssistantText == nil && chat.pendingAttachments.isEmpty
+                ) {
+                    chatCoordinator.notes.presentPicker(for: chat)
+                })
+        }
         items.append(
             PopoverMenuItem(
                 title: String(localized: "Chat History"), systemImage: "clock.arrow.circlepath",
@@ -154,7 +164,10 @@ struct AIScreen: PaletteScreen {
                 availability: { chatCoordinator.availability(for: chat) },
                 onConfigure: chatCoordinator.showSettings,
                 onAppear: chatCoordinator.prepareForChat,
-                onChoose: { coordinator.send($0) }))
+                onChoose: { coordinator.send($0) }
+            )
+            // Fork: Attach Note…'s card, over the transcript and under the query field.
+            .quickNotePicker(chat: chat, chats: chatCoordinator, palette: vm))
     }
 }
 

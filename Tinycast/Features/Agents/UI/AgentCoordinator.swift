@@ -231,7 +231,8 @@ final class AgentCoordinator {
     private func familyProviders(for agent: AgentProfile) -> [any AgentToolProvider] {
         var providers: [any AgentToolProvider] = [AgentBuiltInTools()]
         if agent.tools.contains(.web) {
-            providers.append(WebSearchAgentTools(runner: core.webSearch.runner(canFetch: true)))
+            providers.append(
+                WebSearchAgentTools(runner: core.webSearch.runner(reader: AgentToolbox.webFetch)))
         }
         if core.settings.notesEnabled { providers.append(core.notesAI.agentTools) }
         if core.settings.aiEnabled, core.settings.screenAwarenessEnabled {

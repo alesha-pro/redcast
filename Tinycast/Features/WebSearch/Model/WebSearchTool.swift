@@ -62,12 +62,12 @@ enum WebSearchTool {
 
     static func answer(
         _ results: [WebSearchResult], for query: WebSearchQuery, from source: WebSearchSource,
-        canFetch: Bool
+        reader: String?
     ) -> String {
         var seen = Set<String>()
         let kept = results.filter { seen.insert($0.url).inserted }
         let footer =
-            (canFetch ? "Read a page in full with web_fetch. " : "")
+            (reader.map { "Read a page in full with \($0). " } ?? "")
             + "Cite a source as a markdown link named after its publication."
         var output =
             "Web results for \(quoted(query)) from \(source.title), \(kept.count) found. "

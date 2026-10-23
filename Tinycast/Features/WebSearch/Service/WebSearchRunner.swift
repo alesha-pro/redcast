@@ -6,8 +6,8 @@ nonisolated struct WebSearchRunner: Sendable {
 
     let chain: [WebSearchSource]
     let searxng: URL?
-    /// Whether the turn also offers `web_fetch`, so the answer may point the model at it.
-    let canFetch: Bool
+    /// The tool this turn reads a page with, `web_fetch` or `read_page`, so the answer can name it.
+    let reader: String?
     /// Read at most once per call, and only when a keyed engine's turn comes.
     let keys: @Sendable () -> [String: String]
     var transport: Transport = WebSearchRunner.fetch
@@ -15,25 +15,26 @@ nonisolated struct WebSearchRunner: Sendable {
     static let maxAttempts = 4
     static let maxResponseBytes = 1_048_576
 
-    func run(_ call: AIToolCall) async -> AIToolResult {
+    func run(_ call: AIToolCall) async -> (result: AIToolResult, found: [WebSearchResult]) {
         guard let query = WebSearchTool.parse(call.arguments) else {
-            return .failure(call.id, WebSearchTool.missingQuery)
+            return (.failure(call.id, WebSearchTool.missingQuery), [])
         }
         return await answer(query, callID: call.id)
     }
 
-    func answer(_ query: WebSearchQuery, callID: String) async -> AIToolResult {
-        guard !chain.isEmpty else { return .failure(callID, WebSearchTool.noEngines) }
+    /// The model's answer, and the results it lists, whose pages a plain chat may then read.
+    func answer(
+        _ query: WebSearchQuery, callID: String
+    ) async -> (result: AIToolResult, found: [WebSearchResult]) {
+        guard !chain.isEmpty else { return (.failure(callID, WebSearchTool.noEngines), []) }
         switch await search(query) {
         case .found(let source, let results):
-            return AIToolResult(
-                callID: callID,
-                content: WebSearchTool.answer(results, for: query, from: source, canFetch: canFetch),
-                isError: false)
+            let content = WebSearchTool.answer(results, for: query, from: source, reader: reader)
+            return (AIToolResult(callID: callID, content: content, isError: false), results)
         case .failed(let attempts) where Self.foundNothing(attempts):
-            return AIToolResult(callID: callID, content: WebSearchTool.noResults(for: query), isError: false)
+            return (AIToolResult(callID: callID, content: WebSearchTool.noResults(for: query), isError: false), [])
         case .failed(let attempts):
-            return .failure(callID, WebSearchTool.failure(for: query, attempts: attempts))
+            return (.failure(callID, WebSearchTool.failure(for: query, attempts: attempts)), [])
         }
     }
 

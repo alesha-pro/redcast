@@ -439,8 +439,9 @@ the pill's job, so the header never has to fit a third control beside the switch
 
 The second footer control is the palette's normal Actions (`⌘K`) menu. It owns Continue in AI Chat
 (`⌘J`; Open AI Chat while the chat is empty), New Chat (`⌘N`), Chat History (`⌘Y`) and AI Settings
-(`⌥⌘,`), plus Stop Response (`⌘.`), Regenerate Response (`⌘R`), Copy Last Response (`⇧⌘C`) and
-Remove Attachments when those apply. The chords are Raycast's where it has one, and `AIScreen.perform`
+(`⌥⌘,`), plus Stop Response (`⌘.`), Regenerate Response (`⌘R`), Copy Last Response (`⇧⌘C`),
+Remove Attachments and, while Notes is on, Attach Note… ([notes and AI](notes-ai.md)) when those
+apply. The chords are Raycast's where it has one, and `AIScreen.perform`
 maps each `PaletteShortcut` to its action. AI Settings takes ⌥⌘, because ⌘, stays the app's own
 Settings on every screen. Continuing closes the palette and carries the half-typed line into the
 window's composer with the conversation. Chat History is the palette's own browser over the same
@@ -857,8 +858,9 @@ model added by hand is assumed text-only. A vendor API is assumed to take images
 doesn't simply returns the provider's error.
 
 Web search is a Settings → AI toggle, `aiWebSearch`, off by default: a prompt reaches a search engine
-only once the user has opted in. On API routes it attaches Tinycast's `web_search` tool; the engines
-are chosen under Search engines.
+only once the user has opted in. On API routes it attaches Tinycast's `web_search` tool, and
+`read_page` for a page the user linked or a search returned; the engines are chosen under Search
+engines.
 It's still excluded from backups — which Mac may send prompts to a search engine is that Mac's call.
 Nothing *guesses* at a capability: images ride on what the model's own catalog said, and a vendor
 API that does not take one simply returns its error. What is gated is only what a route provably

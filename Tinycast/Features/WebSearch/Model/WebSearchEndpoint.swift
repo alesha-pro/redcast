@@ -66,12 +66,8 @@ enum WebSearchEndpoint {
             var components = URLComponents(url: parsed, resolvingAgainstBaseURL: false),
             let scheme = components.scheme?.lowercased(), scheme == "http" || scheme == "https"
         else { return .failure(.invalid) }
-        if scheme == "http", !["localhost", "127.0.0.1", "::1"].contains(host) {
-            // Since macOS 14, ATS refuses plain HTTP to an IP address unless the app opts out.
-            if host.contains(":") || host.allSatisfy({ "0123456789.".contains($0) }) {
-                return .failure(.ipLiteral)
-            }
-            guard host.hasSuffix(".local") || !host.contains(".") else { return .failure(.insecure) }
+        if scheme == "http", !allowsPlainHTTP(to: host) {
+            return .failure(isIPLiteral(host) ? .ipLiteral : .insecure)
         }
         var path = components.path
         while path.hasSuffix("/") { path.removeLast() }
@@ -82,6 +78,17 @@ enum WebSearchEndpoint {
         components.fragment = nil
         guard let base = components.url else { return .failure(.invalid) }
         return .success(base)
+    }
+
+    /// What ATS lets plain HTTP reach with no exception: a loopback, `.local` or single-label host.
+    static func allowsPlainHTTP(to host: String) -> Bool {
+        // Since macOS 14, ATS refuses plain HTTP to an IP address unless the app opts out.
+        ["localhost", "127.0.0.1", "::1"].contains(host)
+            || (!isIPLiteral(host) && (host.hasSuffix(".local") || !host.contains(".")))
+    }
+
+    private static func isIPLiteral(_ host: String) -> Bool {
+        host.contains(":") || host.allSatisfy { "0123456789.".contains($0) }
     }
 
     private static func objective(_ query: WebSearchQuery) -> String {
