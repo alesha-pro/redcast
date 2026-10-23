@@ -325,7 +325,8 @@ final class AgentCoordinator {
             globalInstructions: context.globalInstructions, skills: context.skills, memory: context.memory
         ).prompt(now: Date(), timeZone: .current, hasTools: true)
         return AgentDelegateTools(
-            base: base, toolset: toolset, instructions: prompt + "\n\n" + AgentDelegateTools.briefing)
+            base: AgentWebRounds(base: base, scope: web, readsMessages: false), toolset: toolset,
+            instructions: prompt + "\n\n" + AgentDelegateTools.briefing)
     }
 
     /// Whether this chat's agent is offered `web_search`: Web ticked, and not Never Allow.

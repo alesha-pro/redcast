@@ -88,9 +88,10 @@ optional chord: see [background and scheduled agents](background-agents.md).
   instructions."
 - **Once nobody watches or the agent read the user's own data, `web_fetch` opens only what the turn
   was given.** `AgentCoordinator.loop` makes one `AgentWebScope` per turn, shared with its
-  sub-agents, and sees each round's request through `AgentWebRounds` before the model's calls run. A
-  turn nobody sent from its chat (a schedule, the launcher, a voice task) is narrowed from the start;
-  a watched turn is narrowed by the first read that reached the user's data: `read_file`,
+  sub-agents, and sees each round's request through `AgentWebRounds` before the model's calls run (a
+  sub-agent's rounds only show what it found: its question is the parent's brief, which the model
+  wrote). A turn nobody sent from its chat (a schedule, the launcher, a voice task) is narrowed from
+  the start; a watched turn is narrowed by the first read that reached the user's data: `read_file`,
   `list_dir` or `search_files` beyond the agent's folder and its skills (only with full access), and
   any `personal` call that answered (`notes_search`, `notes_read`, `screen_context`). Narrowed, a
   fetch opens only the user's links in their own messages (not an attached file, a captured window

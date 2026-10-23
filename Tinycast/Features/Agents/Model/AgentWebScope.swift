@@ -23,12 +23,12 @@ nonisolated final class AgentWebScope: Sendable {
     /// The model could have written its own data into an address by now, so only given ones open.
     var isRestricted: Bool { unattended || state.withLock(\.personal) }
 
-    /// A round of the turn's own loop; a request with no tools, as a summary of turns, is not.
-    func note(_ request: AIRequest) {
+    /// A round of the turn's loop or a sub-agent's; a request with no tools, as a summary, is not.
+    func note(_ request: AIRequest, readingMessages: Bool = true) {
         guard !request.tools.isEmpty else { return }
-        let messages = request.messages.map(Self.withoutNotes)
+        let messages = readingMessages ? request.messages.map(Self.withoutNotes) : nil
         state.withLock {
-            $0.messages = messages
+            if let messages { $0.messages = messages }
             $0.shown += $0.found
             $0.found.removeAll()
         }

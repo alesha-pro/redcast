@@ -70,6 +70,10 @@ row and chord, `AppIndex`, `LauncherList`, `LauncherCoordinator`, `AppActionsMen
   model-facing text, never localized, and names no tool and no file.
 - **Agent questions queue.** `AgentConsentGate` asks one at a time and only once no dialog is up,
   observed rather than polled, so a foreground and a background ask no longer refuse each other.
+- **An unattended run's `web_fetch` opens only what it was given.** The run's task text, the
+  results of its own searches and the links on pages it read, at the address given; any other
+  address is refused before a request, so a run nobody watches cannot carry what it read out in a URL
+  ([agents](agents.md#invariants)). A native agent's sub-agents keep to the same pages.
 - **Only Always-trusted MCP servers ride an unattended turn.** Servers set to Ask are excluded through
   the run chat's tools menu, so MCP's own dialog, which allows on Return, never appears for one.
 - **Nothing here travels in a backup or `settings.json`.** The policy, the banner opt-in, the
