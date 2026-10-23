@@ -6,8 +6,15 @@ struct VoiceCloudDictationSection: View {
     @Environment(AppSettings.self) private var settings
 
     var body: some View {
-        @Bindable var voice = core.voiceSettings
-        let available = core.voiceCloud.proposal != nil
+        let voice = core.voiceSettings
+        Group {
+            cloudSection(voice: voice, available: core.voiceCloud.proposal != nil)
+            if voice.cloudDictation { VoiceModesSection() }
+        }
+    }
+
+    private func cloudSection(voice: VoiceAISettings, available: Bool) -> some View {
+        @Bindable var voice = voice
         return Section {
             Toggle(isOn: enabledBinding) {
                 SettingsRowTitle(.dictationCloudTranscription, "Transcribe in the cloud")

@@ -118,7 +118,8 @@ final class AppCore {
         },
         showMessage: { [unowned self] in self.showMessage($0, tone: $1) },
         cloudIsOn: { [unowned self] in self.voiceCloud.isOn },
-        cloudTranscribe: { [unowned self] in try await self.voiceCloud.transcribe($0, language: $1) })
+        cloudTranscribe: { [unowned self] in try await self.voiceCloud.transcribe($0, language: $1) },
+        capsule: { [unowned self] in self.voiceCloud.attach(to: $0) })
     @ObservationIgnored private(set) lazy var quicklinkCoordinator = QuicklinkCoordinator(
         store: quicklinks, settings: settings,
         appIndex: appIndex, injector: textInjector, hotKeys: hotKeys, favorites: favorites,
@@ -404,10 +405,14 @@ final class AppCore {
             hotKeys.onDictationReleased = { [weak self] in self?.dictationCoordinator.released() }
             hotKeys.onDictationCancelled = { [weak self] in self?.dictationCoordinator.cancel() }
             hotKeys.onRunCommand = { [weak self] id in self?.launcherCoordinator.runCommand(id) }
-            hotKeys.releasedCommands = [.askByVoice]
+            hotKeys.releasedCommands = VoiceAskCoordinator.commands
             hotKeys.onCommandReleased = { [weak self] id in
-                if id == .askByVoice { self?.voiceAskCoordinator.released() }
+                if VoiceAskCoordinator.commands.contains(id) { self?.voiceAskCoordinator.released() }
             }
+            hotKeys.onCommandCancelled = { [weak self] id in
+                if VoiceAskCoordinator.commands.contains(id) { self?.voiceAskCoordinator.cancel() }
+            }
+            voiceAskCoordinator.applyHoldMode()
             hotKeys.onRunCustomCommand = { [weak self] id in
                 self?.customCommandCoordinator.runCustomCommand(id: id)
             }
@@ -782,6 +787,7 @@ final class AppCore {
                 $0.voiceAskCoordinator.applyEnabled()
             })
         track(voiceSettings, { _ = $0.askEnabled }, reproject: { $0.voiceAskCoordinator.applyEnabled() })
+        track(voiceSettings, { _ = $0.askMode }, reproject: { $0.voiceAskCoordinator.applyHoldMode() })
         track(
             {
                 _ = $0.aiEnabled

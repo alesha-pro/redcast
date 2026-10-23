@@ -8,6 +8,8 @@ struct VoiceCoordinatorTests {
         NSApplication.shared.setActivationPolicy(.prohibited)
         try await cloudConsent()
         try await cloudRouting()
+        try await cloudModes()
+        try await cloudModesTranscribeFirst()
         try await askConsent()
         try await askAnswer()
         try await askInsert()
@@ -17,6 +19,11 @@ struct VoiceCoordinatorTests {
         try await askStartAndStopOrder()
         try await askHoldToTalk()
         try await askDismissAndSwitchOff()
+        try await askAgent()
+        try await askAgentRefusals()
+        try await editReplaces()
+        try await editSelectionMoved()
+        try await editRefusalsAndFailures()
         print("ALL PASSED")
     }
 
@@ -132,6 +139,100 @@ struct VoiceCoordinatorTests {
         expect(cloud.route == nil, "A deleted connection is never replaced by another")
         try await expectRefusal(cloud, "nor sent anything once deleted")
         expect(cloud.proposal == routerDictation, "Only a new dialog may propose another")
+    }
+
+    static let slack = "com.tinyspeck.slackmacgap"
+    static let frame = NSRect(x: 100, y: 100, width: 144, height: 44)
+
+    static func cloudModes() async throws {
+        let world = World(connections: [router])
+        defer { world.tearDown() }
+        let cloud = world.cloud
+        let capsule = DictationPanelController()
+        cloud.attach(to: capsule)
+        world.frontmost = slack
+        world.voice.modes.assign(VoiceModeCatalog.translateToEnglish, to: slack)
+        capsule.onPlacement?(frame)
+        expect(cloud.activeMode == nil && VoiceModeCaption.latest == nil, "With the cloud off no mode applies")
+        expect(capsule.onTab?(false) == false, "and Tab passes through")
+
+        world.settings.dictationEnabled = true
+        world.core.answer = true
+        cloud.setEnabled(true)
+        try await wait { world.voice.cloudDictation }
+        capsule.onPlacement?(frame)
+        expect(cloud.activeMode?.id == VoiceModeCatalog.translateToEnglish, "The capsule takes the app's mode")
+        let caption = VoiceModeCaption.latest
+        expect(caption?.shown == "Translate to English" && caption?.frame == frame, "and names it above itself")
+
+        expect(capsule.onTab?(false) == true, "Tab switches the mode")
+        expect(
+            cloud.activeMode?.id == VoiceModeCatalog.polish
+                && world.voice.modes.mode(for: slack)?.id == VoiceModeCatalog.polish,
+            "to the next one, remembered for the app in front")
+        expect(caption?.shown == "Polish", "and the chip follows")
+        expect(capsule.onTab?(true) == true && cloud.activeMode?.id == VoiceModeCatalog.translateToEnglish, "⇧Tab goes back")
+        _ = capsule.onTab?(true)
+        expect(cloud.activeMode == nil && caption?.shown == nil, "past the first mode is the plain transcript")
+        expect(world.voice.modes.apps[slack] == nil, "and, being the default, leaves the app no entry")
+        _ = capsule.onTab?(false)
+        _ = capsule.onTab?(false)
+
+        let transcription = Task { try await cloud.transcribe(speech, language: nil) }
+        try await wait { Network.streams.count == 1 }
+        let polish = VoiceModeCatalog.builtIn(VoiceModeCatalog.polish)!
+        let request = Network.requests[0]
+        expect(
+            request.instructions?.contains(polish.instructions) == true
+                && request.messages.first?.audio.count == 1,
+            "Gemini hears the recording and the mode in one request")
+        capsule.state.phase = .transcribing
+        expect(capsule.onTab?(false) == false, "Tab no longer switches once the recording is sent")
+        Network.streams[0].yield(.text("Готово."))
+        Network.streams[0].finish()
+        let typed = try await transcription.value
+        expect(typed == "Готово.", "and its text is what is typed")
+
+        capsule.onPlacement?(nil)
+        expect(cloud.activeMode == nil && caption?.shown == nil, "Closing the capsule forgets the mode and the chip")
+        world.frontmost = "com.apple.mail"
+        capsule.state.phase = .listening
+        capsule.onPlacement?(frame)
+        expect(cloud.activeMode == nil, "An app without a mode of its own follows the default, here none")
+    }
+
+    static func cloudModesTranscribeFirst() async throws {
+        let world = World(connections: [local])
+        defer { world.tearDown() }
+        world.settings.dictationEnabled = true
+        world.core.answer = true
+        world.cloud.setEnabled(true)
+        try await wait { world.voice.cloudDictation }
+        let capsule = DictationPanelController()
+        world.cloud.attach(to: capsule)
+        world.voice.modes.assign(VoiceModeCatalog.asMessage, to: nil)
+        capsule.onPlacement?(frame)
+        let transcription = Task { try await world.cloud.transcribe(speech, language: nil) }
+        try await wait { Network.streams.count == 1 }
+        let first = Network.requests[0]
+        expect(
+            first.messages.first?.text == "Transcribe the recording." && first.messages.first?.audio.count == 1,
+            "Another model first transcribes, as plain dictation")
+        Network.streams[0].yield(.text("ну короче завтра в десять"))
+        Network.streams[0].finish()
+        try await wait { Network.streams.count == 2 }
+        let second = Network.requests[1]
+        let message = VoiceModeCatalog.builtIn(VoiceModeCatalog.asMessage)!
+        expect(
+            second.messages.first?.text == "Text:\nну короче завтра в десять"
+                && second.messages.first?.audio.isEmpty == true
+                && second.instructions?.contains(message.instructions) == true,
+            "then rewrites the transcript as text, by the mode")
+        expect(Network.routes == [onLocal], "both on the consented route")
+        Network.streams[1].yield(.text("Завтра в десять."))
+        Network.streams[1].finish()
+        let rewritten = try await transcription.value
+        expect(rewritten == "Завтра в десять.", "and the rewrite is typed")
     }
 
     static func expectRefusal(_ cloud: VoiceCloudTranscriber, _ message: String) async throws {
@@ -429,6 +530,23 @@ struct VoiceCoordinatorTests {
 
         Network.streams[0].finish()
         try await wait { !world.core.messages.isEmpty }
+        world.ask.applyHoldMode()
+        expect(
+            world.hotKeys.heldCommands == [.askByVoice, .editByVoice],
+            "Hold mode lends a single modifier to both voice commands")
+        world.hotKeys.bindings[.command(.askByVoice)] = .init(shortcut: nil, holdKey: 1)
+        expect(world.ask.holdShortcutIssue == nil, "A single modifier can be held")
+        world.ask.pressed()
+        try await wait { world.recorder?.isRecording == true }
+        world.ask.released()
+        try await wait { Network.streams.count == 2 }
+        Network.streams[1].finish()
+        try await wait { world.core.messages.count == 2 }
+        world.hotKeys.conflict = "Dictation"
+        expect(
+            world.ask.holdShortcutIssue == "This shortcut is also used by Dictation. Record another shortcut.",
+            "A modifier another hold reserves is named")
+        world.hotKeys.conflict = nil
         world.hotKeys.bindings[.command(.askByVoice)] = .init(shortcut: nil)
         expect(world.ask.holdShortcutIssue != nil, "A double tap in hold mode says it acts as a toggle")
         world.ask.pressed()
@@ -437,7 +555,10 @@ struct VoiceCoordinatorTests {
         try await settle()
         expect(world.recorder?.isRecording == true, "and its release does not end the recording")
         world.ask.pressed()
-        try await wait { Network.streams.count == 2 }
+        try await wait { Network.streams.count == 3 }
+        world.voice.askMode = .toggle
+        world.ask.applyHoldMode()
+        expect(world.hotKeys.heldCommands.isEmpty, "and toggle mode takes it back")
     }
 
     static func askDismissAndSwitchOff() async throws {
@@ -469,6 +590,193 @@ struct VoiceCoordinatorTests {
         expect(Network.streams.count == 2 && world.ducker.begins == world.ducker.ends, "sending nothing")
         world.ask.pressed()
         expect(world.recorder?.starts == 3, "and its shortcut does nothing")
+    }
+
+    // MARK: - Ask an agent
+
+    static func askAgent() async throws {
+        let world = try await World.asking()
+        defer { world.tearDown() }
+        let coder = AgentProfile(id: UUID(), name: "Coder")
+        world.core.agentCoordinator.agents = [coder]
+        world.voice.askAgent = coder.id
+        world.voice.vocabulary = "Tinycast"
+        world.settings.screenAwarenessScreenshot = true
+        expect(world.ask.agent?.id == coder.id, "An agent can answer Ask by Voice")
+
+        world.ask.pressed()
+        try await wait { world.recorder?.isRecording == true }
+        world.ask.pressed()
+        try await wait { Network.streams.count == 1 }
+        expect(world.screen.screenshots == [true], "The window is read with its picture, for the agent's model")
+        let request = Network.requests[0]
+        let fixture = VoicePrompt.agentRequest(audio: AIAudio(data: Data(), format: "wav"), vocabulary: "Tinycast")
+        expect(
+            Network.routes == [routerAsk] && request.instructions == fixture.instructions,
+            "The request is only written down, as dictation on Ask by Voice's route")
+        expect(
+            request.messages.count == 1 && request.messages[0].text == VoicePrompt.transcribeRequest
+                && request.messages[0].audio.count == 1 && request.messages[0].images.isEmpty,
+            "and the voice route never sees the window's text or picture")
+        Network.streams[0].yield(.text("«Проверь эту "))
+        Network.streams[0].yield(.text("страницу»"))
+        Network.streams[0].finish()
+        let runs = world.core.agentCoordinator.background
+        try await wait { runs.started.count == 1 }
+        expect(
+            runs.started[0].task == "Проверь эту страницу" && runs.started[0].agent == coder.id,
+            "The agent runs the transcript as its background task")
+        expect(runs.started[0].attachments.map(\.name) == ["Fixture", "picture"], "with the window attached")
+        expect(
+            world.panel == nil && DictationPanelController.latest?.isVisible == false
+                && world.ducker.begins == world.ducker.ends,
+            "No panel opens and the capsule closes")
+
+        world.core.paletteCoordinator.isVisible = true
+        world.core.paletteCoordinator.targetApp = NSRunningApplication.runningApplications(
+            withBundleIdentifier: "com.apple.dock"
+        ).first
+        QuickActionRunner.selected = "Hello"
+        try await world.editAndReply("INSERT\nQ: Короче\n\nHi", stream: 1)
+        try await wait { world.injector.queued == 1 }
+        expect(
+            Network.requests[1].instructions == VoicePrompt.editInstructions && runs.started.count == 1,
+            "Editing a selection stays with the model")
+        world.core.paletteCoordinator.isVisible = false
+
+        try await world.askAndReply("[[NO_SPEECH]]", stream: 2)
+        try await wait { world.core.messages.last == "No speech was recorded" }
+        expect(runs.started.count == 1, "Silence starts no run")
+
+        world.ask.pressed()
+        try await wait { world.recorder?.isRecording == true }
+        world.ask.pressed()
+        try await wait { Network.streams.count == 4 }
+        DictationPanelController.latest?.onCancel?()
+        Network.streams[3].yield(.text("Поздно"))
+        Network.streams[3].finish()
+        try await settle()
+        expect(runs.started.count == 1, "Escape while it is written down starts nothing")
+
+        world.core.agentCoordinator.agents = []
+        expect(world.ask.agent == nil, "A deleted agent leaves the model to answer")
+        try await world.askAndReply("ANSWER\nQ: Что?\n\nЭто", stream: 4)
+        try await wait { world.panel?.state?.finished == "Это" }
+        expect(Network.requests[4].instructions == VoicePrompt.askInstructions, "as an ordinary question")
+    }
+
+    static func askAgentRefusals() async throws {
+        let world = try await World.asking()
+        defer { world.tearDown() }
+        let coder = AgentProfile(id: UUID(), name: "Coder")
+        world.core.agentCoordinator.agents = [coder]
+        world.voice.askAgent = coder.id
+        world.core.agentCoordinator.runs = AgentRunLedger(busy: [coder.id], activeCount: 1)
+        world.ask.pressed()
+        expect(
+            world.core.messages.last == "Coder is still working on another task" && world.recorder == nil,
+            "An agent still at work refuses the press before anything is recorded")
+        world.core.agentCoordinator.runs = AgentRunLedger(busy: [], activeCount: 3)
+        world.ask.pressed()
+        expect(
+            world.core.messages.last == "Three agents are already running" && world.recorder == nil,
+            "as do three running agents")
+        world.core.agentCoordinator.runs = AgentRunLedger(busy: [], activeCount: 2)
+        world.ask.pressed()
+        try await wait { world.recorder?.isRecording == true }
+        expect(Network.requests.isEmpty, "Room for one more records, and sends only once finished")
+    }
+
+    // MARK: - Edit Selection by Voice
+
+    static func editReplaces() async throws {
+        let world = try await World.editing(selected: "  Hello, world.\n")
+        defer { world.tearDown() }
+        try await world.editAndReply("INSERT\nQ: Короче\n\n«Hi.»")
+        let request = Network.requests[0]
+        expect(request.instructions == VoicePrompt.editInstructions, "An edit carries its own rules")
+        expect(
+            request.messages.first?.text == "Text:\n  Hello, world.\n" && request.messages.first?.audio.count == 1,
+            "with the selection as material and the spoken instruction")
+        try await wait { world.injector.queued == 1 }
+        world.injector.drain()
+        expect(world.injector.replaced == ["  Hi.\n"], "The unchanged selection is replaced, keeping its outer space")
+        expect(QuickActionRunner.reads == 2 && world.panel == nil, "after reading it again, with no panel")
+        expect(world.ducker.begins == world.ducker.ends, "and the volume is back")
+
+        world.voice.vocabulary = "Tinycast"
+        try await world.editAndReply("Shorter.", stream: 1)
+        let spelled = Network.requests[1].messages.first?.text ?? ""
+        expect(
+            spelled.hasPrefix("Spell these as written when you hear them: Tinycast.\n\nText:\n"),
+            "The vocabulary comes before the selection")
+        try await wait { world.injector.queued == 1 }
+        world.injector.drain()
+        expect(world.injector.replaced.last == "  Shorter.\n", "A reply without its header is the edit whole")
+    }
+
+    static func editSelectionMoved() async throws {
+        let world = try await World.editing(selected: "Hello, world.")
+        defer { world.tearDown() }
+        try await world.editAndReply("INSERT\nQ: Короче\n\nHi.", finishing: false)
+        QuickActionRunner.selected = "Something else"
+        Network.streams[0].finish()
+        try await wait { world.panel?.state?.finished != nil }
+        let panel = world.panel!.state!
+        expect(
+            panel.title == "Короче" && panel.finished == "Hi." && world.injector.queued == 0,
+            "A selection that moved is never replaced: the panel shows the edit, titled by the instruction")
+        expect(
+            world.core.messages.last == "The selection changed, so the result is shown instead.",
+            "and says why")
+        world.panel?.onContinueInChat?("Hi.")
+        expect(
+            world.core.aiChatCoordinator.continued.last?.prompt == "Короче\n\nHello, world."
+                && world.core.aiChatCoordinator.continued.last?.model == routerAsk,
+            "⌘J seeds a chat with the instruction and the original text")
+        world.panel?.onReplace?("Hi.")
+        world.injector.drain()
+        expect(world.injector.delivered == ["Hi."], "↵ types it over whatever is selected now")
+    }
+
+    static func editRefusalsAndFailures() async throws {
+        let world = try await World.editing(selected: "Hello")
+        defer { world.tearDown() }
+        QuickActionRunner.failure = .noSelection
+        world.ask.pressed(.editByVoice)
+        try await wait { world.core.messages.last == "Select some text first." }
+        try await wait { world.recorder?.isRecording == false }
+        try await settle()
+        expect(Network.requests.isEmpty && world.ducker.begins == world.ducker.ends, "Nothing selected: nothing is sent")
+        QuickActionRunner.failure = nil
+
+        try await world.editAndReply("INSERT\nQ:\n\n[[NO_SPEECH]]")
+        try await wait { world.core.messages.last == "No speech was recorded" }
+        expect(world.panel == nil && world.injector.queued == 0, "Silence edits nothing")
+
+        world.injector.fails = true
+        try await world.editAndReply("INSERT\nQ: Короче\n\nHi", stream: 1)
+        try await wait { world.injector.queued == 1 }
+        world.injector.drain()
+        try await wait { world.panel?.state?.finished == "Hi" }
+        expect(
+            world.core.messages.last == "Couldn't replace the selection — the result is shown instead.",
+            "A replacement that fails shows the edit and says so")
+        world.injector.fails = false
+
+        VoiceSelectionAccess.writable = false
+        try await world.editAndReply("INSERT\nQ: Короче\n\nRead-only", stream: 2)
+        try await wait { world.panel?.state?.finished == "Read-only" }
+        expect(
+            world.injector.queued == 0 && QuickActionRunner.reads == 5,
+            "A selection that cannot be written is shown, not pasted where it would land nowhere")
+        VoiceSelectionAccess.writable = true
+
+        world.core.paletteCoordinator.targetApp = nil
+        world.ask.pressed(.editByVoice)
+        expect(
+            world.core.messages.last == "Select text in another app first." && Network.requests.count == 3,
+            "Without an app to edit nothing starts")
     }
 
     // MARK: - Helpers
@@ -510,6 +818,7 @@ final class World {
     let appIndex = AppIndex()
     var microphone = true
     var microphoneRequests = 0
+    var frontmost: String?
     var screen: ScreenAwarenessCoordinator { core.screenAwarenessCoordinator }
     var recorder: DictationCapture? { DictationCapture.latest }
     var panel: QuickActionPanelController? { QuickActionPanelController.latest }
@@ -520,7 +829,8 @@ final class World {
             await core.confirm(
                 title: $0, message: $1, symbol: nil, confirmTitle: "Continue", tone: .neutral,
                 confirmRole: .standard)
-        })
+        },
+        frontmostBundleID: { [weak self] in self?.frontmost })
     lazy var ask = VoiceAskCoordinator(
         settings: settings, voice: voice, aiSettings: ai, appIndex: appIndex, hotKeys: hotKeys,
         injector: injector, audioDucker: ducker, core: core,
@@ -536,8 +846,11 @@ final class World {
         voice = VoiceAISettings(defaults: defaults)
         connections.forEach(ai.save)
         Network.reset()
+        QuickActionRunner.reset()
+        VoiceSelectionAccess.writable = true
         DictationCapture.latest = nil
         DictationPanelController.latest = nil
+        VoiceModeCaption.latest = nil
         QuickActionPanelController.latest = nil
     }
 
@@ -551,6 +864,27 @@ final class World {
         world.core.dialogs = []
         world.core.messages = []
         return world
+    }
+
+    /// Ask by Voice on, with `selected` selected in an app behind the palette.
+    static func editing(selected: String) async throws -> World {
+        let world = try await asking()
+        world.core.paletteCoordinator.isVisible = true
+        world.core.paletteCoordinator.targetApp = NSRunningApplication.runningApplications(
+            withBundleIdentifier: "com.apple.dock"
+        ).first
+        QuickActionRunner.selected = selected
+        return world
+    }
+
+    /// One spoken edit, recorded and sent, then `reply` streamed back on stream number `stream`.
+    func editAndReply(_ reply: String, stream: Int = 0, finishing: Bool = true) async throws {
+        ask.pressed(.editByVoice)
+        try await VoiceCoordinatorTests.wait { recorder?.isRecording == true }
+        ask.pressed(.editByVoice)
+        try await VoiceCoordinatorTests.wait { Network.streams.count == stream + 1 }
+        Network.streams[stream].yield(.text(reply))
+        if finishing { Network.streams[stream].finish() }
     }
 
     /// One question, recorded and sent, then `reply` streamed back on stream number `stream`.
@@ -636,8 +970,34 @@ final class AppSettings {
 
 enum CommandID: Hashable {
     case askByVoice
-    var name: String { "Ask by Voice" }
-    var sfSymbol: String { "waveform" }
+    case editByVoice
+    var name: String { self == .askByVoice ? "Ask by Voice" : "Edit Selection by Voice" }
+    var sfSymbol: String { self == .askByVoice ? "waveform" : "pencil.and.scribble" }
+}
+
+@MainActor
+enum VoiceSelectionAccess {
+    static var writable = true
+    static func isWritable(in app: NSRunningApplication) -> Bool { writable }
+}
+
+@MainActor
+enum QuickActionRunner {
+    static var selected = ""
+    static var failure: QuickActionFailure?
+    static var reads = 0
+
+    static func reset() {
+        selected = ""
+        failure = nil
+        reads = 0
+    }
+
+    static func selection(in app: NSRunningApplication?, using injector: TextInjector) async throws -> String {
+        reads += 1
+        if let failure { throw failure }
+        return selected
+    }
 }
 
 enum HotKeyAction: Hashable {
@@ -648,9 +1008,13 @@ enum HotKeyAction: Hashable {
 final class HotKeyManager {
     struct Binding {
         var shortcut: Int?
+        var holdKey: Int?
     }
     var bindings: [HotKeyAction: Binding] = [:]
+    var heldCommands: Set<CommandID> = []
+    var conflict: String?
     func binding(for action: HotKeyAction) -> Binding? { bindings[action] }
+    func conflictOwner(of binding: Binding, excluding action: HotKeyAction) -> String? { conflict }
 }
 
 @MainActor
@@ -668,6 +1032,7 @@ enum DialogAction {
 @MainActor
 final class AppCore {
     let dictationCoordinator = DictationCoordinator()
+    let agentCoordinator = AgentCoordinator()
     let screenAwarenessCoordinator = ScreenAwarenessCoordinator()
     let paletteCoordinator = PaletteCoordinator()
     let aiChatCoordinator = AIChatCoordinator()
@@ -705,7 +1070,8 @@ final class DictationCoordinator {
 
 @MainActor
 final class PaletteCoordinator {
-    let isVisible = false
+    var isVisible = false
+    var targetApp: NSRunningApplication?
     func hidePalette(restoreFocus: Bool) {}
 }
 
@@ -728,18 +1094,24 @@ final class ScreenAwarenessCoordinator {
     var holdCapture = false
     var pending: CheckedContinuation<Void, Never>?
     var refusals = 0
+    var screenshots: [Bool] = []
 
     func captureTarget() -> NSRunningApplication? { .current }
     func reportMissingAccessibility() { refusals += 1 }
 
     func capture(_ target: NSRunningApplication, screenshot: Bool) async -> Capture? {
+        screenshots.append(screenshot)
         if holdCapture { await withCheckedContinuation { pending = $0 } }
         let field = focused ? ScreenContext.FocusedField(role: "AXTextArea", label: nil, value: "") : nil
         return Capture(
             context: ScreenContext(
                 appName: "Fixture", bundleID: nil, focusedField: field, windowText: ["Window text"],
                 capturedAt: Date(timeIntervalSince1970: 0)),
-            screenshot: nil)
+            screenshot: screenshot ? Data() : nil)
+    }
+
+    func attachments(for capture: Capture) -> [ChatAttachmentReader.Staged] {
+        [.init(name: capture.context.appName)] + (capture.screenshot == nil ? [] : [.init(name: "picture")])
     }
 
     func release() {
@@ -747,6 +1119,40 @@ final class ScreenAwarenessCoordinator {
         pending = nil
         waiting?.resume()
     }
+}
+
+struct AgentProfile {
+    let id: UUID
+    let name: String
+}
+
+enum ChatAttachmentReader {
+    struct Staged {
+        let name: String
+    }
+}
+
+struct AgentRunLedger {
+    var busy: Set<UUID> = []
+    var activeCount = 0
+    func isBusy(agent: UUID) -> Bool { busy.contains(agent) }
+}
+
+@MainActor
+final class AgentBackgroundCoordinator {
+    static let maxConcurrent = 3
+    var started: [(task: String, agent: UUID, attachments: [ChatAttachmentReader.Staged])] = []
+
+    func start(_ task: String, with agent: AgentProfile, attachments: [ChatAttachmentReader.Staged] = []) {
+        started.append((task, agent.id, attachments))
+    }
+}
+
+@MainActor
+final class AgentCoordinator {
+    var agents: [AgentProfile] = []
+    var runs: AgentRunLedger?
+    let background = AgentBackgroundCoordinator()
 }
 
 @MainActor
@@ -829,11 +1235,29 @@ final class DictationPanelController {
     let state = State()
     var onAccept: (() -> Void)?
     var onCancel: (() -> Void)?
+    var onPlacement: ((NSRect?) -> Void)?
+    var onTab: ((Bool) -> Bool)?
     var isVisible = false
 
     init() { Self.latest = self }
     func show() { isVisible = true }
     func close() { isVisible = false }
+}
+
+@MainActor
+final class VoiceModeCaption {
+    static weak var latest: VoiceModeCaption?
+    var shown: String?
+    var frame: NSRect?
+
+    init() { Self.latest = self }
+
+    func show(_ name: String, above capsule: NSRect) {
+        shown = name
+        frame = capsule
+    }
+
+    func close() { shown = nil }
 }
 
 @MainActor
@@ -930,6 +1354,20 @@ final class TextInjector {
             guard let self, isValid() else { return }
             guard !fails else { return onFailed() }
             delivered.append(injected.text)
+            onDelivered()
+        }
+    }
+
+    var replaced: [String] = []
+
+    func replaceSelection(
+        with text: String, in targetApp: NSRunningApplication?,
+        onDelivered: @escaping @MainActor () -> Void = {}, onFailed: @escaping @MainActor () -> Void = {}
+    ) {
+        pending.append { [weak self] in
+            guard let self else { return }
+            guard !fails else { return onFailed() }
+            replaced.append(text)
             onDelivered()
         }
     }

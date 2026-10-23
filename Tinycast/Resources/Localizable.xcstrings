@@ -18851,6 +18851,58 @@
         }
       }
     },
+    "A mode rewrites what you said before it is typed. Press Tab in the dictation capsule to switch modes; Tinycast remembers the choice for the app in front." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ein Modus schreibt um, was du gesagt hast, bevor es eingegeben wird. Drücke Tab in der Diktatkapsel, um den Modus zu wechseln; Tinycast merkt sich die Wahl für die App im Vordergrund."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Un modo reescribe lo que dijiste antes de escribirlo. Pulsa Tab en la cápsula de dictado para cambiar de modo; Tinycast recuerda la elección para la app en primer plano."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Un mode réécrit ce que vous avez dit avant de le saisir. Appuyez sur Tab dans la capsule de dictée pour changer de mode ; Tinycast retient ce choix pour l’app au premier plan."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "モードは、話した内容を入力前に書き直します。音声入力のカプセルで Tab を押すとモードを切り替えられ、Tinycast はその選択を前面のアプリごとに記憶します。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "모드는 말한 내용을 입력하기 전에 다시 씁니다. 받아쓰기 캡슐에서 Tab을 눌러 모드를 전환하면 Tinycast가 앞에 있는 앱에 대해 그 선택을 기억합니다."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Um modo reescreve o que você disse antes de digitá-lo. Pressione Tab na cápsula de ditado para trocar de modo; o Tinycast lembra a escolha para o app em primeiro plano."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Режим переписывает сказанное перед тем, как оно будет напечатано. Нажмите Tab в капсуле диктовки, чтобы сменить режим; Tinycast запомнит выбор для приложения на переднем плане."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "模式会在输入前改写你说的话。在听写胶囊中按 Tab 可切换模式；Tinycast 会为前台应用记住这个选择。"
+          }
+        }
+      }
+    },
     "A name is letters, digits and underscores, and does not start with a digit." : {
       "localizations" : {
         "de" : {
@@ -19111,60 +19163,60 @@
         }
       }
     },
-    "A shortcut records your question and sends it, with the window in front of you, to %@ to be answered by %@. Nothing is recorded or read until you press it." : {
+    "A shortcut records your request and sends it, with the window in front of you or the text you selected, to %@ to be answered by %@. Nothing is recorded or read until you press it." : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ein Kurzbefehl nimmt deine Frage auf und sendet sie mit dem Fenster vor dir an %1$@, wo %2$@ sie beantwortet. Nichts wird aufgenommen oder gelesen, bevor du ihn drückst."
+            "value" : "Ein Kurzbefehl nimmt deine Anfrage auf und sendet sie mit dem Fenster vor dir oder dem ausgewählten Text an %1$@, wo %2$@ sie beantwortet. Nichts wird aufgenommen oder gelesen, bevor du ihn drückst."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "A shortcut records your question and sends it, with the window in front of you, to %1$@ to be answered by %2$@. Nothing is recorded or read until you press it."
+            "value" : "A shortcut records your request and sends it, with the window in front of you or the text you selected, to %1$@ to be answered by %2$@. Nothing is recorded or read until you press it."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Un atajo graba tu pregunta y la envía, junto con la ventana que tienes delante, a %1$@ para que %2$@ la responda. No se graba ni se lee nada hasta que lo pulses."
+            "value" : "Un atajo graba tu petición y la envía, junto con la ventana que tienes delante o el texto que seleccionaste, a %1$@ para que %2$@ la responda. No se graba ni se lee nada hasta que lo pulses."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Un raccourci enregistre votre question et l’envoie, avec la fenêtre au premier plan, à %1$@ pour que %2$@ y réponde. Rien n’est enregistré ni lu tant que vous ne l’utilisez pas."
+            "value" : "Un raccourci enregistre votre demande et l’envoie, avec la fenêtre au premier plan ou le texte sélectionné, à %1$@ pour que %2$@ y réponde. Rien n’est enregistré ni lu tant que vous ne l’utilisez pas."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "ショートカットで質問を録音し、前面のウインドウと一緒に%1$@へ送信して%2$@が回答します。押すまでは何も録音・読み取りされません。"
+            "value" : "ショートカットで依頼を録音し、前面のウインドウまたは選択したテキストと一緒に%1$@へ送信して%2$@が回答します。押すまでは何も録音・読み取りされません。"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "단축키로 질문을 녹음해 앞에 있는 윈도우와 함께 %1$@(으)로 보내면 %2$@이(가) 답합니다. 누르기 전에는 아무것도 녹음하거나 읽지 않습니다."
+            "value" : "단축키로 요청을 녹음해 앞에 있는 윈도우나 선택한 텍스트와 함께 %1$@(으)로 보내면 %2$@이(가) 답합니다. 누르기 전에는 아무것도 녹음하거나 읽지 않습니다."
           }
         },
         "pt" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Um atalho grava sua pergunta e a envia, com a janela à sua frente, para %1$@, onde %2$@ a responde. Nada é gravado nem lido até você pressioná-lo."
+            "value" : "Um atalho grava seu pedido e o envia, com a janela à sua frente ou o texto selecionado, para %1$@, onde %2$@ o responde. Nada é gravado nem lido até você pressioná-lo."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Сочетание клавиш записывает ваш вопрос и отправляет его вместе с окном перед вами в %1$@, где на него ответит %2$@. Пока вы его не нажмёте, ничего не записывается и не читается."
+            "value" : "Сочетание клавиш записывает вашу просьбу и отправляет её вместе с окном перед вами или выделенным текстом в %1$@, где на неё ответит %2$@. Пока вы его не нажмёте, ничего не записывается и не читается."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "快捷键会录下你的问题，并连同你面前的窗口一起发送到 %1$@，由 %2$@ 回答。在你按下之前，不会录制或读取任何内容。"
+            "value" : "快捷键会录下你的请求，并连同你面前的窗口或你选中的文本一起发送到 %1$@，由 %2$@ 回答。在你按下之前，不会录制或读取任何内容。"
           }
         }
       }
@@ -21821,6 +21873,58 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "添加 MCP 服务器"
+          }
+        }
+      }
+    },
+    "Add Mode" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Modus hinzufügen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Añadir modo"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Créer un mode"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "モードを追加"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "모드 추가"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Adicionar modo"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Добавить режим"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "添加模式"
           }
         }
       }
@@ -25460,6 +25564,58 @@
         }
       }
     },
+    "Answer with" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Antworten mit"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Responder con"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Répondre avec"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "回答に使うもの"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "답변 주체"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Responder com"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Отвечает"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "由谁回答"
+          }
+        }
+      }
+    },
     "Answered HTTP %lld." : {
       "localizations" : {
         "de" : {
@@ -27768,6 +27924,58 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "按排列"
+          }
+        }
+      }
+    },
+    "As a message" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Als Nachricht"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Como mensaje"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "En message"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "メッセージとして"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "메시지로"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Como mensagem"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Как сообщение"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "作为消息"
           }
         }
       }
@@ -46631,6 +46839,58 @@
         }
       }
     },
+    "Couldn't replace the selection — the result is shown instead." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Auswahl konnte nicht ersetzt werden – das Ergebnis wird stattdessen angezeigt."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pudo reemplazar la selección; en su lugar se muestra el resultado."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossible de remplacer la sélection — le résultat est affiché à la place."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "選択範囲を置き換えられませんでした。代わりに結果を表示します。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "선택 영역을 바꿀 수 없어 대신 결과를 표시합니다."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Não foi possível substituir a seleção — o resultado é mostrado no lugar."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не удалось заменить выделение — вместо этого показан результат."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法替换所选内容，改为显示结果。"
+          }
+        }
+      }
+    },
     "Couldn't save Emoji & Symbols pins" : {
       "localizations" : {
         "de" : {
@@ -50331,6 +50591,58 @@
         }
       }
     },
+    "Default mode" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Standardmodus"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Modo predeterminado"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mode par défaut"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "デフォルトのモード"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "기본 모드"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Modo padrão"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Режим по умолчанию"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "默认模式"
+          }
+        }
+      }
+    },
     "Default model" : {
       "localizations" : {
         "de" : {
@@ -51734,6 +52046,110 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "听写聆听中"
+          }
+        }
+      }
+    },
+    "Dictation mode: %@" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diktatmodus: %@"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Modo de dictado: %@"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mode de dictée : %@"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "音声入力モード: %@"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "받아쓰기 모드: %@"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Modo de ditado: %@"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Режим диктовки: %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "听写模式：%@"
+          }
+        }
+      }
+    },
+    "Dictation modes" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diktatmodi"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Modos de dictado"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Modes de dictée"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "音声入力モード"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "받아쓰기 모드"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Modos de ditado"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Режимы диктовки"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "听写模式"
           }
         }
       }
@@ -54099,6 +54515,58 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "编辑快速链接"
+          }
+        }
+      }
+    },
+    "Edit Selection by Voice" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Auswahl per Sprache bearbeiten"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Editar la selección por voz"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Modifier la sélection à voix haute"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "選択範囲を音声で編集"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "선택 영역을 음성으로 편집"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Editar seleção por Voz"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Изменить выделение голосом"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "语音编辑所选内容"
           }
         }
       }
@@ -63391,6 +63859,58 @@
         }
       }
     },
+    "For apps without a mode of their own." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Für Apps ohne eigenen Modus."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Para las apps sin un modo propio."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pour les apps sans mode propre."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "独自のモードがないアプリに使います。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "자체 모드가 없는 앱에 사용됩니다."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Para apps sem um modo próprio."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Для приложений без собственного режима."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "用于没有自己模式的应用。"
+          }
+        }
+      }
+    },
     "Force" : {
       "localizations" : {
         "de" : {
@@ -67879,54 +68399,54 @@
         }
       }
     },
-    "Hold to talk needs a key combination. Double taps and single modifiers start and stop instead." : {
+    "Hold to talk needs a key combination or a single modifier. A double tap starts and stops instead." : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Zum Sprechen halten braucht eine Tastenkombination. Doppeltipps und einzelne Sondertasten starten und stoppen stattdessen."
+            "value" : "„Zum Sprechen halten“ benötigt eine Tastenkombination oder eine einzelne Sondertaste. Ein Doppeltipp startet und stoppt stattdessen."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Mantener para hablar necesita una combinación de teclas. Las dobles pulsaciones y los modificadores sueltos inician y detienen en su lugar."
+            "value" : "Mantener para hablar necesita una combinación de teclas o una sola tecla modificadora. Una doble pulsación inicia y detiene en su lugar."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Maintenir pour parler nécessite une combinaison de touches. Les doubles frappes et les modificateurs seuls démarrent et arrêtent à la place."
+            "value" : "« Maintenir pour parler » nécessite une combinaison de touches ou une seule touche de modification. Une double frappe démarre et arrête à la place."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "押している間だけ話すにはキーの組み合わせが必要です。ダブルタップや単独の修飾キーでは開始と停止を切り替えます。"
+            "value" : "「押している間だけ話す」には、キーの組み合わせまたは単一の修飾キーが必要です。ダブルタップでは開始と停止を切り替えます。"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "누르고 말하기에는 키 조합이 필요합니다. 두 번 탭하기와 단일 보조 키는 대신 시작과 중지를 전환합니다."
+            "value" : "누르고 말하기에는 키 조합 또는 보조 키 하나가 필요합니다. 두 번 탭하면 대신 시작과 중지를 전환합니다."
           }
         },
         "pt" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Segurar para falar precisa de uma combinação de teclas. Toques duplos e modificadores isolados iniciam e param em vez disso."
+            "value" : "Segurar para falar requer uma combinação de teclas ou uma única tecla modificadora. Um toque duplo inicia e para em vez disso."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Для удержания нужно сочетание клавиш. Двойное нажатие и одиночные модификаторы вместо этого запускают и останавливают запись."
+            "value" : "Для режима «Удерживайте, чтобы говорить» нужно сочетание клавиш или одна клавиша-модификатор. Двойное нажатие вместо этого запускает и останавливает запись."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "按住说话需要组合键。连按两下和单个修饰键则改为开始和停止。"
+            "value" : "“按住说话”需要使用组合键或单个修饰键。连按两下则改为开始和停止。"
           }
         }
       }
@@ -79342,6 +79862,58 @@
         }
       }
     },
+    "Make Formal" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Förmlicher machen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hacer más formal"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rendre formel"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "フォーマルにする"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "격식 있게 만들기"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tornar formal"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сделать официальнее"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "改为正式"
+          }
+        }
+      }
+    },
     "Make Larger" : {
       "localizations" : {
         "de" : {
@@ -81692,6 +82264,58 @@
         }
       }
     },
+    "Mode for %@" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Modus für %@"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Modo para %@"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mode pour %@"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@のモード"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@의 모드"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Modo para %@"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Режим для %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 的模式"
+          }
+        }
+      }
+    },
     "Model" : {
       "localizations" : {
         "de" : {
@@ -82001,6 +82625,58 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%@ 就绪后，模型会列在此处。"
+          }
+        }
+      }
+    },
+    "Modes by app" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Modi nach App"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Modos por app"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Modes par app"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "アプリごとのモード"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "앱별 모드"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Modos por app"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Режимы по приложениям"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "按应用设置模式"
           }
         }
       }
@@ -85355,6 +86031,58 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "新建布局"
+          }
+        }
+      }
+    },
+    "New Mode" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Neuer Modus"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nuevo modo"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nouveau mode"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "新規モード"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "새로운 모드"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Novo modo"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Новый режим"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "新建模式"
           }
         }
       }
@@ -101183,6 +101911,58 @@
         }
       }
     },
+    "Polish" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Glätten"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pulir"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Peaufiner"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "整える"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "다듬기"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Polir"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Отшлифовать"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "润色"
+          }
+        }
+      }
+    },
     "Pop to Root Search" : {
       "localizations" : {
         "de" : {
@@ -109840,6 +110620,58 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "要重置按使用习惯调整的排序吗？"
+          }
+        }
+      }
+    },
+    "Reset to Default" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Auf Standard zurücksetzen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restablecer el original"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rétablir l’original"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "デフォルトに戻す"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "기본값으로 재설정"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Redefinir para o padrão"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Вернуть исходный"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "恢复默认"
           }
         }
       }
@@ -119295,54 +120127,54 @@
         }
       }
     },
-    "Set its shortcut under Commands. The recording is sent with the capture and never saved; a question is kept only if you continue it in AI Chat." : {
+    "Set their shortcuts under Commands. Edit Selection by Voice rewrites the text you selected as you say. A recording is never saved. A question and what was read are kept only if you continue in AI Chat, or as the chat of an agent's run." : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Lege den Kurzbefehl unter „Befehle“ fest. Die Aufnahme wird mit der Erfassung gesendet und nie gespeichert; eine Frage bleibt nur erhalten, wenn du sie im KI-Chat fortsetzt."
+            "value" : "Lege die Kurzbefehle unter „Befehle“ fest. „Auswahl per Sprache bearbeiten“ schreibt den ausgewählten Text so um, wie du es sagst. Eine Aufnahme wird nie gespeichert. Eine Frage und das Gelesene bleiben nur erhalten, wenn du im KI-Chat weitermachst, oder als Chat eines Agentenlaufs."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Define su atajo en Comandos. La grabación se envía con la captura y nunca se guarda; una pregunta solo se conserva si la continúas en el chat de IA."
+            "value" : "Define sus atajos en Comandos. Editar la selección por voz reescribe el texto seleccionado como digas. Una grabación nunca se guarda. Una pregunta y lo leído solo se conservan si continúas en el chat de IA, o como el chat de la ejecución de un agente."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Définissez son raccourci dans Commandes. L’enregistrement est envoyé avec la capture et n’est jamais conservé ; une question n’est gardée que si vous la poursuivez dans Conversation IA."
+            "value" : "Définissez leurs raccourcis dans Commandes. Modifier la sélection à voix haute réécrit le texte sélectionné comme vous le dites. Un enregistrement n’est jamais conservé. Une question et ce qui a été lu ne sont gardés que si vous continuez dans Conversation IA, ou comme conversation de l’exécution d’un agent."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "ショートカットは「コマンド」で設定します。録音はキャプチャと一緒に送信され、保存されません。質問はAIチャットで続けた場合にのみ残ります。"
+            "value" : "ショートカットは「コマンド」で設定します。「選択範囲を音声で編集」は、選択したテキストを話したとおりに書き直します。録音は保存されません。質問と読み取った内容は、AIチャットで続けた場合か、エージェントの実行のチャットとしてのみ残ります。"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "단축키는 명령에서 설정하세요. 녹음은 캡처와 함께 전송되며 저장되지 않습니다. 질문은 AI 채팅에서 이어갈 때만 남습니다."
+            "value" : "단축키는 명령에서 설정하세요. 선택 영역을 음성으로 편집은 선택한 텍스트를 말한 대로 다시 씁니다. 녹음은 저장되지 않습니다. 질문과 읽은 내용은 AI 채팅에서 이어가거나 에이전트 실행의 채팅으로만 남습니다."
           }
         },
         "pt" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Defina o atalho em Comandos. A gravação é enviada com a captura e nunca é salva; uma pergunta só é mantida se você a continuar no Chat de IA."
+            "value" : "Defina os atalhos em Comandos. Editar seleção por Voz reescreve o texto selecionado como você disser. Uma gravação nunca é salva. Uma pergunta e o que foi lido só são mantidos se você continuar no Chat de IA, ou como o chat da execução de um agente."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Сочетание клавиш задаётся в разделе «Команды». Запись отправляется вместе со снимком окна и не сохраняется; вопрос остаётся, только если вы продолжите его в ИИ-чате."
+            "value" : "Сочетания клавиш задаются в разделе «Команды». «Изменить выделение голосом» переписывает выделенный текст так, как вы скажете. Запись не сохраняется. Вопрос и прочитанное остаются, только если вы продолжите в ИИ-чате или как чат запуска агента."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "在“命令”中设置其快捷键。录音会随截取内容一起发送，绝不保存；只有在 AI 聊天中继续时才会保留问题。"
+            "value" : "在“命令”中设置它们的快捷键。“语音编辑所选内容”会按你说的改写选中的文本。录音绝不保存。问题和读取的内容只有在 AI 聊天中继续时，或作为智能体运行的聊天时才会保留。"
           }
         }
       }
@@ -127442,6 +128274,58 @@
         }
       }
     },
+    "Switch to %@ with Tab" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mit Tab zu %@ wechseln"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cambiar a %@ con Tab"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Passer à %@ avec Tab"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tab で%@に切り替える"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tab으로 %@(으)로 전환"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trocar para %@ com Tab"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Переключаться на «%@» клавишей Tab"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "用 Tab 切换到 %@"
+          }
+        }
+      }
+    },
     "Switch to Next Space" : {
       "localizations" : {
         "de" : {
@@ -127594,6 +128478,58 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "切换到窗口"
+          }
+        }
+      }
+    },
+    "Switch to it with Tab in the capsule" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mit Tab in der Kapsel dorthin wechseln"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cambiar a él con Tab en la cápsula"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Y passer avec Tab dans la capsule"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "カプセルで Tab を押して切り替える"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "캡슐에서 Tab으로 전환"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trocar para ele com Tab na cápsula"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Переключаться на него клавишей Tab в капсуле"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在胶囊中用 Tab 切换到它"
           }
         }
       }
@@ -132987,6 +133923,58 @@
         }
       }
     },
+    "The model above" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Das Modell oben"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El modelo de arriba"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le modèle ci-dessus"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "上のモデル"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "위의 모델"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O modelo acima"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Модель выше"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "上面的模型"
+          }
+        }
+      }
+    },
     "The model returned nothing." : {
       "localizations" : {
         "de" : {
@@ -134601,6 +135589,58 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "无法写入该脚本。"
+          }
+        }
+      }
+    },
+    "The selection changed, so the result is shown instead." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Auswahl hat sich geändert, daher wird das Ergebnis stattdessen angezeigt."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La selección cambió, así que en su lugar se muestra el resultado."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La sélection a changé, le résultat est donc affiché à la place."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "選択範囲が変わったため、代わりに結果を表示します。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "선택 영역이 바뀌어 대신 결과를 표시합니다."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A seleção mudou, então o resultado é mostrado no lugar."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Выделение изменилось, поэтому вместо замены показан результат."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "所选内容已更改，因此改为显示结果。"
           }
         }
       }
@@ -139339,6 +140379,58 @@
         }
       }
     },
+    "Tinycast always tells the model that what you said is text to rewrite, never a request." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tinycast sagt dem Modell immer, dass das Gesagte umzuschreibender Text ist, nie eine Anfrage."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tinycast siempre le dice al modelo que lo que dijiste es texto para reescribir, nunca una petición."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tinycast indique toujours au modèle que ce que vous avez dit est un texte à réécrire, jamais une demande."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tinycast は、話した内容は書き直すためのテキストであって依頼ではないと、常にモデルに伝えます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tinycast는 말한 내용이 요청이 아니라 다시 쓸 텍스트라고 항상 모델에 알려 줍니다."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O Tinycast sempre diz ao modelo que o que você disse é texto para reescrever, nunca um pedido."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tinycast всегда сообщает модели, что сказанное — это текст для переписывания, а не просьба."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tinycast 总会告诉模型：你说的话是要改写的文本，而不是请求。"
+          }
+        }
+      }
+    },
     "Tinycast always tells the model to return only the transformed text, and to treat your selection as material rather than as instructions." : {
       "localizations" : {
         "de" : {
@@ -143299,6 +144391,58 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "翻译为"
+          }
+        }
+      }
+    },
+    "Translate to English" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ins Englische übersetzen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Traducir al inglés"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Traduire en anglais"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "英語に翻訳"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "영어로 번역"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Traduzir para inglês"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Перевести на английский"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "翻译成英语"
           }
         }
       }
@@ -151315,6 +152459,58 @@
         }
       }
     },
+    "With an agent, the model above only writes down your request, and the agent works on it in the background with the window in front attached. Each run is saved as a chat with the agent, including the window's text and any screenshot." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mit einem Agenten schreibt das Modell oben deine Bitte nur auf, und der Agent bearbeitet sie im Hintergrund, mit dem Fenster vor dir im Anhang. Jeder Lauf wird als Chat mit dem Agenten gespeichert, samt dem Text des Fensters und einem etwaigen Bildschirmfoto."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Con un agente, el modelo de arriba solo transcribe tu petición, y el agente trabaja en ella en segundo plano con la ventana que tienes delante adjunta. Cada ejecución se guarda como un chat con el agente, con el texto de la ventana y cualquier captura de pantalla."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Avec un agent, le modèle ci-dessus ne fait que transcrire votre demande, et l’agent la traite en arrière-plan, avec la fenêtre au premier plan en pièce jointe. Chaque exécution est enregistrée comme une conversation avec l’agent, avec le texte de la fenêtre et toute capture d’écran."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "エージェントを選ぶと、上のモデルは依頼を書き起こすだけで、エージェントが前面のウインドウを添付してバックグラウンドで作業します。各実行は、ウインドウのテキストとスクリーンショット（ある場合）を含めて、エージェントとのチャットとして保存されます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "에이전트를 선택하면 위의 모델은 요청을 받아 적기만 하고, 에이전트가 앞에 있는 윈도우를 첨부해 백그라운드에서 작업합니다. 각 실행은 윈도우의 텍스트와 스크린샷(있는 경우)을 포함해 에이전트와의 채팅으로 저장됩니다."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Com um agente, o modelo acima apenas transcreve seu pedido, e o agente trabalha nele em segundo plano com a janela à sua frente anexada. Cada execução é salva como um chat com o agente, incluindo o texto da janela e qualquer captura de tela."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "С агентом модель выше только записывает вашу просьбу, а агент выполняет её в фоне, получив окно перед вами во вложении. Каждый запуск сохраняется как чат с агентом вместе с текстом окна и скриншотом, если он есть."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "选择智能体时，上面的模型只负责转写你的请求，智能体会附上你面前的窗口，在后台处理它。每次运行都会保存为与智能体的聊天，包括窗口的文本和截图（如有）。"
+          }
+        }
+      }
+    },
     "Without it, captures carry text only." : {
       "localizations" : {
         "de" : {
@@ -151571,6 +152767,58 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "正在处理…"
+          }
+        }
+      }
+    },
+    "Write it as a formal email in the language it was spoken in." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Schreib es als förmliche E-Mail in der Sprache, in der es gesprochen wurde."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Escríbelo como un correo formal en el idioma en que se dijo."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rédige-le comme un e-mail formel dans la langue où il a été dit."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "話された言語のまま、フォーマルなメールとして書いてください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "말한 언어 그대로 격식 있는 이메일로 써 주세요."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Escreva como um e-mail formal no idioma em que foi dito."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Оформи это как официальное письмо на том языке, на котором это было сказано."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "用说话时的语言把它写成一封正式邮件。"
           }
         }
       }
@@ -152248,6 +153496,58 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "你的 Codex 配置中已有名为“%@”的 MCP 服务器。请将其重命名，以便在 Codex 中使用此 Tinycast 服务器。"
+          }
+        }
+      }
+    },
+    "Your dictation is rewritten with these instructions before it is typed." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dein Diktat wird mit diesen Anweisungen umgeschrieben, bevor es eingegeben wird."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tu dictado se reescribe con estas instrucciones antes de escribirse."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Votre dictée est réécrite selon ces instructions avant d’être saisie."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "音声入力の内容は、入力される前にこの指示で書き直されます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "받아쓰기 내용은 입력되기 전에 이 지시에 따라 다시 쓰입니다."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Seu ditado é reescrito com estas instruções antes de ser digitado."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Перед вводом диктовка переписывается по этим инструкциям."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "听写内容在输入前会按这些说明改写。"
           }
         }
       }

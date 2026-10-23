@@ -177,8 +177,8 @@ final class LauncherCoordinator {
             core.screenAwarenessCoordinator.askAboutScreen()
         case .runAgentTask:
             core.agentCoordinator.showTaskPrompt()
-        case .askByVoice:
-            core.voiceAskCoordinator.pressed()
+        case .askByVoice, .editByVoice:
+            core.voiceAskCoordinator.pressed(id)
         case .searchAgentSessions:
             core.agentSessionsCoordinator.show()
         case .jumpToAgent:

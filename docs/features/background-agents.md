@@ -94,8 +94,8 @@ row and chord, `AppIndex`, `LauncherList`, `LauncherCoordinator`, `AppActionsMen
 - **ACP agents are released as soon as an unattended run ends**, through `AgentACPHost.release`,
   unless a window or Quick AI chat is using the same agent, so its `npx`, adapter and vendor CLI
   tree is gone at once instead of after the two-minute idle stop.
-- **The network is used only for the turn itself**, on the user's `@` or Run Now, or at a schedule's
-  due time. A scheduled run names its chat itself, so it spends no extra title request.
+- **The network is used only for the turn itself**, on the user's `@`, Ask by Voice or Run Now, or
+  at a schedule's due time. A scheduled run names its chat itself, so it spends no extra title request.
 
 ## From the launcher
 
@@ -139,6 +139,10 @@ indexed (`boundAgentIDs`) and registered, so an agent without a chord costs noth
 agent clears its chord, favorite, alias, hidden flag and ranking; a chord whose agent is gone at
 launch is dropped once `agents.json` has read. Chords, like agents, travel in no backup and no
 `settings.json`.
+
+[Ask by Voice](voice-ai.md#ask-an-agent-by-voice) starts the same run when an agent is chosen under
+its **Answer with**: the spoken request, transcribed, is the task, and the window in front is staged
+in the run's chat through `start(_:with:attachments:)` before the send, as a pasted capture would be.
 
 ## While and after a run
 

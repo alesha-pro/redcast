@@ -331,6 +331,7 @@ enum SettingsSearchCatalog {
             .aiAskByVoice, "Enable Ask by Voice",
             keywords: ["voice", "speak", "microphone", "question", "gemini"]),
         .init(.aiAskByVoice, "Shortcut behavior", keywords: ["hold", "toggle", "push to talk"]),
+        .init(.aiAskByVoice, "Answer with", keywords: ["agent", "background", "voice", "model"]),
         .init(
             .aiConversations, "Opens to",
             keywords: ["new chat", "last", "summon", "resume", "window", "quick ai"]),
@@ -397,7 +398,12 @@ enum SettingsSearchCatalog {
         .init(.dictationCloudTranscription, "Clean up speech", keywords: ["filler", "verbatim"]),
         .init(
             .dictationCloudTranscription, "Words to spell exactly",
-            keywords: ["vocabulary", "names", "dictionary"])
+            keywords: ["vocabulary", "names", "dictionary"]),
+        .init(
+            .dictationModes, "Default mode",
+            keywords: ["translate", "english", "polish", "message", "rewrite", "tone", "style", "prompt"]),
+        .init(.dictationModes, "Add Mode", keywords: ["custom", "prompt", "instructions"]),
+        .init(.dictationModesByApp, "Add Application…", keywords: ["per app", "app", "mode", "tab"])
     ]
 
     private static let fileSearch: [SettingsSearchEntry] = [

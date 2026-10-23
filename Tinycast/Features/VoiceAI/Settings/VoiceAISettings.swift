@@ -24,6 +24,13 @@ final class VoiceAISettings {
     var vocabulary: String {
         didSet { defaults.set(vocabulary, forKey: Key.voiceVocabulary.rawValue) }
     }
+    /// Prompts a cloud transcript passes through, the default and each app's own.
+    var modes: VoiceModeSettings {
+        didSet {
+            guard modes != oldValue, let data = try? JSONEncoder().encode(modes) else { return }
+            defaults.set(data, forKey: Key.voiceDictationModes.rawValue)
+        }
+    }
     /// Off by default: its shortcut records a question and reads the window in front.
     var askEnabled: Bool {
         didSet { defaults.set(askEnabled, forKey: Key.voiceAskEnabled.rawValue) }
@@ -34,6 +41,10 @@ final class VoiceAISettings {
     var askModel: AIModelSelection? {
         didSet { persist(askModel, forKey: .voiceAskModel) }
     }
+    /// nil answers with `askModel`; an agent hears the request as a background task.
+    var askAgent: UUID? {
+        didSet { defaults.set(askAgent?.uuidString, forKey: Key.voiceAskAgent.rawValue) }
+    }
 
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
@@ -41,11 +52,15 @@ final class VoiceAISettings {
         dictationModel = Self.selection(defaults.data(forKey: Key.voiceDictationModel.rawValue))
         cleanup = defaults.object(forKey: Key.voiceDictationCleanup.rawValue) as? Bool ?? true
         vocabulary = defaults.string(forKey: Key.voiceVocabulary.rawValue) ?? ""
+        modes =
+            defaults.data(forKey: Key.voiceDictationModes.rawValue)
+            .flatMap { try? JSONDecoder().decode(VoiceModeSettings.self, from: $0) } ?? VoiceModeSettings()
         askEnabled = defaults.bool(forKey: Key.voiceAskEnabled.rawValue)
         askMode =
             defaults.string(forKey: Key.voiceAskMode.rawValue).flatMap(DictationMode.init(rawValue:))
             ?? .toggle
         askModel = Self.selection(defaults.data(forKey: Key.voiceAskModel.rawValue))
+        askAgent = defaults.string(forKey: Key.voiceAskAgent.rawValue).flatMap(UUID.init(uuidString:))
     }
 
     private static func selection(_ data: Data?) -> AIModelSelection? {
