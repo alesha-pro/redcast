@@ -117,6 +117,9 @@ enum AppSettingsKey: String, CaseIterable {
     case voiceDictationCleanup = "voiceDictationCleanup"
     case voiceVocabulary = "voiceVocabulary"
     case voiceDictationModes = "voiceDictationModes"
+    // Fork: cloud dictation's languages and how much of the app in front it is told.
+    case voiceDictationLanguages = "voiceDictationLanguages"
+    case voiceDictationAppContext = "voiceDictationAppContext"
     case voiceAskEnabled = "voiceAskEnabled"
     case voiceAskMode = "voiceAskMode"
     case voiceAskModel = "voiceAskModel"

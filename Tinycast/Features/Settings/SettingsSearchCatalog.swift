@@ -411,6 +411,13 @@ enum SettingsSearchCatalog {
         .init(
             .dictationCloudTranscription, "Words to spell exactly",
             keywords: ["vocabulary", "names", "dictionary"]),
+        // Fork: cloud dictation's languages and the app in front it is told about.
+        .init(
+            .dictationCloudTranscription, "Languages I speak",
+            keywords: ["language", "multilingual", "russian", "english", "mixed"]),
+        .init(
+            .dictationCloudTranscription, "Use the app in front",
+            keywords: ["context", "window title", "screenshot", "screen", "app name"]),
         // Fork: the modes show only with cloud transcription on, so a result lands on its switch.
         .init(
             group: .dictationCloudTranscription, "Dictation modes",

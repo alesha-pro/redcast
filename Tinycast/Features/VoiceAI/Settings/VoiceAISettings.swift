@@ -24,6 +24,13 @@ final class VoiceAISettings {
     var vocabulary: String {
         didSet { defaults.set(vocabulary, forKey: Key.voiceVocabulary.rawValue) }
     }
+    /// `DictationLanguage` raw values; until chosen, the Mac's own languages.
+    var languages: [String] {
+        didSet { defaults.set(languages, forKey: Key.voiceDictationLanguages.rawValue) }
+    }
+    var appContext: VoiceAppContext.Level {
+        didSet { defaults.set(appContext.rawValue, forKey: Key.voiceDictationAppContext.rawValue) }
+    }
     /// Prompts a cloud transcript passes through, the default and each app's own.
     var modes: VoiceModeSettings {
         didSet {
@@ -46,12 +53,18 @@ final class VoiceAISettings {
         didSet { defaults.set(askAgent?.uuidString, forKey: Key.voiceAskAgent.rawValue) }
     }
 
-    init(defaults: UserDefaults = .standard) {
+    init(defaults: UserDefaults = .standard, preferredLanguages: [String] = SystemLanguages.preferred) {
         self.defaults = defaults
         cloudDictation = defaults.bool(forKey: Key.voiceCloudDictation.rawValue)
         dictationModel = Self.selection(defaults.data(forKey: Key.voiceDictationModel.rawValue))
         cleanup = defaults.object(forKey: Key.voiceDictationCleanup.rawValue) as? Bool ?? true
         vocabulary = defaults.string(forKey: Key.voiceVocabulary.rawValue) ?? ""
+        languages = VoiceLanguagePolicy.normalized(
+            defaults.stringArray(forKey: Key.voiceDictationLanguages.rawValue)
+                ?? VoiceLanguagePolicy.defaults(preferred: preferredLanguages))
+        appContext =
+            defaults.string(forKey: Key.voiceDictationAppContext.rawValue)
+            .flatMap(VoiceAppContext.Level.init(rawValue:)) ?? .title
         modes =
             defaults.data(forKey: Key.voiceDictationModes.rawValue)
             .flatMap { try? JSONDecoder().decode(VoiceModeSettings.self, from: $0) } ?? VoiceModeSettings()

@@ -837,6 +837,7 @@ run screen-awareness-test  Tinycast/Features/ScreenAwareness/Model/*.swift \
                            Tinycast/Features/AI/Model/ChatGPTSubscription.swift \
                            Tinycast/Features/AI/Model/InstalledAI.swift
 run voice-ai-test          Tinycast/Features/VoiceAI/Model/*.swift \
+                           Tinycast/Features/Dictation/Model/DictationLanguage.swift \
                            Tinycast/Features/Agents/Model/ChatToolContent.swift \
                            Tinycast/Features/Settings/AppSettingsKey.swift \
                            Tinycast/Features/AI/Model/*.swift \
@@ -852,6 +853,8 @@ run voice-coordinator-test Tinycast/Features/VoiceAI/Model/*.swift \
                            Tinycast/Features/AI/Service/AIProvider.swift \
                            Tinycast/Features/AI/Settings/AISettingsStore.swift \
                            Tinycast/Features/Dictation/Model/DictationMode.swift \
+                           Tinycast/Features/Dictation/Model/DictationLanguage.swift \
+                           Tinycast/Platform/SystemLanguages.swift \
                            Tinycast/Features/ScreenAwareness/Model/*.swift \
                            Tinycast/Features/QuickActions/Model/CustomQuickAction.swift \
                            Tinycast/Features/QuickActions/Model/QuickActionFailure.swift \

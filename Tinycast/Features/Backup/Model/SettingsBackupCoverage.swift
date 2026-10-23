@@ -214,6 +214,12 @@ enum SettingsBackupCoverage {
             "Only means something beside the Voice AI switches, which never travel in a backup.",
         AppSettingsKey.voiceDictationModes.rawValue:
             "Only means something beside the Voice AI switches, which never travel in a backup.",
+        // Fork: cloud dictation's languages and app context.
+        AppSettingsKey.voiceDictationLanguages.rawValue:
+            "Only means something beside the Voice AI switches, which never travel in a backup.",
+        AppSettingsKey.voiceDictationAppContext.rawValue:
+            "Sends the front app's name and window title, and may send its picture, to an AI "
+            + "destination; an import must not decide that this Mac's screen leaves it.",
         AppSettingsKey.voiceAskEnabled.rawValue:
             "Sends recordings from this Mac's microphone, with the window in front, to an AI "
             + "destination; a flag that grants a capability is never carried by a backup.",

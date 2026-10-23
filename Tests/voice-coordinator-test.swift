@@ -10,6 +10,7 @@ struct VoiceCoordinatorTests {
         try await cloudRouting()
         try await cloudModes()
         try await cloudModesTranscribeFirst()
+        try await cloudContext()
         try await askConsent()
         try await askAnswer()
         try await askInsert()
@@ -113,13 +114,22 @@ struct VoiceCoordinatorTests {
         world.ai.setRoute(.api(local.id), enabled: true)
         expect(cloud.route == onLocal, "Enabled again, it is the route again")
 
-        let transcription = Task { try await cloud.transcribe(speech, language: "Russian") }
+        world.voice.languages = ["Russian", "English"]
+        world.voice.vocabulary = "Redcast"
+        let transcription = Task { try await cloud.transcribe(speech) }
         try await wait { Network.streams.count == 1 }
         expect(Network.routes == [onLocal], "The recording goes to the consented route")
         let request = Network.requests[0]
         expect(
-            request.messages.first?.audio.count == 1 && request.instructions?.contains("Russian") == true,
-            "as one audio part, with the language")
+            request.instructions == VoicePrompt.dictationInstructions(cleanup: true)
+                && request.messages.count == 1 && request.messages.first?.audio.count == 1,
+            "as one audio part in one user turn, since a local server's template may insist on alternation")
+        expect(
+            request.messages.first?.text.hasPrefix("USER DICTIONARY") == true
+                && request.messages.first?.text.contains("Russian, English") == true
+                && request.messages.first?.text.hasSuffix("Transcribe the recording.") == true,
+            "with the words to spell and the languages before the request")
+        expect(request.temperature == VoiceRoutePolicy.dictationTemperature, "at a low temperature")
         Network.streams[0].yield(.text("“Привет, "))
         Network.streams[0].yield(.text("мир”"))
         Network.streams[0].finish()
@@ -131,7 +141,7 @@ struct VoiceCoordinatorTests {
             "Dictation History learns the model that heard it, with no mode")
 
         do {
-            _ = try await cloud.transcribe([Float](repeating: 0, count: 32_000), language: nil)
+            _ = try await cloud.transcribe([Float](repeating: 0, count: 32_000))
             expect(false, "Silence is refused")
         } catch {
             expect(error as? VoiceAIFailure == .noSpeech, "Silence is no speech")
@@ -183,14 +193,15 @@ struct VoiceCoordinatorTests {
         _ = capsule.onTab?(false)
         _ = capsule.onTab?(false)
 
-        let transcription = Task { try await cloud.transcribe(speech, language: nil) }
+        let transcription = Task { try await cloud.transcribe(speech) }
         try await wait { Network.streams.count == 1 }
         let polish = VoiceModeCatalog.builtIn(VoiceModeCatalog.polish)!
         let request = Network.requests[0]
         expect(
-            request.instructions?.contains(polish.instructions) == true
-                && request.messages.first?.audio.count == 1,
+            request.instructions == VoicePrompt.modeInstructions(polish)
+                && request.messages.last?.audio.count == 1,
             "Gemini hears the recording and the mode in one request")
+        expect(VoiceAppContextReader.reads == [.title], "The capsule read the app in front by name and title")
         capsule.state.phase = .transcribing
         expect(capsule.onTab?(false) == false, "Tab no longer switches once the recording is sent")
         Network.streams[0].yield(.text("Готово."))
@@ -234,11 +245,13 @@ struct VoiceCoordinatorTests {
         world.cloud.attach(to: capsule)
         world.voice.modes.defaultMode = VoiceModeCatalog.asMessage
         capsule.onPlacement?(frame)
-        let transcription = Task { try await world.cloud.transcribe(speech, language: nil) }
+        let transcription = Task { try await world.cloud.transcribe(speech) }
         try await wait { Network.streams.count == 1 }
         let first = Network.requests[0]
         expect(
-            first.messages.first?.text == "Transcribe the recording." && first.messages.first?.audio.count == 1,
+            first.instructions == VoicePrompt.dictationInstructions(cleanup: true)
+                && first.messages.first?.text.hasSuffix("Transcribe the recording.") == true
+                && first.messages.first?.audio.count == 1,
             "Another model first transcribes, as plain dictation")
         Network.streams[0].yield(.text("ну короче завтра в десять"))
         Network.streams[0].finish()
@@ -263,10 +276,76 @@ struct VoiceCoordinatorTests {
             "Dictation History keeps the transcript the mode rewrote")
     }
 
+    static func cloudContext() async throws {
+        let world = World(connections: [router])
+        defer { world.tearDown() }
+        world.settings.dictationEnabled = true
+        world.core.answer = true
+        world.cloud.setEnabled(true)
+        try await wait { world.voice.cloudDictation }
+        let typed = AIModelSelection.api(connection: router.id, model: "google/gemini-3-flash-preview", effort: nil)
+        world.cloud.choose(typed)
+        expect(world.voice.dictationModel == typed, "A model typed on the consented connection is saved as typed")
+        expect(world.voice.languages == ["English"] && world.voice.appContext == .title, "The defaults")
+        let capsule = DictationPanelController()
+        world.cloud.attach(to: capsule)
+        world.voice.vocabulary = "Redcast"
+        world.voice.languages = ["Russian", "English"]
+        world.voice.appContext = .screenshot
+        let picture = AIImage(data: Data([0xFF, 0xD8]), mimeType: "image/jpeg")
+        VoiceAppContextReader.next = VoiceAppContext(
+            appName: "Slack", windowTitle: "general - Acme", screenshot: picture)
+        capsule.onPlacement?(frame)
+        try await settle()
+        expect(VoiceAppContextReader.reads == [.screenshot], "The capsule reads the app in front once, as allowed")
+
+        let transcription = Task { try await world.cloud.transcribe(speech) }
+        try await wait { Network.streams.count == 1 }
+        expect(
+            Network.routes == [.api(connection: router.id, model: "google/gemini-3-flash-preview", effort: "minimal")],
+            "A Gemini Flash saved with no effort dictates at minimal")
+        let request = Network.requests[0]
+        expect(
+            request.messages.count == 2 && request.messages[0].text.hasPrefix("USER DICTIONARY")
+                && request.messages[0].text.contains("Russian, English") && request.messages[0].audio.isEmpty,
+            "Gemini hears the dictionary and the languages in a turn of their own")
+        expect(
+            request.messages[1].text.hasPrefix("USER CONTEXT")
+                && request.messages[1].text.contains("App: Slack\nWindow: general - Acme\nScreenshot: attached")
+                && request.messages[1].images == [picture] && request.messages[1].audio.count == 1,
+            "then the app in front, its picture and the recording")
+        expect(request.temperature == nil, "at Gemini's own temperature")
+        Network.streams[0].yield(.text("Sure, here it is: <transcript>Созвонимся "))
+        Network.streams[0].yield(.text("в субботу.</transcript>"))
+        Network.streams[0].finish()
+        let typedText = try await transcription.value
+        expect(typedText == "Созвонимся в субботу.", "Only the tag's text is typed")
+
+        capsule.onPlacement?(nil)
+        world.voice.appContext = .off
+        capsule.onPlacement?(frame)
+        try await settle()
+        expect(VoiceAppContextReader.reads == [.screenshot], "Off reads nothing")
+        let plain = Task { try await world.cloud.transcribe(speech) }
+        try await wait { Network.streams.count == 2 }
+        expect(
+            Network.requests[1].messages.last?.text == "Transcribe the recording."
+                && Network.requests[1].messages.last?.images.isEmpty == true,
+            "and sends no context")
+        Network.streams[1].yield(.text("<transcript>[[NO_SPEECH]]</transcript>"))
+        Network.streams[1].finish()
+        do {
+            _ = try await plain.value
+            expect(false, "The sentinel in its tag types nothing")
+        } catch {
+            expect(error as? VoiceAIFailure == .noSpeech, "The sentinel in its tag is no speech")
+        }
+    }
+
     static func expectRefusal(_ cloud: VoiceCloudTranscriber, _ message: String) async throws {
         let before = Network.routes.count
         do {
-            _ = try await cloud.transcribe(speech, language: nil)
+            _ = try await cloud.transcribe(speech)
             expect(false, message)
         } catch {
             expect(
@@ -653,9 +732,10 @@ struct VoiceCoordinatorTests {
             Network.routes == [routerAsk] && request.instructions == fixture.instructions,
             "The request is only written down, as dictation on Ask by Voice's route")
         expect(
-            request.messages.count == 1 && request.messages[0].text == VoicePrompt.transcribeRequest
-                && request.messages[0].audio.count == 1 && request.messages[0].images.isEmpty,
-            "and the voice route never sees the window's text or picture")
+            request.messages.count == 2 && request.messages[0].text.hasPrefix("USER DICTIONARY")
+                && request.messages[1].text == VoicePrompt.transcribeRequest
+                && request.messages[1].audio.count == 1 && request.messages.allSatisfy(\.images.isEmpty),
+            "and the voice route hears only the words to spell, never the window's text or picture")
         Network.streams[0].yield(.text("«Проверь эту "))
         Network.streams[0].yield(.text("страницу»"))
         Network.streams[0].finish()
@@ -887,11 +967,13 @@ final class World {
     init(connections: [AIConnection]) {
         defaults = UserDefaults(suiteName: suite)!
         ai = AISettingsStore(defaults: defaults)
-        voice = VoiceAISettings(defaults: defaults)
+        voice = VoiceAISettings(defaults: defaults, preferredLanguages: ["en-US", "xx"])
         connections.forEach(ai.save)
         Network.reset()
         QuickActionRunner.reset()
         VoiceSelectionAccess.writable = true
+        VoiceAppContextReader.next = nil
+        VoiceAppContextReader.reads = []
         DictationCapture.latest = nil
         DictationPanelController.latest = nil
         VoiceModeCaption.latest = nil
@@ -1017,6 +1099,17 @@ enum CommandID: Hashable {
     case editByVoice
     var name: String { self == .askByVoice ? "Ask by Voice" : "Edit Selection by Voice" }
     var sfSymbol: String { self == .askByVoice ? "waveform" : "pencil.and.scribble" }
+}
+
+@MainActor
+enum VoiceAppContextReader {
+    static var next: VoiceAppContext?
+    static var reads: [VoiceAppContext.Level] = []
+
+    static func read(_ level: VoiceAppContext.Level) async -> VoiceAppContext? {
+        reads.append(level)
+        return next
+    }
 }
 
 @MainActor

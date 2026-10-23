@@ -495,8 +495,9 @@ final class VoiceAskCoordinator {
         guard token == current else { return }
         guard let capture else { return endSession() }
         reportMissingScreenshot(wanted: wantsScreenshot, capture)
-        let request = VoicePrompt.agentRequest(
-            audio: AIAudio(data: wav, format: "wav"), vocabulary: voice.vocabulary)
+        let request = VoiceRoutePolicy.fitted(
+            VoicePrompt.agentRequest(audio: AIAudio(data: wav, format: "wav"), vocabulary: voice.vocabulary),
+            for: session.route, connections: aiSettings.connections)
         var text = ""
         do {
             for try await event in session.provider.stream(request) {
@@ -511,7 +512,7 @@ final class VoiceAskCoordinator {
             return finish(failing: error.localizedDescription)
         }
         guard token == current else { return }
-        guard let task = VoiceTranscript.cleaned(text) else {
+        guard let task = VoiceTranscript.dictation(text) else {
             return finish(failing: VoiceAIFailure.noSpeech.localizedDescription)
         }
         endSession()

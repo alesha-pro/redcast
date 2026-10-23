@@ -102,6 +102,47 @@ enum VoiceRoutePolicy {
         model.lowercased().contains("gemini")
     }
 
+    /// Low enough to keep a transcript literal; Gemini keeps its own, as below it Gemini 3 loops.
+    static let dictationTemperature = 0.2
+
+    /// A dictation saved with no effort, on OpenRouter's Gemini Flash, thinks as little as it can.
+    static func dictation(_ selection: AIModelSelection, connections: [AIConnection]) -> AIModelSelection {
+        guard case .api(let id, let model, .none) = selection,
+            provider(of: selection, in: connections) == .openRouter,
+            rewritesWhileTranscribing(model), model.lowercased().contains("flash")
+        else { return selection }
+        return .api(connection: id, model: model, effort: "minimal")
+    }
+
+    /// Gemini as built; elsewhere one user turn, since a chat template may insist roles alternate.
+    static func fitted(
+        _ request: AIRequest, for selection: AIModelSelection, connections: [AIConnection]
+    ) -> AIRequest {
+        let provider = provider(of: selection, in: connections)
+        guard provider != .gemini, !rewritesWhileTranscribing(selection.model) else { return request }
+        var messages = request.messages
+        if messages.count > 1, messages.allSatisfy({ $0.role == .user }) {
+            let text = messages.map(\.text).filter { !$0.isEmpty }.joined(separator: "\n\n")
+            messages = [
+                AIMessage(
+                    role: .user, text: text, images: messages.flatMap(\.images),
+                    audio: messages.flatMap(\.audio))
+            ]
+        }
+        let takesTemperature = provider == .openRouter || provider == .openAICompatible
+        return AIRequest(
+            instructions: request.instructions, messages: messages,
+            maxOutputTokens: request.maxOutputTokens,
+            temperature: takesTemperature ? dictationTemperature : request.temperature)
+    }
+
+    private static func provider(
+        of selection: AIModelSelection, in connections: [AIConnection]
+    ) -> AIProviderKind? {
+        guard case .api(let id, _, _) = selection else { return nil }
+        return connections.first { $0.id == id }?.provider
+    }
+
     /// A model the connection's own catalog marked text-only is sent no picture.
     static func takesImages(_ connection: AIConnection, model: String) -> Bool {
         !connection.models.contains(model) || connection.capabilities(for: model).images

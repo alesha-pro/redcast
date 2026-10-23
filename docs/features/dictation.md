@@ -71,7 +71,9 @@ compilation of its 2-bit weights; Ultra's encoder and both variants' decoder/joi
 - Audio stays in memory, bounded to five minutes of mono 16 kHz Float32 samples. Pipes carry
   bounded JSON control messages and binary audio; recordings are never written to disk or sent
   over the network unless Cloud transcription is on: then the finished recording, trimmed and
-  encoded as WAV in memory, is sent once to the chosen connection, and live insertion never runs.
+  encoded as WAV in memory, is sent once to the chosen connection, with the app in front's name,
+  window title and, if allowed, a screenshot ([Voice AI](voice-ai.md#invariants)), and live
+  insertion never runs.
   Long recordings split near a quiet passage without overlapping samples.
 - Live insertion is off by default and flushes at speech pauses, or after eight seconds of
   unpaused speech at the latest. While recording, the coordinator transcribes the audio since the
