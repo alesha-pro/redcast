@@ -459,6 +459,9 @@ this way, as one provider. Nothing else changes: no router edit, no upstream lin
   cannot rather than calling a tool. Set Web to Never Allow: the transcript shows no `web_fetch`, and
   asking it to fetch a page gets no tool row. Set Web to Ask Each Chat: a fetch raises "wants to use
   web_fetch". Reopen the editor: the choices stuck.
+- With the app in German, French or Russian, open an agent's editor with a mouse attached (so the
+  scroller takes its width): Access and In the background show every choice in full inside the
+  panel, each segment as wide as its own label, and switching one does not resize the control.
 - Ask an agent with Web on about today's news: the transcript shows its `web_search` row and a
   "Searched web" row, then the answer cites sources. With Web off it says it cannot look things up.
 - Tick Notes in the editor and run [notes and AI](notes-ai.md#manual-sweep)'s agent half.

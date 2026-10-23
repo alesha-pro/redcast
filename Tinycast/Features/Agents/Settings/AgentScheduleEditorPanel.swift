@@ -48,7 +48,7 @@ struct AgentScheduleEditorPanel: View {
                     Text("Skip it").tag(AgentScheduleCatchUp.skip)
                 }
                 .labelsHidden()
-                .pickerStyle(.segmented)
+                .pickerStyle(.radioGroup)
             }
             noteField
             Toggle("Enabled", isOn: $draft.isEnabled)
@@ -67,6 +67,7 @@ struct AgentScheduleEditorPanel: View {
                         Task { await core.agentCoordinator.removeSchedule(id: existing.id) }
                     }
                     .buttonStyle(.modalAction(.destructive, fillsWidth: false))
+                    .fixedSize()
                 }
                 Button("Run Now") {
                     guard let saved = save() else { return }
@@ -74,6 +75,8 @@ struct AgentScheduleEditorPanel: View {
                     core.agentCoordinator.runNow(saved)
                 }
                 .buttonStyle(.modalAction(.cancel, fillsWidth: false))
+                // Its own width first: the filling buttons would otherwise fold its label in two.
+                .fixedSize()
                 .disabled(!core.settings.aiEnabled || isIncomplete)
                 Spacer()
                 Button("Cancel") { dismiss() }
@@ -89,7 +92,7 @@ struct AgentScheduleEditorPanel: View {
         }
         .padding(Theme.Spacing.dialogInset)
         .frame(width: Theme.Size.editorSheetWidth)
-        .settingsEditorPanelSurface()
+        .settingsEditorPanelSurface(controlsOnGlass: false)
     }
 
     private var isIncomplete: Bool {
@@ -97,31 +100,51 @@ struct AgentScheduleEditorPanel: View {
             || draft.prompt.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
+    /// One menu and the time on a line, so no language's labels can widen the panel.
     private var repeatField: some View {
         field("Repeat") {
-            Picker("Repeat", selection: $draft.rule.kind) {
-                Text("Daily").tag(AgentScheduleRule.Kind.daily)
-                Text("Weekdays").tag(AgentScheduleRule.Kind.weekdays)
-                Text("Every few hours").tag(AgentScheduleRule.Kind.everyHours)
-            }
-            .labelsHidden()
-            .pickerStyle(.segmented)
             HStack(spacing: Theme.Spacing.lg) {
-                if draft.rule.kind == .everyHours {
-                    Picker("Repeat", selection: $draft.rule.hours) {
-                        ForEach(AgentScheduleRule.hourChoices, id: \.self) { hours in
-                            Text("Every \(hours) hours").tag(hours)
-                        }
+                Picker("Repeat", selection: cadence) {
+                    Text("Daily").tag(Cadence.daily)
+                    Text("Weekdays").tag(Cadence.weekdays)
+                    Divider()
+                    ForEach(AgentScheduleRule.hourChoices, id: \.self) { hours in
+                        Text("Every \(hours) hours").tag(Cadence.everyHours(hours))
                     }
-                    .labelsHidden()
-                    .fixedSize()
                 }
+                .labelsHidden()
+                .fixedSize()
                 DatePicker(
-                    draft.rule.kind == .everyHours ? "Starting at" : "At", selection: time,
+                    draft.rule.kind == .everyHours ? "from" : "at", selection: time,
                     displayedComponents: .hourAndMinute)
                     .fixedSize()
             }
         }
+    }
+
+    private enum Cadence: Hashable {
+        case daily, weekdays
+        case everyHours(Int)
+    }
+
+    private var cadence: Binding<Cadence> {
+        Binding(
+            get: {
+                switch draft.rule.kind {
+                case .daily: .daily
+                case .weekdays: .weekdays
+                case .everyHours: .everyHours(draft.rule.hours)
+                }
+            },
+            set: { cadence in
+                switch cadence {
+                case .daily: draft.rule.kind = .daily
+                case .weekdays: draft.rule.kind = .weekdays
+                case .everyHours(let hours):
+                    draft.rule.kind = .everyHours
+                    draft.rule.hours = hours
+                }
+            })
     }
 
     private var noteField: some View {

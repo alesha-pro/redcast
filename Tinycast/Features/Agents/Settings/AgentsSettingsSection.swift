@@ -30,7 +30,7 @@ struct AgentsSettingsSection: View {
                 SettingsRowTitle(.aiAgents, "Add Agent")
             }
             SettingsRow(
-                title: "Daily spend cap", subtitle: spendSubtitle, subtitleLineLimit: 2, anchor: .aiAgents
+                title: "Daily spend cap", subtitle: spendSubtitle, subtitleLineLimit: 3, anchor: .aiAgents
             ) {
                 HStack(spacing: Theme.Spacing.xs) {
                     TextField(
@@ -39,7 +39,7 @@ struct AgentsSettingsSection: View {
                     )
                     .labelsHidden()
                     .multilineTextAlignment(.trailing)
-                    .frame(width: 96)
+                    .frame(width: Theme.Size.spendCapField)
                     Text(verbatim: "USD")
                         .foregroundStyle(.secondary)
                 }
