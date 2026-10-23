@@ -286,12 +286,19 @@ nonisolated struct AgentToolExecutor: Sendable {
             guard let text = String(data: data, encoding: .utf8)
                 ?? String(data: data, encoding: .isoLatin1)
             else { return .failure(.init("\(url.absoluteString) did not return text.")) }
-            let readable = type.contains("html") || text.prefix(512).lowercased().contains("<html")
-                ? AgentHTML.text(from: text) : text
-            return .success(Self.tail(readable, keepingHead: true))
+            let isHTML = type.contains("html") || text.prefix(512).lowercased().contains("<html")
+            return readable(text, isHTML: isHTML, from: url)
         } catch {
             return .failure(.init("Fetching \(url.absoluteString) failed: \(error.localizedDescription)"))
         }
+    }
+
+    /// HTML as its text, a page only its scripts would fill said to be one; other text as it came.
+    static func readable(_ body: String, isHTML: Bool, from url: URL) -> Result<String, AgentToolFailure> {
+        guard isHTML else { return .success(tail(body, keepingHead: true)) }
+        let text = AgentHTML.text(from: body)
+        guard !text.isEmpty else { return .failure(.init(WebPageTool.unreadable(url))) }
+        return .success(tail(WebPageTool.noted(text), keepingHead: true))
     }
 
     /// Per read: its redirects keep their cookies, and no jar or pool links reads or outlives one.
@@ -457,6 +464,28 @@ nonisolated enum AgentProcess {
 
 /// Readable text out of a page: scripts and styles dropped, tags stripped, entities decoded.
 nonisolated enum AgentHTML {
+    /// The names pages use most; every numeric reference is decoded by its value.
+    private static let entities: [Substring: String] = [
+        "nbsp": " ", "amp": "&", "lt": "<", "gt": ">", "quot": "\"", "apos": "'", "deg": "°",
+        "minus": "−", "ndash": "–", "mdash": "—", "laquo": "«", "raquo": "»", "hellip": "…",
+        "copy": "©", "middot": "·", "times": "×"
+    ]
+
+    /// One pass, so an escaped `&amp;lt;` stays the text `&lt;` instead of becoming a `<`.
+    static func decodingEntities(_ text: String) -> String {
+        text.replacing(/&(#[xX][0-9a-fA-F]{1,6}|#[0-9]{1,7}|[a-zA-Z]{2,8});/) { match in
+            let name = match.output.1
+            guard name.hasPrefix("#") else { return entities[name] ?? String(match.output.0) }
+            let digits = name.dropFirst()
+            let hex = digits.first == "x" || digits.first == "X"
+            let value = hex ? UInt32(digits.dropFirst(), radix: 16) : UInt32(digits)
+            guard let value, value > 0, let scalar = Unicode.Scalar(value) else {
+                return String(match.output.0)
+            }
+            return String(Character(scalar))
+        }
+    }
+
     static func text(from html: String) -> String {
         var text = html
         for pattern in ["(?is)<(script|style|noscript|svg)[^>]*>.*?</\\1>", "(?s)<!--.*?-->"] {
@@ -465,13 +494,7 @@ nonisolated enum AgentHTML {
         text = text.replacingOccurrences(
             of: "(?i)<(br|/p|/div|/li|/h[1-6]|/tr)[^>]*>", with: "\n", options: .regularExpression)
         text = text.replacingOccurrences(of: "<[^>]+>", with: " ", options: .regularExpression)
-        for (entity, value) in [
-            ("&nbsp;", " "), ("&amp;", "&"), ("&lt;", "<"), ("&gt;", ">"), ("&quot;", "\""),
-            ("&#39;", "'"), ("&apos;", "'")
-        ] {
-            text = text.replacingOccurrences(of: entity, with: value)
-        }
-        return text.components(separatedBy: .newlines)
+        return decodingEntities(text).components(separatedBy: .newlines)
             .map { $0.replacingOccurrences(of: "[ \t]+", with: " ", options: .regularExpression)
                 .trimmingCharacters(in: .whitespaces) }
             .filter { !$0.isEmpty }

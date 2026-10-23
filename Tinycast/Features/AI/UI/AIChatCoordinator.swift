@@ -341,6 +341,8 @@ final class AIChatCoordinator {
     private func instructions(for chat: AIChatState) -> String? {
         let attachesTools =
             capabilities(for: chat).tools && model(for: chat)?.runsItsOwnTools != true
+        // Fork: the shared prompt ends with the time and, in a plain chat, what it can look up.
+        let instructions = self.instructions.map { $0 + "\n\n" + briefing(for: chat) }
         guard let agent = core.agentCoordinator.prompt(for: chat, hasTools: attachesTools) else {
             return instructions
         }
@@ -402,9 +404,7 @@ final class AIChatCoordinator {
 
     /// A chat without an agent searches and reads pages through Tinycast while Web search is on.
     private func webTools(for chat: AIChatState) -> [AITool] {
-        guard case .api? = model(for: chat), core.aiSettings.webSearchEnabled,
-            capabilities(for: chat).webSearch
-        else { return [] }
+        guard ChatToolPolicy.offersWebTools(toolFacts(for: chat)) else { return [] }
         return WebChatTools.definitions(origin: String(localized: "Web search"))
     }
 

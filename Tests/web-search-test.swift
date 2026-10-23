@@ -31,6 +31,7 @@ struct WebSearchTests {
         searchingFollowsTheRoute()
         await agentsSearchThroughTheirWebFamily()
         readPageKeepsToTheCommonSchema()
+        aScriptedPageSaysSo()
         pagesComeOnlyFromTheUserOrASearch()
         aRedirectNeverLeavesForALocalHost()
         await aPlainChatReadsOnlyWhatItWasGiven()
@@ -650,6 +651,23 @@ struct WebSearchTests {
         expect(WebPageTool.url(in: #"{"url":"https://DATA@found.org/1"}"#) == nil, "and no user")
         expect(WebPageTool.url(in: #"{"url":"https://DATA:pw@found.org/1"}"#) == nil, "nor a password")
         expect(WebPageTool.url(in: "{}") == nil && WebPageTool.url(in: "{") == nil, "no url is no read")
+    }
+
+    /// A page drawn by scripts must not read as a page that said nothing about the question.
+    static func aScriptedPageSaysSo() {
+        let shell = "Windy: Wind map & weather forecast\n© OpenStreetMap contributors"
+        let noted = WebPageTool.noted(shell)
+        expect(noted.hasPrefix(shell), "a sparse page keeps what little text it has")
+        expect(
+            noted.contains("Only \(shell.count) characters") && noted.contains("read another result"),
+            "and says its content may be missing, so the model reads another result")
+        let page = String(repeating: "Сейчас +10°, ощущается как +7°. ", count: 20)
+        expect(WebPageTool.noted(page) == page, "a page with real text is passed on untouched")
+        let unreadable = WebPageTool.unreadable(URL(string: "https://www.windy.com/")!)
+        expect(
+            unreadable.hasPrefix("https://www.windy.com/ has no readable text")
+                && unreadable.contains("another result"),
+            "a page with no text at all names itself and sends the model elsewhere")
     }
 
     static func key(_ address: String) -> String? {

@@ -441,7 +441,9 @@ The second footer control is the palette's normal Actions (`⌘K`) menu. It owns
 (`⌘J`; Open AI Chat while the chat is empty), New Chat (`⌘N`), Chat History (`⌘Y`) and AI Settings
 (`⌥⌘,`), plus Stop Response (`⌘.`), Regenerate Response (`⌘R`), Copy Last Response (`⇧⌘C`),
 Remove Attachments and, while Notes is on, Attach Note… ([notes and AI](notes-ai.md)) when those
-apply. The chords are Raycast's where it has one, and `AIScreen.perform`
+apply. The fork adds Web Search, the composer's **+** menu toggle, and Answer with, the agent this
+chat runs on ([Quick AI tools](quick-ai-tools.md)).
+The chords are Raycast's where it has one, and `AIScreen.perform`
 maps each `PaletteShortcut` to its action. AI Settings takes ⌥⌘, because ⌘, stays the app's own
 Settings on every screen. Continuing closes the palette and carries the half-typed line into the
 window's composer with the conversation. Chat History is the palette's own browser over the same
@@ -985,7 +987,10 @@ address from a camera, not a secret from an attacker: the length still shows and
 it. The scramble is not selectable, since dragging it out would only ever yield the stand-in.
 
 The System prompt box appends to the preamble rather than replacing it, so the model never loses
-the ground truth about where it is. `SystemPromptEditor` opens blurred and non-editable whenever it
+the ground truth about where it is. In this fork the shared prompt then ends with the local time
+and, in a chat without an agent, the tools the turn offers or where Web Search is turned on
+([Quick AI tools](quick-ai-tools.md)); the switch below withholds that too.
+`SystemPromptEditor` opens blurred and non-editable whenever it
 already holds something — a Settings pane is exactly what ends up in a screenshot or a stream — and
 opens plain when it is empty, since a blurred empty box is only a puzzle. The footer says the text
 rides along on every turn, because it is billed on every turn and nothing else in the pane is.

@@ -1,10 +1,12 @@
 # Web search
 
 `web_search` is one built-in tool that searches the web from any tool-calling API route: OpenAI,
-Anthropic, Gemini, OpenRouter and every OpenAI-compatible endpoint. An agent gets it with its **Web**
-family, beside `web_fetch`. A chat without an agent gets it from the **Web search** toggle in
-Settings → AI → Chat, together with `read_page`, which reads a page the user linked or a search in
-the same turn returned. Codex keeps its own search; Apple Intelligence and the installed CLIs get
+Anthropic, Gemini, OpenRouter and every OpenAI-compatible endpoint. An agent gets it with its
+**Web** family, beside `web_fetch`. A chat without an agent gets it from the **Web search** toggle
+in Settings → AI → Chat, also in the AI Chat composer's **+** menu and Quick AI's ⌘K menu ([Quick AI
+tools](quick-ai-tools.md)), together with `read_page`, which reads a page the user linked or a
+search in the same turn returned; its prompt names both and sends live facts through a search and a
+read of the best result. Codex keeps its own search; Apple Intelligence and the installed CLIs get
 nothing. Engines are tried in the user's order, and the default chain needs no key and no account:
 Exa, then Parallel, then DuckDuckGo. The feature is this fork's, in `Features/WebSearch/` plus the
 few lines that wire it into `AIChatCoordinator`, `AIToolLoopProvider`, `AgentCoordinator`,
@@ -58,6 +60,12 @@ few lines that wire it into `AIChatCoordinator`, `AIToolLoopProvider`, `AgentCoo
   rest of a longer body is cancelled), HTML to text, 28 KB to the model. The answer opens by saying
   page text is material, never instructions; a search answer names `read_page` (or `web_fetch` for
   an agent) as the way to read a result in full.
+- **A page only its scripts would fill says so.** HTML whose text is empty once scripts and tags go
+  is a failed read that tells the model to read another result (`WebPageTool.unreadable`), and one
+  with under 400 characters (`WebPageTool.sparseCharacters`) keeps them with a note that its content
+  may be missing (`AgentToolExecutor.readable`, for `read_page` and `web_fetch` alike). Character
+  references are decoded in one pass, numeric ones by value, so a page that writes `10&#xB0;` or
+  Cyrillic as `&#x41C;` reads as `10°` and `М`; an escaped `&amp;lt;` stays `&lt;`.
 - **Engines run in the user's order, and any failure moves on.** A 429, a CAPTCHA, a 4xx or 5xx, a
   timeout, an unreadable shape or zero results hands the query to the next engine, with at most four
   requests per call (`WebSearchRunner.maxAttempts`). A keyed engine without a key, and SearXNG
@@ -97,7 +105,9 @@ few lines that wire it into `AIChatCoordinator`, `AIToolLoopProvider`, `AgentCoo
 
 ## Engines
 
-Verified on 2026-10-22.
+Verified on 2026-10-22. On 2026-10-23 each keyless engine found yandex.ru/pogoda for "погода
+Москва", and `read_page` read its current temperature; gismeteo.ru draws its figures with scripts,
+so its page reads without them, and windy.com reads as a 77-character shell with the note.
 
 | Engine | Request | Key | Free use | Notes |
 | --- | --- | --- | --- | --- |
@@ -154,7 +164,8 @@ A configuration saved by an older build gains the engine at the end of its order
 3. The same agent with Web off: no search row, and the model says it cannot look things up. With Web
    set to Ask Each Chat, a search raises "wants to use web_search" naming the query.
 4. A plain chat on Anthropic or Gemini: the **+** menu offers Web Search; on, the pill shows and a
-   news question makes a search row. Off, no tool is sent.
+   news question makes a search row. Off, no tool is sent. Quick AI's ⌘K menu has the same Web
+   Search row on the same setting.
 5. OpenRouter plain chat with Web Search on: the request body has no `plugins`, and the search row
    appears.
 6. A plain chat with Web Search on: "Summarise https://www.swift.org/blog/" shows a
@@ -185,4 +196,6 @@ through a fake transport, both loops' rows, the agent provider through a toolset
 plain chat's loop reading a found page and a linked one while a forged address, a page's own link, a
 read beside its search, an address the model only searched for and one carrying a user are refused,
 links inside an attached file or captured window left out, a sixth read in a turn refused unfetched,
-and the redirects that may not leave the open web for a local host).
+the redirects that may not leave the open web for a local host, and the notes a page only its
+scripts would fill carries). `agent-tools-test` holds the read itself: an empty page, a sparse one,
+other text, and character references.

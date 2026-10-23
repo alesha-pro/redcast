@@ -103,6 +103,8 @@ enum AppSettingsKey: String, CaseIterable {
     case aiShownModels = "aiShownModels"
     case aiDisabledRoutes = "aiDisabledRoutes"
     case aiInstalledOverrides = "aiInstalledOverrides"
+    // Fork: the agent Quick AI's new chats answer with; it names a local agent, so no file key.
+    case aiQuickAIAgent = "aiQuickAIAgent"
     case mcpEnabled = "mcpEnabled"
     case mcpServers = "mcpServers"
     case quickActionsEnabled = "quickActionsEnabled"
