@@ -1,3 +1,4 @@
+import Darwin
 import Foundation
 import Synchronization
 
@@ -10,6 +11,8 @@ nonisolated struct DocumentTextService: Sendable {
 
     let executable: URL
     var timeout: Duration = .seconds(60)
+    /// A helper past this footprint is ended, so no document built to inflate presses the whole Mac.
+    var memoryLimit: UInt64 = 1 << 30
 
     /// The clipboard's helper, which also answers `DocumentTextRequest`'s command.
     static let bundled = DocumentTextService(
@@ -26,6 +29,15 @@ nonisolated struct DocumentTextService: Sendable {
             return .failure(Failure(message: "The document reader is missing, so \(name) cannot be read."))
         }
         guard !Task.isCancelled else { return .failure(Failure(message: "The read of \(name) was stopped.")) }
+        // Foundation raises rather than throws on a NUL, which would end the app, not the read.
+        guard !request.arguments.contains(where: { $0.utf8.contains(0) }) else {
+            return .failure(Failure(message: "\(name) cannot be read: its path holds a NUL character."))
+        }
+        if request.kind == .richText, ["docx", "odt"].contains((request.path as NSString).pathExtension.lowercased()),
+            Self.archive(at: request.path) == .tooLarge
+        {
+            return .failure(Failure(message: "\(name) unpacks to more than a read can hold, so it was not opened."))
+        }
         let process = Process()
         let output = Pipe()
         process.executableURL = executable
@@ -37,8 +49,17 @@ nonisolated struct DocumentTextService: Sendable {
             return .failure(Failure(message: "The document reader could not start for \(name)."))
         }
         let timedOut = Flag()
-        let deadline = Task.detached { [timeout] in
-            do { try await Task.sleep(for: timeout) } catch { return }
+        let swollen = Flag()
+        // Lives only as long as this read; it watches the child's memory as well as its time.
+        let deadline = Task.detached { [timeout, memoryLimit] in
+            let end = ContinuousClock.now + timeout
+            while ContinuousClock.now < end {
+                do { try await Task.sleep(for: min(.milliseconds(250), end - ContinuousClock.now)) } catch { return }
+                guard Self.footprint(of: process.processIdentifier) > memoryLimit else { continue }
+                swollen.set()
+                if process.isRunning { process.terminate() }
+                return
+            }
             timedOut.set()
             if process.isRunning { process.terminate() }
         }
@@ -58,6 +79,9 @@ nonisolated struct DocumentTextService: Sendable {
         if timedOut.isSet {
             return .failure(Failure(message: "Reading \(name) took longer than \(timeout.components.seconds) s and was stopped."))
         }
+        if swollen.isSet {
+            return .failure(Failure(message: "Reading \(name) needed more than \(memoryLimit >> 20) MB and was stopped."))
+        }
         guard process.terminationStatus == 0, let data,
             let text = try? JSONDecoder().decode(DocumentText.self, from: data)
         else {
@@ -73,6 +97,30 @@ nonisolated struct DocumentTextService: Sendable {
         case .richText: "document"
         case .text, .html, .binary: "file"
         }
+    }
+
+    /// A ZIP by its last bytes and its directory; nothing else of it is read.
+    static func archive(at path: String) -> DocumentArchive.Verdict {
+        guard let handle = FileHandle(forReadingAtPath: path) else { return .notArchive }
+        defer { try? handle.close() }
+        guard let end = try? handle.seekToEnd() else { return .notArchive }
+        let tailStart = end > DocumentArchive.tailBytes ? end - DocumentArchive.tailBytes : 0
+        guard (try? handle.seek(toOffset: tailStart)) != nil,
+            let tail = try? handle.read(upToCount: Int(end - tailStart))
+        else { return .notArchive }
+        return DocumentArchive.verdict(tail: tail, fileSize: end) { offset, size in
+            guard (try? handle.seek(toOffset: offset)) != nil else { return nil }
+            return try? handle.read(upToCount: size)
+        }
+    }
+
+    /// The child's physical footprint, as Activity Monitor counts it; 0 once it is gone.
+    private static func footprint(of pid: pid_t) -> UInt64 {
+        var info = rusage_info_v2()
+        let status = withUnsafeMutablePointer(to: &info) {
+            $0.withMemoryRebound(to: rusage_info_t?.self, capacity: 1) { proc_pid_rusage(pid, RUSAGE_INFO_V2, $0) }
+        }
+        return status == 0 ? info.ri_phys_footprint : 0
     }
 
     /// Blocking throughout, and the only place a helper is reaped; nil past the limit.
