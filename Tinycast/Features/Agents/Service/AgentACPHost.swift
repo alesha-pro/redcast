@@ -122,6 +122,7 @@ final class AgentACPHost {
     /// A chat's session ends with its agent: the next turn starts or reloads one.
     func forget(chatID: UUID) {
         unbriefed[chatID] = nil
+        modes[chatID] = nil
         if let live = sessions.removeValue(forKey: chatID), commands.removeValue(forKey: live) != nil {
             onCommands?(chatID, live.agentID, nil)
         }

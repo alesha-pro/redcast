@@ -133,8 +133,8 @@ final class QuickAICoordinator {
 
     func deleteChat(id: UUID) {
         chats.delete(id: id)
-        // Fork: an agent chat's notes on its earlier turns go with the chat.
-        core.agentStore.removeSummary(forChat: id)
+        // Fork: an agent chat's notes and pending ACP briefing go with the chat.
+        core.agentCoordinator.chatDeleted(id)
     }
 
     func deleteAllChats() async {

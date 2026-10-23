@@ -196,7 +196,9 @@ They run on the user's own logins and subscriptions; Tinycast never sees a key.
   neither. A slash command's turn carries neither and leaves them for the session's next ordinary
   turn, which sends the turns from before the session as they were when it started, not the
   command's own exchange. That wait is kept in memory, at most the 24 KB transcript per chat, so it
-  holds across an idle stop but not a relaunch, and goes when the chat leaves the agent. A turn
+  holds across an idle stop but not a relaunch, and goes when the chat leaves the agent, when the
+  chat is deleted (one at a time through `AgentCoordinator.chatDeleted`, all at once or by retention
+  through `AppCore.pruneAgentSummaries`) and when its agent is deleted. A turn
   nobody is watching adds the unattended briefing after the context, on every such turn but a slash
   command's, which goes as typed ([background agents](background-agents.md#while-and-after-a-run)).
 - **Tinycast offers no fs or terminal of its own.** `initialize` declares both off, so the agent
