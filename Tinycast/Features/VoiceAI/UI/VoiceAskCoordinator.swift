@@ -44,6 +44,8 @@ final class VoiceAskCoordinator {
     private let injector: TextInjector
     private let audioDucker: DictationAudioDucker
     private let requestMicrophone: @MainActor () async -> Bool
+    /// Dictation History: what was said and what came back, never the audio or the window.
+    private let history: @MainActor (DictationHistoryEntry) -> Void
     private unowned let core: AppCore
 
     /// Built on the first press, so no capture session, panel or view exists before one.
@@ -66,7 +68,8 @@ final class VoiceAskCoordinator {
         audioDucker: DictationAudioDucker, core: AppCore,
         requestMicrophone: @escaping @MainActor () async -> Bool = {
             await AVCaptureDevice.requestAccess(for: .audio)
-        }
+        },
+        history: @escaping @MainActor (DictationHistoryEntry) -> Void = { _ in }
     ) {
         self.settings = settings
         self.voice = voice
@@ -76,6 +79,7 @@ final class VoiceAskCoordinator {
         self.injector = injector
         self.audioDucker = audioDucker
         self.requestMicrophone = requestMicrophone
+        self.history = history
         self.core = core
     }
 
@@ -446,6 +450,7 @@ final class VoiceAskCoordinator {
         _ outcome: VoiceReplySession.Outcome, panel: QuickActionPanelState?, asked: Asked
     ) {
         endSession()
+        if let text = outcome.text { remember(text, asked: asked) }
         switch outcome {
         case .noSpeech:
             panels?.dismiss()
@@ -541,6 +546,7 @@ final class VoiceAskCoordinator {
             let asked = Asked(
                 question: instruction, command: .editByVoice, app: session.app, route: session.route,
                 chatPrompt: VoicePrompt.editChatPrompt(instruction: instruction, selection: original))
+            remember(text, asked: asked)
             await replace(original, with: text, asked: asked)
         } catch is CancellationError {
             return
@@ -573,6 +579,15 @@ final class VoiceAskCoordinator {
                     String(localized: "Couldn't replace the selection — the result is shown instead."),
                     tone: .danger)
             })
+    }
+
+    /// Kept as soon as the reply is whole, whether it is then typed, replaced or shown.
+    private func remember(_ text: String, asked: Asked) {
+        history(
+            DictationHistoryEntry(
+                date: Date(), kind: asked.command == .editByVoice ? .edit : .ask, text: text,
+                transcript: asked.question, engine: .cloud, model: asked.route.model,
+                appName: asked.app.localizedName, bundleID: asked.app.bundleIdentifier))
     }
 
     // MARK: - Surfaces

@@ -32,7 +32,8 @@ Independently of the folder tree, every mature subsystem has converged on the sa
 │ MeetingLink · MeetingEvent · UpcomingWindow · MeetingDay · MenuBarSummary  │
 │ AutoJoinPolicy · EventDraft · SupportReminderSchedule ·                    │
 │ MenuSearch{Item,Shortcut,Query,TreeNode,SnapshotPolicy,Target} ·           │
-│ WindowSwitch{Entry,Order,Query} · AgentSessions/Model/*                    │
+│ WindowSwitch{Entry,Order,Query} · AgentSessions/Model/* ·                  │
+│ DictationHistory/Model/*                                                   │
 └──────────────────────────────────┬─────────────────────────────────────────┘
                                    │ consumed by
 ┌─ EFFECT ─────────────────────────▼─────────────────────────────────────────┐
@@ -49,7 +50,8 @@ Independently of the folder tree, every mature subsystem has converged on the sa
 │ SupportReminderStore · AXMenuAccess · WindowZOrder · WindowSwitchSweep ·   │
 │ AppleShortcutRunner · SettingsFileRepository · SettingsFileMonitor ·       │
 │ WindowManagementSettingsFile · AgentSessionsScanner ·                      │
-│ AgentTerminalRunner · AgentHookRepository · AgentProcessHost               │
+│ AgentTerminalRunner · AgentHookRepository · AgentProcessHost ·             │
+│ DictationHistoryFile                                                       │
 └──────────────────────────────────┬─────────────────────────────────────────┘
                                    │ published through
 ┌─ OBSERVABLE STATE ───────────────▼─────────────────────────────────────────┐

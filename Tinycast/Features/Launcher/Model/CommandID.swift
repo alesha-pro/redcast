@@ -8,6 +8,7 @@ enum CommandID: String, CaseIterable, Sendable {
     case runAgentTask = "command:run-agent-task"
     case askByVoice = "command:ask-by-voice"
     case editByVoice = "command:edit-by-voice"
+    case dictationHistory = "command:dictation-history"  // Fork: past transcripts, pasted again
     case searchAgentSessions = "command:search-agent-sessions"
     case jumpToAgent = "command:jump-to-agent"
     case aiUsage = "command:ai-usage"  // Fork: opens Settings → AI → Usage
@@ -68,6 +69,7 @@ enum CommandID: String, CaseIterable, Sendable {
         case .runAgentTask: return "Run Agent Task"
         case .askByVoice: return "Ask by Voice"
         case .editByVoice: return "Edit Selection by Voice"
+        case .dictationHistory: return "Dictation History"  // Fork: Dictation History's command
         case .searchAgentSessions: return "Search Agent Sessions"
         case .jumpToAgent: return "Jump to Agent"
         case .aiUsage: return "AI Usage"  // Fork: the Usage section's launcher command
@@ -126,6 +128,7 @@ enum CommandID: String, CaseIterable, Sendable {
         case .runAgentTask: return "person.crop.circle.badge.clock"
         case .askByVoice: return "waveform.and.mic"
         case .editByVoice: return "pencil.and.scribble"
+        case .dictationHistory: return "waveform.badge.magnifyingglass"  // Fork: Dictation History
         case .searchAgentSessions: return "clock.arrow.2.circlepath"
         case .jumpToAgent: return "arrow.up.forward.app"
         case .aiUsage: return "chart.bar.xaxis"  // Fork: the Usage section's launcher command
@@ -192,6 +195,19 @@ enum CommandID: String, CaseIterable, Sendable {
         case .translate: return .translate
         case .summarize: return .summarize
         default: return nil
+        }
+    }
+
+    /// Fork: found by, never ranked by; English always, and the words of the interface's language.
+    var keywords: [String] {
+        switch self {
+        case .dictationHistory:
+            ["transcripts", "transcriptions", "voice history", "speech"]
+                + [
+                    String(localized: "transcripts", comment: "A word Dictation History is found by"),
+                    String(localized: "voice history", comment: "Words Dictation History is found by")
+                ]
+        default: []
         }
     }
 

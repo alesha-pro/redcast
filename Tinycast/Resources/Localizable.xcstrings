@@ -18401,6 +18401,58 @@
         }
       }
     },
+    "90 Days" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "90 Tage"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "90 días"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "90 jours"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "90日"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "90일"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "90 dias"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "90 дней"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "90 天"
+          }
+        }
+      }
+    },
     "A .rayconfig file from Raycast 2.0 or later." : {
       "localizations" : {
         "de" : {
@@ -39313,6 +39365,58 @@
         }
       }
     },
+    "Clear dictation history?" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diktatverlauf löschen?"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "¿Borrar el historial de dictado?"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Effacer l’historique de dictée ?"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "音声入力の履歴を消去しますか?"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "받아쓰기 기록을 지울까요?"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Limpar o histórico de ditado?"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Очистить историю диктовки?"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "要清除听写历史记录吗？"
+          }
+        }
+      }
+    },
     "Clear history" : {
       "localizations" : {
         "de" : {
@@ -40669,6 +40773,59 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "关闭该 App 会将其停用。"
+          }
+        }
+      }
+    },
+    "Cloud" : {
+      "comment" : "Where a dictation was transcribed, beside On this Mac",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cloud"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "En la nube"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dans le cloud"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "クラウド"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "클라우드"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Na nuvem"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "В облаке"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "云端"
           }
         }
       }
@@ -45681,6 +45838,58 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "拷贝路径"
+          }
+        }
+      }
+    },
+    "Copy Raw Transcript" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rohtranskript kopieren"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copiar la transcripción original"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copier la transcription brute"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "元の文字起こしをコピー"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "원본 받아쓰기 복사"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copiar transcrição original"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Скопировать исходную расшифровку"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "拷贝原始转写"
           }
         }
       }
@@ -52519,6 +52728,58 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "听写"
+          }
+        }
+      }
+    },
+    "Dictation History" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diktatverlauf"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Historial de dictado"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Historique de dictée"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "音声入力履歴"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "받아쓰기 기록"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Histórico de Ditado"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "История диктовки"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "听写历史记录"
           }
         }
       }
@@ -60099,6 +60360,58 @@
         }
       }
     },
+    "Every transcript in it is removed. This can't be undone." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alle Transkripte darin werden entfernt. Dies kann nicht widerrufen werden."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Se eliminan todas sus transcripciones. Esta acción no se puede deshacer."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Toutes ses transcriptions sont supprimées. Cette action est irréversible."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "履歴内のすべての文字起こしが削除されます。この操作は取り消せません。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "기록의 모든 받아쓰기가 제거됩니다. 이 작업은 취소할 수 없습니다."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Todas as transcrições dele são removidas. Isso não pode ser desfeito."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Все расшифровки в ней будут удалены. Это действие нельзя отменить."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "其中的所有转写都会被移除。此操作无法撤销。"
+          }
+        }
+      }
+    },
     "Everything Raycast has built is already here. Import one again to update it." : {
       "localizations" : {
         "de" : {
@@ -63530,6 +63843,58 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "请先完成当前的听写。"
+          }
+        }
+      }
+    },
+    "Finished dictations, Ask by Voice questions and voice edits are kept on this Mac as text, never as audio, and are left out of exported backups." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Beendete Diktate, Fragen über „Per Sprache fragen“ und Sprachbearbeitungen bleiben als Text auf diesem Mac, nie als Audio, und gehören nicht zu exportierten Backups."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Los dictados terminados, las preguntas de «Preguntar por voz» y las ediciones por voz se guardan en este Mac como texto, nunca como audio, y quedan fuera de las copias de seguridad exportadas."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Les dictées terminées, les questions « Demander à voix haute » et les modifications vocales restent sur ce Mac sous forme de texte, jamais en audio, et hors des sauvegardes exportées."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "完了した音声入力、「音声で質問」の質問、音声での編集は、音声ではなくテキストとしてこのMacに保存され、書き出したバックアップには含まれません。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "완료된 받아쓰기, '음성으로 묻기' 질문, 음성 편집은 오디오가 아닌 텍스트로 이 Mac에 보관되며, 내보낸 백업에는 포함되지 않습니다."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ditados concluídos, perguntas do “Perguntar por Voz” e edições por voz ficam neste Mac como texto, nunca como áudio, e ficam fora dos backups exportados."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Завершённые диктовки, вопросы «Спросить голосом» и голосовые правки хранятся на этом Mac только текстом, без аудио, и не попадают в экспортируемые резервные копии."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "完成的听写、“语音提问”的问题和语音编辑会以文本形式保存在这台 Mac 上，绝不保存音频，也不会进入导出的备份。"
           }
         }
       }
@@ -76154,6 +76519,58 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "让拷贝的项目随时可供重复使用。"
+          }
+        }
+      }
+    },
+    "Keep history" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verlauf behalten"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Conservar el historial"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Conserver l’historique"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "履歴を保持"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "기록 보관"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Manter histórico"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Хранить историю"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "保留历史记录"
           }
         }
       }
@@ -89538,6 +89955,58 @@
         }
       }
     },
+    "No dictations yet" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Noch keine Diktate"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aún no hay dictados"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aucune dictée pour le moment"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "音声入力はまだありません"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "아직 받아쓰기 없음"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nenhum ditado ainda"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Диктовок пока нет"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "还没有听写"
+          }
+        }
+      }
+    },
     "No display selected" : {
       "localizations" : {
         "de" : {
@@ -90730,6 +91199,58 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "没有匹配的命令"
+          }
+        }
+      }
+    },
+    "No matching dictations" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keine passenden Diktate"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No hay dictados coincidentes"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aucune dictée correspondante"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "一致する音声入力はありません"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "일치하는 받아쓰기 없음"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nenhum ditado correspondente"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Нет подходящих диктовок"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "没有匹配的听写"
           }
         }
       }
@@ -96482,6 +97003,59 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "已为 %@ 开启"
+          }
+        }
+      }
+    },
+    "On this Mac" : {
+      "comment" : "Where a dictation was transcribed, beside Cloud",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Auf diesem Mac"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "En este Mac"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sur ce Mac"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このMac"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "이 Mac"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Neste Mac"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "На этом Mac"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "这台 Mac"
           }
         }
       }
@@ -106628,6 +107202,59 @@
         }
       }
     },
+    "Raw transcript" : {
+      "comment" : "A dictation's text before its mode rewrote it",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rohtranskript"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Transcripción original"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Transcription brute"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "元の文字起こし"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "원본 받아쓰기"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Transcrição original"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Исходная расшифровка"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "原始转写"
+          }
+        }
+      }
+    },
     "Raycast Export" : {
       "localizations" : {
         "de" : {
@@ -108372,6 +108999,59 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "为“按住说话”录制单个修饰键或组合键。"
+          }
+        }
+      }
+    },
+    "Recorded" : {
+      "comment" : "Labels when a dictation was recorded",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aufgenommen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Grabado"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enregistré"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "録音日時"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "녹음 시각"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gravado"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Записано"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "录制时间"
           }
         }
       }
@@ -110308,6 +110988,58 @@
         }
       }
     },
+    "Removes every transcript in the history." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Entfernt alle Transkripte im Verlauf."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Elimina todas las transcripciones del historial."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Supprime toutes les transcriptions de l’historique."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "履歴内のすべての文字起こしを削除します。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "기록의 모든 받아쓰기를 제거합니다."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Remove todas as transcrições do histórico."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Удаляет все расшифровки из истории."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "移除历史记录中的所有转写。"
+          }
+        }
+      }
+    },
     "Removes the extension and everything it stored — its preferences, its cache and its own files. Its commands leave the launcher." : {
       "localizations" : {
         "de" : {
@@ -111217,6 +111949,59 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "仓库"
+          }
+        }
+      }
+    },
+    "Request" : {
+      "comment" : "What was said to Ask by Voice or Edit Selection by Voice",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Anfrage"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Solicitud"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Demande"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "リクエスト"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "요청"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pedido"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Запрос"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请求"
           }
         }
       }
@@ -117617,6 +118402,58 @@
         }
       }
     },
+    "Search dictations…" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diktate durchsuchen …"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Buscar dictados…"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rechercher des dictées…"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "音声入力を検索…"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "받아쓰기 검색…"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Buscar ditados…"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Поиск диктовок…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "搜索听写…"
+          }
+        }
+      }
+    },
     "Search emoji and symbols…" : {
       "localizations" : {
         "de" : {
@@ -121172,54 +122009,54 @@
         }
       }
     },
-    "Set their shortcuts under Commands. Edit Selection by Voice rewrites the text you selected as you say. A recording is never saved. A question and what was read are kept only if you continue in AI Chat, or as the chat of an agent's run." : {
+    "Set their shortcuts under Commands. Edit Selection by Voice rewrites the text you selected as you say. A recording is never saved. Dictation History keeps the text of a question and its answer, and of an edit; what was read is kept only if you continue in AI Chat, or as the chat of an agent's run." : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Lege die Kurzbefehle unter „Befehle“ fest. „Auswahl per Sprache bearbeiten“ schreibt den ausgewählten Text so um, wie du es sagst. Eine Aufnahme wird nie gespeichert. Eine Frage und das Gelesene bleiben nur erhalten, wenn du im KI-Chat weitermachst, oder als Chat eines Agentenlaufs."
+            "value" : "Lege die Kurzbefehle unter „Befehle“ fest. „Auswahl per Sprache bearbeiten“ schreibt den ausgewählten Text so um, wie du es sagst. Eine Aufnahme wird nie gespeichert. Der Diktatverlauf behält den Text einer Frage mit ihrer Antwort und den einer Bearbeitung; das Gelesene bleibt nur erhalten, wenn du im KI-Chat weitermachst, oder als Chat eines Agentenlaufs."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Define sus atajos en Comandos. Editar la selección por voz reescribe el texto seleccionado como digas. Una grabación nunca se guarda. Una pregunta y lo leído solo se conservan si continúas en el chat de IA, o como el chat de la ejecución de un agente."
+            "value" : "Define sus atajos en Comandos. Editar la selección por voz reescribe el texto seleccionado como digas. Una grabación nunca se guarda. El historial de dictado conserva el texto de una pregunta y su respuesta, y el de una edición; lo leído solo se conserva si continúas en el chat de IA, o como el chat de la ejecución de un agente."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Définissez leurs raccourcis dans Commandes. Modifier la sélection à voix haute réécrit le texte sélectionné comme vous le dites. Un enregistrement n’est jamais conservé. Une question et ce qui a été lu ne sont gardés que si vous continuez dans Conversation IA, ou comme conversation de l’exécution d’un agent."
+            "value" : "Définissez leurs raccourcis dans Commandes. Modifier la sélection à voix haute réécrit le texte sélectionné comme vous le dites. Un enregistrement n’est jamais conservé. L’historique de dictée garde le texte d’une question et de sa réponse, et celui d’une modification ; ce qui a été lu n’est gardé que si vous continuez dans Conversation IA, ou comme conversation de l’exécution d’un agent."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "ショートカットは「コマンド」で設定します。「選択範囲を音声で編集」は、選択したテキストを話したとおりに書き直します。録音は保存されません。質問と読み取った内容は、AIチャットで続けた場合か、エージェントの実行のチャットとしてのみ残ります。"
+            "value" : "ショートカットは「コマンド」で設定します。「選択範囲を音声で編集」は、選択したテキストを話したとおりに書き直します。録音は保存されません。音声入力履歴には、質問と回答、編集のテキストが残ります。読み取った内容は、AIチャットで続けた場合か、エージェントの実行のチャットとしてのみ残ります。"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "단축키는 명령에서 설정하세요. 선택 영역을 음성으로 편집은 선택한 텍스트를 말한 대로 다시 씁니다. 녹음은 저장되지 않습니다. 질문과 읽은 내용은 AI 채팅에서 이어가거나 에이전트 실행의 채팅으로만 남습니다."
+            "value" : "단축키는 명령에서 설정하세요. 선택 영역을 음성으로 편집은 선택한 텍스트를 말한 대로 다시 씁니다. 녹음은 저장되지 않습니다. 받아쓰기 기록에는 질문과 답변, 편집의 텍스트가 남습니다. 읽은 내용은 AI 채팅에서 이어가거나 에이전트 실행의 채팅으로만 남습니다."
           }
         },
         "pt" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Defina os atalhos em Comandos. Editar seleção por Voz reescreve o texto selecionado como você disser. Uma gravação nunca é salva. Uma pergunta e o que foi lido só são mantidos se você continuar no Chat de IA, ou como o chat da execução de um agente."
+            "value" : "Defina os atalhos em Comandos. Editar seleção por Voz reescreve o texto selecionado como você disser. Uma gravação nunca é salva. O Histórico de Ditado mantém o texto de uma pergunta e sua resposta, e o de uma edição; o que foi lido só é mantido se você continuar no Chat de IA, ou como o chat da execução de um agente."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Сочетания клавиш задаются в разделе «Команды». «Изменить выделение голосом» переписывает выделенный текст так, как вы скажете. Запись не сохраняется. Вопрос и прочитанное остаются, только если вы продолжите в ИИ-чате, или сохраняются как чат запуска агента."
+            "value" : "Сочетания клавиш задаются в разделе «Команды». «Изменить выделение голосом» переписывает выделенный текст так, как вы скажете. Запись не сохраняется. В истории диктовки остаётся текст вопроса с ответом и текст правки; прочитанное остаётся, только если вы продолжите в ИИ-чате, или сохраняется как чат запуска агента."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "在“命令”中设置它们的快捷键。“语音编辑所选内容”会按你说的改写选中的文本。录音绝不保存。问题和读取的内容只有在 AI 聊天中继续时，或作为智能体运行的聊天时才会保留。"
+            "value" : "在“命令”中设置它们的快捷键。“语音编辑所选内容”会按你说的改写选中的文本。录音绝不保存。听写历史记录会保留问题及其回答以及编辑的文本；读取的内容只有在 AI 聊天中继续时，或作为智能体运行的聊天时才会保留。"
           }
         }
       }
@@ -121950,6 +122787,58 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "隐藏后快捷键仍然有效。"
+          }
+        }
+      }
+    },
+    "Shortening it removes older transcripts at once." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eine kürzere Dauer entfernt ältere Transkripte sofort."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Un plazo más corto elimina al instante las transcripciones más antiguas."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Une durée plus courte supprime aussitôt les transcriptions plus anciennes."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "短くすると、それより古い文字起こしはすぐに削除されます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "기간을 줄이면 오래된 받아쓰기가 즉시 삭제됩니다."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Um prazo menor remove na hora as transcrições mais antigas."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "При сокращении срока более старые расшифровки удаляются сразу."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "缩短后，较早的转写会立即移除。"
           }
         }
       }
@@ -159629,6 +160518,59 @@
         }
       }
     },
+    "transcripts" : {
+      "comment" : "A word Dictation History is found by",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Transkripte"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "transcripciones"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "transcriptions"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "文字起こし"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "받아쓰기"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "transcrições"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "расшифровки"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "转写"
+          }
+        }
+      }
+    },
     "unit-category-time" : {
       "comment" : "Placeholder menu item: insert the current time",
       "localizations" : {
@@ -159789,6 +160731,59 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "未知设置“%@”"
+          }
+        }
+      }
+    },
+    "voice history" : {
+      "comment" : "Words Dictation History is found by",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sprachverlauf"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "historial de voz"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "historique vocal"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "音声履歴"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "음성 기록"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "histórico de voz"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "голосовой ввод"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "语音记录"
           }
         }
       }

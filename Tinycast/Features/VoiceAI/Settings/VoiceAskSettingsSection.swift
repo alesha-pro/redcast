@@ -49,8 +49,9 @@ struct VoiceAskSettingsSection: View {
             Text(
                 """
                 Set their shortcuts under Commands. Edit Selection by Voice rewrites the text you \
-                selected as you say. A recording is never saved. A question and what was read are \
-                kept only if you continue in AI Chat, or as the chat of an agent's run.
+                selected as you say. A recording is never saved. Dictation History keeps the text of \
+                a question and its answer, and of an edit; what was read is kept only if you continue \
+                in AI Chat, or as the chat of an agent's run.
                 """
             )
             .font(.caption)

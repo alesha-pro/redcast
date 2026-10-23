@@ -39,7 +39,8 @@ enum CommandCatalog {
         AppEntry(
             id: id.rawValue, name: id.name, url: url ?? placeholderURL(id), bundleID: nil,
             kind: id.entryKind, settingsOwner: id.owner, subtitle: subtitle,
-            alternateTitles: [id.englishName])
+            alternateTitles: [id.englishName],
+            keywords: id.keywords)  // Fork: aliases a command is found by
     }
 
     nonisolated private static func placeholderURL(_ id: CommandID) -> URL {
@@ -68,6 +69,7 @@ extension SettingsTab {
         case .windowManagement:
             [.createWindowLayout, .captureWindowLayout, .switchRoom, .createRoom]
         case .clipboard: [.clipboardHistory, .pasteSequentially]
+        case .dictation: [.dictationHistory]  // Fork: its shortcut is bound in the History section
         case .emoji: [.searchEmoji]
         case .calendar:
             [.joinNextMeeting, .mySchedule, .createEvent, .copyMeetingLink, .openInCalendar]
