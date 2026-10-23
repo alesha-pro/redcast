@@ -546,12 +546,23 @@ struct AgentTests {
         }
         expect(agent.name == "Builder", "the name is trimmed")
         let chat = UUID()
+        let deleted = UUID()
         store.setAgent(agent.id, forChat: chat)
+        store.setAgent(agent.id, forChat: deleted)
+        store.unbind([deleted, UUID()])
 
         let reloaded = AgentStore(directory: directory)
         reloaded.load()
         expect(reloaded.agents == [agent], "agents survive a relaunch")
         expect(reloaded.agent(forChat: chat) == agent, "and so does which chat talks to which")
+        expect(
+            reloaded.agent(forChat: deleted) == nil && reloaded.chatAgents.count == 1,
+            "a chat that is gone leaves no binding behind")
+        let untouched = directory.appendingPathComponent("untouched")
+        AgentStore(directory: untouched).unbind([UUID()])
+        expect(
+            !FileManager.default.fileExists(atPath: untouched.appendingPathComponent("agent-chats.json").path),
+            "unbinding a chat that had no agent writes nothing")
         try? reloaded.remove(id: agent.id)
         expect(reloaded.agent(forChat: chat) == nil, "deleting an agent frees its chats")
         expect(

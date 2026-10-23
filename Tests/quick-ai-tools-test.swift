@@ -44,11 +44,20 @@ struct QuickAIToolsTests {
 
     static func facts(
         _ surface: ChatToolPolicy.Surface = .quickAI, loop: Bool = true, tools: Bool = true,
-        searches: Bool = true, agent: Bool = false, on: Bool
+        searches: Bool = true, agent: Bool = false, on: Bool, servers: Bool = false
     ) -> ChatToolPolicy.Facts {
         ChatToolPolicy.Facts(
             surface: surface, runsTinycastLoop: loop, callsTools: tools, searches: searches,
-            hasAgent: agent, webSearchOn: on)
+            hasAgent: agent, webSearchOn: on, hasToolServers: servers)
+    }
+
+    static func briefing(
+        _ facts: ChatToolPolicy.Facts, at now: Date, title: String = "Web Search"
+    ) -> String {
+        ChatBriefing.text(
+            now: now, timeZone: moscow, tools: ChatToolPolicy.namedTools(facts),
+            serverTools: ChatToolPolicy.mentionsServerTools(facts),
+            searchSwitch: ChatToolPolicy.searchHint(facts).map { .init(surface: $0, title: title) })
     }
 
     // MARK: - The clock
@@ -87,7 +96,7 @@ struct QuickAIToolsTests {
 
     static func theBriefing() {
         let now = date("2026-10-23 14:37:12", in: moscow)
-        let searching = ChatBriefing.text(now: now, timeZone: moscow, tools: webTools, searchSwitch: nil)
+        let searching = briefing(facts(on: true), at: now)
         expect(
             searching.hasPrefix(ChatBriefing.clock(now: now, timeZone: moscow)),
             "the briefing opens with the clock")
@@ -103,8 +112,8 @@ struct QuickAIToolsTests {
             "a page without the figures sends the model on to another result")
         expect(!searching.contains("cannot search"), "a chat that searches is not told it cannot")
 
-        let quickOff = ChatBriefing.text(
-            now: now, timeZone: moscow, tools: [], searchSwitch: .init(surface: .quickAI, title: "Web Search"))
+        // The owner's case: Quick AI on an API model, Web Search off, no agent, no MCP server.
+        let quickOff = briefing(facts(on: false), at: now)
         expect(
             quickOff.contains("You cannot search the web in this chat")
                 && quickOff.contains("with ⌘K → “Web Search”"),
@@ -112,31 +121,44 @@ struct QuickAIToolsTests {
         expect(!quickOff.contains("Tools you can call"), "and names no tools it does not have")
         expect(!quickOff.contains(WebPageTool.name), "and never tells it to read a page")
 
-        let windowOff = ChatBriefing.text(
-            now: now, timeZone: moscow, tools: [],
-            searchSwitch: .init(surface: .window, title: "Поиск в интернете"))
+        let windowOff = briefing(facts(.window, on: false), at: now, title: "Поиск в интернете")
         expect(
             windowOff.contains("+ menu beside the message field → “Поиск в интернете”"),
             "AI Chat's own switch is the + menu, named as the user's menu spells it")
 
-        let mcpOnly = ChatBriefing.text(
-            now: now, timeZone: moscow, tools: ["github__search_issues"],
-            searchSwitch: .init(surface: .quickAI, title: "Web Search"))
+        let mcpOff = briefing(facts(on: false, servers: true), at: now)
         expect(
-            mcpOnly.contains("Tools you can call in this chat: github__search_issues.")
-                && mcpOnly.contains("⌘K → “Web Search”"),
-            "an MCP tool is named, and search can still be switched on")
+            mcpOff.contains("Tools you can call in this chat: \(ChatBriefing.mcpTools)."),
+            "an MCP server's tools are pointed at in the list the request carries")
+        expect(
+            !mcpOff.contains("cannot search")
+                && mcpOff.contains("Built-in web search is off")
+                && mcpOff.contains("none of your tools can look it up")
+                && mcpOff.contains("⌘K → “Web Search”"),
+            "an MCP tool that can search is not contradicted; the switch is named only if none can")
+
+        let mcpOn = briefing(facts(on: true, servers: true), at: now)
+        expect(
+            mcpOn.contains("web_search, read_page, \(ChatBriefing.mcpTools).")
+                && mcpOn.contains(ChatBriefing.liveFacts),
+            "with search on, Tinycast's tools are named beside the MCP ones")
+        expect(
+            !briefing(facts(on: true, servers: true), at: now).contains("__"),
+            "no MCP tool is named: a turn's @server decides which ones the request carries")
 
         expect(
-            ChatBriefing.text(now: now, timeZone: moscow, tools: [], searchSwitch: nil)
+            briefing(facts(loop: false, tools: false, searches: false, on: true, servers: true), at: now)
                 == ChatBriefing.clock(now: now, timeZone: moscow),
             "a route that can neither call tools nor search hears only the time")
-
-        let many = (1...30).map { "server__tool\($0)" }
-        let crowded = ChatBriefing.text(now: now, timeZone: moscow, tools: many, searchSwitch: nil)
         expect(
-            crowded.contains("server__tool24 and 6 more.") && !crowded.contains("server__tool25"),
-            "a long list stops at \(ChatBriefing.maxListedTools) names and counts the rest")
+            briefing(facts(agent: true, on: false, servers: true), at: now)
+                == ChatBriefing.clock(now: now, timeZone: moscow),
+            "an agent's chat hears only the time: its own prompt describes its tools")
+        expect(
+            briefing(facts(loop: false, searches: false, on: false, servers: true), at: now)
+                .contains("Tools you can call in this chat: \(ChatBriefing.mcpTools).")
+                && !briefing(facts(loop: false, searches: false, on: false), at: now).contains("Tools"),
+            "the Claude command hears of its MCP tools only when a server is on")
     }
 
     // MARK: - What is offered
@@ -147,12 +169,16 @@ struct QuickAIToolsTests {
         expect(ChatToolPolicy.offersSearchSwitch(off), "Quick AI on an API model offers ⌘K → Web Search")
         expect(!ChatToolPolicy.offersWebTools(off), "and sends no web tools while it is off")
         expect(ChatToolPolicy.searchHint(off) == .quickAI, "and its prompt says where the switch is")
-        expect(ChatToolPolicy.listsTools(off), "and names whatever tools it does have")
+        expect(ChatToolPolicy.namedTools(off).isEmpty, "and names none of the web tools")
+        expect(
+            ChatToolPolicy.mentionsServerTools(facts(on: false, servers: true)),
+            "but points at an MCP server's tools when one is on")
 
         let on = facts(on: true)
         expect(ChatToolPolicy.offersWebTools(on), "switched on, web_search and read_page go out")
         expect(ChatToolPolicy.offersSearchSwitch(on), "and ⌘K can switch it off again")
         expect(ChatToolPolicy.searchHint(on) == nil, "and no hint is needed")
+        expect(ChatToolPolicy.namedTools(on) == webTools, "and the prompt names both")
 
         for webSearch in [false, true] {
             let agent = facts(agent: true, on: webSearch)
@@ -163,7 +189,10 @@ struct QuickAIToolsTests {
                 !ChatToolPolicy.offersWebTools(agent),
                 "and the plain chat's web tools never ride beside the agent's (search \(webSearch))")
             expect(ChatToolPolicy.searchHint(agent) == nil, "and no hint points at a switch it ignores")
-            expect(!ChatToolPolicy.listsTools(agent), "and the agent's own prompt lists its tools")
+            expect(
+                ChatToolPolicy.namedTools(agent).isEmpty
+                    && !ChatToolPolicy.mentionsServerTools(facts(agent: true, on: webSearch, servers: true)),
+                "and the agent's own prompt lists its tools")
         }
     }
 
@@ -172,7 +201,10 @@ struct QuickAIToolsTests {
         expect(
             !ChatToolPolicy.offersSearchSwitch(onDevice) && ChatToolPolicy.searchHint(onDevice) == nil,
             "the on-device model reaches nothing, so nothing points at a switch")
-        expect(!ChatToolPolicy.listsTools(onDevice), "and it has no tools to name")
+        expect(
+            !ChatToolPolicy.mentionsServerTools(
+                facts(loop: false, tools: false, searches: false, on: true, servers: true)),
+            "and it has no tools to name")
 
         let codexOff = facts(loop: false, on: false)
         expect(ChatToolPolicy.offersSearchSwitch(codexOff), "Codex's own search follows the same switch")
@@ -182,10 +214,11 @@ struct QuickAIToolsTests {
             "not even with the switch on, since it searches itself")
         expect(ChatToolPolicy.searchHint(codexOff) == .quickAI, "and off, it is told where the switch is")
 
-        let claude = facts(loop: false, searches: false, on: true)
+        let claude = facts(loop: false, searches: false, on: true, servers: true)
         expect(
-            !ChatToolPolicy.offersSearchSwitch(claude) && ChatToolPolicy.listsTools(claude),
-            "the Claude command has MCP tools to name and no search to switch")
+            !ChatToolPolicy.offersSearchSwitch(claude) && ChatToolPolicy.mentionsServerTools(claude)
+                && ChatToolPolicy.namedTools(claude).isEmpty,
+            "the Claude command has MCP tools to point at and no search to switch")
 
         let window = facts(.window, on: false)
         expect(ChatToolPolicy.searchHint(window) == .window, "AI Chat's hint names AI Chat's switch")

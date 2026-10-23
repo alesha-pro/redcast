@@ -4,8 +4,7 @@ import Foundation
 enum ChatBriefing {
     /// To the quarter hour, so a provider's cached prompt changes four times an hour, not per turn.
     static let clockStep: TimeInterval = 15 * 60
-    /// MCP servers can bring dozens of tools, and their definitions already name every one.
-    static let maxListedTools = 24
+    static let mcpTools = "the MCP server tools in your tool list"
 
     /// Where Web Search is turned on, and its menu item's title in the language the user reads.
     struct SearchSwitch: Equatable, Sendable {
@@ -14,14 +13,17 @@ enum ChatBriefing {
     }
 
     static func text(
-        now: Date, timeZone: TimeZone, tools: [String], searchSwitch: SearchSwitch?
+        now: Date, timeZone: TimeZone, tools: [String], serverTools: Bool, searchSwitch: SearchSwitch?
     ) -> String {
         var lines = [clock(now: now, timeZone: timeZone)]
-        if !tools.isEmpty { lines.append("Tools you can call in this chat: \(listed(tools)).") }
+        let offered = tools + (serverTools ? [mcpTools] : [])
+        if !offered.isEmpty {
+            lines.append("Tools you can call in this chat: \(offered.joined(separator: ", ")).")
+        }
         if tools.contains(WebSearchTool.name) {
             lines.append(liveFacts)
         } else if let searchSwitch {
-            lines.append(searchOff(searchSwitch))
+            lines.append(searchOff(searchSwitch, hasOtherTools: !offered.isEmpty))
         }
         return lines.joined(separator: "\n")
     }
@@ -47,21 +49,21 @@ enum ChatBriefing {
         scripts), read another result rather than guessing or sending the user to a website.
         """
 
-    static func searchOff(_ searchSwitch: SearchSwitch) -> String {
+    /// Other tools may still reach the web, so the switch is named only for what they can't.
+    static func searchOff(_ searchSwitch: SearchSwitch, hasOtherTools: Bool) -> String {
         let place =
             switch searchSwitch.surface {
             case .quickAI: "with ⌘K → “\(searchSwitch.title)”"
             case .window: "from the + menu beside the message field → “\(searchSwitch.title)”"
             }
-        return "You cannot search the web in this chat. When a question needs live data (weather, "
-            + "prices, news, schedules), say in one line that the user can turn on web search \(place) "
-            + "and ask again, then answer what you can without inventing current figures."
-    }
-
-    private static func listed(_ tools: [String]) -> String {
-        let shown = tools.prefix(maxListedTools).joined(separator: ", ")
-        let rest = tools.count - maxListedTools
-        return rest > 0 ? "\(shown) and \(rest) more" : shown
+        let need =
+            hasOtherTools
+            ? "Built-in web search is off in this chat. When a question needs live data (weather, "
+                + "prices, news, schedules) and none of your tools can look it up"
+            : "You cannot search the web in this chat. When a question needs live data (weather, "
+                + "prices, news, schedules)"
+        return need + ", say in one line that the user can turn on web search \(place) and ask "
+            + "again, then answer what you can without inventing current figures."
     }
 
     private static func time(_ date: Date, in calendar: Calendar) -> String {

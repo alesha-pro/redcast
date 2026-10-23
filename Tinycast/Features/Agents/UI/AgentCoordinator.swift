@@ -487,10 +487,11 @@ final class AgentCoordinator {
         apply()
     }
 
-    /// A deleted chat's notes and pending ACP briefing go with it.
+    /// A deleted chat's agent, notes and pending ACP briefing go with it.
     func chatDeleted(_ id: UUID) {
         store.removeSummary(forChat: id)
         forgetACPSession(ofChat: id)
+        store.unbind([id])
     }
 
     // MARK: - Schedules
@@ -533,7 +534,7 @@ final class AgentCoordinator {
 }
 
 extension AppCore {
-    /// After chats are deleted, the notes and ACP sessions their agents kept go with them.
+    /// After chats are deleted, their agents and the notes and ACP sessions those kept go with them.
     func pruneAgentSummaries() {
         guard chatHistory.isAvailable else { return }
         let kept = Set(chatHistory.conversations.map(\.id))
@@ -541,5 +542,8 @@ extension AppCore {
         for chat in agentStore.acpSessions.keys where !kept.contains(chat) {
             agentCoordinator.forgetACPSession(ofChat: chat)
         }
+        // An open chat with no message yet keeps the agent picked for it.
+        let open = kept.union(aiChats.live.map(\.session.id))
+        agentStore.unbind(agentStore.chatAgents.keys.filter { !open.contains($0) })
     }
 }

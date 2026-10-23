@@ -18,6 +18,8 @@ enum ChatToolPolicy {
         var searches: Bool
         var hasAgent: Bool
         var webSearchOn: Bool
+        /// An MCP server the chat's tools menu leaves on, whichever one a turn's `@server` names.
+        var hasToolServers: Bool
     }
 
     /// Quick AI's ⌘K item and AI Chat's + menu toggle; an agent's Web family decides for its chat.
@@ -35,9 +37,14 @@ enum ChatToolPolicy {
         offersSearchSwitch(facts) && !facts.webSearchOn ? facts.surface : nil
     }
 
-    /// A plain chat's prompt names its tools; an agent's own prompt describes what it has.
-    static func listsTools(_ facts: Facts) -> Bool {
-        facts.callsTools && !facts.hasAgent
+    /// Tinycast's own tools a plain chat's prompt names; an agent's own prompt describes its tools.
+    static func namedTools(_ facts: Facts) -> [String] {
+        offersWebTools(facts) ? [WebSearchTool.name, WebPageTool.name] : []
+    }
+
+    /// MCP tools are pointed at, not named: a turn's `@server` decides which the request carries.
+    static func mentionsServerTools(_ facts: Facts) -> Bool {
+        facts.callsTools && facts.hasToolServers && !facts.hasAgent
     }
 
     /// The chat's own agent, else Quick AI's while its chat is unsent and ⌘K has not said none.

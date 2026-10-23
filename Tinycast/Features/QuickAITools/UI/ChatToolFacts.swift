@@ -6,18 +6,23 @@ extension AIChatCoordinator {
         let can = capabilities(for: chat)
         var runsLoop = false
         if case .api? = model(for: chat) { runsLoop = true }
+        let scope = chat.toolScope
         return ChatToolPolicy.Facts(
             surface: agents.surface(of: chat), runsTinycastLoop: runsLoop, callsTools: can.tools,
             searches: can.webSearch, hasAgent: agents.agent(for: chat) != nil,
-            webSearchOn: aiSettings.webSearchEnabled)
+            webSearchOn: aiSettings.webSearchEnabled,
+            hasToolServers: mcpServers.contains { scope.allows($0.slug) && $0.trust != .never })
     }
 
-    /// Read when a turn is sent, so the time is the send's and the tools are the turn's.
-    func briefing(for chat: AIChatState, tools: [String]) -> String {
-        let hint = ChatToolPolicy.searchHint(toolFacts(for: chat))
+    /// Read when a turn is sent, so the time is the send's.
+    func briefing(for chat: AIChatState) -> String {
+        let facts = toolFacts(for: chat)
         return ChatBriefing.text(
-            now: Date(), timeZone: .current, tools: tools,
-            searchSwitch: hint.map { .init(surface: $0, title: String(localized: "Web Search")) })
+            now: Date(), timeZone: .current, tools: ChatToolPolicy.namedTools(facts),
+            serverTools: ChatToolPolicy.mentionsServerTools(facts),
+            searchSwitch: ChatToolPolicy.searchHint(facts).map {
+                .init(surface: $0, title: String(localized: "Web Search"))
+            })
     }
 
     /// Quick AI's ⌘K Web Search: the + menu's setting, said in a HUD since no pill shows it there.

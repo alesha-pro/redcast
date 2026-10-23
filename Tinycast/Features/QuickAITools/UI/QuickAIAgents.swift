@@ -22,6 +22,14 @@ extension AgentCoordinator {
         setAgent(agent, for: chat)
     }
 
+    /// Bound only once `send` took the message: Return on an empty chat must leave no binding.
+    func bindingQuickAIAgent(in chat: AIChatState, _ send: () -> Bool) -> Bool {
+        let shown = store.agent(forChat: chat.session.id) == nil ? agent(for: chat) : nil
+        guard send() else { return false }
+        if let shown { setAgent(shown, for: chat) }
+        return true
+    }
+
     /// ⌘K's choice for this chat; No Agent on an unsent one also keeps Settings' agent out of it.
     func chooseQuickAIAgent(_ agent: AgentProfile?, for chat: AIChatState) {
         quickAIDeclined = agent == nil && chat.session.messages.isEmpty ? chat.session.id : nil

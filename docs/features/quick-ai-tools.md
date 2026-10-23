@@ -21,12 +21,19 @@ and `SettingsSearchCatalog`.
 - **Quick AI's agent is Settings' pick until the chat speaks, then the chat's own.**
   `AgentCoordinator.agent(for:)` resolves through `ChatToolPolicy.agent`: a chat's own binding wins;
   Quick AI's chat with no message yet takes `aiQuickAIAgent` unless ⌘K said No Agent for that chat
-  (`quickAIDeclined`, in memory, by chat id). Its first send, and ⌘J, bind it through `setAgent`, so
-  later turns, AI Chat and the history keep it, and a later change in Settings never moves a chat
-  that has spoken. A chat Quick AI resumes without an agent stays plain; AI Chat's window never
-  takes it. Everything that asks `agent(for:)` — the route, the agent's prompt, the model the chat
-  runs on, the capabilities and the context card — sees the agent before the first message, so the
-  header's model is the agent's and the first turn is already the agent's.
+  (`quickAIDeclined`, in memory, by chat id). A first message the chat took, and ⌘J, bind it through
+  `setAgent`, so later turns, AI Chat and the history keep it, and a later change in Settings never
+  moves a chat that has spoken. The agent is read before the send and bound only once it went
+  (`bindingQuickAIAgent`), so Return on an empty Quick AI or a refused send leaves no binding. A
+  chat Quick AI resumes without an agent stays plain; AI Chat's window never takes it. Everything
+  that asks `agent(for:)` — the route, the agent's prompt, the model the chat runs on, the
+  capabilities and the context card — sees the agent before the first message, so the header's model
+  is the agent's and the first turn is already the agent's.
+- **A binding lasts as long as its chat.** Every Quick AI chat that answers with an agent adds a
+  line to `agent-chats.json`, as an AI Chat agent chat does. Deleting a chat drops its line
+  (`AgentCoordinator.chatDeleted`), and the history's retention prune and Delete All sweep the lines
+  of chats no longer in history and not open (`AppCore.pruneAgentSummaries`, `AgentStore.unbind`),
+  which writes the file only when a line goes.
 - **Only agents on the chat's model.** Quick AI offers agents whose `runtime` is nil, so a turn runs
   `AgentLoopProvider` over the agent's toolset exactly as in AI Chat, its consent dialogs included.
   ACP agents are not offered: Quick AI's header holds the chat model's and reasoning pickers, which
@@ -40,16 +47,21 @@ and `SettingsSearchCatalog`.
   tile, name and folder head the transcript, and `QuickAIAgentHeader` puts the same line over the
   empty chat.
 - **The briefing ends the shared prompt, under its switch.** AIChatCoordinator's
-  `instructions(for:scopedTo:)` appends `ChatBriefing.text` to `AIInstructions.compose`, so Send a
-  system prompt off sends none of it, and an agent's prompt still follows it. Every chat gets the
-  local weekday, date, quarter hour, zone and UTC offset. A plain chat on a route that calls tools
-  also gets the turn's tools by name (`@server` narrowing included, 24 at most); with `web_search`
-  among them, live facts (weather, prices, news, schedules) go through `web_search` and then
-  `read_page` on the best result, and a page lacking the figures sends it on to another result.
-  Without it, where the switch applies, the model says in one line where Web Search is turned on (⌘K
-  in Quick AI, the **+** menu in AI Chat), naming the item as the app's language spells it, and
-  invents no current figures. An agent's chat gets only the time: its own prompt describes its
-  tools.
+  `instructions(for:)` appends `ChatBriefing.text` to `AIInstructions.compose`, so Send a system
+  prompt off sends none of it, and an agent's prompt still follows it; `send` and `regenerate` call
+  it exactly as upstream does, so their lines merge untouched. Every chat gets the local weekday,
+  date, quarter hour, zone and UTC offset. A plain chat on a route that calls tools also hears which
+  tools it has: Tinycast's `web_search` and `read_page` by name, and, while its tools menu leaves an
+  MCP server on, "the MCP server tools in your tool list". MCP tools are pointed at, never named: a
+  message's `@server` decides which ones its request carries, the definitions name them, and the
+  loop runs any name the model writes, so a list of every server's tools could pull a call past the
+  narrowing. With `web_search`, live facts (weather, prices, news, schedules) go through
+  `web_search` and then `read_page` on the best result, and a page lacking the figures sends it on
+  to another result. Without it, where the switch applies, the model says in one line where Web
+  Search is turned on (⌘K in Quick AI, the **+** menu in AI Chat), naming the item as the app's
+  language spells it, and invents no current figures; a chat with MCP tools hears that built-in
+  search is off, and gives that line only when none of its tools can look the answer up. An agent's
+  chat gets only the time: its own prompt describes its tools.
 - **To the quarter hour, so the cache keeps.** The instructions open every request, and a provider's
   prompt cache (Anthropic's and OpenRouter's for Claude, the automatic prefix caches elsewhere) is
   lost whenever they change, so the time is a fifteen-minute window (`ChatBriefing.clockStep`)
@@ -57,7 +69,7 @@ and `SettingsSearchCatalog`.
   text is English, its weekday from an `en_US_POSIX` calendar.
 - **Nothing resident.** `QuickAISettingsStore` reads one default the first time an agent is
   resolved; the ⌘K rows are built when the menu opens; the briefing is a string built per send. No
-  timer, no file, no network but the turn's own.
+  timer, no file of its own, no network but the turn's own.
 - **The setting never travels.** `aiQuickAIAgent` names an agent on this Mac and lends it Quick AI's
   questions, so it is excluded from backups and has no `settings.json` key, as `voiceAskAgent`. The
   previous build ignores the key.
@@ -66,7 +78,7 @@ and `SettingsSearchCatalog`.
 
 | Quick AI chat | Web Search | ⌘K Web Search | Sent to the model | Briefing after the time |
 | --- | --- | --- | --- | --- |
-| No agent, API model | off | shown | MCP tools, if any | where to turn Web Search on |
+| No agent, API model | off | shown | MCP tools, if any | MCP tools, if any; where to turn Web Search on |
 | No agent, API model | on | shown, checked | `web_search`, `read_page`, MCP tools | the tools, and search then read |
 | Agent on the chat's model | either | hidden | the agent's toolset and MCP | nothing: the agent's prompt follows |
 | No agent, Codex | either | shown | Codex's own search while on | where to turn it on, while off |
@@ -76,11 +88,11 @@ and `SettingsSearchCatalog`.
 
 | File | Holds |
 | --- | --- |
-| `Model/ChatToolPolicy.swift` | The rules: the switch, the web tools, the hint, whether tools are listed, which agent answers |
+| `Model/ChatToolPolicy.swift` | The rules: the switch, the web tools, the hint, the tools the prompt names, which agent answers |
 | `Model/ChatBriefing.swift` | The prompt's last lines: the clock, the tools, the live-facts rule, the switch's place |
 | `Settings/QuickAISettingsStore.swift` | `aiQuickAIAgent` in `UserDefaults` |
 | `Settings/QuickAIAgentRow.swift` | Quick AI answers with, in Settings → AI → Agents |
-| `UI/QuickAIAgents.swift` | `AgentCoordinator`'s Quick AI part: the agents offered, Settings' pick, binding, ⌘K's choice |
+| `UI/QuickAIAgents.swift` | `AgentCoordinator`'s Quick AI part: the agents offered, Settings' pick, binding after a send, ⌘K's choice |
 | `UI/ChatToolFacts.swift` | `AIChatCoordinator`'s facts for the policy, the briefing for a turn, the ⌘K toggle |
 | `UI/QuickAIToolsMenu.swift` | The ⌘K rows: Web Search, then Answer with |
 | `UI/QuickAIAgentHeader.swift` | The agent's line over an empty Quick AI chat |
@@ -89,7 +101,8 @@ and `SettingsSearchCatalog`.
 
 1. Set an OpenRouter model as the default with Web search off and no agent. In Quick AI ask "какая
    погода в Москве?": the reply says in one line that ⌘K → Web Search turns searching on, and gives
-   no current temperature.
+   no current temperature. Press Return on the empty Quick AI with an agent set in Settings (step
+   4): `agent-chats.json` in Application Support does not change.
 2. ⌘K → Web Search: a HUD says Web search is on, the row is checked the next time ⌘K opens, and AI
    Chat's composer shows its Search pill. Ask again: a "Searched web · погода Москва" row, a "Web
    search · read_page" row on a result such as yandex.ru/pogoda, and the temperature with its
@@ -104,8 +117,10 @@ and `SettingsSearchCatalog`.
 6. On Apple Intelligence, ⌘K offers no Web Search and the prompt points at no switch.
 7. Search Settings for "Quick AI answers": it lands on the row. Delete the agent: the row reads No
    Agent and Quick AI answers plainly. Export a backup: `aiQuickAIAgent` is not in it.
+8. Delete a Quick AI chat an agent answered: its id leaves `agent-chats.json`.
 
 Harness: `quick-ai-tools-test` (the clock across zones and quarter-hour edges, the briefing with and
-without tools or search, the offering rules for Quick AI with Web Search on and off and with and
-without an agent, Codex, the Claude command, the on-device model and AI Chat, which agent answers,
-and the setting across launches). `agent-tools-test` and `web-search-test` hold the page reads.
+without tools, search or an MCP server, the offering rules for Quick AI with Web Search on and off
+and with and without an agent, Codex, the Claude command, the on-device model and AI Chat, which
+agent answers, and the setting across launches). `agent-test` holds the bindings a gone chat leaves
+behind, and `agent-tools-test` and `web-search-test` the page reads.
