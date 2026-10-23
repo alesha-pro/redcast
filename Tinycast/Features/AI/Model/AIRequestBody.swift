@@ -6,15 +6,17 @@ enum AIRequestBody {
         _ input: AIRequest, configuration: AIHTTPConfiguration
     ) -> [String: Any] {
         switch configuration.shape {
-        case .openAICompatible: return cacheMarked(openAI(input, configuration: configuration), configuration)
-        case .anthropic: return cacheMarked(anthropic(input, configuration: configuration), configuration)
+        case .openAICompatible: return cacheMarked(openAI(input, configuration: configuration), input, configuration)
+        case .anthropic: return cacheMarked(anthropic(input, configuration: configuration), input, configuration)
         }
     }
 
     // Fork: only Claude must be asked to cache, and only its own API and OpenRouter take the field.
     private static func cacheMarked(
-        _ body: [String: Any], _ configuration: AIHTTPConfiguration
+        _ body: [String: Any], _ input: AIRequest, _ configuration: AIHTTPConfiguration
     ) -> [String: Any] {
+        // A lone question, as a Quick Action or a summary, may never be resent: a write is waste.
+        guard !input.tools.isEmpty || input.messages.count > 1 else { return body }
         let mark = ["type": "ephemeral"]
         let own =
             configuration.shape == .anthropic

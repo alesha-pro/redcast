@@ -2425,11 +2425,28 @@ extension AIProviderTests {
         expect(marks(anthropic) == 3, "three breakpoints, under Anthropic's four")
         expect(JSONSerialization.isValidJSONObject(anthropic), "and the body is still JSON")
 
-        let lone = AIRequest(messages: [AIMessage(role: .user, text: "hi")])
-        let question = body(lone, .anthropic, "https://api.anthropic.com", "claude-sonnet-5-5")
+        let oneShot = AIRequest(instructions: "Fix the grammar.", messages: [AIMessage(role: .user, text: "hi")])
+        for (provider, url, model) in [
+            (AIProviderKind.anthropic, "https://api.anthropic.com", "claude-sonnet-5-5"),
+            (.openRouter, "https://openrouter.ai/api/v1", "anthropic/claude-sonnet-5.5")
+        ] {
+            let lone = body(oneShot, provider, url, model)
+            expect(
+                marks(lone) == 0 && lone["cache_control"] == nil
+                    && (provider != .anthropic || lone["system"] as? String == "Fix the grammar."),
+                "a lone question, as a Quick Action or a summary, is sent as before on \(provider)")
+        }
+        let followUp = AIRequest(
+            instructions: "Be brief.",
+            messages: [
+                AIMessage(role: .user, text: "hi"), AIMessage(role: .assistant, text: "hello"),
+                AIMessage(role: .user, text: "and?")
+            ])
+        let chat = body(followUp, .anthropic, "https://api.anthropic.com", "claude-sonnet-5-5")
         expect(
-            marks(question) == 1 && question["system"] == nil && question["tools"] == nil,
-            "a lone question only asks, adding no prompt or tools")
+            marks(chat) == 2 && chat["cache_control"] as? [String: String] == ephemeral
+                && chat["tools"] == nil,
+            "a chat's follow-up asks, marking the prompt and the moving tail with no tools to mark")
 
         let gateway = body(turn, .anthropic, "https://gateway.example.com", "claude-sonnet-5-5")
         expect(
