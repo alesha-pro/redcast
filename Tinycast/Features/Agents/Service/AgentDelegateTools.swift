@@ -3,8 +3,6 @@ import Foundation
 /// `delegate`: one read-only sub-agent per call on the turn's own model; its findings are the result.
 struct AgentDelegateTools: AgentToolProvider {
     static let name = "delegate"
-    /// A sub-task that has not answered in this many rounds has lost its way.
-    static let maxRounds = 12
     /// Under the executor's 28 KB, so the parent's budget never has to cut it.
     static let maxAnswerBytes = 16 * 1_024
     static let maxNameLength = 60
@@ -40,8 +38,10 @@ struct AgentDelegateTools: AgentToolProvider {
         guard let task = Self.task(in: call.arguments) else {
             return .failure(call.id, "delegate takes a name and a task, both non-empty text.")
         }
+        // At its budget the child is asked for its findings once more, tools off, so none are lost.
         let child = AgentLoopProvider(
-            base: base, toolset: toolset, maxRounds: Self.maxRounds, outputCap: AgentTurnBudget.outputTokens)
+            base: base, toolset: toolset, budget: .subAgent, outputCap: AgentTurnBudget.outputTokens,
+            answersAnAgent: true)
         let request = AIRequest(
             instructions: instructions, messages: [AIMessage(role: .user, text: task.text)])
         var answer = ""

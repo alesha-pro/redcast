@@ -79,6 +79,8 @@ struct AgentProfile: Hashable, Identifiable, Sendable {
     var consent: AgentConsentRules?
     /// How a run nobody started from a chat behaves; nil is `AgentBackgroundPolicy()`.
     var background: AgentBackgroundPolicy?
+    /// How much a run may do; nil is Balanced, and the previous build ignores the key.
+    var effort: AgentEffort?
     var createdAt: Date
 
     init(
@@ -115,6 +117,8 @@ struct AgentProfile: Hashable, Identifiable, Sendable {
 
     var backgroundPolicy: AgentBackgroundPolicy { background ?? AgentBackgroundPolicy() }
 
+    var effortLevel: AgentEffort { effort ?? .balanced }
+
     /// Its launcher row's id; apart from the `@handle` rows' `agent:` and `agent-pick:` ids.
     static let entryIDPrefix = "agent-profile:"
 
@@ -131,7 +135,7 @@ extension AgentProfile: Codable {
     private enum CodingKeys: String, CodingKey {
         case id, name, iconSymbol, color, instructions, model, directory, access, tools, addedTools
         case skillSources, disabledSkills, readsProjectInstructions, readsGlobalInstructions, runtime
-        case acpMode, acpModel, acpReasoning, acpOptions, consent, background, createdAt
+        case acpMode, acpModel, acpReasoning, acpOptions, consent, background, effort, createdAt
     }
 
     init(from decoder: any Decoder) throws {
@@ -160,6 +164,7 @@ extension AgentProfile: Codable {
         acpOptions = try values.decodeIfPresent([String: String].self, forKey: .acpOptions)
         consent = try values.decodeIfPresent(AgentConsentRules.self, forKey: .consent)
         background = try values.decodeIfPresent(AgentBackgroundPolicy.self, forKey: .background)
+        effort = try values.decodeIfPresent(AgentEffort.self, forKey: .effort)
         createdAt = try values.decode(Date.self, forKey: .createdAt)
     }
 
@@ -187,6 +192,7 @@ extension AgentProfile: Codable {
         try values.encodeIfPresent(acpOptions, forKey: .acpOptions)
         try values.encodeIfPresent(consent, forKey: .consent)
         try values.encodeIfPresent(background, forKey: .background)
+        try values.encodeIfPresent(effort, forKey: .effort)
         try values.encode(createdAt, forKey: .createdAt)
     }
 }
@@ -205,13 +211,8 @@ struct AgentBackgroundPolicy: Codable, Hashable, Sendable {
     var consent: AgentBackgroundConsent = .ask
     /// A Notification Center banner when a run ends; opt-in, since macOS asks for it once.
     var notifies = false
-    /// A run still going after this long is stopped, so a stuck turn can't keep the Mac awake.
+    /// The previous build's time limit, written for it; this build takes a run's from its effort.
     var minutes = 15
-
-    static let minuteRange = 5...60
-
-    /// The limit a run is held to, inside the range even when a hand-edited file says otherwise.
-    var limitMinutes: Int { min(max(minutes, Self.minuteRange.lowerBound), Self.minuteRange.upperBound) }
 }
 
 enum AgentProfileError: Error, LocalizedError, Equatable {

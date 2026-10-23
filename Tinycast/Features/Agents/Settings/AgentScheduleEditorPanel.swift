@@ -50,6 +50,14 @@ struct AgentScheduleEditorPanel: View {
                 .labelsHidden()
                 .pickerStyle(.radioGroup)
             }
+            field("Effort") {
+                Picker("Effort", selection: $draft.effort) {
+                    Text("The agent's (\(agentEffort.title))").tag(AgentEffort?.none)
+                    ForEach(AgentEffort.allCases) { Text($0.title).tag(AgentEffort?.some($0)) }
+                }
+                .labelsHidden()
+                .fixedSize()
+            }
             noteField
             Toggle("Enabled", isOn: $draft.isEnabled)
                 .toggleStyle(.checkbox)
@@ -93,6 +101,10 @@ struct AgentScheduleEditorPanel: View {
         .padding(Theme.Spacing.dialogInset)
         .frame(width: Theme.Size.editorSheetWidth)
         .settingsEditorPanelSurface(controlsOnGlass: false)
+    }
+
+    private var agentEffort: AgentEffort {
+        core.agentCoordinator.store.agent(id: draft.agentID)?.effortLevel ?? .balanced
     }
 
     private var isIncomplete: Bool {

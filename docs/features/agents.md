@@ -75,8 +75,26 @@ optional chord: see [background and scheduled agents](background-agents.md).
   is left out by name, so one added later is in until switched off.
 - **What tools return is material, and bounded three times.** The agent's prompt says so. A
   provider cuts its own output first, under 28 KB, so the cut can say where to continue;
-  `AgentTurnBudget` then holds each result to 32 KB, as upstream's loop does, and a turn's results to
-  512 KB, four times upstream's; and a turn with unlimited rounds stops at the 1 MB history wall.
+  `AgentTurnBudget` then holds each result to 32 KB, as upstream's loop does, and a run's results to
+  its effort's allowance (512 KB at Balanced, four times upstream's); the 1 MB history wall is the
+  third, and every one of them ends in a hand-over rather than a failure (below).
+- **A run has a budget, and always hands over.** An agent's Effort (`AgentEffort`, picked in its
+  editor and stored only when it is not Balanced; a schedule may pick its own for its runs) sets the
+  run's `AgentRunBudget`: Quick 8 tool rounds, 256 KB of tool output, 5 minutes in the background
+  and no sub-agents; Balanced 25, 512 KB, 15 minutes, 2; Thorough 60, 1 MB, 45 minutes, 4. Settings'
+  Tool call rounds no longer reaches agents. After each round `AgentBudgetPolicy` decides: past 80% of
+  the rounds, the output or the time, the model is told once to wrap up; at a limit (or the history
+  wall) it is told the budget is spent, tools are off, and it must answer with the result, what is
+  done, what is not and why, and what to do next. That last round still lists the tools, so the
+  cached prefix holds and Anthropic still sees the tools its history used; a call it makes anyway is
+  never run, and a hand-over with no text is replaced by "This run reached its limit before the agent
+  summed up." and the plan. Every note rides the round's newest tool result, added before it is ever
+  sent, so no request rewrites what an earlier one sent. Only an unattended run has a clock: it
+  hands over at its effort's minutes, and the watchdog stops it two minutes later if a long call
+  kept it from doing so. A run that fails after working says where its plan stood before the
+  failure shows, and a reply that failed or was stopped, which history leaves out, goes back before
+  the next question of that chat, so "go on" continues instead of starting over. Upstream's loop and
+  plain chats keep their round cap and its failure.
 - **A long turn elides, it does not stop.** Once this turn's results in the resent history pass
   160 KB, `AgentTurnBudget.elide` replaces the oldest ones before the newest round with a stub that
   names the tool and the size and says to call it again, until they fit in 96 KB. Call ids and the
@@ -148,8 +166,9 @@ optional chord: see [background and scheduled agents](background-agents.md).
   only `AgentToolRisk.reads` (read, network, personal: no change, command, `memory_write` or plan),
   no MCP, and runs unattended, so anything whose rule would ask is refused and `screen_context`,
   which needs a turn the user sent, is not offered. It gets the agent's context prompt for that
-  read-only profile and a sub-task briefing, never the parent's conversation. It stops after 12
-  rounds; its answer is the text after its last call, cut to 16 KB. What it spent comes back as
+  read-only profile and a sub-task briefing, never the parent's conversation. Its budget is 12 rounds
+  and 256 KB (`AgentRunBudget.subAgent`); at the limit it is asked once more, tools off, for what it
+  found, so nothing it learned is lost; its answer is the text after its last call, cut to 16 KB. What it spent comes back as
   `AgentToolSignal.spent` after each of its rounds and raises the reply's cost at once, so a capped
   run hears it before the parent's next round and a turn cut short still counts it; the tokens stay
   the parent's last round's. Its own calls never show; the parent's row reads "delegate: <name>"
@@ -515,7 +534,7 @@ this way, as one provider. Nothing else changes: no router edit, no upstream lin
   asking it to fetch a page gets no tool row. Set Web to Ask Each Chat: a fetch raises "wants to use
   web_fetch". Reopen the editor: the choices stuck.
 - With the app in German, French or Russian, open an agent's editor with a mouse attached (so the
-  scroller takes its width): Access and In the background show every choice in full inside the
+  scroller takes its width): Access, Effort and In the background show every choice in full inside the
   panel, each segment as wide as its own label, and switching one does not resize the control.
 - Ask an agent with Web on about today's news: the transcript shows its `web_search` row and a
   "Searched web" row, then the answer cites sources. With Web off it says it cannot look things up.
