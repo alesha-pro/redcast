@@ -167,6 +167,8 @@ final class AgentsStatusItem: NSObject, NSMenuDelegate {
                 String(
                     localized:
                         "Finished \((run.endedAt ?? now).formatted(date: .omitted, time: .shortened))")
+            // A run the cap held back never started, so its reason alone says what happened.
+            case .failed(let reason) where !run.hasChat: reason
             case .failed(let reason): String(localized: "Failed: \(reason)")
             }
         var parts = [state]

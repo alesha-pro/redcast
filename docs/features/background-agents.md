@@ -194,8 +194,9 @@ day starts at zero. A run is checked as it is due — at or past the cap it is h
 "Not started: scheduled runs reached today's cap of $5.00", and opening that row shows the cap — and
 again on every cost its route reports while it runs, which ACP agents send mid-turn and the native
 loop after each round. When the turn ends, its last reported cost joins the day's total, also when
-AI is switched off, Tinycast quits or the chat is deleted before it ends. The cap is local to the
-Mac's day and time zone, like the schedules.
+AI is switched off, Tinycast quits or the chat is deleted before it ends. The held run's row shows
+only its reason, with no "Failed:" in front, since it never started. The cap is local to the Mac's
+day and time zone, like the schedules.
 
 ## Layout
 
