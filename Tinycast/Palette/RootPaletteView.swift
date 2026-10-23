@@ -125,6 +125,10 @@ struct RootPaletteView: View {
             return AgentSessionsScreen(
                 coordinator: core.agentSessionsCoordinator, index: core.agentSessionsCoordinator.index,
                 chatHistory: core.chatHistory, chat: quickAI, vm: vm, metrics: metrics, openActions: openActions)
+        case .dictationHistory:  // Fork: Dictation History
+            return DictationHistoryScreen(
+                coordinator: core.dictationHistoryCoordinator, index: core.dictationHistoryCoordinator.index,
+                vm: vm, metrics: metrics, openActions: openActions)
         case .dictionary:
             return DictionaryScreen(session: dictionary, core: core, vm: vm)
         case .calculatorHistory:

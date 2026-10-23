@@ -119,7 +119,11 @@ final class AppCore {
         showMessage: { [unowned self] in self.showMessage($0, tone: $1) },
         cloudIsOn: { [unowned self] in self.voiceCloud.isOn },
         cloudTranscribe: { [unowned self] in try await self.voiceCloud.transcribe($0, language: $1) },
-        capsule: { [unowned self] in self.voiceCloud.attach(to: $0) })
+        capsule: { [unowned self] in self.voiceCloud.attach(to: $0) },
+        finished: { [unowned self] in  // Fork: Dictation History
+            self.dictationHistoryCoordinator.recordDictation(
+                text: $0, transcript: $1, samples: $2, target: $3)
+        })
     @ObservationIgnored private(set) lazy var quicklinkCoordinator = QuicklinkCoordinator(
         store: quicklinks, settings: settings,
         appIndex: appIndex, injector: textInjector, hotKeys: hotKeys, favorites: favorites,
@@ -247,7 +251,12 @@ final class AppCore {
             paletteCoordinator: paletteCoordinator, core: self)
     @ObservationIgnored private(set) lazy var voiceAskCoordinator = VoiceAskCoordinator(
         settings: settings, voice: voiceSettings, aiSettings: aiSettings, appIndex: appIndex,
-        hotKeys: hotKeys, injector: textInjector, audioDucker: dictationAudioDucker, core: self)
+        hotKeys: hotKeys, injector: textInjector, audioDucker: dictationAudioDucker, core: self,
+        history: { [unowned self] in self.dictationHistoryCoordinator.record($0) })
+    // Fork: past transcripts; nothing is read until its screen opens.
+    @ObservationIgnored private(set) lazy var dictationHistoryCoordinator = DictationHistoryCoordinator(
+        appSettings: settings, voice: voiceSettings, voiceCloud: voiceCloud, appIndex: appIndex,
+        injector: textInjector, paletteCoordinator: paletteCoordinator, palette: palette, core: self)
     @ObservationIgnored private(set) lazy var agentCoordinator = AgentCoordinator(
         store: agentStore, core: self)
     @ObservationIgnored private(set) lazy var webSearch = WebSearchSettingsStore()
@@ -340,6 +349,7 @@ final class AppCore {
             agentCoordinator.apply()
             screenAwarenessCoordinator.applyEnabled()
             voiceAskCoordinator.applyEnabled()
+            dictationHistoryCoordinator.applyEnabled()  // Fork: the command's visibility only
             agentSessionsCoordinator.applyEnabled()
             mcpCoordinator.applyEnabled()
             customQuickActions.onChange = { [weak self] _ in
@@ -790,6 +800,11 @@ final class AppCore {
                 $0.voiceAskCoordinator.applyEnabled()
             })
         track(voiceSettings, { _ = $0.askEnabled }, reproject: { $0.voiceAskCoordinator.applyEnabled() })
+        // Fork: Dictation History lists while either voice feature can add to it.
+        track({ _ = $0.dictationEnabled }, reproject: { $0.dictationHistoryCoordinator.applyEnabled() })
+        track(
+            voiceSettings, { _ = $0.askEnabled },
+            reproject: { $0.dictationHistoryCoordinator.applyEnabled() })
         track(voiceSettings, { _ = $0.askMode }, reproject: { $0.voiceAskCoordinator.applyHoldMode() })
         track(
             {

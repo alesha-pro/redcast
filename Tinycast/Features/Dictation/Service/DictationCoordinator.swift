@@ -17,6 +17,8 @@ final class DictationCoordinator {
     private let confirmEnable: () async -> Bool
     private let cloudIsOn: @MainActor () -> Bool
     private let cloudTranscribe: @MainActor ([Float], String?) async throws -> String
+    // Fork: Dictation History, before the capsule closes: text, transcript, samples, target.
+    private let finished: @MainActor (String, String, Int, InjectionTarget?) -> Void
     @ObservationIgnored private var phase: Phase = .idle
     @ObservationIgnored private var token = UUID()
     @ObservationIgnored private var enableTask: Task<Void, Never>?
@@ -26,6 +28,7 @@ final class DictationCoordinator {
     @ObservationIgnored private var liveOffset = 0
     @ObservationIgnored private var liveText = ""
     @ObservationIgnored private var liveDeliveryFailed = false
+    @ObservationIgnored private var recordedSamples = 0  // Fork: Dictation History
     @ObservationIgnored private var stopTask: Task<Void, Never>?
     @ObservationIgnored private var finishWhenStarted = false
     @ObservationIgnored private var target: InjectionTarget?
@@ -40,7 +43,8 @@ final class DictationCoordinator {
         cloudIsOn: @escaping @MainActor () -> Bool = { false },
         cloudTranscribe: @escaping @MainActor ([Float], String?) async throws -> String = { _, _ in "" },
         // Fork: lends the capsule to Voice AI, which names its dictation mode above it.
-        capsule: (DictationPanelController) -> Void = { _ in }
+        capsule: (DictationPanelController) -> Void = { _ in },
+        finished: @escaping @MainActor (String, String, Int, InjectionTarget?) -> Void = { _, _, _, _ in }
     ) {
         self.settings = settings
         self.hotKeys = hotKeys
@@ -51,6 +55,7 @@ final class DictationCoordinator {
         self.showMessage = showMessage
         self.cloudIsOn = cloudIsOn
         self.cloudTranscribe = cloudTranscribe
+        self.finished = finished
         panel.onAccept = { [weak self] in self?.accept() }
         panel.onCancel = { [weak self] in self?.cancel() }
         capture.onLevels = { [weak self] in self?.panel.state.levels = $0 }
@@ -207,6 +212,7 @@ final class DictationCoordinator {
             // Queued chunks land first: reset would drop them, and the remainder spaces after them.
             if !liveText.isEmpty { await injector.drain() }
             guard token == current else { return }
+            recordedSamples = samples.count  // Fork: the length Dictation History keeps
             let tail = liveOffset < samples.count ? Array(samples[liveOffset...]) : []
             let destination = field == nil ? settings.dictationDestination : .paste
             if tail.count < 1_600 {
@@ -229,6 +235,7 @@ final class DictationCoordinator {
                 let target = self.target
                 let assembled = liveText + text
                 guard !text.isEmpty else { finishWithoutRemainder(destination); return }
+                finished(assembled, transcript, recordedSamples, target)  // Fork: Dictation History
                 panel.close()
                 if destination.pastes {
                     injector.deliver(
@@ -267,6 +274,7 @@ final class DictationCoordinator {
     private func finishWithoutRemainder(_ destination: DictationDestination) {
         let text = liveText
         let lost = liveDeliveryFailed
+        if !text.isEmpty { finished(text, "", recordedSamples, target) }  // Fork: Dictation History
         reset(cancelTranscription: false)
         if !text.isEmpty, destination.copies { Paster.copyPlainText(text) }
         if lost, destination.pastes {

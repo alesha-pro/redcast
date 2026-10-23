@@ -14,6 +14,14 @@ struct VoiceReplySession: Sendable {
         case insert(String)
         /// An INSERT that may not be typed unseen, shown in the panel for ↵.
         case review(String)
+
+        /// What the reply says, however it is delivered; nil when nothing was said.
+        var text: String? {
+            switch self {
+            case .noSpeech: nil
+            case .answer(let text), .insert(let text), .review(let text): text
+            }
+        }
     }
 
     private let bundleID: String?
