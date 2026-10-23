@@ -163,8 +163,10 @@ Opening it marks finished runs and sessions seen. The work its closing does wait
 queue, because AppKit sends the chosen row's action after `menuDidClose`, and the background
 coordinator is not let go while the menu is open. A launcher run and Run Now show a HUD at the start
 and the end; a schedule's own runs show none, so nothing pops up at 3 a.m. A run whose chat is on
-screen in a key AI Chat window is marked seen with no HUD and no banner. A run still going after the
-agent's limit (15 minutes by default, 5 to 60) is stopped.
+screen in a key AI Chat window is marked seen with no HUD and no banner. A run is held to its effort's
+time (5, 15 or 45 minutes, the schedule's own effort or the agent's): at that point its loop asks for
+a hand-over with tools off ([agents](agents.md#invariants)), and one still going two minutes later is
+stopped.
 
 A native agent's model is told, while its turn runs unattended, that nobody can answer and that it
 should finish with a short report (`AgentBackgroundBriefing.text`); a follow-up typed in the window
@@ -248,8 +250,8 @@ local to the Mac's day and time zone, like the schedules.
 - **Ask me** while away for more than two minutes (start a run, leave the mouse and keyboard alone): no
   dialog; declined and counted.
 - Two background asks at once (two agents): the second dialog waits for the first instead of vanishing.
-- ⌥ on a running row → Stop: the chat ends "Cancelled". A limit of 5 minutes on a long task: stopped,
-  and the row says so.
+- ⌥ on a running row → Stop: the chat ends "Cancelled". An agent at Quick on a long task: after five
+  minutes its reply hands over what it has, and the row is done.
 - Four quick runs: the fourth is refused with a HUD. A second run for a busy agent is refused.
 - An MCP server set to Ask is not offered in a background turn; one set to Always is.
 - ⌘↵ on `@rig task`: it runs in AI Chat in front of you, as a normal chat.

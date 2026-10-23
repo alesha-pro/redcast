@@ -13,8 +13,14 @@ struct AgentTurnBudget: Sendable {
     /// Each round's output cap: a report sent through `write_file` must fit in one reply.
     static let outputTokens = 16_384
 
+    /// What the run's results may add in all, from its effort.
+    let allowance: Int
     private(set) var spent = 0
     private(set) var carried = 0
+
+    init(allowance: Int = turnResultBytes) {
+        self.allowance = allowance
+    }
 
     mutating func carry(_ text: String, calls: [AIToolCall]) {
         carried += text.utf8.count + calls.reduce(0) { $0 + $1.arguments.utf8.count }
@@ -33,14 +39,14 @@ struct AgentTurnBudget: Sendable {
     }
 
     private mutating func bounded(_ result: AIToolResult) -> AIToolResult {
-        guard spent < Self.turnResultBytes else {
+        guard spent < allowance else {
             return .failure(result.callID, "This turn's tool output budget is used up.")
         }
-        let allowance = min(Self.resultBytes, Self.turnResultBytes - spent)
+        let room = min(Self.resultBytes, allowance - spent)
         let size = result.content.utf8.count
-        spent += min(size, allowance)
-        guard size > allowance else { return result }
-        let content = Self.prefix(result.content, bytes: allowance) + "\n…truncated."
+        spent += min(size, room)
+        guard size > room else { return result }
+        let content = Self.prefix(result.content, bytes: room) + "\n…truncated."
         return AIToolResult(callID: result.callID, content: content, isError: result.isError)
     }
 

@@ -53,6 +53,8 @@ struct AgentRun: Identifiable, Equatable, Sendable {
     var cost: Double?
     /// False for a due run the spend cap held back: there is no chat to open.
     var hasChat = true
+    /// The run's own budget, a schedule's choice or its agent's.
+    var effort: AgentEffort = .balanced
 
     var isActive: Bool { state == .running || state == .waiting }
 

@@ -1,6 +1,6 @@
 import Foundation
 
-/// Which reasoning a request carries back, and where; docs/features/agent-harness.md cites each rule.
+/// Which reasoning a request carries back, and where; agent-harness.md cites each rule.
 enum AIReasoningReplayPolicy {
     /// The providers whose documented rules differ; every other host is `other`.
     enum Route: Equatable, Sendable {

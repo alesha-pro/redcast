@@ -75,6 +75,7 @@ struct AgentEditorPanel: View {
                         toolsField
                         permissionsField
                     }
+                    effortField
                     backgroundField
                     contextField
                     skillsField
@@ -376,7 +377,7 @@ struct AgentEditorPanel: View {
         }
     }
 
-    /// A run nobody watches: what its requests get, whether it says it ended, and its time limit.
+    /// A run nobody watches: what its requests get, and whether it says it ended.
     private var backgroundField: some View {
         field("In the background") {
             SteadySegmentedPicker(
@@ -408,10 +409,25 @@ struct AgentEditorPanel: View {
                     NSWorkspace.shared.open(url)
                 }
             }
-            Stepper(value: background.minutes, in: AgentBackgroundPolicy.minuteRange, step: 5) {
-                Text("Stop a run after \(draft.backgroundPolicy.minutes) minutes")
-            }
         }
+    }
+
+    /// How much a run may do: its rounds, tool output, sub-agents and time in the background.
+    private var effortField: some View {
+        field("Effort") {
+            SteadySegmentedPicker(
+                title: String(localized: "Effort"),
+                options: AgentEffort.allCases.map { .init(value: $0, title: $0.title) },
+                selection: effort)
+            Text(draft.effortLevel.summary)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+    }
+
+    /// Balanced is stored as nothing, so an untouched agent's file says nothing about it.
+    private var effort: Binding<AgentEffort> {
+        Binding(get: { draft.effortLevel }, set: { draft.effort = $0 == .balanced ? nil : $0 })
     }
 
     /// The defaults are stored as nothing, so an untouched agent's file says nothing about them.

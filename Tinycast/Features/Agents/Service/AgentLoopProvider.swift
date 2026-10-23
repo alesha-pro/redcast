@@ -1,14 +1,14 @@
 import Foundation
 import Synchronization
 
-/// An agent's turn: re-streams it until the model stops calling tools or a cap ends it.
+/// An agent's run: re-streams the turn until the model stops, or hands over at its budget.
 struct AgentLoopProvider: AIProvider {
     /// Calls of one round that may run at once, so at most four fetches or four ripgreps.
     static let width = 4
 
     private let base: any AIProvider
     private let toolset: AgentToolset
-    private let maxRounds: Int?
+    private let budget: AgentRunBudget
     /// An agent chat's; nil sends the turn as it was built, as upstream's loop does.
     private let compaction: AgentCompaction.Source?
     /// Each round's own output cap, so a long `write_file` is not cut at a route's 4K default.
@@ -16,19 +16,28 @@ struct AgentLoopProvider: AIProvider {
     private let retry: AgentRetryPolicy
     /// Whose rows the loop's own notices are, as a retry's: the agent's name.
     private let origin: String
+    private let lead: AgentTurnLead
+    /// An unattended run's clock; a chat has someone to press Stop.
+    private let timeLimit: Duration?
+    /// A sub-agent hands over to its parent, so its last words are the model's, never localized.
+    private let answersAnAgent: Bool
 
     init(
-        base: any AIProvider, toolset: AgentToolset, maxRounds: Int?,
+        base: any AIProvider, toolset: AgentToolset, budget: AgentRunBudget,
         compaction: AgentCompaction.Source? = nil, outputCap: Int? = nil,
-        retry: AgentRetryPolicy = .standard, origin: String = ""
+        retry: AgentRetryPolicy = .standard, origin: String = "", lead: AgentTurnLead = AgentTurnLead(),
+        timeLimit: Duration? = nil, answersAnAgent: Bool = false
     ) {
         self.base = base
         self.toolset = toolset
-        self.maxRounds = maxRounds
+        self.budget = budget
         self.compaction = compaction
         self.outputCap = outputCap
         self.retry = retry
         self.origin = origin
+        self.lead = lead
+        self.timeLimit = timeLimit
+        self.answersAnAgent = answersAnAgent
     }
 
     /// One reply of the model: its text, the calls it made and what came with them.
@@ -40,6 +49,15 @@ struct AgentLoopProvider: AIProvider {
         var cutOff = false
         /// The route refused the round's output cap, so the rest of the turn goes without one.
         var dropsCap = false
+    }
+
+    /// What the run has kept between rounds: its plan, and whether it was told to wrap up.
+    private struct Progress {
+        var plan: [AgentPlan.Item]?
+        var planRound = 0
+        var warned = false
+        var final = false
+        var worked = false
     }
 
     func stream(_ request: AIRequest) -> AIProviderStream {
@@ -58,24 +76,43 @@ struct AgentLoopProvider: AIProvider {
         }
     }
 
+    /// A run that fails after real work says where its plan stood before the failure shows.
     private func run(
         _ request: AIRequest, into continuation: AIProviderStream.Continuation
     ) async throws {
+        var progress = Progress()
+        do {
+            try await work(request, progress: &progress, into: continuation)
+        } catch is CancellationError {
+            throw CancellationError()
+        } catch {
+            if progress.worked, !answersAnAgent, let plan = progress.plan {
+                continuation.yield(.text("\n\n" + Self.stopped + "\n\n" + AgentPlan.checklist(plan)))
+            }
+            throw error
+        }
+    }
+
+    private func work(
+        _ request: AIRequest, progress: inout Progress, into continuation: AIProviderStream.Continuation
+    ) async throws {
         var (messages, billed) = try await compacted(request, into: continuation)
+        messages = lead.led(messages)
         let spend = Spend()
         // Shown at once, so a Stop or a failure in the first round still leaves the notes billed.
         if let billed { continuation.yield(.usage(spend.reported(AIUsage(costUSD: billed)))) }
         var turnStart = messages.count
         var lastRound = turnStart
-        var budget = AgentTurnBudget()
+        var turn = AgentTurnBudget(allowance: budget.resultBytes)
         var rounds = 0
         var cap = outputCap ?? request.outputCap
         var relieved = false
+        let started = ContinuousClock.now
         let signal: @Sendable (AgentToolSignal) -> Void = { signal in
             if case .spent(let cost) = signal { continuation.yield(.usage(spend.add(cost))) }
             if let event = signal.event { continuation.yield(event) }
         }
-        while maxRounds.map({ rounds < $0 }) ?? (budget.carried < AgentTurnBudget.historyBytes) {
+        while true {
             // A call that outlived Stop must not bill another round.
             try Task.checkCancellation()
             rounds += 1
@@ -89,15 +126,21 @@ struct AgentLoopProvider: AIProvider {
                 relieved = true
                 let elided = AgentTurnBudget.elide(
                     &messages, turnStart: turnStart, keepFrom: lastRound, above: 0, to: 0)
-                guard elided > 0 || AgentTurnBudget.dropHistory(&messages, turnStart: &turnStart, keepFrom: &lastRound)
+                guard
+                    elided > 0
+                        || AgentTurnBudget.dropHistory(&messages, turnStart: &turnStart, keepFrom: &lastRound)
                 else { throw error }
-                budget.release(elided)
+                turn.release(elided)
                 rounds -= 1
                 continue
             }
             if round.dropsCap { cap = nil }
             if let cost = round.cost { billed = (billed ?? 0) + cost }
-            guard !round.calls.isEmpty else {
+            // The hand-over round runs nothing it asks for: the budget is spent.
+            guard !round.calls.isEmpty, !progress.final else {
+                if progress.final, round.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    continuation.yield(.text(handOver(progress.plan)))
+                }
                 continuation.yield(.finished)
                 return
             }
@@ -106,7 +149,7 @@ struct AgentLoopProvider: AIProvider {
             messages.append(
                 AIMessage(
                     role: .assistant, text: round.text, toolCalls: round.calls, reasoning: round.reasoning))
-            budget.carry(round.text, calls: round.calls)
+            turn.carry(round.text, calls: round.calls)
             let concurrent = round.calls.map { toolset.isConcurrent($0.name) }
             for batch in AgentBatchPolicy.batches(concurrent, width: Self.width) {
                 try Task.checkCancellation()
@@ -118,17 +161,65 @@ struct AgentLoopProvider: AIProvider {
                 }
                 let results =
                     round.cutOff
-                    ? refused(calls, budget: &budget, into: continuation)
-                    : await run(calls, signal: signal, budget: &budget, into: continuation)
+                    ? refused(calls, budget: &turn, into: continuation)
+                    : await run(calls, signal: signal, budget: &turn, into: continuation)
                 messages += results.map { AIMessage(role: .tool, text: "", toolResult: $0) }
                 if let spent = spend.take() { billed = (billed ?? 0) + spent }
+                track(calls, results, round: rounds, in: &progress)
             }
-            budget.release(
-                AgentTurnBudget.elide(&messages, turnStart: turnStart, keepFrom: roundStart))
+            progress.worked = true
+            turn.release(AgentTurnBudget.elide(&messages, turnStart: turnStart, keepFrom: roundStart))
+            let usage = AgentBudgetPolicy.Usage(
+                rounds: rounds, resultBytes: turn.spent, carried: turn.carried, elapsed: .now - started)
+            let step = AgentBudgetPolicy.step(
+                after: usage, of: budget, timeLimit: timeLimit, warned: progress.warned)
+            switch step {
+            case .handOver(let spent):
+                progress.final = true
+                Self.note(AgentBudgetPolicy.handOver(spent, plan: progress.plan), on: &messages)
+            case .wrapUp(let used):
+                progress.warned = true
+                progress.planRound = rounds
+                Self.note(AgentBudgetPolicy.wrapUp(used, plan: progress.plan), on: &messages)
+            case .go:
+                guard progress.plan != nil, rounds - progress.planRound >= AgentBudgetPolicy.reciteEvery
+                else { break }
+                progress.planRound = rounds
+                Self.note(AgentBudgetPolicy.recital(progress.plan), on: &messages)
+            }
         }
-        throw AIProviderError.responseFailed(
-            String(localized: "Stopped after \(rounds) rounds of tool calls."))
     }
+
+    /// A plan the model sent and the toolset took is the run's plan from now on.
+    private func track(
+        _ calls: [AIToolCall], _ results: [AIToolResult], round: Int, in progress: inout Progress
+    ) {
+        for (call, result) in zip(calls, results) where call.name == AgentPlan.name && !result.isError {
+            guard let items = AgentPlan.items(in: call.arguments) else { continue }
+            progress.plan = items
+            progress.planRound = round
+        }
+    }
+
+    /// The model's notes ride the round's last result, added before it is ever sent: no prefix moves.
+    private static func note(_ text: String, on messages: inout [AIMessage]) {
+        guard !text.isEmpty, let last = messages.indices.last, let result = messages[last].toolResult
+        else { return }
+        let noted = AIToolResult(
+            callID: result.callID, content: result.content + "\n\n" + text, isError: result.isError)
+        messages[last] = AIMessage(role: .tool, text: messages[last].text, toolResult: noted)
+    }
+
+    /// What a hand-over round that said nothing leaves in the reply.
+    private func handOver(_ plan: [AgentPlan.Item]?) -> String {
+        let checklist = plan.map { "\n\n" + AgentPlan.checklist($0) } ?? ""
+        guard !answersAnAgent else {
+            return "The sub-task's budget ran out before it wrote an answer." + checklist
+        }
+        return String(localized: "This run reached its limit before the agent summed up.") + checklist
+    }
+
+    private static let stopped = String(localized: "The run stopped before the task was done.")
 
     /// The turn with notes on what the budget dropped leading it, and what making them cost.
     private func compacted(

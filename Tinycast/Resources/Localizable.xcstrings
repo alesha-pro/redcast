@@ -19251,6 +19251,58 @@
         }
       }
     },
+    "A reply stops after this many; Unlimited runs until Stop. API connections, Codex and Claude; an agent follows its own Effort." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eine Antwort endet nach dieser Anzahl; „Unbegrenzt“ läuft bis „Stopp“. API-Verbindungen, Codex und Claude; ein Agent folgt seinem eigenen Aufwand."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Una respuesta se detiene al alcanzar este número; Sin límite continúa hasta que pulses Detener. Conexiones de API, Codex y Claude; un agente sigue su propio Esfuerzo."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Maximum de cycles d’outils par réponse. « Illimité » supprime cette limite. Connexions API, Codex et Claude ; un agent suit son propre Effort."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "返信はこの数に達すると停止します。「無制限」では停止するまで実行されます。API接続、Codex、Claudeが対象です。エージェントは自身の作業量に従います。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "응답은 이 횟수 이후에 중단되며, ‘제한 없음’은 중단할 때까지 계속됩니다. API 연결, Codex 및 Claude에 적용되며, 에이전트는 자신의 작업량을 따릅니다."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uma resposta para após esta quantidade; Ilimitado continua até você parar. Conexões de API, Codex e Claude; um agente segue o próprio Esforço."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ответ останавливается после этого числа; «Без ограничений» работает до нажатия «Остановить». API-подключения, Codex и Claude; агент следует своему «Объёму работы»."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "回复在达到此数量后停止；“无限制”会一直运行，直到你点按“停止”。适用于 API 连接、Codex 和 Claude；智能体遵循自己的投入程度。"
+          }
+        }
+      }
+    },
     "A room with this name already exists." : {
       "localizations" : {
         "de" : {
@@ -31036,6 +31088,58 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "备份：%@"
+          }
+        }
+      }
+    },
+    "Balanced" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ausgewogen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Equilibrado"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Équilibré"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "バランス"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "균형"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Equilibrado"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сбалансированно"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "均衡"
           }
         }
       }
@@ -55821,6 +55925,58 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "编辑…"
+          }
+        }
+      }
+    },
+    "Effort" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aufwand"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esfuerzo"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Effort"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "作業量"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "작업량"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esforço"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Объём работы"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "投入程度"
           }
         }
       }
@@ -80655,6 +80811,58 @@
         }
       }
     },
+    "Long research and many steps: up to 60 tool rounds, 4 sub-agents, 45 minutes in the background." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lange Recherchen und viele Schritte: bis zu 60 Runden mit Werkzeugen, 4 Subagenten, 45 Minuten im Hintergrund."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Investigaciones largas y muchos pasos: hasta 60 rondas de herramientas, 4 subagentes, 45 minutos en segundo plano."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Longues recherches et nombreuses étapes : jusqu’à 60 cycles d’outils, 4 sous-agents, 45 minutes en arrière-plan."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "長い調査や多くの手順向け：ツール呼び出しは最大60回、サブエージェント4つ、バックグラウンドでは45分。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "긴 조사와 여러 단계: 도구 호출 최대 60회, 하위 에이전트 4개, 백그라운드 45분."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pesquisas longas e muitos passos: até 60 rodadas de ferramentas, 4 subagentes, 45 minutos em segundo plano."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Долгие исследования и много шагов: до 60 раундов с инструментами, 4 субагента, 45 минут в фоне."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "长时间研究和多步骤任务：最多 60 轮工具调用，4 个子代理，后台运行 45 分钟。"
+          }
+        }
+      }
+    },
     "Look up a word…" : {
       "localizations" : {
         "de" : {
@@ -84356,6 +84564,58 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "晨间摘要"
+          }
+        }
+      }
+    },
+    "Most tasks: up to 25 tool rounds, 2 sub-agents, 15 minutes in the background." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die meisten Aufgaben: bis zu 25 Runden mit Werkzeugen, 2 Subagenten, 15 Minuten im Hintergrund."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La mayoría de las tareas: hasta 25 rondas de herramientas, 2 subagentes, 15 minutos en segundo plano."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La plupart des tâches : jusqu’à 25 cycles d’outils, 2 sous-agents, 15 minutes en arrière-plan."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ほとんどのタスク向け：ツール呼び出しは最大25回、サブエージェント2つ、バックグラウンドでは15分。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "대부분의 작업: 도구 호출 최대 25회, 하위 에이전트 2개, 백그라운드 15분."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A maioria das tarefas: até 25 rodadas de ferramentas, 2 subagentes, 15 minutos em segundo plano."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Большинство задач: до 25 раундов с инструментами, 2 субагента, 15 минут в фоне."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "大多数任务：最多 25 轮工具调用，2 个子代理，后台运行 15 分钟。"
           }
         }
       }
@@ -105633,6 +105893,58 @@
         }
       }
     },
+    "Quick" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Schnell"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rápido"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rapide"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "クイック"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "빠르게"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rápido"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Быстро"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "快速"
+          }
+        }
+      }
+    },
     "Quick AI" : {
       "localizations" : {
         "de" : {
@@ -122946,6 +123258,58 @@
         }
       }
     },
+    "Short tasks: up to 8 tool rounds, no sub-agents, 5 minutes in the background." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kurze Aufgaben: bis zu 8 Runden mit Werkzeugen, keine Subagenten, 5 Minuten im Hintergrund."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tareas cortas: hasta 8 rondas de herramientas, sin subagentes, 5 minutos en segundo plano."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tâches courtes : jusqu’à 8 cycles d’outils, aucun sous-agent, 5 minutes en arrière-plan."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "短いタスク向け：ツール呼び出しは最大8回、サブエージェントなし、バックグラウンドでは5分。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "짧은 작업: 도구 호출 최대 8회, 하위 에이전트 없음, 백그라운드 5분."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tarefas curtas: até 8 rodadas de ferramentas, sem subagentes, 5 minutos em segundo plano."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Короткие задачи: до 8 раундов с инструментами, без субагентов, 5 минут в фоне."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "简短任务：最多 8 轮工具调用，不用子代理，后台运行 5 分钟。"
+          }
+        }
+      }
+    },
     "Shortcut" : {
       "comment" : "A keyboard shortcut; also the fallback name of an untitled Apple Shortcuts item",
       "localizations" : {
@@ -133483,6 +133847,58 @@
         }
       }
     },
+    "The agent's (%@)" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wie beim Agenten (%@)"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La del agente (%@)"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Celui de l’agent (%@)"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "エージェントの設定（%@）"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "에이전트 설정(%@)"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O do agente (%@)"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Как у агента (%@)"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "跟随智能体（%@）"
+          }
+        }
+      }
+    },
     "The folder's AGENTS.md" : {
       "localizations" : {
         "de" : {
@@ -137945,6 +138361,58 @@
         }
       }
     },
+    "The run stopped before the task was done." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der Lauf wurde beendet, bevor die Aufgabe erledigt war."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La ejecución se detuvo antes de terminar la tarea."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L’exécution s’est arrêtée avant la fin de la tâche."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "タスクが終わる前に実行が止まりました。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "작업을 끝내기 전에 실행이 중단되었습니다."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A execução parou antes de a tarefa terminar."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Запуск остановился, не закончив задачу."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "任务完成前运行就停止了。"
+          }
+        }
+      }
+    },
     "The saved key could not be read from Keychain." : {
       "localizations" : {
         "de" : {
@@ -142399,6 +142867,58 @@
         }
       }
     },
+    "This run reached its limit before the agent summed up." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dieser Lauf hat sein Limit erreicht, bevor der Agent zusammenfassen konnte."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esta ejecución llegó a su límite antes de que el agente hiciera un resumen."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cette exécution a atteint sa limite avant que l’agent ne fasse le point."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "エージェントがまとめる前に、この実行は上限に達しました。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "에이전트가 정리하기 전에 이 실행이 한도에 도달했습니다."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esta execução chegou ao limite antes de o agente resumir."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Запуск упёрся в лимит раньше, чем агент успел подвести итог."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "本次运行在智能体总结之前就达到了上限。"
+          }
+        }
+      }
+    },
     "This session can't be resumed" : {
       "localizations" : {
         "de" : {
@@ -142557,6 +143077,58 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "此版本的通知中心未提供 Redcast 可用的清除控制。"
+          }
+        }
+      }
+    },
+    "Thorough" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gründlich"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A fondo"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Approfondi"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "じっくり"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "꼼꼼하게"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Minucioso"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Тщательно"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "深入"
           }
         }
       }

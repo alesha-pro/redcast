@@ -496,9 +496,17 @@ struct AgentScheduleTests {
         } else {
             expect(false, "a long line fails")
         }
-        expect(AgentBackgroundPolicy(minutes: 0).limitMinutes == 5, "a hand-edited limit can't go under five minutes")
-        expect(AgentBackgroundPolicy(minutes: 999).limitMinutes == 60, "nor over an hour")
-        expect(AgentBackgroundPolicy().limitMinutes == 15, "and the default is a quarter of an hour")
+        expect(
+            AgentEffort.allCases.map(\.budget.minutes) == [5, 15, 45],
+            "a run's time limit is its effort's: five minutes, a quarter of an hour, three quarters")
+        var schedule = AgentSchedule(agentID: UUID(), name: "n", prompt: "p")
+        let plain = (try? JSONEncoder().encode(schedule)).flatMap { String(bytes: $0, encoding: .utf8) } ?? ""
+        expect(schedule.effort == nil && !plain.contains("effort"), "a schedule runs at its agent's effort unless told")
+        schedule.effort = .quick
+        let decoded = (try? JSONEncoder().encode(schedule)).flatMap {
+            try? JSONDecoder().decode(AgentSchedule.self, from: $0)
+        }
+        expect(decoded?.effort == .quick, "and its own effort round-trips")
     }
 
     // MARK: - Spend cap

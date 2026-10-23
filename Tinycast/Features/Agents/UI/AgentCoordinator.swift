@@ -227,7 +227,14 @@ final class AgentCoordinator {
                     AgentCompaction.Entry(id: $0.id, isUser: $0.role == .user, text: $0.text)
                 } ?? []
             })
-        let turn = loop(for: agent, over: base, mode: mode, mcpTools: mcpTools, compaction: compaction) { call in
+        // A reply the last turn could not finish is left out of history; this turn gets it back.
+        let interrupted = chat.session.messages.last.flatMap { last in
+            last.role == .assistant && last.state == .failed && !last.text.isEmpty ? last.text : nil
+        }
+        let turn = loop(
+            for: agent, over: base, mode: mode, mcpTools: mcpTools, compaction: compaction,
+            lead: AgentTurnLead(resuming: interrupted)
+        ) { call in
             await mcp.invoke(call, in: chatID)
         }
         guard let turn, backgroundRuns?.isCapped(chatID) == true else { return turn }
@@ -239,7 +246,7 @@ final class AgentCoordinator {
     /// The one place a turn's tools are assembled: a chat now, a run with no window later.
     func loop(
         for agent: AgentProfile, over base: any AIProvider, mode: AgentRunMode,
-        mcpTools: [AITool] = [], compaction: AgentCompaction.Source? = nil,
+        mcpTools: [AITool] = [], compaction: AgentCompaction.Source? = nil, lead: AgentTurnLead = AgentTurnLead(),
         mcp: @escaping @Sendable (AIToolCall) async -> AIToolResult = {
             .failure($0.id, "There is no tool called \($0.name).")
         }
@@ -260,9 +267,12 @@ final class AgentCoordinator {
             return await self?.ask(spec, request, by: agent, in: chatID) ?? false
         }
         guard !toolset.tools.isEmpty else { return nil }
+        let run = backgroundRuns?.effort(forChat: mode.chatID)
+        let budget = (run ?? agent.effortLevel).budget
         return AgentLoopProvider(
-            base: base, toolset: toolset, maxRounds: core.aiSettings.toolRounds.limit,
-            compaction: compaction, outputCap: AgentTurnBudget.outputTokens, origin: agent.name)
+            base: base, toolset: toolset, budget: budget, compaction: compaction,
+            outputCap: AgentTurnBudget.outputTokens, origin: agent.name, lead: lead,
+            timeLimit: run.map { _ in .seconds(budget.minutes * 60) })
     }
 
     /// The registry: one line per family, built per turn so nothing stays resident between turns.
