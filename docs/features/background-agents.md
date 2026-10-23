@@ -209,7 +209,7 @@ day and time zone, like the schedules.
 | `Service/AgentScheduler.swift` | The one sleeping task, its four observers and the sleep meter |
 | `Service/AgentRunNotifier.swift` | Opt-in Notification Center banners |
 | `Service/AgentSpendMeter.swift` | A capped native turn's route, passed through, its reported costs heard |
-| `UI/AgentBackgroundCoordinator.swift` | Starting, watching and finishing runs; consent mode; the item, the notifier and the scheduler |
+| `UI/AgentBackgroundCoordinator.swift` | Starting, watching and finishing runs; consent mode; the notifier and the scheduler; feeds the Agents item |
 | `UI/AgentConsentGate.swift` | One agent question at a time, never over another dialog, put as its plan says |
 | `UI/AgentsStatusItem.swift` | The one transient Agents menu-bar item and its menu, runs and sessions |
 | `UI/AgentsMenuBar.swift` | `AgentCoordinator.refreshMenuBar`: when the item exists, what it shows, what its rows do |
