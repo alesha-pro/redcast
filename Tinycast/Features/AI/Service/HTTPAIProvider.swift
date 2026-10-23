@@ -37,9 +37,10 @@ struct HTTPAIProvider: AIProvider {
                         }
                         throw AIProviderError.responseFailed(message)
                     }
-                    // Fork: the model stamps the reasoning it keeps, so only that model is sent it again.
+                    // Fork: the route and model stamp the reasoning it keeps, so only they are sent it again.
                     var decoder = AIStreamDecoder(
-                        shape: configuration.shape, secrets: secrets, model: configuration.model)
+                        shape: configuration.shape, secrets: secrets, model: configuration.model,
+                        route: configuration.route)
                     var chunk = Data()
                     chunk.reserveCapacity(2_048)
                     // Per line, not per 2 KB: a short reply must show before the stream closes.

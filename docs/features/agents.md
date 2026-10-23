@@ -98,19 +98,15 @@ optional chord: see [background and scheduled agents](background-agents.md).
   bytes nobody reads back. A write costs a quarter more than plain input and a read a tenth, so a turn
   of two rounds or a reply within five minutes pays for it; a prompt under the model's minimum is simply
   not cached.
-- **Reasoning goes back to the model that wrote it.** DeepSeek's own API refuses a request in
-  thinking mode with tools (400) unless every assistant message carries its `reasoning_content`, and
-  Gemini on OpenRouter keeps its thought signatures in encrypted `reasoning_details`. So
-  `AIStreamDecoder` keeps a reply's reasoning text and its `reasoning_details`, merged as pi's
-  `openai-completions.ts` merges them (neighbouring text or summary deltas grow one entry, an
-  encrypted one stays whole and opaque), stamps it with the connection's model and hands it to the
-  loop as `.reasoningReplay` beside the calls, never to the transcript. Both loops keep it on the
-  assistant message with those calls (`AIMessage.reasoning`), and `AIRequestBody` sends it back:
-  `reasoning_details` verbatim and in order on OpenRouter, only to the same model; on
-  `api.deepseek.com`, while thinking is on and the turn offers tools, `reasoning_content` on every
-  assistant message, that model's own text or an empty string for a reply from history or from
-  another model, as pi does. A reply that called nothing keeps nothing, since it is never resent
-  with its reasoning. Anthropic-shape thinking blocks are not replayed: Tinycast never asks for them.
+- **Reasoning goes back to the model that wrote it.** Thinking models need their own reasoning
+  between tool calls, each provider in its own field and for its own span of the conversation, so
+  `AIStreamDecoder` keeps a reply's reasoning in the form it came (`reasoning_content`, `reasoning`,
+  `reasoning_details`, `<think>`, Anthropic `thinking` blocks with their signatures), stamped with the
+  route and model, and both loops send it back on the message with the reply's calls through
+  `AIReasoningReplayPolicy`: DeepSeek, Qwen, Kimi, MiniMax, GLM, OpenRouter, Anthropic and gateways,
+  Gemini's call signatures, nothing to OpenAI. The chat keeps the text for providers that read earlier
+  turns, and a connection can say Always or Never. The rules and their sources are in
+  [agent harness](agent-harness.md#interleaved-thinking).
 - **A reply the output cap cut runs none of its calls.** Its arguments may stop mid-JSON and still
   parse, so a long report through `write_file` would be written cut. The decoder says `.outputLimit`
   on OpenAI's `finish_reason: length` and Anthropic's `stop_reason: max_tokens`, and both loops answer
@@ -394,7 +390,7 @@ off by default per agent, bounded by `AgentPathPolicy` and asked through the age
 | `Model/AgentTool.swift` | `AgentToolProvider`, `AgentToolSpec`, `AgentToolRisk`, `AgentTurn`, `AgentRunMode`, the call's context |
 | `Model/AgentConsentPolicy.swift` | Rules (ask, always, never), an agent's own (`AgentConsentRules`), `AgentGrant`, the verdict per rule and mode |
 | `Model/AgentToolset.swift` | One turn's offered tools in a stable order, and where each call goes |
-| `Model/AgentTurnBudget.swift` | The per-result, per-turn and history limits, elision and an overflow's shedding; `AgentBatchPolicy` |
+| `Model/AgentTurnBudget.swift` | The per-result, per-turn and history limits, elision, an overflow's shedding and the thinking an edit voids; `AgentBatchPolicy` |
 | `Model/AgentRetryPolicy.swift` | Which failures a round tries again, the waits, a refused output cap |
 | `Model/AgentCompaction.swift` | Cross-turn notes: what was dropped, what they cover, when they grow, the request that makes them, `AgentChatSummary` |
 | `Model/AgentPlan.swift` | `update_plan`'s definition and arguments, and the checklist ACP plans share |

@@ -102,13 +102,61 @@ struct AIMessage: Equatable, Sendable {
     }
 }
 
-// Fork: DeepSeek refuses a thinking tool turn without it, and Gemini on OpenRouter loses its thread.
+// Fork: a reply's reasoning, sent back only to the model that wrote it; see agent-harness.md.
 struct AIReasoningReplay: Equatable, Sendable {
-    /// The model that wrote it; no other model is ever sent it.
+    /// How the stream carried it, which is how it goes back.
+    enum Form: String, Codable, Sendable {
+        /// DeepSeek's field, which Qwen, Kimi, MiniMax and GLM copy.
+        case reasoningContent = "reasoning_content"
+        /// OpenRouter's and vLLM's plain field.
+        case reasoning
+        /// `<think>…</think>` leading the answer.
+        case thinkTags
+        /// `reasoning_details`: OpenRouter's entries, and MiniMax's split output.
+        case details
+        /// Anthropic's `thinking` and `redacted_thinking` blocks.
+        case blocks
+    }
+
+    /// The host and model that wrote it; no other is ever sent it.
+    let route: String
     let model: String
+    /// Nil when the reply only signed its calls.
+    let form: Form?
     let text: String
-    /// OpenRouter's `reasoning_details` merged as they streamed; an encrypted entry stays opaque.
-    let details: [JSONValue]
+    /// Entries sent back byte for byte and in order; never stored, so they never outlive the turn.
+    let items: [JSONValue]
+    /// Read back from the chat's history, as a later turn sends it.
+    let isStored: Bool
+
+    init(
+        route: String, model: String, form: Form?, text: String, items: [JSONValue] = [],
+        isStored: Bool = false
+    ) {
+        self.route = route
+        self.model = model
+        self.form = form
+        self.text = text
+        self.items = items
+        self.isStored = isStored
+    }
+
+    /// What the chat keeps for a later turn: the text alone, since an opaque entry is the turn's.
+    var stored: AIReasoningReplay? {
+        guard let form, form != .blocks, !text.isEmpty else { return nil }
+        return AIReasoningReplay(route: route, model: model, form: form, text: text, isStored: true)
+    }
+
+    /// Anthropic signs a block over everything sent before it, so an edit there voids it.
+    var bindsPrefix: Bool {
+        !items.isEmpty
+            && (route == "api.anthropic.com"
+                || route == "openrouter.ai" && model.drop(while: { $0 == "~" }).hasPrefix("anthropic/"))
+    }
+
+    var unbound: AIReasoningReplay {
+        AIReasoningReplay(route: route, model: model, form: form, text: text, isStored: isStored)
+    }
 }
 
 struct AIRequest: Equatable, Sendable {

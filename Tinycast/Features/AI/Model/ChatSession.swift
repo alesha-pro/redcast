@@ -43,7 +43,9 @@ struct ChatSession: Equatable, Sendable {
             historyMessages.map { message in
                 AIMessage(
                     role: message.role == .user ? .user : .assistant,
-                    text: message.text, images: message.images, documents: message.documents)
+                    text: message.text, images: message.images, documents: message.documents,
+                    // Fork: the reply's own reasoning, which only its model is ever sent.
+                    reasoning: message.replay)
             }, textBudget: textBudget)
     }
 
@@ -88,13 +90,14 @@ struct ChatSession: Equatable, Sendable {
         var tail: [AIMessage] = []
         for message in messages[(newest + 1)...] {
             remaining -= message.text.utf8.count
-            tail.append(AIMessage(role: message.role, text: message.text))
+            // Fork: a reply keeps its reasoning, here and below.
+            tail.append(AIMessage(role: message.role, text: message.text, reasoning: message.reasoning))
         }
         var head: [AIMessage] = []
         for message in messages[..<newest].reversed() {
             remaining -= message.text.utf8.count
             guard remaining >= 0 else { break }
-            head.append(AIMessage(role: message.role, text: message.text))
+            head.append(AIMessage(role: message.role, text: message.text, reasoning: message.reasoning))
         }
         // The slice opens with the user turn that prompted it; an orphaned reply reads as noise.
         while head.last?.role == .assistant { head.removeLast() }

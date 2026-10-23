@@ -25491,6 +25491,58 @@
         }
       }
     },
+    "Always" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Immer"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Siempre"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Toujours"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "常に"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "항상"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sempre"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Всегда"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "始终"
+          }
+        }
+      }
+    },
     "Always Allow" : {
       "comment" : "MCP trust level",
       "localizations" : {
@@ -121529,6 +121581,58 @@
         }
       }
     },
+    "Send reasoning back" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Denkprozess zurücksenden"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Devolver el razonamiento"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Renvoyer le raisonnement"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "推論を送り返す"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "추론 다시 보내기"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reenviar o raciocínio"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Возвращать рассуждения"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "回传推理内容"
+          }
+        }
+      }
+    },
     "Sent before every message, after Tinycast's own. Both are billed each turn." : {
       "localizations" : {
         "de" : {
@@ -139675,6 +139779,58 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "没有可发送的内容。"
+          }
+        }
+      }
+    },
+    "Thinking models need their own reasoning back between tool calls. Automatic sends it only to the model that wrote it, as its provider documents. Always sends earlier turns' reasoning too and asks the provider to keep it; Never sends none." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Denkende Modelle brauchen zwischen Werkzeugaufrufen ihren eigenen Denkprozess zurück. „Automatisch“ sendet ihn nur an das Modell, das ihn geschrieben hat, so wie es sein Anbieter dokumentiert. „Immer“ sendet auch den früherer Runden und bittet den Anbieter, ihn zu behalten; „Nie“ sendet keinen."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Los modelos que razonan necesitan recibir su propio razonamiento entre llamadas a herramientas. Automático solo lo envía al modelo que lo escribió, como documenta su proveedor. Siempre envía también el de turnos anteriores y pide al proveedor que lo conserve; Nunca no envía ninguno."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Les modèles qui raisonnent doivent récupérer leur propre raisonnement entre les appels d’outils. Automatique ne le renvoie qu’au modèle qui l’a écrit, comme son fournisseur le documente. Toujours renvoie aussi celui des tours précédents et demande au fournisseur de le conserver ; Jamais n’en renvoie aucun."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "思考するモデルには、ツール呼び出しの間に自身の推論を送り返す必要があります。「自動」は、プロバイダのドキュメントどおり、それを書いたモデルにだけ送ります。「常に」は以前のターンの推論も送り、プロバイダに保持するよう求めます。「しない」は何も送りません。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "생각하는 모델은 도구 호출 사이에 자신의 추론을 다시 받아야 합니다. 자동은 제공업체 문서대로 그 추론을 쓴 모델에만 보냅니다. 항상은 이전 턴의 추론도 보내고 제공업체에 보관하도록 요청하며, 안 함은 아무것도 보내지 않습니다."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Modelos que raciocinam precisam receber de volta o próprio raciocínio entre chamadas de ferramentas. Automático o envia só ao modelo que o escreveu, como o provedor documenta. Sempre envia também o de turnos anteriores e pede ao provedor que o mantenha; Nunca não envia nenhum."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Рассуждающим моделям нужно возвращать их собственные рассуждения между вызовами инструментов. «Автоматически» отправляет их только той модели, которая их написала, как описано у провайдера. «Всегда» отправляет и рассуждения прошлых ходов и просит провайдера их сохранять; «Никогда» не отправляет ничего."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "思考型模型需要在工具调用之间收回自己的推理内容。“自动”按提供商的文档，只发回给写出它的模型。“始终”还会发回之前轮次的推理，并请提供商保留；“永不”则什么都不发。"
           }
         }
       }
