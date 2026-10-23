@@ -80,6 +80,8 @@ enum ACPUpdate: Equatable, Sendable {
     case usage(used: Int, size: Int, costUSD: Double?)
     /// The agent moved itself to another mode, as Claude Code does when it leaves plan mode.
     case mode(String)
+    /// The session's config options, the whole list each time.
+    case options([ACPConfigOption])
     /// The session's slash commands, the whole list each time.
     case commands([ACPCommand])
     /// Notices and the rest: known to exist, not drawn yet.
@@ -109,6 +111,8 @@ enum ACPUpdate: Equatable, Sendable {
             decoded = .mode(mode)
         case "available_commands_update":
             decoded = .commands(ACPCommand.list(update["availableCommands"]))
+        case "config_option_update":
+            decoded = .options(ACPConfigOption.list(update["configOptions"]) ?? [])
         case "usage_update":
             let cost = update["cost"]?.objectValue
             let usd =
@@ -133,37 +137,6 @@ enum ACPUpdate: Equatable, Sendable {
         if case .number(let number) = value { return number }
         return nil
     }
-}
-
-/// The modes a session offers, from `session/new` or `session/load`, and the one it is in.
-struct ACPModes: Equatable, Sendable {
-    struct Mode: Equatable, Identifiable, Sendable {
-        let id: String
-        let name: String
-        let description: String?
-    }
-
-    var current: String?
-    let available: [Mode]
-
-    init(current: String?, available: [Mode]) {
-        self.current = current
-        self.available = available
-    }
-
-    init?(result: JSONValue) {
-        guard let modes = result.objectValue?["modes"]?.objectValue else { return nil }
-        let available: [Mode] = (modes["availableModes"]?.arrayValue ?? []).compactMap { value in
-            guard let mode = value.objectValue, let id = mode["id"]?.stringValue else { return nil }
-            return Mode(
-                id: id, name: mode["name"]?.stringValue ?? id,
-                description: mode["description"]?.stringValue)
-        }
-        guard !available.isEmpty else { return nil }
-        self.init(current: modes["currentModeId"]?.stringValue, available: available)
-    }
-
-    var currentMode: Mode? { available.first { $0.id == current } }
 }
 
 struct ACPDiff: Equatable, Sendable {
@@ -458,7 +431,7 @@ struct ACPEventMapper: Sendable {
             // Held for the turn's end, where the prompt's own result has the finer counts.
             lastUsage = (used, size, cost ?? lastUsage?.costUSD)
             return []
-        case .mode, .commands, .other:
+        case .mode, .options, .commands, .other:
             return []
         }
     }

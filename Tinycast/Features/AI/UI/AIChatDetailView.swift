@@ -216,8 +216,8 @@ private struct AIChatComposer: View {
                 AIModelPicker(chat: chat, selected: coordinator.model(for: chat), coordinator: coordinator)
                     .layoutPriority(-1)
                 AIReasoningPicker(chat: chat, coordinator: coordinator)
-            } else if let modes = coordinator.agents.modes(for: chat) {
-                AIAgentModePicker(chat: chat, modes: modes, agents: coordinator.agents)
+            } else if let options = coordinator.agents.options(for: chat) {
+                AIAgentOptionPickers(chat: chat, options: options, agents: coordinator.agents)
             }
             ContextGauge(
                 report: coordinator.contextReport(for: chat, detailed: false), hovered: $showsContext)
@@ -489,32 +489,97 @@ private struct AIAgentPicker: View {
     }
 }
 
-/// An ACP agent's own modes, such as Claude Code's plan mode or Codex's read-only. Fork-only.
-private struct AIAgentModePicker: View {
+/// An ACP agent's model, reasoning and mode where an API chat's sit, the rest under ⋯. Fork-only.
+private struct AIAgentOptionPickers: View {
     let chat: AIChatState
-    let modes: ACPModes
+    let options: ACPSessionOptions
     let agents: AgentCoordinator
 
     var body: some View {
-        Menu {
-            ForEach(modes.available) { mode in
-                Toggle(
-                    isOn: Binding(
-                        get: { modes.current == mode.id },
-                        set: { if $0 { agents.setMode(mode.id, for: chat) } })
-                ) {
-                    Text(mode.name)
-                    if let description = mode.description { Text(description) }
+        if let model = options.model {
+            menu(model) {
+                ComposerControlLabel(title: title(of: model, or: String(localized: "Model"))) {
+                    MenuIconImage(icon: agents.modelIcon(for: chat), edge: Theme.Size.menuBrandIcon)
+                        .font(Theme.Typography.composerSymbol)
                 }
             }
-        } label: {
-            ComposerControlLabel(title: modes.currentMode?.name ?? String(localized: "Mode")) {
-                Image(systemName: "slider.horizontal.3")
-                    .font(Theme.Typography.composerSymbol)
+            .layoutPriority(-1)
+            .help("Switch the agent's model")
+            // Shown without levels too, as for an API model, so the row keeps its shape.
+            if let reasoning = options.reasoning {
+                menu(reasoning) { ComposerControlLabel(title: reasoning.currentTitle) }
+                    .help("Change reasoning effort")
+            } else {
+                Menu {} label: { ComposerControlLabel(title: String(localized: "Reasoning")) }
+                    .composerMenu()
+                    .disabled(true)
+                    .help("This model has no reasoning setting")
             }
         }
+        if let mode = options.mode {
+            menu(mode) {
+                ComposerControlLabel(title: title(of: mode, or: String(localized: "Mode"))) {
+                    Image(systemName: "slider.horizontal.3")
+                        .font(Theme.Typography.composerSymbol)
+                }
+            }
+            .layoutPriority(-1)
+            .help("Switch the agent's mode")
+        }
+        if !options.others.isEmpty {
+            Menu {
+                ForEach(options.others) { option in
+                    Menu {
+                        choices(of: option)
+                    } label: {
+                        Text(option.name)
+                        Text(option.currentTitle)
+                    }
+                }
+            } label: {
+                ComposerControlLabel(showsChevron: false) { ComposerSymbol(name: "ellipsis") }
+            }
+            .composerMenu()
+            .help("More of the agent's options")
+            .accessibilityLabel("Agent Options")
+        }
+    }
+
+    private func title(of option: ACPConfigOption, or fallback: String) -> String {
+        option.currentTitle.isEmpty ? fallback : option.currentTitle
+    }
+
+    private func menu(_ option: ACPConfigOption, @ViewBuilder label: () -> some View) -> some View {
+        Menu {
+            choices(of: option)
+        } label: {
+            label()
+        }
         .composerMenu()
-        .help("Switch the agent's mode")
+    }
+
+    @ViewBuilder
+    private func choices(of option: ACPConfigOption) -> some View {
+        ForEach(option.groups) { group in
+            if let name = group.name {
+                Section(name) { toggles(group, of: option) }
+            } else {
+                Section { toggles(group, of: option) }
+            }
+        }
+    }
+
+    private func toggles(_ group: ACPConfigOption.Group, of option: ACPConfigOption) -> some View {
+        ForEach(group.choices) { choice in
+            Toggle(
+                isOn: Binding(
+                    get: { option.current == choice.value },
+                    set: { if $0 { agents.setOption(choice.value, of: option, for: chat) } })
+            ) {
+                Text(choice.name)
+                if let description = choice.description { Text(description) }
+            }
+        }
     }
 }
 

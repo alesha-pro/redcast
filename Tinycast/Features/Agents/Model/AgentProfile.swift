@@ -67,6 +67,12 @@ struct AgentProfile: Hashable, Identifiable, Sendable {
     var runtime: AgentRuntime?
     /// The ACP mode new sessions start in, by the agent's own id for it; nil keeps its default.
     var acpMode: String?
+    /// The model new sessions start on, by the agent's own id for it; nil keeps its default.
+    var acpModel: String?
+    /// Its reasoning level, applied after the model, whose levels it must be among.
+    var acpReasoning: String?
+    /// The agent's other selects, by its own option ids; nil while none was picked.
+    var acpOptions: [String: String]?
     /// Optional, so every `agents.json` written before it still decodes; nil keeps the defaults.
     var consent: AgentConsentRules?
     /// How a run nobody started from a chat behaves; nil is `AgentBackgroundPolicy()`.
@@ -121,7 +127,7 @@ extension AgentProfile: Codable {
     private enum CodingKeys: String, CodingKey {
         case id, name, iconSymbol, instructions, model, directory, access, tools, addedTools
         case skillSources, disabledSkills, readsProjectInstructions, readsGlobalInstructions, runtime
-        case acpMode, consent, background, createdAt
+        case acpMode, acpModel, acpReasoning, acpOptions, consent, background, createdAt
     }
 
     init(from decoder: any Decoder) throws {
@@ -144,6 +150,9 @@ extension AgentProfile: Codable {
         readsGlobalInstructions = try values.decode(Bool.self, forKey: .readsGlobalInstructions)
         runtime = try values.decodeIfPresent(AgentRuntime.self, forKey: .runtime)
         acpMode = try values.decodeIfPresent(String.self, forKey: .acpMode)
+        acpModel = try values.decodeIfPresent(String.self, forKey: .acpModel)
+        acpReasoning = try values.decodeIfPresent(String.self, forKey: .acpReasoning)
+        acpOptions = try values.decodeIfPresent([String: String].self, forKey: .acpOptions)
         consent = try values.decodeIfPresent(AgentConsentRules.self, forKey: .consent)
         background = try values.decodeIfPresent(AgentBackgroundPolicy.self, forKey: .background)
         createdAt = try values.decode(Date.self, forKey: .createdAt)
@@ -167,6 +176,9 @@ extension AgentProfile: Codable {
         try values.encode(readsGlobalInstructions, forKey: .readsGlobalInstructions)
         try values.encodeIfPresent(runtime, forKey: .runtime)
         try values.encodeIfPresent(acpMode, forKey: .acpMode)
+        try values.encodeIfPresent(acpModel, forKey: .acpModel)
+        try values.encodeIfPresent(acpReasoning, forKey: .acpReasoning)
+        try values.encodeIfPresent(acpOptions, forKey: .acpOptions)
         try values.encodeIfPresent(consent, forKey: .consent)
         try values.encodeIfPresent(background, forKey: .background)
         try values.encode(createdAt, forKey: .createdAt)

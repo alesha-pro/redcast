@@ -26,6 +26,8 @@ struct ACPTests {
         toolOutputReachesItsRowOnce()
         commandsDecodeMatchAndComplete()
         aCommandLeadsItsPrompt()
+        configOptionsDecodeAndSlot()
+        rememberedChoicesApplyAndPersist()
         runtimesParseTheirArguments()
         await aRealProcessStreamsATurn()
         await stoppingLeavesNoProcessBehind()
@@ -33,6 +35,8 @@ struct ACPTests {
         await toolContentReachesItsRows()
         await commandsReachTheChatAndLeadTheirTurn()
         await aFreshProcessWaitsForItsCommands()
+        await configOptionsApplyBeforeTheFirstPrompt()
+        await aRefusedModelForgetsNothing()
 
         print("\(passes) passed, \(failures) failed")
         if failures > 0 { exit(1) }
@@ -102,6 +106,12 @@ struct ACPTests {
                 #""availableCommands":[{"name":"web","description":"Search","input":{"hint":"query"}}]}}"#))
                 == .commands([ACPCommand(name: "web", description: "Search", hint: "query")]),
             "a session's slash commands decode with their hints")
+        guard case .options(let listed) = decoded(
+            (#"{"sessionId":"s","update":{"sessionUpdate":"config_option_update","configOptions":[{"id":"m","# +
+                #""name":"Model","category":"model","type":"select","currentValue":"a","options":[{"value":"a","# +
+                #""name":"A"}]}]}}"#))
+        else { return expect(false, "a config option update decodes") }
+        expect(listed.map(\.id) == ["m"] && listed.first?.category == .model, "with the agent's whole list")
         expect(decoded(#"{"update":{"sessionUpdate":"plan"}}"#) == nil, "an update names its session")
     }
 
@@ -245,7 +255,7 @@ struct ACPTests {
             runtime: AgentRuntime(kind: .custom, command: node.path, arguments: [fixture]))
         let asked = Asked()
         let answer = Answer()
-        let seen = SeenModes()
+        let seen = SeenOptions()
         let unattended = UUID()
         let host = AgentACPHost(
             store: store,
@@ -255,7 +265,7 @@ struct ACPTests {
             },
             context: { _ in "# Context from Tinycast\nYou are Fake." },
             briefing: { $0 == unattended ? AgentBackgroundBriefing.acp : nil })
-        host.onModes = { _, _, modes in seen.modes.append(modes) }
+        host.onOptions = { _, _, options in if let options { seen.options.append(options) } }
         let server = AIToolServer(
             handle: "files", title: "Files", transport: .command(path: "/bin/echo", arguments: [], environment: [:]))
         func turn(
@@ -298,14 +308,21 @@ struct ACPTests {
             "a call the agent never finished is settled when the turn ends")
         expect(first.events.last == .finished, "and the stream ends with finished")
 
+        let offered = seen.options.first
         expect(
-            seen.modes.first?.available.map(\.id) == ["default", "plan"]
-                && seen.modes.first?.current == "default",
+            offered?.mode?.choices.map(\.value) == ["default", "plan"] && offered?.mode?.current == "default"
+                && offered?.mode?.setter == .legacyMode,
             "a new session reports the modes it offers and the one it is in")
-        try? await host.setMode("plan", chatID: chat)
-        expect(seen.modes.last?.current == "plan", "switching a live session's mode reports it")
+        expect(
+            offered?.model?.choices.map(\.value) == ["m-small", "m-large"] && offered?.model?.current == "m-small"
+                && offered?.model?.setter == .legacyModel && offered?.reasoning == nil,
+            "and the older models as the model select, with no reasoning of its own")
+        try? await host.setOption("plan", for: .mode, chatID: chat)
+        expect(seen.options.last?.mode?.current == "plan", "switching a live session's mode reports it")
         _ = await turn("LEAVEPLAN", chat: chat, host: host)
-        expect(seen.modes.last?.current == "default", "and so does the agent moving itself")
+        expect(seen.options.last?.mode?.current == "default", "and so does the agent moving itself")
+        try? await host.setOption("m-large", for: .model, chatID: chat)
+        expect(seen.options.last?.model?.current == "m-large", "a live session switches model with set_model")
 
         let second = await turn("Again", chat: chat, host: host)
         let again = text(second.events)
@@ -362,18 +379,27 @@ struct ACPTests {
 
         var planner = agent
         planner.acpMode = "plan"
+        planner.acpModel = "m-large"
         let planned = ACPAgentProvider(host: relaunched, agent: planner, servers: { [] })
         let plannerChat = UUID()
-        seen.modes.removeAll()
-        relaunched.onModes = { _, _, modes in seen.modes.append(modes) }
+        seen.options.removeAll()
+        relaunched.onOptions = { _, _, options in if let options { seen.options.append(options) } }
+        var planReply = ""
         do {
-            for try await _ in planned.stream(
+            for try await event in planned.stream(
                 AIRequest(messages: [AIMessage(role: .user, text: "Hi")], conversationID: plannerChat))
-            {}
+            {
+                if case .text(let chunk) = event { planReply += chunk }
+            }
         } catch {
             expect(false, "a planner's turn completes, got \(error)")
         }
-        expect(seen.modes.last?.current == "plan", "an agent's chosen mode is applied as its session starts")
+        expect(
+            seen.options.last?.mode?.current == "plan" && seen.options.last?.model?.current == "m-large",
+            "an agent's chosen mode and model are applied as its session starts")
+        expect(
+            planReply.contains("on m-large; sets model=m-large,mode=plan"),
+            "through the older methods, model first, before the first prompt, got \(planReply)")
         relaunched.stopAll()
 
         let missing = AgentProfile(
@@ -493,8 +519,8 @@ final class Asked {
 }
 
 @MainActor
-final class SeenModes {
-    var modes: [ACPModes] = []
+final class SeenOptions {
+    var options: [ACPSessionOptions] = []
 }
 
 @MainActor
@@ -819,4 +845,340 @@ extension ACPTests {
 @MainActor
 final class Listed {
     var events: [(chat: UUID?, names: [String]?)] = []
+}
+
+extension ACPTests {
+    static func configOptionsDecodeAndSlot() {
+        let result = JSONValue(data: Data(#"""
+            {"sessionId":"s",
+             "modes":{"currentModeId":"default","availableModes":[{"id":"default","name":"Manual"}]},
+             "models":{"currentModelId":"x[low]","availableModels":[{"modelId":"x[low]","name":"X (low)"}]},
+             "configOptions":[
+              {"id":"mode","name":"Mode","category":"mode","type":"select","currentValue":"default",
+               "options":[{"value":"default","name":"Manual"},{"value":"plan","name":"Plan","description":"Plans\nfirst"}]},
+              {"id":"model","name":"Model","category":"model","type":"select","currentValue":"gone",
+               "options":[{"group":"fast","name":"Fast","options":[{"value":"small","name":"Small"}]},
+                          {"group":"smart","name":"Smart","options":[{"value":"large","name":"Large"}]}]},
+              {"id":"effort","name":"Effort","category":"thought_level","type":"select","currentValue":"low",
+               "options":[{"value":"low","name":"Low"},{"value":"high","name":"High"}]},
+              {"id":"fast","name":"Fast mode","category":"model_config","type":"select","currentValue":"off",
+               "options":[{"value":"off","name":"Off"},{"value":"on","name":"On"}]},
+              {"id":"agent","name":"Agent","type":"select","currentValue":"default",
+               "options":[{"value":"default","name":"Default"}]},
+              {"id":"beta","name":"Beta","type":"boolean","currentValue":false},
+              {"id":"empty","name":"Empty","type":"select","currentValue":"","options":[]}
+             ]}
+            """#.utf8)) ?? .null
+        guard let options = ACPSessionOptions(result: result) else {
+            return expect(false, "a session's config options decode")
+        }
+        expect(
+            options.options.map(\.id) == ["mode", "model", "effort", "fast", "agent"],
+            "selects in the agent's order; a boolean and an empty select are left out, got \(options.options.map(\.id))")
+        expect(
+            options.model?.id == "model" && options.reasoning?.id == "effort" && options.mode?.id == "mode",
+            "the model, thought level and mode categories fill the composer's own pickers")
+        expect(
+            options.others.map(\.id) == ["fast", "agent"] && options.slot(of: options.others[1]) == .option("agent"),
+            "every other select, with a category or none, goes under the overflow by its id")
+        expect(
+            options.model?.groups.map(\.name) == ["Fast", "Smart"]
+                && options.model?.choices.map(\.value) == ["small", "large"],
+            "grouped choices keep their groups")
+        expect(options.model?.currentTitle == "gone", "a current value the list lacks shows as itself")
+        expect(
+            options.mode?.choices.last?.description == "Plans first" && options.mode?.setter == .configOption,
+            "a description is one line, and the config option wins over the older modes")
+
+        let older = ACPSessionOptions(result: JSONValue(data: Data(#"""
+            {"modes":{"currentModeId":"ask","availableModes":[{"id":"ask","name":"Ask"},{"id":"code","name":"Code"}]},
+             "models":{"currentModelId":"or:a","availableModels":[{"modelId":"or:a","name":"A"},{"modelId":"or:b"}]}}
+            """#.utf8)) ?? .null)
+        expect(
+            older?.model?.setter == .legacyModel && older?.model?.choices.map(\.name) == ["A", "or:b"]
+                && older?.mode?.setter == .legacyMode && older?.reasoning == nil,
+            "an agent with only the older shapes still offers a model and a mode")
+        let byModel = older?.model?.request(setting: "or:b", session: "s")
+        expect(
+            byModel?.method == "session/set_model" && byModel?.params["modelId"] as? String == "or:b",
+            "an older model goes by set_model")
+        expect(older?.mode?.request(setting: "code", session: "s").method == "session/set_mode", "a mode by set_mode")
+        let byConfig = options.reasoning?.request(setting: "high", session: "s")
+        expect(
+            byConfig?.method == "session/set_config_option" && byConfig?.params["configId"] as? String == "effort"
+                && byConfig?.params["value"] as? String == "high",
+            "and a config option by its id and value")
+
+        expect(options.step(for: .reasoning, wanting: "low") == .keep, "a value in effect is not sent again")
+        expect(options.step(for: .model, wanting: "gone") == .keep, "even one the list no longer names")
+        expect(options.step(for: .reasoning, wanting: "high") == .send(options.reasoning!), "an offered one is sent")
+        expect(options.step(for: .reasoning, wanting: "max") == .forget, "a vanished one is forgotten")
+        expect(older?.step(for: .reasoning, wanting: "max") == .keep, "a select nobody offers keeps its value")
+        expect(options.step(for: .option("fast"), wanting: "on") == .send(options.others[0]), "by id for the rest")
+
+        var replaced = older!
+        replaced.replace(with: [options.model!])
+        expect(
+            replaced.model?.setter == .configOption && replaced.mode?.setter == .legacyMode,
+            "an update replaces what it covers and keeps an older select it does not")
+        let before = replaced
+        replaced.replace(with: [])
+        expect(replaced == before, "an empty list, as Hermes answers a set, wipes nothing")
+        var settled = options
+        settled.settle("high", in: "effort", answer: .object([:]))
+        expect(settled.reasoning?.current == "high", "an answer without a list moves only the picked value")
+        settled.settle(
+            "large", in: "model",
+            answer: .object(["configOptions": .array([JSONValue(data: Data(
+                (#"{"id":"model","name":"Model","category":"model","type":"select","currentValue":"large","# +
+                    #""options":[{"value":"large","name":"Large"}]}"#).utf8))!])]))
+        expect(
+            settled.options.map(\.id) == ["model"] && settled.model?.current == "large",
+            "an answer with a list is the agent's whole state")
+        var moved = options
+        moved.moveMode(to: "plan")
+        expect(moved.mode?.current == "plan", "the agent moving its mode moves the config option")
+        moved.moveMode(to: "nowhere")
+        expect(moved.mode?.current == "plan", "but never onto a mode it does not offer")
+
+        let many = JSONValue.object([
+            "configOptions": .array((0..<40).map { index in
+                .object([
+                    "id": .string("o\(index)"), "name": .string(String(repeating: "n", count: 300)),
+                    "type": .string("select"), "currentValue": .string("v0"),
+                    "options": .array((0..<600).map { .object(["value": .string("v\($0)")]) })
+                ])
+            })
+        ])
+        let capped = ACPSessionOptions(result: many)
+        expect(
+            capped?.options.count == ACPConfigOption.maxOptions
+                && capped?.options.first?.choices.count == ACPConfigOption.maxChoices
+                && (capped?.options.first?.name.count ?? 0) <= ACPConfigOption.maxNameLength,
+            "a list is held to its caps")
+    }
+
+    static func rememberedChoicesApplyAndPersist() {
+        var agent = AgentProfile(name: "A", directory: "/tmp")
+        agent.acpChoices[.model] = "large"
+        agent.acpChoices[.reasoning] = "high"
+        agent.acpChoices[.mode] = "nope"
+        agent.acpChoices[.option("fast")] = "on"
+        agent.acpChoices[.option("agent")] = "x"
+        expect(
+            agent.acpChoices.wishes.map(\.slot) == [.model, .reasoning, .mode, .option("agent"), .option("fast")],
+            "the model is applied first, since the levels and the rest follow it")
+        let offered = ACPSessionOptions(options: [
+            option("mode", .mode, current: "default", values: ["default", "plan"]),
+            option("model", .model, current: "small", values: ["small", "large"]),
+            option("effort", .thoughtLevel, current: "low", values: ["low", "high"]),
+            option("fast", .other, current: "off", values: ["off", "on"]),
+        ])
+        let shown = offered.applying(agent.acpChoices)
+        expect(
+            shown.model?.current == "large" && shown.reasoning?.current == "high"
+                && shown.others.first?.current == "on" && shown.mode?.current == "default",
+            "a chat with no session shows the agent's list on what it remembers, unknown values left out")
+        expect(
+            ACPChoices(shown) == ACPChoices(model: "large", reasoning: "high", mode: "default", options: ["fast": "on"]),
+            "what a session is on is every select's current value, by its slot")
+        var moved = agent
+        moved.acpChoices = ACPChoices()
+        expect(moved.acpChoices.wishes.isEmpty, "another program under Runs on starts with nothing remembered")
+        agent.acpChoices[.option("fast")] = nil
+        agent.acpChoices[.option("agent")] = nil
+        expect(agent.acpOptions == nil, "no other choice left stores none")
+
+        let encoder = JSONEncoder()
+        let untouched = AgentProfile(name: "B", directory: "/tmp")
+        let plain = (try? encoder.encode(untouched)).flatMap { String(data: $0, encoding: .utf8) } ?? ""
+        expect(
+            !plain.contains("acpModel") && !plain.contains("acpReasoning") && !plain.contains("acpOptions"),
+            "an agent that never picked writes none of the new keys")
+        agent.acpChoices[.option("fast")] = "on"
+        guard let data = try? encoder.encode(agent),
+            let back = try? JSONDecoder().decode(AgentProfile.self, from: data)
+        else { return expect(false, "an agent with choices round-trips") }
+        expect(
+            back.acpModel == "large" && back.acpReasoning == "high" && back.acpOptions == ["fast": "on"]
+                && back.acpMode == "nope",
+            "and reads back what it remembered")
+        struct PreviousBuild: Decodable {
+            let id: UUID
+            let acpMode: String?
+        }
+        expect(
+            (try? JSONDecoder().decode(PreviousBuild.self, from: data))?.acpMode == "nope",
+            "a build that knows only the mode still reads the file")
+        chatChoicesLiveWithTheirSession()
+    }
+
+    static func chatChoicesLiveWithTheirSession() {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent("ACPTests-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: root) }
+        let store = AgentStore(directory: root)
+        guard let agent = try? store.add(AgentProfile(name: "A", directory: "/tmp")) else {
+            return expect(false, "the agent saves")
+        }
+        let own = ACPChoices(model: "huge", reasoning: "max", mode: "plan", options: ["fast": "on"])
+        let (chat, sessionless) = (UUID(), UUID())
+        store.setAgent(agent.id, forChat: chat)
+        store.setAgent(agent.id, forChat: sessionless)
+        store.setACPChoices(own, forChat: sessionless)
+        expect(store.acpChoices(forChat: sessionless) == nil, "a chat without a session keeps no picks")
+        store.setACPSession("s1", forChat: chat)
+        store.setACPChoices(own, forChat: chat)
+        let reread = AgentStore(directory: root)
+        reread.load()
+        expect(reread.acpChoices(forChat: chat) == own, "a chat's picks are read back after a relaunch")
+        reread.setACPSession("s2", forChat: chat)
+        expect(reread.acpChoices(forChat: chat) == own, "and kept when the agent lost the session for another")
+        reread.setACPSession(nil, forChat: chat)
+        let forgotten = AgentStore(directory: root)
+        forgotten.load()
+        expect(
+            reread.acpChoices(forChat: chat) == nil && forgotten.acpChoices.isEmpty,
+            "a chat's picks go with its session, on disk too")
+    }
+
+    private static func option(
+        _ id: String, _ category: ACPConfigOption.Category, current: String, values: [String]
+    ) -> ACPConfigOption {
+        ACPConfigOption(
+            id: id, name: id, description: nil, category: category, setter: .configOption, current: current,
+            groups: [.init(id: "", name: nil, choices: values.map { .init(value: $0, name: $0, description: nil) })])
+    }
+
+    /// A remembered model, level, mode and other select reach a new or reloaded session first.
+    static func configOptionsApplyBeforeTheFirstPrompt() async {
+        guard let node = await ExecutableLocator.locate("node") else { return }
+        let fixture = FileManager.default.currentDirectoryPath + "/Tests/acp-fixtures/fake-agent.mjs"
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent("ACPTests-\(UUID().uuidString)")
+        try? FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        let support = root.appendingPathComponent("support")
+        let store = AgentStore(directory: support)
+        var draft = AgentProfile(
+            name: "Configured", directory: root.path,
+            runtime: AgentRuntime(kind: .custom, command: node.path, arguments: [fixture, "config"]))
+        draft.acpModel = "large"
+        draft.acpReasoning = "high"
+        draft.acpMode = "plan"
+        draft.acpOptions = ["fast": "on"]
+        guard let agent = try? store.add(draft) else { return expect(false, "the agent saves") }
+        let unattended = UUID()
+        let seen = SeenOptions()
+        func host() -> AgentACPHost {
+            let made = AgentACPHost(
+                store: store, permit: { _, request in request.dialogOptions.first?.id },
+                context: { _ in "# Context from Tinycast" },
+                briefing: { $0 == unattended ? AgentBackgroundBriefing.acp : nil })
+            made.onOptions = { _, _, options in if let options { seen.options.append(options) } }
+            return made
+        }
+        let first = host()
+        defer {
+            first.stopAll()
+            try? FileManager.default.removeItem(at: root)
+        }
+
+        let chat = UUID()
+        let opened = replyText(await stream("Hello", chat: chat, agent: agent, host: first))
+        expect(
+            opened.contains("on large/high/plan/on; sets model=large,effort=high,mode=plan,fast=on"),
+            "every remembered choice reaches a new session before its first prompt, model first, got \(opened)")
+        let applied = seen.options.last
+        expect(
+            applied?.model?.current == "large" && applied?.reasoning?.choices.map(\.value) == ["low", "medium", "high"]
+                && applied?.others.map(\.id) == ["fast"] && applied?.mode?.setter == .configOption,
+            "the composer sees the list the last answer carried, got \(String(describing: applied))")
+
+        try? await first.setOption("small", for: .model, chatID: chat)
+        expect(
+            seen.options.last?.model?.current == "small" && seen.options.last?.reasoning?.current == "medium",
+            "a live switch shows the agent's answer, its level clamped by the agent")
+        let shownBefore = seen.options.count
+        do {
+            try await first.setOption("max", for: .reasoning, chatID: chat)
+            expect(false, "a level the model lacks is refused")
+        } catch {
+            expect(
+                seen.options.count == shownBefore + 1 && seen.options.last?.reasoning?.current == "medium",
+                "a refused pick puts the session's own state back in front of the composer")
+        }
+        _ = await stream("SWITCHMODEL", chat: chat, agent: agent, host: first)
+        expect(
+            seen.options.last?.model?.current == "huge" && seen.options.last?.reasoning?.current == "high",
+            "and the agent's own change arrives as config_option_update")
+
+        guard var stored = store.agent(id: agent.id) else { return expect(false, "the agent is stored") }
+        stored.acpModel = "retired"
+        stored.acpReasoning = "max"
+        try? store.update(stored)
+        let alone = replyText(await stream("Alone", chat: unattended, agent: agent, host: first))
+        expect(
+            alone.contains("briefed") && alone.contains("on small/low/plan/on; sets mode=plan,fast=on"),
+            "an unattended run starts the same way, values the agent no longer offers not sent, got \(alone)")
+        let kept = AgentStore(directory: support)
+        kept.load()
+        let reread = kept.agent(id: agent.id)
+        expect(
+            reread?.acpModel == nil && reread?.acpReasoning == nil && reread?.acpMode == "plan"
+                && reread?.acpOptions == ["fast": "on"],
+            "and they are forgotten on the agent, on disk, while the rest stays")
+
+        stored = store.agent(id: agent.id) ?? stored
+        stored.acpModel = "small"
+        try? store.update(stored)
+        let other = UUID()
+        let started = replyText(await stream("Hello", chat: other, agent: agent, host: first))
+        expect(started.contains("on small/low/plan/on"), "another chat starts on the agent's latest, got \(started)")
+        first.stopAll()
+        let relaunched = host()
+        defer { relaunched.stopAll() }
+        let reloaded = replyText(await stream("After relaunch", chat: chat, agent: agent, host: relaunched))
+        expect(
+            reloaded.contains("turn 11") && reloaded.contains("on huge/high/plan/on; sets model=huge,effort=high"),
+            "a reloaded chat is put back on its own picks, not another chat's, got \(reloaded)")
+        let otherAgain = replyText(await stream("After relaunch", chat: other, agent: agent, host: relaunched))
+        expect(otherAgain.contains("on small/low/plan/on"), "and so is the other chat, got \(otherAgain)")
+        expect(store.agent(id: agent.id)?.acpModel == "small", "a reload leaves the agent's own picks alone")
+
+        stored = store.agent(id: agent.id) ?? stored
+        stored.acpModel = "large"
+        try? store.update(stored)
+        let earlier = UUID()
+        store.setACPSession("sess_earlier", forChat: earlier)
+        let older = replyText(await stream("Continue", chat: earlier, agent: agent, host: relaunched))
+        expect(
+            older.contains("turn 11") && older.contains("sets model=large,mode=plan,fast=on"),
+            "a chat from a build before its own picks reloads on the agent's, got \(older)")
+    }
+
+    /// A refused model switch leaves the agent's other picks to be judged by the real model later.
+    static func aRefusedModelForgetsNothing() async {
+        guard let node = await ExecutableLocator.locate("node") else { return }
+        let fixture = FileManager.default.currentDirectoryPath + "/Tests/acp-fixtures/fake-agent.mjs"
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent("ACPTests-\(UUID().uuidString)")
+        try? FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        let store = AgentStore(directory: root.appendingPathComponent("support"))
+        var draft = AgentProfile(
+            name: "Refusing", directory: root.path,
+            runtime: AgentRuntime(kind: .custom, command: node.path, arguments: [fixture, "config", "refuse-model"]))
+        draft.acpChoices = ACPChoices(model: "huge", reasoning: "max", mode: "plan")
+        guard let agent = try? store.add(draft) else { return expect(false, "the agent saves") }
+        let host = AgentACPHost(
+            store: store, permit: { _, request in request.dialogOptions.first?.id }, context: { _ in nil })
+        defer {
+            host.stopAll()
+            try? FileManager.default.removeItem(at: root)
+        }
+        let reply = replyText(await stream("Hello", chat: UUID(), agent: agent, host: host))
+        expect(
+            reply.contains("on small/low/plan/off; sets mode=plan"),
+            "after a refused model the rest still goes where offered, got \(reply)")
+        let kept = store.agent(id: agent.id)?.acpChoices
+        expect(
+            kept == ACPChoices(model: "huge", reasoning: "max", mode: "plan"),
+            "and a level the default model lacks is not forgotten, got \(String(describing: kept))")
+    }
 }

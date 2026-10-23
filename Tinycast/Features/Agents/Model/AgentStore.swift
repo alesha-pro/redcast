@@ -10,6 +10,8 @@ final class AgentStore {
     private(set) var chatAgents: [UUID: UUID] = [:]
     /// Chat id to the ACP session its agent keeps, so a relaunch can reload instead of restart.
     private(set) var acpSessions: [UUID: String] = [:]
+    /// Chat id to what its session was last on; lives as long as the session id beside it.
+    private(set) var acpChoices: [UUID: ACPChoices] = [:]
     /// False when the file wouldn't read; every mutation then refuses rather than pretends.
     private(set) var isAvailable = true
     private(set) var schedules: [AgentSchedule] = []
@@ -25,6 +27,7 @@ final class AgentStore {
     private let newerToolsURL: URL
     private let bindingsURL: URL
     private let acpSessionsURL: URL
+    private let acpChoicesURL: URL
     private let schedulesURL: URL
     /// Kept apart from the schedules, so a run never rewrites what the user wrote.
     private let scheduleBaselinesURL: URL
@@ -40,6 +43,7 @@ final class AgentStore {
         newerToolsURL = base.appendingPathComponent("agent-newer-tools.json")
         bindingsURL = base.appendingPathComponent("agent-chats.json")
         acpSessionsURL = base.appendingPathComponent("agent-acp-sessions.json")
+        acpChoicesURL = base.appendingPathComponent("agent-acp-choices.json")
         schedulesURL = base.appendingPathComponent("agent-schedules.json")
         scheduleBaselinesURL = base.appendingPathComponent("agent-schedule-runs.json")
         scheduleSpendURL = base.appendingPathComponent("agent-schedule-spend.json")
@@ -108,6 +112,11 @@ final class AgentStore {
         {
             acpSessions = decoded.filter { chatAgents[$0.key] != nil }
         }
+        if let data = try? Data(contentsOf: acpChoicesURL),
+            let decoded = try? JSONDecoder().decode([UUID: ACPChoices].self, from: data)
+        {
+            acpChoices = decoded.filter { acpSessions[$0.key] != nil }
+        }
         loadSchedules()
     }
 
@@ -145,10 +154,24 @@ final class AgentStore {
     }
 
     func setACPSession(_ id: String?, forChat chatID: UUID) {
+        if id == nil { setACPChoices(nil, forChat: chatID) }
         guard acpSessions[chatID] != id else { return }
         acpSessions[chatID] = id
         guard let data = try? JSONEncoder().encode(acpSessions) else { return }
         try? data.write(to: acpSessionsURL, options: .atomic)
+    }
+
+    func acpChoices(forChat chatID: UUID) -> ACPChoices? {
+        acpChoices[chatID]
+    }
+
+    /// Runtime state like the session ids: a failed write only costs a reload its picks.
+    func setACPChoices(_ choices: ACPChoices?, forChat chatID: UUID) {
+        let kept = acpSessions[chatID] == nil || choices == ACPChoices() ? nil : choices
+        guard acpChoices[chatID] != kept else { return }
+        acpChoices[chatID] = kept
+        guard let data = try? JSONEncoder().encode(acpChoices) else { return }
+        try? data.write(to: acpChoicesURL, options: .atomic)
     }
 
     func agent(id: UUID) -> AgentProfile? {
