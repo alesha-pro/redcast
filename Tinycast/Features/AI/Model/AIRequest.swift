@@ -83,10 +83,13 @@ struct AIMessage: Equatable, Sendable {
     let toolCalls: [AIToolCall]
     /// Tool only: the answer to one of them.
     let toolResult: AIToolResult?
+    // Fork: assistant only, what the reply reasoned, for a route that must be sent it again.
+    let reasoning: AIReasoningReplay?
 
     init(
         role: Role, text: String, images: [AIImage] = [], documents: [AIDocument] = [],
-        audio: [AIAudio] = [], toolCalls: [AIToolCall] = [], toolResult: AIToolResult? = nil
+        audio: [AIAudio] = [], toolCalls: [AIToolCall] = [], toolResult: AIToolResult? = nil,
+        reasoning: AIReasoningReplay? = nil
     ) {
         self.role = role
         self.text = text
@@ -95,7 +98,17 @@ struct AIMessage: Equatable, Sendable {
         self.audio = audio
         self.toolCalls = toolCalls
         self.toolResult = toolResult
+        self.reasoning = reasoning
     }
+}
+
+// Fork: DeepSeek refuses a thinking tool turn without it, and Gemini on OpenRouter loses its thread.
+struct AIReasoningReplay: Equatable, Sendable {
+    /// The model that wrote it; no other model is ever sent it.
+    let model: String
+    let text: String
+    /// OpenRouter's `reasoning_details` merged as they streamed; an encrypted entry stays opaque.
+    let details: [JSONValue]
 }
 
 struct AIRequest: Equatable, Sendable {
@@ -139,7 +152,7 @@ struct AIRequest: Equatable, Sendable {
 struct AIUsage: Equatable, Sendable {
     var inputTokens: Int?
     var outputTokens: Int?
-    /// Prompt tokens served from or written to a cache; Anthropic counts them outside `inputTokens`.
+    /// Prompt tokens served from a cache, counted outside `inputTokens`; a cache write is input.
     var cachedInputTokens: Int?
     /// The part of `outputTokens` the model spent thinking.
     var reasoningTokens: Int?
@@ -172,6 +185,8 @@ enum AIStreamEvent: Equatable, Sendable {
     case toolResult(id: String, isError: Bool)
     /// Fork: an ACP call's diff or output, replacing what its row showed before.
     case toolOutput(id: String, content: ChatToolContent)
+    /// Fork: a reply's reasoning for a tool loop to send back with its calls; never shown.
+    case reasoningReplay(AIReasoningReplay)
     case usage(AIUsage)
     case finished
 }

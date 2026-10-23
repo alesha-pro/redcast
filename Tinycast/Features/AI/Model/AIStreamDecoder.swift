@@ -65,10 +65,25 @@ struct AIStreamDecoder: Sendable {
     private var usage = AIUsage()
     private var partialToolCalls: [Int: PartialToolCall] = [:]
     private(set) var isTerminal = false
+    // Fork: the reply's reasoning as its model must be sent it again, stamped with that model.
+    private let model: String
+    private var replayText = ""
+    private var replayDetails: [JSONValue] = []
 
-    init(shape: AIHTTPConfiguration.APIShape, secrets: [String] = []) {
+    init(shape: AIHTTPConfiguration.APIShape, secrets: [String] = [], model: String = "") {
         self.shape = shape
         self.secrets = secrets
+        self.model = model
+    }
+
+    /// Fork: only a reply with calls is ever sent back, and its reasoning goes on that message.
+    private mutating func flushReplay() -> [AIStreamEvent] {
+        guard !replayText.isEmpty || !replayDetails.isEmpty else { return [] }
+        defer {
+            replayText = ""
+            replayDetails = []
+        }
+        return [.reasoningReplay(AIReasoningReplay(model: model, text: replayText, details: replayDetails))]
     }
 
     /// Assembled in index order, so a turn's calls reach the loop as the model listed them.
@@ -76,7 +91,7 @@ struct AIStreamDecoder: Sendable {
         guard !partialToolCalls.isEmpty else { return [] }
         let calls = partialToolCalls.sorted { $0.key < $1.key }.map(\.value)
         partialToolCalls.removeAll()
-        return calls.compactMap { call in
+        return flushReplay() + calls.compactMap { call in
             guard !call.name.isEmpty else { return nil }
             return .toolCallRequested(
                 AIToolCall(
@@ -137,11 +152,21 @@ struct AIStreamDecoder: Sendable {
             } else if let reasoning = choice.delta?.reasoningText {
                 events += [.thinking, .reasoning(reasoning)]
             }
+            // Fork: kept whole for the replay, whatever the fold above showed of it.
+            if let reasoning = choice.delta?.reasoningText { replayText += reasoning }
+            if choice.delta?.reasoningDetails != nil {
+                for detail in Self.rawReasoningDetails(in: data) {
+                    Self.merge(detail, into: &replayDetails)
+                }
+            }
             for fragment in choice.delta?.toolCalls ?? [] { absorb(fragment) }
             if choice.finishReason == "tool_calls" { events.append(contentsOf: flushToolCalls()) }
         }
         if let reported = chunk.usage {
-            usage.inputTokens = reported.promptTokens ?? usage.inputTokens
+            // Fork: a cache hit counts outside `inputTokens`, as Anthropic's does, so both shapes add up.
+            let hit = reported.promptTokensDetails?.cachedTokens ?? reported.promptCacheHitTokens
+            usage.inputTokens = reported.promptTokens.map { $0 - min(hit ?? 0, $0) } ?? usage.inputTokens
+            if let hit, hit > 0 { usage.cachedInputTokens = hit }
             usage.outputTokens = reported.completionTokens ?? usage.outputTokens
             usage.reasoningTokens =
                 reported.completionTokensDetails?.reasoningTokens ?? usage.reasoningTokens
@@ -191,10 +216,10 @@ struct AIStreamDecoder: Sendable {
             return [.thinking, .reasoning(thinking)]
         case "message_start":
             let reported = event.message?.usage
-            usage.inputTokens = reported?.inputTokens ?? usage.inputTokens
-            let cached = [reported?.cacheReadInputTokens, reported?.cacheCreationInputTokens]
-                .compactMap { $0 }
-            if !cached.isEmpty { usage.cachedInputTokens = cached.reduce(0, +) }
+            // Fork: a cache write is new input billed above it, so only a read counts as cached.
+            let written = reported?.cacheCreationInputTokens ?? 0
+            usage.inputTokens = reported?.inputTokens.map { $0 + written } ?? usage.inputTokens
+            if let read = reported?.cacheReadInputTokens, read > 0 { usage.cachedInputTokens = read }
             return [.usage(usage)]
         case "message_delta":
             usage.outputTokens = event.usage?.outputTokens ?? usage.outputTokens
@@ -216,6 +241,57 @@ struct AIStreamDecoder: Sendable {
     }
 
     private static let stopped = String(localized: "The provider stopped the response with an error.")
+
+    // MARK: - Fork: reasoning details
+
+    /// The chunk's own entries, untouched: an encrypted one must go back byte for byte.
+    private static func rawReasoningDetails(in data: Data) -> [JSONValue] {
+        let object = JSONValue(data: data)?.objectValue
+        let choice = object?["choices"]?.arrayValue?.first?.objectValue
+        return choice?["delta"]?.objectValue?["reasoning_details"]?.arrayValue ?? []
+    }
+
+    /// pi's merge: neighbouring text or summary deltas grow one entry; an encrypted one stays apart.
+    static func merge(_ detail: JSONValue, into details: inout [JSONValue]) {
+        guard let entry = detail.objectValue, isReasoningDetail(entry),
+            let type = entry["type"]?.stringValue
+        else { return }
+        let field: String? =
+            switch type {
+            case "reasoning.text": "text"
+            case "reasoning.summary": "summary"
+            default: nil
+            }
+        guard let field, var last = details.last?.objectValue, last["type"]?.stringValue == type,
+            let head = last[field]?.stringValue, let tail = entry[field]?.stringValue
+        else {
+            details.append(detail)
+            return
+        }
+        last[field] = .string(head + tail)
+        for key in ["signature", "id", "format", "index"] where isUnset(last[key]) {
+            if let value = entry[key], !isUnset(value) { last[key] = value }
+        }
+        details[details.count - 1] = .object(last)
+    }
+
+    private static func isUnset(_ value: JSONValue?) -> Bool {
+        value == nil || value == .null || value == .string("")
+    }
+
+    /// The three shapes OpenRouter documents; anything else is dropped rather than replayed.
+    private static func isReasoningDetail(_ entry: [String: JSONValue]) -> Bool {
+        let id = entry["id"].map { $0 == .null || $0.stringValue != nil } ?? true
+        let format = entry["format"].map { $0.stringValue != nil } ?? true
+        let index = entry["index"].map { if case .number = $0 { true } else { false } } ?? true
+        guard id, format, index else { return false }
+        switch entry["type"]?.stringValue {
+        case "reasoning.text": return entry["text"]?.stringValue != nil
+        case "reasoning.summary": return entry["summary"]?.stringValue != nil
+        case "reasoning.encrypted": return entry["data"]?.stringValue != nil
+        default: return false
+        }
+    }
 
     private static func anthropicErrorMessage(_ type: String?) -> String {
         switch type {
@@ -300,17 +376,30 @@ private struct OpenAIChunk: Decodable {
             }
         }
 
+        struct PromptDetails: Decodable {
+            let cachedTokens: Int?
+
+            enum CodingKeys: String, CodingKey {
+                case cachedTokens = "cached_tokens"
+            }
+        }
+
         let promptTokens: Int?
         let completionTokens: Int?
         let completionTokensDetails: CompletionDetails?
         /// OpenRouter's own figure; a vendor API sends none.
         let cost: Double?
+        let promptTokensDetails: PromptDetails?
+        /// DeepSeek's own name for the prompt tokens its cache served.
+        let promptCacheHitTokens: Int?
 
         enum CodingKeys: String, CodingKey {
             case promptTokens = "prompt_tokens"
             case completionTokens = "completion_tokens"
             case completionTokensDetails = "completion_tokens_details"
             case cost
+            case promptTokensDetails = "prompt_tokens_details"
+            case promptCacheHitTokens = "prompt_cache_hit_tokens"
         }
     }
 

@@ -168,9 +168,232 @@ struct AIProviderTests {
         claudeControlFramesAnswerOneTool()
         aGatewayOffersNoneAsItsReasoningEffort()
         declaredLevelsNeverReachAVendorOrOutliveTheirDeclaration()
+        cachedTokensCountApartFromInput()
+        reasoningDetailsMergeAsTheyStream()
+        reasoningGoesBackToTheModelThatWroteIt()
 
         print("\(passes) passed, \(failures) failed")
         if failures > 0 { exit(1) }
+    }
+
+    // MARK: - Fork: reasoning round-trip and cache hits
+
+    private static func lastUsage(_ shape: AIHTTPConfiguration.APIShape, _ stream: String) -> AIUsage? {
+        var decoder = AIStreamDecoder(shape: shape)
+        let events = ((try? decoder.feed(Data(stream.utf8))) ?? []) + ((try? decoder.finish()) ?? [])
+        return events.reversed().lazy.compactMap { event -> AIUsage? in
+            if case .usage(let usage) = event { return usage }
+            return nil
+        }.first
+    }
+
+    /// A hit counts outside `inputTokens` on both shapes, so prompt = input + cached everywhere.
+    static func cachedTokensCountApartFromInput() {
+        let routed = lastUsage(
+            .openAICompatible,
+            """
+            data: {"choices":[],"usage":{"prompt_tokens":1000,"completion_tokens":10,\
+            "prompt_tokens_details":{"cached_tokens":800},"cost":0.001}}
+
+            data: [DONE]
+
+            """)
+        expect(
+            routed?.inputTokens == 200 && routed?.cachedInputTokens == 800 && routed?.outputTokens == 10,
+            "OpenRouter's and OpenAI's cached_tokens leave the prompt as a hit, got \(String(describing: routed))")
+        let deepSeek = lastUsage(
+            .openAICompatible,
+            """
+            data: {"choices":[],"usage":{"prompt_tokens":1000,"completion_tokens":5,\
+            "prompt_cache_hit_tokens":900,"prompt_cache_miss_tokens":100}}
+
+            data: [DONE]
+
+            """)
+        expect(
+            deepSeek?.inputTokens == 100 && deepSeek?.cachedInputTokens == 900,
+            "DeepSeek's prompt_cache_hit_tokens are its hits")
+        let cold = lastUsage(
+            .openAICompatible,
+            """
+            data: {"choices":[],"usage":{"prompt_tokens":1000,"completion_tokens":5,\
+            "prompt_tokens_details":{"cached_tokens":0}}}
+
+            data: [DONE]
+
+            """)
+        expect(
+            cold?.inputTokens == 1000 && cold?.cachedInputTokens == nil, "a cold prompt reports no hit")
+        let anthropic = lastUsage(
+            .anthropic,
+            """
+            data: {"type":"message_start","message":{"usage":{"input_tokens":50,\
+            "cache_read_input_tokens":400,"cache_creation_input_tokens":30}}}
+
+            data: {"type":"message_stop"}
+
+            """)
+        expect(
+            anthropic?.inputTokens == 80 && anthropic?.cachedInputTokens == 400,
+            "Anthropic's read is the hit and its write is new input, got \(String(describing: anthropic))")
+        let written = lastUsage(
+            .anthropic,
+            """
+            data: {"type":"message_start","message":{"usage":{"input_tokens":50,\
+            "cache_creation_input_tokens":30}}}
+
+            data: {"type":"message_stop"}
+
+            """)
+        expect(
+            written?.inputTokens == 80 && written?.cachedInputTokens == nil,
+            "a first request that only writes the cache reports no hit")
+    }
+
+    /// pi's merge: neighbouring text and summary deltas join, an encrypted entry stays whole.
+    static func reasoningDetailsMergeAsTheyStream() {
+        guard
+            let data = FileManager.default.contents(
+                atPath: "Tests/ai-fixtures/openrouter-reasoning-details-stream.txt")
+        else { return expect(false, "the reasoning-details fixture is readable") }
+        func json(_ text: String) -> JSONValue { JSONValue(data: Data(text.utf8)) ?? .null }
+        let expected = AIReasoningReplay(
+            model: "google/gemini-3.8-flash", text: "Search first.",
+            details: [
+                json(#"{"type":"reasoning.text","text":"Search first.","format":"google-gemini-v1","index":0}"#),
+                json(
+                    #"{"type":"reasoning.encrypted","data":"CiQB+opaque/sig==","id":"tool_c1","#
+                        + #""format":"google-gemini-v1","index":0}"#),
+                json(#"{"type":"reasoning.summary","summary":"Plan: search.","index":1}"#)
+            ])
+        for slice in [data.count, 7] {
+            var decoder = AIStreamDecoder(shape: .openAICompatible, model: "google/gemini-3.8-flash")
+            var events: [AIStreamEvent] = []
+            var offset = 0
+            while offset < data.count {
+                let end = min(offset + slice, data.count)
+                events += (try? decoder.feed(data[offset..<end])) ?? []
+                offset = end
+            }
+            events += (try? decoder.finish()) ?? []
+            let replays = events.compactMap { event -> AIReasoningReplay? in
+                if case .reasoningReplay(let replay) = event { return replay }
+                return nil
+            }
+            expect(
+                replays == [expected],
+                "one replay per reply, merged, ordered and stamped with its model (\(slice)-byte slices), "
+                    + "got \(replays)")
+            let replayAt = events.firstIndex { if case .reasoningReplay = $0 { true } else { false } }
+            let callAt = events.firstIndex { if case .toolCallRequested = $0 { true } else { false } }
+            expect(
+                replayAt != nil && callAt != nil && replayAt! < callAt!,
+                "and it arrives before the calls it belongs with")
+            expect(
+                events.contains(.reasoning("Search")) && !events.contains(.text("Search")),
+                "while the fold still shows the reasoning as it streams")
+        }
+        guard
+            let answered = FileManager.default.contents(
+                atPath: "Tests/ai-fixtures/openrouter-nemotron-reasoning.txt")
+        else { return expect(false, "the nemotron fixture is readable") }
+        expect(
+            !decodeAll(answered, slice: answered.count).contains {
+                if case .reasoningReplay = $0 { true } else { false }
+            },
+            "a reply that reasoned but called nothing is never sent back, so it keeps nothing")
+    }
+
+    /// DeepSeek's thinking tool turn needs every reply's reasoning back; OpenRouter its details.
+    static func reasoningGoesBackToTheModelThatWroteIt() {
+        let tool = AITool(
+            name: "read_file", description: "Read a file.", parameters: .object(["type": .string("object")]),
+            origin: "Files")
+        let deepSeek = AIHTTPConfiguration(
+            provider: .openAICompatible, baseURL: URL(string: "https://api.deepseek.com")!,
+            model: "deepseek-flash")
+        let turn = [
+            AIMessage(role: .user, text: "What is in notes.txt?"),
+            AIMessage(role: .assistant, text: "An earlier answer."),
+            AIMessage(role: .user, text: "And now?"),
+            AIMessage(
+                role: .assistant, text: "",
+                toolCalls: [AIToolCall(id: "c1", name: "read_file", arguments: #"{"path":"notes.txt"}"#)],
+                reasoning: AIReasoningReplay(model: "deepseek-flash", text: "Read the file first.", details: [])),
+            AIMessage(role: .tool, text: "", toolResult: AIToolResult(callID: "c1", content: "milk, eggs", isError: false)),
+            AIMessage(
+                role: .assistant, text: "Checking again.",
+                toolCalls: [AIToolCall(id: "c2", name: "read_file", arguments: "{}")],
+                reasoning: AIReasoningReplay(model: "deepseek-pro", text: "Another model's.", details: [])),
+            AIMessage(role: .tool, text: "", toolResult: AIToolResult(callID: "c2", content: "milk, eggs", isError: false))
+        ]
+        func body(
+            _ messages: [AIMessage], _ tools: [AITool], _ configuration: AIHTTPConfiguration,
+            instructions: String? = nil
+        ) -> JSONValue? {
+            let made = AIRequestBody.make(
+                AIRequest(instructions: instructions, messages: messages, tools: tools),
+                configuration: configuration)
+            return (try? JSONSerialization.data(withJSONObject: made)).flatMap(JSONValue.init(data:))
+        }
+        func fixture(_ name: String) -> JSONValue? {
+            FileManager.default.contents(atPath: "Tests/ai-fixtures/\(name).json").flatMap(JSONValue.init(data:))
+        }
+        let sent = body(turn, [tool], deepSeek, instructions: "Be brief.")
+        expect(
+            sent != nil && sent == fixture("deepseek-thinking-tools"),
+            "DeepSeek's thinking tool turn matches its fixture: every assistant message carries "
+                + "reasoning_content, its own model's text or an empty one")
+        func reasoningContent(_ body: JSONValue?) -> [String?] {
+            (body?.objectValue?["messages"]?.arrayValue ?? []).compactMap(\.objectValue)
+                .filter { $0["role"] == .string("assistant") }.map { $0["reasoning_content"]?.stringValue }
+        }
+        let thinkingOff = AIHTTPConfiguration(
+            provider: .openAICompatible, baseURL: URL(string: "https://api.deepseek.com/v1")!,
+            model: "deepseek-flash", effort: "none", disablesThinking: true)
+        expect(
+            reasoningContent(body(turn, [tool], thinkingOff)).allSatisfy { $0 == nil },
+            "with thinking off nothing is sent back")
+        expect(
+            reasoningContent(body(turn, [], deepSeek)).allSatisfy { $0 == nil },
+            "nor on a turn that offers no tools, where DeepSeek ignores it")
+        let elsewhere = AIHTTPConfiguration(
+            provider: .openAICompatible, baseURL: URL(string: "https://api.example.com/v1")!,
+            model: "deepseek-flash")
+        expect(
+            reasoningContent(body(turn, [tool], elsewhere)).allSatisfy { $0 == nil },
+            "and another host that serves the same model name is sent the body it always was")
+
+        func json(_ text: String) -> JSONValue { JSONValue(data: Data(text.utf8)) ?? .null }
+        let details = [
+            json(#"{"type":"reasoning.text","text":"Search first.","format":"google-gemini-v1","index":0}"#),
+            json(
+                #"{"type":"reasoning.encrypted","data":"CiQB+opaque/sig==","id":"tool_c1","#
+                    + #""format":"google-gemini-v1","index":0}"#)
+        ]
+        let search = AITool(
+            name: "web_search", description: "Search the web.", parameters: .object(["type": .string("object")]),
+            origin: "Web")
+        let openRouter = AIHTTPConfiguration(
+            provider: .openRouter, baseURL: URL(string: "https://openrouter.ai/api/v1")!,
+            model: "google/gemini-3.8-flash")
+        let routed = [
+            AIMessage(role: .user, text: "Find it."),
+            AIMessage(
+                role: .assistant, text: "",
+                toolCalls: [AIToolCall(id: "c1", name: "web_search", arguments: #"{"query":"x"}"#)],
+                reasoning: AIReasoningReplay(model: "google/gemini-3.8-flash", text: "Search first.", details: details)),
+            AIMessage(role: .tool, text: "", toolResult: AIToolResult(callID: "c1", content: "results", isError: false)),
+            AIMessage(
+                role: .assistant, text: "", toolCalls: [AIToolCall(id: "c2", name: "web_search", arguments: "{}")],
+                reasoning: AIReasoningReplay(model: "openai/gpt-oss-120b", text: "Theirs.", details: details)),
+            AIMessage(role: .tool, text: "", toolResult: AIToolResult(callID: "c2", content: "results", isError: false))
+        ]
+        let routedBody = body(routed, [search], openRouter)
+        expect(
+            routedBody != nil && routedBody == fixture("openrouter-reasoning-details"),
+            "OpenRouter's body matches its fixture: details back verbatim and in order to the model "
+                + "that wrote them, none to another, and no reasoning_content")
     }
 
     /// Both providers stream a call's arguments in pieces; a half-parsed call would be uncallable.

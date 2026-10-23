@@ -23,6 +23,7 @@ struct AgentLoopTests {
         await signalsLandBetweenACallsRows()
         await stopReachesTheRunningCall()
         await aTurnWithoutCallsPassesThrough()
+        await reasoningRidesTheCallsItMade()
         await anAgentTurnCostsEveryRound()
         await theSpendMeterHearsEachRoundsCost()
         await aLongTurnElidesInsteadOfStopping()
@@ -126,6 +127,13 @@ struct AgentLoopTests {
                 ],
                 [.searching("q"), .searched("q"), .text("ok"), .usage(AIUsage(inputTokens: 20)), .finished]
             ], maxRounds: 25)
+        let thought = AIReasoningReplay(
+            model: "m", text: "check", details: [.object(["type": .string("reasoning.encrypted"), "data": .string("e")])])
+        await differential(
+            "reasoning sent back", rounds: [
+                [.thinking, .reasoning("check"), .reasoningReplay(thought), call("c1")],
+                [.text("ok"), .finished]
+            ], maxRounds: 25)
         await differential(
             "a priced turn", rounds: [
                 [.usage(AIUsage(inputTokens: 10, costUSD: 0.01)), call("c1")],
@@ -213,6 +221,25 @@ struct AgentLoopTests {
         expect(base.requests.count == 1, "a turn that calls nothing is one request")
         expect(base.requests.first?.tools == tools.tools, "armed with the turn's tools")
         expect(events == script, "and its events pass through unchanged")
+    }
+
+    /// DeepSeek refuses a thinking round whose earlier calls come back without their reasoning.
+    static func reasoningRidesTheCallsItMade() async {
+        let thought = AIReasoningReplay(model: "deepseek-flash", text: "Read it first.", details: [])
+        let base = ScriptedProvider(rounds: [
+            [.thinking, .reasoning("Read it first."), .reasoningReplay(thought), call("c1")],
+            [call("c2")],
+            [.text("ok"), .finished]
+        ])
+        let tools = toolset([FakeTools(names: ["fs_read"]) { _, _ in "x" }])
+        let events = await collect(AgentLoopProvider(base: base, toolset: tools, maxRounds: 25)).events
+        let replies = base.requests.last?.messages.filter { $0.role == .assistant } ?? []
+        expect(
+            replies.map(\.reasoning) == [thought, nil],
+            "each round's reasoning goes back on the message with its calls, and only there")
+        expect(
+            !events.contains { if case .reasoningReplay = $0 { true } else { false } },
+            "and never reaches the transcript")
     }
 
     static func anAgentTurnCostsEveryRound() async {

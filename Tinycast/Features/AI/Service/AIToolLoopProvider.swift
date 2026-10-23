@@ -60,8 +60,10 @@ struct AIToolLoopProvider: AIProvider {
                 continuation.yield(.finished)
                 return
             }
+            // Fork: the reasoning goes back with its calls, or DeepSeek's next round is a 400.
             messages.append(
-                AIMessage(role: .assistant, text: round.text, toolCalls: round.calls))
+                AIMessage(
+                    role: .assistant, text: round.text, toolCalls: round.calls, reasoning: round.reasoning))
             carried += round.text.utf8.count + round.calls.reduce(0) { $0 + $1.arguments.utf8.count }
             for call in round.calls {
                 try Task.checkCancellation()
@@ -88,10 +90,11 @@ struct AIToolLoopProvider: AIProvider {
     private func streamRound(
         _ request: AIRequest, billedBefore: Double?,
         into continuation: AIProviderStream.Continuation
-    ) async throws -> (text: String, calls: [AIToolCall], cost: Double?) {
+    ) async throws -> (text: String, calls: [AIToolCall], cost: Double?, reasoning: AIReasoningReplay?) {
         var text = ""
         var calls: [AIToolCall] = []
         var cost: Double?
+        var reasoning: AIReasoningReplay?
         for try await event in base.stream(request) {
             try Task.checkCancellation()
             switch event {
@@ -105,6 +108,8 @@ struct AIToolLoopProvider: AIProvider {
                 continuation.yield(.usage(usage))
             case .toolCallRequested(let call):
                 calls.append(call)
+            case .reasoningReplay(let replay):
+                reasoning = replay
             // `.finished` is the loop's to send, once the model has stopped asking for tools.
             case .finished:
                 break
@@ -112,7 +117,7 @@ struct AIToolLoopProvider: AIProvider {
                 continuation.yield(event)
             }
         }
-        return (text, calls, cost)
+        return (text, calls, cost, reasoning)
     }
 
     private func bounded(_ result: AIToolResult, spent: inout Int) -> AIToolResult {

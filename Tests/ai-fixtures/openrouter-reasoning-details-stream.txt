@@ -1,0 +1,14 @@
+data: {"id":"gen-1","model":"google/gemini-3.8-flash","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning":"Search","reasoning_details":[{"type":"reasoning.text","text":"Search","format":"google-gemini-v1","index":0}]}}]}
+
+data: {"id":"gen-1","model":"google/gemini-3.8-flash","choices":[{"index":0,"delta":{"content":"","reasoning":" first.","reasoning_details":[{"type":"reasoning.text","text":" first.","format":"google-gemini-v1","index":0}]}}]}
+
+data: {"id":"gen-1","model":"google/gemini-3.8-flash","choices":[{"index":0,"delta":{"content":"","reasoning_details":[{"type":"reasoning.encrypted","data":"CiQB+opaque/sig==","id":"tool_c1","format":"google-gemini-v1","index":0}]}}]}
+
+data: {"id":"gen-1","model":"google/gemini-3.8-flash","choices":[{"index":0,"delta":{"content":"","reasoning_details":[{"type":"reasoning.summary","summary":"Plan:","index":1},{"type":"reasoning.summary","summary":" search."},{"type":"reasoning.bogus","data":1}]}}]}
+
+data: {"id":"gen-1","model":"google/gemini-3.8-flash","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"id":"c1","type":"function","function":{"name":"web_search","arguments":"{\"query\":\"x\"}"}}]}}]}
+
+data: {"id":"gen-1","model":"google/gemini-3.8-flash","choices":[{"index":0,"delta":{},"finish_reason":"tool_calls"}],"usage":{"prompt_tokens":1200,"completion_tokens":40,"prompt_tokens_details":{"cached_tokens":1024},"cost":0.0004}}
+
+data: [DONE]
+

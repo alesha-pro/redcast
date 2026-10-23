@@ -276,7 +276,8 @@ final class AIChatState {
             else { return }
             message.toolUses[index].content = content
             session.replaceLast(with: message)
-        case .toolCallRequested:
+        // Fork: a loop's to keep, never the transcript's.
+        case .toolCallRequested, .reasoningReplay:
             break
         case .usage(let usage):
             guard var message = session.messages.last, message.role == .assistant else { return }
