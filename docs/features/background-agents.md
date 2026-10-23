@@ -204,15 +204,15 @@ other is written on disk and re-listed the next time Notes opens. With Notes off
 
 **Daily spend cap** under the agents takes US dollars, empty for none; its subtitle adds what
 scheduled runs spent today, on a third line where a language needs one. The field is wide enough for
-its "No cap" placeholder in every language. `agent-schedule-spend.json` holds the cap, the local day last counted and
-that day's total (`AgentScheduleSpend`, every field optional); `AgentSpendPolicy` decides, and a new
-day starts at zero. A run is checked as it is due — at or past the cap it is held and its row reads
-"Not started: scheduled runs reached today's cap of $5.00", and opening that row shows the cap — and
-again on every cost its route reports while it runs, which ACP agents send mid-turn and the native
-loop after each round. When the turn ends, its last reported cost joins the day's total, also when
-AI is switched off, Tinycast quits or the chat is deleted before it ends. The held run's row shows
-only its reason, with no "Failed:" in front, since it never started. The cap is local to the Mac's
-day and time zone, like the schedules.
+its "No cap" placeholder in every language. `agent-schedule-spend.json` holds the cap, the local day
+last counted and that day's total (`AgentScheduleSpend`, every field optional); `AgentSpendPolicy`
+decides, and a new day starts at zero. A run is checked as it is due — at or past the cap it is held
+and its row reads "Not started: scheduled runs reached today's cap of $5.00", and opening that row
+shows the cap — and again on every cost its route reports while it runs, which ACP agents send
+mid-turn and the native loop after each round. When the turn ends, its last reported cost joins the
+day's total, also when AI is switched off, Tinycast quits or the chat is deleted before it ends. The
+held run's row shows only its reason, with no "Failed:" in front, since it never started. The cap is
+local to the Mac's day and time zone, like the schedules.
 
 ## Layout
 
@@ -316,5 +316,6 @@ it, a new day, nonsense costs and caps, the capped origin, its running spend and
 however it ends, its end state, the file's persistence and an unreadable file failing closed.
 `acp-test` covers the refusal option, two agents sharing a session id, the briefing (on an
 unattended chat's every turn, after the context, never on a chat someone started, and on a fresh
-process's `/word` turn) and an unattended session started on the agent's remembered picks. `agent-loop-test` runs `AgentSpendMeter` over the loop: unchanged events and
-a growing cost after each round, a sub-agent's rounds included.
+process's `/word` turn) and an unattended session started on the agent's remembered picks.
+`agent-loop-test` runs `AgentSpendMeter` over the loop: unchanged events and a growing cost after
+each round, a sub-agent's rounds included.
