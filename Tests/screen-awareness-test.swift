@@ -141,9 +141,12 @@ struct ScreenAwarenessTests {
 extension ScreenAwarenessTests {
     nonisolated static let target = ScreenAgentTools.Target(pid: 4_242, name: "Safari", bundleID: "com.apple.Safari")
 
-    static func turn(_ agent: AgentProfile, mode: AgentRunMode = .chat(UUID())) -> AgentTurn {
+    static func turn(
+        _ agent: AgentProfile, mode: AgentRunMode = .chat(UUID()), background: Bool = false
+    ) -> AgentTurn {
         AgentTurn(
-            profile: agent, skills: [], memoryURL: URL(fileURLWithPath: "/tmp/memory.md"), mode: mode)
+            profile: agent, skills: [], memoryURL: URL(fileURLWithPath: "/tmp/memory.md"), mode: mode,
+            isBackground: background)
     }
 
     static func agent(screen: Bool = true, rules: AgentConsentRules? = nil) -> AgentProfile {
@@ -188,10 +191,11 @@ extension ScreenAwarenessTests {
             !AgentToolKind.defaults.contains(.screen)
                 && !AgentProfile(name: "New", directory: "/tmp").tools.contains(.screen),
             "Screen is off for a new agent until ticked")
-        func offered(_ agent: AgentProfile) -> [String] {
+        func offered(_ agent: AgentProfile, in turn: AgentTurn? = nil) -> [String] {
             AgentToolset(
-                turn: turn(agent), providers: [ScreenAgentTools(isEnabled: { true })], mcpTools: [],
-                mcp: { .failure($0.id, "mcp") }, ask: { _, _ in false }
+                turn: turn ?? Self.turn(agent), providers: [ScreenAgentTools(isEnabled: { true })],
+                mcpTools: [], offering: AgentToolRisk.reads, mcp: { .failure($0.id, "mcp") },
+                ask: { _, _ in false }
             ).tools.map(\.name)
         }
         expect(offered(agent(screen: false)).isEmpty, "unticked, it is not offered")
@@ -199,6 +203,12 @@ extension ScreenAwarenessTests {
         expect(
             offered(agent(rules: AgentConsentRules(risks: [.personal: .never]))).isEmpty,
             "and Never Allow on personal data withholds it")
+        expect(
+            offered(agent(), in: turn(agent(), background: true)).isEmpty,
+            "a schedule's or the launcher's run is never offered it, though someone may be asked")
+        expect(
+            offered(agent(), in: turn(agent(), mode: .unattended(UUID()))).isEmpty,
+            "nor is a sub-agent, whose turn runs unattended under its parent")
     }
 
     static func theAgentToolReadsOnlyWhenAllowed() async {
@@ -242,12 +252,25 @@ extension ScreenAwarenessTests {
                 && read.content.contains("Body") && !read.content.contains("screenshot"),
             "allowed, it reads the window once, as text with no picture")
 
-        let unattended = AgentToolset(
-            turn: turn(agent(rules: AgentConsentRules(risks: [.personal: .ask])), mode: .unattended(UUID())),
-            providers: [tools(Reads())], mcpTools: [], mcp: { .failure($0.id, "mcp") },
-            ask: { _, _ in true })
-        let nobody = await unattended.run(call, signal: { _ in })
-        expect(nobody.isError, "a rule of ask with nobody there refuses the read")
+        for (unsent, what) in [
+            (turn(agent(), background: true), "a background run"),
+            (turn(agent(), mode: .unattended(UUID())), "a sub-agent")
+        ] {
+            let quiet = Reads()
+            let asked = Flag()
+            let result = await tools(quiet).run(
+                call,
+                in: AgentToolContext(
+                    turn: unsent,
+                    consent: { request in
+                        asked.set(request.summary)
+                        return true
+                    },
+                    signal: { _ in }))
+            expect(
+                result.isError && quiet.made == 0 && asked.value == nil,
+                "\(what) under the default rule neither asks nor reads, though consent would allow")
+        }
 
         var refusedApp = tools(Reads())
         refusedApp.read = { _ in

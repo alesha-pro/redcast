@@ -21,8 +21,10 @@ struct ScreenAgentTools: AgentToolProvider {
     var target: @Sendable () -> Target? = { Self.windowBehindTinycast() }
     var read: @Sendable (Target) -> ScreenContextReader.Reading = { Self.reading($0) }
 
+    /// Only a turn the user sent: in a schedule or a sub-agent the window in front is chance.
     func specs(for turn: AgentTurn) -> [AgentToolSpec] {
-        [
+        guard turn.isUserTurn else { return [] }
+        return [
             AgentToolSpec(
                 tool: Self.definition(origin: turn.profile.name), family: .screen, risk: .personal,
                 concurrent: true)
@@ -30,6 +32,9 @@ struct ScreenAgentTools: AgentToolProvider {
     }
 
     func run(_ call: AIToolCall, in context: AgentToolContext) async -> AIToolResult {
+        guard context.turn.isUserTurn else {
+            return .failure(call.id, "The screen is read only in a chat the user is writing in.")
+        }
         guard await isEnabled() else {
             return .failure(call.id, "Screen Awareness is off in Tinycast, so the screen cannot be read.")
         }

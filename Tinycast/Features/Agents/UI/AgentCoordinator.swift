@@ -169,7 +169,7 @@ final class AgentCoordinator {
         let context = context(for: agent)
         let turn = AgentTurn(
             profile: agent, skills: context.skills, memoryURL: store.memoryURL(for: agent.id),
-            mode: mode)
+            mode: mode, isBackground: backgroundRuns?.isUnattended(mode.chatID) == true)
         let toolset = AgentToolset(
             turn: turn, providers: providers(for: agent, in: context, over: base, mode: mode),
             mcpTools: mcpTools, mcp: mcp,
@@ -194,7 +194,7 @@ final class AgentCoordinator {
         var providers = familyProviders(for: agent)
         providers.append(AgentPlanTools())
         if agent.tools.contains(.delegate) {
-            providers.append(delegate(for: agent, in: context, over: base, mode: mode))
+            providers.append(delegate(for: agent, in: context, over: base, parent: mode.chatID))
         }
         return providers
     }
@@ -217,15 +217,11 @@ final class AgentCoordinator {
 
     /// A read-only copy of the agent with no delegate of its own, so sub-agents stop at one level.
     private func delegate(
-        for agent: AgentProfile, in context: AgentContext, over base: any AIProvider, mode: AgentRunMode
+        for agent: AgentProfile, in context: AgentContext, over base: any AIProvider, parent: UUID
     ) -> AgentDelegateTools {
         var reader = agent
         reader.access = .readOnly
         reader.tools.remove(.delegate)
-        let parent =
-            switch mode {
-            case .chat(let id), .unattended(let id): id
-            }
         let toolset = AgentToolset(
             turn: AgentTurn(
                 profile: reader, skills: context.skills, memoryURL: store.memoryURL(for: agent.id),
