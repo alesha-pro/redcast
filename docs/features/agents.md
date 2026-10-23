@@ -129,8 +129,8 @@ optional chord: see [background and scheduled agents](background-agents.md).
   It is an optional key the previous build ignores and its save drops, so `commit` first writes
   every set colour to `agent-colors.json` (removed when none is set) and `load` gives one back only
   to an agent saved without it. The colour is the agent's tile in its launcher row, the composer's
-  agent picker, the header of each of its replies in AI Chat, its runs in the Agents menu-bar item,
-  Settings → AI → Agents and Usage; the editor's swatches set it. See
+  agent picker, the header above its chat's transcript in AI Chat, its runs in the Agents menu-bar
+  item, Settings → AI → Agents and Usage; the editor's swatches set it. See
   [ui.md](../ui.md#colour-the-raycast-palette-fork).
 - **A long agent chat keeps notes on what no longer fits, made once and grown rarely.**
   `ChatSession.requestMessages` drops a chat's oldest turns past its text budget. For an agent chat on

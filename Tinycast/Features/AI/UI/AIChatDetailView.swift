@@ -95,8 +95,8 @@ struct AIChatDetailView: View {
                         current: find.currentOccurrence(in: occurrences))
                     : nil
             )
-            // Fork: an agent chat's replies open with the agent's tile and name.
-            .environment(\.agentReplyBadge, coordinator.agents.agent(for: chat).map(AgentReplyBadge.init))
+            // Fork: an agent chat's transcript opens with the agent's tile and name.
+            .environment(\.agentChatBadge, coordinator.agents.agent(for: chat).map(AgentChatBadge.init))
             // A switched chat is a new scroll: its own tail-following, opening at its latest line.
             .id(chat.session.id)
             .overlay(alignment: .topTrailing) {
@@ -360,8 +360,7 @@ private struct AIAddMenu: View {
             }
             AIToolsMenu(chat: chat, coordinator: coordinator)
         } label: {
-            // Fork: attachments' orange while Colourful Icons is on.
-            ComposerControlLabel(showsChevron: false) { ComposerSymbol(name: "plus").glyphTint(.orange) }
+            ComposerControlLabel(showsChevron: false) { ComposerSymbol(name: "plus") }
         }
         .composerMenu()
         .help("Attach files, search the web, choose tools")
@@ -402,7 +401,7 @@ private struct DictationButton: View {
                         .foregroundStyle(Color.accentColor)
                 } else {
                     ComposerSymbol(name: "mic")
-                        .glyphTint(GlyphCategory.voice.hue)  // Fork: voice's blue while Colourful Icons is on
+                        .foregroundStyle(Theme.Colors.textSecondary)
                 }
             }
             .frame(width: Theme.Size.aiChatComposerControl, height: Theme.Size.aiChatComposerControl)
@@ -474,6 +473,7 @@ private struct AIAgentPicker: View {
                             get: { current?.id == agent.id },
                             set: { if $0 { agents.setAgent(agent, for: chat) } })
                     ) {
+                        // Fork: each agent on its own coloured tile.
                         Label {
                             Text(agent.name)
                         } icon: {
@@ -486,6 +486,7 @@ private struct AIAgentPicker: View {
             Button("Manage Agents…", action: coordinator.showSettings)
         } label: {
             ComposerControlLabel(title: current?.name ?? String(localized: "Agent")) {
+                // Fork: the chat's agent as its own coloured tile.
                 if let current {
                     GlyphTile(symbol: current.symbol, hue: current.hue, size: Theme.Size.aiChatComposerGlyph)
                 } else {
@@ -522,7 +523,6 @@ private struct AIAgentModePicker: View {
             ComposerControlLabel(title: modes.currentMode?.name ?? String(localized: "Mode")) {
                 Image(systemName: "slider.horizontal.3")
                     .font(Theme.Typography.composerSymbol)
-                    .glyphTint(.purple)
             }
         }
         .composerMenu()
@@ -569,7 +569,7 @@ private struct AIModelPicker: View {
             ) {
                 MenuIconImage(icon: coordinator.modelIcon(of: selected), edge: Theme.Size.menuBrandIcon)
                     .font(Theme.Typography.composerSymbol)
-                    .glyphTint(GlyphCategory.ai.hue)  // Fork: AI's red while Colourful Icons is on
+                    .glyphTint(coordinator.modelIcon(of: selected).brandHue)  // Fork: maker's hue
             }
         }
         .composerMenu()
@@ -828,11 +828,9 @@ private struct ContextCard: View {
 }
 
 extension ChatContextReport {
-    @MainActor fileprivate var tint: Color {
+    fileprivate var tint: Color {
         if fill >= 1 { return Theme.Colors.destructive }
-        // Fork: room to spare reads green while Colourful Icons is on.
-        return fill >= 0.8
-            ? Theme.Colors.warning : ColorfulIcons.glyphColor(.green, otherwise: Theme.Colors.textSecondary)
+        return fill >= 0.8 ? Theme.Colors.warning : Theme.Colors.textSecondary
     }
 }
 

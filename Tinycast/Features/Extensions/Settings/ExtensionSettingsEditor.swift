@@ -78,7 +78,7 @@ private struct ExtensionSettingsEditorButtonBody: View {
     private var fill: Color {
         switch role {
         case .primary:
-            Theme.Colors.primaryAction.opacity(isHighlighted ? 0.28 : 0.20)
+            Theme.Colors.primaryAction.opacity(isHighlighted ? 0.92 : 1)  // Fork: solid
         case .standard, .cancel:
             isHighlighted ? Theme.Colors.selection : Theme.Colors.controlSurface
         }
@@ -87,7 +87,7 @@ private struct ExtensionSettingsEditorButtonBody: View {
     private var labelColor: Color {
         switch role {
         case .standard: .primary
-        case .primary: Theme.Colors.primaryAction
+        case .primary: Theme.Colors.primaryActionInk  // Fork: white on the solid accent
         case .cancel: Theme.Colors.textSecondary
         }
     }

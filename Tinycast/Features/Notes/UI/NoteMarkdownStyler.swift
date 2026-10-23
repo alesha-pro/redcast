@@ -162,7 +162,7 @@ enum NoteMarkdownStyler {
 
     /// A revealed link is plain coloured text, so a click places the caret to edit its URL.
     private static func linkLook(_ url: URL?, isRevealed: Bool) -> Attributes {
-        guard !isRevealed else { return [.foregroundColor: Theme.Colors.accentInk] }  // Fork: accent links
+        guard !isRevealed else { return [.foregroundColor: Theme.Colors.accentInk] }  // Fork: red
         guard let url, let scheme = url.scheme?.lowercased(), openableSchemes.contains(scheme) else {
             return [:]
         }

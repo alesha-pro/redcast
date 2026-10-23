@@ -826,7 +826,7 @@ final class AppCore {
             { _ = $0.snippetsShowInLauncher },
             reproject: { $0.snippetCoordinator.applySnippetsLauncherPresence() })
         track({ _ = $0.appearance }, reproject: { $0.applyAppearance() })
-        track({ _ = $0.colorfulIcons }, reproject: { $0.applyColorfulIcons() })  // Fork: Colourful Icons
+        track({ _ = $0.colorfulIcons }, reproject: { $0.applyColorfulIcons() })  // Fork: icons
         track({ _ = $0.language }, reproject: { $0.offerLanguageRelaunch() })
         track({ _ = $0.interfaceSize }, reproject: { $0.windowController.applyInterfaceSize() })
         // Settings panes did these on change; settings.json can change them with no pane open.

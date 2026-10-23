@@ -113,7 +113,7 @@ private struct ArgumentFieldChrome: ViewModifier {
     /// Focus reads as a brighter edge; only a field left behind unanswered turns red.
     private var stroke: Color {
         if isFocused { return Color.accentColor }
-        if isOwed { return Theme.Colors.destructive.opacity(0.55) }
+        if isOwed { return Theme.Colors.warning.opacity(0.55) }  // Fork: orange; focus is red now
         return Theme.Colors.cardStroke
     }
 }

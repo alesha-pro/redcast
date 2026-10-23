@@ -35,7 +35,8 @@ struct ModalActionButtonStyle: ButtonStyle {
         private var fill: Color {
             switch role {
             case .primary:
-                Theme.Colors.primaryAction.opacity(accentOpacity)
+                // Fork: solid under a white label, so Save can't pass for the tinted Delete.
+                Theme.Colors.primaryAction.opacity(1.2 - accentOpacity)
             case .destructive:
                 Theme.Colors.destructive.opacity(accentOpacity)
             case .standard, .cancel:
@@ -58,7 +59,7 @@ struct ModalActionButtonStyle: ButtonStyle {
         private var labelColor: Color {
             switch role {
             case .standard: .primary
-            case .primary: Theme.Colors.primaryAction
+            case .primary: Theme.Colors.primaryActionInk  // Fork: white on the solid accent
             case .cancel: Theme.Colors.textSecondary
             case .destructive: Theme.Colors.destructive
             }

@@ -35,7 +35,8 @@ struct SettingsSidebarView: View {
                                 tab: tab,
                                 tint: appearsActive
                                     ? (navigation.tab == tab ? Color.primary : Color.accentColor)
-                                    : Color.secondary)
+                                    : Color.secondary,
+                                isSelected: navigation.tab == tab)
                         }
                         .tag(tab)
                     }

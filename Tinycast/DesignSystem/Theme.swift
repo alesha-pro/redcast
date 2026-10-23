@@ -406,7 +406,8 @@ enum Theme {
             dark: .srgbInk(0, alpha: 0.18), light: .srgbInk(0, alpha: 0.18))
 
         /// Selection fill, shared by every list so they look identical.
-        static let selection = ramp(dark: 0.10, light: 0.09)
+        static let selection =
+            catalog("AccentSelection") ?? ramp(dark: 0.10, light: 0.09)  // Fork: Raycast red's wash
         static let rowHover = ramp(dark: 0.05, light: 0.045)
         static let emojiCell = ramp(dark: 0.045, light: 0.04)
         static let emojiHoverBorder = ramp(dark: 0.42, light: 0.34)
@@ -459,23 +460,25 @@ enum Theme {
         static let brand = Color(red: 0.525, green: 0.231, blue: 1.0)
         /// The palette's drop guides while dragging, and once a release would snap it home.
         static let dropGuide = ramp(dark: 0.35, light: 0.35)
-        /// Fork: Raycast red from the asset catalog, so a system accent choice can't turn it blue.
-        static let accent = Color(nsColor: accentInk)
-        /// Fork: the same red for AppKit text that names its colour, such as a link.
-        static var accentInk: NSColor { NSColor(named: "AccentColor") ?? .systemRed }
-        static let dropGuideArmed = accent  // Fork: was blue
+        static let dropGuideArmed = Color.blue
+        /// Fork: Raycast red, the app's AccentColor, so a fixed system accent can't turn it blue.
+        static let accent = catalog("AccentColor") ?? Color.red
+        /// Fork: that red as text and links, deepened on light to read at 4.5:1.
+        static let accentInk = NSColor(named: "AccentInk") ?? .linkColor
+        /// Fork: a colour set the fork's asset catalog adds; a harness, which has none, gets nil.
+        static func catalog(_ name: String) -> Color? { NSColor(named: name).map { Color(nsColor: $0) } }
         /// A dialog's standard default action; destructive defaults keep their semantic red.
         static let primaryAction = accent  // Fork: was blue
         static let destructive = Color.red
         static let success = Color.green
         static let warning = Color.orange
         static let composerSend = accent  // Fork: the accent disc with a white arrow, as Raycast's
-        static let composerSendInk = adaptive(dark: .srgbInk(1, alpha: 1), light: .srgbInk(1, alpha: 1))
+        static let composerSendInk = Color.white  // Fork: on the red disc in both appearances
         /// The window's own page, for a card that must hide the transcript it floats over.
         static let windowSurface = Color(nsColor: .windowBackgroundColor)
         static let dropTarget = Color.accentColor
         /// Progress tint: the message pill's spinner while the work behind it is still running.
-        static let progress = accent  // Fork: was blue
+        static let progress = Color.blue
         /// The command output window's page: a flat surface the log sits directly on.
         static let terminalSurface = adaptive(
             dark: .srgbInk(0.07, alpha: 1), light: .srgbInk(0.99, alpha: 1))

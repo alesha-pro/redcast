@@ -86,7 +86,7 @@ private struct RoomRowView: View {
     var body: some View {
         HStack(spacing: metrics.spacing.lg) {
             // Fork: the launcher's room tile while Colourful Icons is on.
-            EntryIconView(source: ColorfulIcons.icon(symbol: symbol, hue: GlyphCategory.windows.hue))
+            EntryIconView(source: ColorfulIcons.observedIcon(symbol: symbol, hue: GlyphCategory.windows.hue))
                 .frame(width: metrics.size.resultRowIcon, height: metrics.size.resultRowIcon)
             VStack(alignment: .leading, spacing: 0) {
                 Text(title)

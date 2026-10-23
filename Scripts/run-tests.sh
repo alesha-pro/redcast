@@ -333,7 +333,8 @@ run fallback-test          Tinycast/Features/Launcher/Model/Fallback.swift \
                            Tinycast/Features/SystemActions/Model/SystemAction.swift \
                            Tinycast/Features/WindowManagement/Model/WindowCommand.swift \
                            Tinycast/Features/Snippets/Model/Snippet.swift
-# Fork: the Raycast palette, the agent colour rule and the glyph families.
+# Fork: the Raycast palette, the agent colour rule and the glyph families; ExtensionImage reads it.
+FORK_PALETTE="Tinycast/DesignSystem/RaycastPalette.swift Tinycast/Features/ColorfulIcons/Model/RaycastHue.swift"
 run colorful-icons-test    Tinycast/Features/ColorfulIcons/Model/*.swift \
                            Tinycast/Features/Launcher/Model/CommandID.swift \
                            Tinycast/Features/HotKeys/Model/HotKeyAction.swift \
@@ -412,8 +413,7 @@ run ext-icon-test          Tinycast/Platform/Appearance.swift \
                            Tinycast/Platform/Images/IconCache.swift \
                            Tinycast/Platform/Compression/Zlib.swift \
                            Tinycast/DesignSystem/Theme.swift \
-                           Tinycast/DesignSystem/RaycastPalette.swift \
-                           Tinycast/Features/ColorfulIcons/Model/RaycastHue.swift \
+                           $FORK_PALETTE \
                            Tinycast/DesignSystem/InterfaceMetrics.swift \
                            Tinycast/Features/Extensions/Model/ExtensionBootConfig.swift \
                            Tinycast/Features/Extensions/Model/ExtensionLaunchType.swift \
@@ -709,8 +709,7 @@ run slow ext-test          -parse-as-library \
                            Tinycast/Platform/AppDisplayName.swift \
                            Tinycast/Platform/Images/IconCache.swift \
                            Tinycast/DesignSystem/Theme.swift \
-                           Tinycast/DesignSystem/RaycastPalette.swift \
-                           Tinycast/Features/ColorfulIcons/Model/RaycastHue.swift \
+                           $FORK_PALETTE \
                            Tinycast/DesignSystem/InterfaceMetrics.swift \
                            $E/Model/ExtensionBootConfig.swift \
                            $E/Model/ExtensionDeepLink.swift \
