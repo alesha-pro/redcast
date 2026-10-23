@@ -3,8 +3,8 @@ import Synchronization
 
 /// One turn's web tools in a chat without an agent: `web_search`, and `read_page` in its scope.
 nonisolated final class WebChatTools: Sendable {
-    /// A page's readable text, or the failure the model is told; `web_fetch`'s own read in the app.
-    typealias Fetch = @Sendable (URL) async -> (text: String, failed: Bool)
+    /// One part of a page, or a PDF's pages, or the failure the model is told; `web_fetch`'s read.
+    typealias Fetch = @Sendable (_ url: URL, _ part: Int, _ pages: String?) async -> (text: String, failed: Bool)
 
     let search: WebSearchRunner
     private let fetch: Fetch
@@ -17,7 +17,8 @@ nonisolated final class WebChatTools: Sendable {
         var shown: [URL] = []
         /// Addresses of searches since the latest round, shown with the next one.
         var found: [URL] = []
-        var reads = 0
+        /// Pages read this turn by key; another part of one is not another read.
+        var read: Set<String> = []
     }
 
     init(search: WebSearchRunner, fetch: @escaping Fetch) {
@@ -68,13 +69,15 @@ nonisolated final class WebChatTools: Sendable {
         guard let url = WebPageScope.page(for: asked, in: messages, shown: shown) else {
             return .failure(call.id, WebPageTool.outOfScope(asked))
         }
+        let key = WebPageScope.key(for: url) ?? url.absoluteString
         let counted = scope.withLock { scope in
-            guard scope.reads < WebPageTool.maxReads else { return false }
-            scope.reads += 1
+            guard scope.read.contains(key) || scope.read.count < WebPageTool.maxReads else { return false }
+            scope.read.insert(key)
             return true
         }
         guard counted else { return .failure(call.id, WebPageTool.readsUsed) }
-        let page = await fetch(url)
+        let position = WebPageTool.position(in: JSONValue(data: Data(call.arguments.utf8))?.objectValue ?? [:])
+        let page = await fetch(url, position.part, position.pages)
         guard !page.failed else { return .failure(call.id, page.text) }
         return AIToolResult(
             callID: call.id, content: WebPageTool.answer(page.text, from: url), isError: false)

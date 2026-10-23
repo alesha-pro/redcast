@@ -872,6 +872,7 @@ run dictation-history-test Tinycast/Features/DictationHistory/Model/*.swift \
 run alias-actions-test     Tinycast/Features/AliasActions/Model/*.swift
 run acp-test               Tinycast/Features/Agents/Model/*.swift \
                            Tinycast/Features/WebSearch/Model/*.swift \
+                           Tinycast/Features/WebSearch/Service/WebPageReader.swift \
                            Tinycast/Features/DocumentText/Model/*.swift \
                            Tinycast/Features/DocumentText/Service/*.swift \
                            Tinycast/Features/AI/Model/AIAttachmentPolicy.swift \
@@ -893,6 +894,7 @@ run acp-test               Tinycast/Features/Agents/Model/*.swift \
                            Tinycast/Features/CustomCommands/Service/ShellCommandRunner.swift
 run agent-tools-test       Tinycast/Features/Agents/Model/*.swift \
                            Tinycast/Features/WebSearch/Model/*.swift \
+                           Tinycast/Features/WebSearch/Service/WebPageReader.swift \
                            Tinycast/Features/DocumentText/Model/*.swift \
                            Tinycast/Features/DocumentText/Service/*.swift \
                            Tinycast/Features/DocumentText/Helper/*.swift \
@@ -963,6 +965,11 @@ run agent-loop-test        Tinycast/Features/Agents/Model/*.swift \
 run web-search-test        Tinycast/Features/WebSearch/Model/*.swift \
                            Tinycast/Features/AI/Model/AIAttachmentPolicy.swift \
                            Tinycast/Features/WebSearch/Service/*.swift \
+                           Tinycast/Features/DocumentText/Model/*.swift \
+                           Tinycast/Features/DocumentText/Service/*.swift \
+                           Tinycast/Features/DocumentText/Helper/*.swift \
+                           Tinycast/Features/Clipboard/Service/ClipboardTextExtractor.swift \
+                           Tinycast/Platform/ProcessExit.swift \
                            Tinycast/Features/Agents/Model/*.swift \
                            Tinycast/Features/Agents/Service/AgentLoopProvider.swift \
                            Tinycast/Features/AI/Model/AIRequest.swift \

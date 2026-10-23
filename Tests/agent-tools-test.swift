@@ -142,42 +142,6 @@ struct AgentToolsTests {
         let unknown = await agent.run(call(AgentToolbox.loadSkill, #"{"name":"nope"}"#))
         expect(unknown.isError && unknown.content.contains("deploy"), "an unknown skill names the real ones")
 
-        expect(
-            AgentHTML.text(from: "<html><script>x()</script><h1>Title</h1><p>A &amp; B</p></html>")
-                == "Title\nA & B",
-            "a page reads as its text, scripts dropped and entities decoded")
-        expect(
-            AgentHTML.text(from: "<p>10&#xB0; C, &#1052;&#1086;&#1089;&#1082;&#1074;&#1072; &minus;2&deg;</p>")
-                == "10° C, Москва −2°",
-            "numeric references decode by value, hex and decimal, as a weather page writes them")
-        expect(
-            AgentHTML.text(from: "<p>&amp;lt;b&amp;gt; &bogus; &#0; &#xD800;</p>") == "&lt;b&gt; &bogus; &#0; &#xD800;",
-            "one pass: an escaped entity stays escaped, and an unknown or impossible one stays as written")
-        let page = URL(string: "https://example.com/forecast")!
-        if case .failure(let failure) = AgentToolExecutor.readable(
-            "<html><body><div id=\"app\"></div><script>render()</script></body></html>", isHTML: true, from: page)
-        {
-            expect(
-                failure.message.contains("no readable text") && failure.message.contains("another result"),
-                "a page only its scripts would fill fails, and says to read another result")
-        } else {
-            expect(false, "a page only its scripts would fill fails, and says to read another result")
-        }
-        let sparse = try? AgentToolExecutor.readable(
-            "<html><title>Wind map</title><p>Loading…</p></html>", isHTML: true, from: page
-        ).get()
-        expect(
-            sparse?.hasPrefix("Wind map Loading…") == true && sparse?.contains("characters of text") == true,
-            "a page with a few words keeps them and says its content may be missing")
-        let full = String(repeating: "Ясно, +10°. ", count: 60)
-        expect(
-            (try? AgentToolExecutor.readable("<p>\(full)</p>", isHTML: true, from: page).get())?
-                .contains("characters of text") == false,
-            "a page with real text carries no warning")
-        expect(
-            (try? AgentToolExecutor.readable(#"{"temp":10}"#, isHTML: false, from: page).get()) == #"{"temp":10}"#,
-            "a short answer that is not HTML is passed on as it is")
-
         try? String(repeating: "0123456789abcdef\n", count: 6_400).write(
             toFile: folder + "/big.txt", atomically: true, encoding: .utf8)
         let big = await agent.run(call(AgentToolbox.readFile, #"{"path":"big.txt"}"#))
@@ -435,7 +399,7 @@ actor Asked {
     func record(_ request: AgentConsentRequest) { last = request }
 }
 
-/// PDFs by pages, scans and images by OCR and rich text, through the helper.
+/// PDFs by pages, scans and images by OCR, rich text and saved pages, through the helper.
 extension AgentToolsTests {
     static func documentsReadByKind(folder: String, memory: URL) async {
         let me = URL(fileURLWithPath: CommandLine.arguments[0]).standardizedFileURL
@@ -484,6 +448,21 @@ extension AgentToolsTests {
         expect(word.content.contains("continue with offset"), "and pages by line")
         let wordOn = await read(#"{"path":"docs/minutes.docx","offset":2999,"limit":5}"#)
         expect(wordOn.content.contains("  3000\tLine 3000 of the minutes."), "to its last line")
+
+        let page = """
+            <html><head><title>Saved</title><script>track()</script></head>
+            <body><nav>Menu</nav><h2>Plan</h2><p>See <a href="next.html">the next step</a> and
+            <a href="https://example.com/spec">the spec</a>.</p></body></html>
+            """
+        try? page.write(toFile: folder + "/docs/saved.html", atomically: true, encoding: .utf8)
+        let saved = await read(#"{"path":"docs/saved.html"}"#)
+        expect(
+            saved.content.contains("# Saved") && saved.content.contains("## Plan")
+                && saved.content.contains("See the next step and [the spec](https://example.com/spec).")
+                && !saved.content.contains("track()") && !saved.content.contains("Menu"),
+            "a saved page reads as Markdown, its web links kept, got \(saved.content)")
+        let source = await read(#"{"path":"docs/saved.html","raw":true}"#)
+        expect(source.content.contains("     2\t<body><nav>Menu</nav><h2>Plan</h2>"), "raw reads its source to edit")
 
         let image = URL(fileURLWithPath: folder + "/docs/receipt.png")
         writePNG(makeImage("ALPINE RECEIPT 7391"), to: image)

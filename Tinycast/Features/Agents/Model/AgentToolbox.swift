@@ -89,11 +89,16 @@ enum AgentToolbox {
                  required: [])
             tool(
                 readFile,
-                "Read a file with line numbers: text, Word, RTF or ODT as text, an image's text by OCR, or a "
-                    + "PDF by pages (scans too). offset and limit page by line; a PDF takes pages instead.",
+                "Read a file with line numbers: text, HTML as Markdown, Word, RTF or ODT as text, an image's "
+                    + "text by OCR, or a PDF by pages (scans too). offset and limit page by line; a PDF "
+                    + "takes pages instead.",
                 ["path": path, "offset": integer("First line, from 1."),
                  "limit": integer("How many lines, at most 2000."),
-                 "pages": WebPageTool.pagesProperty],
+                 "pages": WebPageTool.pagesProperty,
+                 "raw": .object([
+                    "type": .string("boolean"),
+                    "description": .string("true reads an HTML file's source rather than its Markdown.")
+                 ])],
                 required: ["path"])
             tool(
                 searchFiles, "Search file contents for a regular expression, like ripgrep.",
@@ -122,8 +127,12 @@ enum AgentToolbox {
         }
         if profile.tools.contains(.web) {
             tool(
-                webFetch, "Fetch a web page or text URL and return its readable text.",
-                ["url": string("An http or https URL.")], required: ["url"])
+                webFetch,
+                "Fetch a web page, text or PDF. A page comes as Markdown with its headings and links, a "
+                    + "long one in parts; a PDF by pages.",
+                ["url": string("An http or https URL."), "part": WebPageTool.partProperty,
+                 "pages": WebPageTool.pagesProperty],
+                required: ["url"])
         }
         if profile.tools.contains(.memory) {
             tool(readMemory, "Read the notes you keep across chats.", [:], required: [])
