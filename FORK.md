@@ -152,8 +152,8 @@ listed so the numbers other docs cite keep their meaning.
    (upstream #1211 declined; `dnw3` and `fminkowski` forks built capture). The `screen_context` agent
    tool shipped with the native harness. *3–4 days.*
 7. **Web search — shipped** (see above), with `read_page` for plain chats: it reads only a page the
-   user linked or a search in the same turn returned, at the address the user or the engine wrote,
-   through `web_fetch`'s bounded read, under the same toggle. Next on it: nothing agreed. Undecided:
+   user linked in their own words or a search in the same turn returned, at the address the user or
+   the engine wrote, at most five a turn, through `web_fetch`'s bounded read, under the same toggle. Next on it: nothing agreed. Undecided:
    the keyed engines Serper, Linkup, Ollama and Mojeek, and reading an earlier turn's results without
    a new search.
 8. **Raycast AI for extensions — shipped** (see above), including the requested `AI.Model` (opt-in,

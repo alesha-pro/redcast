@@ -47,6 +47,21 @@ enum AIAttachmentPolicy {
         return text.isEmpty ? inlined : inlined + "\n\n" + text
     }
 
+    /// What the user wrote: `prompt`'s inlined files taken out, as their text is not the user's.
+    static func typed(in text: String) -> String {
+        var lines = text.split(separator: "\n", omittingEmptySubsequences: false)[...]
+        var kept: [Substring] = []
+        while let line = lines.popFirst() {
+            let fence = lines.first.map { $0.prefix { $0 == "`" } } ?? ""
+            guard line.hasPrefix("Attached file: "), fence.count >= 3 else {
+                kept.append(line)
+                continue
+            }
+            lines = lines.dropFirst().drop { $0 != fence }.dropFirst()
+        }
+        return kept.joined(separator: "\n")
+    }
+
     private static func block(for document: AIDocument) -> String? {
         guard document.mimeType != pdfMIMEType,
             let contents = String(data: document.data, encoding: .utf8)
