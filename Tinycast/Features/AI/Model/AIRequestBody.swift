@@ -71,6 +71,8 @@ enum AIRequestBody {
         if configuration.disablesThinking {
             body["thinking"] = ["type": "disabled"]
         }
+        // Fork: an extension's creativity; a route that refuses it is asked again without it.
+        if let temperature = input.temperature { body["temperature"] = temperature }
         if !input.tools.isEmpty {
             body["tools"] = input.tools.map {
                 [
@@ -99,6 +101,8 @@ enum AIRequestBody {
             "stream": true
         ]
         if !systemParts.isEmpty { body["system"] = systemParts.joined(separator: "\n\n") }
+        // Fork: Anthropic's range ends at 1, so a higher creativity is its most.
+        if let temperature = input.temperature { body["temperature"] = min(temperature, 1) }
         if !input.tools.isEmpty {
             body["tools"] = input.tools.map {
                 [

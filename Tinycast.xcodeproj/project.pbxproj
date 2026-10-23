@@ -919,6 +919,7 @@
 		EEB7F6A6AC8B53FDD607ED03 /* AIConversationOpenPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 67CEAD8FAB5CD097D8F1C851 /* AIConversationOpenPolicy.swift */; };
 		EEBE3490872F3A8D0400AC56 /* MenuSearchList.swift in Sources */ = {isa = PBXBuildFile; fileRef = EC2967B06D3E059BFB9F30DF /* MenuSearchList.swift */; };
 		EEDDC1AFFBCC75039A873886 /* FormTextInput.swift in Sources */ = {isa = PBXBuildFile; fileRef = 39EF327E9EFB308B858B58B8 /* FormTextInput.swift */; };
+		EF854646ABC86B0F4ACC8131 /* ExtensionAIModelRoute.swift in Sources */ = {isa = PBXBuildFile; fileRef = 94A2E9CAB1273C8714800037 /* ExtensionAIModelRoute.swift */; };
 		EFBC0551E0D15FB7EC2B3428 /* ExtensionAISettingsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF9F1E07AF4105E8F45B6470 /* ExtensionAISettingsStore.swift */; };
 		F03DB7A7898F0388E821FDBB /* AppleIntelligenceProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06B5C0B83C3645AC90639B85 /* AppleIntelligenceProvider.swift */; };
 		F0FA9552D87290EF4CA0E0F9 /* AgentSessionPreview.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2026D1E40F26B1256837925F /* AgentSessionPreview.swift */; };
@@ -1619,6 +1620,7 @@
 		94507F8F095D3EBD1A9B3007 /* DialogController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DialogController.swift; sourceTree = "<group>"; };
 		946ABF992DAD60387381968C /* RoomSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoomSession.swift; sourceTree = "<group>"; };
 		946CCB75FDD3B2C9D4FD1C8F /* AgentRuntime.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentRuntime.swift; sourceTree = "<group>"; };
+		94A2E9CAB1273C8714800037 /* ExtensionAIModelRoute.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExtensionAIModelRoute.swift; sourceTree = "<group>"; };
 		94D1EA2460590C49B4A66C64 /* AIModelSelectionRows.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIModelSelectionRows.swift; sourceTree = "<group>"; };
 		950ED06E696547AAEFC9FA9A /* CompactFavoritesRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompactFavoritesRow.swift; sourceTree = "<group>"; };
 		951E746BA1AD25D167A1775F /* SystemSettingsSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemSettingsSettingsView.swift; sourceTree = "<group>"; };
@@ -2511,6 +2513,7 @@
 		3065A58148BC9FD08C6E2EC3 /* Model */ = {
 			isa = PBXGroup;
 			children = (
+				94A2E9CAB1273C8714800037 /* ExtensionAIModelRoute.swift */,
 				8B316EB48F829A62B7302386 /* ExtensionAIPolicy.swift */,
 				015E96A53E078734D6F900C9 /* ExtensionAIRateLimit.swift */,
 				CA04B7A93DA26E3D379D9276 /* ExtensionAIRefusal.swift */,
@@ -5046,6 +5049,7 @@
 				778B9715C76F40376A4E1A71 /* ExtensionAICoordinator.swift in Sources */,
 				D851B0F21AE0158346F14770 /* ExtensionAIGate.swift in Sources */,
 				43C6A9A379ACD1688306A9F0 /* ExtensionAIHost.swift in Sources */,
+				EF854646ABC86B0F4ACC8131 /* ExtensionAIModelRoute.swift in Sources */,
 				D026D26FE2F5A48E8D1DBC1E /* ExtensionAIPolicy.swift in Sources */,
 				AF8BFFA3617634D361B38D16 /* ExtensionAIRateLimit.swift in Sources */,
 				1612568E956556A79E582C94 /* ExtensionAIRefusal.swift in Sources */,

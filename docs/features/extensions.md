@@ -96,7 +96,7 @@ same arrangement as `EmojiData.generated.swift`: building Tinycast never needs N
 | `src/reconciler.js`                              | `react-reconciler` host config that commits into a JSON tree                                                           |
 | `src/api/components.js`                          | every `@raycast/api` component                                                                                         |
 | `src/api/system.js`                              | Clipboard, LocalStorage, Cache, Toast, preferences, environment                                                        |
-| `src/api/ai.js`                                  | `AI.ask` and its pull loop, `AI.Model`, `refreshModels` — see [extension-ai](extension-ai.md)                          |
+| `src/api/ai.js`                                  | `AI.ask` and its pull loop, `experimental_decide`, `AI.Model`, `refreshModels` — see [extension-ai](extension-ai.md)   |
 | `src/api/enums.generated.js`                     | Icon / Color / Toast.Style / … extracted from the real `@raycast/api` types                                            |
 | `src/node-shims.js`                              | `path`, `fs`, `os`, `child_process`, `crypto`, `zlib`, `util`, `events`, `buffer`, `punycode`, …                       |
 | `src/websocket.js`                               | the `WebSocket` global, and the raw socket a bundled `ws` attaches to                                                  |
@@ -676,8 +676,8 @@ interval floor instead of sixty.
 `getSelectedText`, `getSelectedFinderItems`, `launchCommand`, `updateCommandMetadata`,
 `openExtensionPreferences`, `OAuth`,
 `useNavigation`, `Icon`, `Color`, `Image.Mask`, `Keyboard.Shortcut.Common`, `LaunchType`, and, once
-allowed in Settings, `AI.ask`, `AI.refreshModels`, `environment.canAccess(AI)` and `@raycast/utils`'
-`useAI`, answered by your own model ([extension-ai](extension-ai.md)).
+allowed in Settings, `AI.ask`, `AI.experimental_decide`, `AI.refreshModels`, `environment.canAccess(AI)`
+and `@raycast/utils`' `useAI`, answered by your own model ([extension-ai](extension-ai.md)).
 
 **`raycast://` URLs** — extensions address Raycast by scheme; the most common is a bare
 `open("raycast://")` to bring the window back after something stole focus (1Password's auth flow does
@@ -833,7 +833,7 @@ extensions / 114 of 147 view commands** boot and render. `Scripts/raycast-runtim
 | Gap                                                          | Why                                                                                                                                                                                                                                                                                                                                          |
 | ------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **`BrowserExtension`, `WindowManagement`**                   | Raycast services with no local equivalent. Importing them works; calling one throws with a clear reason.                                                                                                                                                                                                                                     |
-| **`AI.experimental_decide`, extension model providers, AI outside a command you open** | No route returns the calibrated probabilities `experimental_decide` needs; `ai.modelProvider` models are not surfaced; a status item, a timer or a command one launches must never spend tokens. See [extension-ai](extension-ai.md).                                                                                                    |
+| **Extension model providers, AI outside a command you open or a menu-bar item you click** | `ai.modelProvider` models are not surfaced; a menu's render, a timer or a command one launches must never spend tokens. See [extension-ai](extension-ai.md).                                                                                                                                                    |
 | **A WebSocket to a host with a certificate macOS distrusts** | `ws`'s `rejectUnauthorized: false` is ignored — URLSession validates the chain either way.                                                                                                                                                                                                                                                   |
 | **Aborting a `fetch` already in flight**                     | `AbortSignal` is complete — `timeout`, `abort` and `any` included — and `fetch` checks it on both sides of the host call, so a caller gets its `AbortError`. The request itself still runs to completion: the signal isn't carried across the bridge, so nothing cancels the `URLSessionTask`. A timeout bounds the caller, not the network. |
 | **Interactive `spawn` stdin**                                | stdout and stderr stream, but stdin is sent once as the child starts: whatever was written in the same tick. A later `stdin.write` is dropped.                                                                                                                                                                                               |

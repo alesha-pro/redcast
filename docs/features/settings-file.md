@@ -13,10 +13,10 @@ in `Features/Settings/` (`Model/`, `Service/`, `SettingsFileSchema.swift`), the 
   deleting it, or updating the app never loses a setting, so there is nothing to migrate.
 - **Off by default, and only the pane turns it on.** `settingsFileEnabled` has no key in the file and is
   excluded from backups: a file or an import must never switch on something that reads a file.
-- **A capability grant never has a key.** Snippets, Extensions, extensions' AI access, Calendar access,
-  Auto Join, Camera Preview, Quick Actions, MCP, clipboard text recognition and Agent Sessions' live
-  status are switched on only in the app, which asks first. `settings-file-test` checks those paths
-  stay absent.
+- **A capability grant never has a key.** Snippets, Extensions, extensions' AI access and the models
+  they may name, Calendar access, Auto Join, Camera Preview, Quick Actions, MCP, clipboard text
+  recognition and Agent Sessions' live status are switched on only in the app, which asks first.
+  `settings-file-test` checks those paths stay absent.
 - **`SettingsFileSchema`'s switch is exhaustive.** A new `SettingsFileKey` case fails to build until it
   is bound to a property.
 - **A bad edit never costs a setting.** A key the file leaves out keeps its value; a value Tinycast

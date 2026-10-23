@@ -15,17 +15,26 @@ final class ScriptedProvider: AIProvider {
         case hang
     }
 
-    let steps: [Step]
+    let script: @Sendable (AIRequest) -> [Step]
     let terminated = Mutex(false)
+    let received = Mutex<[AIRequest]>([])
 
     init(_ steps: [Step]) {
-        self.steps = steps
+        script = { _ in steps }
+    }
+
+    /// Answers by what was asked, the way a route refusing a parameter does.
+    init(script: @escaping @Sendable (AIRequest) -> [Step]) {
+        self.script = script
     }
 
     var wasTerminated: Bool { terminated.withLock { $0 } }
+    var requests: [AIRequest] { received.withLock { $0 } }
 
     func stream(_ request: AIRequest) -> AIProviderStream {
-        AsyncThrowingStream { continuation in
+        received.withLock { $0.append(request) }
+        let steps = script(request)
+        return AsyncThrowingStream { continuation in
             let task = Task { [steps] in
                 for step in steps {
                     switch step {
@@ -78,6 +87,8 @@ struct ExtensionAITests {
         theRequestIsThePromptAlone()
         onlyADeletedConnectionDangles()
         refusalsExplainThemselves()
+        creativityBecomesTemperature()
+        namedModelsFindTheirVendor()
         theRateLimitSlides()
         await deltasCoalesceUntilRead()
         await aReadWaitsForTheNextDelta()
@@ -86,6 +97,7 @@ struct ExtensionAITests {
         await cancellingEndsTheProvider()
         await streamsBelongToTheirOwner()
         await aCancelledReaderCancelsTheStream()
+        await aRefusedTemperatureIsAskedAgainWithout()
         await aCommandNobodyOpenedNeverAsks()
         await aMissingModelIsReportedBeforeAsking()
         await concurrentAsksShareOneQuestion()
@@ -97,6 +109,8 @@ struct ExtensionAITests {
         await turningTheSwitchOffEndsEveryAnswer()
         await leavingACommandEndsOnlyItsAnswers()
         await theLimitCountsOnlyRoutedAsks()
+        await aNamedModelIsUsedOnlyWhenAllowed()
+        await creativityReachesTheRoute()
         aDanglingPickFallsBackToChat()
         settingsRoundTrip()
 
@@ -107,8 +121,8 @@ struct ExtensionAITests {
     // MARK: - Policy
 
     static func gatesApplyInOrder() {
-        func access(_ featureOn: Bool, _ aiOn: Bool, _ openedByUser: Bool, _ grant: Bool?) -> ExtensionAIAccess {
-            ExtensionAIPolicy.access(featureOn: featureOn, aiOn: aiOn, openedByUser: openedByUser, grant: grant)
+        func access(_ featureOn: Bool, _ aiOn: Bool, _ actingForUser: Bool, _ grant: Bool?) -> ExtensionAIAccess {
+            ExtensionAIPolicy.access(featureOn: featureOn, aiOn: aiOn, actingForUser: actingForUser, grant: grant)
         }
         expect(access(false, true, true, true) == .refused(.featureOff), "the switch comes first")
         expect(access(false, false, false, false) == .refused(.featureOff), "the switch beats every gate")
@@ -155,6 +169,7 @@ struct ExtensionAITests {
         expect(request.maxOutputTokens == 4_096, "chat's output limit")
         expect(request.tools.isEmpty && !request.webSearch, "no tools and no web search")
         expect(request.conversationID == nil, "no conversation")
+        expect(request.temperature == nil, "and the route's own temperature")
     }
 
     static func onlyADeletedConnectionDangles() {
@@ -193,6 +208,124 @@ struct ExtensionAITests {
         expect(
             ExtensionAIRefusal.rateLimited(seconds: 42).errorDescription?.contains("42") == true,
             "the rate refusal names the wait")
+    }
+
+    static func creativityBecomesTemperature() {
+        let levels: [(RenderValue?, Double?)] = [
+            (.string("none"), 0), (.string("low"), 0.4), (.string("medium"), 0.7), (.string("high"), 1),
+            (.string("maximum"), 1.5), (.string("Maximum"), 1.5), (.number(1.2), 1.2), (.number(-1), 0),
+            (.number(7), 2), (.number(.nan), nil), (.string("wild"), nil), (.bool(true), nil), (nil, nil)
+        ]
+        for (creativity, temperature) in levels {
+            expect(
+                ExtensionAIPolicy.temperature(creativity: creativity, brand: .openAI) == temperature
+                    && ExtensionAIPolicy.temperature(creativity: creativity, brand: nil) == temperature,
+                "creativity \(String(describing: creativity)) is \(String(describing: temperature))")
+        }
+        expect(
+            ExtensionAIPolicy.temperature(creativity: .string("none"), brand: .gemini) == nil
+                && ExtensionAIPolicy.temperature(creativity: .number(1.5), brand: .gemini) == nil,
+            "a Gemini model keeps its default, below which Gemini 3 loops")
+        let request = ExtensionAIPolicy.request(prompt: "p", temperature: 0.4)
+        expect(request.temperature == 0.4, "the request carries it")
+        let refusal = AIProviderError.responseFailed(
+            "The provider rejected the model or request (HTTP 400).\n\nUnsupported value: 'temperature' "
+                + "does not support 0.4 with this model. Only the default (1) value is supported.")
+        let retry = ExtensionAIPolicy.withoutTemperature(request, after: refusal)
+        expect(
+            retry?.temperature == nil && retry?.messages == request.messages
+                && retry?.maxOutputTokens == request.maxOutputTokens && retry?.instructions == nil,
+            "a refusal naming temperature asks the same turn again without it")
+        expect(
+            ExtensionAIPolicy.withoutTemperature(request, after: AIProviderError.responseFailed("Overloaded."))
+                == nil,
+            "any other failure is not retried")
+        expect(
+            ExtensionAIPolicy.withoutTemperature(ExtensionAIPolicy.request(prompt: "p"), after: refusal) == nil,
+            "a turn sent without temperature is never retried")
+    }
+
+    static func namedModelsFindTheirVendor() {
+        let anthropic = AIConnection(
+            provider: .anthropic, models: ["claude-opus-4-1", "claude-sonnet-4-5", "claude-haiku-4-5"])
+        let openAI = AIConnection(provider: .openAI, models: ["gpt-5", "gpt-5-mini", "gpt-4o"])
+        let gemini = AIConnection(provider: .gemini, models: ["gemini-2.5-pro", "gemini-2.5-flash"])
+        let router = AIConnection(
+            provider: .openRouter,
+            models: [
+                "anthropic/claude-haiku-4.5", "google/gemini-2.5-flash", "x-ai/grok-4", "mistralai/mistral-large"
+            ])
+        let local = AIConnection(
+            provider: .openAICompatible, baseURL: "http://localhost:11434/v1",
+            models: ["llama3.1", "deepseek-r1:8b"])
+        let all = [router, anthropic, openAI, gemini, local]
+        func route(
+            _ requested: String, offered: [AIConnection]? = nil,
+            fallback: AIModelSelection? = .appleIntelligence
+        ) -> AIModelSelection? {
+            ExtensionAIModelRoute.selection(for: requested, fallback: fallback, offered: offered ?? all)
+        }
+        func pick(_ connection: AIConnection, _ model: String) -> AIModelSelection {
+            .api(connection: connection.id, model: model, effort: nil)
+        }
+        expect(
+            ExtensionAIModelRoute.tokens(of: "Anthropic_Claude_Haiku_4.5")
+                == ["anthropic", "claude", "haiku", "4", "5"]
+                && ExtensionAIModelRoute.tokens(of: "gpt-4o") == ["gpt", "4", "o"],
+            "names split into runs of letters or digits")
+        expect(
+            route("Anthropic_Claude_Haiku_4.5") == pick(anthropic, "claude-haiku-4-5"),
+            "an Anthropic key reaches the Anthropic connection before a router, at its closest model")
+        expect(
+            route("anthropic-claude-opus-5") == pick(anthropic, "claude-opus-4-1"),
+            "a Raycast value names its vendor and tier too")
+        expect(route("OpenAI_GPT-5_mini") == pick(openAI, "gpt-5-mini"), "a tier word decides")
+        expect(route("OpenAI_GPT-4o") == pick(openAI, "gpt-4o"), "an exact family wins")
+        expect(
+            route("OpenAI_GPT-6_Luna") == pick(openAI, "gpt-5"),
+            "with nothing closer, the shortest name answers, then the first")
+        expect(route("Google_Gemini_3.8_Flash") == pick(gemini, "gemini-2.5-flash"), "Gemini reaches Gemini")
+        expect(
+            route("Google_Gemini_3.8_Flash", offered: [router, openAI]) == pick(router, "google/gemini-2.5-flash"),
+            "or OpenRouter when there is no Gemini connection")
+        expect(route("xAI_Grok-4.7") == pick(router, "x-ai/grok-4"), "xAI goes through the router")
+        expect(route("Mistral_Large") == pick(router, "mistralai/mistral-large"), "so does Mistral")
+        expect(route("DeepSeek_R1") == pick(local, "deepseek-r1:8b"), "a gateway's model answers for its vendor")
+        expect(route("Perplexity_Sonar") == nil, "a vendor nobody offers leaves the extension model")
+        expect(
+            route("Vercel_Inkling") == nil && route("tinycast") == nil && route("") == nil,
+            "and so does a name with no vendor")
+        let resold = AIConnection(
+            provider: .openRouter,
+            models: [
+                "openai/gpt-oss-120b", "google/gemma-4-31b-it", "z-ai/glm-5.2", "moonshotai/kimi-k3",
+                "deepseek/deepseek-v4-pro", "qwen/qwen3.8-max", "meta-llama/llama-3.1-405b"
+            ])
+        let hosted = [
+            "Groq_GPT-OSS_120b", "groq-openai/gpt-oss-120b", "Vercel_Gemma_4_31B", "Vercel_GLM-5.2",
+            "gateway-zai/glm-5.2", "Vercel_Kimi_K3", "Vercel_DeepSeek_V4_Pro", "Vercel_Qwen3.8_Max",
+            "Baseten_GLM-5.2", "Gateway_Kimi_K3", "Together_AI_Llama_3.1_405B", "together-moonshotai/Kimi-K2.5"
+        ]
+        expect(
+            hosted.allSatisfy { route($0, offered: all + [resold]) == nil },
+            "a host serving others' models names no vendor, even with that very model on offer")
+        expect(
+            route("Perplexity_Llama3_Sonar_Large") == nil && route("Llama3.1_70B") == pick(local, "llama3.1")
+                && route("o3-mini", offered: [openAI]) == pick(openAI, "gpt-5-mini"),
+            "the first word decides: Perplexity's Llama is Perplexity's, an old family name is its own")
+        expect(
+            route("Anthropic_Claude_Opus_5", fallback: pick(anthropic, "claude-haiku-4-5")) == nil,
+            "an extension model of the named vendor is never swapped, even for a closer one")
+        expect(
+            route("Anthropic_Claude_Haiku_4.5", fallback: .claude(model: "sonnet", effort: nil)) == nil
+                && route("OpenAI_GPT-4o", fallback: .codex(model: "gpt-5", effort: "high")) == nil
+                && route("Anthropic_Claude_Haiku_4.5", fallback: pick(router, "anthropic/claude-haiku-4.5"))
+                    == nil,
+            "nor is Claude's CLI, Codex or a router's model of that vendor")
+        expect(
+            route("Anthropic_Claude_Haiku_4.5", fallback: pick(openAI, "gpt-5")) == pick(anthropic, "claude-haiku-4-5")
+                && route("Anthropic_Claude_Haiku_4.5", fallback: nil) == pick(anthropic, "claude-haiku-4-5"),
+            "another vendor's extension model is")
     }
 
     // MARK: - Rate limit
@@ -365,6 +498,47 @@ struct ExtensionAITests {
         expect(provider.wasTerminated && bridge.isIdle, "cancelling the reading task ends the stream")
     }
 
+    static func aRefusedTemperatureIsAskedAgainWithout() async {
+        let bridge = ExtensionAIBridge()
+        let refusing = ScriptedProvider { request in
+            request.temperature == nil
+                ? [.event(.text("ok"))]
+                : [.fail("Unsupported value: 'temperature' does not support 0.4 with this model.")]
+        }
+        let id = bridge.start(
+            ExtensionAIPolicy.request(prompt: "p", temperature: 0.4), on: refusing, owner: owner)
+        await settle()
+        let text = await read(bridge, id, owner: owner)
+        let end = await read(bridge, id, owner: owner)
+        expect(
+            (try? text.get()) == "ok" && (try? end.get()) == .some(nil),
+            "a route refusing temperature answers when asked without it")
+        expect(refusing.requests.map(\.temperature) == [0.4, nil], "asked twice, the second time without it")
+
+        let late = ScriptedProvider([.event(.text("partial")), .fail("temperature drifted")])
+        let lateID = bridge.start(ExtensionAIPolicy.request(prompt: "p", temperature: 0.4), on: late, owner: owner)
+        await settle()
+        _ = await read(bridge, lateID, owner: owner)
+        let failure = await read(bridge, lateID, owner: owner)
+        if case .failure = failure {
+            expect(late.requests.count == 1, "a failure after text is never asked again")
+        } else {
+            expect(false, "a failure after text is reported")
+        }
+
+        let always = ScriptedProvider([.fail("temperature is not supported")])
+        let alwaysID = bridge.start(ExtensionAIPolicy.request(prompt: "p", temperature: 1), on: always, owner: owner)
+        await settle()
+        if case .failure(let error) = await read(bridge, alwaysID, owner: owner) {
+            expect(
+                always.requests.count == 2 && error.localizedDescription == "temperature is not supported",
+                "the second ask is the last, and its failure is the route's own")
+        } else {
+            expect(false, "a route that refuses twice fails")
+        }
+        expect(bridge.isIdle, "nothing is left behind")
+    }
+
     // MARK: - Gate
 
     /// The gate on scratch defaults with AI on and one API model; the test plays the dialog.
@@ -381,9 +555,11 @@ struct ExtensionAITests {
         var aiOn = true
         var reply = Reply.now(true)
         var routeFails = false
+        var refused: Set<AIModelSelection> = []
         var provider = ScriptedProvider([.event(.text("answer"))])
         private(set) var asked: [String] = []
         private(set) var made = 0
+        private(set) var routes: [AIModelSelection] = []
         private var held: [CheckedContinuation<Bool?, Never>] = []
 
         private(set) lazy var gate = ExtensionAIGate(
@@ -395,9 +571,12 @@ struct ExtensionAITests {
                 case .held: return await withCheckedContinuation { held.append($0) }
                 }
             },
-            makeProvider: { [unowned self] _ in
-                if routeFails { throw AIProviderError.unavailable("The route is off.") }
+            makeProvider: { [unowned self] selection in
+                if routeFails || refused.contains(selection) {
+                    throw AIProviderError.unavailable("The route is off.")
+                }
                 made += 1
+                routes.append(selection)
                 return provider
             })
 
@@ -422,13 +601,17 @@ struct ExtensionAITests {
         }
 
         func start(
-            _ name: String = "ext", prompt: String = "p", openedByUser: Bool = true,
+            _ name: String = "ext", prompt: String = "p", model: String? = nil,
+            creativity: RenderValue? = nil, actingForUser: Bool = true,
             owner: ObjectIdentifier = ExtensionAITests.owner
         ) async -> Result<Int, any Error> {
+            var ask: [String: RenderValue] = ["prompt": .string(prompt)]
+            ask["model"] = model.map(RenderValue.string)
+            ask["creativity"] = creativity
             do {
                 let id = try await gate.perform(
-                    method: "start", arguments: [.object(["prompt": .string(prompt)])],
-                    extensionName: name, openedByUser: openedByUser, owner: owner)
+                    method: "start", arguments: [.object(ask)],
+                    extensionName: name, actingForUser: actingForUser, owner: owner)
                 return .success(id as? Int ?? -1)
             } catch {
                 return .failure(error)
@@ -439,7 +622,7 @@ struct ExtensionAITests {
             do {
                 let chunk = try await gate.perform(
                     method: "read", arguments: [.number(Double(id))], extensionName: name,
-                    openedByUser: true, owner: ExtensionAITests.owner)
+                    actingForUser: true, owner: ExtensionAITests.owner)
                 return .success(chunk as? String)
             } catch {
                 return .failure(error)
@@ -455,7 +638,7 @@ struct ExtensionAITests {
     static func aCommandNobodyOpenedNeverAsks() async {
         let fixture = Gate()
         defer { fixture.close() }
-        let result = await fixture.start(openedByUser: false)
+        let result = await fixture.start(actingForUser: false)
         expect(refusal(result) == .unattended, "a run the user didn't open is refused")
         expect(fixture.asked.isEmpty && fixture.made == 0, "before any question or route")
         expect(fixture.gate.settings.grants.isEmpty, "and nothing is recorded for it")
@@ -604,7 +787,7 @@ struct ExtensionAITests {
         let fixture = Gate()
         defer { fixture.close() }
         for _ in 0..<4 {
-            _ = await fixture.start(openedByUser: false)
+            _ = await fixture.start(actingForUser: false)
             _ = await fixture.start(prompt: " ")
         }
         fixture.routeFails = true
@@ -628,6 +811,62 @@ struct ExtensionAITests {
         expect(refusal(other) == nil, "another extension has its own limit")
     }
 
+    static func aNamedModelIsUsedOnlyWhenAllowed() async {
+        let fixture = Gate()
+        defer { fixture.close() }
+        let claude = AIConnection(provider: .anthropic, models: ["claude-sonnet-4-5", "claude-haiku-4-5"])
+        fixture.aiSettings.save(claude)
+        let haiku = AIModelSelection.api(connection: claude.id, model: "claude-haiku-4-5", effort: nil)
+        let chat = fixture.gate.selection()
+        _ = await fixture.start(model: "Anthropic_Claude_Haiku_4.5")
+        expect(
+            !fixture.gate.settings.honorsModels && fixture.routes.count == 1 && fixture.routes.first == chat,
+            "the switch starts off, and off a named model changes nothing")
+
+        fixture.gate.settings.honorsModels = true
+        _ = await fixture.start(model: "Anthropic_Claude_Haiku_4.5")
+        expect(fixture.routes.last == haiku, "on, an Anthropic name reaches the Anthropic connection")
+        _ = await fixture.start(model: "Perplexity_Sonar")
+        expect(fixture.routes.last == chat, "a vendor nobody offers falls back silently")
+
+        fixture.refused = [haiku]
+        let fallback = await fixture.start(model: "Anthropic_Claude_Haiku_4.5")
+        expect(
+            refusal(fallback) == nil && fixture.routes.last == chat,
+            "and so does a named route that can't be built")
+        fixture.refused = []
+
+        fixture.aiSettings.setModel(
+            "claude-haiku-4-5", shown: false, in: .api(claude.id), available: claude.models)
+        _ = await fixture.start(model: "Anthropic_Claude_Haiku_4.5")
+        expect(
+            fixture.routes.last == .api(connection: claude.id, model: "claude-sonnet-4-5", effort: nil),
+            "a model hidden from the picker is not offered")
+        fixture.aiSettings.setRoute(.api(claude.id), enabled: false)
+        _ = await fixture.start(model: "Anthropic_Claude_Haiku_4.5")
+        expect(fixture.routes.last == chat, "nor is a connection switched off")
+        expect(fixture.asked == ["ext"], "one question covers every route the extension reaches")
+    }
+
+    static func creativityReachesTheRoute() async {
+        let fixture = Gate()
+        defer { fixture.close() }
+        _ = await fixture.start(creativity: .string("high"))
+        _ = await fixture.start(creativity: .number(5))
+        _ = await fixture.start()
+        let gemini = AIConnection(provider: .gemini, models: ["gemini-3.8-flash"])
+        fixture.aiSettings.save(gemini)
+        fixture.gate.settings.honorsModels = true
+        _ = await fixture.start(model: "Google_Gemini_3.8_Flash", creativity: .string("none"))
+        await settle()
+        expect(
+            fixture.provider.requests.map(\.temperature) == [1, 2, nil, nil],
+            "creativity reaches the route as temperature, clamped, or not at all, and never Gemini")
+        expect(
+            fixture.routes.last == .api(connection: gemini.id, model: "gemini-3.8-flash", effort: nil),
+            "judged by the route that answers, a named one included")
+    }
+
     static func aDanglingPickFallsBackToChat() {
         let fixture = Gate()
         defer { fixture.close() }
@@ -648,14 +887,17 @@ struct ExtensionAITests {
         }
         defer { defaults.removePersistentDomain(forName: suite) }
         let store = ExtensionAISettingsStore(defaults: defaults)
-        expect(!store.isEnabled && store.model == nil && store.grants.isEmpty, "everything starts off")
+        expect(
+            !store.isEnabled && !store.honorsModels && store.model == nil && store.grants.isEmpty,
+            "everything starts off")
 
         store.isEnabled = true
+        store.honorsModels = true
         store.select(.claude(model: "sonnet", effort: "high"))
         store.setGrant(true, for: "color-picker")
         store.setGrant(false, for: "lorem")
         let reloaded = ExtensionAISettingsStore(defaults: defaults)
-        expect(reloaded.isEnabled, "the switch persists")
+        expect(reloaded.isEnabled && reloaded.honorsModels, "both switches persist")
         expect(reloaded.model == .claude(model: "sonnet", effort: "high"), "the model persists")
         expect(reloaded.grants == ["color-picker": true, "lorem": false], "both answers persist")
 

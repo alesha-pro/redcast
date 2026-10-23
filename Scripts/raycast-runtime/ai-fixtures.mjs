@@ -8,6 +8,7 @@ const bare = (message) => message.replace(/^"(.*)"$/, "$1");
 // A scripted host: each test sets how `ai.start` and `ai.read` answer, and every call is recorded.
 function scriptedHarness() {
   const calls = [];
+  const requests = [];
   let script = {};
   const cancelled = new Set();
   const waiters = new Map();
@@ -15,6 +16,7 @@ function scriptedHarness() {
     stubs: {
       "ai.start": async ([request]) => {
         calls.push(`start ${request.prompt}`);
+        requests.push(request);
         return script.start ? script.start(request) : 1;
       },
       "ai.read": async ([id]) => {
@@ -37,10 +39,12 @@ function scriptedHarness() {
   return {
     harness,
     calls,
+    requests,
     pending,
     script: (next) => {
       script = next;
       calls.length = 0;
+      requests.length = 0;
     },
   };
 }
@@ -52,7 +56,7 @@ function chunks(id, ...parts) {
 
 export async function runAIFixtures(check) {
   console.log("\n▶ AI.ask and environment.canAccess(AI)");
-  const { harness, calls, pending, script } = scriptedHarness();
+  const { harness, calls, requests, pending, script } = scriptedHarness();
   harness.boot(bootConfig());
   const probe = `
     const api = require("@raycast/api");
@@ -146,18 +150,98 @@ export async function runAIFixtures(check) {
       return JSON.stringify([AI.Model["OpenAI_GPT-4o"], Object.entries(AI.Model), typeof AI.Model.toString]);`);
     check("AI.Model reads any name back and lists one entry", model === '["OpenAI_GPT-4o",[["Tinycast","tinycast"]],"function"]', model);
 
-    const extras = await run(`
-      const refreshed = await AI.refreshModels();
-      try { await AI.experimental_decide({}); return "decided"; } catch (error) { return String(refreshed) + " " + error.message; }`);
-    check("refreshModels resolves and experimental_decide is unsupported",
-      extras.startsWith("undefined AI.experimental_decide is not supported"), extras);
+    script({ start: () => 14, read: chunks(14, "ok") });
+    await run(`
+      await AI.ask("named", { model: AI.Model["Anthropic_Claude_Haiku_4.5"], creativity: "low" });
+      await AI.ask("own", { model: { id: "local-llama" }, creativity: 1.2 });
+      await AI.ask("plain", { model: 7, creativity: {} });`);
+    check("a named model and creativity cross; an extension's own { id } model and junk do not",
+      JSON.stringify(requests) === JSON.stringify([
+        { prompt: "named", model: "Anthropic_Claude_Haiku_4.5", creativity: "low" },
+        { prompt: "own", creativity: 1.2 },
+        { prompt: "plain" },
+      ]), JSON.stringify(requests));
+
+    script({ read: () => null });
+    const refreshed = await run("return String(await AI.refreshModels());");
+    check("refreshModels resolves and does nothing", refreshed === "undefined" && !calls.length, refreshed);
     harness.stop("granted");
+
+    await decideFixtures(check, { harness, calls, requests, script, run, granted: probe });
 
     await useAIPattern(check);
   } finally {
     harness.stop("plain");
     harness.stop("granted");
   }
+}
+
+// experimental_decide: one prompt at creativity 0, the reply rebuilt into Raycast's shapes.
+async function decideFixtures(check, { harness, calls, requests, script, run, granted }) {
+  harness.start("decide", granted, "/ai.js", "/", "no-view", { ai: { access: true } });
+  const questions = `{
+    urgent: { type: "noul", instructions: "Does this need urgent attention?" },
+    severity: { type: "score", instructions: "How severe is it?", criteria: ["Cosmetic", "Workaround", "Blocking"] },
+    category: { type: "choice", instructions: "Classify it.", criteria: { bug: "A defect", other: null } },
+  }`;
+  const reply = "```json\n" + JSON.stringify({
+    urgent: { p: 0.8 }, severity: { p: [0.2, 0.3, 0.5] }, category: { p: { bug: 3, other: 1 } },
+  }) + "\n```";
+  script({ start: () => 20, read: chunks(20, reply.slice(0, 9), reply.slice(9)) });
+  const decided = await run(`
+    return JSON.stringify(await AI.experimental_decide({ state: { crash: "billing" }, questions: ${questions} }));`);
+  const answers = JSON.parse(decided);
+  const round = (value) => Math.round(value * 1000) / 1000;
+  check("experimental_decide reads a fenced reply into noul, score and choice answers",
+    answers.urgent?.noul === 0.8
+      && round(answers.severity?.score) === 1.3 && answers.severity?.confidence === 0.5
+      && JSON.stringify(answers.severity?.legend) === '{"0":"Cosmetic","1":"Workaround","2":"Blocking"}'
+      && JSON.stringify(answers.severity?.probabilities) === '{"0":0.2,"1":0.3,"2":0.5}'
+      && answers.category?.choice === "bug" && answers.category?.confidence === 0.75
+      && JSON.stringify(answers.category?.probabilities) === '{"bug":0.75,"other":0.25}',
+    decided);
+  const asked = requests[0] ?? {};
+  check("it asks once, at creativity 0, with the questions and the state as JSON",
+    requests.length === 1 && asked.creativity === 0 && !("model" in asked)
+      && asked.prompt.includes('"criteria":["Cosmetic","Workaround","Blocking"]')
+      && asked.prompt.includes('State: {"crash":"billing"}'),
+    JSON.stringify(asked));
+
+  script({ start: () => 21, read: chunks(21, '{"urgent": 1.7}') });
+  const clamped = await run(`
+    return (await AI.experimental_decide({ state: "s", questions: { urgent: { type: "noul", instructions: "?" } } })).urgent.noul;`);
+  check("a bare noul number is read and held to 0–1", clamped === 1, String(clamped));
+
+  const failures = [];
+  for (const text of ["I think it's urgent.", '{"other": {"p": 1}}', '{"category": {"p": {"bug": 0, "other": 0}}}']) {
+    script({ start: () => 22, read: chunks(22, text) });
+    failures.push(await run(`
+      try {
+        await AI.experimental_decide({ state: "s", questions: ${questions} });
+        return "decided";
+      } catch (error) { return error.message; }`));
+  }
+  check("a reply without the JSON, or without a question's probabilities, rejects",
+    failures[0] === "The model's answer was not the JSON a decision needs."
+      && failures[1] === 'The model\'s answer has no probabilities for "urgent".'
+      && failures[2] === 'The model\'s answer has no probabilities for "urgent".',
+    failures.join(" | "));
+
+  script({ read: () => null });
+  const before = harness.state.hostCalls.length;
+  const refused = await run(`
+    const reasons = [];
+    for (const input of [{}, { questions: { a: { type: "vote" } } }, { questions: { a: { type: "score", criteria: [] } } }]) {
+      try { await AI.experimental_decide(input); } catch (error) { reasons.push(error.name); }
+    }
+    try {
+      await AI.experimental_decide({ state: "s", questions: ${questions} }, { signal: AbortSignal.abort() });
+    } catch (error) { reasons.push(error.name); }
+    return reasons.join();`);
+  check("malformed questions and an aborted signal reject before any host call",
+    refused === "TypeError,TypeError,TypeError,AbortError" && harness.state.hostCalls.length === before,
+    refused);
+  harness.stop("decide");
 }
 
 // useAI's shape inlined: each run aborts the previous one, clears, then appends every chunk.
