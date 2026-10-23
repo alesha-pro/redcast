@@ -53,6 +53,8 @@ struct AgentRun: Identifiable, Equatable, Sendable {
     var cost: Double?
     /// False for a due run the spend cap held back: there is no chat to open.
     var hasChat = true
+    /// The run's own budget, a schedule's choice or its agent's.
+    var effort: AgentEffort = .balanced
 
     var isActive: Bool { state == .running || state == .waiting }
 
@@ -313,9 +315,10 @@ enum AgentNoteEntry {
 enum AgentBackgroundBriefing {
     static let text = """
         This turn runs in the background: nobody is watching and nobody can answer a question \
-        until it ends. Do the task with what you have, then finish with a short report: what you \
-        did, what you found, and what is left for the user. A refused request means the user was \
-        not asked; say what you would have done.
+        until it ends. Do the task with what you have; where something is unclear, take the most \
+        reasonable reading and say which you took. Finish with a short report: what you did, what \
+        you found, and what is left for the user. A refused request means the user was not asked; \
+        say what you would have done.
         """
 
     /// An ACP agent's equivalent, leading each prompt of an unattended turn after its context.

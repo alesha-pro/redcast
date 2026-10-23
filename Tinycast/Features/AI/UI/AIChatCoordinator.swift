@@ -341,6 +341,12 @@ final class AIChatCoordinator {
     private func instructions(for chat: AIChatState) -> String? {
         let attachesTools =
             capabilities(for: chat).tools && model(for: chat)?.runsItsOwnTools != true
+        // Fork: an agent on Tinycast's loop is a general assistant; the launcher's blurb is not for it.
+        if case .api? = model(for: chat), attachesTools,
+            let own = core.agentCoordinator.loopInstructions(for: chat)
+        {
+            return own
+        }
         // Fork: the shared prompt ends with the time and, in a plain chat, what it can look up.
         let instructions = self.instructions.map { $0 + "\n\n" + briefing(for: chat) }
         guard let agent = core.agentCoordinator.prompt(for: chat, hasTools: attachesTools) else {

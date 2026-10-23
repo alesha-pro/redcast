@@ -69,6 +69,14 @@ final class ChatHistoryStore {
           content TEXT NOT NULL,
           PRIMARY KEY(message_id, position)
         );
+        -- Fork: a reply's reasoning for its own model's later turns; older builds never read it.
+        CREATE TABLE IF NOT EXISTS message_reasoning_replay(
+          message_id TEXT PRIMARY KEY NOT NULL REFERENCES messages(id) ON DELETE CASCADE,
+          route TEXT NOT NULL,
+          model TEXT NOT NULL,
+          form TEXT NOT NULL,
+          text TEXT NOT NULL
+        );
         CREATE TABLE IF NOT EXISTS conversation_details(
           conversation_id TEXT PRIMARY KEY NOT NULL
             REFERENCES conversations(id) ON DELETE CASCADE,
@@ -214,6 +222,8 @@ final class ChatHistoryStore {
         let toolUses = toolUses(forConversation: id, in: database)
         let reasoning = reasoning(forConversation: id, in: database)
         let meta = messageMeta(forConversation: id, in: database)
+        // Fork: what each reply reasoned, for its own model's later turns.
+        let replays = replays(forConversation: id, in: database)
         var messages: [ChatMessage] = []
         while sqlite3_step(messagesStatement) == SQLITE_ROW {
             guard
@@ -238,7 +248,8 @@ final class ChatHistoryStore {
                     searches: searches[messageID] ?? [],
                     toolUses: toolUses[messageID] ?? [],
                     reasoning: reasoning[messageID] ?? [],
-                    usage: meta[messageID]?.usage, toolScope: meta[messageID]?.toolScope))
+                    usage: meta[messageID]?.usage, toolScope: meta[messageID]?.toolScope,
+                    replay: replays[messageID]))
         }
         return ChatSession(
             id: id, createdAt: createdAt, updatedAt: updatedAt, messages: messages,
@@ -445,6 +456,8 @@ final class ChatHistoryStore {
                 && saveToolUses(of: $0, in: database)
                 && saveReasoning(of: $0, in: database)
                 && saveMeta(of: $0, in: database)
+                // Fork: the reasoning a later turn may send back to the same model.
+                && saveReplay(of: $0, in: database)
         }
     }
 
@@ -542,6 +555,43 @@ final class ChatHistoryStore {
         sqlite3_bind_int64(statement, 2, Int64(use.sequence))
         bind(content, to: statement, at: 3)
         return sqlite3_step(statement) == SQLITE_DONE
+    }
+
+    /// Fork: a reply's reasoning text and whose it is; only a reply that kept some writes.
+    private func saveReplay(of message: ChatMessage, in database: OpaquePointer) -> Bool {
+        guard let replay = message.replay, let form = replay.form else { return true }
+        let sql = """
+            INSERT INTO message_reasoning_replay(message_id, route, model, form, text)
+            VALUES(?, ?, ?, ?, ?);
+            """
+        guard let statement = prepare(sql, in: database) else { return false }
+        defer { sqlite3_finalize(statement) }
+        let values = [message.id.uuidString, replay.route, replay.model, form.rawValue, replay.text]
+        for (index, value) in values.enumerated() { bind(value, to: statement, at: Int32(index + 1)) }
+        return sqlite3_step(statement) == SQLITE_DONE
+    }
+
+    /// Fork: a form this build does not know is left out, so its text never goes back the wrong way.
+    private func replays(
+        forConversation id: UUID, in database: OpaquePointer
+    ) -> [UUID: AIReasoningReplay] {
+        let sql = """
+            SELECT r.message_id, r.route, r.model, r.form, r.text FROM message_reasoning_replay r
+            JOIN messages m ON m.id = r.message_id WHERE m.conversation_id = ?;
+            """
+        guard let statement = prepare(sql, in: database) else { return [:] }
+        defer { sqlite3_finalize(statement) }
+        bind(id.uuidString, to: statement, at: 1)
+        var replays: [UUID: AIReasoningReplay] = [:]
+        while sqlite3_step(statement) == SQLITE_ROW {
+            guard let messageID = UUID(uuidString: text(statement, 0)),
+                let form = AIReasoningReplay.Form(rawValue: text(statement, 3))
+            else { continue }
+            replays[messageID] = AIReasoningReplay(
+                route: text(statement, 1), model: text(statement, 2), form: form,
+                text: text(statement, 4), isStored: true)
+        }
+        return replays
     }
 
     /// A call left running belonged to a process that is gone, so it never reported back.

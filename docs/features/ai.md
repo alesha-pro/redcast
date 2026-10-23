@@ -52,6 +52,8 @@ bottom with the model picker. ⌘J hands a Quick AI conversation to the window.
   Tinycast over anything else. It is not shown in the pane, and `AIPreamble.swift` holds the only
   copy of it — edit the prompt there, not here. `compose` returns `nil` when the user has turned
   the system prompt off, and every transport drops a nil instruction, so a turn then carries none.
+  (Fork: an agent chat on Tinycast's own loop is sent its agent's prompt instead, with the user's
+  text and no preamble; see [agents](agents.md#invariants).)
 - **API keys live only in the login Keychain.** `AIConnection` persists the provider, endpoint and
   model identifiers in `UserDefaults`; it never contains a key. Keys are addressed by connection UUID
   through `KeychainSecretStore.aiAPIKeys`, and never enter logs, errors or settings backups. A key is issued for one
@@ -89,7 +91,9 @@ bottom with the model picker. ⌘J hands a Quick AI conversation to the window.
   text offset, so `segments` places it where it happened, like a search or a tool call; each block
   is timed until the answer resumes. The transcript folds each under "Thought for Ns", drawing
   `ChatReasoning.displayText` — the stored text without the blank lines a route closes it with;
-  `message_thinking` keeps them; `requestMessages` never sends them back. A route that only says
+  `message_thinking` keeps them; `requestMessages` never sends them back. (Fork: what a thinking
+  model needs back is kept apart, as `ChatMessage.replay`, and sent only to the model that wrote it,
+  as [agent harness](agent-harness.md#interleaved-thinking) describes.) A route that only says
   it is thinking still just shows "Thinking…". How much there is to read is the route's call:
   Claude streams full summaries, while Grok's CLI sends a line or two in the clear and the rest of
   its reasoning encrypted, so a Grok fold is short by design, not by truncation. An OpenAI-shaped

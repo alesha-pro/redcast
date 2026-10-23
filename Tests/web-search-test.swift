@@ -609,7 +609,7 @@ struct WebSearchTests {
             [.toolCallRequested(AIToolCall(id: "s1", name: "web_search", arguments: #"{"query":"q"}"#))],
             [.text("ok"), .finished]
         ])
-        let loop = AgentLoopProvider(base: base, toolset: toolset(agent, provider), maxRounds: 5)
+        let loop = AgentLoopProvider(base: base, toolset: toolset(agent, provider), budget: AgentRunBudget(rounds: 5))
         let events = await collect(loop)
         expect(
             Array(events.prefix(4)) == [

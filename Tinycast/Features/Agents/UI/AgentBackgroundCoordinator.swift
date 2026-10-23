@@ -73,14 +73,14 @@ final class AgentBackgroundCoordinator {
         let prompt = SnippetTemplateEngine.expand(text: schedule.prompt, context: context).text
         let result = begin(
             prompt, with: agent, origin: .schedule(schedule.id, manual: manual), title: schedule.name,
-            chatTitle: schedule.runTitle(at: now, locale: .current, timeZone: .current))
+            chatTitle: schedule.runTitle(at: now, locale: .current, timeZone: .current), effort: schedule.effort)
         if case .success(let id) = result { scheduleOf[id] = schedule }
         return result
     }
 
     private func begin(
         _ task: String, with agent: AgentProfile, origin: AgentRun.Origin, title: String,
-        chatTitle: String?, attachments: [ChatAttachmentReader.Staged] = []
+        chatTitle: String?, attachments: [ChatAttachmentReader.Staged] = [], effort: AgentEffort? = nil
     ) -> Result<UUID, Refusal> {
         guard core.settings.aiEnabled else { return .failure(.aiOff) }
         if origin.isCapped, !AgentSpendPolicy.allowsStart(store.scheduleSpend, on: Self.today()) {
@@ -109,11 +109,12 @@ final class AgentBackgroundCoordinator {
         chat.toolScope.excluded = Set(core.mcpCoordinator.servers.filter { $0.trust != .always }.map(\.slug))
         // Staged once the agent is set, so a picture its model cannot see stays behind.
         if !attachments.isEmpty { ai.stage(attachments, into: chat) }
-        // Before the send: the turn's prompt, tools and consent all look the run up.
+        // Before the send: the turn's prompt, tools, consent and budget all look the run up.
+        let effort = effort ?? agent.effortLevel
         ledger.begin(
             AgentRun(
                 id: id, agentID: agent.id, agentName: agent.name, symbol: agent.symbol, title: title,
-                origin: origin, startedAt: Date(), state: .running))
+                origin: origin, startedAt: Date(), state: .running, effort: effort))
         guard ai.send(task, in: chat, title: chatTitle) else {
             core.agentCoordinator.setAgent(nil, for: chat)
             let reason = chat.notice ?? String(localized: "The agent couldn't start.")
@@ -127,9 +128,10 @@ final class AgentBackgroundCoordinator {
         }
         ai.chats.park(chat)
         chats[id] = chat
-        let minutes = agent.backgroundPolicy.limitMinutes
+        // An agent on its own CLI keeps its own limit; Tinycast's loop hands over at its effort's.
+        let minutes = agent.runtime == nil ? effort.budget.minutes : agent.backgroundPolicy.limitMinutes
         watchdogs[id] = Task { [weak self] in
-            try? await Task.sleep(for: .seconds(minutes * 60))
+            try? await Task.sleep(for: .seconds(minutes * 60) + Self.handOverGrace)
             guard !Task.isCancelled else { return }
             self?.timeOut(id, after: minutes)
         }
@@ -193,6 +195,14 @@ final class AgentBackgroundCoordinator {
         let consent = store.agent(id: run.agentID)?.backgroundPolicy.consent ?? .decline
         return .turn(in: id, isUnattended: true, consent: consent)
     }
+
+    /// An unattended run's effort, which its turn's budget and clock follow; nil for a chat.
+    func effort(forChat id: UUID) -> AgentEffort? {
+        ledger.run(id).flatMap { $0.isActive ? $0.effort : nil }
+    }
+
+    /// Time for the hand-over round between the run's limit and the watchdog's stop.
+    static let handOverGrace: Duration = .seconds(120)
 
     /// Whether this chat's turn is held to the spend cap, so its route is metered.
     func isCapped(_ chatID: UUID) -> Bool {
