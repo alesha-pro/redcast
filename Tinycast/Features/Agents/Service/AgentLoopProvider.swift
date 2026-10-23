@@ -42,12 +42,14 @@ struct AgentLoopProvider: AIProvider {
         _ request: AIRequest, into continuation: AIProviderStream.Continuation
     ) async throws {
         var (messages, billed) = try await compacted(request, into: continuation)
+        let spend = Spend()
+        // Shown at once, so a Stop or a failure in the first round still leaves the notes billed.
+        if let billed { continuation.yield(.usage(spend.reported(AIUsage(costUSD: billed)))) }
         let turnStart = messages.count
         var budget = AgentTurnBudget()
         var rounds = 0
-        let spend = Spend()
         let signal: @Sendable (AgentToolSignal) -> Void = { signal in
-            if case .spent(let cost) = signal { spend.add(cost) }
+            if case .spent(let cost) = signal { continuation.yield(.usage(spend.add(cost))) }
             if let event = signal.event { continuation.yield(event) }
         }
         while maxRounds.map({ rounds < $0 }) ?? (budget.carried < AgentTurnBudget.historyBytes) {
@@ -56,7 +58,7 @@ struct AgentLoopProvider: AIProvider {
             rounds += 1
             let round = try await streamRound(
                 request.continuing(with: messages, tools: toolset.tools), billedBefore: billed,
-                into: continuation)
+                spend: spend, into: continuation)
             if let cost = round.cost { billed = (billed ?? 0) + cost }
             guard !round.calls.isEmpty else {
                 continuation.yield(.finished)
@@ -155,7 +157,7 @@ struct AgentLoopProvider: AIProvider {
 
     /// One pass over the base route: text flows straight to the transcript, calls are collected.
     private func streamRound(
-        _ request: AIRequest, billedBefore: Double?,
+        _ request: AIRequest, billedBefore: Double?, spend: Spend,
         into continuation: AIProviderStream.Continuation
     ) async throws -> (text: String, calls: [AIToolCall], cost: Double?) {
         var text = ""
@@ -171,7 +173,7 @@ struct AgentLoopProvider: AIProvider {
                 cost = usage.costUSD ?? cost
                 // A turn is billed for every round; the reply's cost is the turn's, not its last.
                 if let billedBefore { usage.costUSD = billedBefore + (usage.costUSD ?? 0) }
-                continuation.yield(.usage(usage))
+                continuation.yield(.usage(spend.reported(usage)))
             case .toolCallRequested(let call):
                 calls.append(call)
             // `.finished` is the loop's to send, once the model has stopped asking for tools.
@@ -185,19 +187,32 @@ struct AgentLoopProvider: AIProvider {
     }
 }
 
-/// What a batch's calls spent of their own; they run in a task group, so it is summed under a lock.
+/// The usage the reply shows and what calls spent since the last take; calls share it, so it locks.
 private final class Spend: Sendable {
-    private let total = Mutex(0.0)
+    private let state = Mutex((unbilled: 0.0, shown: AIUsage?.none))
 
-    func add(_ cost: Double) {
-        total.withLock { $0 += cost }
+    /// The usage the reply now shows, which a call's spend then raises.
+    func reported(_ usage: AIUsage) -> AIUsage {
+        state.withLock { $0.shown = usage }
+        return usage
+    }
+
+    /// Shown as it lands: a capped run must hear a sub-agent's rounds before its parent's next one.
+    func add(_ cost: Double) -> AIUsage {
+        state.withLock { state in
+            state.unbilled += cost
+            var usage = state.shown ?? AIUsage()
+            usage.costUSD = (usage.costUSD ?? 0) + cost
+            state.shown = usage
+            return usage
+        }
     }
 
     /// The sum since the last take, nil when nothing was spent.
     func take() -> Double? {
-        total.withLock { sum in
-            defer { sum = 0 }
-            return sum > 0 ? sum : nil
+        state.withLock { state in
+            defer { state.unbilled = 0 }
+            return state.unbilled > 0 ? state.unbilled : nil
         }
     }
 }

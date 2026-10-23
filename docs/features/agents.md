@@ -111,7 +111,9 @@ optional chord: see [background and scheduled agents](background-agents.md).
   turn the user sent, is not offered. It gets the agent's context prompt for that read-only profile
   and a sub-task briefing, never the parent's conversation. It stops after 12
   rounds; its answer is the text after its last call, cut to 16 KB. What it spent comes back as
-  `AgentToolSignal.spent` and is billed into the parent's reply. Its own calls never show; the parent's
+  `AgentToolSignal.spent` after each of its rounds and raises the reply's cost at once, so a capped run
+  hears it before the parent's next round and a turn cut short still counts it; the tokens stay the
+  parent's last round's. Its own calls never show; the parent's
   row reads "delegate: <name>" through `AgentToolProvider.title(for:)`. One runs at a time, and Stop
   cancels the parent's task group, which ends the child's stream and its task.
 - **A newer family never breaks the previous build.** `AgentProfile` writes `tools` with only the
@@ -131,7 +133,8 @@ optional chord: see [background and scheduled agents](background-agents.md).
   cannot push the notes over the conversation that fitted. They lead the first question sent, inside
   `<earlier_conversation>`, rather than as a message of their own, since some chat
   templates reject two questions in a row, and nothing they cover is sent again. Their cost is billed
-  into the reply; tokens are left alone. A tool row, "Summary of earlier messages", opens while they are
+  into the reply as soon as they are made, so a Stop in the first round still counts it; tokens are
+  left alone. A tool row, "Summary of earlier messages", opens while they are
   made and closes when done (failed when the request fails, and the turn then goes as it was built);
   reuse shows nothing. The notes are `AgentChatSummary` in `agent-summaries/<chat>.json`, with how many
   messages they cover and the id of the last, so notes on a history that changed underneath start over.
@@ -441,7 +444,8 @@ this way, as one provider. Nothing else changes: no router edit, no upstream lin
   without an agent's own rules; every refused effect; `update_plan`); and `agent-loop-test` (the
   fork's loop and upstream's on the same scripts under 128 KB; routing, signals, Stop, parallel
   batches, a long turn that elides; `delegate`'s spec and name, a sub-agent's request, tools,
-  answer, cost, bounds and Stop; compaction with nothing dropped, made once then reused then grown,
+  answer, cost, bounds and Stop, and its spend heard by the meter round by round, kept by a turn stopped
+  before the parent's next round; compaction with nothing dropped, made once then reused then grown,
   a failed summary and Stop while it is made); `web-search-test` covers the search provider through
   a toolset and the loop; `ai-provider-test` pins which routes and which requests are asked to cache
   and where the marks go; and `agent-schedule-test` covers background runs and schedules (see
