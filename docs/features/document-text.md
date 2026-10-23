@@ -1,8 +1,9 @@
 # Document text
 
-Agents read PDFs, scans, images and rich text through one shared reader, `read_file` for a file in
-reach. It is this fork's, in `Features/DocumentText/`, and builds on the clipboard's own extractor,
-which keeps working exactly as before.
+Agents read PDFs, scans, images and rich text through one shared reader: `read_file` for a file in
+reach, and `web_fetch` and `read_page` for a PDF or an image on the web
+([web search](web-search.md#reading-a-page)). It is this fork's, in `Features/DocumentText/`, and
+builds on the clipboard's own extractor, which keeps working exactly as before.
 
 ## Invariants
 
@@ -26,7 +27,7 @@ which keeps working exactly as before.
   | PDF | PDFKit page by page; a page with no text layer rendered and recognized by Vision OCR | 256 MB (mapped, not loaded) |
   | Image (png, jpeg, heic, tiff, gif, bmp, webp) | Vision OCR in strips, as the clipboard does | 32 MB |
   | Rich text (docx, doc, rtf, rtfd, odt) | `NSAttributedString` with `.officeOpenXML`, `.docFormat`, `.rtf`, `.rtfd`, `.openDocument` | 64 MB |
-  | HTML | in the app, as text (AppKit's HTML import needs the main thread and WebKit) | 10 MB |
+  | HTML | in the app, through [`WebPageMarkdown`](web-search.md#reading-a-page) (AppKit's HTML import needs the main thread and WebKit); `raw` reads the source | 10 MB |
   | Text | in the app, as UTF-8 | 10 MB |
   | Binary | refused by name | — |
 
@@ -66,4 +67,5 @@ Harness: `document-text-test` (kinds by name and bytes, page ranges, the command
 cleaning and cutting on whole scalars, the answers; the extractor on a drawn PDF with a scanned
 page, budgets and ranges, Word, RTF, ODT and DOC files, an image; and the service with the harness
 as its own helper: a read, a missing helper, a failed read, a timeout, an answer past its bound and
-Stop). `agent-tools-test` reads each kind through `read_file`.
+Stop). `agent-tools-test` reads each kind through `read_file`, and `web-search-test` reads PDFs by
+URL through the same helper.

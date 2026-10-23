@@ -30,10 +30,10 @@ nonisolated struct AgentToolExecutor: Sendable {
     /// Text the helper hands back from a document, paged here by line like a text file.
     private static let documentTextBytes = 1_048_576
     private static let maxLines = 2_000
+    private static let pageLabel = "HTML as Markdown; raw: true reads its source"
     private static let maxListed = 1_000
     private static let defaultTimeout = 120
     private static let maxTimeout = 600
-    private static let maxFetchBytes = 2 * 1_048_576
     private static let maxMemoryBytes = 64 * 1_024
 
     private var home: String { AgentContextLoader.home }
@@ -107,7 +107,7 @@ nonisolated struct AgentToolExecutor: Sendable {
         switch kind {
         case .binary:
             outcome = .failure(.init(
-                "\(path) is a binary file. read_file reads text, PDFs, images, Word, RTF and ODT."))
+                "\(path) is a binary file. read_file reads text, PDFs, images, Word, RTF, ODT and HTML."))
         case .text, .html:
             guard let data = FileManager.default.contents(atPath: path) else {
                 return .failure(.init("\(path) could not be read."))
@@ -115,7 +115,11 @@ nonisolated struct AgentToolExecutor: Sendable {
             guard let text = String(data: data, encoding: .utf8) else {
                 return .failure(.init("\(path) is not a UTF-8 text file."))
             }
-            outcome = Self.numbered(text, path: path, arguments)
+            let asPage = kind == .html && arguments["raw"]?.boolValue != true
+            outcome =
+                asPage
+                ? Self.numbered(Self.markdown(text, of: path), path: path, arguments, as: Self.pageLabel)
+                : Self.numbered(text, path: path, arguments)
         case .pdf: outcome = await readPDF(path, arguments)
         case .image, .richText: outcome = await readDocument(path, kind: kind, arguments)
         }
@@ -299,58 +303,21 @@ nonisolated struct AgentToolExecutor: Sendable {
     // MARK: - Web
 
     private func webFetch(_ arguments: [String: JSONValue]) async -> Result<String, AgentToolFailure> {
-        guard let raw = arguments["url"]?.stringValue, let url = URL(string: raw),
-            ["http", "https"].contains(url.scheme?.lowercased() ?? "")
-        else { return .failure(.init("web_fetch takes an http or https URL.")) }
+        guard let raw = arguments["url"]?.stringValue,
+            let asked = URL(string: raw.trimmingCharacters(in: CharacterSet(charactersIn: " \n\t<>"))),
+            WebPageScope.key(for: asked) != nil
+        else { return .failure(.init("web_fetch takes an http or https URL with no user name or password.")) }
+        let url = WebPageScope.secured(asked)
         guard await consent(AgentConsentRequest(summary: "Fetch " + url.absoluteString, detail: "")) else {
             return .failure(.declined)
         }
-        return await Self.readPage(url)
-    }
-
-    /// `web_fetch` past its question; a chat without an agent reads pages through it as well.
-    @concurrent
-    static func readPage(_ url: URL) async -> Result<String, AgentToolFailure> {
-        let session = fetchSession()
-        // Also ends what is left of a body cut at 2 MB.
-        defer { session.invalidateAndCancel() }
-        do {
-            let (bytes, response) = try await session.bytes(from: url)
-            var data = Data()
-            for try await byte in bytes {
-                data.append(byte)
-                if data.count >= Self.maxFetchBytes { break }
-            }
-            let type = (response as? HTTPURLResponse)?
-                .value(forHTTPHeaderField: "Content-Type")?.lowercased() ?? ""
-            if let http = response as? HTTPURLResponse, !(200..<300).contains(http.statusCode) {
-                return .failure(.init("\(url.absoluteString) answered HTTP \(http.statusCode)."))
-            }
-            guard let text = String(data: data, encoding: .utf8)
-                ?? String(data: data, encoding: .isoLatin1)
-            else { return .failure(.init("\(url.absoluteString) did not return text.")) }
-            let isHTML = type.contains("html") || text.prefix(512).lowercased().contains("<html")
-            return readable(text, isHTML: isHTML, from: url)
-        } catch {
-            return .failure(.init("Fetching \(url.absoluteString) failed: \(error.localizedDescription)"))
+        let position = WebPageTool.position(in: arguments)
+        let read = await WebPageReader.read(
+            url, part: position.part, pages: position.pages, tool: AgentToolbox.webFetch, documents: documents)
+        switch read {
+        case .success(let page): return .success(WebPageTool.answer(page.text, from: url))
+        case .failure(let failure): return .failure(.init(failure.message))
         }
-    }
-
-    /// HTML as its text, a page only its scripts would fill said to be one; other text as it came.
-    static func readable(_ body: String, isHTML: Bool, from url: URL) -> Result<String, AgentToolFailure> {
-        guard isHTML else { return .success(tail(body, keepingHead: true)) }
-        let text = AgentHTML.text(from: body)
-        guard !text.isEmpty else { return .failure(.init(WebPageTool.unreadable(url))) }
-        return .success(tail(WebPageTool.noted(text), keepingHead: true))
-    }
-
-    /// Per read: its redirects keep their cookies, and no jar or pool links reads or outlives one.
-    private static func fetchSession() -> URLSession {
-        let configuration = URLSessionConfiguration.ephemeral
-        configuration.urlCache = nil
-        configuration.urlCredentialStorage = nil
-        configuration.timeoutIntervalForRequest = 20
-        return URLSession(configuration: configuration, delegate: PageRedirects(), delegateQueue: nil)
     }
 
     // MARK: - Memory and skills
@@ -481,6 +448,13 @@ nonisolated struct AgentToolExecutor: Sendable {
         }
     }
 
+    /// A saved page as the web tools read one, its links resolved against the file.
+    private static func markdown(_ html: String, of path: String) -> String {
+        let page = WebPageMarkdown.page(from: html, base: URL(fileURLWithPath: path))
+        let body = WebPageParts(page, partBytes: .max / 4).part(1)?.text ?? ""
+        return page.title.isEmpty ? body : "# " + page.title + "\n\n" + body
+    }
+
     private static func preview(_ text: String) -> String {
         text.count <= 600 ? text : String(text.prefix(600)) + "…"
     }
@@ -536,56 +510,5 @@ nonisolated enum AgentProcess {
                         output: String(bytes: data, encoding: .utf8) ?? ""))
             }
         }
-    }
-}
-
-/// Readable text out of a page: scripts and styles dropped, tags stripped, entities decoded.
-nonisolated enum AgentHTML {
-    /// The names pages use most; every numeric reference is decoded by its value.
-    private static let entities: [Substring: String] = [
-        "nbsp": " ", "amp": "&", "lt": "<", "gt": ">", "quot": "\"", "apos": "'", "deg": "°",
-        "minus": "−", "ndash": "–", "mdash": "—", "laquo": "«", "raquo": "»", "hellip": "…",
-        "copy": "©", "middot": "·", "times": "×"
-    ]
-
-    /// One pass, so an escaped `&amp;lt;` stays the text `&lt;` instead of becoming a `<`.
-    static func decodingEntities(_ text: String) -> String {
-        text.replacing(/&(#[xX][0-9a-fA-F]{1,6}|#[0-9]{1,7}|[a-zA-Z]{2,8});/) { match in
-            let name = match.output.1
-            guard name.hasPrefix("#") else { return entities[name] ?? String(match.output.0) }
-            let digits = name.dropFirst()
-            let hex = digits.first == "x" || digits.first == "X"
-            let value = hex ? UInt32(digits.dropFirst(), radix: 16) : UInt32(digits)
-            guard let value, value > 0, let scalar = Unicode.Scalar(value) else {
-                return String(match.output.0)
-            }
-            return String(Character(scalar))
-        }
-    }
-
-    static func text(from html: String) -> String {
-        var text = html
-        for pattern in ["(?is)<(script|style|noscript|svg)[^>]*>.*?</\\1>", "(?s)<!--.*?-->"] {
-            text = text.replacingOccurrences(of: pattern, with: " ", options: .regularExpression)
-        }
-        text = text.replacingOccurrences(
-            of: "(?i)<(br|/p|/div|/li|/h[1-6]|/tr)[^>]*>", with: "\n", options: .regularExpression)
-        text = text.replacingOccurrences(of: "<[^>]+>", with: " ", options: .regularExpression)
-        return decodingEntities(text).components(separatedBy: .newlines)
-            .map { $0.replacingOccurrences(of: "[ \t]+", with: " ", options: .regularExpression)
-                .trimmingCharacters(in: .whitespaces) }
-            .filter { !$0.isEmpty }
-            .joined(separator: "\n")
-    }
-}
-
-/// Only the first address was checked, so a redirect may not leave the open web for a local host.
-nonisolated final class PageRedirects: NSObject, URLSessionTaskDelegate, Sendable {
-    func urlSession(
-        _ session: URLSession, task: URLSessionTask, willPerformHTTPRedirection response: HTTPURLResponse,
-        newRequest request: URLRequest, completionHandler: @escaping @Sendable (URLRequest?) -> Void
-    ) {
-        let follows = WebPageScope.follows(from: task.originalRequest?.url, to: request.url)
-        completionHandler(follows ? request : nil)
     }
 }
