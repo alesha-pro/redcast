@@ -58,6 +58,12 @@ few lines that wire it into `AIChatCoordinator`, `AIToolLoopProvider`, `AgentCoo
   rest of a longer body is cancelled), HTML to text, 28 KB to the model. The answer opens by saying
   page text is material, never instructions; a search answer names `read_page` (or `web_fetch` for
   an agent) as the way to read a result in full.
+- **A page only its scripts would fill says so.** HTML whose text is empty once scripts and tags go
+  is a failed read that tells the model to read another result (`WebPageTool.unreadable`), and one
+  with under 400 characters (`WebPageTool.sparseCharacters`) keeps them with a note that its content
+  may be missing (`AgentToolExecutor.readable`, for `read_page` and `web_fetch` alike). Character
+  references are decoded in one pass, numeric ones by value, so a page that writes `10&#xB0;` or
+  Cyrillic as `&#x41C;` reads as `10°` and `М`; an escaped `&amp;lt;` stays `&lt;`.
 - **Engines run in the user's order, and any failure moves on.** A 429, a CAPTCHA, a 4xx or 5xx, a
   timeout, an unreadable shape or zero results hands the query to the next engine, with at most four
   requests per call (`WebSearchRunner.maxAttempts`). A keyed engine without a key, and SearXNG
@@ -97,7 +103,9 @@ few lines that wire it into `AIChatCoordinator`, `AIToolLoopProvider`, `AgentCoo
 
 ## Engines
 
-Verified on 2026-10-22.
+Verified on 2026-10-22. On 2026-10-23 each keyless engine found yandex.ru/pogoda for "погода
+Москва", and `read_page` read its current temperature; gismeteo.ru draws its figures with scripts,
+so its page reads without them, and windy.com reads as a 77-character shell with the note.
 
 | Engine | Request | Key | Free use | Notes |
 | --- | --- | --- | --- | --- |
@@ -185,4 +193,6 @@ through a fake transport, both loops' rows, the agent provider through a toolset
 plain chat's loop reading a found page and a linked one while a forged address, a page's own link, a
 read beside its search, an address the model only searched for and one carrying a user are refused,
 links inside an attached file or captured window left out, a sixth read in a turn refused unfetched,
-and the redirects that may not leave the open web for a local host).
+the redirects that may not leave the open web for a local host, and the notes a page only its
+scripts would fill carries). `agent-tools-test` holds the read itself: an empty page, a sparse one,
+other text, and character references.

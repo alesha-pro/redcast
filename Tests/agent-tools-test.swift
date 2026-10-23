@@ -140,6 +140,37 @@ struct AgentToolsTests {
             AgentHTML.text(from: "<html><script>x()</script><h1>Title</h1><p>A &amp; B</p></html>")
                 == "Title\nA & B",
             "a page reads as its text, scripts dropped and entities decoded")
+        expect(
+            AgentHTML.text(from: "<p>10&#xB0; C, &#1052;&#1086;&#1089;&#1082;&#1074;&#1072; &minus;2&deg;</p>")
+                == "10° C, Москва −2°",
+            "numeric references decode by value, hex and decimal, as a weather page writes them")
+        expect(
+            AgentHTML.text(from: "<p>&amp;lt;b&amp;gt; &bogus; &#0; &#xD800;</p>") == "&lt;b&gt; &bogus; &#0; &#xD800;",
+            "one pass: an escaped entity stays escaped, and an unknown or impossible one stays as written")
+        let page = URL(string: "https://example.com/forecast")!
+        if case .failure(let failure) = AgentToolExecutor.readable(
+            "<html><body><div id=\"app\"></div><script>render()</script></body></html>", isHTML: true, from: page)
+        {
+            expect(
+                failure.message.contains("no readable text") && failure.message.contains("another result"),
+                "a page only its scripts would fill fails, and says to read another result")
+        } else {
+            expect(false, "a page only its scripts would fill fails, and says to read another result")
+        }
+        let sparse = try? AgentToolExecutor.readable(
+            "<html><title>Wind map</title><p>Loading…</p></html>", isHTML: true, from: page
+        ).get()
+        expect(
+            sparse?.hasPrefix("Wind map Loading…") == true && sparse?.contains("characters of text") == true,
+            "a page with a few words keeps them and says its content may be missing")
+        let full = String(repeating: "Ясно, +10°. ", count: 60)
+        expect(
+            (try? AgentToolExecutor.readable("<p>\(full)</p>", isHTML: true, from: page).get())?
+                .contains("characters of text") == false,
+            "a page with real text carries no warning")
+        expect(
+            (try? AgentToolExecutor.readable(#"{"temp":10}"#, isHTML: false, from: page).get()) == #"{"temp":10}"#,
+            "a short answer that is not HTML is passed on as it is")
 
         try? String(repeating: "0123456789abcdef\n", count: 6_400).write(
             toFile: folder + "/big.txt", atomically: true, encoding: .utf8)
