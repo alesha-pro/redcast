@@ -39,7 +39,7 @@ struct AgentsSettingsSection: View {
                     )
                     .labelsHidden()
                     .multilineTextAlignment(.trailing)
-                    .frame(width: 72)
+                    .frame(width: 96)
                     Text(verbatim: "USD")
                         .foregroundStyle(.secondary)
                 }
