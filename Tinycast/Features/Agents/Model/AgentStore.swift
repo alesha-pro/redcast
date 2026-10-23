@@ -21,6 +21,8 @@ final class AgentStore {
     private(set) var scheduleSpend = AgentScheduleSpend()
 
     private let agentsURL: URL
+    /// Families the previous build cannot read, per agent; its rewrite of agents.json drops them.
+    private let newerToolsURL: URL
     private let bindingsURL: URL
     private let acpSessionsURL: URL
     private let schedulesURL: URL
@@ -35,6 +37,7 @@ final class AgentStore {
         let base = directory ?? Self.defaultDirectory
         self.directory = base
         agentsURL = base.appendingPathComponent("agents.json")
+        newerToolsURL = base.appendingPathComponent("agent-newer-tools.json")
         bindingsURL = base.appendingPathComponent("agent-chats.json")
         acpSessionsURL = base.appendingPathComponent("agent-acp-sessions.json")
         schedulesURL = base.appendingPathComponent("agent-schedules.json")
@@ -92,7 +95,7 @@ final class AgentStore {
                 isAvailable = false
                 return
             }
-            agents = decoded.sorted { $0.createdAt < $1.createdAt }
+            agents = restoringNewerTools(decoded, from: data).sorted { $0.createdAt < $1.createdAt }
         }
         if let data = try? Data(contentsOf: bindingsURL),
             let decoded = try? JSONDecoder().decode([UUID: UUID].self, from: data)
@@ -309,10 +312,45 @@ final class AgentStore {
         guard isAvailable else { throw .storageUnavailable }
         guard let data = try? JSONEncoder().encode(updated) else { throw .storageUnavailable }
         do {
+            // First, so the side file is never older than the agents.json it restores.
+            try writeNewerTools(of: updated)
             try data.write(to: agentsURL, options: .atomic)
         } catch {
             throw .storageUnavailable
         }
         agents = updated
+    }
+
+    private func writeNewerTools(of agents: [AgentProfile]) throws {
+        var newer: [UUID: [String]] = [:]
+        for agent in agents {
+            let names = agent.tools.intersection(AgentToolKind.unknownToOlderBuilds).map(\.rawValue).sorted()
+            if !names.isEmpty { newer[agent.id] = names }
+        }
+        guard !newer.isEmpty else {
+            if FileManager.default.fileExists(atPath: newerToolsURL.path) {
+                try FileManager.default.removeItem(at: newerToolsURL)
+            }
+            return
+        }
+        try JSONEncoder().encode(newer).write(to: newerToolsURL, options: .atomic)
+    }
+
+    /// The previous build's save drops `addedTools`; such an agent gets what this build last wrote.
+    private func restoringNewerTools(_ decoded: [AgentProfile], from data: Data) -> [AgentProfile] {
+        guard let saved = try? Data(contentsOf: newerToolsURL),
+            let newer = try? JSONDecoder().decode([UUID: [String]].self, from: saved),
+            let objects = (try? JSONSerialization.jsonObject(with: data)) as? [[String: Any]]
+        else { return decoded }
+        let rewritten = Set(
+            objects.filter { $0["addedTools"] == nil }
+                .compactMap { ($0["id"] as? String).flatMap(UUID.init(uuidString:)) })
+        return decoded.map { agent in
+            guard rewritten.contains(agent.id), let names = newer[agent.id] else { return agent }
+            var restored = agent
+            let families = names.compactMap(AgentToolKind.init(rawValue:))
+            restored.tools.formUnion(families.filter(AgentToolKind.unknownToOlderBuilds.contains))
+            return restored
+        }
     }
 }
