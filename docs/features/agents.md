@@ -105,24 +105,24 @@ optional chord: see [background and scheduled agents](background-agents.md).
 - **A sub-agent only reads, on its parent's model, inside its parent's turn.** Sub-agents
   (`AgentToolKind.delegate`, off until ticked) offers `delegate`, which runs one nested
   `AgentLoopProvider` per call over the turn's own route. The child is the agent made read-only with
-  Sub-agents removed, so it has no `delegate` of its own and stops at one level; its toolset offers only
-  `AgentToolRisk.reads` (read, network, personal: no change, command, `memory_write` or plan), no MCP,
-  and runs unattended, so anything whose rule would ask is refused and `screen_context`, which needs a
-  turn the user sent, is not offered. It gets the agent's context prompt for that read-only profile
-  and a sub-task briefing, never the parent's conversation. It stops after 12
+  Sub-agents removed, so it has no `delegate` of its own and stops at one level; its toolset offers
+  only `AgentToolRisk.reads` (read, network, personal: no change, command, `memory_write` or plan),
+  no MCP, and runs unattended, so anything whose rule would ask is refused and `screen_context`,
+  which needs a turn the user sent, is not offered. It gets the agent's context prompt for that
+  read-only profile and a sub-task briefing, never the parent's conversation. It stops after 12
   rounds; its answer is the text after its last call, cut to 16 KB. What it spent comes back as
-  `AgentToolSignal.spent` after each of its rounds and raises the reply's cost at once, so a capped run
-  hears it before the parent's next round and a turn cut short still counts it; the tokens stay the
-  parent's last round's. Its own calls never show; the parent's
-  row reads "delegate: <name>" through `AgentToolProvider.title(for:)`. One runs at a time, and Stop
-  cancels the parent's task group, which ends the child's stream and its task.
+  `AgentToolSignal.spent` after each of its rounds and raises the reply's cost at once, so a capped
+  run hears it before the parent's next round and a turn cut short still counts it; the tokens stay
+  the parent's last round's. Its own calls never show; the parent's row reads "delegate: <name>"
+  through `AgentToolProvider.title(for:)`. One runs at a time, and Stop cancels the parent's task
+  group, which ends the child's stream and its task.
 - **A newer family never breaks the previous build, and survives its save.** `AgentProfile` writes
   `tools` with only the families the build before Screen and Sub-agents could decode, and those two
-  under `addedTools`, a key that build ignores; reading merges both and drops a family name it does not
-  know. That build's own save of agents.json drops the key, so `AgentStore.commit` first writes each
-  agent's newer families to `agent-newer-tools.json` (removed when none are ticked), and `load` gives
-  them back only to an agent whose saved object lacks `addedTools`, so a family unticked here stays
-  off. A family added later joins `AgentToolKind.unknownToOlderBuilds`.
+  under `addedTools`, a key that build ignores; reading merges both and drops a family name it does
+  not know. That build's own save of agents.json drops the key, so `AgentStore.commit` first writes
+  each agent's newer families to `agent-newer-tools.json` (removed when none are ticked), and `load`
+  gives them back only to an agent whose saved object lacks `addedTools`, so a family unticked here
+  stays off. A family added later joins `AgentToolKind.unknownToOlderBuilds`.
 - **A long agent chat keeps notes on what no longer fits, made once and grown rarely.**
   `ChatSession.requestMessages` drops a chat's oldest turns past its text budget. For an agent chat on
   Tinycast's loop, `AgentLoopProvider` first reads the chat's history (`AgentCompaction.Source`, read on
@@ -147,13 +147,13 @@ optional chord: see [background and scheduled agents](background-agents.md).
 - **The binding is the fork's, not the chat history's.** Which chat has which agent is
   `agent-chats.json` beside `agents.json` in Application Support, so upstream's SQLite schema is
   untouched. Deleting an agent frees its chats, which stay as plain AI chats, and deletes its notes.
-- **An ACP tool row holds only what it shows.** A call's diffs and output are compacted once, as they
-  arrive, by `ChatToolContent(call:)`, and the compacted form is both what the row unfolds and what
-  is saved: at most 12 KB a row. It is saved in its own table, `message_tool_content`, keyed like
-  `message_tools` and deleted with its message, so `message_tools` keeps its columns and a chat this
-  build saved opens unchanged, without the content, in a build from before it. Continuing such a chat
-  there rewrites its last saved reply, and the cascade then takes that reply's diffs and output for
-  good.
+- **An ACP tool row holds only what it shows.** A call's diffs and output are compacted once, as
+  they arrive, by `ChatToolContent(call:)`, and the compacted form is both what the row unfolds and
+  what is saved: at most 12 KB a row. It is saved in its own table, `message_tool_content`, keyed
+  like `message_tools` and deleted with its message, so `message_tools` keeps its columns and a chat
+  this build saved opens unchanged, without the content, in a build from before it. Continuing such
+  a chat there rewrites its last saved reply, and the cascade then takes that reply's diffs and
+  output for good.
 - **A slash command list lives with its session.** `available_commands_update` is kept per live
   session in `AgentACPHost` and mirrored to the coordinator like the modes; a chat's copy goes when
   its session or the agent's process does, leaving one list per agent, and nothing is written down.
@@ -335,20 +335,20 @@ because the composer's label and menu styles are private to that file.
 | `notes_append` | notes | change | workspace, full | ask | — (always asks) |
 
 The notes family is off for every agent until ticked, and offered only while Notes is on; see
-[notes and AI](notes-ai.md). Sub-agents is off until ticked too, and so is Screen, which is offered only
-while [Screen Awareness](screen-awareness.md) is on, only on a turn the user sent from the chat (never a
-background run or a sub-agent), asks before each read unless allowed for the chat, and reads the window
-behind Tinycast as text.
+[notes and AI](notes-ai.md). Sub-agents is off until ticked too, and so is Screen, which is offered
+only while [Screen Awareness](screen-awareness.md) is on, only on a turn the user sent from the chat
+(never a background run or a sub-agent), asks before each read unless allowed for the chat, and
+reads the window behind Tinycast as text.
 
 `run_command` runs through `ShellCommandRunner.stream` with the login shell's environment in the
 agent's folder, stopped after its timeout (120 s by default, 600 s at most); escape sequences are
 stripped and only the output's tail is kept. `search_files` prefers ripgrep and falls back to
 `grep -rnIE`, run without a shell so a pattern is never interpreted. `web_fetch` uses a private
-`.ephemeral` session per fetch, with no cache and a cookie jar of its own, follows no redirect onto a
-local host it did not start at ([why](web-search.md#invariants)), reads at most 2 MB, and turns HTML
-into text. `web_search` runs
-through [web search](web-search.md)'s engine chain, not the executor; it asks under the same Web rule
-and shows a search row between its own row's opening and closing.
+`.ephemeral` session per fetch, with no cache and a cookie jar of its own, follows no redirect onto
+a local host it did not start at ([why](web-search.md#invariants)), reads at most 2 MB, and turns
+HTML into text. `web_search` runs through [web search](web-search.md)'s engine chain, not the
+executor; it asks under the same Web rule and shows a search row between its own row's opening and
+closing.
 
 Neighbouring calls that may share a round run together, four at most (`AgentLoopProvider.width`),
 which bounds memory to four 2 MB fetch buffers and processes to four ripgreps: reads, `web_fetch`,
@@ -451,16 +451,16 @@ this way, as one provider. Nothing else changes: no router edit, no upstream lin
   store from before the table, the cascade); `agent-test` (skills, catalog, path policy, tool sets,
   specs, consent policy and per-agent rules, toolset order and routing, batches, budget, elision,
   the prompt and the rules it states, persistence, the plan checklist shared with ACP, newer
-  families kept out of the previous build's way and given back after its save, a reading-only toolset and per-call row titles,
-  compaction's coverage, reuse, bounds, a long newest question and notes kept per chat);
-  `agent-tools-test` (the executor against a real folder: reads, writes with consent, link escapes,
-  commands, timeouts and Stop, memory, skills, HTML; the built-ins through a toolset, with and
-  without an agent's own rules; every refused effect; `update_plan`); and `agent-loop-test` (the
-  fork's loop and upstream's on the same scripts under 128 KB; routing, signals, Stop, parallel
-  batches, a long turn that elides; `delegate`'s spec and name, a sub-agent's request, tools,
-  answer, cost, bounds and Stop, and its spend heard by the meter round by round, kept by a turn stopped
-  before the parent's next round; compaction with nothing dropped, made once then reused then grown,
-  a failed summary and Stop while it is made); `web-search-test` covers the search provider through
-  a toolset and the loop; `ai-provider-test` pins which routes and which requests are asked to cache
-  and where the marks go; and `agent-schedule-test` covers background runs and schedules (see
-  [background-agents.md](background-agents.md#manual-sweep)).
+  families kept out of the previous build's way and given back after its save, a reading-only
+  toolset and per-call row titles, compaction's coverage, reuse, bounds, a long newest question and
+  notes kept per chat); `agent-tools-test` (the executor against a real folder: reads, writes with
+  consent, link escapes, commands, timeouts and Stop, memory, skills, HTML; the built-ins through a
+  toolset, with and without an agent's own rules; every refused effect; `update_plan`); and
+  `agent-loop-test` (the fork's loop and upstream's on the same scripts under 128 KB; routing,
+  signals, Stop, parallel batches, a long turn that elides; `delegate`'s spec and name, a
+  sub-agent's request, tools, answer, cost, bounds and Stop, and its spend heard by the meter round
+  by round, kept by a turn stopped before the parent's next round; compaction with nothing dropped,
+  made once then reused then grown, a failed summary and Stop while it is made); `web-search-test`
+  covers the search provider through a toolset and the loop; `ai-provider-test` pins which routes
+  and which requests are asked to cache and where the marks go; and `agent-schedule-test` covers
+  background runs and schedules (see [background-agents.md](background-agents.md#manual-sweep)).

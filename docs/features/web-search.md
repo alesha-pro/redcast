@@ -24,20 +24,19 @@ few lines that wire it into `AIChatCoordinator`, `AIToolLoopProvider`, `AgentCoo
   every API route.
 - **`read_page` opens only an address the turn was given, never one the model wrote.** A chat
   without an agent reads a page only when its URL appears in what the user wrote in one of their
-  messages of the request or is the address of a result that one of the turn's own
-  searches returned and an earlier round showed the model. `WebChatTools` keeps the result
-  addresses its runner hands back (`WebSearchResult.url`), never the answer's text: the query the
-  answer repeats, a title, an excerpt and a failure's reason add nothing, so searching for an
-  address does not make it readable. `WebChatTools.watching` sees each round's messages before its
-  calls run, and those results join the scope with the round that shows them. A page read, the
-  model's replies, MCP results and the instructions add nothing either, so a page cannot steer the
-  next read and the model cannot put chat text into an address. An inlined file, an attached note
-  and a captured window (Ask About Screen, Ask by Voice) are a third party's text, so
-  `AIAttachmentPolicy.typed` takes their blocks out first; a page one of them names can still be
-  reached through a search. Which of several given pages the model reads is itself a signal, so a
-  turn reads at most five (`WebPageTool.maxReads`); a sixth is refused unfetched, telling the model to
-  ask the user. No dialog asks: the toggle is the consent, as it is for search, and these rules keep
-  its grant close to search's.
+  messages of the request or is the address of a result that one of the turn's own searches returned
+  and an earlier round showed the model. `WebChatTools` keeps the result addresses its runner hands
+  back (`WebSearchResult.url`), never the answer's text: the query the answer repeats, a title, an
+  excerpt and a failure's reason add nothing, so searching for an address does not make it readable.
+  `WebChatTools.watching` sees each round's messages before its calls run, and those results join
+  the scope with the round that shows them. A page read, the model's replies, MCP results and the
+  instructions add nothing either, so a page cannot steer the next read and the model cannot put
+  chat text into an address. An inlined file, an attached note and a captured window (Ask About
+  Screen, Ask by Voice) are a third party's text, so `AIAttachmentPolicy.typed` takes their blocks
+  out first; a page one of them names can still be reached through a search. Which of several given
+  pages the model reads is itself a signal, so a turn reads at most five (`WebPageTool.maxReads`); a
+  sixth is refused unfetched, telling the model to ask the user. No dialog asks: the toggle is the
+  consent, as it is for search, and these rules keep its grant close to search's.
 - **The model only picks a page; the address it was given is what is fetched.** Scheme, host case,
   a leading `www.`, a trailing or doubled slash, a fragment, a default port and percent-escapes do
   not tell pages apart, and a query or a longer path does (`WebPageScope.key`). The request goes to
@@ -48,17 +47,17 @@ few lines that wire it into `AIChatCoordinator`, `AIToolLoopProvider`, `AgentCoo
   same rule as the SearXNG address.
 - **A redirect may not leave the open web for a local host.** Only the first address is checked
   against the scope, so `PageRedirects` checks every hop with `WebPageScope.follows`: a loopback,
-  `.local`, `.localhost`, single-label or address-literal target (`inet_aton`'s hex and dotless forms
-  too), or one carrying a user, is refused unless the read began at that same host. A found page
-  therefore cannot bounce a read onto the Mac or the LAN; the refused hop reads as the 3xx it was.
-  Agents' `web_fetch` reads the same way, since its question names only the first address.
-- **A page is read as `web_fetch` reads it.** `read_page` goes through
-  `AgentToolExecutor.readPage`, `web_fetch`'s own read without its question: an ephemeral session
-  made for that read and invalidated when it ends, with no cache and a cookie jar of its own, so a
-  site's cookie check works within one read and no cookie links two reads, chats or agents; 20 s
-  idle, 2 MB at most (the rest of a longer body is cancelled), HTML to text, 28 KB to the model. The answer opens by
-  saying page text is material, never instructions; a search answer names `read_page` (or
-  `web_fetch` for an agent) as the way to read a result in full.
+  `.local`, `.localhost`, single-label or address-literal target (`inet_aton`'s hex and dotless
+  forms too), or one carrying a user, is refused unless the read began at that same host. A found
+  page therefore cannot bounce a read onto the Mac or the LAN; the refused hop reads as the 3xx it
+  was. Agents' `web_fetch` reads the same way, since its question names only the first address.
+- **A page is read as `web_fetch` reads it.** `read_page` goes through `AgentToolExecutor.readPage`,
+  `web_fetch`'s own read without its question: an ephemeral session made for that read and
+  invalidated when it ends, with no cache and a cookie jar of its own, so a site's cookie check
+  works within one read and no cookie links two reads, chats or agents; 20 s idle, 2 MB at most (the
+  rest of a longer body is cancelled), HTML to text, 28 KB to the model. The answer opens by saying
+  page text is material, never instructions; a search answer names `read_page` (or `web_fetch` for
+  an agent) as the way to read a result in full.
 - **Engines run in the user's order, and any failure moves on.** A 429, a CAPTCHA, a 4xx or 5xx, a
   timeout, an unreadable shape or zero results hands the query to the next engine, with at most four
   requests per call (`WebSearchRunner.maxAttempts`). A keyed engine without a key, and SearXNG

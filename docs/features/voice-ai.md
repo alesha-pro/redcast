@@ -147,14 +147,15 @@ to English (speak Russian, get English), Polish, and As a message. Their instruc
 and reset, and the reader adds, edits and deletes their own; a checkbox leaves any of them out of the
 Tab cycle. Settings → Dictation shows them while Cloud transcription is on.
 
-When the capsule shows, `VoiceCloudTranscriber` reads the app in front and takes its entry in **Modes
-by app**, else the **Default mode**, else none. The chip above the capsule (`VoiceModeCaption`, a
-nonactivating, mouse-transparent panel) names it and shows ⇥. Tab and ⇧Tab cycle none → each mode
-not left out → none while listening, and the choice is that app's from then on (an entry equal to the
-default is dropped, so the app follows the default again). An app without a bundle id keeps the
-choice for that recording only; the Default mode changes only in Settings. Tab is the capsule's even during a held
-shortcut, as Return and Escape are, and so is ⇧Tab: Shift joining a held Fn or single modifier
-doesn't cancel the hold (see [hotkeys.md](hotkeys.md#modifier-only-shortcuts)).
+When the capsule shows, `VoiceCloudTranscriber` reads the app in front and takes its entry in
+**Modes by app**, else the **Default mode**, else none. The chip above the capsule
+(`VoiceModeCaption`, a nonactivating, mouse-transparent panel) names it and shows ⇥. Tab and ⇧Tab
+cycle none → each mode not left out → none while listening, and the choice is that app's from then
+on (an entry equal to the default is dropped, so the app follows the default again). An app without
+a bundle id keeps the choice for that recording only; the Default mode changes only in Settings. Tab
+is the capsule's even during a held shortcut, as Return and Escape are, and so is ⇧Tab: Shift
+joining a held Fn or single modifier doesn't cancel the hold (see
+[hotkeys.md](hotkeys.md#modifier-only-shortcuts)).
 
 `DictationPanelController` reports its frame on show and nil on close through `onPlacement` and
 offers Tab through `onTab`; `DictationCoordinator` lends its capsule once, through a `capsule`
@@ -427,15 +428,14 @@ ends.
   constants with the built-in microphone and a headset.
 - Harnesses: `voice-ai-test` (WAV header and samples, the gate, the prompts, every request body —
   dictation, Ask, a mode in one and two steps, an edit, an agent's — the reply header and
-  `VoiceReplySession` under every chunking, transcript cleanup, the route and the proposal, the insert
-  policy, mode settings); `voice-coordinator-test` (the shipped `VoiceCloudTranscriber` and
+  `VoiceReplySession` under every chunking, transcript cleanup, the route and the proposal, the
+  insert policy, mode settings); `voice-coordinator-test` (the shipped `VoiceCloudTranscriber` and
   `VoiceAskCoordinator` against recorded effects: consent saving exactly what it named and asking
   again for another connection, no rerouting, the session token through capture, delivery, supersede
-  and dismissal, and the recorder's start and stop order; dictation modes on the capsule, Tab over an app with no
-  bundle id leaving the default alone; Edit
-  Selection by Voice replacing an unchanged selection, showing a moved one, refusing an unreadable
-  one; an agent getting the transcript and the window while the route gets the audio alone, and
-  refusing a press while it or three agents are busy); `dictation-field-test` (the cloud seam in
-  `DictationCoordinator`); `hotkey-dispatch-test` (a command's release, Secure Input's included, and
-  a voice command held on a single modifier); `hotkey-test` (Shift joining and leaving a held key
-  while another modifier still cancels it).
+  and dismissal, and the recorder's start and stop order; dictation modes on the capsule, Tab over
+  an app with no bundle id leaving the default alone; Edit Selection by Voice replacing an unchanged
+  selection, showing a moved one, refusing an unreadable one; an agent getting the transcript and
+  the window while the route gets the audio alone, and refusing a press while it or three agents are
+  busy); `dictation-field-test` (the cloud seam in `DictationCoordinator`); `hotkey-dispatch-test`
+  (a command's release, Secure Input's included, and a voice command held on a single modifier);
+  `hotkey-test` (Shift joining and leaving a held key while another modifier still cancels it).
