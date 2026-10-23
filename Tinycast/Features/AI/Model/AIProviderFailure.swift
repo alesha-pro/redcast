@@ -47,6 +47,50 @@ enum AIProviderFailure {
         }
     }
 
+    // MARK: - Fork: what a run may try again
+
+    /// Nil when trying again cannot help: a key, a quota, a refused request.
+    static func recoverable(
+        status: Int, body: Data, retryAfter: String?, message: String
+    ) -> AIProviderRecoverableError? {
+        let said = (providerMessage(in: body) ?? text(body.prefix(bodyLimit)) ?? "").lowercased()
+        guard !spentQuota.contains(where: said.contains) else { return nil }
+        if [400, 413, 422].contains(status), status == 413 || overflowWords.contains(where: said.contains) {
+            return AIProviderRecoverableError(kind: .overflow, message: message)
+        }
+        guard [408, 409, 425, 429].contains(status) || (500...599).contains(status) else { return nil }
+        let wait = retryAfter.flatMap { Int($0.trimmingCharacters(in: .whitespaces)) }.map(Duration.seconds)
+        return AIProviderRecoverableError(kind: .transient(retryAfter: wait), message: message)
+    }
+
+    /// A refusal mid-stream: OpenRouter's code of 429 or 5xx, else a busy provider in its own words.
+    static func recoverable(code: Int?, said: String?, message: String) -> AIProviderRecoverableError? {
+        let passes =
+            code.map { $0 == 429 || (500...599).contains($0) }
+            ?? said.map { text in busyWords.contains { text.lowercased().contains($0) } } ?? false
+        guard passes else { return nil }
+        return AIProviderRecoverableError(kind: .transient(retryAfter: nil), message: message)
+    }
+
+    /// pi's and dsh's words for an account that has to be topped up, which no wait fixes.
+    private static let spentQuota = [
+        "insufficient_quota", "quota exceeded", "exceeded your current quota", "billing", "insufficient balance",
+        "insufficient credits", "out of budget", "credit balance"
+    ]
+    private static let busyWords = [
+        "overloaded", "server_busy", "servers are currently busy", "high demand", "at capacity",
+        "temporarily unavailable", "provider returned error", "rate limit"
+    ]
+    /// pi's `overflow.ts`, the patterns in plain words: each provider says it its own way.
+    private static let overflowWords = [
+        "prompt is too long", "prompt too long", "prompt exceeds max length", "request_too_large",
+        "input is too long", "exceeds the context window", "maximum context length", "context length",
+        "input token count", "maximum prompt length", "reduce the length of the messages",
+        "maximum allowed input length", "longer than the model's context length", "context size",
+        "context window exceeds limit", "exceeded model token limit", "context_length_exceeded",
+        "range of input length", "too many tokens", "token limit exceeded"
+    ]
+
     // MARK: - Reading the body
 
     /// Every shape seen in the wild: OpenAI's and its copies', Anthropic's, Gemini's array, vLLM's.

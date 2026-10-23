@@ -43,12 +43,14 @@ struct AgentSchedule: Codable, Hashable, Identifiable, Sendable {
     var noteTitle: String?
     var isEnabled: Bool
     var createdAt: Date
+    /// This schedule's runs' effort; nil takes the agent's, and the previous build ignores the key.
+    var effort: AgentEffort?
 
     init(
         id: UUID = UUID(), agentID: UUID, name: String, prompt: String,
         rule: AgentScheduleRule = AgentScheduleRule(kind: .daily, minuteOfDay: 9 * 60),
         catchUp: AgentScheduleCatchUp = .once, noteTitle: String? = nil, isEnabled: Bool = true,
-        createdAt: Date = Date()
+        createdAt: Date = Date(), effort: AgentEffort? = nil
     ) {
         self.id = id
         self.agentID = agentID
@@ -59,6 +61,7 @@ struct AgentSchedule: Codable, Hashable, Identifiable, Sendable {
         self.noteTitle = noteTitle
         self.isEnabled = isEnabled
         self.createdAt = createdAt
+        self.effort = effort
     }
 
     /// Each run is its own chat, named so the sidebar tells one morning from the next.

@@ -42,7 +42,12 @@ enum AIRequestBody {
     private static func openAI(
         _ input: AIRequest, configuration: AIHTTPConfiguration
     ) -> [String: Any] {
-        var messages = input.messages.compactMap(openAIMessage)
+        // Fork: each assistant message carries back what its route needs of the reasoning.
+        var messages = input.messages.compactMap { message in
+            openAIMessage(message).map {
+                AIReasoningReplayPolicy.openAIMessage($0, of: message, input: input, configuration: configuration)
+            }
+        }
         if let instructions = input.instructions?.nonEmpty {
             messages.insert(["role": "system", "content": instructions], at: 0)
         }
@@ -71,8 +76,15 @@ enum AIRequestBody {
         if configuration.disablesThinking {
             body["thinking"] = ["type": "disabled"]
         }
+        // Fork: a connection set to Always asks the routes that drop earlier reasoning to keep it.
+        body.merge(AIReasoningReplayPolicy.openAIBody(input, configuration: configuration)) { $1 }
         // Fork: an extension's creativity; a route that refuses it is asked again without it.
         if let temperature = input.temperature { body["temperature"] = temperature }
+        // Fork: only a route whose own default cut a reply is capped; OpenAI's takes the newer name.
+        if let cap = input.outputCap, cap.forced {
+            let own = configuration.baseURL.host() == URL(string: AIProviderKind.openAI.defaultBaseURL)?.host()
+            body[own ? "max_completion_tokens" : "max_tokens"] = cap.tokens
+        }
         if !input.tools.isEmpty {
             body["tools"] = input.tools.map {
                 [
@@ -83,6 +95,11 @@ enum AIRequestBody {
                     ]
                 ]
             }
+        }
+        // Fork: a hand-over round may call nothing; Z.ai documents only `auto`, MiniMax no choice at all.
+        let route = AIReasoningReplayPolicy.route(of: configuration)
+        if input.forbidsCalls, !input.tools.isEmpty, route != .zai, route != .miniMax {
+            body["tool_choice"] = "none"
         }
         return body
     }
@@ -96,8 +113,8 @@ enum AIRequestBody {
             .compactMap { $0?.nonEmpty }
         var body: [String: Any] = [
             "model": configuration.model,
-            "messages": anthropicMessages(input.messages),
-            "max_tokens": input.maxOutputTokens,
+            "messages": anthropicMessages(input.messages, configuration),
+            "max_tokens": input.outputCap?.tokens ?? input.maxOutputTokens,
             "stream": true
         ]
         if !systemParts.isEmpty { body["system"] = systemParts.joined(separator: "\n\n") }
@@ -110,6 +127,8 @@ enum AIRequestBody {
                     "input_schema": $0.parameters.jsonObject
                 ]
             }
+            // Fork: a hand-over round may call nothing; the choice is outside the prefix Claude signs.
+            if input.forbidsCalls { body["tool_choice"] = ["type": "none"] }
         }
         return body
     }
@@ -163,7 +182,9 @@ enum AIRequestBody {
     }
 
     /// Anthropic takes tool results as user content, and a run of them has to arrive as one turn.
-    private static func anthropicMessages(_ messages: [AIMessage]) -> [[String: Any]] {
+    private static func anthropicMessages(
+        _ messages: [AIMessage], _ configuration: AIHTTPConfiguration
+    ) -> [[String: Any]] {
         var encoded: [[String: Any]] = []
         var results: [[String: Any]] = []
         for message in messages {
@@ -175,16 +196,25 @@ enum AIRequestBody {
                 continue
             }
             if !results.isEmpty {
+                // Fork: a loop's note after a round's results joins them, after the results as Claude asks.
+                if message.role == .user, message.images.isEmpty, message.documents.isEmpty,
+                    !message.text.isEmpty
+                {
+                    results.append(["type": "text", "text": message.text])
+                    continue
+                }
                 encoded.append(["role": "user", "content": results])
                 results = []
             }
-            if let value = anthropicMessage(message) { encoded.append(value) }
+            if let value = anthropicMessage(message, configuration) { encoded.append(value) }
         }
         if !results.isEmpty { encoded.append(["role": "user", "content": results]) }
         return encoded
     }
 
-    private static func anthropicMessage(_ message: AIMessage) -> [String: Any]? {
+    private static func anthropicMessage(
+        _ message: AIMessage, _ configuration: AIHTTPConfiguration
+    ) -> [String: Any]? {
         guard message.role != .system else { return nil }
         let text = message.text.nonEmpty
         if !message.toolCalls.isEmpty {
@@ -195,6 +225,8 @@ enum AIRequestBody {
                     "input": JSONValue(data: Data($0.arguments.utf8))?.jsonObject ?? [:]
                 ]
             }
+            // Fork: this turn's thinking blocks go back where they streamed, as the tool loop requires.
+            parts = AIReasoningReplayPolicy.anthropicContent(parts, of: message, configuration: configuration)
             return ["role": message.role.rawValue, "content": parts]
         }
         let hasAttachments = !message.images.isEmpty || !message.documents.isEmpty

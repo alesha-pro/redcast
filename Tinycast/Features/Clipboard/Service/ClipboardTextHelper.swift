@@ -5,6 +5,10 @@ import UniformTypeIdentifiers
 @main
 nonisolated enum ClipboardTextHelper {
     static func main() async {
+        // Fork: agents read PDFs, scans and rich text here too (Features/DocumentText).
+        if CommandLine.arguments.count > 1, CommandLine.arguments[1] == DocumentTextRequest.command {
+            exit(await DocumentTextExtractor.run(Array(CommandLine.arguments.dropFirst())))
+        }
         if CommandLine.arguments.count == 5, CommandLine.arguments[1] == "thumbnail" {
             exit(writeThumbnail() ? 0 : 1)
         }

@@ -26,13 +26,21 @@ struct HTTPAIProvider: AIProvider {
                     guard response.statusCode == 200 else {
                         let body = await Self.body(of: bytes)
                         try Task.checkCancellation()
-                        throw AIProviderError.responseFailed(
-                            AIProviderFailure.description(
-                                status: response.statusCode, body: body,
-                                retryAfter: response.value(forHTTPHeaderField: "Retry-After"),
-                                secrets: secrets))
+                        let retryAfter = response.value(forHTTPHeaderField: "Retry-After")
+                        let message = AIProviderFailure.description(
+                            status: response.statusCode, body: body, retryAfter: retryAfter, secrets: secrets)
+                        // Fork: a run tries a busy or rate-limited route again, and sheds a full window.
+                        if let recoverable = AIProviderFailure.recoverable(
+                            status: response.statusCode, body: body, retryAfter: retryAfter, message: message)
+                        {
+                            throw recoverable
+                        }
+                        throw AIProviderError.responseFailed(message)
                     }
-                    var decoder = AIStreamDecoder(shape: configuration.shape, secrets: secrets)
+                    // Fork: the route and model stamp the reasoning it keeps, so only they are sent it again.
+                    var decoder = AIStreamDecoder(
+                        shape: configuration.shape, secrets: secrets, model: configuration.model,
+                        route: configuration.route)
                     var chunk = Data()
                     chunk.reserveCapacity(2_048)
                     // Per line, not per 2 KB: a short reply must show before the stream closes.
@@ -52,15 +60,21 @@ struct HTTPAIProvider: AIProvider {
                         for event in try decoder.finish() { continuation.yield(event) }
                     }
                     guard decoder.isTerminal else {
-                        throw AIProviderError.responseFailed(
-                            String(localized: "The connection closed before the response completed."))
+                        // Fork: a dropped stream may pass on a retry.
+                        throw AIProviderRecoverableError(
+                            kind: .transient(retryAfter: nil),
+                            message: String(localized: "The connection closed before the response completed."))
                     }
                     continuation.finish()
                 } catch is CancellationError {
                     continuation.finish()
                 } catch let error as URLError {
+                    let message = Self.networkMessage(error.code)
+                    // Fork: a network that dropped or never answered may be back for a retry.
                     continuation.finish(
-                        throwing: AIProviderError.responseFailed(Self.networkMessage(error.code)))
+                        throwing: Self.transientCodes.contains(error.code)
+                            ? AIProviderRecoverableError(kind: .transient(retryAfter: nil), message: message)
+                            : AIProviderError.responseFailed(message))
                 } catch {
                     continuation.finish(throwing: error)
                 }
@@ -137,6 +151,11 @@ struct HTTPAIProvider: AIProvider {
             return body
         }
     }
+
+    private static let transientCodes: Set<URLError.Code> = [
+        .networkConnectionLost, .notConnectedToInternet, .timedOut, .cannotFindHost, .cannotConnectToHost,
+        .dnsLookupFailed
+    ]
 
     private static func networkMessage(_ code: URLError.Code) -> String {
         switch code {

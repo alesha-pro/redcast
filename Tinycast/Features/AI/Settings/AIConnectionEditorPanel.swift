@@ -106,6 +106,8 @@ struct AIConnectionEditorPanel: View {
                 }
 
                 headersSection
+                // Fork: whether a reply's reasoning goes back to the model that wrote it.
+                reasoningSection
 
                 Section {
                     modelDiscoveryContent
@@ -307,6 +309,30 @@ struct AIConnectionEditorPanel: View {
             TextField("Model ID", text: $modelQuery, prompt: Text(modelPlaceholder))
                 .settingsEditorTextField()
                 .onSubmit(addManualModel)
+        }
+    }
+
+    /// Fork: Automatic follows each provider's documented rules; the other two are for a gateway.
+    private var reasoningSection: some View {
+        Section {
+            editorField("Send reasoning back") {
+                Picker("Send reasoning back", selection: $connection.reasoningReplay) {
+                    Text("Automatic").tag(AIConnection.ReasoningReplay?.none)
+                    Text("Always").tag(AIConnection.ReasoningReplay?.some(.always))
+                    Text("Never").tag(AIConnection.ReasoningReplay?.some(.never))
+                }
+                .labelsHidden()
+            }
+        } footer: {
+            Text(
+                """
+                Thinking models need their own reasoning back between tool calls. Automatic sends it \
+                only to the model that wrote it, as its provider documents. Always sends earlier \
+                turns' reasoning too and asks the provider to keep it; Never sends none.
+                """
+            )
+            .font(.caption)
+            .foregroundStyle(.secondary)
         }
     }
 

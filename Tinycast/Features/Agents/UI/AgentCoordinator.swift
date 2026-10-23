@@ -214,6 +214,20 @@ final class AgentCoordinator {
         return prompt + "\n\n" + AgentBackgroundBriefing.text
     }
 
+    /// An agent chat on Tinycast's loop: its own prompt and the user's standing text, no launcher blurb.
+    func loopInstructions(for chat: AIChatState) -> String? {
+        guard let agent = agent(for: chat), agent.runtime == nil else { return nil }
+        let settings = core.aiSettings
+        let unattended = backgroundRuns?.isUnattended(chat.session.id) == true
+        let own = settings.systemPrompt.trimmingCharacters(in: .whitespacesAndNewlines)
+        let standing =
+            settings.systemPromptEnabled
+            ? [settings.choicesEnabled && !unattended ? AIPreamble.choices : "", own] : []
+        return context(for: agent).prompt(
+            now: Date(), timeZone: .current, hasTools: true,
+            standing: standing + (unattended ? [AgentBackgroundBriefing.text] : []))
+    }
+
     /// An agent chat's turn on the fork's loop, MCP's tools beside its own; nil leaves it upstream.
     func loop(over base: any AIProvider, mcpTools: [AITool], in chat: AIChatState) -> (any AIProvider)? {
         guard let agent = agent(for: chat), agent.runtime == nil else { return nil }
@@ -227,7 +241,14 @@ final class AgentCoordinator {
                     AgentCompaction.Entry(id: $0.id, isUser: $0.role == .user, text: $0.text)
                 } ?? []
             })
-        let turn = loop(for: agent, over: base, mode: mode, mcpTools: mcpTools, compaction: compaction) { call in
+        // A reply the last turn could not finish is left out of history; this turn gets it back.
+        let interrupted = chat.session.messages.last.flatMap { last in
+            last.role == .assistant && last.state == .failed && !last.text.isEmpty ? last.text : nil
+        }
+        let turn = loop(
+            for: agent, over: base, mode: mode, mcpTools: mcpTools, compaction: compaction,
+            lead: AgentTurnLead(resuming: interrupted)
+        ) { call in
             await mcp.invoke(call, in: chatID)
         }
         guard let turn, backgroundRuns?.isCapped(chatID) == true else { return turn }
@@ -239,17 +260,34 @@ final class AgentCoordinator {
     /// The one place a turn's tools are assembled: a chat now, a run with no window later.
     func loop(
         for agent: AgentProfile, over base: any AIProvider, mode: AgentRunMode,
-        mcpTools: [AITool] = [], compaction: AgentCompaction.Source? = nil,
+        mcpTools: [AITool] = [], compaction: AgentCompaction.Source? = nil, lead: AgentTurnLead = AgentTurnLead(),
         mcp: @escaping @Sendable (AIToolCall) async -> AIToolResult = {
             .failure($0.id, "There is no tool called \($0.name).")
         }
     ) -> AgentLoopProvider? {
         let context = context(for: agent)
-        let turn = AgentTurn(
+        var turn = AgentTurn(
             profile: agent, skills: context.skills, memoryURL: store.memoryURL(for: agent.id),
             mode: mode, isBackground: backgroundRuns?.isUnattended(mode.chatID) == true)
+        let run = backgroundRuns?.effort(forChat: mode.chatID)
+        let effort = run ?? agent.effortLevel
+        let budget = effort.budget
+        // One clock for the run and its sub-agents, so a child never outlasts its parent's limit.
+        let clock = run.map { _ in AgentRunClock(limit: .seconds(budget.minutes * 60)) }
+        var lead = lead
+        lead.opening = AgentTurnLead.opening(
+            now: Date(), timeZone: .current, budget: budget, effort: effort.rawValue.capitalized + " effort")
+        let chatID = mode.chatID
+        // An earlier turn's personal reads stay in its replies, so this turn starts narrowed too.
+        let personal = store.personalChats.contains(chatID)
+        let web = AgentWebScope(unattended: !turn.isUserTurn, personal: personal) { [weak self] in
+            Task { @MainActor in self?.store.notePersonal(forChat: chatID) }
+        }
+        turn.web = web
         let toolset = AgentToolset(
-            turn: turn, providers: providers(for: agent, in: context, over: base, mode: mode),
+            turn: turn,
+            providers: providers(
+                for: agent, in: context, over: base, mode: mode, budget: budget, clock: clock, web: web),
             mcpTools: mcpTools, mcp: mcp,
             refused: { [weak self] _ in
                 guard case .unattended(let chatID) = mode else { return }
@@ -261,18 +299,24 @@ final class AgentCoordinator {
         }
         guard !toolset.tools.isEmpty else { return nil }
         return AgentLoopProvider(
-            base: base, toolset: toolset, maxRounds: core.aiSettings.toolRounds.limit,
-            compaction: compaction)
+            base: AgentWebRounds(base: base, scope: web), toolset: toolset, budget: budget,
+            compaction: compaction, outputCap: AgentTurnBudget.outputTokens, origin: agent.name, lead: lead,
+            clock: clock)
     }
 
     /// The registry: one line per family, built per turn so nothing stays resident between turns.
     private func providers(
-        for agent: AgentProfile, in context: AgentContext, over base: any AIProvider, mode: AgentRunMode
+        for agent: AgentProfile, in context: AgentContext, over base: any AIProvider, mode: AgentRunMode,
+        budget: AgentRunBudget, clock: AgentRunClock?, web: AgentWebScope
     ) -> [any AgentToolProvider] {
         var providers = familyProviders(for: agent)
         providers.append(AgentPlanTools())
-        if agent.tools.contains(.delegate) {
-            providers.append(delegate(for: agent, in: context, over: base, parent: mode.chatID))
+        // An effort with no sub-agents does not offer delegate at all, rather than refuse it.
+        if agent.tools.contains(.delegate), budget.subAgents > 0 {
+            providers.append(
+                delegate(
+                    for: agent, in: context, over: base, parent: mode.chatID,
+                    allowance: AgentSubAgentAllowance(budget.subAgents), clock: clock, web: web))
         }
         return providers
     }
@@ -296,7 +340,8 @@ final class AgentCoordinator {
 
     /// A read-only copy of the agent with no delegate of its own, so sub-agents stop at one level.
     private func delegate(
-        for agent: AgentProfile, in context: AgentContext, over base: any AIProvider, parent: UUID
+        for agent: AgentProfile, in context: AgentContext, over base: any AIProvider, parent: UUID,
+        allowance: AgentSubAgentAllowance, clock: AgentRunClock?, web: AgentWebScope
     ) -> AgentDelegateTools {
         var reader = agent
         reader.access = .readOnly
@@ -304,7 +349,7 @@ final class AgentCoordinator {
         let toolset = AgentToolset(
             turn: AgentTurn(
                 profile: reader, skills: context.skills, memoryURL: store.memoryURL(for: agent.id),
-                mode: .unattended(parent)),
+                mode: .unattended(parent), web: web),
             providers: familyProviders(for: reader), mcpTools: [], offering: AgentToolRisk.reads,
             mcp: { .failure($0.id, "There is no tool called \($0.name).") },
             // A sub-agent never asks, so what it is refused counts toward its parent's active run.
@@ -320,7 +365,12 @@ final class AgentCoordinator {
             globalInstructions: context.globalInstructions, skills: context.skills, memory: context.memory
         ).prompt(now: Date(), timeZone: .current, hasTools: true)
         return AgentDelegateTools(
-            base: base, toolset: toolset, instructions: prompt + "\n\n" + AgentDelegateTools.briefing)
+            base: AgentWebRounds(base: base, scope: web, readsMessages: false), toolset: toolset,
+            instructions: prompt + "\n\n" + AgentDelegateTools.briefing,
+            allowance: allowance,
+            opening: AgentTurnLead.opening(
+                now: Date(), timeZone: .current, budget: .subAgent, effort: "Sub-task"),
+            clock: clock)
     }
 
     /// Whether this chat's agent is offered `web_search`: Web ticked, and not Never Allow.
@@ -490,6 +540,7 @@ final class AgentCoordinator {
     /// A deleted chat's agent, notes and pending ACP briefing go with it.
     func chatDeleted(_ id: UUID) {
         store.removeSummary(forChat: id)
+        store.forgetPersonal([id])
         forgetACPSession(ofChat: id)
         store.unbind([id])
     }
@@ -545,5 +596,6 @@ extension AppCore {
         // An open chat with no message yet keeps the agent picked for it.
         let open = kept.union(aiChats.live.map(\.session.id))
         agentStore.unbind(agentStore.chatAgents.keys.filter { !open.contains($0) })
+        agentStore.forgetPersonal(agentStore.personalChats.subtracting(open))
     }
 }

@@ -61,7 +61,9 @@ and `SettingsSearchCatalog`.
   Search is turned on (⌘K in Quick AI, the **+** menu in AI Chat), naming the item as the app's
   language spells it, and invents no current figures; a chat with MCP tools hears that built-in
   search is off, and gives that line only when none of its tools can look the answer up. An agent's
-  chat gets only the time: its own prompt describes its tools.
+  chat on Tinycast's loop gets none of it: its own prompt names the zone and describes its tools, and
+  its loop leads each turn's question with the time to the minute ([agents](agents.md#invariants));
+  an agent on Codex or Claude gets only the time.
 - **To the quarter hour, so the cache keeps.** The instructions open every request, and a provider's
   prompt cache (Anthropic's and OpenRouter's for Claude, the automatic prefix caches elsewhere) is
   lost whenever they change, so the time is a fifteen-minute window (`ChatBriefing.clockStep`)

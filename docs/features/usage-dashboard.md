@@ -163,8 +163,8 @@ search keywords in `SettingsSearchCatalog`.
 ## Manual sweep
 
 - AI off: the section is dimmed and shows no lines; no query runs.
-- AI on, Month: models with their replies, tokens (input counts cached prompt tokens; hover shows
-  the cached and thinking parts) and cost, dearest first; the summary totals them.
+- AI on, Month: models with their replies, tokens (input counts cached prompt tokens, the cache's
+  hits on every route; hover shows the cached and thinking parts) and cost, dearest first; the summary totals them.
 - Day and Week: ‹ and › step back and forward; › is disabled on the current period; titles read
   Today, Yesterday, This Week, This Month, then dates.
 - A chat on OpenRouter adds its cost; a five-round agent turn on OpenRouter shows the turn's summed

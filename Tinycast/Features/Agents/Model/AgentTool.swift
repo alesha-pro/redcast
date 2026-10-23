@@ -41,6 +41,8 @@ struct AgentTurn: Sendable {
     let mode: AgentRunMode
     /// A schedule's or the launcher's run: nobody sent it, though a dialog may still reach them.
     var isBackground = false
+    /// What its `web_fetch` may open; a sub-agent shares its parent's.
+    var web: AgentWebScope?
 
     /// The user sent this turn from its chat; never a background run or a sub-agent.
     var isUserTurn: Bool {

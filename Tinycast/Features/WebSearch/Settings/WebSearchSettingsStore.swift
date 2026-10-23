@@ -54,9 +54,9 @@ final class WebSearchSettingsStore {
 
     /// A chat without an agent: these engines, and `read_page` through `web_fetch`'s own read.
     func chatTools() -> WebChatTools {
-        WebChatTools(search: runner(reader: WebPageTool.name)) { url in
-            switch await AgentToolExecutor.readPage(url) {
-            case .success(let text): (text, false)
+        WebChatTools(search: runner(reader: WebPageTool.name)) { url, part, pages in
+            switch await WebPageReader.read(url, part: part, pages: pages, tool: WebPageTool.name) {
+            case .success(let read): (read.text, false)
             case .failure(let failure): (failure.message, true)
             }
         }
