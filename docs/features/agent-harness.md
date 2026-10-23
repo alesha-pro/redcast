@@ -215,8 +215,11 @@ rounds of the request being sent; "earlier turns" are history replies loaded fro
 | OpenAI (`api.openai.com`) | nothing | — | — | — |
 | Any other OpenAI-compatible host | as it came | yes | Always only | — |
 
-Nothing goes back while the connection's thinking is switched off (`disablesThinking`), and nothing
-from a reply another model wrote. The rules, provider by provider:
+Nothing goes back from a reply another model wrote. While the connection's thinking is switched off
+(`disablesThinking`, the gateway's None), earlier turns' reasoning, DeepSeek's empty field and the
+body switches stay out; a reply of this turn that reasoned anyway still has its reasoning sent back,
+since the route ignored the switch: Qwen Cloud and DashScope read only `enable_thinking`, and GLM-5.3
+and Kimi K3 always think. The rules, provider by provider:
 
 - **DeepSeek.** [Thinking mode](https://api-docs.deepseek.com/guides/thinking_mode): "the
   `reasoning_content` must be fully passed back to the API in all subsequent requests" when the
