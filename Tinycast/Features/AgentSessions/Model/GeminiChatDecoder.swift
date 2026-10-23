@@ -1,6 +1,6 @@
 import Foundation
 
-/// Reads facts out of Gemini CLI chat files (`chats/session-*.jsonl`); never touches the filesystem.
+/// Reads facts out of Gemini CLI chats (`chats/session-*.jsonl`); never touches the filesystem.
 enum GeminiChatDecoder {
     /// A pre-JSONL `session-*.json` is one object, decoded whole once; past this it is skipped.
     static let legacyCap = 8 * 1_048_576
@@ -16,7 +16,7 @@ enum GeminiChatDecoder {
         var summary: String?, lastPrompt: String?
     }
 
-    /// A record by its opening bytes: metadata first, `$set`/`$patch`/`$rewindTo` updates, messages.
+    /// A record by its opening bytes: metadata, `$set`/`$patch`/`$rewindTo` updates, messages.
     enum LineKind: Equatable, Sendable { case metadata, update, message(user: Bool), other }
 
     /// Incremental head reader: feed chunks until it answers `true` or the cap is reached.
@@ -105,7 +105,7 @@ enum GeminiChatDecoder {
                 guard let record = ClaudeTranscriptDecoder.object(line), let id = record["id"] as? String else {
                     continue
                 }
-                // A reply is written again as its tool calls and tokens arrive; the last copy stands.
+                // A reply is rewritten as its tool calls and tokens arrive; the last copy stands.
                 if messages.updateValue(record, forKey: id) == nil { order.append(id) }
             case .update where line.starts(with: rewindOpening):
                 let target = ClaudeTranscriptDecoder.object(line)?["$rewindTo"] as? String

@@ -192,7 +192,7 @@ enum AgentSessionsScanner {
         return TranscriptIndexEntry(item: item, gemini: reader.finish(), tail: geminiTail(at: url))
     }
 
-    /// A reply is written again with its tool results, so the last prompt may sit past the narrow tail.
+    /// A reply is rewritten with its tool results, so the last prompt may sit past the narrow tail.
     private static func geminiTail(at url: URL) -> GeminiChatDecoder.TailFacts {
         guard let (window, offset) = window(at: url, length: ClaudeTranscriptDecoder.tailWindow) else { return .init() }
         let facts = GeminiChatDecoder.tail(window, startsMidLine: offset > 0)

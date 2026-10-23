@@ -11,7 +11,7 @@ enum ClaudeAppRoute {
         id.hasPrefix(recordPrefix) && AgentResumeCommand.isSafeID(String(id.dropFirst(recordPrefix.count)))
     }
 
-    /// The record's own id when its `cliSessionId` is `transcriptID`, the CLI transcript it runs on.
+    /// The record's own id when the CLI transcript it runs on, `cliSessionId`, is `transcriptID`.
     static func desktopID(inHead head: Data, transcriptID: String) -> String? {
         guard value(of: "cliSessionId", in: head) == transcriptID,
             let id = value(of: "sessionId", in: head), isDesktopID(id)

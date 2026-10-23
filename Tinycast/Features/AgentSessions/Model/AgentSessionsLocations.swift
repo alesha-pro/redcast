@@ -39,7 +39,7 @@ struct AgentSessionsLocations: Equatable, Sendable {
     var claudeProjects: URL { claude.appending(path: "projects", directoryHint: .isDirectory) }
     var codexState: URL { codex.appending(path: "state_5.sqlite", directoryHint: .notDirectory) }
     var codexHistory: URL { codex.appending(path: "thread_history_1.sqlite", directoryHint: .notDirectory) }
-    /// One folder per project, each with a `chats/` folder and a `.project_root` naming the project.
+    /// One folder per project, holding `chats/` and a `.project_root` that names the project.
     var geminiProjects: URL { home.appending(path: ".gemini/tmp", directoryHint: .isDirectory) }
     /// OpenCode follows XDG on macOS too, and Tinycast sees no `XDG_DATA_HOME`.
     var openCodeDatabase: URL {

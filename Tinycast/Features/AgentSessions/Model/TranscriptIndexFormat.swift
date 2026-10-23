@@ -1,6 +1,6 @@
 import Foundation
 
-/// One Claude Code or Gemini CLI transcript as its cache keeps it, so an open reads only what changed.
+/// A Claude Code or Gemini CLI transcript as cached, so an open reads only what changed.
 struct TranscriptIndexEntry: Codable, Equatable, Sendable {
     /// Relative to the cache's `projectsRoot`.
     var path: String
