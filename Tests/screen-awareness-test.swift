@@ -25,6 +25,7 @@ struct ScreenAwarenessTests {
         theAgentToolIsPersonalAndOptIn()
         await theAgentToolReadsOnlyWhenAllowed()
         await theAgentToolStaysUnderItsCut()
+        await everyScreenReadAsksUnderTheDefaultRules()
 
         print("\(passes) passed, \(failures) failed")
         if failures > 0 { exit(1) }
@@ -294,6 +295,40 @@ extension ScreenAwarenessTests {
         expect(
             ScreenAgentTools.maxBytes < 28 * 1_024 && ScreenAgentTools.maxBytes < AgentTurnBudget.resultBytes,
             "so the loop never cuts it again")
+    }
+}
+
+extension ScreenAwarenessTests {
+    static func everyScreenReadAsksUnderTheDefaultRules() async {
+        expect(
+            AgentConsentPolicy.rule(for: .personal, of: agent()) == .always
+                && AgentConsentPolicy.rule(for: .personal, in: .screen, of: agent()) == .ask,
+            "personal data is Always by default, but a screen read asks")
+        expect(
+            AgentConsentPolicy.rule(
+                for: .personal, in: .screen, of: agent(rules: AgentConsentRules(risks: [.personal: .never])))
+                == .never,
+            "while Never Allow on personal data still withholds it")
+        let call = AIToolCall(id: "s3", name: ScreenAgentTools.name, arguments: "{}")
+        func toolset(_ reads: Reads, answer: Bool, asked: Flag) -> AgentToolset {
+            AgentToolset(
+                turn: turn(agent()), providers: [tools(reads)], mcpTools: [], mcp: { .failure($0.id, "mcp") }
+            ) { spec, request in
+                asked.set("\(spec.grant == AgentGrant(family: .screen, risk: .personal)) \(request.summary)")
+                return answer
+            }
+        }
+        let refusing = Reads()
+        let askedNo = Flag()
+        let declined = toolset(refusing, answer: false, asked: askedNo)
+        let refused = await declined.run(call, signal: { _ in })
+        expect(
+            refused.isError && refusing.made == 0 && askedNo.value == "true Read the window of Safari",
+            "through the toolset the read asks for the Screen grant alone, names the app and reads nothing")
+        expect(!declined.isConcurrent(ScreenAgentTools.name), "and, since it asks, never shares a round")
+        let allowing = Reads()
+        let read = await toolset(allowing, answer: true, asked: Flag()).run(call, signal: { _ in })
+        expect(!read.isError && allowing.made == 1, "allowed, it reads the window once")
     }
 }
 
