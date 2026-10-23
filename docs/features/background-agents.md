@@ -202,7 +202,8 @@ other is written on disk and re-listed the next time Notes opens. With Notes off
 ### Daily spend cap
 
 **Daily spend cap** under the agents takes US dollars, empty for none; its subtitle adds what
-scheduled runs spent today. `agent-schedule-spend.json` holds the cap, the local day last counted and
+scheduled runs spent today, on a third line where a language needs one. The field is wide enough for
+its "No cap" placeholder in every language. `agent-schedule-spend.json` holds the cap, the local day last counted and
 that day's total (`AgentScheduleSpend`, every field optional); `AgentSpendPolicy` decides, and a new
 day starts at zero. A run is checked as it is due — at or past the cap it is held and its row reads
 "Not started: scheduled runs reached today's cap of $5.00", and opening that row shows the cap — and
@@ -293,7 +294,8 @@ day and time zone, like the schedules.
   Agents. Run Now and `@handle` still run. Empty the field: the next due run starts. Quit, set the
   file to `garbage` and relaunch: the field reads 0 and nothing scheduled starts until it is set.
   Quit, or turn AI off, while a capped run that has reported a cost is going: the subtitle's
-  spent-today still includes it afterwards.
+  spent-today still includes it afterwards. In Russian, the subtitle with a spent-today amount ends
+  on a third line with every word shown, and in French an empty field reads "Aucun plafond" whole.
 - AI off mid-run: the run ends "Cancelled", and the item and the scheduler go away.
 - With live status and **Show running agents in the menu bar** on, start a Claude CLI session and a
   `@rig` run: one item shows both under their headers and counts them. Let the run finish while the
