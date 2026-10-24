@@ -71,7 +71,7 @@ struct TinycastApp: App {
     private var menuBarCommands: some Commands {
         CommandGroup(replacing: .appInfo) {
             Button("About \(appName)") { AppCore.shared.settingsCoordinator.showAbout() }
-            Button("Check for Updates…") { AppCore.shared.updateCoordinator.checkForUpdates() }
+            // Fork: no "Check for Updates…"; the fork's builds never update themselves.
         }
         CommandGroup(replacing: .appSettings) {
             Button("Settings…") { AppCore.shared.settingsCoordinator.showSettings() }

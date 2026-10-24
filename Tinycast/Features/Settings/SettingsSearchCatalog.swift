@@ -753,14 +753,9 @@ enum SettingsSearchCatalog {
         .init(
             pane: .about,
             keywords: ["version", "licence", "license", "credits"]),
-        .init(
-            .aboutAbout, "Check for Updates",
-            keywords: ["version", "upgrade", "release"]),
+        // Fork: About keeps only its links; no update check or donations.
         .init(
             group: .aboutLinks, "Links",
-            keywords: ["github", "source", "issues", "website"]),
-        .init(
-            .aboutLinks, "Support",
-            keywords: ["donate", "sponsor", "funding"])
+            keywords: ["github", "source", "upstream", "tinycast"])
     ]
 }
