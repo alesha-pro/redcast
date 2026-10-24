@@ -70,6 +70,7 @@ final class ChatSelectableTextView: NSTextView {
     private let measurer = NSLayoutManager()
     private let measuringContainer = NSTextContainer(size: .zero)
     private var measured: (width: CGFloat?, size: CGSize)?
+    lazy var chatViewport = ChatTextViewport(text: self)  // Fork: draws the visible slice
 
     init() {
         let storage = NSTextStorage()
@@ -94,10 +95,12 @@ final class ChatSelectableTextView: NSTextView {
         allowsUndo = false
         // Fork: links in the accent, as Raycast's are.
         linkTextAttributes = [.foregroundColor: Theme.Colors.accentInk, .cursor: NSCursor.pointingHand]
+        addSubview(chatViewport)  // Fork: under the code headers
     }
 
     override init(frame frameRect: NSRect, textContainer container: NSTextContainer?) {
         super.init(frame: frameRect, textContainer: container)
+        addSubview(chatViewport)  // Fork
     }
 
     @available(*, unavailable)
@@ -178,6 +181,7 @@ final class ChatSelectableTextView: NSTextView {
     override func setFrameSize(_ newSize: NSSize) {
         super.setFrameSize(newSize)
         layoutOverlays()
+        chatViewport.place()  // Fork
     }
 
     override func mouseMoved(with event: NSEvent) {

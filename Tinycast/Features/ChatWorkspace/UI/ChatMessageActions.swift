@@ -20,9 +20,9 @@ extension View {
         modifier(ChatWorkspaceActionsWiring(chat: chat))
     }
 
-    /// The edited question's outline and its Editing tag.
-    func chatEditing(_ id: UUID) -> some View {
-        modifier(ChatEditingOutline(id: id))
+    /// The edited question's outline and its Editing tag; a reply, never edited, takes neither.
+    @ViewBuilder func chatEditing(_ message: ChatMessage) -> some View {
+        if message.role == .user { modifier(ChatEditingOutline(id: message.id)) } else { self }
     }
 
     /// A long question folds to ten lines with Show more; find opens it.
