@@ -357,6 +357,34 @@ $D/clipboard-thumbnail-performance /tmp/ctp --original
 $D/clipboard-thumbnail-performance /tmp/ctp --copies
 ```
 
+`Scripts/fork/chat-memory.sh` (fork) measures AI Chat's window. It compiles the app's own sources
+around `Tests/chat-memory-harness.swift` with `-O` and builds `AppCore` without `start()`, so no
+hotkey, clipboard or network work runs, and it loads a small interposer that refuses every
+`SecItem` call, so no run reads or writes the Keychain. Its fixture, written to the harness's own
+`com.tinycast.chat-memory` defaults and Application Support, has 107 chats on a stand-in
+OpenRouter connection at `127.0.0.1:9`; both are emptied before and after each run. Each cycle
+drives the real window: open, seven switches, paging up through the screenshot chat, Chat Settings
+open and closed, then close. It records phys_footprint and live malloc at each step, with their
+highs from a 2 ms sampler and the kernel's interval peak, and a `heap` count of watched classes
+after closing; `CHAT_MEMORY_CENSUS=1` takes that count after every step of the last cycle.
+`CHAT_MEMORY_SCROLL=1` instead scrolls the two tallest chats end to end and back at 3,000 pt/s,
+one precise wheel event per display frame sent to the real `NSScrollView`. Per pass it reports
+the frame intervals (p50, p95, max, frames over 16.7 ms, refreshes missed), the main thread's busy
+time per frame up to its idle, backward moves, the worst drift from the asked offset, and changes
+of the document's height. `CHAT_MEMORY_DETAIL=1` adds `footprint` and `heap -s` per step of the
+first cycle, and `CHAT_MEMORY_PANES=1` measures Settings › Shortcuts, › Backup and the Extension
+Store. A second argument measures another checkout with the same harness. It is not part of the
+suite:
+
+```sh
+CHAT_MEMORY_ONSCREEN=1 ./Scripts/fork/chat-memory.sh /tmp/chat-memory.tsv          # this tree
+CHAT_MEMORY_ONSCREEN=1 CHAT_MEMORY_SCROLL=1 ./Scripts/fork/chat-memory.sh /tmp/scroll.tsv . 3
+CHAT_MEMORY_ONSCREEN=1 ./Scripts/fork/chat-memory.sh /tmp/before.tsv ../other-checkout 2
+```
+
+Without `CHAT_MEMORY_ONSCREEN` the window is moved off every screen, and an occluded window skips
+the GPU work a visible one does, so compare only runs made the same way.
+
 `Tests/agent-sessions-performance.swift` folds 1,000 synthetic sessions, ranks 50 typed prefixes and
 decodes the head and tail of 500 synthetic 96 KB transcripts, printing milliseconds as JSON:
 

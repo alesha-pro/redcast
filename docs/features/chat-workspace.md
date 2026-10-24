@@ -63,6 +63,9 @@ that touches them stays mechanical.
   the one a chat started in the folder begins on (New Chat in Folder), bound like a pick in the
   composer, so the working directory is the agent's: a folder adds no second one. ACP agents brief
   their own sessions and are not sent these instructions.
+- **The window's transcript is upstream's eager stack, drawn by AppKit as before.** No lazy stack
+  and no custom text drawing, so scrolling is exactly upstream's; memory is saved only around it.
+  See [Memory](#memory); `Scripts/fork/chat-memory.sh` measures both memory and scrolling.
 
 ## Folders
 
@@ -161,6 +164,58 @@ Everything here is a token: `Theme.Colors.chat…` and `RaycastHue.ink`/`wash` i
   fold's brain magenta. A failed call stays red.
 - A code block's language is a small pill in its language's hue (`CodeLanguageHue`).
 - The composer's caret and selection are the accent's (`ChatComposerInk`).
+
+## Memory
+
+The model: a chat opens whole, as upstream's eager stack builds it, and everything it built goes
+when the window leaves it, by a switch or a close. Nothing changes how a transcript lays out,
+draws or scrolls.
+
+**Tried and reverted.** `ddef6f46` made the window's transcript a `LazyVStack`
+(`ChatTranscriptStack`) and drew each reply's text per visible slice into an `IOSurface` on the
+CPU (`ChatTextViewport`). Its harness showed the window under idle + 100 MB, but on the owner's
+chats scrolling stuttered, jumped and would not settle, since a lazy stack replaces estimated
+heights under the reader and the slice redrew on every bounds change; the installed app still
+spiked to 240 MB and settled at 370 MB. `96cb7402` reverted all of it. The harness had missed
+both, because its 40 chats were small and alike, its screenshots compressed to a fraction of a
+real one, and it never timed a scroll.
+
+**Measured with** `Scripts/fork/chat-memory.sh` (`-O`, macOS 27, on screen, 120 Hz display; see
+[testing](../testing.md)). The fixture now holds 107 chats: a hundred short ones, the four
+60-message chats (code, tables, math, tool rows, sources, file links, reasoning), and three more
+like the owner's: eight replies of 5,266 lines in all (prose that wraps, lists, code, tables); an
+agent run of 24 turns with 288 tool rows whose arguments run to 200 characters, diffs and output
+under a third of them, 72 reasoning folds, text between the calls and eleven files with a folder
+per reply for the links and Files strip; and 40 messages of long Russian prose. The screenshot
+chat carries eight 3456×2234 screenshots of 3.6 MB each. Each cycle opens on a long chat, switches
+seven times (short, the long replies, short, the agent run, Russian, math, screenshots), pages up
+through the screenshots, opens and closes Chat Settings and closes the window. Idle is 11 MB of
+footprint and 2.6 MB of live malloc; the harness has no palette or launcher, so the app's idle is
+about 20 MB higher.
+
+| Cycle 2, MB | 96cb7402 |
+| --- | ---: |
+| Footprint peak, open to close | 691 |
+| Highest footprint while open | 661 |
+| Live malloc peak | 230 |
+| Footprint 4 s after closing | 170 |
+| Live malloc after closing | 58 |
+
+Scrolling, a steady 3,000 pt/s down and back up, three passes of each, as ranges over the passes
+(frame interval and main-thread busy time per frame, ms):
+
+| | 96cb7402 |
+| --- | --- |
+| Long replies (133,860 pt): interval p50 / p95 / max | 8.3 / 8.3–8.4 / 12.5–16.7 |
+| frames over 16.7 ms, refreshes missed | 0, 1–3 |
+| busy p50 / p95 / max | 6.1–6.4 / 6.6–7.5 / 9.8–12.8 |
+| Agent run (47,167 pt): interval p50 / p95 / max | 16.7 / 16.7–17.5 / 24.5–30.3 |
+| frames over 16.7 ms, refreshes missed | 23–86, 944–972 |
+| busy p50 / p95 / max | 15.2–16.3 / 16.1–17.3 / 20.1–25.4 |
+
+No pass moved backwards or changed the document's height, and the offset never strayed from the
+asked one by more than one frame's step (25 pt). The agent run holds 60 frames a second at best:
+its main thread spends a whole 120 Hz frame on each step.
 
 ## Manual sweep
 
