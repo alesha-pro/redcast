@@ -101,10 +101,10 @@ extension AIChatCoordinator: ChatSettingsSource {
         return workspace.temperature(for: chat.session.id)
     }
 
-    /// Only an HTTP route sends a temperature, and Gemini 3 loops below its own.
+    /// Only an HTTP route sends a temperature; Gemini 3 loops below its own, a ChatGPT plan refuses one.
     func takesTemperature(_ selection: AIModelSelection?) -> Bool {
         guard case .api(let connection, let model, _)? = selection,
-            let route = aiSettings.connection(id: connection)
+            let route = aiSettings.connection(id: connection), route.provider != .codexPlan
         else { return false }
         return AIBrand.resolve(provider: route.provider, model: model) != .gemini
     }
