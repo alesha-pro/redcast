@@ -18,6 +18,8 @@ final class QuickActionSettingsStore {
     private(set) var modelOverrides: [String: AIModelSelection] {
         didSet { persistModelOverrides() }
     }
+    /// Fork: routes a repair dropped, until a run says it used the default or the action is saved.
+    private(set) var lapsedOverrides: [String: AIModelSelection] = [:]
 
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
@@ -34,11 +36,8 @@ final class QuickActionSettingsStore {
         model = Self.decode(
             AIModelSelection.self,
             from: defaults.data(forKey: AppSettingsKey.quickActionModel.rawValue))
-        modelOverrides =
-            Self.decode(
-                [String: AIModelSelection].self,
-                from: defaults.data(forKey: AppSettingsKey.quickActionModelOverrides.rawValue))
-            ?? [:]
+        modelOverrides = QuickActionRoutes.decode(  // Fork: an unreadable entry costs only itself.
+            defaults.data(forKey: AppSettingsKey.quickActionModelOverrides.rawValue))
     }
 
     func select(_ selection: AIModelSelection?) {
@@ -54,6 +53,7 @@ final class QuickActionSettingsStore {
     }
 
     func setModelOverride(_ selection: AIModelSelection?, for action: QuickAction) {
+        lapsedOverrides[action.id] = nil  // Fork: a choice made after the lapse replaces it.
         guard !action.usesTranslationFramework, modelOverrides[action.id] != selection else { return }
         modelOverrides[action.id] = selection
     }
@@ -91,7 +91,14 @@ final class QuickActionSettingsStore {
 
     private func updateOverrides(_ transform: (AIModelSelection) -> AIModelSelection?) {
         let updated = modelOverrides.compactMapValues(transform)
+        let lapsed = QuickActionRoutes.lapsed(from: modelOverrides, to: updated)  // Fork: remembered
+        if !lapsed.isEmpty { lapsedOverrides.merge(lapsed) { $1 } }  // Fork
         if updated != modelOverrides { modelOverrides = updated }
+    }
+
+    /// Fork: the dropped route a run reports once, so it can say it ran on the default instead.
+    func takeLapsedOverride(for action: QuickAction) -> AIModelSelection? {
+        lapsedOverrides.removeValue(forKey: action.id)
     }
 
     private static func reaches(

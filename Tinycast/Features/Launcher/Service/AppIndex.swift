@@ -310,7 +310,8 @@ extension AppEntry {
             url: URL(string: "tinycast://quicklink/" + quicklink.id.uuidString)!,
             bundleID: nil, kind: .quicklink,
             symbolName: quicklink.iconSymbol
-                ?? QuicklinkDestination.detect(quicklink.link)?.defaultSymbol)
+                ?? QuicklinkDestination.detect(quicklink.link)?.defaultSymbol,
+            keywords: quicklink.tags)  // Fork: root search finds a quicklink by its tags.
     }
 
     /// No bundle id: that would key every shortcut's alias and ranking to the Shortcuts app.
@@ -576,7 +577,8 @@ final class AppIndex {
                     url: record.fileURL,
                     bundleID: nil,
                     kind: .snippet,
-                    alternateTitles: [record.snippet.keyword].compactMap { $0 })
+                    alternateTitles: [record.snippet.keyword].compactMap { $0 },
+                    keywords: record.snippet.tags)  // Fork: root search finds a snippet by its tags.
             }
             .sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
         guard entries != snippetEntries else { return }

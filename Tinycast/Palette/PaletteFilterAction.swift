@@ -8,6 +8,8 @@ enum PaletteFilterAction: Equatable {
     case fileSearchFilter
     case emojiCategory
     case aiModel
+    /// Fork: the Snippets and Quicklinks screens' tag filter.
+    case tagFilter
     /// No filter on the header, so the key stays with the search field.
     case ignored
 
@@ -22,6 +24,7 @@ enum PaletteFilterAction: Equatable {
         case .fileSearch: return .fileSearchFilter
         case .emoji: return .emojiCategory
         case .ai: return .aiModel
+        case .snippets, .quicklinks: return .tagFilter  // Fork: Tags
         default: return .ignored
         }
     }

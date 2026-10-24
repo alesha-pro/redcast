@@ -272,6 +272,10 @@ struct RootPaletteView: View {
             return headerMenu(fileSearchFilterContent, width: metrics.size.fileSearchFilterMenuWidth)
         case .emojiCategory:
             return headerMenu(emojiCategoryContent, width: metrics.size.emojiCategoryMenuWidth)
+        case .tagFilter:  // Fork: Tags
+            let tags = TagFilterMenu.tags(for: vm.mode, core: core) ?? []
+            return headerMenu(
+                TagFilterMenu.content(tags: tags) { vm.tagFilter = $0 }, width: metrics.size.menuWidth)
         case .aiModel:
             return headerMenu(
                 AIModelMenu.models(coordinator: core.aiChatCoordinator, chat: quickAI),
@@ -424,6 +428,7 @@ struct RootPaletteView: View {
             .modifier(ExtensionSelectionForwarder(screen: extensionScreen, selection: vm.selection))
             // A narrower list means the old index points at a different row, or at none.
             .onChange(of: vm.clipboardFilter) { land(restoringSelection: true) }
+            .onChange(of: vm.tagFilter) { land(restoringSelection: true) }  // Fork: Tags
             // The filter is part of the query, so narrowing re-runs it rather than thinning rows.
             .onChange(of: vm.fileSearchFilter) {
                 land()
@@ -433,6 +438,7 @@ struct RootPaletteView: View {
                 vm.clipboardFilter = .all
                 vm.fileSearchFilter = .all
                 vm.emojiCategoryFilter = .all
+                vm.tagFilter = nil  // Fork: Tags
                 vm.emojiGridColumnsOverride = nil
                 if menuOpen { closeMenus() }
                 land(restoringSelection: true)
@@ -735,6 +741,11 @@ struct RootPaletteView: View {
                     help: String(localized: "Filter by category  ⌘P"),
                     action: toggleEmojiCategory)
             }
+            if !isCollapsed, TagFilterMenu.tags(for: vm.mode, core: core) != nil {  // Fork: Tags
+                headerGutter(width: metrics.spacing.md)
+                TagFilterButton(
+                    selection: vm.tagFilter, isOpen: openMenu == .tagFilter, action: toggleTagFilter)
+            }
             if !isCollapsed, vm.mode == .ai {
                 headerGutter(width: metrics.spacing.md)
                 AIModelButton(
@@ -1027,6 +1038,7 @@ struct RootPaletteView: View {
         case .fileSearchFilter: toggleFileSearchFilter()
         case .emojiCategory: toggleEmojiCategory()
         case .aiModel: toggleAIModel()
+        case .tagFilter: toggleTagFilter()  // Fork: Tags
         case .ignored: return false
         }
         return true
@@ -1039,6 +1051,16 @@ struct RootPaletteView: View {
         }
         let active = EmojiCategoryFilter.allCases.firstIndex(of: vm.emojiCategoryFilter) ?? 0
         open(.emojiCategory, highlighting: active)
+    }
+
+    /// Fork: a library without tags has no button, so ⌘P opens nothing there either.
+    private func toggleTagFilter() {
+        if openMenu == .tagFilter {
+            closeMenus()
+            return
+        }
+        guard let tags = TagFilterMenu.tags(for: vm.mode, core: core) else { return }
+        open(.tagFilter, highlighting: TagFilterMenu.highlight(tags: tags, selection: vm.tagFilter))
     }
 
     private func toggleExtensionSearchAccessory() {
@@ -1271,7 +1293,7 @@ struct RootPaletteView: View {
         case .argumentOptions: .belowHeaderTrailing
         case .inputOptions(let corner): corner
         case .clipboardFilter, .fileSearchFilter, .emojiCategory, .aiModel, .aiReasoning,
-            .aiAttachments, .extensionAccessory:
+            .aiAttachments, .extensionAccessory, .tagFilter:  // Fork: Tags
             .belowHeaderTrailing
         case nil: nil
         }
@@ -1586,6 +1608,7 @@ private enum OpenMenu: Equatable {
     case aiModel
     case aiReasoning
     case aiAttachments
+    case tagFilter  // Fork: Tags
 }
 
 /// Reads visibility in its own body, so a summon never re-renders the palette's.

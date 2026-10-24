@@ -10,9 +10,10 @@ struct QuicklinkListScreen: PaletteScreen {
     let openArgumentOptions: (String) -> Void
 
     var rows: [Quicklink] {
+        let enabled = TagList.filter(store.enabled, by: vm.tagFilter, tags: \.tags)  // Fork: ⌘P tag filter
         let query = vm.query.trimmingCharacters(in: .whitespaces)
-        guard !query.isEmpty else { return store.enabled }
-        return store.enabled.filter { $0.name.localizedCaseInsensitiveContains(query) }
+        guard !query.isEmpty else { return enabled }
+        return enabled.filter { TagList.row(matching: query, texts: [$0.name], tags: $0.tags) }  // Fork: Tags
     }
 
     var primaryActionTitle: String { String(localized: "Open Quicklink") }

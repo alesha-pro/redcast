@@ -42,7 +42,8 @@ enum RaycastQuicklinkImport {
                 link: link,
                 openWithBundleID: openWithBundleID(
                     in: entry, platforms: platforms, bundleIDForAppPath: bundleIDForAppPath),
-                createdAt: date(entry["createdAt"] as? String, fractional: fractional, whole: whole))
+                createdAt: date(entry["createdAt"] as? String, fractional: fractional, whole: whole),
+                tags: TagList.imported(entry["tags"]))  // Fork: Tags
         }
     }
 

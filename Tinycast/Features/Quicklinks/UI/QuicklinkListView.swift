@@ -116,6 +116,7 @@ private struct QuicklinkRow: View {
                     .truncationMode(.middle)
             }
             Spacer(minLength: metrics.spacing.lg)
+            TagChips(tags: quicklink.tags)  // Fork: Tags
             if !quicklink.showsInRootSearch {
                 Image(systemName: "eye.slash")
                     .font(.system(size: 10))

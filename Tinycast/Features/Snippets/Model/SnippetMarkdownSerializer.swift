@@ -27,8 +27,12 @@ struct SnippetMarkdownSerializer {
         var isEnabled = true
         var showsConfirmation = false
         var seenKeys = Set<String>()
+        var tags: [String] = []  // Fork: Tags
+        var unknown: [String] = []  // Fork: Tags
 
-        for lineIndex in 1..<closingIndex {
+        var lineIndex = 0  // Fork: a block value consumes the lines under its key.
+        while lineIndex + 1 < closingIndex {
+            lineIndex += 1
             let line = lines[lineIndex]
             let lineNumber = lineIndex + 1
             guard !line.text.trimmingCharacters(in: .whitespaces).isEmpty else { continue }
@@ -40,7 +44,14 @@ struct SnippetMarkdownSerializer {
             let rawKey = line.text[..<separator].trimmingCharacters(in: .whitespaces)
             let rawValue = line.text[line.text.index(after: separator)...]
                 .trimmingCharacters(in: .whitespaces)
-            guard let key = canonicalKey(for: rawKey) else {
+            let known = canonicalKey(for: rawKey)
+            let block = blockLines(after: &lineIndex, below: closingIndex, in: lines, for: known)  // Fork
+            guard let key = known else {
+                // Fork: an unknown key and its block are kept as written; only retired keys are refused.
+                guard retiredKeys.contains(rawKey.lowercased()) else {
+                    unknown += [String(line.text)] + block.map(String.init)
+                    continue
+                }
                 throw parseError(
                     fileURL, line: lineNumber, String(localized: "Unsupported frontmatter key '\(rawKey)'"))
             }
@@ -60,6 +71,8 @@ struct SnippetMarkdownSerializer {
                 isEnabled = try decodeBoolean(rawValue, fileURL: fileURL, line: lineNumber)
             case "show_confirmation":
                 showsConfirmation = try decodeBoolean(rawValue, fileURL: fileURL, line: lineNumber)
+            case TagFrontmatter.key:  // Fork: Tags
+                tags = TagFrontmatter.decode(rawValue, items: block)
             default:
                 preconditionFailure("Canonical keys are exhaustively handled")
             }
@@ -71,7 +84,8 @@ struct SnippetMarkdownSerializer {
             text: String(content[bodyStart...]),
             keyword: keyword,
             isEnabled: isEnabled,
-            showsConfirmation: showsConfirmation
+            showsConfirmation: showsConfirmation,
+            tags: tags, unknownFrontmatter: unknown  // Fork: Tags
         )
     }
 
@@ -83,8 +97,12 @@ struct SnippetMarkdownSerializer {
         if let keyword = snippet.keyword {
             lines.append("keyword: \(encodeScalar(keyword))")
         }
+        if !snippet.tags.isEmpty {  // Fork: Tags
+            lines.append("\(TagFrontmatter.key): \(TagFrontmatter.encode(snippet.tags))")
+        }
         lines.append("enabled: \(snippet.isEnabled)")
         lines.append("show_confirmation: \(snippet.showsConfirmation)")
+        lines += snippet.unknownFrontmatter  // Fork: Tags
         lines.append("---")
         return lines.joined(separator: "\n") + "\n" + snippet.text
     }
@@ -134,11 +152,27 @@ struct SnippetMarkdownSerializer {
     private static func canonicalKey(for rawKey: String) -> String? {
         let key = rawKey.lowercased()
         switch key {
-        case "name", "keyword", "enabled", "show_confirmation":
+        case "name", "keyword", "enabled", "show_confirmation", TagFrontmatter.key:  // Fork: Tags
             return key
         default:
             return nil
         }
+    }
+
+    /// Fork: keys that once meant something, so a file still carrying one is reported, not half-read.
+    private static let retiredKeys: Set = ["showinlauncher", "category", "show_in_launcher", "show_hud"]
+
+    /// Fork: only a key whose value may be a block takes the indented or `- ` lines below it.
+    private static func blockLines(
+        after index: inout Int, below end: Int, in lines: [SourceLine], for key: String?
+    ) -> [Substring] {
+        guard key == nil || key == TagFrontmatter.key else { return [] }
+        var block: [Substring] = []
+        while index + 1 < end, TagFrontmatter.isContinuation(lines[index + 1].text) {
+            index += 1
+            block.append(lines[index].text)
+        }
+        return block
     }
 
     private static func decodeScalar(_ value: String, fileURL: URL, line: Int) throws -> String {

@@ -27,6 +27,9 @@ every shortcut without re-registering.
   attached — name, link, alias, shortcut, favorite slot, ranking — stays exactly as it was. The
   **Settings → Quicklinks** row is the one place that turns it back on, through the checkbox launcher
   items and custom commands carry: last in the row, dimming the alias field and shortcut recorder.
+- **Fork: tags are one more column, and a row from before them reads as untagged.** `tags` is a JSON
+  array in `quicklinks.tags`, added by the same unchecked `ALTER TABLE` as `is_enabled`; every write
+  normalises through `TagList`. See [Tags](#tags-fork).
 - **There is one template engine.** Quicklinks expand through `SnippetTemplateEngine` rather than a
   second parser, which is what makes `| raw` mean something — it opts a value out of the automatic
   percent-encoding a URL destination asks for. `{selectedText}` is accepted as an alias for
@@ -167,7 +170,8 @@ Tinycast's own dialog and leaves no partial state.
 ## Search and pinning
 
 Quicklinks are their own `AppEntry.Kind`, their own `AppIndex` slice and their own launcher section,
-between System Settings and Snippets. Only the **name** is indexed; the destination is not searchable
+between System Settings and Snippets. Only the **name** is indexed (and, in the fork, its tags as
+`keywords`, which find but never rank); the destination is not searchable
 (a URL is a subsequence of almost any query) — beside the name, a quicklink answers to whatever
 [user alias](launcher.md#user-aliases) its Settings row carries, which is why a hidden one dims the
 field. Per-quicklink "Show in root search" filters the slice;
@@ -217,9 +221,9 @@ buttons all open `PaletteMode.quicklinkEditor`. `QuicklinkCoordinator` owns the 
 `QuicklinkEditorScreen` only adapts the palette contract, and `QuicklinkEditorView` owns the fields.
 The settings Library keeps its existing enable, alias, hotkey and deletion controls.
 
-The form contains only the existing link, name, icon, Open With, root-search and pin options. Insert
-stays beside the destination and writes plain placeholder text at the selection; there is no token
-markup or tag field. Insert, the icon selector and Open With use the palette's searchable menu with
+The form contains the existing link, name, icon, Open With, root-search and pin options, and (fork) a
+**Tags** token field after Open With, described under [Tags](#tags-fork). Insert stays beside the
+destination and writes plain placeholder text at the selection; there is no token markup in the link. Insert, the icon selector and Open With use the palette's searchable menu with
 their existing choices, including Automatic for icons and Default app for the application.
 Tab/Shift-Tab walk the form;
 the link wraps but stays one line, so Return adds no line break. ⌘↵ saves, and Escape or the back
@@ -288,8 +292,32 @@ path through `openWithPlatforms` when the field is a platform id. Invalid entrie
 entries merge into the existing library the same way **Import Quicklinks** does. Importing at least
 one turns the feature on — the switch grants no permission class.
 
+## Tags (fork)
+
+A quicklink carries tags with the same rules, editor field, chips, colours and ⌘P dropdown as a
+snippet — see [snippets.md](snippets.md#tags-fork) for the shared behaviour. What is quicklink-specific:
+
+- **Storage.** `QuicklinkStore` binds `TagList.column` (a JSON array, NULL when empty) as the tenth
+  column and reads it back through `TagList.tags(fromColumn:)`, which takes any build's value and reads
+  text that isn't JSON as a comma list. Duplicate keeps the tags; `validated` normalises them.
+- **Import & export.** `Quicklink`'s Codable carries `tags`, so an export writes them and a native
+  settings backup carries them. A file from before tags, or one whose `tags` isn't a list, imports
+  untagged rather than failing. `QuicklinkArchive.merge` keeps them, normalised.
+- **Raycast import** maps `tags` when the export has it, like snippets do.
+- **Search Quicklinks** filters by name or tag, `#wo` by tag alone, and ⌘P opens the tag dropdown;
+  ⌘P was unused there. The Quicklinks section of root search finds a row by its tags.
+
 ## Standalone harness
 
 ```sh
 ./Scripts/run-tests.sh quicklink-test
+./Scripts/run-tests.sh tags-test
 ```
+
+### Manual sweep (fork, tags)
+
+- Give a quicklink `docs` and `work` in its editor, save, reopen Search Quicklinks: two chips on the row,
+  in the same colours a snippet tagged `work` wears.
+- ⌘P on Search Quicklinks opens the tag dropdown; `docs` narrows the list, All Tags restores it. With no
+  tag in the library there is no button.
+- Export Quicklinks, delete one, import the file: its tags come back. Root search finds it by `docs`.

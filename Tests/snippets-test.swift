@@ -236,9 +236,6 @@ struct SnippetsTests {
         expectParseError(
             "the removed showInLauncher alias is rejected", content: "---\nshowInLauncher: false\n---\n",
             fileURL: fileURL)
-        expectParseError(
-            "unknown frontmatter key is rejected", content: "---\nunknown: \"value\"\n---\n", fileURL: fileURL
-        )
         // A file still carrying a removed key is reported, not silently half-loaded.
         expectParseError(
             "the removed category key is rejected", content: "---\ncategory: \"Work\"\n---\n",

@@ -6,6 +6,7 @@ struct SnippetEditorView: View {
 
     @Environment(SnippetCoordinator.self) private var coordinator
     @Environment(PaletteState.self) private var palette
+    @Environment(SnippetsStore.self) private var store  // Fork: the library's tags, offered as typed
     @Environment(\.metrics) private var metrics
     @State private var focusedField: SnippetEditorSession.Field?
     @FocusState private var focusedControl: SnippetEditorSession.Field?
@@ -130,6 +131,13 @@ struct SnippetEditorView: View {
                 label: String(localized: "Snippet keyword"), text: $editor.keyword,
                 focus: .keyword, hint: String(localized: "Optional. Type this to expand the snippet.")
             )
+            VStack(alignment: .leading, spacing: metrics.spacing.md) {  // Fork: Tags
+                fieldTitle(String(localized: "Tags"))
+                TagTokenField(
+                    draft: $editor.tags, focused: focusBinding(.tags),
+                    library: TagList.library(store.snippets.map(\.snippet.tags)),
+                    label: String(localized: "Snippet tags"), moveFocus: editor.advanceFocus)
+            }
             option(
                 String(localized: "Enabled"),
                 detail: String(localized: "Disabled snippets cannot be expanded."),

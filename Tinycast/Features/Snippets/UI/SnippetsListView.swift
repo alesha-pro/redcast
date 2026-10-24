@@ -71,6 +71,7 @@ private struct SnippetRow: View {
                 .font(metrics.typography.rowTitle)
                 .lineLimit(1)
             Spacer(minLength: metrics.spacing.lg)
+            TagChips(tags: record.snippet.tags)  // Fork: Tags
             if let keyword = record.snippet.keyword, !keyword.isEmpty {
                 Text(keyword)
                     .font(metrics.typography.keyCap)

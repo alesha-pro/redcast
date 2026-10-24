@@ -19,11 +19,13 @@ struct Quicklink: Codable, Hashable, Identifiable, Sendable {
     /// A stamp rather than a flag, so the pinned block is ordered by *when* you pinned.
     var pinnedAt: Date?
     var createdAt: Date
+    var tags: [String]  // Fork: Tags
 
     init(
         id: UUID = UUID(), name: String, link: String, openWithBundleID: String? = nil,
         iconSymbol: String? = nil, isEnabled: Bool = true, showsInRootSearch: Bool = true,
-        pinnedAt: Date? = nil, createdAt: Date = Date()
+        pinnedAt: Date? = nil, createdAt: Date = Date(),
+        tags: [String] = []  // Fork: Tags
     ) {
         self.id = id
         self.name = name
@@ -34,6 +36,7 @@ struct Quicklink: Codable, Hashable, Identifiable, Sendable {
         self.showsInRootSearch = showsInRootSearch
         self.pinnedAt = pinnedAt
         self.createdAt = createdAt
+        self.tags = tags  // Fork: Tags
     }
 
     var isPinned: Bool { pinnedAt != nil }
@@ -68,6 +71,7 @@ struct Quicklink: Codable, Hashable, Identifiable, Sendable {
     private enum CodingKeys: String, CodingKey {
         case id, name, link, openWithBundleID, iconSymbol, isEnabled, showsInRootSearch, pinnedAt
         case createdAt
+        case tags  // Fork: Tags
     }
 
     init(from decoder: Decoder) throws {
@@ -82,6 +86,7 @@ struct Quicklink: Codable, Hashable, Identifiable, Sendable {
             try container.decodeIfPresent(Bool.self, forKey: .showsInRootSearch) ?? true
         pinnedAt = try container.decodeIfPresent(Date.self, forKey: .pinnedAt)
         createdAt = try container.decodeIfPresent(Date.self, forKey: .createdAt) ?? Date()
+        tags = (try? container.decodeIfPresent([String].self, forKey: .tags)) ?? []  // Fork: Tags
     }
 }
 

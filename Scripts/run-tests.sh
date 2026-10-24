@@ -339,6 +339,9 @@ run fallback-test          Tinycast/Features/Launcher/Model/Fallback.swift \
                            Tinycast/Features/SystemActions/Model/SystemAction.swift \
                            Tinycast/Features/WindowManagement/Model/WindowCommand.swift \
                            Tinycast/Features/Snippets/Model/Snippet.swift
+# Fork: the tag rules snippets, quicklinks and their editors read; the colour is apart, on the palette.
+TAG_RULES="Tinycast/Features/Tags/Model/TagList.swift Tinycast/Features/Tags/Model/TagFrontmatter.swift \
+Tinycast/Features/Tags/Model/TagDraft.swift"
 # Fork: the Raycast palette, the agent colour rule and the glyph families; ExtensionImage reads it.
 FORK_PALETTE="Tinycast/DesignSystem/RaycastPalette.swift Tinycast/Features/ColorfulIcons/Model/RaycastHue.swift"
 run colorful-icons-test    Tinycast/Features/ColorfulIcons/Model/*.swift \
@@ -364,7 +367,7 @@ run dictation-field-test   Tinycast/Features/Dictation/Model/DictationModel.swif
                            Tinycast/Features/Dictation/Service/DictationInsertionContext.swift \
                            Tinycast/Features/AI/UI/ChatComposerTextView.swift \
                            Tinycast/Features/TextInjection/Service/*.swift \
-                           Tinycast/Features/Snippets/Model/*.swift \
+                           Tinycast/Features/Snippets/Model/*.swift $TAG_RULES \
                            Tinycast/Platform/AccessibilityText.swift \
                            Tinycast/Platform/PasteboardFiles.swift \
                            Tinycast/Platform/Appearance.swift Tinycast/DesignSystem/Theme.swift
@@ -523,7 +526,7 @@ run quicklink-test         Tinycast/Features/Quicklinks/Model/Quicklink.swift \
                            Tinycast/Features/Quicklinks/Model/QuicklinkStore.swift \
                            Tinycast/Features/Quicklinks/Model/QuicklinkArchive.swift \
                            Tinycast/Features/Quicklinks/Model/RaycastQuicklinkImport.swift \
-                           Tinycast/Features/Quicklinks/UI/QuicklinkEditorSession.swift
+                           Tinycast/Features/Quicklinks/UI/QuicklinkEditorSession.swift $TAG_RULES
 run quicklink-coordinator-test Tinycast/Features/Quicklinks/Model/Quicklink.swift \
                            Tinycast/Features/Quicklinks/Model/QuicklinkDestination.swift \
                            Tinycast/Features/Quicklinks/Model/QuicklinkStore.swift \
@@ -532,14 +535,25 @@ run quicklink-coordinator-test Tinycast/Features/Quicklinks/Model/Quicklink.swif
                            Tinycast/Features/Quicklinks/UI/QuicklinkEditorSession.swift \
                            Tinycast/Features/Quicklinks/UI/QuicklinkArgumentsAccessory.swift \
                            Tinycast/Features/Snippets/Model/Snippet.swift \
-                           Tinycast/Features/Snippets/Model/SnippetTemplateEngine.swift
+                           Tinycast/Features/Snippets/Model/SnippetTemplateEngine.swift $TAG_RULES
 run slow snippets-test     Tinycast/Platform/NotificationToken.swift \
                            Tinycast/Platform/HealthTicker.swift \
                            Tinycast/Platform/AccessibilityText.swift \
                            Tinycast/Features/Snippets/Model/*.swift \
                            Tinycast/Features/Snippets/Service/*.swift \
-                           Tinycast/Features/Snippets/UI/SnippetEditorSession.swift \
+                           Tinycast/Features/Snippets/UI/SnippetEditorSession.swift $TAG_RULES \
                            Tinycast/Features/TextInjection/Service/*.swift
+# Fork: tags on snippets and quicklinks: frontmatter, the store's column, imports, filter and colour.
+run tags-test              Tinycast/Features/Tags/Model/*.swift \
+                           Tinycast/Features/ColorfulIcons/Model/RaycastHue.swift \
+                           Tinycast/Features/Snippets/Model/Snippet.swift \
+                           Tinycast/Features/Snippets/Model/SnippetMarkdownSerializer.swift \
+                           Tinycast/Features/Snippets/Model/RaycastSnippetImport.swift \
+                           Tinycast/Features/Quicklinks/Model/Quicklink.swift \
+                           Tinycast/Features/Quicklinks/Model/QuicklinkDestination.swift \
+                           Tinycast/Features/Quicklinks/Model/QuicklinkStore.swift \
+                           Tinycast/Features/Quicklinks/Model/QuicklinkArchive.swift \
+                           Tinycast/Features/Quicklinks/Model/RaycastQuicklinkImport.swift
 run notes-test             Tinycast/Platform/Signposts.swift \
                            $L/SearchRelevance.swift \
                            Tinycast/Features/Notes/Model/*.swift \
@@ -1106,7 +1120,20 @@ run quick-action-test      Tinycast/Features/Settings/AppSettingsKey.swift \
                            Tinycast/Features/QuickActions/Model/QuickActionTemplate.swift \
                            Tinycast/Features/Snippets/Model/Snippet.swift \
                            Tinycast/Features/Snippets/Model/SnippetTemplateEngine.swift \
-                           Tinycast/Features/QuickActions/Settings/QuickActionSettingsStore.swift
+                           Tinycast/Features/QuickActions/Settings/QuickActionSettingsStore.swift \
+                           Tinycast/Features/QuickActionModels/Model/QuickActionRoutes.swift
+# Fork: a custom action's own model: persisted per entry, and the default when its connection goes.
+run quick-action-model-test Tinycast/Features/Settings/AppSettingsKey.swift \
+                           Tinycast/Features/AI/Model/AIConnection.swift \
+                           Tinycast/Features/AI/Model/AppleIntelligence.swift \
+                           Tinycast/Features/AI/Model/ChatGPTSubscription.swift \
+                           Tinycast/Features/AI/Model/InstalledAI.swift \
+                           Tinycast/Features/QuickActions/Model/BuiltInQuickAction.swift \
+                           Tinycast/Features/QuickActions/Model/CustomQuickAction.swift \
+                           Tinycast/Features/QuickActions/Model/QuickAction.swift \
+                           Tinycast/Features/QuickActions/Model/QuickActionSettings.swift \
+                           Tinycast/Features/QuickActions/Settings/QuickActionSettingsStore.swift \
+                           Tinycast/Features/QuickActionModels/Model/QuickActionRoutes.swift
 run apple-intelligence-test Tinycast/Features/Settings/AppSettingsKey.swift \
                            Tinycast/Features/AI/Model/*.swift \
                            Tinycast/Features/ReasoningReplay/Model/*.swift \

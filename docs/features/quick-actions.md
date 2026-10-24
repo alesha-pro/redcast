@@ -58,6 +58,13 @@ selectable Markdown renderer with AI Chat.
   route: a vanished catalog model moves to its command's first model, like the shared route, but a
   removed connection or an unavailable command deletes the entry instead of borrowing chat's model.
   The action then follows the route its pane names, not one the reader never chose for it.
+- **Fork: a dropped route is said once, quietly.** `updateOverrides` keeps what it dropped in
+  `lapsedOverrides`, in memory only. The action's next run takes it and shows a neutral HUD — the model
+  is no longer connected, so the default ran — and the custom action's editor names it under the picker
+  until the action is saved, which clears it like any new choice. A relaunch forgets it.
+- **Fork: one unreadable route costs only itself.** `QuickActionRoutes.decode` reads
+  `quickActionModelOverrides` entry by entry, so a route a later build wrote, or a hand-edited value,
+  drops that entry rather than every action's model.
 - **Installed providers are ordinary routes.** The model picker reads the same live Codex, Claude, Grok,
   OpenCode and Cursor catalogs as AI Settings. Execution still goes through `AIProviderFactory`, so Quick Actions
   inherit the same installed login, tool restrictions and process cleanup without owning CLI logic.
@@ -359,6 +366,9 @@ failure handler, so automatic expansion stays silent as before.
   survive a relaunch. Turn that provider off in AI Settings and Summarize follows the shared model.
 - Save a custom action with its own model, delete it, and confirm no route is left in
   `quickActionModelOverrides`.
+- Fork: give a custom action a model and effort on an API connection, run it, then remove that
+  connection in AI Settings and run it again: it answers on the default model and a neutral HUD names
+  the missing model, once. Its editor shows the same note under the picker until Save.
 - Translate into a language that has not been downloaded: the panel names the language, and its
   button closes the panel and opens Language & Region.
 - Download English (UK) alone, with English (US) absent, and translate English text: the panel must
@@ -367,5 +377,7 @@ failure handler, so automatic expansion stays silent as before.
   Korean, the language that is actually missing.
 - Revoke Accessibility while enabled: a HUD explains instead of failing silently.
 - Harnesses: `quick-action-test` (action metadata, prompt boundaries, placeholders and arguments,
-  preview choices, routes and their repair) and
-  `text-diff-test` (exact chunks, coalescing, Unicode, ties, token boundaries and fast paths).
+  preview choices, routes and their repair),
+  `text-diff-test` (exact chunks, coalescing, Unicode, ties, token boundaries and fast paths) and,
+  in the fork, `quick-action-model-test` (a custom action's model across a relaunch, tolerant decoding,
+  the fallback and its note).
