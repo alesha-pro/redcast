@@ -106,12 +106,12 @@ struct AgentTests {
         let project = [
             AgentSkill(name: "deploy", description: "project", directory: "/p/deploy", source: .project)
         ]
-        let catalog = AgentSkill.catalog(project: project, global: global, disabled: [])
+        let catalog = AgentSkill.catalog(project + global, disabled: [])
         expect(catalog.map(\.name) == ["deploy", "write"], "one entry per name, sorted")
         expect(
             catalog.first?.source == .project, "the project's own skill wins over the global one")
         expect(
-            AgentSkill.catalog(project: project, global: global, disabled: ["write"]).map(\.name)
+            AgentSkill.catalog(project + global, disabled: ["write"]).map(\.name)
                 == ["deploy"],
             "a switched-off skill is left out")
     }

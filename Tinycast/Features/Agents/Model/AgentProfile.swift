@@ -39,7 +39,7 @@ enum AgentToolKind: String, Codable, CaseIterable, Identifiable, Sendable {
 enum AgentSkillSource: String, Codable, CaseIterable, Identifiable, Sendable {
     /// `<folder>/.agents/skills`
     case project
-    /// `~/.agents/skills`
+    /// `~/.agents/skills`, `~/.config/agents/skills` and `~/.claude/skills`, in that order
     case global
 
     var id: String { rawValue }
@@ -63,6 +63,8 @@ struct AgentProfile: Hashable, Identifiable, Sendable {
     var skillSources: Set<AgentSkillSource>
     /// Names left out of the catalog; a skill added later is in until switched off.
     var disabledSkills: Set<String>
+    /// Nil offers every skill found but `disabledSkills`; Only Selected offers just its names.
+    var skillSelection: AgentSkillSelection?
     var readsProjectInstructions: Bool
     var readsGlobalInstructions: Bool
     /// Nil runs the agent on the chat's model with Tinycast's own tools; set, its CLI runs it.
@@ -137,6 +139,7 @@ extension AgentProfile: Codable {
         case id, name, iconSymbol, color, instructions, model, directory, access, tools, addedTools
         case skillSources, disabledSkills, readsProjectInstructions, readsGlobalInstructions, runtime
         case acpMode, acpModel, acpReasoning, acpOptions, consent, background, effort, createdAt
+        case skillSelection
     }
 
     init(from decoder: any Decoder) throws {
@@ -156,6 +159,8 @@ extension AgentProfile: Codable {
         tools = Set(named.compactMap(AgentToolKind.init(rawValue:)))
         skillSources = try values.decode(Set<AgentSkillSource>.self, forKey: .skillSources)
         disabledSkills = try values.decode(Set<String>.self, forKey: .disabledSkills)
+        // A selection that will not read costs the agent its choice, never the agent itself.
+        skillSelection = try? values.decodeIfPresent(AgentSkillSelection.self, forKey: .skillSelection)
         readsProjectInstructions = try values.decode(Bool.self, forKey: .readsProjectInstructions)
         readsGlobalInstructions = try values.decode(Bool.self, forKey: .readsGlobalInstructions)
         runtime = try values.decodeIfPresent(AgentRuntime.self, forKey: .runtime)
@@ -184,6 +189,7 @@ extension AgentProfile: Codable {
         if !added.isEmpty { try values.encode(added, forKey: .addedTools) }
         try values.encode(skillSources, forKey: .skillSources)
         try values.encode(disabledSkills, forKey: .disabledSkills)
+        try values.encodeIfPresent(skillSelection, forKey: .skillSelection)
         try values.encode(readsProjectInstructions, forKey: .readsProjectInstructions)
         try values.encode(readsGlobalInstructions, forKey: .readsGlobalInstructions)
         try values.encodeIfPresent(runtime, forKey: .runtime)

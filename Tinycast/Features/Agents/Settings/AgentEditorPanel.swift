@@ -9,7 +9,8 @@ struct AgentEditorPanel: View {
     @State private var draft: AgentProfile
     @State private var failure: String?
     @State private var showingIconPicker = false
-    @State private var found: (project: [AgentSkill], global: [AgentSkill]) = ([], [])
+    @State private var found: [AgentSkill] = []
+    @State private var scannedSkills = false
     @State private var argumentsText = ""
     @State private var notificationsDenied = false
 
@@ -111,7 +112,7 @@ struct AgentEditorPanel: View {
         .padding(Theme.Spacing.dialogInset)
         .frame(width: Theme.Size.editorSheetWidth)
         .settingsEditorPanelSurface()
-        .task(id: draft.directory) { await scanSkills() }
+        .task(id: SkillScan(directory: draft.directory, sources: draft.skillSources)) { await scanSkills() }
     }
 
     private func field(
@@ -467,29 +468,57 @@ struct AgentEditorPanel: View {
                 Toggle("The folder's AGENTS.md", isOn: $draft.readsProjectInstructions)
                 Toggle("Global ~/.agents/AGENTS.md", isOn: $draft.readsGlobalInstructions)
                 Toggle("Project skills in .agents/skills", isOn: source(.project))
-                Toggle("Global skills in ~/.agents/skills", isOn: source(.global))
+                Toggle("Global skills in ~/.agents, ~/.config/agents and ~/.claude", isOn: source(.global))
             }
             .toggleStyle(.checkbox)
         }
     }
 
+    /// One row per name, the folder that won beside it; the mode says what a new skill does.
     @ViewBuilder
     private var skillsField: some View {
-        let offered =
-            (draft.skillSources.contains(.project) ? found.project : [])
-            + (draft.skillSources.contains(.global) ? found.global : [])
-        if !offered.isEmpty {
+        if !draft.skillSources.isEmpty {
             field("Skills") {
+                SteadySegmentedPicker(
+                    title: String(localized: "Skills"),
+                    options: [
+                        .init(value: .all, title: String(localized: "All skills")),
+                        .init(value: .selected, title: String(localized: "Only selected"))
+                    ],
+                    selection: skillMode)
+                if skillMode.wrappedValue == .all {
+                    Text("Every skill found is offered except those switched off; one added later is in.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                } else {
+                    Text("Only the skills switched on are offered; one added later stays out until picked.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                if scannedSkills, found.isEmpty {
+                    Text("No skills in these folders yet.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
                 VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
-                    ForEach(offered, id: \.directory) { skill in
+                    ForEach(found, id: \.directory) { skill in
                         Toggle(isOn: skillBinding(skill.name)) {
-                            Text(skill.name)
-                            Text(skill.description)
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                                .lineLimit(1)
+                            VStack(alignment: .leading, spacing: 0) {
+                                HStack(spacing: Theme.Spacing.sm) {
+                                    Text(verbatim: skill.name)
+                                    Text(verbatim: (skill.root as NSString).abbreviatingWithTildeInPath)
+                                        .font(.caption)
+                                        .foregroundStyle(.tertiary)
+                                        .lineLimit(1)
+                                }
+                                Text(verbatim: skill.description)
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                    .lineLimit(1)
+                            }
                         }
                         .toggleStyle(.checkbox)
+                        .help(skill.manifestPath)
                     }
                 }
             }
@@ -518,20 +547,53 @@ struct AgentEditorPanel: View {
             })
     }
 
-    private func skillBinding(_ name: String) -> Binding<Bool> {
+    /// Only Selected starts from what All had on, so switching modes changes nothing by itself.
+    private var skillMode: Binding<AgentSkillSelection.Mode> {
         Binding(
-            get: { !draft.disabledSkills.contains(name) },
-            set: { on in
-                if on { draft.disabledSkills.remove(name) } else { draft.disabledSkills.insert(name) }
+            get: { draft.skillSelection?.mode ?? .all },
+            set: { mode in
+                var selection = draft.skillSelection ?? AgentSkillSelection()
+                if mode == .selected, selection.names.isEmpty {
+                    selection.names = Set(found.map(\.name)).subtracting(draft.disabledSkills)
+                }
+                selection.mode = mode
+                draft.skillSelection = selection == AgentSkillSelection() ? nil : selection
             })
     }
 
+    /// All switches a name off by leaving it out; Only Selected switches it on by naming it.
+    private func skillBinding(_ name: String) -> Binding<Bool> {
+        Binding(
+            get: {
+                AgentSkillSelection.offers(
+                    name, in: draft.skillSelection, disabled: draft.disabledSkills)
+            },
+            set: { on in
+                if var selection = draft.skillSelection, selection.mode == .selected {
+                    if on { selection.names.insert(name) } else { selection.names.remove(name) }
+                    draft.skillSelection = selection
+                } else if on {
+                    draft.disabledSkills.remove(name)
+                } else {
+                    draft.disabledSkills.insert(name)
+                }
+            })
+    }
+
+    /// Only while the editor is open: the folders are read on open and when a source changes.
     private func scanSkills() async {
         let directory = AgentPathPolicy.resolve(
             draft.directory, in: AgentContextLoader.home, home: AgentContextLoader.home)
+        let sources = draft.skillSources
         found = await Task.detached(priority: .userInitiated) {
-            AgentContextLoader.skills(in: directory)
+            AgentContextLoader.skills(in: directory, sources: sources)
         }.value
+        scannedSkills = true
+    }
+
+    private struct SkillScan: Equatable {
+        let directory: String
+        let sources: Set<AgentSkillSource>
     }
 
     /// An accessory app must activate first, or the panel opens behind the frontmost app.

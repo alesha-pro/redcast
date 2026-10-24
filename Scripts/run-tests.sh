@@ -946,6 +946,19 @@ run agent-test             Tinycast/Features/Agents/Model/*.swift \
                            Tinycast/Features/AI/Model/AppleIntelligence.swift \
                            Tinycast/Features/AI/Model/ChatGPTSubscription.swift \
                            Tinycast/Features/AI/Model/InstalledAI.swift
+# Fork: skills read from four folders by precedence, the per-agent selection and the prompt.
+run agent-skills-test      Tinycast/Features/Agents/Model/*.swift \
+                           Tinycast/Features/Agents/Service/AgentContextLoader.swift \
+                           Tinycast/Features/WebSearch/Model/*.swift \
+                           Tinycast/Features/AI/Model/AIAttachmentPolicy.swift \
+                           Tinycast/Features/AI/Model/AIRequest.swift \
+                           Tinycast/Features/Settings/AppSettingsKey.swift \
+                           Tinycast/Features/AI/Model/AITool.swift \
+                           Tinycast/Features/AI/Model/JSONValue.swift \
+                           Tinycast/Features/AI/Model/AIConnection.swift \
+                           Tinycast/Features/AI/Model/AppleIntelligence.swift \
+                           Tinycast/Features/AI/Model/ChatGPTSubscription.swift \
+                           Tinycast/Features/AI/Model/InstalledAI.swift
 run agent-schedule-test    Tinycast/Features/Agents/Model/*.swift \
                            Tinycast/Features/WebSearch/Model/*.swift \
                            Tinycast/Features/AI/Model/AIAttachmentPolicy.swift \

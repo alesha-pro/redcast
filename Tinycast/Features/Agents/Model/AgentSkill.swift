@@ -7,11 +7,15 @@ struct AgentSkill: Equatable, Hashable, Sendable {
     /// The skill's own folder; its other files are read relative to it.
     let directory: String
     let source: AgentSkillSource
+    /// The skills folder it was found in, which the editor names beside it.
+    var root = ""
 
     var manifestPath: String { (directory as NSString).appendingPathComponent("SKILL.md") }
 
     /// Only the front matter between the leading `---` lines; the body loads when the model asks.
-    static func parse(manifest text: String, directory: String, source: AgentSkillSource) -> Self? {
+    static func parse(
+        manifest text: String, directory: String, source: AgentSkillSource, root: String = ""
+    ) -> Self? {
         var lines = text.components(separatedBy: .newlines)[...]
         guard lines.first?.trimmingCharacters(in: .whitespaces) == "---" else { return nil }
         lines = lines.dropFirst()
@@ -26,15 +30,23 @@ struct AgentSkill: Equatable, Hashable, Sendable {
         guard let name = fields["name"], !name.isEmpty else { return nil }
         return AgentSkill(
             name: name, description: fields["description"] ?? "", directory: directory,
-            source: source)
+            source: source, root: root)
     }
 
-    /// Project skills shadow global ones by name; the result reads in a stable, sorted order.
-    static func catalog(project: [Self], global: [Self], disabled: Set<String>) -> [Self] {
+    /// One skill per name, the first found winning, in a stable, sorted order.
+    static func discovered(_ found: [Self]) -> [Self] {
         var byName: [String: Self] = [:]
-        for skill in global { byName[skill.name] = skill }
-        for skill in project { byName[skill.name] = skill }
-        return byName.values.filter { !disabled.contains($0.name) }.sorted { $0.name < $1.name }
+        for skill in found where byName[skill.name] == nil { byName[skill.name] = skill }
+        return byName.values.sorted { $0.name < $1.name }
+    }
+
+    /// What an agent is offered: everything found but what it left out, or only what it picked.
+    static func catalog(
+        _ found: [Self], disabled: Set<String>, selection: AgentSkillSelection? = nil
+    ) -> [Self] {
+        discovered(found).filter {
+            AgentSkillSelection.offers($0.name, in: selection, disabled: disabled)
+        }
     }
 
     private static func unquoted(_ value: String) -> String {
