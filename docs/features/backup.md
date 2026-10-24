@@ -168,7 +168,7 @@ History**. One opt-in, **Include API keys and tokens**, seals the app's secrets 
   every `UserDefaults` key, every Application Support name and every Keychain scope the app writes,
   with the section that carries it, or why it stays (with a reason). `full-backup-coverage-test`
   scans `Tinycast/` for files that persist anything (`UserDefaults`, `defaults.set(`,
-  `applicationSupport`, `KeychainSecretStore(scope:`, `sqlite3_open`), pulls their literal keys
+  `applicationSupport`, `KeychainSecretStore(scope:`, `sqlite3_open`, `.write(to:`), pulls their literal keys
   (`forKey: "…"`, `…Key = "…"`) and path names (`appendingPathComponent("…")`,
   `appending(path: "…")`), and fails on any it has no decision for, on any `AppSettingsKey` neither
   upstream nor the fork decides, and on any decision whose literal no source spells any more. A key
@@ -177,7 +177,8 @@ History**. One opt-in, **Include API keys and tokens**, seals the app's secrets 
 - **A switch that grants a capability is recorded, never applied.** AI, MCP, Quick Actions, cloud
   dictation, Ask by Voice, Dictation, Screen Awareness and its screenshots, extensions and AI for
   them, calendar access, auto-join, camera preview, snippets' keystroke listening, OCR of clipboard
-  images and installed AI tools travel as `FullBackupConsent` names. The import leaves each as this
+  images, installed AI tools and AI Chat's finish notifications (which ask macOS for permission)
+  travel as `FullBackupConsent` names. The import leaves each as this
   Mac has it and lists those still off: "Still off here, turn on in Settings if you want them".
   `extensionsAIGrants` never travels at all.
 - **What runs code or reaches out lands off or paused.** Every imported MCP server is off and every
@@ -189,6 +190,10 @@ History**. One opt-in, **Include API keys and tokens**, seals the app's secrets 
 - **Commands a file can launch are shown before anything applies.** An ACP agent's command, a stdio
   MCP server's command and an installed AI tool's path are listed in one dialog; Cancel applies
   nothing. Upstream's own custom-command dialog still runs for the Settings category.
+- **A ChatGPT sign-in never travels.** A Codex (ChatGPT) connection is backed up as an entry, but its
+  OAuth tokens, its `ext_agent_host_id` registration (`codex-plan-credentials`) and its limits snapshot
+  (`CodexPlan/limits.json`) stay out, sealed secrets included: the registration is bound to the Mac
+  that made it. The summary names those connections: "Sign in with ChatGPT again on this Mac".
 - **Secrets travel only sealed, and are read only to seal them.** With the opt-in off the app never
   reads its Keychain for a backup; with it on, it reads its own items at export, seals them, and on
   import writes back only those whose connection, server, tool or extension exists on this Mac. A
@@ -207,6 +212,8 @@ History**. One opt-in, **Include API keys and tokens**, seals the app's secrets 
 full/contents.json         format, each section's version and count, the secrets header
 full/<section>.json        one payload per section: agents, mcpServers, ai, voice, quickActions,
                            extensions, more, chatHistory
+full/ai-chat-folders.json  AI Chat's folders and which chat is in each, in the workspace file's format
+full/chats/ai-chat-workspace.json  each chat's instructions, creativity, archive and deletion state
 full/chats/ai-chats.sqlite3      the chat database, with its images
 full/chats/summaries/<id>.json   agent chats' summaries
 full/secrets.sealed        AES-GCM sealed JSON of every secret, only with the opt-in
@@ -239,7 +246,12 @@ with its count, the sealed secrets with theirs, and the names of any section thi
 Agents, MCP Servers, AI Connections and Quick Actions offer **Merge** (adds what's new and updates
 what matches, by id) or **Replace** (also removes what the file lacks, with a removed connection's
 keys). Voice, Extensions and More overwrite the settings the file has and keep the rest. Chat history
-only merges: a conversation this Mac has is kept as it is, and a second import adds nothing. An
+only merges: a conversation this Mac has is kept as it is, and a second import adds nothing.
+AI Chat's folders (name, colour, icon, instructions, agent) come with AI Connections and follow its
+Merge or Replace by id; Archive inactive chats and Keep Window on Top come with it too. A chat is
+filed in its folder only if this Mac has the chat and has not filed, archived or deleted it itself,
+and a chat's own instructions, creativity, archive and Recently Deleted state land, with the history,
+only on a chat this Mac says nothing of yet. An
 agent's memory is written only where this Mac has none, or always with Replace. Agents whose folder
 this Mac lacks are named. Retention still applies, so a chat older than AI's history setting is
 pruned by it.
@@ -286,7 +298,7 @@ Every store the app persists and its decision, as `FullBackupCoverage` states it
 
 | Store | Where | Full backup |
 | --- | --- | --- |
-| The 65 keys `SettingsBackupCoverage.mirrored` names (theme, Colorful Icons, interface size, hyper key, launcher, clipboard, file search, notes, window management, quicklinks, calendar display and more) | UserDefaults | Upstream category: Settings & Shortcuts |
+| The 65 keys `SettingsBackupCoverage.mirrored` names (theme, Colorful Icons, interface size, hyper key, launcher, clipboard, file search, notes, window management, quicklinks with their tags, calendar display and more) | UserDefaults | Upstream category: Settings & Shortcuts |
 | `launchAtLogin` | `SMAppService` | Upstream category: Settings & Shortcuts |
 | `Notes/*.md` (or the chosen folder) | Application Support | Upstream category: Notes |
 | `dictationEnabled` | UserDefaults (`AppSettingsKey.dictationEnabled`) | Voice & Dictation: recorded, never applied |
@@ -335,6 +347,8 @@ Every store the app persists and its decision, as `FullBackupCoverage` states it
 | `aiInstalledOverrides` | UserDefaults (`AppSettingsKey.aiInstalledOverrides`) | AI Connections |
 | `aiQuickAIAgent` | UserDefaults (`AppSettingsKey.aiQuickAIAgent`) | Agents |
 | `aiChatAgent` | UserDefaults (`AppSettingsKey.aiChatAgent`) | Agents |
+| `aiChatAutoArchiveDays` | UserDefaults (`AppSettingsKey.aiChatAutoArchive`) | AI Connections |
+| `aiChatFinishNotifications` | UserDefaults (`AppSettingsKey.aiChatFinishNotifications`) | AI Connections: recorded, never applied |
 | `mcpEnabled` | UserDefaults (`AppSettingsKey.mcpEnabled`) | MCP Servers: recorded, never applied |
 | `mcpServers` | UserDefaults (`AppSettingsKey.mcpServers`) | MCP Servers |
 | `quickActionsEnabled` | UserDefaults (`AppSettingsKey.quickActionsEnabled`) | Quick Actions: recorded, never applied |
@@ -395,6 +409,8 @@ Every store the app persists and its decision, as `FullBackupCoverage` states it
 | `hyperKeyKeyboardMappings` | UserDefaults | Excluded: Crash recovery for this boot's key remap. |
 | `notesActiveFileName` | UserDefaults | Excluded: Window state: the note that was open. |
 | `notesFormattingBarExpanded` | UserDefaults | Excluded: Window state. |
+| `AIChatFloatsOnTop` | UserDefaults | AI Connections |
+| `AIChatShowsSettingsSidebar` | UserDefaults | Excluded: Window layout, remembered like the split view's widths. |
 | `fullBackupAutoExport` | UserDefaults | Excluded: Names a folder on this Mac and when it last exported. |
 | `fullBackupAutoExportDays` | UserDefaults | Excluded: Names a folder on this Mac and when it last exported. |
 | `fullBackupAutoExportKeep` | UserDefaults | Excluded: Names a folder on this Mac and when it last exported. |
@@ -428,12 +444,31 @@ Every store the app persists and its decision, as `FullBackupCoverage` states it
 | `agent-personal-chats.json` | Application Support | AI Chat History |
 | `agent-summaries` | Application Support | AI Chat History |
 | `ai-chats.sqlite3` | Application Support | AI Chat History (opt-in), the whole database merged row by row |
+| `ai-chat-workspace.json` | Application Support | AI Connections: folders (name, colour, icon, instructions, agent) and which chat is filed where, applied to chats this Mac has; each chat's instructions, creativity, archive and Recently Deleted state travel with AI Chat History |
+| `CodexPlan/limits.json` | Application Support | Excluded: The last limits a ChatGPT plan reported; the next reply reports them anew. |
 | `quick-actions.json` | Application Support | Quick Actions |
 | `extensions` | Application Support | Extensions: the list (name, author, Store commit) to reinstall from; the code never travels |
 | `extension-data` | Application Support | Extensions: non-secret preferences and the appearance; password preferences and OAuth tokens only in the sealed secrets; LocalStorage and caches never |
 | `extension-commands.json` | Application Support | Extensions: which commands refreshed in the background or drew in the menu bar, recorded and never switched on |
 | `extension-versions.json` | Application Support | Extensions |
 | `extension-support` | Application Support | Excluded: An extension's own scratch files. |
+| `\(ExtensionCatalog.safeName(name)).json` | Application Support | Extensions |
+| `build` | Application Support | Not app state: Scratch space of an extension install. |
+| `expanded` | Application Support | Not app state: Scratch space of an extension install. |
+| `source` | Application Support | Not app state: Scratch space of an extension install. |
+| `node_modules/.bin/ray` | Application Support | Not app state: A tool inside an extension being built. |
+| `extension.zip` | Application Support | Not app state: A download on its way to an extension install. |
+| `body` | Application Support | Not app state: A download on its way to an extension install. |
+| `currency-rates.json` | Application Support | Excluded: A cache in Caches, fetched again when it is needed. |
+| `update-check.json` | Application Support | Excluded: A cache in Caches, fetched again when it is needed. |
+| `extension-store.json` | Application Support | Excluded: A cache in Caches, fetched again when it is needed. |
+| `chats` | Application Support | Not app state: Read from another tool's own history folder. |
+| `.project_root` | Application Support | Not app state: Read from another tool's own history folder. |
+| `\(target.rawValue)-\(stamp).json` | Application Support | Excluded: Backups of hook files in this Mac's own CLIs. |
+| `resume-\(UUID().uuidString).command` | Application Support | Not app state: A temporary script that resumes a session. |
+| `.\(destination.lastPathComponent).\(UUID().uuidString).tmp` | Application Support | Not app state: A temporary write. |
+| `\(base)\(suffixText).md` | Application Support | Upstream category |
+| `\(name).unreadable-\(UUID().uuidString).json` | Application Support | Excluded: An unreadable file set aside for a person. |
 | `room-parking.json` | Application Support | Excluded: Window ids of this session. |
 | `InstalledAI/Codex` | Application Support | Excluded: Scratch space for an installed CLI. |
 | `InstalledAI/Workspace` | Application Support | Excluded: Scratch space for an installed CLI. |
@@ -465,6 +500,7 @@ Every store the app persists and its decision, as `FullBackupCoverage` states it
 | `<bundle id>.installed-ai-environment` | Keychain | Sealed secrets (opt-in) |
 | `<bundle id>.web-search-keys` | Keychain | Sealed secrets (opt-in) |
 | `<bundle id>.openrouter-management-keys` | Keychain | Sealed secrets (opt-in) |
+| `<bundle id>.codex-plan-credentials` | Keychain | Excluded: A ChatGPT sign-in registered to this host (ext_agent_host_id); the new Mac signs in again. |
 
 ### Testing
 
@@ -503,3 +539,9 @@ they are the manual sweep's.
   once: no second file. With Keep at 3 and older auto files present, only the newest three remain,
   and a file of another name is untouched.
 - Import an upstream Tinycast `.tinycast`: only its categories are offered and import as before.
+- With two AI Chat folders (one with instructions and an agent), a chat filed in each, one with its
+  own instructions and one archived: export with AI Connections and AI Chat History, import into a Mac
+  without them. The folders arrive; the chats land filed, archived and instructed as they were. Import
+  AI Connections alone elsewhere: the folders arrive and only chats that Mac has are filed.
+- Export a Codex (ChatGPT) connection with keys sealed and import it: the connection is listed, signed
+  out, and the summary says to sign in with ChatGPT again.

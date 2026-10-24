@@ -16,9 +16,13 @@ struct FullBackupCoverageTest {
 
     /// A file that touches one of these persists something, so its literal keys and names count.
     static let markers = [
-        "UserDefaults", "defaults.set(", "applicationSupport", "KeychainSecretStore(scope:", "sqlite3_open"
+        "UserDefaults", "defaults.set(", "applicationSupport", "KeychainSecretStore(scope:", "sqlite3_open",
+        ".write(to:"
     ]
-    static let skipped = ["FullBackupCoverage.swift", ".generated.swift"]
+    /// The coverage table itself, generated data, and the backup's own file layouts.
+    static let skipped = [
+        "FullBackupCoverage.swift", ".generated.swift", "FullBackupLayout.swift", "BackupBundle.swift"
+    ]
 
     static func main() {
         let sources = swiftSources(under: URL(fileURLWithPath: "Tinycast", isDirectory: true))
@@ -105,7 +109,7 @@ struct FullBackupCoverageTest {
             }
         }
         let probes = ["fallbackOrder", "fullBackupLastExport", "extensionAppearances", "hiddenMeetingCalendars"]
-        let names = ["agents.json", "quick-actions.json", "ai-chats.sqlite3", "extension-data"]
+        let names = ["agents.json", "quick-actions.json", "ai-chats.sqlite3", "extension-data", "ai-chat-workspace.json"]
         check(
             "the scan sees the stores it guards",
             probes.allSatisfy(keys.keys.contains) && names.allSatisfy(files.keys.contains))
@@ -142,8 +146,15 @@ struct FullBackupCoverageTest {
             }
         }
         check("every exclusion carries a real reason", empty.isEmpty)
-        let secrets = FullBackupCoverage.keychainScopes.values.allSatisfy { $0 == .secrets }
-        check("every Keychain scope travels only sealed", secrets)
+        let unsealed = FullBackupCoverage.keychainScopes.filter { _, decision in
+            if decision == .secrets { return false }
+            if case .excluded = decision { return false }
+            return true
+        }.map(\.key)
+        check(naming("every Keychain scope travels sealed or not at all", unsealed), unsealed.isEmpty)
+        var codexExcluded = false
+        if case .excluded = FullBackupCoverage.keychainScopes["codex-plan-credentials"] { codexExcluded = true }
+        check("a ChatGPT sign-in never travels, even sealed", codexExcluded)
     }
 
     static func sectionsAreClaimed() {

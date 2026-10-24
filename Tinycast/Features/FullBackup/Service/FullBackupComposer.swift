@@ -12,6 +12,8 @@ enum FullBackupComposer {
         var parts: [FullBackupSection: Part] = [:]
         var chatDatabase: URL?
         var chatSummaries: URL?
+        var chatFolders: Data?
+        var chatPlacements: Data?
         var secrets: Data?
         var secretsCount = 0
         var passphrase: String?
@@ -38,6 +40,7 @@ enum FullBackupComposer {
         if sections.contains(.ai) {
             let payload = FullBackupGather.ai(from: core)
             add(.ai, payload, count: payload.count)
+            plan.chatFolders = FullBackupGather.chatFolders(from: core)
         }
         if sections.contains(.voice) {
             let payload = FullBackupGather.voice(from: core)
@@ -60,6 +63,7 @@ enum FullBackupComposer {
             let payload = FullBackupGather.chatHistory(from: core)
             add(.chatHistory, payload, count: payload.count)
             plan.chatDatabase = core.chatHistory.databaseURL
+            plan.chatPlacements = FullBackupGather.chatPlacements(from: core)
             plan.chatSummaries = core.agentStore.directory.appendingPathComponent(
                 "agent-summaries", isDirectory: true)
         }
@@ -80,9 +84,13 @@ enum FullBackupComposer {
             try part.data.write(to: layout.payloadURL(section), options: .atomic)
             contents.sections[section.rawValue] = .init(version: section.version, count: part.count)
         }
+        if let folders = plan.chatFolders { try folders.write(to: layout.chatFoldersURL, options: .atomic) }
         if let database = plan.chatDatabase {
             try FileManager.default.createDirectory(
                 at: layout.chatSummariesDirectory, withIntermediateDirectories: true)
+            if let placements = plan.chatPlacements {
+                try placements.write(to: layout.chatPlacementsURL, options: .atomic)
+            }
             if FileManager.default.fileExists(atPath: database.path) {
                 try FullBackupChatArchive.snapshot(database, to: layout.chatDatabaseURL)
             }

@@ -39,6 +39,9 @@ struct AIBackup: Codable, Sendable, Equatable {
     var installedProviders: [String]?
     var installedOverrides: [String: InstalledAIOverride]?
     var webSearchEngines: WebSearchConfiguration?
+    /// AI Chat's window settings; its folders travel beside this as the workspace file's own JSON.
+    var chatAutoArchiveDays: Int?
+    var chatFloatsOnTop: Bool?
     var consents: FullBackupConsents?
 
     var count: Int { connections?.items.count ?? 0 }

@@ -85,7 +85,8 @@ struct FullBackupTest {
             opensTo: 1, newChatAfterMinutes: 15, toolRounds: 8, shownModels: ["api:x": ["a"]],
             disabledRoutes: ["appleIntelligence"], installedProviders: ["codex"],
             installedOverrides: ["claude": InstalledAIOverride(commandPath: "/opt/bin/claude", environmentNames: ["K"])],
-            webSearchEngines: .standard, consents: FullBackupConsents([.aiEnabled, .installedAITools]))
+            webSearchEngines: .standard, chatAutoArchiveDays: 30, chatFloatsOnTop: true,
+            consents: FullBackupConsents([.aiEnabled, .installedAITools, .chatFinishNotifications]))
     }()
 
     static let voice: VoiceBackup = {
@@ -171,6 +172,10 @@ struct FullBackupTest {
         put(extensions, .extensions, count: extensions.count)
         put(more, .more, count: more.count)
         put(chats, .chatHistory, count: chats.count)
+        let folders = Data(#"{"version":1,"folders":[{"id":"\#(UUID().uuidString)","name":"Work"}],"chats":{}}"#.utf8)
+        try? folders.write(to: layout.chatFoldersURL)
+        try? FileManager.default.createDirectory(at: layout.chatsDirectory, withIntermediateDirectories: true)
+        try? Data(#"{"chats":{}}"#.utf8).write(to: layout.chatPlacementsURL)
         try? layout.writeContents(contents)
 
         let file = root.appendingPathComponent("round.tinycast")
@@ -208,6 +213,10 @@ struct FullBackupTest {
         check("extensions round-trip", back.read(ExtensionsBackup.self, for: .extensions) == extensions)
         check("more shortcuts round-trip", back.read(MoreBackup.self, for: .more) == more)
         check("chat links round-trip", back.read(ChatHistoryBackup.self, for: .chatHistory) == chats)
+        check(
+            "AI Chat's folders travel with the AI section, its chats' settings with the history",
+            (try? Data(contentsOf: back.chatFoldersURL)) == folders
+                && FileManager.default.fileExists(atPath: back.chatPlacementsURL.path))
         let text = (try? String(contentsOf: back.payloadURL(.extensions), encoding: .utf8)) ?? ""
         check(
             "an app preference is stored by its path, not as a bare string",
@@ -334,6 +343,13 @@ struct FullBackupTest {
         check("an ACP agent's command is named", launches.contains("Researcher: npx -y codex"))
         check("a stdio server's command is named", launches.contains("Files: npx -y fs-mcp"))
         check("an installed tool's path is named", launches.contains("claude: /opt/bin/claude"))
+        var codex = ai
+        codex.connections = FullBackupList([
+            AIConnection(name: "ChatGPT Plus", provider: .codexPlan), AIConnection(name: "Keys", provider: .openAI)
+        ])
+        check(
+            "a ChatGPT plan connection travels and asks to sign in again",
+            FullBackupImportPolicy.signsInAgain(codex) == ["ChatGPT Plus"])
         let widened = FullBackupImportPolicy.appContext(recorded: .screenshot, current: .title)
         check("a wider screen context is kept back", widened.level == .title && widened.widened)
         let narrowed = FullBackupImportPolicy.appContext(recorded: .off, current: .title)
@@ -350,7 +366,7 @@ struct FullBackupTest {
         let review = FullBackupImportPolicy.consentsToReview([mcp.consents, ai.consents, nil]) { $0 == .aiEnabled }
         check(
             "consents recorded on and still off here are listed",
-            review == [.mcpEnabled, .installedAITools])
+            review == [.mcpEnabled, .installedAITools, .chatFinishNotifications])
     }
 
     static func mergeAndReplace() {

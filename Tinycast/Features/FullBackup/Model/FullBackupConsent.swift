@@ -20,6 +20,7 @@ enum FullBackupConsent: String, CaseIterable, Codable, Sendable {
     case snippetsEnabled
     case clipboardTextSearch
     case installedAITools
+    case chatFinishNotifications
 
     /// The key whose value it records; the coverage guard reads this list.
     var settingsKey: AppSettingsKey {
@@ -42,6 +43,7 @@ enum FullBackupConsent: String, CaseIterable, Codable, Sendable {
         case .snippetsEnabled: return .snippetsEnabled
         case .clipboardTextSearch: return .clipboardTextSearchEnabled
         case .installedAITools: return .aiInstalledProviders
+        case .chatFinishNotifications: return .aiChatFinishNotifications
         }
     }
 
@@ -65,6 +67,7 @@ enum FullBackupConsent: String, CaseIterable, Codable, Sendable {
         case .snippetsEnabled: return String(localized: "Snippets")
         case .clipboardTextSearch: return String(localized: "Text in clipboard images")
         case .installedAITools: return String(localized: "Installed AI tools")
+        case .chatFinishNotifications: return String(localized: "Notifications when a reply finishes")
         }
     }
 }
