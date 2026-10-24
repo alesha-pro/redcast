@@ -294,11 +294,11 @@ struct ChatSectionHeader<Accessory: View>: View {
             if let symbol {
                 Image(systemName: symbol)
                     .font(.system(size: Theme.Size.chatHeaderGlyph, weight: .semibold))
-                    .foregroundStyle(hue.color)
+                    .foregroundStyle(hue.ink)
             }
             title
                 .font(Theme.Typography.sectionHeader.weight(.semibold))
-                .foregroundStyle(hue == .gray ? Theme.Colors.textSecondary : hue.color)
+                .foregroundStyle(hue == .gray ? Theme.Colors.textSecondary : hue.ink)
             if let count {
                 Text(verbatim: "\(count)")
                     .font(.caption.monospacedDigit())

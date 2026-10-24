@@ -436,22 +436,28 @@ enum ChatSettingsIconImage {
             guard let hue else { return image }
             let configuration = NSImage.SymbolConfiguration(paletteColors: [hue.tileNSColor])
             return image.withSymbolConfiguration(configuration) ?? image
-        case .asset(let name, _):
-            return brand(name, side: Theme.Size.menuBrandIcon)
+        case .asset(let name, let hue):
+            return brand(name, side: Theme.Size.menuBrandIcon, tint: hue)
         case .tile(let symbol, let hue):
             return ChatFolderTileImage.make(symbol: symbol, hue: hue)
         }
     }
 
-    static func brand(_ name: String, side: CGFloat) -> NSImage {
+    /// A tinted mark keeps its colour in a menu; an untinted one is a template, as the system's.
+    static func brand(_ name: String, side: CGFloat, tint: RaycastHue? = nil) -> NSImage {
         guard let source = NSImage(named: name) else {
             return NSImage(systemSymbolName: "sparkles", accessibilityDescription: nil) ?? NSImage()
         }
+        let color = tint?.tileNSColor
         let image = NSImage(size: NSSize(width: side, height: side), flipped: false) { rect in
             source.draw(in: rect)
+            if let color {
+                color.set()
+                rect.fill(using: .sourceAtop)
+            }
             return true
         }
-        image.isTemplate = true
+        image.isTemplate = tint == nil
         return image
     }
 }

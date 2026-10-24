@@ -313,6 +313,7 @@ private final class ChatCodeHeader: NSView {
         self.code = code
         label.stringValue = language ?? ""
         label.font = metrics.typography.textNSFont(.caption1)
+        ChatCodeBadge.style(label, language: language)  // Fork: the language in its own colour
     }
 
     override func layout() {
@@ -320,6 +321,7 @@ private final class ChatCodeHeader: NSView {
         let side = Self.height
         button.frame = CGRect(x: bounds.width - side, y: 0, width: side, height: side)
         label.frame = CGRect(x: 0, y: 0, width: max(bounds.width - side * 2, 0), height: side)
+        label.frame = ChatCodeBadge.frame(for: label, in: label.frame)  // Fork: a pill, not a strip
     }
 
     private func showIdle() {

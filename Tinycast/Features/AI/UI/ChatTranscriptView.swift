@@ -263,10 +263,7 @@ private struct ChatMessageView: View, @MainActor Equatable {
                 // The user bubble is inset because it carries a fill.
                 .padding(.horizontal, message.role == .user ? metrics.spacing.xl : replyInset)
                 .padding(.vertical, metrics.spacing.md)
-                .background(
-                    RoundedRectangle(cornerRadius: metrics.radius.row, style: .continuous)
-                        .fill(message.role == .user ? Theme.Colors.controlSurface : Color.clear)
-                )
+                .chatBubble(isUser: message.role == .user, radius: metrics.radius.row)  // Fork: accent wash
         }
     }
 
@@ -457,6 +454,7 @@ private struct ChatReasoningBlock: View {
                     } else {
                         Image(systemName: "brain")
                             .symbolRenderingMode(.hierarchical)
+                            .foregroundStyle(RaycastHue.magenta.color)  // Fork: thinking's own hue
                     }
                     Text(title)
                     Image(systemName: "chevron.right")
@@ -608,7 +606,7 @@ private struct ChatToolRow: View {
             case .running:
                 ProgressView().controlSize(.small)
             case .completed:
-                glyph("wrench.and.screwdriver")
+                ChatToolGlyph(use: use)  // Fork: coloured by what the call does
             case .failed:
                 glyph("exclamationmark.triangle")
                     .foregroundStyle(Theme.Colors.destructive)
@@ -641,6 +639,7 @@ private struct ChatSearchRow: View {
                 Image(systemName: "globe")
                     .font(metrics.typography.rowTrailing)
                     .symbolRenderingMode(.hierarchical)
+                    .foregroundStyle(RaycastHue.blue.color)  // Fork: web is blue, as its tool rows
             } else {
                 ProgressView().controlSize(.small)
             }

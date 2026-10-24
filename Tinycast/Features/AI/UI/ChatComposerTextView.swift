@@ -58,6 +58,7 @@ struct ChatComposerTextView: NSViewRepresentable {
         textView.isAutomaticDashSubstitutionEnabled = false
         textView.string = text
         textView.setAccessibilityLabel(String(localized: "Message"))
+        ChatComposerInk.apply(to: textView)  // Fork: the accent's caret and selection
         return scroll
     }
 

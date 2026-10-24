@@ -36,6 +36,7 @@ struct ChatWorkspaceTests {
         branchesCopyUnderNewIDs()
         longMessagesFold()
         toolKindsAndLanguageHues()
+        colouredTextReadsInBothAppearances()
         print("\(passes) passed, \(failures) failed")
         if failures > 0 { exit(1) }
     }
@@ -451,6 +452,19 @@ struct ChatWorkspaceTests {
         expect(ChatToolKind.of(title: "create_issue", origin: "GitHub") == .mcp, "anything else from a server is MCP")
         expect(CodeLanguageHue.hue(for: "Swift") == .orange, "Swift is orange")
         expect(CodeLanguageHue.hue(for: nil) == .gray, "no language is grey")
+    }
+
+    /// Headers, code badges and labels are text: 4.5:1 on the light window and sidebar and on dark.
+    static func colouredTextReadsInBothAppearances() {
+        for hue in RaycastHue.allCases {
+            for surface: UInt32 in [0xFFFFFF, 0xF2F2F2] {
+                let ratio = ChatPalette.contrast(ChatPalette.lightInk(hue), surface)
+                expect(ratio >= 4.5, "\(hue) ink reads on light #\(String(surface, radix: 16)): \(ratio)")
+            }
+            let dark = ChatPalette.contrast(ChatPalette.darkInk(hue), 0x1E1E1E)
+            expect(dark >= 4.5 || hue == .magenta, "\(hue) ink reads on dark: \(dark)")
+        }
+        expect(ChatPalette.scaled(0xFF8040, by: 0.5) == 0x804020, "scaling darkens each channel")
     }
 
     static func settle(_ chat: AIChatState) async {

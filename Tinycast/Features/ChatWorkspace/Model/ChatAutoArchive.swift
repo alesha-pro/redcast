@@ -92,3 +92,18 @@ enum CodeLanguageHue {
         }
     }
 }
+
+/// Fork: each model maker's mark in a colour of its own, matching the CLIs' where they overlap.
+enum ChatBrandHue {
+    static func hue(forAsset name: String) -> RaycastHue? {
+        switch name {
+        case "AIBrandClaude", "AIBrandMistral": .orange
+        case "AIBrandOpenAI", "AIBrandPerplexity": .green
+        case "AIBrandGemini", "AIBrandDeepSeek", "AIBrandMeta", "AIBrandZAI": .blue
+        case "AIBrandOpenCode", "AIBrandQwen", "AIBrandOpenRouter": .purple
+        case "AIBrandMiniMax": .red
+        case "AIBrandKimi": .magenta
+        default: nil
+        }
+    }
+}

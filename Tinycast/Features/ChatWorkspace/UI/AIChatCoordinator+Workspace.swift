@@ -233,7 +233,7 @@ extension AIChatCoordinator: ChatSettingsSource {
     static func settingsIcon(_ icon: PopoverMenuIcon) -> ChatSettingsIcon? {
         switch icon {
         case .symbol(let name): .symbol(name, nil)
-        case .asset(let name): .asset(name, icon.brandHue)
+        case .asset(let name): .asset(name, icon.brandHue ?? ChatBrandHue.hue(forAsset: name))
         case .file, .thumbnail, .blank: nil
         }
     }

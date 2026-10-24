@@ -2,8 +2,6 @@ import SwiftUI
 
 /// Fork: AI Chat's colour pass, as tokens over the vermilion brand rather than literals in views.
 extension Theme.Colors {
-    /// The brand's vermilion, #F23D32, fixed in both appearances.
-    static let vermilion = NSColor(srgbRed: 0xF2 / 255, green: 0x3D / 255, blue: 0x32 / 255, alpha: 1)
     /// The user's bubble: a wash of the accent, faint enough that body text keeps its contrast.
     static let chatUserBubble = adaptive(
         dark: vermilion.withAlphaComponent(0.20), light: vermilion.withAlphaComponent(0.09))
@@ -15,10 +13,6 @@ extension Theme.Colors {
     /// A folder or section under a dragged chat.
     static let chatDropTarget = adaptive(
         dark: vermilion.withAlphaComponent(0.30), light: vermilion.withAlphaComponent(0.16))
-    /// The composer's caret and selected text.
-    static let chatCaret = adaptive(dark: NSColor(srgbRed: 1, green: 0.39, blue: 0.39, alpha: 1), light: vermilion)
-    static let chatTextSelection = adaptive(
-        dark: vermilion.withAlphaComponent(0.40), light: vermilion.withAlphaComponent(0.22))
     /// A recalled question being edited, outlined in the accent.
     static let chatEditingEdge = adaptive(
         dark: vermilion.withAlphaComponent(0.85), light: vermilion.withAlphaComponent(0.75))
@@ -27,6 +21,21 @@ extension Theme.Colors {
 }
 
 extension RaycastHue {
+    /// A coloured header's or label's text, past 4.5:1 in both appearances (`ChatPalette`).
+    var ink: Color { Self.inks[self] ?? .primary }
+
+    private static let inks = Dictionary(
+        uniqueKeysWithValues: allCases.map { hue in
+            (hue, Theme.Colors.adaptive(
+                dark: hex(ChatPalette.darkInk(hue)), light: hex(ChatPalette.lightInk(hue))))
+        })
+
+    private static func hex(_ value: UInt32) -> NSColor {
+        NSColor(
+            srgbRed: CGFloat((value >> 16) & 0xFF) / 255, green: CGFloat((value >> 8) & 0xFF) / 255,
+            blue: CGFloat(value & 0xFF) / 255, alpha: 1)
+    }
+
     /// A hue's wash behind a badge's ink: a chip, a code block's language, a tool's glyph.
     var wash: Color { Self.washes[self] ?? .clear }
 

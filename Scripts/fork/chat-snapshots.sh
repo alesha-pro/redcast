@@ -32,7 +32,7 @@ CW=Tinycast/Features/ChatWorkspace
 AI=Tinycast/Features/AI
 SOURCES=(
     $CW/Model/*.swift $CW/Service/*.swift $CW/Settings/ChatWorkspaceSettings.swift
-    $CW/UI/ChatWorkspaceHost.swift $CW/UI/ChatWorkspaceCoordinator.swift $CW/UI/ChatWorkspaceTheme.swift
+    $CW/UI/ChatWorkspaceHost.swift $CW/UI/ChatWorkspaceCoordinator.swift $CW/UI/ChatWorkspaceTheme.swift $CW/UI/ChatComposerInk.swift $CW/UI/ChatSettingsState.swift
     $CW/UI/ChatWorkspaceSidebar.swift $CW/UI/ChatFolderEditor.swift
     Tinycast/Features/ColorfulIcons/Model/RaycastHue.swift Tinycast/DesignSystem/RaycastPalette.swift
     Tinycast/DesignSystem/Theme.swift Tinycast/Platform/Appearance.swift
