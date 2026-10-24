@@ -343,6 +343,11 @@ as `.codex`, so an existing selection survives the rename.
 | Google Gemini | Gemini's OpenAI-compatible API | `https://generativelanguage.googleapis.com/v1beta/openai` |
 | OpenRouter | OpenAI-compatible | `https://openrouter.ai/api/v1` |
 | OpenAI Compatible | OpenAI-compatible | user-editable |
+| Codex (ChatGPT) (fork) | Responses API on the ChatGPT plan, signed in with OAuth | `https://api.openai.com/v1` |
+
+Fork: **Codex (ChatGPT)** is an API connection with no key. It signs in with Sign in with ChatGPT,
+and its models and levels come from the plan's catalog; [Codex provider](codex-provider.md) covers
+it. It is never offered in the connection editor, and the installed Codex route stays as it is.
 
 The base URL stays editable for every preset because gateways and organization proxies are legitimate
 destinations. `AIHTTPConfiguration.endpointURL` accepts a complete endpoint or appends the transport's

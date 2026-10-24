@@ -17,6 +17,8 @@ struct KeychainSecretStore: Sendable {
     static let webSearchKeys = KeychainSecretStore(scope: "web-search-keys")
     // Fork: sent only to OpenRouter's /credits, by Check Balance in Settings → AI → Usage.
     static let openRouterManagementKeys = KeychainSecretStore(scope: "openrouter-management-keys")
+    // Fork: one Sign in with ChatGPT record per Codex (ChatGPT) connection; see codex-provider.md.
+    static let codexPlanCredentials = KeychainSecretStore(scope: "codex-plan-credentials")
 
     init(scope: String, bundleIdentifier: String? = Bundle.main.bundleIdentifier) {
         service = "\(bundleIdentifier ?? "com.tinycast.app").\(scope)"

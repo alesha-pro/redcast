@@ -65,7 +65,8 @@ struct AIConnectionEditorPanel: View {
                     }
                     editorField("Provider") {
                         Picker("Provider", selection: $connection.provider) {
-                            ForEach(AIProviderKind.allCases) { provider in
+                            // Fork: the ChatGPT plan signs in from its own page, never with a key.
+                            ForEach(AIProviderKind.allCases.filter { $0 != .codexPlan }) { provider in
                                 Text(provider.title).tag(provider)
                             }
                         }
@@ -389,7 +390,7 @@ struct AIConnectionEditorPanel: View {
     private var modelPlaceholder: String {
         let example: String
         switch connection.provider {
-        case .openAI, .openAICompatible: example = "gpt-5.4-mini"
+        case .openAI, .openAICompatible, .codexPlan: example = "gpt-5.4-mini"  // Fork: never edited here
         case .anthropic: example = "claude-sonnet-4-6"
         case .gemini: example = "gemini-3.7-flash"
         case .openRouter: example = "openai/gpt-5.4-mini"

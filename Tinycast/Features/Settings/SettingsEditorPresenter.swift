@@ -395,6 +395,7 @@ extension View {
             .environment(core.customQuickActions)
             .environment(core.chatGPTSubscription)
             .environment(core.installedAI)
+            .environment(core.codexPlan)  // Fork: Codex (ChatGPT) sign-ins and limits
             .scrollContentBackground(.hidden)
     }
 }

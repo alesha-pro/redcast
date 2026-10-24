@@ -6,6 +6,7 @@ enum AIProviderKind: String, CaseIterable, Codable, Identifiable, Sendable {
     case gemini
     case openRouter
     case openAICompatible
+    case codexPlan  // Fork: a ChatGPT plan signed in with OAuth, not a key; see codex-provider.md
 
     var id: String { rawValue }
 
@@ -16,6 +17,7 @@ enum AIProviderKind: String, CaseIterable, Codable, Identifiable, Sendable {
         case .gemini: return "Google Gemini"
         case .openRouter: return "OpenRouter"
         case .openAICompatible: return String(localized: "OpenAI Compatible")
+        case .codexPlan: return "Codex (ChatGPT)"  // Fork: the plan's sign-in route
         }
     }
 
@@ -26,6 +28,7 @@ enum AIProviderKind: String, CaseIterable, Codable, Identifiable, Sendable {
         case .gemini: return "https://generativelanguage.googleapis.com/v1beta/openai"
         case .openRouter: return "https://openrouter.ai/api/v1"
         case .openAICompatible: return "https://api.openai.com/v1"
+        case .codexPlan: return "https://api.openai.com/v1"  // Fork: Sign in with ChatGPT's own API
         }
     }
 
@@ -105,6 +108,7 @@ struct AIConnection: Codable, Equatable, Identifiable, Sendable {
     }
 
     func reasoningOptions(for model: String) -> ReasoningOptions? {
+        if provider == .codexPlan { return reasoningOptions?[model] }  // Fork: the plan's catalog levels
         guard provider == .openRouter || takesThinkingField else { return nil }
         return reasoningOptions?[model] ?? (takesThinkingField ? .thinkingSwitch : nil)
     }

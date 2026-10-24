@@ -28,13 +28,14 @@ enum VoiceRoutePolicy {
         switch provider {
         case .openRouter: return Default(model: "google/" + model, effort: effort)
         case .gemini: return Default(model: model, effort: effort)
-        case .openAI, .anthropic, .openAICompatible: return nil
+        case .openAI, .anthropic, .openAICompatible, .codexPlan: return nil
         }
     }
 
     /// Only a body Tinycast writes with input_audio: any OpenAI-compatible shape, never Anthropic.
     static func accepts(_ connection: AIConnection) -> Bool {
-        connection.provider.apiShape == .openAICompatible
+        // The ChatGPT plan takes no audio input on Sign in with ChatGPT's route.
+        connection.provider.apiShape == .openAICompatible && connection.provider != .codexPlan
     }
 
     /// Where a recording goes: only the consented choice, never a substitute for a missing one.

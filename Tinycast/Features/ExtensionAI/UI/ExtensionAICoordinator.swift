@@ -13,7 +13,8 @@ final class ExtensionAICoordinator {
             UsageRecordingProvider.wrapping(
                 try AIProviderFactory.make(
                     selection: selection, settings: core.aiSettings,
-                    subscription: core.chatGPTSubscription, installedAI: core.installedAI),
+                    subscription: core.chatGPTSubscription, installedAI: core.installedAI,
+                    codexPlan: core.codexPlan),
                 for: selection, as: .extensionAI)
         })
 
