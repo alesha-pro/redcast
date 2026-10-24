@@ -137,6 +137,12 @@ extension SettingsAnchor {
     static let backupImport = Self(tab: .backup, title: "Import")
     static let backupImportFromRaycast = Self(tab: .backup, title: "Import from Raycast")
     static let backupSettingsFile = Self(tab: .backup, title: "Settings File")
+    // Fork: the Shortcuts overview.
+    static let shortcutsOverview = Self(tab: .shortcuts, title: "Overview")
+    static let shortcutsList = Self(tab: .shortcuts, title: "Shortcuts and Aliases")
+    static let shortcutsHyperKey = Self(tab: .shortcuts, title: "Hyper Key")
+    // Fork: the full backup's export on quit.
+    static let backupAutomatic = Self(tab: .backup, title: "Automatic Backup")
 
     static let aboutAbout = Self(tab: .about, title: "About")
     static let aboutLinks = Self(tab: .about, title: "Links")

@@ -19,6 +19,8 @@ struct BackupSettingsView: View {
     @State private var openedManifest: BackupManifest?
     /// Held between opening the file and applying it, so the extracted tree survives the picker.
     @State private var openedStaging: BackupStaging?
+    // Fork: the full backup's sections, secrets and import choices.
+    @State private var full = FullBackupDraft()
 
     private enum Status {
         case success(String)
@@ -52,13 +54,16 @@ struct BackupSettingsView: View {
                     if exporting {
                         ProgressView().controlSize(.small)
                     } else {
-                        Button("Export…") { runExport() }.disabled(exportSelection.isEmpty)
+                        // Fork: the full backup's sections count as a selection too.
+                        Button("Export…") { runExport() }
+                            .disabled(full.blocksExport(upstream: exportSelection.isEmpty))
                     }
                 } label: {
                     SettingsRowTitle(.backupExport, "Export Backup")
                     Text("The ticked items, as one .tinycast file.")
                 }
                 BackupCategorySelection(selection: $exportSelection)
+                FullBackupExportOptions(draft: full)  // Fork: full backup
                 if let backupStatus { statusRow(backupStatus) }
             } header: {
                 SettingsSectionHeader(.backupExport)
@@ -74,12 +79,14 @@ struct BackupSettingsView: View {
                 if let manifest = openedManifest {
                     BackupCategorySelection(
                         selection: $importSelection, available: available(in: manifest))
+                    FullBackupImportOptions(draft: full)  // Fork: full backup
                     LabeledContent {
                         if importingBackup {
                             ProgressView().controlSize(.small)
                         } else {
+                            // Fork: the full backup's sections count as a choice too.
                             Button("Import") { runBackupImport() }
-                                .disabled(importSelection.isEmpty)
+                                .disabled(full.blocksImport(upstream: importSelection.isEmpty))
                         }
                     } label: {
                         Text("Import")
@@ -126,6 +133,8 @@ struct BackupSettingsView: View {
             } header: {
                 SettingsSectionHeader(.backupImportFromRaycast)
             }
+
+            FullBackupAutoExportSection()  // Fork: export on quit
 
             Section {
                 Toggle(isOn: settingsFileSync) {
@@ -204,9 +213,10 @@ struct BackupSettingsView: View {
         Task {
             defer { exporting = false }
             do {
-                let result = try await BackupActions.exportBackup(
-                    core: core, categories: categories)
-                backupStatus = .success(BackupActions.exportText(result))
+                // Fork: one file with the full backup's sections beside the categories.
+                let result = try await FullBackupActions.exportWithPanel(
+                    core: core, categories: categories, draft: full)
+                backupStatus = .success(FullBackupActions.exportText(result))
             } catch is CancellationError {
                 // The user closed the save panel; nothing to report.
             } catch {
@@ -226,6 +236,7 @@ struct BackupSettingsView: View {
                 openedStaging = staging
                 openedManifest = manifest
                 importSelection = manifest.categories
+                full.open(bundleRoot: staging.root)  // Fork: full backup
             } catch {
                 backupStatus = .failure(error.localizedDescription)
             }
@@ -233,19 +244,35 @@ struct BackupSettingsView: View {
     }
 
     private func runBackupImport() {
-        guard let staging = openedStaging, !importingBackup, !importSelection.isEmpty else {
+        // Fork: the full backup's sections count as a choice too.
+        guard let staging = openedStaging, !importingBackup, !importSelection.isEmpty || full.hasImportChoice
+        else {
             return
         }
         importingBackup = true
         let categories = importSelection
         Task {
             defer { importingBackup = false }
+            // Fork: keys opened and launchable commands confirmed before anything is applied.
+            let request: FullBackupRestore.Request?
+            do {
+                request = try await FullBackupActions.prepareImport(full, core: core)
+            } catch {
+                backupStatus = .failure(error.localizedDescription)
+                return
+            }
+            guard let request else { return }
             let summary = await BackupActions.applyBackup(
                 categories, from: staging, to: core)
+            // Fork: the full backup's sections, after the categories they may point at.
+            let report = summary == nil ? nil : await FullBackupRestore.apply(request, to: core)
             // Staged files are adopted by the stores during apply, so the tree goes either way.
             discardStagedBackup()
             backupFile = nil
-            if let summary { backupStatus = .success(BackupActions.summaryText(summary)) }
+            if let summary {
+                // Fork: one status for both halves.
+                backupStatus = .success(FullBackupActions.importText(summary, report))
+            }
         }
     }
 
@@ -254,6 +281,7 @@ struct BackupSettingsView: View {
         openedStaging?.discard()
         openedStaging = nil
         openedManifest = nil
+        full.close()  // Fork: full backup
     }
 
     private func chooseRaycastFile() {

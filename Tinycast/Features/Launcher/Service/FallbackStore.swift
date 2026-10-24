@@ -40,4 +40,12 @@ final class FallbackStore {
         orderedIDs = updated.map(\.id)
         defaults.set(orderedIDs, forKey: orderKey)
     }
+
+    // Fork: a full backup's import puts back the order and the switches as they were.
+    func restore(order: [String], disabled: [String]) {
+        orderedIDs = order
+        disabledIDs = Set(disabled)
+        defaults.set(order, forKey: orderKey)
+        defaults.set(disabled, forKey: disabledKey)
+    }
 }

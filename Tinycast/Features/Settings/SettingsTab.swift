@@ -2,6 +2,8 @@ enum SettingsTab: CaseIterable, Identifiable {
     case general, applications, systemSettings, systemActions, commands, quicklinks, appleShortcuts,
         fallbacks, clipboard, snippets, fileSearch, windowManagement, navigation, notes, calendar, emoji,
         dictation, ai, quickActions, extensions, permissions, backup, about
+    // Fork: every hotkey and alias in one list.
+    case shortcuts
     /// The case, never an index: a selectable `List` flattens section and row IDs together.
     var id: Self { self }
 
@@ -30,6 +32,7 @@ enum SettingsTab: CaseIterable, Identifiable {
         case .permissions: return String(localized: "Permissions")
         case .backup: return String(localized: "Backup")
         case .about: return String(localized: "About")
+        case .shortcuts: return String(localized: "Shortcuts")  // Fork: Shortcuts overview
         }
     }
 
@@ -58,6 +61,7 @@ enum SettingsTab: CaseIterable, Identifiable {
         case .permissions: return "lock.shield"
         case .backup: return "arrow.up.arrow.down.circle"
         case .about: return "info.circle"
+        case .shortcuts: return "keyboard"  // Fork: Shortcuts overview
         }
     }
 }
@@ -79,7 +83,7 @@ enum SettingsSection: CaseIterable, Identifiable {
 
     var tabs: [SettingsTab] {
         switch self {
-        case .general: return [.general, .permissions]
+        case .general: return [.general, .shortcuts, .permissions]  // Fork: Shortcuts overview
         case .launcher:
             return [
                 .applications, .systemSettings, .systemActions, .commands, .quicklinks,

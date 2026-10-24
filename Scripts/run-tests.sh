@@ -668,6 +668,45 @@ run backup-archive-test    Tinycast/Platform/AppPaths.swift \
                            Tinycast/Features/Backup/Model/BackupClipboardItem.swift \
                            Tinycast/Features/Backup/Model/BackupManifest.swift \
                            Tinycast/Features/Backup/Service/BackupStaging.swift
+# Fork: the full backup's sections, version tolerance, import rules, sealed secrets and auto export.
+FB=Tinycast/Features/FullBackup
+run full-backup-test       $FB/Model/*.swift $FB/Service/FullBackupCipher.swift \
+                           $FB/Service/FullBackupChatArchive.swift \
+                           Tinycast/Features/Agents/Model/*.swift Tinycast/Features/WebSearch/Model/*.swift \
+                           Tinycast/Features/AI/Model/*.swift Tinycast/Features/ReasoningReplay/Model/*.swift \
+                           Tinycast/Features/AI/Service/AIProvider.swift \
+                           Tinycast/Features/Settings/AppSettingsKey.swift Tinycast/Features/MCP/Model/*.swift \
+                           Tinycast/Features/VoiceAI/Model/*.swift \
+                           Tinycast/Features/Dictation/Model/DictationLanguage.swift \
+                           Tinycast/Features/Dictation/Model/DictationMode.swift \
+                           Tinycast/Features/QuickActions/Model/CustomQuickAction.swift \
+                           Tinycast/Features/Extensions/Model/ExtensionAppearance.swift \
+                           Tinycast/Features/HotKeys/Model/HotKeyBinding.swift \
+                           Tinycast/Features/HotKeys/Model/ModifierKey.swift \
+                           Tinycast/Features/HotKeys/Model/DoubleTapModifier.swift \
+                           Tinycast/Features/HotKeys/Model/HyperKey.swift \
+                           Tinycast/Features/HotKeys/Model/HIDKeyMapping.swift \
+                           Tinycast/Features/HotKeys/Service/KeyShortcut.swift \
+                           Tinycast/Platform/ASCIIKeyboardLayout.swift Tinycast/Platform/AppPaths.swift \
+                           Tinycast/Features/Backup/Model/BackupArchive.swift \
+                           Tinycast/Features/Backup/Model/BackupBundle.swift \
+                           Tinycast/Features/Backup/Model/BackupCategory.swift \
+                           Tinycast/Features/Backup/Model/BackupClipboardItem.swift \
+                           Tinycast/Features/Backup/Model/BackupManifest.swift
+# Fork: every store the app persists has a full backup decision; it scans the sources.
+run full-backup-coverage-test Tinycast/Features/Settings/AppSettingsKey.swift \
+                           Tinycast/Features/Backup/Model/SettingsBackupCoverage.swift \
+                           $FB/Model/FullBackupSection.swift $FB/Model/FullBackupConsent.swift \
+                           $FB/Model/FullBackupCoverage.swift
+# Fork: the Shortcuts overview's conflict audit, filters and system shortcuts.
+run shortcuts-overview-test Tinycast/Features/ShortcutsOverview/Model/*.swift \
+                           Tinycast/Features/HotKeys/Model/HotKeyBinding.swift \
+                           Tinycast/Features/HotKeys/Model/ModifierKey.swift \
+                           Tinycast/Features/HotKeys/Model/DoubleTapModifier.swift \
+                           Tinycast/Features/HotKeys/Model/HyperKey.swift \
+                           Tinycast/Features/HotKeys/Model/HIDKeyMapping.swift \
+                           Tinycast/Features/HotKeys/Service/KeyShortcut.swift \
+                           Tinycast/Platform/ASCIIKeyboardLayout.swift
 E=Tinycast/Features/Extensions
 run symbols-test           $E/Service/SymbolCatalog.swift
 run ext-cleanup-test       $E/Service/ExtensionCleanup.swift \

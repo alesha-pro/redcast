@@ -148,6 +148,9 @@ final class ExtensionStorage {
         store(for: name).oauthTokens[provider]
     }
 
+    // Fork: a full backup's sealed secrets carry every provider's tokens.
+    func allOAuthTokens(extension name: String) -> [String: String] { store(for: name).oauthTokens }
+
     /// `nil` signs the provider out.
     func setOAuthTokens(extension name: String, provider: String, tokens: String?) {
         mutate(name) { $0.oauthTokens[provider] = tokens }

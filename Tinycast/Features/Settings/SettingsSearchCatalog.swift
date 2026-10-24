@@ -109,7 +109,7 @@ enum SettingsSearchCatalog {
         general + applications + systemSettings + systemActions + commands + quicklinks
         + appleShortcuts + fallbacks + clipboard + snippets + fileSearch + windowManagement
         + navigation + notes + calendar + emoji + ai + quickActions + dictation + extensions + permissions
-        + backup + about
+        + backup + about + shortcuts  // Fork: Shortcuts overview
 
     private static let general: [SettingsSearchEntry] = [
         .init(pane: .general, keywords: ["preferences", "settings"]),
@@ -766,7 +766,33 @@ enum SettingsSearchCatalog {
             keywords: ["migrate", "rayconfig", "passphrase"]),
         .init(
             .backupSettingsFile, "Sync settings file",
-            keywords: ["settings.json", "config", "json", "dotfiles", ".config", "edit"])
+            keywords: ["settings.json", "config", "json", "dotfiles", ".config", "edit"]),
+        // Fork: the full backup's secrets and its export on quit.
+        .init(
+            .backupExport, "Include API keys and tokens",
+            keywords: ["secrets", "passphrase", "encrypt", "keychain", "password"]),
+        .init(
+            .backupAutomatic, "Export when Tinycast quits",
+            keywords: ["automatic", "scheduled", "auto backup", "quit"]),
+        .init(.backupAutomatic, "Backup folder", keywords: ["automatic", "location", "folder"]),
+        .init(
+            .backupAutomatic, "When the last export is older than",
+            keywords: ["days", "automatic", "interval"]),
+        .init(.backupAutomatic, "Keep", keywords: ["automatic", "retention", "files", "rotate"])
+    ]
+
+    // Fork: the Shortcuts overview.
+    private static let shortcuts: [SettingsSearchEntry] = [
+        .init(
+            pane: .shortcuts,
+            keywords: ["hotkeys", "keyboard shortcuts", "aliases", "keybindings", "conflicts"]),
+        .init(
+            group: .shortcutsOverview, "Overview",
+            keywords: ["conflicts", "duplicates", "filter", "disabled", "system shortcuts"]),
+        .init(
+            group: .shortcutsList, "Shortcuts and Aliases",
+            keywords: ["hotkey", "alias", "keyword", "record", "change shortcut"]),
+        .init(.shortcutsHyperKey, "Hyper Key", keywords: ["caps lock", "hyper", "✦"])
     ]
 
     private static let about: [SettingsSearchEntry] = [

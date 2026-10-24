@@ -34,6 +34,7 @@ Independently of the folder tree, every mature subsystem has converged on the sa
 │ MenuSearch{Item,Shortcut,Query,TreeNode,SnapshotPolicy,Target} ·           │
 │ WindowSwitch{Entry,Order,Query} · AgentSessions/Model/* ·                  │
 │ DictationHistory/Model/* · ExtensionStore/Model/*                          │
+│ FullBackup/Model/* · ShortcutsOverview/Model/*                             │
 └──────────────────────────────────┬─────────────────────────────────────────┘
                                    │ consumed by
 ┌─ EFFECT ─────────────────────────▼─────────────────────────────────────────┐
@@ -52,6 +53,7 @@ Independently of the folder tree, every mature subsystem has converged on the sa
 │ WindowManagementSettingsFile · AgentSessionsScanner ·                      │
 │ AgentTerminalRunner · AgentHookRepository · AgentProcessHost ·             │
 │ DictationHistoryFile · ExtensionStoreFetcher · ExtensionStoreCache         │
+│ FullBackupCipher · FullBackupChatArchive · ShortcutsInventory              │
 └──────────────────────────────────┬─────────────────────────────────────────┘
                                    │ published through
 ┌─ OBSERVABLE STATE ───────────────▼─────────────────────────────────────────┐
