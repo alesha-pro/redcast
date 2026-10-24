@@ -325,6 +325,10 @@ The yellow and orange tiles sit deeper than Raycast's yellow and orange, because
   composer stays neutral but for three marks: the chat's agent as its own tile, the model's brand
   mark in its maker's colour (`PopoverMenuIcon.brandHue`, as Agent Sessions paints that CLI), and
   the red Send disc with a white arrow.
+- **AI Chat's window has its own pass** ([chat workspace](features/chat-workspace.md#colour)):
+  folder hues, tinted section headers, a vermilion selected row and user bubble, makers' marks in
+  their colours, tool glyphs by kind, coloured code-language pills and an accent caret, all from
+  tokens in `Features/ChatWorkspace/UI/ChatWorkspaceTheme.swift`.
 - **Section headers stand out.** The palette's `SectionHeader` is semibold `textSecondary`, 5.7:1 over
   the light scrim where `.secondary` gave 3.9:1.
 - **An agent wears its own colour**, chosen from seven swatches in its editor or derived from its id;

@@ -95,6 +95,26 @@ with the agent's tile, the model's mark and name that opens the settings, the mi
 on, and Send/Stop. The window's title is the chat's, with the model and agent under it as the
 subtitle, as Raycast's title bar has.
 
+## Colour
+
+Everything here is a token: `Theme.Colors.chat…` and `RaycastHue.ink`/`wash` in
+`ChatWorkspaceTheme.swift`, over the brand's vermilion (#F23D32), and `ChatPalette` for the inks.
+
+- Folders wear their own hue: the tile, the bar beside their chats, the menus' tiles.
+- Section headers are tinted: Pinned yellow, Folders purple, the days red, Archived and Recently
+  Deleted grey. Their ink is the tile's tone a fifth darker on light (`ChatPalette.lightInk`) and
+  Raycast Dark's value on dark, so every hue reads at 4.5:1 or better on white, on `#F2F2F2` and on
+  `#1E1E1E`; `chat-workspace-test` checks each one.
+- The open chat's row is a vermilion wash, 14% on light and 26% on dark, under primary text.
+- The model's mark wears its maker's colour (`ChatBrandHue`, and Agent Sessions' CLI hues where
+  they overlap) in the settings sidebar, its menus and the composer's chip; an agent wears its tile.
+- The reader's message sits on a vermilion wash (9% light, 20% dark) edged a step deeper, in both
+  surfaces. A finished tool call's glyph says what it did (`ChatToolKind`): web blue, files purple,
+  terminal green, notes yellow, an MCP server's orange; a search's globe is blue and a thinking
+  fold's brain magenta. A failed call stays red.
+- A code block's language is a small pill in its language's hue (`CodeLanguageHue`).
+- The composer's caret and selection are the accent's (`ChatComposerInk`).
+
 ## Manual sweep
 
 - Create two folders: each is named in place and gets its own colour. Rename one from its menu and
@@ -115,5 +135,8 @@ subtitle, as Raycast's title bar has.
   no temperature. On a Codex, Claude CLI or Gemini model the control is disabled.
 - Write Additional Instructions ("Reply in one sentence"): the next reply obeys, another chat does
   not, and they survive a relaunch.
+- In light and dark: folders, headers, the selected row, the user bubble, tool glyphs, a Swift and a
+  JSON code block's language pills and the composer's caret all take their colours, and switching
+  the system appearance repaints them without reopening the window.
 - Turn a server off under Tools: the next turn cannot call it. With a reply that reported usage,
   Context shows its tokens, the chat's total and, where the route reports it, its cost.

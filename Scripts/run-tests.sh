@@ -366,6 +366,7 @@ run dictation-field-test   Tinycast/Features/Dictation/Model/DictationModel.swif
                            Tinycast/Features/Dictation/Service/DictationCoordinator.swift \
                            Tinycast/Features/Dictation/Service/DictationInsertionContext.swift \
                            Tinycast/Features/AI/UI/ChatComposerTextView.swift \
+                           Tinycast/Features/ChatWorkspace/UI/ChatComposerInk.swift \
                            Tinycast/Features/TextInjection/Service/*.swift \
                            Tinycast/Features/Snippets/Model/*.swift $TAG_RULES \
                            Tinycast/Platform/AccessibilityText.swift \
