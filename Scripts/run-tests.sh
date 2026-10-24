@@ -881,6 +881,11 @@ run dictation-history-test Tinycast/Features/DictationHistory/Model/*.swift \
                            Tinycast/Features/DictationHistory/Service/DictationRecordingFolder.swift \
                            Tinycast/Features/VoiceAI/Model/VoiceAudio.swift \
                            Tinycast/Platform/AppPaths.swift
+# Fork: what Send to AI hands Quick AI or a new chat for each kind of row.
+run send-to-ai-test        Tinycast/Features/SendToAI/Model/*.swift \
+                           Tinycast/Features/Clipboard/Model/ColorValue.swift \
+                           Tinycast/Features/Clipboard/Model/ColorFormat.swift \
+                           Tinycast/Features/Clipboard/Model/ColorSpaces.swift
 # Fork: the Extension Store's three endpoints, cache, shelves, categories, search and install state.
 run extension-store-test   Tinycast/Features/ExtensionStore/Model/*.swift \
                            Tinycast/Features/ExtensionStore/Service/ExtensionStoreCache.swift \

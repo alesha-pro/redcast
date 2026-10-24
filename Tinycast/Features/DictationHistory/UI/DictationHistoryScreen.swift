@@ -68,6 +68,9 @@ struct DictationHistoryScreen: PaletteScreen {
             guard let entry = entry(at: selection), entry.transcript != nil else { return false }
             coordinator.copyTranscript(entry)
             return true
+        case .continueInChat:
+            guard let entry = entry(at: selection) else { return false }
+            return coordinator.sendToAI(entry)
         default:
             return false
         }
@@ -167,6 +170,7 @@ enum DictationHistoryActionsMenu {
                     coordinator.copyTranscript(entry)
                 })
         }
+        items += coordinator.sendToAIMenuItems(entry)
         items += deletions(entry, coordinator: coordinator)
         return PopoverMenuContent(header: DictationHistoryList.title(of: entry, limit: 40), items: items)
     }
