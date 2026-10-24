@@ -4,6 +4,7 @@ struct DictationHistoryList: View {
     @Environment(\.metrics) private var metrics
     let rows: [DictationHistoryEntry]
     let selectedID: DictationHistoryEntry.ID?
+    let retries: DictationRetryState
     let scroll: ScrollIntent
     let onSelect: (DictationHistoryEntry) -> Void
     let onActivate: (DictationHistoryEntry) -> Void
@@ -48,7 +49,9 @@ struct DictationHistoryList: View {
                         case .header(let title):
                             SectionHeader(title: title, isFirst: item.id == items.first?.id)
                         case .entry(let entry):
-                            DictationHistoryRow(entry: entry, selected: entry.id == selectedID)
+                            DictationHistoryRow(
+                                entry: entry, selected: entry.id == selectedID,
+                                retrying: retries.isRetrying(entry.id))
                                 .selectionFrame(entry.id == selectedID)
                                 .contentShape(Rectangle())
                                 .onRightClick { onActions(entry) }
@@ -71,12 +74,14 @@ struct DictationHistoryList: View {
 
     /// One line of the text, collapsed: a multi-line dictation stays a clean title.
     static func title(of entry: DictationHistoryEntry, limit: Int = 200) -> String {
+        guard !entry.isFailed else { return String(localized: "Dictation failed") }
         let words = entry.text.prefix(limit * 4).split(whereSeparator: \.isWhitespace)
         return String(words.joined(separator: " ").prefix(limit))
     }
 
-    static func symbol(of kind: DictationHistoryEntry.Kind) -> String {
-        switch kind {
+    static func symbol(of entry: DictationHistoryEntry) -> String {
+        if entry.isFailed { return "waveform.badge.exclamationmark" }
+        return switch entry.kind {
         case .dictation: "waveform"
         case .ask: CommandID.askByVoice.sfSymbol
         case .edit: CommandID.editByVoice.sfSymbol
@@ -96,6 +101,7 @@ private struct DictationHistoryRow: View {
     @Environment(\.metrics) private var metrics
     let entry: DictationHistoryEntry
     let selected: Bool
+    let retrying: Bool
     @State private var hovered = false
 
     /// Selection wins over hover when a row is both; otherwise hover shows its fainter layer.
@@ -110,7 +116,7 @@ private struct DictationHistoryRow: View {
         return HStack(spacing: metrics.spacing.lg) {
             Image(
                 nsImage: IconCache.symbolIcon(
-                    named: DictationHistoryList.symbol(of: entry.kind), tint: ColorfulIcons.tint(.voice))
+                    named: DictationHistoryList.symbol(of: entry), tint: ColorfulIcons.tint(.voice))
             )
             .resizable()
             .frame(width: metrics.size.resultRowIcon, height: metrics.size.resultRowIcon)
@@ -138,10 +144,11 @@ private struct DictationHistoryRow: View {
         .accessibilityAddTraits(selected ? [.isButton, .isSelected] : .isButton)
     }
 
-    /// An Ask or an edit says so first; the app and the mode follow.
+    /// An Ask or an edit says so first, a failure why; the app and the mode follow.
     private var subtitle: String? {
         let kind = entry.kind == .dictation ? nil : DictationHistoryList.kindName(entry.kind)
-        let parts = [kind, entry.appName, entry.mode].compactMap { $0 }
+        let status = retrying ? String(localized: "Retrying…") : entry.failure
+        let parts = [kind, status, entry.appName, entry.mode].compactMap { $0 }
         return parts.isEmpty ? nil : parts.joined(separator: " · ")
     }
 

@@ -1,6 +1,6 @@
 import Foundation
 
-/// One finished voice input as Dictation History keeps it: its words and where they went, no audio.
+/// One voice input as Dictation History keeps it: its words and where they went, or why it failed.
 struct DictationHistoryEntry: Equatable, Identifiable, Sendable {
     enum Kind: String, Sendable {
         case dictation
@@ -18,6 +18,7 @@ struct DictationHistoryEntry: Equatable, Identifiable, Sendable {
 
     /// A five-minute dictation is a few thousand characters; longer text keeps its head.
     static let maxTextLength = 20_000
+    static let maxFailureLength = 120
 
     let id: UUID
     /// Whole seconds, as the line stores it.
@@ -28,16 +29,21 @@ struct DictationHistoryEntry: Equatable, Identifiable, Sendable {
     /// What was said when it is not `text`: a mode's input, a question, an edit's instruction.
     let transcript: String?
     let mode: String?
+    /// The mode a failed cloud dictation used, so a retry rewrites it the same way.
+    let modeID: UUID?
     let engine: Engine?
     let model: String?
     let appName: String?
     let bundleID: String?
     let duration: TimeInterval?
+    /// Why the transcription failed, on one line; such an entry has no text until a retry lands.
+    let failure: String?
 
     init(
         id: UUID = UUID(), date: Date, kind: Kind, text: String, transcript: String? = nil,
-        mode: String? = nil, engine: Engine? = nil, model: String? = nil, appName: String? = nil,
-        bundleID: String? = nil, duration: TimeInterval? = nil
+        mode: String? = nil, modeID: UUID? = nil, engine: Engine? = nil, model: String? = nil,
+        appName: String? = nil, bundleID: String? = nil, duration: TimeInterval? = nil,
+        failure: String? = nil
     ) {
         self.id = id
         self.date = Date(timeIntervalSince1970: date.timeIntervalSince1970.rounded(.down))
@@ -46,11 +52,40 @@ struct DictationHistoryEntry: Equatable, Identifiable, Sendable {
         let spoken = transcript.map { String($0.prefix(Self.maxTextLength)) }
         self.transcript = spoken?.isEmpty == false && spoken != self.text ? spoken : nil
         self.mode = mode
+        self.modeID = modeID
         self.engine = engine
         self.model = model
         self.appName = appName
         self.bundleID = bundleID
         self.duration = duration
+        self.failure = failure.map(Self.failureLine)
+    }
+
+    var isFailed: Bool { failure != nil }
+
+    /// An error's first line, its whitespace folded and its length capped, never empty.
+    static func failureLine(_ description: String) -> String {
+        let line = description.split(whereSeparator: \.isNewline).first.map {
+            $0.split(whereSeparator: \.isWhitespace).joined(separator: " ")
+        }
+        guard let line, !line.isEmpty else { return "?" }
+        return line.count <= maxFailureLength ? line : String(line.prefix(maxFailureLength - 1)) + "…"
+    }
+
+    /// The same recording heard at last: a normal entry from now on, at its first date and place.
+    func transcribed(_ heard: DictationRetryTranscript) -> Self {
+        Self(
+            id: id, date: date, kind: kind, text: heard.text, transcript: heard.transcript, mode: heard.mode,
+            engine: heard.engine, model: heard.model, appName: appName, bundleID: bundleID,
+            duration: duration)
+    }
+
+    /// Still failed, now for `reason`, on what the retry tried.
+    func failed(_ reason: String, on attempt: DictationRetryAttempt) -> Self {
+        Self(
+            id: id, date: date, kind: kind, text: "", mode: attempt.mode, modeID: attempt.modeID,
+            engine: attempt.engine, model: attempt.model, appName: appName, bundleID: bundleID,
+            duration: duration, failure: reason)
     }
 
     // MARK: - Line format
@@ -62,18 +97,21 @@ struct DictationHistoryEntry: Equatable, Identifiable, Sendable {
         var text: String
         var transcript: String?
         var mode: String?
+        var modeID: UUID?
         var engine: String?
         var model: String?
         var app: String?
         var bundleID: String?
         var duration: Double?
+        var failure: String?
     }
 
     /// The date's seconds, a tab, then JSON, which escapes every newline the text holds.
     var line: String {
         let payload = Payload(
-            id: id, kind: kind.rawValue, text: text, transcript: transcript, mode: mode,
-            engine: engine?.rawValue, model: model, app: appName, bundleID: bundleID, duration: duration)
+            id: id, kind: kind.rawValue, text: text, transcript: transcript, mode: mode, modeID: modeID,
+            engine: engine?.rawValue, model: model, app: appName, bundleID: bundleID, duration: duration,
+            failure: failure)
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.sortedKeys, .withoutEscapingSlashes]
         let json = (try? encoder.encode(payload)).flatMap { String(data: $0, encoding: .utf8) } ?? "{}"
@@ -87,10 +125,11 @@ struct DictationHistoryEntry: Equatable, Identifiable, Sendable {
         else { return nil }
         self.init(
             id: payload.id, date: date, kind: payload.kind.flatMap(Kind.init(rawValue:)) ?? .dictation,
-            text: payload.text, transcript: payload.transcript, mode: payload.mode,
+            text: payload.text, transcript: payload.transcript, mode: payload.mode, modeID: payload.modeID,
             engine: payload.engine.flatMap(Engine.init(rawValue:)), model: payload.model,
             appName: payload.app, bundleID: payload.bundleID,
-            duration: payload.duration.flatMap { $0.isFinite && $0 >= 0 ? $0 : nil })
+            duration: payload.duration.flatMap { $0.isFinite && $0 >= 0 ? $0 : nil },
+            failure: payload.failure.flatMap { $0.isEmpty ? nil : $0 })
     }
 
     // MARK: - The file
@@ -122,6 +161,20 @@ struct DictationHistoryEntry: Equatable, Identifiable, Sendable {
             kept.append(newline)
         }
         return kept
+    }
+
+    /// `entry`'s line written over the one with its id, where it stands, so the order holds.
+    static func replacing(_ entry: DictationHistoryEntry, in data: Data) -> Data {
+        var rewritten = Data()
+        forEachLine(in: data) { line in
+            if id(of: line) == entry.id {
+                rewritten.append(contentsOf: entry.line.utf8)
+            } else {
+                rewritten.append(contentsOf: line)
+                rewritten.append(newline)
+            }
+        }
+        return rewritten
     }
 
     private static let tab = UInt8(ascii: "\t")

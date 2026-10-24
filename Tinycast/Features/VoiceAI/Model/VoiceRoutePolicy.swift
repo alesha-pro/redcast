@@ -72,6 +72,27 @@ enum VoiceRoutePolicy {
         connections.filter { accepts($0) && isEnabled($0.id) && initial(on: $0, use: use) != nil }
     }
 
+    /// Retry with…: each usable connection's saved and preset models, or all a server lists.
+    static func retryChoices(
+        _ connections: [AIConnection], saved: [AIModelSelection?], isEnabled: (UUID) -> Bool
+    ) -> [AIModelSelection] {
+        var found: [AIModelSelection] = []
+        func add(_ selection: AIModelSelection?) {
+            guard let selection, !selection.model.isEmpty,
+                !found.contains(where: { $0.source == selection.source && $0.model == selection.model })
+            else { return }
+            found.append(selection)
+        }
+        for connection in choices(connections, use: .dictation, isEnabled: isEnabled) {
+            saved.filter { $0?.source == .api(connection.id) }.forEach(add)
+            add(initial(on: connection, use: .dictation))
+            add(initial(on: connection, use: .ask))
+            guard defaults(for: .dictation, provider: connection.provider) == nil else { continue }
+            connection.models.forEach { add(.api(connection: connection.id, model: $0, effort: nil)) }
+        }
+        return found
+    }
+
     /// A connection's starting model: the preset where one is known, else the first it lists.
     static func initial(on connection: AIConnection, use: VoiceUse) -> AIModelSelection? {
         if let preset = defaults(for: use, provider: connection.provider) {

@@ -5,7 +5,8 @@ struct DictationHistorySearchKey: Sendable {
     let folded: String
 
     init(_ entry: DictationHistoryEntry) {
-        let fields = [entry.text, entry.transcript, entry.appName, entry.mode].compactMap { $0 }
+        let fields = [entry.text, entry.transcript, entry.appName, entry.mode, entry.failure]
+            .compactMap { $0 }
         folded = DictationHistoryQuery.fold(fields.joined(separator: "\n"))
     }
 }

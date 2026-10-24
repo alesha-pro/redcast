@@ -19,6 +19,7 @@ final class DictationCoordinator {
     private let cloudTranscribe: @MainActor ([Float], String?) async throws -> String
     // Fork: Dictation History, before the capsule closes: text, transcript, samples, target.
     private let finished: @MainActor (String, String, Int, InjectionTarget?) -> Void
+    private let failed: @MainActor ([Float], any Error, InjectionTarget?) -> Void  // Fork: Retry
     @ObservationIgnored private var phase: Phase = .idle
     @ObservationIgnored private var token = UUID()
     @ObservationIgnored private var enableTask: Task<Void, Never>?
@@ -44,7 +45,9 @@ final class DictationCoordinator {
         cloudTranscribe: @escaping @MainActor ([Float], String?) async throws -> String = { _, _ in "" },
         // Fork: lends the capsule to Voice AI, which names its dictation mode above it.
         capsule: (DictationPanelController) -> Void = { _ in },
-        finished: @escaping @MainActor (String, String, Int, InjectionTarget?) -> Void = { _, _, _, _ in }
+        finished: @escaping @MainActor (String, String, Int, InjectionTarget?) -> Void = { _, _, _, _ in },
+        // Fork: a failed transcription's recording, error and target, for Dictation History.
+        failed: @escaping @MainActor ([Float], any Error, InjectionTarget?) -> Void = { _, _, _ in }
     ) {
         self.settings = settings
         self.hotKeys = hotKeys
@@ -56,6 +59,7 @@ final class DictationCoordinator {
         self.cloudIsOn = cloudIsOn
         self.cloudTranscribe = cloudTranscribe
         self.finished = finished
+        self.failed = failed  // Fork: Dictation History
         panel.onAccept = { [weak self] in self?.accept() }
         panel.onCancel = { [weak self] in self?.cancel() }
         capture.onLevels = { [weak self] in self?.panel.state.levels = $0 }
@@ -265,6 +269,7 @@ final class DictationCoordinator {
                 }
             } catch {
                 guard token == current else { return }
+                failed(samples, error, self.target)  // Fork: Dictation History keeps it to retry
                 reset(cancelTranscription: false)
                 showMessage(error.localizedDescription, .danger)
             }

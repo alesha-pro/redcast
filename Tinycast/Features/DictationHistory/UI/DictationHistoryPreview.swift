@@ -5,16 +5,23 @@ import SwiftUI
 struct DictationHistoryPreview: View {
     @Environment(\.metrics) private var metrics
     let entry: DictationHistoryEntry?
+    /// Whether a failed entry's recording is still on disk to retry.
+    var recorded = false
+    var retrying = false
 
     var body: some View {
         if let entry {
             VStack(alignment: .leading, spacing: 0) {
                 ScrollView {
                     VStack(alignment: .leading, spacing: metrics.spacing.xl) {
-                        Text(verbatim: entry.text)
-                            .font(metrics.typography.menuRow)
-                            .textSelection(.enabled)
-                            .frame(maxWidth: .infinity, alignment: .topLeading)
+                        if let failure = entry.failure {
+                            failed(failure)
+                        } else {
+                            Text(verbatim: entry.text)
+                                .font(metrics.typography.menuRow)
+                                .textSelection(.enabled)
+                                .frame(maxWidth: .infinity, alignment: .topLeading)
+                        }
                         if let transcript = entry.transcript {
                             VStack(alignment: .leading, spacing: metrics.spacing.xs) {
                                 transcriptHeading(entry.kind)
@@ -37,6 +44,33 @@ struct DictationHistoryPreview: View {
         } else {
             Color.clear
         }
+    }
+
+    /// Why it failed, and whether ↵ can still retry it.
+    private func failed(_ failure: String) -> some View {
+        VStack(alignment: .leading, spacing: metrics.spacing.sm) {
+            Label("Dictation failed", systemImage: "exclamationmark.triangle")
+                .font(metrics.typography.sectionHeader)
+                .foregroundStyle(Theme.Colors.warning)
+            Text(verbatim: failure)
+                .font(metrics.typography.menuRow)
+                .textSelection(.enabled)
+            Group {
+                if retrying {
+                    HStack(spacing: metrics.spacing.sm) {
+                        ProgressView().controlSize(.small)
+                        Text("Retrying…")
+                    }
+                } else if recorded {
+                    Text("The recording is kept: ↵ retries it, ⌘K chooses another model.")
+                } else {
+                    Text("The recording is no longer kept, so it can't be retried.")
+                }
+            }
+            .font(.callout)
+            .foregroundStyle(.secondary)
+        }
+        .frame(maxWidth: .infinity, alignment: .topLeading)
     }
 
     /// What was said before a mode rewrote it, or the question or instruction an Ask or edit heard.

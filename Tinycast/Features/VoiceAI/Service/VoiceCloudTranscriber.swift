@@ -98,15 +98,15 @@ final class VoiceCloudTranscriber {
             ? String(
                 localized: """
                     Each finished recording goes to \(connection.title) to be transcribed by \
-                    \(model). Tinycast keeps no copy of the audio; your provider's data policy \
-                    applies.
+                    \(model). Tinycast keeps a copy of the audio only when transcription fails, for \
+                    at most a week; your provider's data policy applies.
                     """)
             : String(
                 localized: """
                     Each finished recording goes to \(connection.title) to be transcribed by \
                     \(model), with the name and window title of the app you dictate into, and a \
-                    screenshot if you chose one. Tinycast keeps no copy; your provider's data policy \
-                    applies.
+                    screenshot if you chose one. Tinycast keeps a copy only when transcription fails, \
+                    for at most a week; your provider's data policy applies.
                     """)
         consentTask = Task { [weak self] in
             guard let self else { return }
@@ -173,12 +173,30 @@ final class VoiceCloudTranscriber {
     func transcribe(_ samples: [Float]) async throws -> String {
         lastTranscription = nil
         guard let route else { throw VoiceAIFailure.noDictationModel }
-        let selection = VoiceRoutePolicy.dictation(route, connections: aiSettings.connections)
-        let provider = try VoiceAIRoute.provider(for: selection, settings: aiSettings)
         let mode = activeMode
         let reading = frontApp
+        let transcription = try await run(samples, on: route, mode: mode) { await Self.ready(reading) }
+        lastTranscription = transcription
+        return transcription.text
+    }
+
+    /// A kept recording again, as a dictation would send it now, with the app by name alone.
+    func retranscribe(
+        _ samples: [Float], on selection: AIModelSelection, mode: VoiceMode?, appName: String?
+    ) async throws -> Transcription {
+        let named = appName.flatMap { VoiceAppContext(appName: $0, windowTitle: nil) }
+        let context = voice.appContext == .off ? nil : named
+        return try await run(samples, on: selection, mode: mode) { context }
+    }
+
+    private func run(
+        _ samples: [Float], on route: AIModelSelection, mode: VoiceMode?,
+        context: () async -> VoiceAppContext?
+    ) async throws -> Transcription {
+        let selection = VoiceRoutePolicy.dictation(route, connections: aiSettings.connections)
+        let provider = try VoiceAIRoute.provider(for: selection, settings: aiSettings)
         guard let wav = await VoiceMediaEncoder.wav(samples) else { throw VoiceAIFailure.noSpeech }
-        var context = await Self.ready(reading)
+        var context = await context()
         try Task.checkCancellation()
         if !VoiceRoutePolicy.seesScreenshot(selection, connections: aiSettings.connections) {
             context?.screenshot = nil
@@ -190,24 +208,45 @@ final class VoiceCloudTranscriber {
         let plain = VoicePrompt.dictationRequest(audio: audio, options: options)
         let model = selection.model
         guard let mode else {
-            return noted(try await collect(plain, as: selection, on: provider), model: model)
+            let text = try await collect(plain, as: selection, on: provider)
+            return Transcription(text: text, transcript: nil, mode: nil, model: model)
         }
         if !VoiceRoutePolicy.rewritesWhileTranscribing(model) {
             let transcript = try await collect(plain, as: selection, on: provider)
             let rewritten = try await collect(
                 VoicePrompt.rewriteRequest(transcript: transcript, mode: mode), as: selection, on: provider)
-            return noted(rewritten, transcript: transcript, mode: mode, model: model)
+            return Transcription(text: rewritten, transcript: transcript, mode: mode.name, model: model)
         }
         let rewritten = try await collect(
             VoicePrompt.modeRequest(audio: audio, mode: mode, options: options), as: selection, on: provider)
-        return noted(rewritten, mode: mode, model: model)
+        return Transcription(text: rewritten, transcript: nil, mode: mode.name, model: model)
     }
 
-    private func noted(
-        _ text: String, transcript: String? = nil, mode: VoiceMode? = nil, model: String
-    ) -> String {
-        lastTranscription = Transcription(text: text, transcript: transcript, mode: mode?.name, model: model)
-        return text
+    // MARK: - Retry
+
+    /// Retry with…'s rows, by connection and model; the saved routes come first on theirs.
+    var retryRoutes: [(title: String, selection: AIModelSelection)] {
+        VoiceRoutePolicy.retryChoices(
+            aiSettings.connections, saved: [voice.dictationModel, voice.askModel], isEnabled: isRouteEnabled
+        ).compactMap { selection in
+            guard case .api(let id, let model, _) = selection, let connection = aiSettings.connection(id: id)
+            else { return nil }
+            return (connection.title + " · " + model, selection)
+        }
+    }
+
+    /// The connection Cloud transcription was consented to needs no question; any other is asked.
+    func confirmRetry(on selection: AIModelSelection) async -> Bool {
+        guard !voice.cloudDictation || selection.source != route?.source else { return true }
+        guard case .api(let id, let model, _) = selection, let connection = aiSettings.connection(id: id)
+        else { return false }
+        return await confirm(
+            String(localized: "Send This Recording to \(connection.title)?"),
+            String(
+                localized: """
+                    This one recording goes to \(connection.title) to be transcribed by \(model). \
+                    Cloud transcription keeps its own model, and your provider's data policy applies.
+                    """))
     }
 
     /// The capture if it ends within `contextGrace`; one still running is left behind, not awaited.

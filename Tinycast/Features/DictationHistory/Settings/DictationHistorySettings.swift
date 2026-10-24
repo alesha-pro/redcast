@@ -18,6 +18,14 @@ final class DictationHistorySettings {
         }
     }
 
+    /// A failed dictation's audio, kept so its entry can be retried; on by default.
+    var keepsFailedRecordings: Bool {
+        didSet {
+            defaults.set(
+                keepsFailedRecordings, forKey: AppSettingsKey.dictationHistoryFailedRecordings.rawValue)
+        }
+    }
+
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
         // `integer(forKey:)` reads a missing key as 0, which is Off.
@@ -25,5 +33,7 @@ final class DictationHistorySettings {
             (defaults.object(forKey: AppSettingsKey.dictationHistoryRetention.rawValue) as? Int)
             .flatMap(DictationHistoryRetention.init(rawValue:)) ?? .standard
         keepsVoiceReplies = defaults.bool(forKey: AppSettingsKey.dictationHistoryVoiceReplies.rawValue)
+        keepsFailedRecordings =
+            defaults.object(forKey: AppSettingsKey.dictationHistoryFailedRecordings.rawValue) as? Bool ?? true
     }
 }

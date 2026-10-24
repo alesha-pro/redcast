@@ -12,6 +12,7 @@ struct VoiceCoordinatorTests {
         try await cloudModesTranscribeFirst()
         try await cloudContext()
         try await cloudContextWithoutVision()
+        try await cloudRetry()
         try await askConsent()
         try await askAnswer()
         try await askInsert()
@@ -69,7 +70,7 @@ struct VoiceCoordinatorTests {
         try await settle()
         expect(world.voice.dictationModel == onLocal, "Approval stores exactly the destination the dialog named")
         expect(
-            world.core.dialogs[1].message.contains("keeps no copy of the audio")
+            world.core.dialogs[1].message.contains("keeps a copy of the audio only when transcription fails")
                 && !world.core.dialogs[1].message.contains("window title"),
             "With it Off, the dialog names the audio alone")
         world.voice.appContext = .title
@@ -414,6 +415,67 @@ struct VoiceCoordinatorTests {
         Network.streams[0].yield(.text("<transcript>Да.</transcript>"))
         Network.streams[0].finish()
         _ = try await transcription.value
+    }
+
+    /// Retry: the live prompt on the chosen route, the app by name, consent per connection.
+    static func cloudRetry() async throws {
+        let world = World(connections: [router, local])
+        defer { world.tearDown() }
+        let cloud = world.cloud
+        world.core.answer = true
+        cloud.setEnabled(true)
+        try await wait { world.voice.cloudDictation }
+        try await settle()
+        expect(cloud.route == routerDictation, "Cloud transcription was consented to on OpenRouter")
+        expect(
+            cloud.retryRoutes.map(\.title)
+                == ["Router · google/gemini-3.1-flash-lite", "Router · google/gemini-3.8-flash", "Local · voxtral"],
+            "Retry with lists each connection's saved and preset models, and what a server lists, once each")
+        let dialogs = world.core.dialogs.count
+        let sameConnection = await cloud.confirmRetry(on: routerAsk)
+        expect(sameConnection, "Another model on the consented connection is not asked")
+        expect(world.core.dialogs.count == dialogs, "so no dialog shows")
+        world.core.answer = false
+        let otherConnection = await cloud.confirmRetry(on: onLocal)
+        expect(!otherConnection, "Another connection is asked first, and may be declined")
+        let asked = world.core.dialogs.last
+        expect(
+            asked?.title == "Send This Recording to Local?" && asked?.message.contains("voxtral") == true,
+            "naming the connection and the model")
+        expect(world.voice.dictationModel == routerDictation, "and the saved route never changes")
+
+        let retry = Task { try await cloud.retranscribe(speech, on: onLocal, mode: nil, appName: "Slack") }
+        try await wait { Network.streams.count == 1 }
+        expect(Network.routes == [onLocal], "The recording goes only to the route the retry chose")
+        let request = Network.requests[0]
+        expect(
+            request.instructions == VoicePrompt.dictationInstructions(cleanup: true)
+                && request.messages.first?.text.contains("App: Slack") == true
+                && request.messages.first?.text.contains("Window title") == false
+                && request.messages.first?.images.isEmpty == true && request.messages.first?.audio.count == 1,
+            "with the live dictation's prompt and the app by name alone, no title or picture")
+        Network.streams[0].yield(.text("<transcript>Привет.</transcript>"))
+        Network.streams[0].finish()
+        let heard = try await retry.value
+        expect(
+            heard == .init(text: "Привет.", transcript: nil, mode: nil, model: "voxtral")
+                && cloud.lastTranscription == nil,
+            "The transcript comes back to the history alone, never as the capsule's note")
+
+        world.voice.appContext = .off
+        let polish = VoiceModeCatalog.builtIn(VoiceModeCatalog.polish)
+        let moded = Task {
+            try await cloud.retranscribe(speech, on: routerDictation, mode: polish, appName: "Slack")
+        }
+        try await wait { Network.streams.count == 2 }
+        expect(
+            Network.requests[1].messages.allSatisfy { !$0.text.contains("USER CONTEXT") }
+                && Network.requests[1].instructions?.contains(polish?.instructions ?? "-") == true,
+            "With Use the app in front Off no app is named, and the mode rewrites as it would live")
+        Network.streams[1].yield(.text("<transcript>Hi.</transcript>"))
+        Network.streams[1].finish()
+        let rewritten = try await moded.value
+        expect(rewritten.mode == "Polish", "and the result names the mode")
     }
 
     static func expectRefusal(_ cloud: VoiceCloudTranscriber, _ message: String) async throws {

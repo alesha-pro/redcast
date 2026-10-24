@@ -125,6 +125,9 @@ final class AppCore {
         finished: { [unowned self] in  // Fork: Dictation History
             self.dictationHistoryCoordinator.recordDictation(
                 text: $0, transcript: $1, samples: $2, target: $3)
+        },
+        failed: { [unowned self] in  // Fork: Dictation History keeps it to retry
+            self.dictationHistoryCoordinator.recordFailure(samples: $0, error: $1, target: $2)
         })
     @ObservationIgnored private(set) lazy var quicklinkCoordinator = QuicklinkCoordinator(
         store: quicklinks, settings: settings,
