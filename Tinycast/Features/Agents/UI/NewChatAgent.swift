@@ -34,6 +34,8 @@ extension AIChatCoordinator {
     func sendBindingAgent(_ input: String, in chat: AIChatState) -> Bool {
         let id = chat.session.id
         let shown = agents.store.agent(forChat: id) == nil ? agents.agent(for: chat) : nil
+        // An edited question takes its own place and every reply after it before it goes.
+        workspace.applyEdit(in: chat)
         guard send(input, in: chat) else { return false }
         if let shown { agents.setAgent(shown, for: chat) }
         if agents.declinedDefault.contains(id) { agents.declinedDefault.remove(id) }

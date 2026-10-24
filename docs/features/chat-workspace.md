@@ -1,7 +1,9 @@
 # Chat workspace
 
 AI Chat's window, reorganised the way Raycast's AI Chat is: folders in the sidebar above Recent,
-and the chat's settings in a sidebar of their own on the right.
+and the chat's settings in a sidebar of their own on the right, plus what Raycast's chat does that
+upstream's did not: Archive and Recently Deleted, branches, editing a sent question, folding long
+ones, ⌘1–⌘0, Always on Top and a banner when a reply finishes out of sight.
 The feature is this fork's, in `Features/ChatWorkspace/`, plus marked lines in
 `AIChatCoordinator` (the split view it shows, instructions, history load), `AIChatWindowChrome`
 (its chords), `ChatHistoryStore`, `ChatSession`, `AIChatState`, `AgentCoordinator` and `AppCore`.
@@ -13,15 +15,30 @@ that touches them stays mechanical.
 - **One small document beside the history, and nothing about a chat is lost by reading it.**
   `ChatWorkspaceStore` keeps `ai-chat-workspace.json` next to `ai-chats.sqlite3` in the bundle's
   Application Support folder. It holds the folders, in order, and an entry per chat that has
-  something to say: its folder. `ChatWorkspace(data:)` keeps whatever parses — a folder without an
+  something to say: its folder, Additional Instructions, Creativity, when it was archived, and
+  when it went to Recently Deleted with the title it had. `ChatWorkspace(data:)` keeps whatever parses — a folder without an
   id or name, a chat key that is not a UUID or a date that is not a number is dropped alone, never
   the file — and every field it does not know, at the top, in a folder or in a chat's entry, is
   written back as it came (`unknown`). A missing or unreadable file is an empty workspace, so a
   history from before folders loads unchanged. The file is written only when something changes, by
   an atomic write, and travels in no backup, as the chats it describes do not.
-- **Off means fully off.** The document is read just before the history loads, when AI is on
-  (`ChatWorkspaceCoordinator.prepare`), and leaves memory with it (`close`). Nothing runs on a
-  timer: stale entries are pruned only as the history loads and as the window opens (`tidy`).
+- **Off means fully off, and nothing is resident.** The document is read just before the history
+  loads, when AI is on (`ChatWorkspaceCoordinator.prepare`), and leaves memory with it (`close`).
+  Nothing runs on a timer or polls: stale entries are pruned, deletions past 60 days erased and idle
+  chats archived only as the history loads and as the window opens (`tidy`). ⌘'s digits come from
+  a key-event monitor that lives with the window. Notifications are asked for only when their switch
+  is turned on, and the notifier is made only for the first banner it posts.
+- **Recently Deleted keeps a chat whole and out of sight.** Delete moves a chat there: a running
+  reply stops and saves first, the chat is unpinned, and `ChatHistoryStore.isHidden` keeps it out of
+  every list built from the history — the sidebar, Quick AI's Chat History, ⌃⇥, Opens to and a save
+  that lands late — while its transcript, agent and notes stay on disk (`pruneAgentSummaries` keeps
+  them). Restore lists it again; Delete Permanently…, Empty Recently Deleted… and a deletion 60 days
+  old erase it with upstream's delete. Retention and Delete All Chats still apply to it.
+- **An edited question rewrites the history, never splices it.** Sending an edit drops that
+  question and every later message from memory and from `messages` (`AIChatState.rewind`,
+  `ChatHistoryStore.dropMessages`) before the edit goes out as an ordinary send, so the stored
+  transcript is exactly what the screen shows. Esc gives back the draft from before and changes
+  nothing. Codex sees different history and starts a fresh thread, as it does for any change.
 - **A chat is listed once.** `ChatSidebarLayout` puts a pinned chat in Pinned wherever it is filed,
   an unpinned one in its folder, and the rest in Recent by day. Filing a chat unpins it, as dropping
   it on a folder does; dropping one on a day header takes it back to Recent.
@@ -95,6 +112,36 @@ with the agent's tile, the model's mark and name that opens the settings, the mi
 on, and Send/Stop. The window's title is the chat's, with the model and agent under it as the
 subtitle, as Raycast's title bar has.
 
+## Messages and the window
+
+- **The latest reply's actions stay in view** under it: Copy, Regenerate (⌘R), Branch Chat and the
+  time; earlier ones show theirs on hover. A question offers Edit Message.
+- **Branch Chat** (a reply's row, a chat's menu or ⌘K) makes a new chat with the history up to that
+  message, under new ids, named "… (Branch)", filed and asked as the original, on its agent.
+- **↑ in an empty composer** brings the last question back to edit; ↑ and ↓ step through earlier
+  ones while the recalled text is unchanged, and stepping past the newest, or Esc, gives the draft
+  back. The question is outlined with an Editing tag and a line over the composer says what Return
+  will do (`ChatRecall`, `ChatEditingBanner`).
+- **A long question folds** to ten lines (a line past ninety characters counts as several) behind
+  Show more; Find in Chat opens it. Quick AI draws questions as before.
+- **⌘1…⌘9 and ⌘0** open the first ten rows the sidebar shows, from the top, skipping folded folders
+  and Archived; while ⌘ alone is held each of those rows shows its digit (`ChatShortcutIndex`).
+- **Archive** (a chat's menu or ⌘K) moves a chat to the collapsed Archived section; filing or
+  pinning it brings it back. Settings → AI → AI Chat Window → Archive inactive chats (Never, the
+  default, a week, a month or three months) archives unpinned chats idle that long, sparing any
+  chat open or answering.
+- **Recently Deleted**, collapsed at the bottom, lists deleted chats with how long ago they went;
+  each restores or is deleted for good from its menu, and the header empties the section.
+- **Keep Window on Top** (⌥⌘T or ⌘K) floats the window above other apps', remembered.
+- **Notify when a reply finishes** (Settings → AI → AI Chat Window, off by default) posts a banner
+  naming the chat, never what it says, when a window chat's reply ends while the window is not the
+  key window of the active app; a click opens that chat. Quick AI's replies and background agent
+  runs, which have their own banner, never post one. Turning it on asks macOS for permission; a
+  refusal turns it back off and says where to allow it.
+- Already upstream's, so kept as they were: Copy Chat (its menu and ⌘K), Regenerate (⌘R), Find in
+  Chat (⌘F), ⌘J from Quick AI, and Queue / Send Now. Thumbs up and down are left out: no route
+  takes feedback, and a rating kept only here would say nothing to anyone.
+
 ## Colour
 
 Everything here is a token: `Theme.Colors.chat…` and `RaycastHue.ink`/`wash` in
@@ -138,5 +185,19 @@ Everything here is a token: `Theme.Colors.chat…` and `RaycastHue.ink`/`wash` i
 - In light and dark: folders, headers, the selected row, the user bubble, tool glyphs, a Swift and a
   JSON code block's language pills and the composer's caret all take their colours, and switching
   the system appearance repaints them without reopening the window.
+- Archive a chat from its menu: it moves to Archived; Move to Folder brings it back. Set Archive
+  inactive chats to a week with a chat untouched for longer: reopening the window archives it, a
+  pinned or open one stays.
+- Delete a chat: it is in Recently Deleted at once, gone from Quick AI's Chat History and ⌃⇥, and
+  restores with its agent, folder and instructions. Delete Permanently… asks first.
+- Hold ⌘: the first ten rows show their digits; ⌘3 opens the third. Fold a folder: its chats lose
+  theirs.
+- In an empty composer press ↑: the last question returns, outlined, with the banner; ↑ again
+  steps back, ↓ forward, Esc restores what you had typed. Edit and send: the old question and its
+  replies are gone, here and after a relaunch.
+- Paste a question of thirty lines: it shows ten and Show more. Branch from a reply: a new chat
+  "… (Branch)" opens with the history up to it.
+- ⌥⌘T keeps the window above another app's; relaunch and it still does. With Notify on, ask a
+  question and switch to another app: a banner names the chat and a click opens it.
 - Turn a server off under Tools: the next turn cannot call it. With a reply that reported usage,
   Context shows its tokens, the chat's total and, where the route reports it, its cost.

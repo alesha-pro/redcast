@@ -49,6 +49,7 @@ extension SettingsAnchor {
     static let aiDefault = Self(tab: .ai, title: "Default")
     static let aiChat = Self(tab: .ai, title: "Chat")
     static let aiConversations = Self(tab: .ai, title: "Conversations")
+    static let aiChatWindow = Self(tab: .ai, title: "AI Chat Window")  // Fork: archive, banners
     static let aiScreenAwareness = Self(tab: .ai, title: "Screen Awareness")
     static let aiAskByVoice = Self(tab: .ai, title: "Ask by Voice")
     static let aiAgents = Self(tab: .ai, title: "Agents")

@@ -1,11 +1,11 @@
 import SwiftUI
 
-/// Fork: AI Chat's sidebar: Pinned, then folders, then Recent by day.
+/// Fork: AI Chat's sidebar: Pinned, folders, Recent by day, then Archived and Recently Deleted.
 struct ChatWorkspaceSidebar: View {
     @Environment(ChatWorkspaceCoordinator.self) private var workspace
-    @State private var query = ""
-    @State private var contentMatches: Set<UUID> = []
     @State private var renameText = ""
+    @State private var showsArchived = false
+    @State private var showsDeleted = false
     @State private var renamingFolder: UUID?
     @FocusState private var searchFocused: Bool
     @FocusState private var renameFocused: Bool
@@ -13,18 +13,12 @@ struct ChatWorkspaceSidebar: View {
     private var history: ChatHistoryStore { workspace.history }
     private var chats: AIChatSurfacesState { workspace.chats }
 
-    /// Titles match at once; message text joins as the debounced lookup returns.
-    private var matching: Set<UUID>? {
-        let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return nil }
-        return Set(history.search(trimmed).map(\.id)).union(contentMatches)
-    }
-
     var body: some View {
-        let layout = workspace.layout(matching: matching)
+        @Bindable var workspace = workspace
+        let layout = workspace.sidebarLayout
         VStack(spacing: 0) {
             HStack(spacing: Theme.Spacing.sm) {
-                ChatSidebarSearchField(query: $query, focused: $searchFocused)
+                ChatSidebarSearchField(query: $workspace.query, focused: $searchFocused)
                 Button {
                     newFolder()
                 } label: {
@@ -40,7 +34,7 @@ struct ChatWorkspaceSidebar: View {
             }
             .padding(.horizontal, Theme.Spacing.lg)
             .padding(.bottom, Theme.Spacing.md)
-            if layout.isEmpty {
+            if layout.isEmpty, workspace.workspace.trashed.isEmpty {
                 emptyState.frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 list(layout)
@@ -54,21 +48,21 @@ struct ChatWorkspaceSidebar: View {
             }
         }
         .animation(.snappy, value: workspace.editingFolder?.id)
-        .task(id: query) {
-            let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        .task(id: workspace.query) {
+            let trimmed = workspace.query.trimmingCharacters(in: .whitespacesAndNewlines)
             guard !trimmed.isEmpty else {
-                contentMatches = []
+                workspace.contentMatches = []
                 return
             }
             try? await Task.sleep(for: .milliseconds(180))
             guard !Task.isCancelled else { return }
-            contentMatches = history.conversationIDs(containing: trimmed)
+            workspace.contentMatches = history.conversationIDs(containing: trimmed)
         }
         .onExitCommand {
             if workspace.editingFolder != nil {
                 workspace.editingFolder = nil
-            } else if !query.isEmpty {
-                query = ""
+            } else if !workspace.query.isEmpty {
+                workspace.query = ""
             } else {
                 workspace.host?.closeWindow()
             }
@@ -138,6 +132,31 @@ struct ChatWorkspaceSidebar: View {
                             .chatDropTarget { workspace.move($0, to: nil) }
                     }
                 }
+                if !layout.archived.isEmpty {
+                    Section(isExpanded: $showsArchived) {
+                        ForEach(layout.archived) { row($0) }
+                    } header: {
+                        ChatSectionHeader(
+                            title: "Archived", symbol: "archivebox.fill", hue: .gray,
+                            count: layout.archived.count)
+                    }
+                }
+            }
+            let trashed = workspace.workspace.trashed
+            if !trashed.isEmpty {
+                Section(isExpanded: $showsDeleted) {
+                    ForEach(trashed, id: \.id) { entry in
+                        ChatTrashRow(id: entry.id, title: entry.title, deletedAt: entry.deletedAt)
+                    }
+                } header: {
+                    ChatSectionHeader(
+                        title: "Recently Deleted", symbol: "trash.fill", hue: .gray, count: trashed.count)
+                        .contextMenu {
+                            Button("Empty Recently Deleted…", systemImage: "trash.slash", role: .destructive) {
+                                Task { await workspace.emptyTrash() }
+                            }
+                        }
+                }
             }
         }
         .listStyle(.sidebar)
@@ -148,8 +167,8 @@ struct ChatWorkspaceSidebar: View {
             ContentUnavailableView(
                 "History Unavailable", systemImage: "exclamationmark.triangle",
                 description: Text("Chats can't be saved on this Mac right now."))
-        } else if !query.isEmpty {
-            ContentUnavailableView.search(text: query)
+        } else if !workspace.query.isEmpty {
+            ContentUnavailableView.search(text: workspace.query)
         } else {
             ContentUnavailableView(
                 "No Chats Yet", systemImage: "bubble.left.and.bubble.right",
@@ -194,7 +213,7 @@ struct ChatWorkspaceSidebar: View {
                 named: String(localized: "New Folder"), hue: ChatFolder.nextHue(after: workspace.workspace.folders),
                 symbol: ChatFolder.symbols[0], instructions: nil, agentID: nil)
         else { return }
-        query = ""
+        workspace.query = ""
         beginRename(folder: folder)
     }
 
@@ -454,7 +473,35 @@ struct ChatFolderTile: View {
     }
 }
 
-/// A chat's menu: pin, file, rename, copy, export, delete.
+/// A deleted chat: dimmed, never opened, restored or deleted for good from its menu.
+private struct ChatTrashRow: View {
+    @Environment(ChatWorkspaceCoordinator.self) private var workspace
+    let id: UUID
+    let title: String
+    let deletedAt: Date
+
+    var body: some View {
+        HStack(spacing: Theme.Spacing.sm) {
+            Text(verbatim: title.isEmpty ? String(localized: "Untitled Chat") : title)
+                .lineLimit(1)
+                .foregroundStyle(Theme.Colors.textSecondary)
+            Spacer(minLength: 0)
+            Text(deletedAt, format: .relative(presentation: .numeric, unitsStyle: .narrow))
+                .font(.caption)
+                .foregroundStyle(Theme.Colors.textTertiary)
+        }
+        .contentShape(.rect)
+        .contextMenu {
+            Button("Restore", systemImage: "arrow.uturn.backward") { workspace.restore(id) }
+            Button("Delete Permanently…", systemImage: "trash", role: .destructive) {
+                Task { await workspace.deleteForever(id) }
+            }
+        }
+        .help("Deleted chats are removed for good after 60 days.")
+    }
+}
+
+/// A chat's menu: pin, file, archive, rename, copy, branch, delete.
 struct ChatRowMenu: View {
     @Environment(ChatWorkspaceCoordinator.self) private var workspace
     let conversation: ChatConversation
@@ -462,6 +509,7 @@ struct ChatRowMenu: View {
 
     var body: some View {
         let id = conversation.id
+        let archived = workspace.workspace.isArchived(id)
         Button(
             conversation.isPinned ? "Unpin Chat" : "Pin Chat",
             systemImage: conversation.isPinned ? "pin.slash" : "pin"
@@ -473,16 +521,19 @@ struct ChatRowMenu: View {
             }
         }
         ChatMoveMenu(chat: id)
+        Button(archived ? "Unarchive" : "Archive", systemImage: archived ? "tray.and.arrow.up" : "archivebox") {
+            archived ? workspace.unarchive(id) : workspace.archive(id)
+        }
         Button("Rename…", systemImage: "pencil") { beginRename(conversation) }
         Divider()
         Button("Copy Chat", systemImage: "doc.on.doc") { workspace.host?.copyChat(id: id) }
+        Button("Branch Chat", systemImage: "arrow.triangle.branch") { workspace.branch(id) }
         Button("Export as Markdown…", systemImage: "square.and.arrow.up") {
             workspace.host?.exportChat(id: id)
         }
         Divider()
-        Button("Delete Chat…", systemImage: "trash", role: .destructive) {
-            Task { await workspace.host?.deleteChat(id: id) }
-        }
+        Button("Delete Chat", systemImage: "trash", role: .destructive) { workspace.trash(id) }
+            .help("Moves it to Recently Deleted for 60 days")
     }
 }
 

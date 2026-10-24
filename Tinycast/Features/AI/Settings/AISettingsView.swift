@@ -41,6 +41,7 @@ struct AISettingsView: View {
                 ScreenAwarenessSettingsSection()
                 VoiceAskSettingsSection()
                 conversationsSection
+                ChatWorkspaceSettingsSection()  // Fork: AI Chat's window
                 UsageSection()
                 systemPromptSection
                 MCPSettingsSection()

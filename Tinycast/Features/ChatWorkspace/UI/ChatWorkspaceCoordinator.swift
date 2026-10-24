@@ -13,6 +13,7 @@ final class ChatWorkspaceCoordinator {
     @ObservationIgnored weak var settingsSource: (any ChatSettingsSource)?
     /// The window's split view answers this while it is open.
     @ObservationIgnored var toggleSettingsSidebar: (() -> Void)?
+    @ObservationIgnored var toggleFloatingWindow: (() -> Void)?
     /// While ⌘ is down the first ten rows show their digits.
     var showsShortcuts = false
     /// The question ↑ brought back into the composer; one at a time, the window's.
@@ -22,6 +23,9 @@ final class ChatWorkspaceCoordinator {
     var isCreatingFolder = false
     /// A chat whose title the sidebar is renaming, set by a double click or the menu.
     var renaming: UUID?
+    /// The sidebar's search: titles match at once, message text as the debounced lookup returns.
+    var query = ""
+    var contentMatches: Set<UUID> = []
 
     init(
         store: ChatWorkspaceStore, settings: ChatWorkspaceSettings, history: ChatHistoryStore,
@@ -265,6 +269,25 @@ final class ChatWorkspaceCoordinator {
         recall?.chatID == chat.session.id ? recall : nil
     }
 
+    // MARK: - Finish notifications
+
+    @ObservationIgnored private var notifier: ChatFinishNotifier?
+
+    /// A window chat's reply ended while the reader was elsewhere; Quick AI's is on screen already.
+    func replyFinished(_ chat: AIChatState) {
+        let id = chat.session.id
+        guard let host,
+            ChatFinishPolicy.notifies(
+                enabled: settings.notifiesInBackground, isQuickAI: chat === chats.quickAI,
+                windowInFront: host.isWindowInFront, backgroundRun: host.isBackgroundRun(id))
+        else { return }
+        let title = history.conversation(id: id)?.displayTitle ?? chat.session.title
+        let notifier = notifier ?? ChatFinishNotifier()
+        self.notifier = notifier
+        ChatFinishNotifier.openChat = { [weak host] in host?.openChatInWindow(id: $0) }
+        notifier.post(chatID: id, title: title)
+    }
+
     // MARK: - Per chat
 
     func setInstructions(_ text: String, of chat: UUID) {
@@ -288,7 +311,23 @@ final class ChatWorkspaceCoordinator {
         workspace.placement(of: chat).creativity?.temperature
     }
 
-    /// The sidebar's rows as they stand; search narrows to titles and message text.
+    /// The sidebar's rows as they stand, the same ones ⌘1…⌘0 count.
+    var sidebarLayout: ChatSidebarLayout {
+        let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        let matching = trimmed.isEmpty ? nil : Set(history.search(trimmed).map(\.id)).union(contentMatches)
+        return layout(matching: matching)
+    }
+
+    /// ⌘1…⌘9, ⌘0: the row with that digit, as the sidebar shows it while ⌘ is held.
+    @discardableResult
+    func openShortcut(_ digit: Character) -> Bool {
+        guard let id = ChatShortcutIndex.chat(forDigit: digit, in: sidebarLayout.shortcutOrder) else {
+            return false
+        }
+        if id != chats.window.session.id { host?.openChat(id: id) }
+        return true
+    }
+
     func layout(matching: Set<UUID>?) -> ChatSidebarLayout {
         ChatSidebarLayout(
             conversations: history.conversations, workspace: workspace, matching: matching,
