@@ -1,6 +1,6 @@
 import Foundation
 
-/// Dictation History's line format, its file and its search, on a scratch folder of its own.
+/// Dictation History's lines, file, search, recordings and retries, on a scratch folder.
 @main
 @MainActor
 struct DictationHistoryTests {
@@ -16,7 +16,7 @@ struct DictationHistoryTests {
         }
     }
 
-    static func main() throws {
+    static func main() async throws {
         let folder = FileManager.default.temporaryDirectory
             .appending(path: "dictation-history-test-\(UUID().uuidString)", directoryHint: .isDirectory)
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
@@ -37,6 +37,16 @@ struct DictationHistoryTests {
         try deleteRemovesOnlyItsLine(in: folder)
         try clearAndOffRemoveTheFile(in: folder)
         searchFindsEveryWordAnywhere()
+        aFailedEntryRoundTrips()
+        aFailedLineAnOlderBuildReads()
+        aFailureIsOneShortLine()
+        try aRetryRewritesItsLineInPlace(in: folder)
+        keptRecordingsAreNamedByTheirEntry()
+        keptRecordingsAreBounded()
+        aRecordingReadsBackAsItsSamples()
+        try theRecordingFolderKeepsTrimsAndClears(in: folder)
+        oneRetryRunsPerEntry()
+        await aRetryLandsFailsOrLeavesTheEntry()
 
         print("\(passes) passed, \(failures) failed")
         if failures > 0 { exit(1) }
@@ -290,6 +300,284 @@ struct DictationHistoryTests {
         expect(FileManager.default.fileExists(atPath: url.path), "Forever trims nothing")
         DictationHistoryFile.trim(retention: .off, now: now, at: url)
         expect(!FileManager.default.fileExists(atPath: url.path), "switching to Off removes the history")
+    }
+
+    // MARK: - Failed dictations
+
+    static func failed(_ reason: String = "The request timed out.", ago seconds: TimeInterval = 0)
+        -> DictationHistoryEntry
+    {
+        DictationHistoryEntry(
+            date: now.addingTimeInterval(-seconds), kind: .dictation, text: "", mode: "Polish",
+            modeID: UUID(uuidString: "3C6E2B14-8F0A-4D57-9E21-7A4B5C6D7E02"), engine: .cloud,
+            model: "google/gemini-3.1-flash-lite", appName: "Slack", bundleID: "com.tinyspeck.slackmacgap",
+            duration: 6.4, failure: reason)
+    }
+
+    static func aFailedEntryRoundTrips() {
+        let written = failed("The request timed out.\nURL: https://openrouter.ai/api/v1")
+        expect(written.isFailed && written.text.isEmpty, "a failed entry has a reason and no text yet")
+        expect(written.failure == "The request timed out.", "the reason keeps the error's first line")
+        let read = DictationHistoryEntry(line: Data(written.line.dropLast().utf8)[...])
+        expect(read == written, "a failed entry reads back field for field, its mode's id included")
+        expect(!entry("fine").isFailed && !entry("fine").line.contains("failure"), "a normal entry has none")
+    }
+
+    /// Pinned: the line a failure writes, and what the build before failures reads of it.
+    static func aFailedLineAnOlderBuildReads() {
+        let id = UUID(uuidString: "6B1F3C2A-9D4E-4F5A-8B7C-1D2E3F4A5B6C")!
+        let pinned =
+            #"1790000000\#t{"app":"Slack","duration":6.4,"engine":"cloud","failure":"HTTP 503","#
+            + #""id":"6B1F3C2A-9D4E-4F5A-8B7C-1D2E3F4A5B6C","kind":"dictation","#
+            + #""modeID":"3C6E2B14-8F0A-4D57-9E21-7A4B5C6D7E02","model":"voxtral","text":""}"#
+        let entry = DictationHistoryEntry(
+            id: id, date: now, kind: .dictation, text: "",
+            modeID: UUID(uuidString: "3C6E2B14-8F0A-4D57-9E21-7A4B5C6D7E02"), engine: .cloud, model: "voxtral",
+            appName: "Slack", duration: 6.4, failure: "HTTP 503")
+        expect(entry.line == pinned + "\n", "a failure's line is written byte for byte")
+        expect(DictationHistoryEntry(line: Data(pinned.utf8)[...]) == entry, "and reads back")
+        let tab = pinned.firstIndex(of: "\t")!
+        let older = try? JSONDecoder().decode(
+            FirstBuildPayload.self, from: Data(pinned[pinned.index(after: tab)...].utf8))
+        expect(
+            older?.id == id && older?.text == "" && older?.kind == "dictation",
+            "the build before failures reads it as an empty dictation, hiding nothing around it")
+    }
+
+    /// The first build's own payload, field for field.
+    struct FirstBuildPayload: Decodable {
+        var id: UUID
+        var kind: String?
+        var text: String
+        var transcript: String?
+        var mode: String?
+        var engine: String?
+        var model: String?
+        var app: String?
+        var bundleID: String?
+        var duration: Double?
+    }
+
+    static func aFailureIsOneShortLine() {
+        let long = String(repeating: "word ", count: 60)
+        let line = DictationHistoryEntry.failureLine(long)
+        expect(
+            line.count == DictationHistoryEntry.maxFailureLength && line.hasSuffix("…"),
+            "a long error is capped with an ellipsis")
+        expect(DictationHistoryEntry.failureLine("  a\t b  \n c") == "a b", "whitespace folds on the first line")
+        expect(DictationHistoryEntry.failureLine("\n\n") == "?", "an empty error still marks the failure")
+    }
+
+    static func aRetryRewritesItsLineInPlace(in folder: URL) throws {
+        let url = scratch(folder, "retry")
+        let before = entry("before", ago: 30)
+        let broken = failed(ago: 20)
+        let later = #"1789999985\#t{"id":"8B1F3C2A-9D4E-4F5A-8B7C-1D2E3F4A5B6C","text":"later","extra":1}"#
+        let after = entry("after", ago: 10)
+        try Data((before.line + broken.line + later + "\n" + after.line).utf8).write(to: url)
+        let heard = DictationRetryTranscript(
+            text: "Hello there", transcript: "hello there", mode: "Polish", engine: .cloud, model: "voxtral")
+        let fixed = broken.transcribed(heard)
+        expect(
+            !fixed.isFailed && fixed.id == broken.id && fixed.date == broken.date && fixed.appName == "Slack"
+                && fixed.duration == 6.4 && fixed.modeID == nil,
+            "a transcribed retry is a normal entry at the failure's date, app and length")
+        DictationHistoryFile.update(fixed, at: url)
+        let texts = DictationHistoryEntry.entries(in: try Data(contentsOf: url)).map(\.text)
+        expect(texts == ["before", "Hello there", "later", "after"], "its line is rewritten where it stood")
+        expect(read(url).contains(later + "\n"), "and every other line stays byte for byte")
+        let loaded = DictationHistoryFile.load(retention: .month, now: now, at: url)
+        expect(
+            loaded.first { $0.id == broken.id }?.transcript == "hello there",
+            "a load shows the retried text with its raw transcript")
+    }
+
+    // MARK: - Kept recordings
+
+    static func recording(ago seconds: TimeInterval, bytes: Int = 1_000) -> DictationKeptRecording {
+        DictationKeptRecording(id: UUID(), date: now.addingTimeInterval(-seconds), bytes: bytes)
+    }
+
+    static func keptRecordingsAreNamedByTheirEntry() {
+        let kept = recording(ago: 0.5)
+        let name = kept.fileName
+        expect(name == "1789999999-\(kept.id.uuidString).wav", "a name is the date's seconds and the entry's id")
+        expect(DictationKeptRecording(fileName: name, bytes: 1_000) == kept, "and reads back as written")
+        for foreign in [".DS_Store", "x-\(kept.id.uuidString).wav", "1-\(kept.id.uuidString).mp3", "1-nope.wav"] {
+            expect(DictationKeptRecording(fileName: foreign, bytes: 1) == nil, "a foreign name is not ours: \(foreign)")
+        }
+    }
+
+    static func keptRecordingsAreBounded() {
+        let day: TimeInterval = 86_400
+        expect(
+            DictationKeptRecording.maxCount == 20 && DictationKeptRecording.maxAge == 7 * day
+                && DictationKeptRecording.maxBytes == 100_000_000,
+            "twenty recordings, seven days and 100 MB at most")
+        expect(
+            DictationKeptRecording.cutoff(now: now, history: nil) == now.addingTimeInterval(-7 * day)
+                && DictationKeptRecording.cutoff(now: now, history: now.addingTimeInterval(-day))
+                    == now.addingTimeInterval(-day)
+                && DictationKeptRecording.cutoff(now: now, history: now.addingTimeInterval(-30 * day))
+                    == now.addingTimeInterval(-7 * day),
+            "a week, or the history's own span when it is shorter")
+        let cutoff = DictationKeptRecording.cutoff(now: now, history: nil)
+        let many = (0..<25).map { recording(ago: TimeInterval($0) * 60) }
+        let expired = DictationKeptRecording.expired(many, cutoff: cutoff)
+        expect(expired == Set(many[20...].map(\.id)), "past twenty, the oldest go")
+        let aged = [recording(ago: 60), recording(ago: 8 * day)]
+        expect(DictationKeptRecording.expired(aged, cutoff: cutoff) == [aged[1].id], "past a week, it goes")
+        let large = [
+            recording(ago: 10, bytes: 40_000_000), recording(ago: 20, bytes: 40_000_000),
+            recording(ago: 30, bytes: 40_000_000), recording(ago: 40, bytes: 1_000)
+        ]
+        expect(
+            DictationKeptRecording.expired(large, cutoff: cutoff) == [large[2].id, large[3].id],
+            "past the bytes, the oldest go, even a small one older than the first that did not fit")
+        expect(DictationKeptRecording.expired([], cutoff: cutoff).isEmpty, "nothing kept, nothing to trim")
+    }
+
+    static func aRecordingReadsBackAsItsSamples() {
+        let samples: [Float] = [0, 0.5, -0.5, 1, -1, 0.25, .nan]
+        let wav = VoiceAudio.wav(samples[...])
+        let read = DictationKeptRecording.samples(fromWAV: wav, sampleRate: VoiceAudio.sampleRate)
+        let expected: [Float] = [0, 0.5, -0.5, 1, -1, 0.25, 0]
+        expect(
+            read.map { zip($0, expected).allSatisfy { abs($0 - $1) < 0.0001 } && $0.count == 7 } == true,
+            "the WAV a failure keeps reads back as its samples")
+        expect(
+            DictationKeptRecording.samples(fromWAV: wav, sampleRate: 44_100) == nil,
+            "another rate is not a recording this build kept")
+        expect(DictationKeptRecording.samples(fromWAV: Data("RIFF".utf8), sampleRate: 16_000) == nil, "nor a stub")
+        var stereo = wav
+        stereo[22] = 2
+        expect(DictationKeptRecording.samples(fromWAV: stereo, sampleRate: 16_000) == nil, "nor stereo")
+    }
+
+    static func theRecordingFolderKeepsTrimsAndClears(in folder: URL) throws {
+        let audio = folder.appending(path: "dictation-failed-audio", directoryHint: .isDirectory)
+        let speech = (0..<16_000).map { Float(sin(Double($0) / 8)) * 0.5 }
+        let wav = VoiceAudio.wav(speech[...])
+        expect(DictationRecordingFolder.kept(now: now, historyCutoff: nil, in: audio).isEmpty, "no folder, none kept")
+        expect(!FileManager.default.fileExists(atPath: audio.path), "and reading creates none")
+        let first = DictationKeptRecording(id: UUID(), date: now.addingTimeInterval(-60), bytes: wav.count)
+        DictationRecordingFolder.keep(wav, as: first, historyCutoff: nil, in: audio)
+        let excluded = try audio.resourceValues(forKeys: [.isExcludedFromBackupKey]).isExcludedFromBackup
+        expect(excluded == true, "the folder is excluded from backups")
+        expect(
+            DictationRecordingFolder.kept(now: now, historyCutoff: nil, in: audio) == [first.id],
+            "a kept recording is listed by its entry")
+        let samples = DictationRecordingFolder.samples(for: first.id, sampleRate: 16_000, in: audio)
+        expect(samples?.count == speech.count, "and reads back as its samples")
+        let more = (1...21).map {
+            DictationKeptRecording(id: UUID(), date: now.addingTimeInterval(TimeInterval(-60 + $0)), bytes: wav.count)
+        }
+        more.forEach { DictationRecordingFolder.keep(wav, as: $0, historyCutoff: nil, in: audio) }
+        let kept = DictationRecordingFolder.kept(now: now, historyCutoff: nil, in: audio)
+        expect(kept == Set(more[1...].map(\.id)), "a write trims to the newest twenty")
+        let stale = DictationKeptRecording(id: UUID(), date: now.addingTimeInterval(-8 * 86_400), bytes: wav.count)
+        DictationRecordingFolder.keep(wav, as: stale, historyCutoff: nil, in: audio)
+        expect(
+            !DictationRecordingFolder.kept(now: now, historyCutoff: nil, in: audio).contains(stale.id),
+            "one older than a week is trimmed as it is written")
+        DictationRecordingFolder.trim(now: now, historyCutoff: now.addingTimeInterval(-50), in: audio)
+        expect(
+            DictationRecordingFolder.kept(now: now, historyCutoff: nil, in: audio) == Set(more[9...].map(\.id)),
+            "a shorter Keep history trims the recordings at once")
+        DictationRecordingFolder.delete([more[20].id], in: audio)
+        expect(
+            DictationRecordingFolder.samples(for: more[20].id, sampleRate: 16_000, in: audio) == nil
+                && DictationRecordingFolder.kept(now: now, historyCutoff: nil, in: audio).count == 11,
+            "Delete Entry removes its recording alone")
+        DictationRecordingFolder.trim(
+            now: now, historyCutoff: DictationHistoryRetention.off.cutoff(now: now), in: audio)
+        expect(!FileManager.default.fileExists(atPath: audio.path), "Off removes every recording and the folder")
+        DictationRecordingFolder.keep(wav, as: first, historyCutoff: nil, in: audio)
+        DictationRecordingFolder.clear(in: audio)
+        expect(!FileManager.default.fileExists(atPath: audio.path), "Clear History removes the folder")
+    }
+
+    // MARK: - Retry
+
+    static func oneRetryRunsPerEntry() {
+        var state = DictationRetryState()
+        let id = UUID()
+        let attempt = state.begin(id)
+        expect(attempt != nil && state.isRetrying(id) && !state.isIdle, "a retry starts")
+        expect(state.begin(id) == nil, "and a second one for the same entry waits for it")
+        expect(!state.end(id, attempt: UUID()), "a stranger's result never lands")
+        expect(state.end(id, attempt: attempt!) && state.isIdle, "its own does, once")
+        let deleted = state.begin(id)!
+        state.cancel([id])
+        expect(!state.end(id, attempt: deleted), "a deleted entry's retry lands nothing")
+        let closed = state.begin(id)!
+        state.cancelAll()
+        expect(!state.end(id, attempt: closed) && state.isIdle, "nor does one whose screen closed")
+        let again = state.begin(id)
+        expect(again != nil && again != closed, "and the entry can be retried afresh")
+    }
+
+    /// A fake engine standing where the cloud or the model on this Mac would.
+    @MainActor
+    final class FakeTranscriber {
+        var calls: [Int] = []
+        var result: Result<DictationRetryTranscript, any Error> = .failure(URLError(.timedOut))
+        var gate: CheckedContinuation<Void, Never>?
+        var holds = false
+
+        func transcribe(_ samples: [Float]) async throws -> DictationRetryTranscript {
+            calls.append(samples.count)
+            if holds { await withCheckedContinuation { gate = $0 } }
+            return try result.get()
+        }
+    }
+
+    static func aRetryLandsFailsOrLeavesTheEntry() async {
+        let broken = failed()
+        let fake = FakeTranscriber()
+        let attempt = DictationRetryAttempt(engine: .onDevice, model: "Parakeet · Redux")
+        func run(_ samples: [Float]? = [0.1, 0.2]) async -> DictationHistoryEntry? {
+            await DictationRetry.run(
+                broken, samples: samples, attempt: attempt, transcribe: fake.transcribe,
+                describe: { $0.localizedDescription })
+        }
+        fake.result = .success(
+            DictationRetryTranscript(text: "  Hello.\n", engine: .onDevice, model: "Parakeet · Redux"))
+        let landed = await run()
+        expect(
+            landed?.isFailed == false && landed?.text == "Hello." && landed?.engine == .onDevice
+                && landed?.model == "Parakeet · Redux" && landed?.mode == nil && fake.calls == [2],
+            "a retry that hears the recording makes the entry a normal one, trimmed")
+        fake.result = .failure(URLError(.timedOut))
+        let again = await run()
+        expect(
+            again?.failure == URLError(.timedOut).localizedDescription && again?.text == ""
+                && again?.engine == .onDevice && again?.model == "Parakeet · Redux" && again?.id == broken.id,
+            "one that fails stays failed with the new reason, on what it tried")
+        fake.result = .success(DictationRetryTranscript(text: " ", engine: .cloud, model: "voxtral"))
+        let silent = await run()
+        expect(
+            silent?.failure == DictationRetryFailure.noSpeech.localizedDescription,
+            "nothing heard is a failure, not an empty entry")
+        let calls = fake.calls.count
+        let gone = await run(nil)
+        expect(
+            gone?.failure == DictationRetryFailure.noRecording.localizedDescription && fake.calls.count == calls,
+            "a recording no longer kept fails at once, with no transcription")
+        fake.result = .failure(CancellationError())
+        let cancelled = await run()
+        expect(cancelled == nil, "a cancelled retry leaves the entry as it was")
+        fake.result = .failure(URLError(.cancelled))
+        let dropped = await run()
+        expect(dropped == nil, "and so does a cancelled request")
+        fake.result = .success(DictationRetryTranscript(text: "late", engine: .cloud, model: "voxtral"))
+        fake.holds = true
+        let running = Task { await run() }
+        while fake.gate == nil { await Task.yield() }
+        running.cancel()
+        fake.gate?.resume()
+        let stopped = await running.value
+        expect(stopped == nil, "a retry cancelled while it transcribes lands nothing")
     }
 
     // MARK: - Search

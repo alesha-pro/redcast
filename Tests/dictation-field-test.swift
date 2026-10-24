@@ -17,6 +17,7 @@ struct DictationFieldTest {
         try await testQueuedLiveChunk(cancelling: true)
         try await testCloudEngine()
         try await testCloudCancellation()
+        try await testCloudFailure()
         print("ALL PASSED")
     }
 
@@ -242,6 +243,26 @@ struct DictationFieldTest {
         await fixture.queue.drain()
         expect(editor.string.isEmpty, "A cancelled cloud call types nothing")
         expect(fixture.messages.isEmpty && Paster.copies.isEmpty, "and reports or copies nothing")
+        expect(fixture.failures.isEmpty, "nor leaves Dictation History a failure to retry")
+    }
+
+    private static func testCloudFailure() async throws {
+        let fixture = Fixture()
+        fixture.cloudOn = true
+        let editor = ComposerTextView()
+        try await fixture.start(into: editor)
+        fixture.coordinator.toggle(into: editor)
+        try await wait { fixture.cloud.pending != nil }
+        fixture.cloud.fail(URLError(.timedOut))
+        try await wait { fixture.coordinator.field == nil }
+        expect(
+            fixture.failures.count == 1 && fixture.failures.first?.samples == 1_600
+                && fixture.failures.first?.error == URLError(.timedOut).localizedDescription,
+            "A failed transcription hands Dictation History its recording and its error")
+        expect(fixture.failures.first?.ownEditor == true, "with the field it was meant for")
+        expect(
+            fixture.messages == [URLError(.timedOut).localizedDescription] && editor.string.isEmpty,
+            "and still reports the error, typing nothing")
     }
 
     /// The live poll sleeps longer than `wait` allows.
@@ -274,6 +295,7 @@ struct DictationFieldTest {
         let cloud = CloudEngine()
         var cloudOn = false
         var messages: [String] = []
+        var failures: [(samples: Int, error: String, ownEditor: Bool)] = []
         lazy var coordinator = DictationCoordinator(
             settings: settings, hotKeys: HotKeyManager(), models: models,
             injector: TextInjector(
@@ -281,7 +303,10 @@ struct DictationFieldTest {
             audioDucker: DictationAudioDucker(), confirmEnable: { false },
             showMessage: { [weak self] message, _ in self?.messages.append(message) },
             cloudIsOn: { [weak self] in self?.cloudOn ?? false },
-            cloudTranscribe: { [cloud] in try await cloud.transcribe($0, language: $1) })
+            cloudTranscribe: { [cloud] in try await cloud.transcribe($0, language: $1) },
+            failed: { [weak self] samples, error, target in
+                self?.failures.append((samples.count, error.localizedDescription, target?.ownEditor != nil))
+            })
 
         var capture: DictationCapture { DictationCapture.latest! }
         var panel: DictationPanelController { DictationPanelController.latest! }
@@ -447,6 +472,12 @@ final class CloudEngine {
         let continuation = pending
         pending = nil
         continuation?.resume(returning: text)
+    }
+
+    func fail(_ error: any Error) {
+        let continuation = pending
+        pending = nil
+        continuation?.resume(throwing: error)
     }
 }
 

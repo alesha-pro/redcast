@@ -38,10 +38,13 @@ tables and `AppCore`.
   connection added later never takes over, and a removed, disabled or changed one is refused with
   "Choose a model…" rather than replaced. Choosing another connection in the row asks again, naming it;
   another model on the same connection does not. The OpenRouter, Gemini and OpenAI-compatible fallbacks
-  in `VoiceRoutePolicy.proposal` only fill a dialog.
+  in `VoiceRoutePolicy.proposal` only fill a dialog. Dictation History's **Retry with** follows the
+  same rule for one kept recording: any model on the consented connection goes at once, any other
+  connection only after `confirmRetry`'s dialog names it and the model, and the pick saves nothing.
 - **Network only after a recording ends.** One POST per finished recording (two for a mode on a model
-  that only transcribes), plus an agent's own turn when one answers; the model list is fetched
-  only when **Choose…** is clicked. While idle there is no timer, observer, tap, session or process:
+  that only transcribes), plus an agent's own turn when one answers, and the same again only when a
+  failed dictation's Retry is pressed in Dictation History; the model list is fetched only when
+  **Choose…** is clicked. While idle there is no timer, observer, tap, session or process:
   `VoiceCloudTranscriber` holds only references, and `VoiceAskCoordinator` builds its recorder,
   capsule and panel controller on the first press. The app Dictation types into
   (`DictationCoordinator.target`) is read locally when the dictation capsule shows, in a task that
@@ -52,9 +55,15 @@ tables and `AppCore`.
   finished one waits at most 0.5 s more for a capture still running, then goes without it. Ask
   by Voice and Edit Selection by Voice each register one Carbon hotkey, only when bound to a key
   combination; a single-modifier hold uses the shared tap instead.
-- **Audio stays in memory and is never stored.** The recording becomes a WAV `Data` in memory and the
-  float samples are released once encoded; it is sent once on `HTTPAIProvider`'s private `.ephemeral`
-  session with `urlCache = nil` and never written to disk, logged or put in chat history. A question
+- **Audio stays in memory, and is stored only when a dictation fails.** The recording becomes a WAV
+  `Data` in memory and the float samples are released once encoded; it is sent once on
+  `HTTPAIProvider`'s private `.ephemeral` session with `urlCache = nil` and never logged or put in
+  chat history. Only a dictation whose transcription fails, on device or in the cloud, has its
+  trimmed speech written to disk, for [Dictation History's Retry](dictation-history.md#failed-dictations-and-retry):
+  at most 20 recordings, 7 days old and 100 MB, in a folder excluded from backups that no backup
+  carries, gone with Delete Entry, Clear History, Keep history Off, Keep failed recordings off or a
+  retry that transcribes it; Cloud transcription's consent dialog says a copy is kept only when
+  transcription fails. Ask by Voice and Edit Selection by Voice never keep audio. A question
   reaches chat history only if the reader continues it in AI Chat, or when an agent answers it: the
   run's chat is saved like any `@handle` run's, with the transcribed request, the window's text and
   any picture, and the **Answer with** caption and the section footer say so. Unless Keep history is
@@ -133,7 +142,8 @@ tables and `AppCore`.
   Selection by Voice always answers with the model.
 - **Insert while recording is off with the cloud engine.** Each chunk would be a paid request, so
   `DictationCoordinator` never starts the live loop while `cloudIsOn()`.
-- **Retention is the provider's.** Tinycast keeps no copy of the audio. What OpenRouter and Google
+- **Retention is the provider's.** Tinycast keeps no copy of the audio it sends, beyond a failed
+  dictation's recording kept on this Mac for Retry. What OpenRouter and Google
   keep follows the OpenRouter account's privacy settings (data collection and Zero Data Retention);
   Tinycast adds no body field for them. `VoiceAIRoute` wraps both uses in the usage log's recorder,
   so only the tokens and cost a reply reported are written (see
@@ -149,7 +159,7 @@ tables and `AppCore`.
 | `Model/VoiceAppContext.swift` | The app in front a dictation is told about, its levels and the screenshot's size |
 | `Model/VoiceLanguagePolicy.swift` | Languages I speak: the Mac's languages as the default, at most three |
 | `Model/VoiceReplySession.swift` | One Ask reply: when the panel opens, what streams into it, and what it ends as |
-| `Model/VoiceRoutePolicy.swift` | Defaults, eligible connections, the consented route and the proposal, effort, images, a request fitted to its route |
+| `Model/VoiceRoutePolicy.swift` | Defaults, eligible connections, the consented route and the proposal, Retry with's models, effort, images, a request fitted to its route |
 | `Model/VoiceInsertPolicy.swift` | When an INSERT reply may be typed, or an edit replace its selection, without review |
 | `Model/VoiceEditReply.swift` | One edit's reply: the instruction from its header, the text fitted to the selection |
 | `Model/VoiceMode.swift` | `VoiceMode`, and `VoiceModeCatalog`: the three built-ins with fixed ids and their symbols |
@@ -159,7 +169,7 @@ tables and `AppCore`.
 | `Service/VoiceMediaEncoder.swift` | Off the main actor: samples to WAV, the window's PNG to a bounded JPEG |
 | `Service/VoiceSelectionAccess.swift` | Whether the focused element's selected text can be written in place |
 | `Service/VoiceAppContextReader.swift` | The app in front: its name, its focused window's title and, when allowed, its picture |
-| `Service/VoiceCloudTranscriber.swift` | The engine `DictationCoordinator` calls, its consent dialogs, the active mode and the last transcript, for Dictation History |
+| `Service/VoiceCloudTranscriber.swift` | The engine `DictationCoordinator` calls, its consent dialogs, the active mode and the last transcript, for Dictation History, and a kept recording's retry with its routes and consent |
 | `UI/VoiceAskCoordinator.swift` | The funnel for both voice commands: shortcuts, launcher rows, capsule keys and panel |
 | `UI/VoiceModeCaption.swift` | The chip above the dictation capsule naming the active mode |
 | `Settings/VoiceAISettings.swift` | The fork's own `@Observable` store over `AppSettingsKey` keys |
@@ -564,7 +574,8 @@ ends.
   plain transcript. With a local OpenAI-compatible model, a mode makes two requests (a proxy shows the
   audio then the text).
 - **Silence and cancelling.** Hold for 2 s in silence: "No speech was recorded", and a proxy shows no
-  request. Escape while the capsule processes: nothing is typed. Wi-Fi off: the network error is a HUD.
+  request. Escape while the capsule processes: nothing is typed. Wi-Fi off: the network error is a HUD,
+  and the dictation waits in Dictation History to be retried (see its manual sweep).
 - **The composer mic** in AI Chat uses the cloud engine; switching cloud off returns it to the
   on-device model.
 - **Ask by Voice setup.** Turn on Screen Awareness, then Ask by Voice: the dialog names the
@@ -650,7 +661,8 @@ ends.
   Off or for one of Tinycast's own editors, riding with the recording on Gemini's two turns or a local
   server's one without its screenshot, left behind when still running 0.5 s after the recording, a
   typed Gemini Flash sent at low, the consent dialog naming the window title, and the tag's text
-  typed); `dictation-field-test` (the cloud seam in
-  `DictationCoordinator`); `hotkey-dispatch-test` (a command's release, Secure Input's included, and
+  typed; a kept recording's retry on the chosen route with the live prompt, the app by name alone and
+  the mode, Retry with's models, and consent only for another connection); `dictation-field-test`
+  (the cloud seam in `DictationCoordinator`, a failure handed to Dictation History); `hotkey-dispatch-test` (a command's release, Secure Input's included, and
   a voice command held on a single modifier); `hotkey-test` (Shift joining and leaving a held key
   while another modifier still cancels it).

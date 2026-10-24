@@ -870,10 +870,13 @@ run voice-coordinator-test Tinycast/Features/VoiceAI/Model/*.swift \
                            Tinycast/Features/ScreenAwareness/Model/*.swift \
                            Tinycast/Features/QuickActions/Model/CustomQuickAction.swift \
                            Tinycast/Features/QuickActions/Model/QuickActionFailure.swift \
-                           Tinycast/Features/DictationHistory/Model/DictationHistoryEntry.swift
-# Fork: Dictation History's line format, file and search.
+                           Tinycast/Features/DictationHistory/Model/DictationHistoryEntry.swift \
+                           Tinycast/Features/DictationHistory/Model/DictationRetry.swift
+# Fork: Dictation History's line format, file, search, kept recordings and retries.
 run dictation-history-test Tinycast/Features/DictationHistory/Model/*.swift \
                            Tinycast/Features/DictationHistory/Service/DictationHistoryFile.swift \
+                           Tinycast/Features/DictationHistory/Service/DictationRecordingFolder.swift \
+                           Tinycast/Features/VoiceAI/Model/VoiceAudio.swift \
                            Tinycast/Platform/AppPaths.swift
 run alias-actions-test     Tinycast/Features/AliasActions/Model/*.swift
 run acp-test               Tinycast/Features/Agents/Model/*.swift \

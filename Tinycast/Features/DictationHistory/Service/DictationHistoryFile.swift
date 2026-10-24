@@ -74,6 +74,14 @@ enum DictationHistoryFile {
         }
     }
 
+    /// A retry's result over the line it retried, where that line stands.
+    nonisolated static func update(_ entry: DictationHistoryEntry, at url: URL = url) {
+        writing.withLock { _ in
+            guard let data = try? Data(contentsOf: url) else { return }
+            replace(url, with: DictationHistoryEntry.replacing(entry, in: data))
+        }
+    }
+
     /// At the user's word, never on its own; a missing file already reads as no history.
     nonisolated static func clear(at url: URL = url) {
         writing.withLock { _ in try? FileManager.default.removeItem(at: url) }

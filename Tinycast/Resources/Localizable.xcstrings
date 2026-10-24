@@ -18777,6 +18777,58 @@
         }
       }
     },
+    "A dictation that fails keeps its audio for 7 days, at most 20, to retry from the history. Turning it off removes them." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ein fehlgeschlagenes Diktat behält seine Aufnahme 7 Tage lang, höchstens 20, damit du es aus dem Verlauf erneut versuchen kannst. Ausschalten entfernt sie."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Un dictado que falla conserva su audio durante 7 días, 20 como máximo, para reintentarlo desde el historial. Al desactivarlo, se eliminan."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Une dictée qui échoue garde son audio 7 jours, 20 au plus, pour la réessayer depuis l’historique. Désactiver l’option les supprime."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "失敗した音声入力は、履歴から再試行できるよう音声を7日間、最大20件まで保持します。オフにすると削除されます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "실패한 받아쓰기는 기록에서 다시 시도할 수 있도록 오디오를 7일 동안, 최대 20개까지 보관합니다. 끄면 삭제됩니다."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Um ditado que falha guarda o áudio por 7 dias, no máximo 20, para tentar de novo pelo histórico. Desativar remove as gravações."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Если диктовка не удалась, её запись хранится 7 дней, не больше 20, чтобы повторить её из истории. Выключение удаляет записи."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "失败的听写会保留其音频 7 天，最多 20 段，以便从历史记录中重试。关闭后会将其移除。"
+          }
+        }
+      }
+    },
     "A folder with package.json and built commands." : {
       "localizations" : {
         "de" : {
@@ -53200,6 +53252,58 @@
         }
       }
     },
+    "Dictation failed" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diktat fehlgeschlagen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El dictado falló"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Échec de la dictée"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "音声入力に失敗しました"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "받아쓰기 실패"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Falha no ditado"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Диктовка не удалась"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "听写失败"
+          }
+        }
+      }
+    },
     "Dictation listening" : {
       "localizations" : {
         "de" : {
@@ -55143,118 +55247,118 @@
         }
       }
     },
-    "Each finished recording goes to %@ to be transcribed by %@, with the name and window title of the app you dictate into, and a screenshot if you chose one. Tinycast keeps no copy; your provider's data policy applies." : {
+    "Each finished recording goes to %@ to be transcribed by %@, with the name and window title of the app you dictate into, and a screenshot if you chose one. Tinycast keeps a copy only when transcription fails, for at most a week; your provider's data policy applies." : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Jede beendete Aufnahme geht an %1$@ und wird von %2$@ transkribiert, zusammen mit dem Namen und dem Fenstertitel der App, in die du diktierst, und einem Bildschirmfoto, falls du das gewählt hast. Redcast behält keine Kopie; es gilt die Datenrichtlinie deines Anbieters."
+            "value" : "Jede beendete Aufnahme geht an %1$@ und wird von %2$@ transkribiert, zusammen mit dem Namen und dem Fenstertitel der App, in die du diktierst, und einem Bildschirmfoto, falls du das gewählt hast. Redcast behält eine Kopie nur, wenn die Transkription fehlschlägt, höchstens eine Woche lang; es gilt die Datenrichtlinie deines Anbieters."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Each finished recording goes to %1$@ to be transcribed by %2$@, with the name and window title of the app you dictate into, and a screenshot if you chose one. Redcast keeps no copy; your provider's data policy applies."
+            "value" : "Each finished recording goes to %1$@ to be transcribed by %2$@, with the name and window title of the app you dictate into, and a screenshot if you chose one. Redcast keeps a copy only when transcription fails, for at most a week; your provider's data policy applies."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Cada grabación terminada se envía a %1$@ para que %2$@ la transcriba, junto con el nombre y el título de la ventana de la app en la que dictas, y una captura si la elegiste. Redcast no guarda ninguna copia; se aplica la política de datos de tu proveedor."
+            "value" : "Cada grabación terminada se envía a %1$@ para que %2$@ la transcriba, junto con el nombre y el título de la ventana de la app en la que dictas, y una captura si la elegiste. Redcast solo guarda una copia si la transcripción falla, durante una semana como máximo; se aplica la política de datos de tu proveedor."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Chaque enregistrement terminé est envoyé à %1$@ pour être transcrit par %2$@, avec le nom et le titre de fenêtre de l’app dans laquelle vous dictez, et une capture d’écran si vous l’avez choisie. Redcast ne conserve aucune copie ; la politique de données de votre fournisseur s’applique."
+            "value" : "Chaque enregistrement terminé est envoyé à %1$@ pour être transcrit par %2$@, avec le nom et le titre de fenêtre de l’app dans laquelle vous dictez, et une capture d’écran si vous l’avez choisie. Redcast ne conserve une copie que si la transcription échoue, une semaine au plus ; la politique de données de votre fournisseur s’applique."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "録音を終えるたびに、音声入力先のアプリの名前とウインドウのタイトル（選んだ場合はスクリーンショットも）とともに%1$@に送られ、%2$@で文字起こしされます。Redcastはコピーを保持しません。プロバイダのデータポリシーが適用されます。"
+            "value" : "録音を終えるたびに、音声入力先のアプリの名前とウインドウのタイトル（選んだ場合はスクリーンショットも）とともに%1$@に送られ、%2$@で文字起こしされます。Redcastがコピーを保持するのは文字起こしに失敗したときだけで、最長1週間です。プロバイダのデータポリシーが適用されます。"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "녹음을 마칠 때마다 받아쓰는 앱의 이름과 윈도우 제목(선택한 경우 스크린샷도)과 함께 %1$@(으)로 전송되어 %2$@이(가) 받아씁니다. Redcast는 사본을 보관하지 않으며, 제공업체의 데이터 정책이 적용됩니다."
+            "value" : "녹음을 마칠 때마다 받아쓰는 앱의 이름과 윈도우 제목(선택한 경우 스크린샷도)과 함께 %1$@(으)로 전송되어 %2$@이(가) 받아씁니다. Redcast는 받아쓰기에 실패했을 때만 사본을 최대 1주일 동안 보관하며, 제공업체의 데이터 정책이 적용됩니다."
           }
         },
         "pt" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Cada gravação concluída vai para %1$@ para ser transcrita por %2$@, com o nome e o título da janela do app em que você dita, e uma captura de tela se você escolheu uma. O Redcast não guarda cópia; vale a política de dados do seu provedor."
+            "value" : "Cada gravação concluída vai para %1$@ para ser transcrita por %2$@, com o nome e o título da janela do app em que você dita, e uma captura de tela se você escolheu uma. O Redcast só guarda cópia quando a transcrição falha, por no máximo uma semana; vale a política de dados do seu provedor."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Каждая законченная запись отправляется в %1$@ для расшифровки моделью %2$@ вместе с названием приложения, в которое вы диктуете, заголовком его окна и скриншотом, если вы его выбрали. Redcast не хранит копий; действует политика данных вашего провайдера."
+            "value" : "Каждая законченная запись отправляется в %1$@ для расшифровки моделью %2$@ вместе с названием приложения, в которое вы диктуете, заголовком его окна и скриншотом, если вы его выбрали. Redcast хранит копию, только если расшифровка не удалась, и не дольше недели; действует политика данных вашего провайдера."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "每段结束的录音都会连同你正在听写的 App 的名称和窗口标题（如果你选择了，还有截图）一起发送到 %1$@，由 %2$@ 转写。Redcast 不保留副本；适用你的服务提供商的数据政策。"
+            "value" : "每段结束的录音都会连同你正在听写的 App 的名称和窗口标题（如果你选择了，还有截图）一起发送到 %1$@，由 %2$@ 转写。只有转写失败时，Redcast 才会保留副本，最多一周；适用你的服务提供商的数据政策。"
           }
         }
       }
     },
-    "Each finished recording goes to %@ to be transcribed by %@. Tinycast keeps no copy of the audio; your provider's data policy applies." : {
+    "Each finished recording goes to %@ to be transcribed by %@. Tinycast keeps a copy of the audio only when transcription fails, for at most a week; your provider's data policy applies." : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Jede beendete Aufnahme geht an %1$@ und wird von %2$@ transkribiert. Redcast behält keine Kopie des Audios; es gilt die Datenrichtlinie deines Anbieters."
+            "value" : "Jede beendete Aufnahme geht an %1$@ und wird von %2$@ transkribiert. Redcast behält eine Kopie des Audios nur, wenn die Transkription fehlschlägt, höchstens eine Woche lang; es gilt die Datenrichtlinie deines Anbieters."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Each finished recording goes to %1$@ to be transcribed by %2$@. Redcast keeps no copy of the audio; your provider's data policy applies."
+            "value" : "Each finished recording goes to %1$@ to be transcribed by %2$@. Redcast keeps a copy of the audio only when transcription fails, for at most a week; your provider's data policy applies."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Cada grabación terminada se envía a %1$@ para que %2$@ la transcriba. Redcast no guarda ninguna copia del audio; se aplica la política de datos de tu proveedor."
+            "value" : "Cada grabación terminada se envía a %1$@ para que %2$@ la transcriba. Redcast solo guarda una copia del audio si la transcripción falla, durante una semana como máximo; se aplica la política de datos de tu proveedor."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Chaque enregistrement terminé est envoyé à %1$@ pour être transcrit par %2$@. Redcast ne conserve aucune copie de l’audio ; la politique de données de votre fournisseur s’applique."
+            "value" : "Chaque enregistrement terminé est envoyé à %1$@ pour être transcrit par %2$@. Redcast ne conserve une copie de l’audio que si la transcription échoue, une semaine au plus ; la politique de données de votre fournisseur s’applique."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "録音を終えるたびに、%1$@に送られ%2$@で文字起こしされます。Redcastは音声のコピーを保持しません。プロバイダのデータポリシーが適用されます。"
+            "value" : "録音を終えるたびに、%1$@に送られ%2$@で文字起こしされます。Redcastが音声のコピーを保持するのは文字起こしに失敗したときだけで、最長1週間です。プロバイダのデータポリシーが適用されます。"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "녹음을 마칠 때마다 %1$@(으)로 전송되어 %2$@이(가) 받아씁니다. Redcast는 오디오 사본을 보관하지 않으며, 제공업체의 데이터 정책이 적용됩니다."
+            "value" : "녹음을 마칠 때마다 %1$@(으)로 전송되어 %2$@이(가) 받아씁니다. Redcast는 받아쓰기에 실패했을 때만 오디오 사본을 최대 1주일 동안 보관하며, 제공업체의 데이터 정책이 적용됩니다."
           }
         },
         "pt" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Cada gravação concluída vai para %1$@ para ser transcrita por %2$@. O Redcast não guarda cópia do áudio; vale a política de dados do seu provedor."
+            "value" : "Cada gravação concluída vai para %1$@ para ser transcrita por %2$@. O Redcast só guarda cópia do áudio quando a transcrição falha, por no máximo uma semana; vale a política de dados do seu provedor."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Каждая законченная запись отправляется в %1$@ для расшифровки моделью %2$@. Redcast не хранит копию звука; действует политика данных вашего провайдера."
+            "value" : "Каждая законченная запись отправляется в %1$@ для расшифровки моделью %2$@. Redcast хранит копию звука, только если расшифровка не удалась, и не дольше недели; действует политика данных вашего провайдера."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "每段结束的录音都会发送到 %1$@，由 %2$@ 转写。Redcast 不保留音频副本；适用你的服务提供商的数据政策。"
+            "value" : "每段结束的录音都会发送到 %1$@，由 %2$@ 转写。只有转写失败时，Redcast 才会保留音频副本，最多一周；适用你的服务提供商的数据政策。"
           }
         }
       }
@@ -77049,6 +77153,58 @@
         }
       }
     },
+    "Keep failed recordings" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fehlgeschlagene Aufnahmen behalten"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Conservar grabaciones fallidas"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Conserver les enregistrements échoués"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "失敗した録音を保持"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "실패한 녹음 보관"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Manter gravações com falha"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Хранить неудачные записи"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "保留失败的录音"
+          }
+        }
+      }
+    },
     "Keep history" : {
       "localizations" : {
         "de" : {
@@ -93345,6 +93501,58 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "还没有文本片段。"
+          }
+        }
+      }
+    },
+    "No speech was heard in the recording." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "In der Aufnahme wurde keine Sprache erkannt."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se oyó voz en la grabación."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aucune parole n’a été entendue dans l’enregistrement."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "録音から音声を聞き取れませんでした。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "녹음에서 음성이 들리지 않았습니다."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nenhuma fala foi ouvida na gravação."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "В записи не удалось расслышать речь."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "录音中未听到语音。"
           }
         }
       }
@@ -114671,6 +114879,58 @@
         }
       }
     },
+    "Retry with" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Erneut versuchen mit"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reintentar con"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Réessayer avec"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "再試行するモデル"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "다시 시도할 모델"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tentar novamente com"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Повторить через"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "用以下模型重试"
+          }
+        }
+      }
+    },
     "Retrying after a provider error (%lld of %lld)" : {
       "localizations" : {
         "de" : {
@@ -114771,6 +115031,58 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "提供方出错后重试（%1$lld/%2$lld）：%3$@"
+          }
+        }
+      }
+    },
+    "Retrying…" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wird erneut versucht…"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reintentando…"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nouvelle tentative…"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "再試行中…"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "다시 시도하는 중…"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tentando novamente…"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Повторная попытка…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在重试…"
           }
         }
       }
@@ -122417,6 +122729,58 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "立即发送"
+          }
+        }
+      }
+    },
+    "Send This Recording to %@?" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diese Aufnahme an %@ senden?"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "¿Enviar esta grabación a %@?"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Envoyer cet enregistrement à %@ ?"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この録音を%@に送信しますか？"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "이 녹음을 %@(으)로 보내시겠습니까?"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enviar esta gravação para %@?"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Отправить эту запись в %@?"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "要将这段录音发送到 %@ 吗？"
           }
         }
       }
@@ -136993,54 +137357,54 @@
         }
       }
     },
-    "The history is kept on this Mac as text, never as audio, and is left out of exported backups." : {
+    "The history is kept on this Mac as text, with audio only for failed dictations, and is left out of exported backups." : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Der Verlauf bleibt als Text auf diesem Mac, nie als Audio, und gehört nicht zu exportierten Backups."
+            "value" : "Der Verlauf bleibt als Text auf diesem Mac, mit Audio nur für fehlgeschlagene Diktate, und gehört nicht zu exportierten Backups."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "El historial se guarda en este Mac como texto, nunca como audio, y queda fuera de las copias de seguridad exportadas."
+            "value" : "El historial se guarda en este Mac como texto, con audio solo de los dictados fallidos, y queda fuera de las copias de seguridad exportadas."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "L’historique reste sur ce Mac sous forme de texte, jamais en audio, et hors des sauvegardes exportées."
+            "value" : "L’historique reste sur ce Mac sous forme de texte, avec l’audio des seules dictées échouées, et hors des sauvegardes exportées."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "履歴は音声ではなくテキストとしてこのMacに保存され、書き出したバックアップには含まれません。"
+            "value" : "履歴はテキストとしてこのMacに保存され、音声は失敗した音声入力のものだけです。書き出したバックアップには含まれません。"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "기록은 오디오가 아닌 텍스트로 이 Mac에 보관되며, 내보낸 백업에는 포함되지 않습니다."
+            "value" : "기록은 텍스트로 이 Mac에 보관되며, 오디오는 실패한 받아쓰기의 것만 남습니다. 내보낸 백업에는 포함되지 않습니다."
           }
         },
         "pt" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "O histórico fica neste Mac como texto, nunca como áudio, e fica fora dos backups exportados."
+            "value" : "O histórico fica neste Mac como texto, com áudio só dos ditados que falharam, e fica fora dos backups exportados."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "История хранится на этом Mac только текстом, без аудио, и не попадает в экспортируемые резервные копии."
+            "value" : "История хранится на этом Mac текстом, аудио — только у неудавшихся диктовок, и не попадает в экспортируемые резервные копии."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "历史记录以文本形式保存在这台 Mac 上，绝不保存音频，也不会进入导出的备份。"
+            "value" : "历史记录以文本形式保存在这台 Mac 上，只有失败的听写会保留音频，也不会进入导出的备份。"
           }
         }
       }
@@ -139041,6 +139405,162 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "无法打开快速链接数据库，因此无法存储更改。"
+          }
+        }
+      }
+    },
+    "The recording is kept: ↵ retries it, ⌘K chooses another model." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Aufnahme ist gespeichert: ↵ versucht es erneut, ⌘K wählt ein anderes Modell."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La grabación se conserva: ↵ la reintenta y ⌘K elige otro modelo."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L’enregistrement est conservé : ↵ le réessaie, ⌘K choisit un autre modèle."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "録音は保持されています。↵ で再試行、⌘K で別のモデルを選べます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "녹음이 보관되어 있습니다. ↵로 다시 시도하고 ⌘K로 다른 모델을 고릅니다."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A gravação está guardada: ↵ tenta de novo, ⌘K escolhe outro modelo."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Запись сохранена: ↵ повторит расшифровку, ⌘K — выбрать другую модель."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "录音已保留：↵ 重试，⌘K 选择其他模型。"
+          }
+        }
+      }
+    },
+    "The recording is no longer kept, so it can't be retried." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Aufnahme ist nicht mehr gespeichert und kann nicht erneut versucht werden."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La grabación ya no se conserva, así que no se puede reintentar."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L’enregistrement n’est plus conservé : impossible de le réessayer."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "録音はもう保持されていないため、再試行できません。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "녹음이 더 이상 보관되어 있지 않아 다시 시도할 수 없습니다."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A gravação não está mais guardada, então não dá para tentar de novo."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Запись уже не хранится, повторить расшифровку нельзя."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "录音已不再保留，因此无法重试。"
+          }
+        }
+      }
+    },
+    "The recording is no longer kept." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Aufnahme ist nicht mehr gespeichert."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La grabación ya no se conserva."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L’enregistrement n’est plus conservé."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "録音はもう保持されていません。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "녹음이 더 이상 보관되어 있지 않습니다."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A gravação não está mais guardada."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Запись уже не хранится."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "录音已不再保留。"
           }
         }
       }
@@ -143703,6 +144223,64 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "此模型已添加。"
+          }
+        }
+      }
+    },
+    "This one recording goes to %@ to be transcribed by %@. Cloud transcription keeps its own model, and your provider's data policy applies." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nur diese Aufnahme geht an %1$@ und wird von %2$@ transkribiert. Die Cloud-Transkription behält ihr eigenes Modell; es gilt die Datenrichtlinie deines Anbieters."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This one recording goes to %1$@ to be transcribed by %2$@. Cloud transcription keeps its own model, and your provider's data policy applies."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Solo esta grabación se envía a %1$@ para que %2$@ la transcriba. La transcripción en la nube mantiene su propio modelo y se aplica la política de datos de tu proveedor."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Seul cet enregistrement est envoyé à %1$@ pour être transcrit par %2$@. La transcription dans le cloud garde son propre modèle ; la politique de données de votre fournisseur s’applique."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この録音だけが%1$@に送られ、%2$@で文字起こしされます。クラウド文字起こしのモデルは変わりません。プロバイダのデータポリシーが適用されます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "이 녹음만 %1$@(으)로 전송되어 %2$@이(가) 받아씁니다. 클라우드 받아쓰기의 모델은 그대로이며, 제공업체의 데이터 정책이 적용됩니다."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Só esta gravação vai para %1$@ para ser transcrita por %2$@. A transcrição na nuvem mantém o próprio modelo, e vale a política de dados do seu provedor."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Только эта запись отправится в %1$@ для расшифровки моделью %2$@. Облачная расшифровка останется на своей модели; действует политика данных вашего провайдера."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "仅这段录音会发送到 %1$@，由 %2$@ 转写。云端转写仍使用其原有模型；适用你的服务提供商的数据政策。"
           }
         }
       }

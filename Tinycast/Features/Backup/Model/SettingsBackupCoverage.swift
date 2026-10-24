@@ -99,6 +99,9 @@ enum SettingsBackupCoverage {
         AppSettingsKey.dictationHistoryVoiceReplies.rawValue:
             "Writes Ask by Voice answers and edited selections to this Mac's disk; an import must "
             + "never start keeping them.",
+        AppSettingsKey.dictationHistoryFailedRecordings.rawValue:
+            "Writes failed dictations' audio to this Mac's disk, which never leaves it; an import must "
+            + "never start keeping recordings or delete the ones kept.",
         AppSettingsKey.clipboardTextSearchEnabled.rawValue:
             "Background OCR is an opt-in processing choice on this Mac; a backup must not enable it.",
         AppSettingsKey.snippetsEnabled.rawValue:

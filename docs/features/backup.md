@@ -33,7 +33,8 @@ A backup carries five independently selectable categories, ticked on export and 
   extension is third-party code and third-party data; chat history and API keys stay on the Mac that
   had them; a cache regenerates on its own. The fork's AI usage log (`ai-usage.tsv`) is usage data
   like chat history and travels in no category either, nor does its Dictation History
-  (`dictation-history.jsonl`), which is private text.
+  (`dictation-history.jsonl`), which is private text, nor the failed dictations' recordings it keeps
+  to retry (`dictation-failed-audio/`), which is private audio and excluded from Time Machine too.
 - **`BackupCategory` names every category, and its `descriptor` switch is exhaustive.** A new case
   fails to build until it names a label, a symbol, a bundle subpath and a count noun — the same
   bargain `AppEntry.Kind` makes, and why the bundle layout is never spelled out twice.

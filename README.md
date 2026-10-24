@@ -159,8 +159,8 @@ Full Disk Access is never requested: Search Files needs it and Uninstall uses it
 leftovers. Grant it in System Settings → Privacy & Security → Full Disk Access.
 
 Snippets ship off; with them on, what you type is matched against their keywords on your Mac and is
-never stored or sent anywhere. Voice audio goes only to the connection you approved and is never
-saved.
+never stored or sent anywhere. Voice audio goes only to the connection you approved and is saved
+only when a dictation fails, on this Mac, for at most a week, so Dictation History can retry it.
 
 ## Documentation
 

@@ -74,7 +74,8 @@ compilation of its 2-bit weights; Ultra's encoder and both variants' decoder/joi
   encoded as WAV in memory, is sent once to the chosen connection, with the name, window title and,
   if allowed and the model sees pictures, a screenshot of the app it types into, never of the app
   behind one of Tinycast's own editors ([Voice AI](voice-ai.md#invariants)), and live insertion
-  never runs.
+  never runs. A recording whose transcription fails is the one exception kept on disk, bounded, for
+  [Dictation History's Retry](dictation-history.md#failed-dictations-and-retry).
   Long recordings split near a quiet passage without overlapping samples.
 - Live insertion is off by default and flushes at speech pauses, or after eight seconds of
   unpaused speech at the latest. While recording, the coordinator transcribes the audio since the

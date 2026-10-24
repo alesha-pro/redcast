@@ -429,13 +429,16 @@ enum SettingsSearchCatalog {
                 "translate", "english", "polish", "message", "rewrite", "tone", "style", "prompt",
                 "default mode", "add mode", "custom", "instructions", "per app", "add application", "tab"
             ]),
-        // Fork: Dictation History's retention, voice replies and Clear rows.
+        // Fork: Dictation History's retention, voice replies, failed recordings and Clear rows.
         .init(
             .dictationHistory, "Keep history",
             keywords: ["dictation history", "transcripts", "retention", "voice history", "off"]),
         .init(
             .dictationHistory, "Include Ask by Voice and voice edits",
             keywords: ["ask by voice", "edit selection by voice", "answers", "questions", "privacy"]),
+        .init(
+            .dictationHistory, "Keep failed recordings",
+            keywords: ["retry", "failed", "audio", "recording", "error", "again"]),
         .init(.dictationHistory, "Clear history", keywords: ["delete", "transcripts", "erase"]),
         .init(group: .dictationHistory, "Dictation History", keywords: ["shortcut", "command", "hotkey"])
     ]

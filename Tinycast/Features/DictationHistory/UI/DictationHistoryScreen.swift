@@ -25,9 +25,18 @@ struct DictationHistoryScreen: PaletteScreen {
         rows.indices.contains(selection) ? rows[selection] : nil
     }
 
-    var primaryActionTitle: String { vm.pasteTarget?.pasteTitle ?? String(localized: "Paste") }
+    var primaryActionTitle: String {
+        if entry(at: vm.selection)?.isFailed == true { return String(localized: "Retry") }
+        return vm.pasteTarget?.pasteTitle ?? String(localized: "Paste")
+    }
 
     func hasPrimaryAction(at selection: Int) -> Bool { entry(at: selection) != nil }
+
+    /// A failed entry's ↵ retries, which needs its recording and no retry already running.
+    func isPrimaryActionEnabled(at selection: Int) -> Bool {
+        guard let entry = entry(at: selection), entry.isFailed else { return true }
+        return coordinator.canRetry(entry)
+    }
 
     func actions(at selection: Int) -> PopoverMenuContent? {
         entry(at: selection).map {
@@ -37,12 +46,12 @@ struct DictationHistoryScreen: PaletteScreen {
 
     func activate(at selection: Int) {
         guard let entry = entry(at: selection) else { return }
-        coordinator.paste(entry)
+        if entry.isFailed { coordinator.retry(entry) } else { coordinator.paste(entry) }
     }
 
     /// ⌘↵, as Clipboard History copies; ⌘C reaches the coordinator from the panel.
     func secondary(at selection: Int) -> Bool {
-        guard let entry = entry(at: selection) else { return false }
+        guard let entry = entry(at: selection), !entry.isFailed else { return false }
         coordinator.copy(entry)
         return true
     }
@@ -108,7 +117,7 @@ private struct DictationHistoryView: View {
         } else {
             HStack(spacing: 0) {
                 DictationHistoryList(
-                    rows: rows, selectedID: selected?.id, scroll: scroll,
+                    rows: rows, selectedID: selected?.id, retries: index.retries, scroll: scroll,
                     onSelect: { entry in vm.selection = rows.firstIndex(of: entry) ?? 0 },
                     onActivate: { entry in
                         vm.selection = rows.firstIndex(of: entry) ?? 0
@@ -121,7 +130,9 @@ private struct DictationHistoryView: View {
                 )
                 .frame(width: metrics.size.clipboardListWidth)
                 Rectangle().fill(Theme.Colors.separator).frame(width: Theme.Size.hairline)
-                DictationHistoryPreview(entry: selected)
+                DictationHistoryPreview(
+                    entry: selected, recorded: selected.map { index.recordings.contains($0.id) } ?? false,
+                    retrying: selected.map { index.retries.isRetrying($0.id) } ?? false)
             }
         }
     }
@@ -132,6 +143,7 @@ enum DictationHistoryActionsMenu {
     static func content(
         entry: DictationHistoryEntry, coordinator: DictationHistoryCoordinator, target: PasteTarget?
     ) -> PopoverMenuContent {
+        if entry.isFailed { return failed(entry, coordinator: coordinator) }
         var items = [
             PopoverMenuItem(
                 title: target?.pasteTitle ?? String(localized: "Paste"),
@@ -155,20 +167,56 @@ enum DictationHistoryActionsMenu {
                     coordinator.copyTranscript(entry)
                 })
         }
-        items.append(
+        items += deletions(entry, coordinator: coordinator)
+        return PopoverMenuContent(header: DictationHistoryList.title(of: entry, limit: 40), items: items)
+    }
+
+    /// Retry on what a dictation would use now, or on any route or model listed under Retry with.
+    private static func failed(
+        _ entry: DictationHistoryEntry, coordinator: DictationHistoryCoordinator
+    ) -> PopoverMenuContent {
+        let canRetry = coordinator.canRetry(entry)
+        var items = [
+            PopoverMenuItem(
+                title: String(localized: "Retry"), systemImage: "arrow.clockwise", isEnabled: canRetry,
+                shortcut: "↵"
+            ) {
+                coordinator.retry(entry)
+            }
+        ]
+        if canRetry {
+            let current = coordinator.currentRetryEngine
+            for (position, choice) in coordinator.retryEngines.enumerated() {
+                items.append(
+                    PopoverMenuItem(
+                        title: choice.title, icon: choice.engine == current ? .symbol("checkmark") : .blank,
+                        sectionTitle: position == 0 ? String(localized: "Retry with") : nil,
+                        startsSection: position == 0
+                    ) {
+                        coordinator.retry(entry, on: choice.engine)
+                    })
+            }
+        }
+        items += deletions(entry, coordinator: coordinator)
+        return PopoverMenuContent(header: DictationHistoryList.title(of: entry, limit: 40), items: items)
+    }
+
+    private static func deletions(
+        _ entry: DictationHistoryEntry, coordinator: DictationHistoryCoordinator
+    ) -> [PopoverMenuItem] {
+        [
             PopoverMenuItem(
                 title: String(localized: "Delete Entry"), systemImage: "trash", startsSection: true,
                 shortcut: "⌃X", isDestructive: true
             ) {
                 coordinator.delete(entry)
-            })
-        items.append(
+            },
             PopoverMenuItem(
                 title: String(localized: "Delete All Entries"), systemImage: "trash", shortcut: "⌃⇧X",
                 isDestructive: true
             ) {
                 Task { await coordinator.clearHistory() }
-            })
-        return PopoverMenuContent(header: DictationHistoryList.title(of: entry, limit: 40), items: items)
+            }
+        ]
     }
 }
