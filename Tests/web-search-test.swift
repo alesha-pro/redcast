@@ -628,7 +628,7 @@ struct WebSearchTests {
         let events = await collect(loop)
         expect(
             Array(events.prefix(4)) == [
-                .toolCall(id: "s1", origin: "Researcher", title: "web_search"), .searching("q"), .searched("q"),
+                .toolCall(id: "s1", origin: "Researcher", title: "web_search: q"), .searching("q"), .searched("q"),
                 .toolResult(id: "s1", isError: false)
             ],
             "an agent's search opens its row, then the search row, got \(events)")

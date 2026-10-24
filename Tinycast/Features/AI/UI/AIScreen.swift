@@ -17,7 +17,9 @@ struct AIScreen: PaletteScreen {
     let rows = [Row()]
 
     var primaryActionTitle: String {
-        chat.isStreaming ? String(localized: "Stop") : String(localized: "Send")
+        // Fork: a query typed while the reply runs is queued for after it.
+        guard chat.isStreaming else { return String(localized: "Send") }
+        return vm.query.isEmpty ? String(localized: "Stop") : String(localized: "Queue")
     }
 
     func actions(at selection: Int) -> PopoverMenuContent? {
@@ -104,13 +106,23 @@ struct AIScreen: PaletteScreen {
 
     func activate(at selection: Int) {
         if chat.isStreaming {
-            coordinator.stopResponse()
+            // Fork: a query waits for the running reply; an empty field stops it, as before.
+            if vm.query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                coordinator.stopResponse()
+            } else if AppCore.shared.chatQueue.enqueue(vm.query, in: chat) {
+                vm.query = ""
+            }
         } else if coordinator.send(vm.query) {
             vm.query = ""
         }
     }
 
-    func secondary(at selection: Int) -> Bool { false }
+    /// Fork: ⌘↵ sends now — into an agent's running reply, or in place of any other reply.
+    func secondary(at selection: Int) -> Bool {
+        guard chat.isStreaming else { return false }
+        if AppCore.shared.chatQueue.sendNow(vm.query, in: chat) { vm.query = "" }
+        return true
+    }
 
     /// Raycast's chords where it has one; ⌘Y is History, as in Safari, and ⌘. is Stop.
     func perform(_ shortcut: PaletteShortcut, at selection: Int) -> Bool {
@@ -172,7 +184,10 @@ struct AIScreen: PaletteScreen {
             .quickNotePicker(chat: chat, chats: chatCoordinator, palette: vm)
             // Fork: the agent that answers heads the chat, as it does in AI Chat.
             .environment(
-                \.agentChatBadge, chatCoordinator.agents.agent(for: chat).map(AgentChatBadge.init)))
+                \.agentChatBadge, chatCoordinator.agents.agent(for: chat).map(AgentChatBadge.init))
+            // Fork: what waits for the running reply, under the transcript; the queue moves on its end.
+            .safeAreaInset(edge: .bottom) { ChatQueueStrip(chat: chat).padding(.vertical, Theme.Spacing.xs) }
+            .drainsChatQueue(chat))
     }
 }
 

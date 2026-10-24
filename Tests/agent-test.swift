@@ -27,6 +27,7 @@ struct AgentTests {
         toolsetOffersInProviderOrder()
         toolsetAppliesTheProfile()
         batchesKeepCallOrder()
+        callRowsNameWhatTheyWereGiven()
         budgetCutsLikeUpstream()
         elisionKeepsTheNewestRound()
         newFamiliesStartOff()
@@ -300,6 +301,31 @@ struct AgentTests {
             ])],
             mcpTools: [], mcp: { .failure($0.id, "mcp") }, ask: { _, _ in false })
         expect(!writer.isConcurrent("write"), "a call whose rule can ask always runs alone")
+    }
+
+    /// A row shows the command, path or query a call carries, on one line and cut when long.
+    static func callRowsNameWhatTheyWereGiven() {
+        expect(
+            AgentCallSummary.title("run_command", arguments: #"{"command":"python3 sync.py\n  --all"}"#)
+                == "run_command: python3 sync.py --all",
+            "a command reads on one line")
+        expect(
+            AgentCallSummary.title("read_file", arguments: #"{"offset":3,"path":"notes/a.md"}"#)
+                == "read_file: notes/a.md",
+            "a path names a read, whatever other arguments it has")
+        expect(
+            AgentCallSummary.title("web_search", arguments: #"{"query":"погода Москва"}"#)
+                == "web_search: погода Москва",
+            "a query names a search")
+        expect(
+            AgentCallSummary.title("update_plan", arguments: #"{"plan":[]}"#) == "update_plan",
+            "a call with nothing to name keeps its tool's title")
+        expect(AgentCallSummary.title("x", arguments: "not json") == "x", "broken arguments keep the title")
+        let long = String(repeating: "a", count: 400)
+        let title = AgentCallSummary.title("run_command", arguments: "{\"command\":\"\(long)\"}")
+        expect(
+            title.count == "run_command: ".count + AgentCallSummary.limit && title.hasSuffix("…"),
+            "a long argument is cut to the row's limit")
     }
 
     static func batchesKeepCallOrder() {

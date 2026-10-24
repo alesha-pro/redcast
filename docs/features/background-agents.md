@@ -120,7 +120,7 @@ servers.
 | --- | --- | --- | --- |
 | `@`, `@ri` | one **Choose Agent** row per agent whose handle starts so | completes to `@rig ` | — |
 | `@rig ` | one **Choose Agent** row, "Type a task, or press Return to chat" | a new AI Chat with the agent | — |
-| `@rig check temps` | one **Run in Background** row under `Use “check temps” with…` | starts the run, hides the palette | runs it in AI Chat in front of you |
+| `@rig check temps` | one **Ask Agent** row under `Use “check temps” with…` | asks it in Quick AI, in the palette (a CLI agent in AI Chat) | starts a background run, hides the palette |
 | `@nobody x`, `@ri x`, `mail@x` | ordinary search | | |
 
 These rows **answer alone**: `FallbackCoordinator.claim` returns a `FallbackClaim` and
@@ -146,8 +146,8 @@ never push one.
 
 An agent's **chord** (`HotKeyAction.agent(id:)`) is recorded from that ⌘K row or from **Shortcut** in
 the agent's editor. It summons root search with `@handle ` typed: ↵ on the empty task opens a chat,
-a typed task runs in the background, ⌘↵ runs it in AI Chat in front of you. Only bound agents are
-indexed (`boundAgentIDs`) and registered, so an agent without a chord costs nothing. Deleting an
+↵ on a typed task asks it in Quick AI (a CLI agent in AI Chat), ⌘↵ runs it in the background. Only
+bound agents are indexed (`boundAgentIDs`) and registered, so an agent without a chord costs nothing. Deleting an
 agent clears its chord, favorite, alias, hidden flag and ranking; a chord whose agent is gone at
 launch is dropped once `agents.json` has read. Chords, like agents, travel in no backup and no
 `settings.json`.
@@ -265,7 +265,8 @@ local to the Mac's day and time zone, like the schedules.
   minutes its reply hands over what it has, and the row is done.
 - Four quick runs: the fourth is refused with a HUD. A second run for a busy agent is refused.
 - An MCP server set to Ask is not offered in a background turn; one set to Always is.
-- ⌘↵ on `@rig task`: it runs in AI Chat in front of you, as a normal chat.
+- ↵ on `@rig task`: Quick AI opens in the palette with the agent's header and answers there; on a CLI
+  agent, AI Chat opens with it. ⌘↵: a background run starts and the palette hides.
 - **Run Agent Task** and its hotkey: the palette opens with `@`. Hidden, and the hotkey inert, while AI
   is off or there are no agents.
 - Type an agent's name: its row shows under Agents with `@rig` beside it; ↵ opens a chat with it.

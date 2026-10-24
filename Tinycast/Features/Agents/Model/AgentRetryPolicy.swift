@@ -28,8 +28,18 @@ struct AgentRetryPolicy: Sendable {
     }
 
     /// The row a waiting round shows, so a pause reads as a retry rather than a hang.
-    static func title(_ number: Int, of count: Int) -> String {
-        String(localized: "Retrying after a provider error (\(number) of \(count))")
+    static func title(_ number: Int, of count: Int, reason: String) -> String {
+        guard !reason.isEmpty else {
+            return String(localized: "Retrying after a provider error (\(number) of \(count))")
+        }
+        return String(localized: "Retrying after a provider error (\(number) of \(count)): \(reason)")
+    }
+
+    /// The failure in one short line: what the provider said, or what the network did.
+    static func reason(_ error: any Error) -> String {
+        let said = error.localizedDescription.split(whereSeparator: \.isNewline)
+            .map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }.joined(separator: " ")
+        return said.count <= 160 ? said : String(said.prefix(159)) + "…"
     }
 
     static func isOverflow(_ error: any Error) -> Bool {

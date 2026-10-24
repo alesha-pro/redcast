@@ -24,6 +24,7 @@ struct AgentLoopTests {
         await stopReachesTheRunningCall()
         await aTurnWithoutCallsPassesThrough()
         await aSimpleQuestionIsOneRound()
+        await steeringIsReadAtTheNextStep()
         await aLongRunWrapsUpThenHandsOver()
         await aHandOverThatSaysNothingStillHandsOver()
         await anIgnoredHandOverIsEnforced()
@@ -857,9 +858,9 @@ extension AgentLoopTests {
         }
         expect(
             rows == [
-                .toolCall(id: "tinycast-retry-1-1", origin: "Loop", title: AgentRetryPolicy.title(1, of: 4)),
+                .toolCall(id: "tinycast-retry-1-1", origin: "Loop", title: AgentRetryPolicy.title(1, of: 4, reason: AgentRetryPolicy.reason(busy))),
                 .toolResult(id: "tinycast-retry-1-1", isError: false),
-                .toolCall(id: "tinycast-retry-1-2", origin: "Loop", title: AgentRetryPolicy.title(2, of: 4)),
+                .toolCall(id: "tinycast-retry-1-2", origin: "Loop", title: AgentRetryPolicy.title(2, of: 4, reason: AgentRetryPolicy.reason(busy))),
                 .toolResult(id: "tinycast-retry-1-2", isError: false)
             ],
             "each wait shows as a row that closes when the round is asked again, got \(rows)")
@@ -1471,6 +1472,41 @@ extension AgentLoopTests {
         expect(
             base.requests.first?.messages == turn.messages,
             "and carries nothing of the budget: no note, no plan, no hand-over")
+    }
+
+    /// pi's and dsh's steering: a message sent mid-run joins the next request, never cutting a call.
+    static func steeringIsReadAtTheNextStep() async {
+        let steering = AgentSteering()
+        let reader = FakeTools(names: ["fs_read"]) { _, _ in
+            _ = steering.push("also check B")
+            return "page"
+        }
+        let base = ScriptedProvider(rounds: [
+            [call("c1")], [.text("A is fine."), .finished], [.text("B is fine too."), .finished]
+        ])
+        let outcome = await collect(
+            AgentLoopProvider(
+                base: base, toolset: toolset([reader]), budget: AgentEffort.balanced.budget, origin: "Loop",
+                steering: steering))
+        expect(outcome.failure == nil && outcome.events.last == .finished, "the steered run ends as usual")
+        let second = base.requests.dropFirst().first?.messages.last
+        expect(
+            second?.role == .user && second?.text == "also check B",
+            "a message sent during a call is the user's turn in the very next request")
+        expect(
+            outcome.events.contains(
+                .toolCall(id: "tinycast-steer-1-0", origin: "Loop", title: AgentSteering.title("also check B"))),
+            "and shows as a row of its own in the reply")
+        let third = ScriptedProvider(rounds: [[.text("Done."), .finished], [.text("And that."), .finished]])
+        let late = AgentSteering()
+        _ = late.push("one more")
+        let ended = await collect(
+            AgentLoopProvider(
+                base: third, toolset: toolset([reader]), budget: AgentEffort.balanced.budget, steering: late))
+        expect(
+            third.requests.count == 2 && ended.events.last == .finished,
+            "a message waiting when the model meant to stop gets its turn before the run ends")
+        expect(late.close().isEmpty && !late.push("too late"), "a closed run takes nothing more")
     }
 
     /// At four rounds of five the model is told to wrap up; after the fifth it hands over, tools off.
