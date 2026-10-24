@@ -2,13 +2,14 @@ import AppKit
 
 /// Fork: the workspace's chords in AI Chat's window, asked before upstream's own.
 @MainActor
-final class ChatWorkspaceKeys {
+final class ChatWorkspaceKeys: NSObject {
     private let workspace: ChatWorkspaceCoordinator
     private weak var window: NSWindow?
     private weak var anchor: NSView?
 
     init(workspace: ChatWorkspaceCoordinator) {
         self.workspace = workspace
+        super.init()
     }
 
     func install(in window: NSWindow, anchor: NSView) {
@@ -25,10 +26,36 @@ final class ChatWorkspaceKeys {
         switch (modifiers, key) {
         case ([.control, .command], "m"):
             showMoveMenu()
+        case ([.command, .shift], "i"):
+            workspace.toggleSettingsSidebar?()
         default:
             return false
         }
         return true
+    }
+
+    static let settingsItem = NSToolbarItem.Identifier("AIChatSettings")
+    /// Over the settings sidebar, as an inspector's button sits in a document window.
+    static let toolbarItems: [NSToolbarItem.Identifier] = [.inspectorTrackingSeparator, settingsItem]
+
+    func toolbarItem(_ identifier: NSToolbarItem.Identifier) -> NSToolbarItem? {
+        guard identifier == Self.settingsItem else { return nil }
+        let item = NSToolbarItem(itemIdentifier: identifier)
+        item.image = NSImage(systemSymbolName: "sidebar.right", accessibilityDescription: nil)
+        item.label = String(localized: "Chat Settings")
+        item.toolTip = String(localized: "Show or Hide Chat Settings  ⇧⌘I")
+        item.target = self
+        item.action = #selector(toggleSettings)
+        return item
+    }
+
+    @objc private func toggleSettings() { workspace.toggleSettingsSidebar?() }
+
+    /// The title bar's second line: the chat's model, and its agent when it has one.
+    func subtitle() -> String {
+        guard let summary = workspace.settingsSource?.modelSummary(for: chat) else { return "" }
+        return [summary.model, summary.agent?.name].compactMap { $0?.isEmpty == false ? $0 : nil }
+            .joined(separator: " · ")
     }
 
     /// ⌃⌘M: the open chat's Move to Folder, hung under the toolbar's Actions button.

@@ -25,6 +25,7 @@ struct ChatWorkspaceTests {
         commandDigitsReachTheFirstTenVisibleRows()
         instructionsComposeAfterTheAppPrompt()
         creativityKeepsTheRestOfTheRequest()
+        do { try await creativityRidesEveryRequestAndYieldsToARefusal() } catch { expect(false, "\(error)") }
         autoArchiveSparesPinnedOpenAndRecentChats()
         deletionsExpireAfterSixtyDays()
         theStoreWritesOnlyOnChange()
@@ -263,6 +264,23 @@ struct ChatWorkspaceTests {
             warmed.withTemperature(nil) == request, "every other field, the loop's included, carries over")
     }
 
+    static func creativityRidesEveryRequestAndYieldsToARefusal() async throws {
+        let plain = ScriptedProvider(rounds: [[.text("ok"), .finished]])
+        expect(ChatCreativityProvider.wrapping(plain, temperature: nil) is ScriptedProvider, "unset adds no wrapper")
+        let warm = ChatCreativityProvider.wrapping(plain, temperature: 1.5)
+        for try await _ in warm.stream(AIRequest(messages: [AIMessage(role: .user, text: "q")])) {}
+        expect(plain.requests.last?.temperature == 1.5, "the request carries the chat's temperature")
+        let refusing = RefusingProvider()
+        var text = ""
+        for try await event in ChatCreativityProvider(base: refusing, temperature: 0.4)
+            .stream(AIRequest(messages: [AIMessage(role: .user, text: "q")]))
+        {
+            if case .text(let delta) = event { text += delta }
+        }
+        expect(refusing.temperatures == [0.4, nil], "a refused temperature is asked again without one")
+        expect(text == "fine", "and the answer comes through")
+    }
+
     // MARK: - Archive and Recently Deleted
 
     static func autoArchiveSparesPinnedOpenAndRecentChats() {
@@ -458,6 +476,26 @@ final class FakeHost: ChatWorkspaceHost {
     var agentChoices: [ChatAgentChoice] { [] }
     func agentID(ofChat id: UUID) -> UUID? { nil }
     func bindAgent(_ id: UUID?, toChat chat: UUID) {}
+}
+
+/// Refuses any request with a temperature, as OpenAI's reasoning models do.
+final class RefusingProvider: AIProvider, @unchecked Sendable {
+    private let lock = NSLock()
+    private var seen: [Double?] = []
+    var temperatures: [Double?] { lock.withLock { seen } }
+
+    func stream(_ request: AIRequest) -> AIProviderStream {
+        lock.withLock { seen.append(request.temperature) }
+        return AIProviderStream { continuation in
+            if request.temperature != nil {
+                continuation.finish(throwing: AIProviderError.unavailable("Unsupported value: 'temperature'"))
+            } else {
+                continuation.yield(.text("fine"))
+                continuation.yield(.finished)
+                continuation.finish()
+            }
+        }
+    }
 }
 
 final class ScriptedProvider: AIProvider, @unchecked Sendable {

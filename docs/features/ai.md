@@ -550,7 +550,8 @@ and the Actions menu's own chords, and dies with the window.
   at `aiChatReadingWidth`. The last finished reply offers Regenerate beside Copy: `AIChatState`
   drops only a trailing reply and asks again with the question and its attachments, of whichever
   model is selected now.
-- **Composer** (`AIChatDetailView`): one pane of untinted Liquid Glass at `Radius.dialog`, stacked
+- **Composer** (`AIChatDetailView`; fork: its agent, model, reasoning, search, tools and context
+  moved to the right sidebar, see [chat workspace](chat-workspace.md#chat-settings)): one pane of untinted Liquid Glass at `Radius.dialog`, stacked
   under the transcript rather than floated over it, holding the staged files, the text and one row of
   controls, the glass on a background layer.
   The title bar keeps the system's own band, as a native document window's does.

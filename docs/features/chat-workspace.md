@@ -1,6 +1,7 @@
 # Chat workspace
 
-AI Chat's window, reorganised the way Raycast's AI Chat is: folders in the sidebar above Recent.
+AI Chat's window, reorganised the way Raycast's AI Chat is: folders in the sidebar above Recent,
+and the chat's settings in a sidebar of their own on the right.
 The feature is this fork's, in `Features/ChatWorkspace/`, plus marked lines in
 `AIChatCoordinator` (the split view it shows, instructions, history load), `AIChatWindowChrome`
 (its chords), `ChatHistoryStore`, `ChatSession`, `AIChatState`, `AgentCoordinator` and `AppCore`.
@@ -26,6 +27,18 @@ that touches them stays mechanical.
   it on a folder does; dropping one on a day header takes it back to Recent.
 - **Deleting a folder never deletes a chat.** `ChatWorkspace.deleteFolder` moves its chats back to
   Recent and keeps their own settings; the confirmation says so.
+- **The chat's settings are the chat's, wherever they are shown.** The right sidebar
+  (`ChatSettingsSidebar`) reads one `ChatSettingsState` that `AIChatCoordinator` builds from the
+  same calls the composer's menus made (`ChatSettingsSource`), so a pick there is the pick the
+  composer used to make: the model and effort still move the app default, an ACP agent's selects
+  still go to its session. Additional Instructions and Creativity are new and per chat, kept in the
+  chat's workspace entry; Web Search stays the app-wide switch it was, and says so.
+- **Creativity reaches only a route that takes it.** `ChatCreativityProvider` sets
+  `AIRequest.temperature` (Raycast's levels: None 0, Low 0.4, Medium 0.7, High 1, Maximum 1.5) on
+  every request an API route sends, tool rounds included, and is not there at all while the chat is
+  on Model Default. Gemini keeps its own temperature, as extensions' `creativity` does, and installed
+  CLIs and ACP agents take none, so the control is disabled for them. A model that refuses a
+  temperature before saying anything is asked again without it.
 - **A folder is organisational, and optionally a project.** It may carry instructions and an agent.
   Its instructions go into every chat filed in it, after Redcast's preamble and the system prompt
   and before the chat's own (`ChatInstructions.compose`), so upstream's rule that the user's text
@@ -56,6 +69,32 @@ behind a bar in its colour.
   same whether or not the window is key; a click opens a chat, a double click on its title renames it.
   The list selects nothing, so ⌫ no longer deletes the open chat; its menu and ⌘K do.
 
+## Chat Settings
+
+The toolbar's last button, over the right sidebar, ⇧⌘I, the composer's model chip and the sidebar's
+✕ show or hide it; the choice is remembered (`ChatWorkspaceSettings.showsInspector`). It is an
+inspector split item that collapses first when the window narrows, so the transcript keeps its
+minimum width, and comes back as the window widens. Its cards:
+
+- **Title** (rename; a chat with no message yet has none to rename), **Agent** with each agent's
+  tile and Manage Agents…, **Model** with the maker's mark, **Reasoning**, **Creativity** and
+  **Folder**. A chat on an ACP agent shows that agent's own selects instead of Model and Reasoning:
+  its model, reasoning, mode and the rest, as its session lists them.
+- **Additional Instructions**, a multi-line field saved as it is typed and sent last in the chat's
+  system prompt, after the folder's.
+- **Tools**: Web Search (every chat's, as before) and this chat's MCP servers, all, some or none,
+  with MCP Settings….
+- **Context**: the ring and its percentage (green, orange from 80%, red at 100%), what is in
+  context of the model's window, the last turn's input with its cached share and output with its
+  thinking share, the chat's tokens and its cost added up over every reply that reported one, and
+  messages and history against the budget. It replaces the grey token count that ended the
+  transcript; Quick AI keeps that line.
+
+The composer keeps what is typed and the essentials: + (Attach Files…, Attach Note…), one chip
+with the agent's tile, the model's mark and name that opens the settings, the mic while Dictation is
+on, and Send/Stop. The window's title is the chat's, with the model and agent under it as the
+subtitle, as Raycast's title bar has.
+
 ## Manual sweep
 
 - Create two folders: each is named in place and gets its own colour. Rename one from its menu and
@@ -68,3 +107,13 @@ behind a bar in its colour.
 - Quit and relaunch: folders, colours, icons, folding and filing are as they were. Delete
   `ai-chat-workspace.json`: every chat is back in Recent and nothing else changed.
 - Turn AI off and on: the folders come back with the history.
+- ⇧⌘I, the toolbar button, the chip and ✕ each show or hide Chat Settings; close and reopen the
+  window and it is as you left it. Narrow the window: the settings fold away first, then return.
+- In Chat Settings switch the model, effort and agent: the subtitle and the chip follow, and the
+  next reply uses them. Rename the chat in Title: the sidebar row follows.
+- Set Creativity to None on an API model and ask twice: answers match closely; Model Default sends
+  no temperature. On a Codex, Claude CLI or Gemini model the control is disabled.
+- Write Additional Instructions ("Reply in one sentence"): the next reply obeys, another chat does
+  not, and they survive a relaunch.
+- Turn a server off under Tools: the next turn cannot call it. With a reply that reported usage,
+  Context shows its tokens, the chat's total and, where the route reports it, its cost.
