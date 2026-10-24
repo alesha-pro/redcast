@@ -107,3 +107,10 @@ enum ChatBrandHue {
         }
     }
 }
+
+/// Fork: whether a finished reply earns a banner: asked for, a window chat, and out of sight.
+enum ChatFinishPolicy {
+    static func notifies(enabled: Bool, isQuickAI: Bool, windowInFront: Bool, backgroundRun: Bool) -> Bool {
+        enabled && !isQuickAI && !windowInFront && !backgroundRun
+    }
+}

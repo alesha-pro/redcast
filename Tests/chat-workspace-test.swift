@@ -37,6 +37,7 @@ struct ChatWorkspaceTests {
         longMessagesFold()
         toolKindsAndLanguageHues()
         colouredTextReadsInBothAppearances()
+        bannersOnlyForChatsOutOfSight()
         print("\(passes) passed, \(failures) failed")
         if failures > 0 { exit(1) }
     }
@@ -467,6 +468,21 @@ struct ChatWorkspaceTests {
         expect(ChatPalette.scaled(0xFF8040, by: 0.5) == 0x804020, "scaling darkens each channel")
     }
 
+    static func bannersOnlyForChatsOutOfSight() {
+        func notifies(_ enabled: Bool, quick: Bool = false, front: Bool = false, run: Bool = false) -> Bool {
+            ChatFinishPolicy.notifies(enabled: enabled, isQuickAI: quick, windowInFront: front, backgroundRun: run)
+        }
+        expect(notifies(true), "a window chat finishing out of sight is announced")
+        expect(!notifies(false), "nothing is posted while the setting is off, the default")
+        expect(!notifies(true, front: true), "nor while the window is in front")
+        expect(!notifies(true, quick: true), "nor for Quick AI, which is on screen")
+        expect(!notifies(true, run: true), "nor for a background run, which has its own banner")
+        let defaults = UserDefaults(suiteName: "tinycast-workspace-\(UUID().uuidString)")!
+        let settings = ChatWorkspaceSettings(defaults: defaults)
+        expect(!settings.notifiesInBackground && settings.autoArchive == .never, "both start off")
+        expect(settings.showsInspector && !settings.floatsOnTop, "settings open, window not floating")
+    }
+
     static func settle(_ chat: AIChatState) async {
         for _ in 0..<100 where chat.isStreaming {
             try? await Task.sleep(for: .milliseconds(10))
@@ -479,7 +495,10 @@ final class FakeHost: ChatWorkspaceHost {
     var forgotten: [UUID] = []
     var opened: [UUID] = []
     func openChat(id: UUID) { opened.append(id) }
+    func openChatInWindow(id: UUID) { opened.append(id) }
     func closeWindow() {}
+    func isBackgroundRun(_ id: UUID) -> Bool { false }
+    var isWindowInFront = true
     func newChat(agentID: UUID?) {}
     func copyChat(id: UUID) {}
     func exportChat(id: UUID) {}

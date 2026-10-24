@@ -97,6 +97,7 @@ struct AIChatDetailView: View {
             )
             // Fork: an agent chat's transcript opens with the agent's tile and name.
             .environment(\.agentChatBadge, coordinator.agents.agent(for: chat).map(AgentChatBadge.init))
+            .chatWorkspaceActions(for: chat)  // Fork: edit, branch and fold in the window's transcript
             // A switched chat is a new scroll: its own tail-following, opening at its latest line.
             .id(chat.session.id)
             .overlay(alignment: .topTrailing) {
@@ -147,6 +148,7 @@ private struct AIChatComposer: View {
                     .foregroundStyle(.secondary)
                     .padding(.horizontal, Theme.Spacing.sm)
             }
+            ChatEditingBanner(chat: chat)  // Fork: a sent question brought back to edit
             ChatQueueStrip(chat: chat)  // Fork: what waits for the running reply
             chips
             ZStack(alignment: .topLeading) {

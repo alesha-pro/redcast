@@ -8,6 +8,8 @@ final class AgentRunNotifier: NSObject, UNUserNotificationCenterDelegate {
     private static let openAction = "open"
 
     private let onOpen: @MainActor (UUID) -> Void
+    /// One delegate per app: a banner another feature posted, by its identifier; true when handled.
+    static var foreignResponse: (@MainActor (String) -> Bool)?
 
     init(onOpen: @escaping @MainActor (UUID) -> Void) {
         self.onOpen = onOpen
@@ -52,7 +54,10 @@ final class AgentRunNotifier: NSObject, UNUserNotificationCenterDelegate {
         _ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse
     ) async {
         // Read before the hop: the response is not Sendable.
-        guard response.actionIdentifier != UNNotificationDismissActionIdentifier,
+        guard response.actionIdentifier != UNNotificationDismissActionIdentifier else { return }
+        let identifier = response.notification.request.identifier
+        if await MainActor.run(body: { Self.foreignResponse?(identifier) ?? false }) { return }
+        guard
             let id = UUID(uuidString: response.notification.request.identifier)
         else { return }
         await MainActor.run { onOpen(id) }

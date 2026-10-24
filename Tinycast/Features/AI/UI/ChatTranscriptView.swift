@@ -189,6 +189,7 @@ private struct ChatMessageView: View, @MainActor Equatable {
     let onRegenerate: (() -> Void)?
     let onChoose: ((String) -> Void)?
     @Environment(\.chatTextHighlight) private var highlight
+    @Environment(\.chatMessageActions) private var workspaceActions  // Fork: the window's actions
 
     @State private var hovered = false
 
@@ -233,9 +234,11 @@ private struct ChatMessageView: View, @MainActor Equatable {
             if message.role == .user { timestamp }
             ChatCopyButton(text: parts.text)
             if let onRegenerate { RegenerateButton(action: onRegenerate) }
+            ChatMessageActionButtons(message: message)  // Fork: edit a question, branch at a reply
             if message.role == .assistant { timestamp }
         }
-        .opacity(hovered ? 1 : 0)
+        // Fork: the window keeps the latest reply's actions in view, as Raycast's row is.
+        .opacity(hovered || (workspaceActions != nil && onRegenerate != nil) ? 1 : 0)
         // A reply's footer hugs the same edge as its text.
         .padding(.horizontal, message.role == .user ? metrics.spacing.md : replyInset)
     }
@@ -264,6 +267,7 @@ private struct ChatMessageView: View, @MainActor Equatable {
                 .padding(.horizontal, message.role == .user ? metrics.spacing.xl : replyInset)
                 .padding(.vertical, metrics.spacing.md)
                 .chatBubble(isUser: message.role == .user, radius: metrics.radius.row)  // Fork: accent wash
+                .chatEditing(message.id)  // Fork: the question being edited, outlined
         }
     }
 
@@ -331,6 +335,7 @@ private struct ChatMessageView: View, @MainActor Equatable {
         } else {
             Text(highlight?.attributed(message.text, leaf: [0]) ?? AttributedString(message.text))
                 .findAnchor(highlight, leaf: [0])
+                .chatFolding(message.text, forcedOpen: highlight != nil)  // Fork: long questions fold
         }
     }
 }

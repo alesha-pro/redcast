@@ -30,19 +30,27 @@ PLIST
 
 CW=Tinycast/Features/ChatWorkspace
 AI=Tinycast/Features/AI
+# The transcript and the fork's views; app plumbing they reach (files, tiles, the pasteboard) is
+# stood in for at the harness's end.
 SOURCES=(
+    $AI/Model/*.swift Tinycast/Features/ReasoningReplay/Model/*.swift Tinycast/Features/Agents/Model/*.swift
+    Tinycast/Features/WebSearch/Model/*.swift Tinycast/Features/ChatFiles/Model/*.swift
+    $AI/UI/ChatTranscriptView.swift $AI/UI/ChatCopyButton.swift $AI/UI/ChatSuggestionChips.swift
+    $AI/UI/ChatMarkdownText.swift $AI/UI/ChatMarkdownRenderer.swift $AI/UI/ChatTextHighlight.swift
+    $AI/UI/Math*.swift Tinycast/Features/ChatFiles/UI/ChatFileLinker.swift
+    Tinycast/Features/Agents/UI/AgentChatHeader.swift Tinycast/Features/Agents/UI/ChatToolContentView.swift
+    $AI/Service/AIProvider.swift $AI/Service/ChatHistoryStore.swift
+    $AI/UI/AIChatState.swift $AI/UI/AIChatSurfacesState.swift
+    Tinycast/DesignSystem/Theme.swift Tinycast/DesignSystem/InterfaceMetrics.swift
+    Tinycast/DesignSystem/RaycastPalette.swift Tinycast/DesignSystem/Scrolling/*.swift
+    Tinycast/Features/Settings/InterfaceSize.swift Tinycast/Features/Settings/AppSettingsKey.swift
+    Tinycast/Platform/Appearance.swift Tinycast/Platform/NotificationToken.swift
+    Tinycast/Features/ColorfulIcons/Model/RaycastHue.swift
     $CW/Model/*.swift $CW/Service/*.swift $CW/Settings/ChatWorkspaceSettings.swift
-    $CW/UI/ChatWorkspaceHost.swift $CW/UI/ChatWorkspaceCoordinator.swift $CW/UI/ChatWorkspaceTheme.swift $CW/UI/ChatComposerInk.swift $CW/UI/ChatSettingsState.swift
-    $CW/UI/ChatWorkspaceSidebar.swift $CW/UI/ChatFolderEditor.swift
-    Tinycast/Features/ColorfulIcons/Model/RaycastHue.swift Tinycast/DesignSystem/RaycastPalette.swift
-    Tinycast/DesignSystem/Theme.swift Tinycast/Platform/Appearance.swift
-    Tinycast/Features/Settings/AppSettingsKey.swift
-    $AI/Model/AIRequest.swift Tinycast/Features/Agents/Model/ChatToolContent.swift
-    $AI/Model/AIConnection.swift $AI/Model/AIConversationOpenPolicy.swift $AI/Model/AppleIntelligence.swift
-    $AI/Model/AIAttachmentPolicy.swift $AI/Model/AIRetention.swift $AI/Model/AITool.swift
-    $AI/Model/JSONValue.swift $AI/Model/ChatMessage.swift $AI/Model/ChatSession.swift
-    $AI/Model/ChatChoices.swift $AI/Model/ChatToolScope.swift $AI/Service/AIProvider.swift
-    $AI/Service/ChatHistoryStore.swift $AI/UI/AIChatState.swift $AI/UI/AIChatSurfacesState.swift
+    $CW/UI/ChatWorkspaceHost.swift $CW/UI/ChatWorkspaceCoordinator.swift $CW/UI/ChatSettingsState.swift
+    $CW/UI/ChatWorkspaceTheme.swift $CW/UI/ChatWorkspaceSidebar.swift $CW/UI/ChatFolderEditor.swift
+    $CW/UI/ChatSettingsSidebar.swift $CW/UI/ChatModelChip.swift $CW/UI/ChatTranscriptColors.swift
+    $CW/UI/ChatMessageActions.swift $CW/UI/ChatComposerInk.swift
 )
 swiftc -swift-version 6 -Onone "${SOURCES[@]}" Tests/chat-workspace-snapshots.swift \
     -o "$BUNDLE/Contents/MacOS/chat-snapshots"

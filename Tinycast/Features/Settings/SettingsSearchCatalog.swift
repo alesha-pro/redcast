@@ -353,6 +353,13 @@ enum SettingsSearchCatalog {
         .init(
             .aiConversations, "Keep conversations",
             keywords: ["retention", "delete", "history", "privacy"]),
+        // Fork: AI Chat's window.
+        .init(
+            .aiChatWindow, "Archive inactive chats",
+            keywords: ["archive", "auto archive", "idle", "old chats", "recently deleted"]),
+        .init(
+            .aiChatWindow, "Notify when a reply finishes",
+            keywords: ["notification", "banner", "background", "done", "finished"]),
         // Fork: the trend, the Quick Actions log and the management key are found here too.
         .init(
             group: .aiUsage, "Usage",

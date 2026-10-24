@@ -4,7 +4,13 @@ import Foundation
 @MainActor
 protocol ChatWorkspaceHost: AnyObject {
     func openChat(id: UUID)
+    /// From a banner: the window comes forward on the chat.
+    func openChatInWindow(id: UUID)
     func closeWindow()
+    /// The window is key in the active app, so a finished reply is seen without a banner.
+    var isWindowInFront: Bool { get }
+    /// A background agent run's chat, which has its own banner setting.
+    func isBackgroundRun(_ id: UUID) -> Bool
     /// A new window chat, already bound to the agent when one is named.
     func newChat(agentID: UUID?)
     func copyChat(id: UUID)

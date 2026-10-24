@@ -285,8 +285,8 @@ enum AIChatActionsMenu {
                     coordinator.togglePin(id: chat.session.id)
                 })
             menu.addItem(
-                ClosureMenuItem(String(localized: "Delete Chat…"), symbol: "trash") {
-                    Task { await coordinator.deleteChat(id: chat.session.id) }
+                ClosureMenuItem(String(localized: "Delete Chat"), symbol: "trash") {
+                    coordinator.workspace.trash(chat.session.id)  // Fork: to Recently Deleted
                 })
         }
         menu.addItem(.separator())
@@ -300,6 +300,7 @@ enum AIChatActionsMenu {
             ) {
                 coordinator.showSettings()
             })
+        ChatWorkspaceActions.extend(menu, chat: chat, workspace: coordinator.workspace)  // Fork
         return menu
     }
 }

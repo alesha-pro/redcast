@@ -1,9 +1,22 @@
-import Foundation
+import AppKit
 
 /// Fork: AI Chat's coordinator is the workspace's host; everything here routes to what it has.
 extension AIChatCoordinator: ChatWorkspaceHost {
     func closeWindow() {
         _ = closeWindowIfKey()
+    }
+
+    func isBackgroundRun(_ id: UUID) -> Bool {
+        agents.runs?.run(id) != nil
+    }
+
+    var isWindowInFront: Bool {
+        NSApp.isActive && NSApp.keyWindow?.identifier == AIChatWindowChrome.windowIdentifier
+    }
+
+    func openChatInWindow(id: UUID) {
+        guard chats.openInWindow(id: id) else { return }
+        showWindow()
     }
 
     func newChat(agentID: UUID?) {

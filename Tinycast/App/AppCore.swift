@@ -290,6 +290,7 @@ final class AppCore {
             settings: ChatWorkspaceSettings(), history: chatHistory, chats: aiChats)
         workspace.host = aiChatCoordinator
         workspace.settingsSource = aiChatCoordinator
+        AgentRunNotifier.foreignResponse = ChatFinishNotifier.open(identifier:)
         return workspace
     }()
     // Fork: messages sent while a reply runs, queued or steered into the run.

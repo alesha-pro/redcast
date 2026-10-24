@@ -526,6 +526,8 @@ and the Actions menu's own chords, and dies with the window.
 - **Actions** (⌘K): Quick AI's ⌘K menu for a window, on the same chords — Stop Response (`⌘.`), New
   Chat (`⌘N`), Regenerate (`⌘R`), Copy Last Response (`⇧⌘C`), Remove Attachments, Find in Chat
   (`⌘F`) and AI Settings (`⌥⌘,`) — plus what only a saved chat has: Copy Chat, Pin and Delete.
+  (Fork: Delete goes to Recently Deleted, and the menu adds Branch Chat, Archive, Move to Folder,
+  Chat Settings and Keep Window on Top; see [chat workspace](chat-workspace.md).)
   `AIChatActionsMenu` builds it per open from the chat's state, as an `NSMenu` hung under the
   toolbar button whether the click or ⌘K opened it.
   Escape closes the window; an open menu, active search or rename takes Escape first. The

@@ -45,3 +45,39 @@ extension View {
             .overlay { if isUser { shape.strokeBorder(Theme.Colors.chatUserBubbleEdge) } }
     }
 }
+
+
+/// Fork: the settings sidebar's switches, drawn here so they are the accent on any window.
+struct ChatSwitchStyle: ToggleStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        ChatSwitch(configuration: configuration)
+    }
+}
+
+private struct ChatSwitch: View {
+    @Environment(\.isEnabled) private var isEnabled
+    let configuration: ToggleStyleConfiguration
+
+    var body: some View {
+        HStack(spacing: Theme.Spacing.md) {
+            configuration.label
+            Capsule()
+                .fill(configuration.isOn ? Theme.Colors.accent : Theme.Colors.controlPressed)
+                .frame(width: 32, height: 18)
+                .overlay(alignment: configuration.isOn ? .trailing : .leading) {
+                    Circle()
+                        .fill(Color.white)
+                        .shadow(color: Theme.Colors.tooltipShadow, radius: 1, y: 0.5)
+                        .padding(2)
+                }
+                .opacity(isEnabled ? 1 : 0.45)
+                .animation(.snappy(duration: Theme.Duration.hover), value: configuration.isOn)
+                .contentShape(Capsule())
+                .onTapGesture { if isEnabled { configuration.isOn.toggle() } }
+                .accessibilityHidden(true)
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityAddTraits(.isToggle)
+        .accessibilityValue(configuration.isOn ? Text("On") : Text("Off"))
+    }
+}

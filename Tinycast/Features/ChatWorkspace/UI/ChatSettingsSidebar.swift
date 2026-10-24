@@ -1,20 +1,22 @@
 import SwiftUI
 
-/// Fork: the chat's settings on the right, as Raycast's Chat Settings: everything the composer held.
+/// Fork: the chat's settings on the right, as Raycast's: everything the composer used to hold.
 struct ChatSettingsSidebar: View {
     @Environment(ChatWorkspaceCoordinator.self) private var workspace
 
     var body: some View {
         let chat = workspace.chats.window
-        Group {
+        VStack(spacing: 0) {
             if let state = workspace.settingsSource?.settingsState(for: chat) {
                 ChatSettingsContent(state: state)
                     .id(state.chatID)
-            } else {
-                Color.clear
             }
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        // An ideal size of its own: a hosting controller reports a bare scroll view as zero.
+        .frame(
+            minWidth: Theme.Size.chatSettingsMinimum, idealWidth: Theme.Size.chatSettingsMinimum,
+            maxWidth: .infinity, minHeight: Theme.Size.chatSettingsMinimum,
+            idealHeight: Theme.Size.aiChatWindow.height, maxHeight: .infinity, alignment: .top)
     }
 }
 
@@ -161,12 +163,12 @@ private struct ChatSettingsContent: View {
                                     .font(.caption)
                                     .foregroundStyle(Theme.Colors.textTertiary)
                             }
+                            .frame(maxWidth: .infinity, alignment: .leading)
                         } icon: {
                             ChatSettingsIconView(icon: .symbol("globe", .blue))
                         }
                     }
-                    .toggleStyle(.switch)
-                    .controlSize(.small)
+                    .toggleStyle(ChatSwitchStyle())
                 }
                 if let tools = state.tools { ChatToolsSection(tools: tools) }
             }
@@ -289,12 +291,12 @@ private struct ChatToolsSection: View {
                             .foregroundStyle(Theme.Colors.textTertiary)
                     }
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
             } icon: {
                 ChatSettingsIconView(icon: .symbol("puzzlepiece.extension", .orange))
             }
         }
-        .toggleStyle(.switch)
-        .controlSize(.small)
+        .toggleStyle(ChatSwitchStyle())
         .disabled(!tools.takesTools || tools.servers.isEmpty)
         if tools.takesTools, tools.isEnabled {
             ForEach(tools.servers) { server in
@@ -307,7 +309,8 @@ private struct ChatToolsSection: View {
             }
         }
         Button("MCP Settings…", action: tools.showSettings)
-            .buttonStyle(.link)
+            .buttonStyle(.plain)
+            .foregroundStyle(Color(nsColor: Theme.Colors.accentInk))
             .font(.callout)
     }
 }

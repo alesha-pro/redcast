@@ -6,32 +6,85 @@ final class ChatWorkspaceKeys: NSObject {
     private let workspace: ChatWorkspaceCoordinator
     private weak var window: NSWindow?
     private weak var anchor: NSView?
+    private var flagsMonitor: Any?
+    private var resignToken: NotificationToken?
 
     init(workspace: ChatWorkspaceCoordinator) {
         self.workspace = workspace
         super.init()
     }
 
+    isolated deinit {
+        if let flagsMonitor { NSEvent.removeMonitor(flagsMonitor) }
+        workspace.showsShortcuts = false
+    }
+
+    /// ⌘ held shows the rows' digits; only while this window is key, and never on a timer.
     func install(in window: NSWindow, anchor: NSView) {
         self.window = window
         self.anchor = anchor
+        applyFloating()
+        workspace.toggleFloatingWindow = { [weak self] in self?.toggleFloating() }
+        flagsMonitor = NSEvent.addLocalMonitorForEvents(matching: .flagsChanged) { [weak self] event in
+            guard let self, let window = self.window else { return event }
+            let held = event.modifierFlags.intersection([.command, .option, .control, .shift]) == [.command]
+            let shows = held && event.window === window && window.isKeyWindow
+            if self.workspace.showsShortcuts != shows { self.workspace.showsShortcuts = shows }
+            return event
+        }
+        let center = NotificationCenter.default
+        let observer = center.addObserver(
+            forName: NSWindow.didResignKeyNotification, object: window, queue: .main
+        ) { [weak self] _ in
+            MainActor.assumeIsolated { self?.workspace.showsShortcuts = false }
+        }
+        resignToken = NotificationToken(observer, center: center)
     }
 
     private var chat: AIChatState { workspace.chats.window }
 
     func handle(_ event: NSEvent) -> Bool {
         let modifiers = event.modifierFlags.intersection([.command, .option, .control, .shift])
+        if modifiers.isEmpty, let handled = handleComposerKey(event.keyCode) { return handled }
         let key = (ASCIIKeyboardLayout.character(for: event) ?? event.charactersIgnoringModifiers)?
             .lowercased()
+        if modifiers == [.command], let key, key.count == 1, let digit = key.first,
+            ChatShortcutIndex.digits.contains(digit)
+        {
+            return workspace.openShortcut(digit)
+        }
         switch (modifiers, key) {
         case ([.control, .command], "m"):
             showMoveMenu()
         case ([.command, .shift], "i"):
             workspace.toggleSettingsSidebar?()
+        case ([.command, .option], "t"):
+            toggleFloating()
         default:
             return false
         }
         return true
+    }
+
+    /// ↑ and ↓ recall a question while the composer has focus; Esc gives the draft back.
+    private func handleComposerKey(_ code: UInt16) -> Bool? {
+        guard window?.firstResponder is ComposerTextView else { return nil }
+        switch code {
+        case 126: return workspace.stepRecall(-1, in: chat) ? true : nil
+        case 125: return workspace.stepRecall(1, in: chat) ? true : nil
+        case 53: return workspace.cancelEditing(in: chat) ? true : nil
+        default: return nil
+        }
+    }
+
+    /// ⌥⌘T or the Actions menu: above other apps' windows, remembered for the next window.
+    func toggleFloating() {
+        workspace.settings.floatsOnTop.toggle()
+        applyFloating()
+    }
+
+    private func applyFloating() {
+        window?.level = workspace.settings.floatsOnTop ? .floating : .normal
     }
 
     static let settingsItem = NSToolbarItem.Identifier("AIChatSettings")
@@ -109,4 +162,46 @@ final class WorkspaceMenuItem: NSMenuItem {
     required init(coder: NSCoder) { fatalError() }
 
     @objc private func runAction() { run() }
+}
+
+/// Fork: the window's ⌘K rows the workspace adds: branch, archive, file, settings, float.
+@MainActor
+enum ChatWorkspaceActions {
+    static func extend(_ menu: NSMenu, chat: AIChatState, workspace: ChatWorkspaceCoordinator) {
+        let id = chat.session.id
+        if workspace.history.conversation(id: id) != nil {
+            menu.addItem(.separator())
+            menu.addItem(
+                WorkspaceMenuItem(String(localized: "Branch Chat"), symbol: "arrow.triangle.branch") {
+                    workspace.branch(id)
+                })
+            let archived = workspace.workspace.isArchived(id)
+            menu.addItem(
+                WorkspaceMenuItem(
+                    archived ? String(localized: "Unarchive") : String(localized: "Archive"),
+                    symbol: archived ? "tray.and.arrow.up" : "archivebox"
+                ) {
+                    archived ? workspace.unarchive(id) : workspace.archive(id)
+                })
+            let move = NSMenuItem(title: String(localized: "Move to Folder"), action: nil, keyEquivalent: "m")
+            move.keyEquivalentModifierMask = [.control, .command]
+            move.image = NSImage(systemSymbolName: "folder", accessibilityDescription: nil)
+            move.submenu = ChatMoveNSMenu.build(chat: id, workspace: workspace)
+            menu.addItem(move)
+        }
+        menu.addItem(.separator())
+        menu.addItem(
+            WorkspaceMenuItem(
+                String(localized: "Chat Settings"), symbol: "sidebar.right", key: "i", modifiers: [.command, .shift]
+            ) {
+                workspace.toggleSettingsSidebar?()
+            })
+        let float = WorkspaceMenuItem(
+            String(localized: "Keep Window on Top"), symbol: "pin.square", key: "t", modifiers: [.command, .option]
+        ) {
+            workspace.toggleFloatingWindow?()
+        }
+        float.state = workspace.settings.floatsOnTop ? .on : .off
+        menu.addItem(float)
+    }
 }
