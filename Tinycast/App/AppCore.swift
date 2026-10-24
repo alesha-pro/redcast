@@ -404,8 +404,8 @@ final class AppCore {
                 self?.updateCoordinator.presentIfAvailable(release) ?? true
             }
             updateCoordinator.applyAutomaticChecking()
-            supportReminders.onDue = { [weak self] in self?.supportCoordinator.presentIfDue() }
-            supportReminders.start()
+            // Fork: no donation reminders, and no launcher rows for upstream's support or updates.
+            appIndex.setCommandsVisible([.support, .checkForUpdates], false)
 
             hyperKey.healthTicker = healthTicker
             hotKeys.modifierTapMonitor.healthTicker = healthTicker

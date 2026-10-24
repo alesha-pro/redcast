@@ -220,16 +220,15 @@ struct RootPaletteView: View {
                     title: String(localized: "Changelog"),
                     systemImage: "clock.arrow.trianglehead.2.counterclockwise.rotate.90"
                 ) {
-                    if let url = URL(string: "https://github.com/abue-ammar/tinycast/releases") {
+                    // Fork: the fork's own history, not upstream's releases.
+                    if let url = URL(string: "https://github.com/alesha-pro/redcast/commits/main") {
                         openURL(url)
                     }
                 },
                 PopoverMenuItem(title: String(localized: "About Tinycast"), systemImage: "info.circle") {
                     core.settingsCoordinator.showAbout()
                 },
-                PopoverMenuItem(title: String(localized: "Support Tinycast"), systemImage: "heart") {
-                    core.supportCoordinator.showSupport()
-                },
+                // Fork: no upstream donation row.
                 PopoverMenuItem(
                     title: String(localized: "Settings"), systemImage: "gearshape", shortcut: "⌘,"
                 ) {

@@ -22,7 +22,6 @@ struct AboutView: View {
     }()
 
     private static let iconSize: CGFloat = 88
-    private static let supportTile: CGFloat = 30
 
     var body: some View {
         VStack(spacing: 0) {
@@ -34,7 +33,7 @@ struct AboutView: View {
                 }
                 .settingsAnchor(.aboutAbout)
                 links
-                support
+                // Fork: no Support section; it funded upstream's author.
             }
             .formStyle(.grouped)
             .settingsScrollTarget(.about)
@@ -73,16 +72,10 @@ struct AboutView: View {
                     .overlay(
                         Capsule().strokeBorder(Theme.Colors.cardStroke, lineWidth: 1)
                     )
-                Button {
-                    core.updateCoordinator.checkForUpdates()
-                } label: {
-                    SettingsRowTitle(.aboutAbout, "Check for Updates")
-                }
-                .buttonStyle(.link)
-                .font(.caption)
+                // Fork: no Check for Updates; the fork's builds never update themselves.
             }
 
-            Text("A tiny, native macOS launcher.")
+            Text("An agent-native launcher for macOS.")
                 .font(.callout)
                 .foregroundStyle(.secondary)
         }
@@ -95,35 +88,6 @@ struct AboutView: View {
             }
         } header: {
             SettingsSectionHeader(.aboutLinks)
-        }
-    }
-
-    private var support: some View {
-        Section {
-            HStack(spacing: Theme.Spacing.xl) {
-                // Brand is a fixed hue, so an alpha on it holds up in both appearances.
-                RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous)
-                    .fill(Theme.Colors.brand.opacity(0.16))
-                    .frame(width: Self.supportTile, height: Self.supportTile)
-                    .overlay(
-                        Image(systemName: "heart.fill")
-                            .font(.system(size: 15, weight: .semibold))
-                            .foregroundStyle(Theme.Colors.brand)
-                    )
-                VStack(alignment: .leading, spacing: Theme.Spacing.xxs) {
-                    SettingsRowTitle(.aboutLinks, "Support")
-                        .font(.body.weight(.medium))
-                    Text("Free and open source, funded out of pocket.")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-                Spacer(minLength: Theme.Spacing.lg)
-                Button("Support…") { core.supportCoordinator.showSupport() }
-                    .buttonStyle(.borderedProminent)
-                    .tint(Theme.Colors.brand)
-            }
-            .padding(.vertical, Theme.Spacing.xs)
         }
     }
 
@@ -147,25 +111,16 @@ private struct AboutLink: Identifiable {
     let detail: String
     let url: URL
 
+    // Fork: Redcast's own repository and the upstream it is built on; no author promotion.
     static let all: [AboutLink] = [
         AboutLink(
-            id: "website", glyph: .symbol("globe"), title: String(localized: "Website"),
-            detail: "tinycast.dev",
-            url: URL(string: "https://tinycast.dev/")!),
-        AboutLink(
             id: "github", glyph: .brand("BrandGitHub"), title: "GitHub",
+            detail: "github.com/alesha-pro/redcast",
+            url: URL(string: "https://github.com/alesha-pro/redcast")!),
+        AboutLink(
+            id: "upstream", glyph: .symbol("arrow.triangle.branch"), title: "Tinycast",
             detail: "github.com/abue-ammar/tinycast",
-            url: URL(string: "https://github.com/abue-ammar/tinycast")!),
-        AboutLink(
-            id: "discord", glyph: .brand("BrandDiscord"), title: "Discord",
-            detail: String(localized: "Join the Tinycast community"),
-            url: URL(string: "https://discord.gg/v2Eeb4QQy3")!),
-        AboutLink(
-            id: "x", glyph: .brand("BrandX"), title: "X", detail: "@abue_ammar",
-            url: URL(string: "https://x.com/abue_ammar")!),
-        AboutLink(
-            id: "email", glyph: .symbol("envelope"), title: String(localized: "Email"),
-            detail: "iabueammar@gmail.com", url: URL(string: "mailto:iabueammar@gmail.com")!)
+            url: URL(string: "https://github.com/abue-ammar/tinycast")!)
     ]
 }
 

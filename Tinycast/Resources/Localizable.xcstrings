@@ -25856,6 +25856,58 @@
         }
       }
     },
+    "An agent-native launcher for macOS." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ein agentenbasierter Launcher für macOS."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Un lanzador para macOS con agentes integrados."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Un lanceur macOS centré sur les agents."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "エージェント中心の macOS ランチャー。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "에이전트 중심의 macOS 런처."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Um lançador para macOS feito para agentes."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Лаунчер для macOS, построенный вокруг агентов."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "以智能体为核心的 macOS 启动器。"
+          }
+        }
+      }
+    },
     "An extension that names another provider's model, such as Claude or Gemini, gets the closest one among your API connections. Otherwise the model above answers." : {
       "localizations" : {
         "de" : {
