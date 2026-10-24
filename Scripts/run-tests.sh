@@ -835,6 +835,28 @@ run chat-markdown-test     Tinycast/Platform/Appearance.swift \
                            Tinycast/Features/AI/UI/MathFont.swift \
                            Tinycast/Features/AI/UI/MathLayoutEngine.swift
 run chat-files-test        Tinycast/Features/ChatFiles/Model/*.swift
+CW=Tinycast/Features/ChatWorkspace
+run chat-workspace-test    $CW/Model/*.swift $CW/Service/*.swift $CW/Settings/ChatWorkspaceSettings.swift \
+                           $CW/UI/ChatWorkspaceHost.swift $CW/UI/ChatWorkspaceCoordinator.swift \
+                           Tinycast/Features/ColorfulIcons/Model/RaycastHue.swift \
+                           Tinycast/Features/Settings/AppSettingsKey.swift \
+                           Tinycast/Features/AI/Model/AIRequest.swift \
+                           Tinycast/Features/Agents/Model/ChatToolContent.swift \
+                           Tinycast/Features/AI/Model/AIConnection.swift \
+                           Tinycast/Features/AI/Model/AIConversationOpenPolicy.swift \
+                           Tinycast/Features/AI/Model/AppleIntelligence.swift \
+                           Tinycast/Features/AI/Model/AIAttachmentPolicy.swift \
+                           Tinycast/Features/AI/Model/AIRetention.swift \
+                           Tinycast/Features/AI/Model/AITool.swift \
+                           Tinycast/Features/AI/Model/JSONValue.swift \
+                           Tinycast/Features/AI/Model/ChatMessage.swift \
+                           Tinycast/Features/AI/Model/ChatSession.swift \
+                           Tinycast/Features/AI/Model/ChatChoices.swift \
+                           Tinycast/Features/AI/Model/ChatToolScope.swift \
+                           Tinycast/Features/AI/Service/AIProvider.swift \
+                           Tinycast/Features/AI/Service/ChatHistoryStore.swift \
+                           Tinycast/Features/AI/UI/AIChatState.swift \
+                           Tinycast/Features/AI/UI/AIChatSurfacesState.swift
 run syntax-highlight-test  Tinycast/Features/AI/Model/SyntaxGrammar.swift \
                            Tinycast/Features/AI/Model/SyntaxHighlighter.swift \
                            Tinycast/Features/AI/Model/SyntaxStructuredLexers.swift

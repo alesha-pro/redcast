@@ -283,6 +283,14 @@ final class AppCore {
         chats: aiChats, settings: settings, appIndex: appIndex,
         paletteCoordinator: paletteCoordinator, settingsCoordinator: settingsCoordinator,
         core: self)
+    // Fork: folders, Archive and Recently Deleted for AI Chat; nothing is read until history is.
+    @ObservationIgnored private(set) lazy var chatWorkspace: ChatWorkspaceCoordinator = {
+        let workspace = ChatWorkspaceCoordinator(
+            store: ChatWorkspaceStore(directory: AppPaths.applicationSupport()),
+            settings: ChatWorkspaceSettings(), history: chatHistory, chats: aiChats)
+        workspace.host = aiChatCoordinator
+        return workspace
+    }()
     // Fork: messages sent while a reply runs, queued or steered into the run.
     @ObservationIgnored private(set) lazy var chatQueue = ChatQueue(core: self)
     @ObservationIgnored private(set) lazy var quickAICoordinator = QuickAICoordinator(

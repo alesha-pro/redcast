@@ -191,6 +191,12 @@ enum SettingsBackupCoverage {
         AppSettingsKey.aiChatAgent.rawValue:
             "Names an agent on this Mac that AI Chat's new chats start with, with its tools, folder "
             + "and command; agents never travel in a backup.",
+        // Fork: AI Chat's auto-archive and finish notifications.
+        AppSettingsKey.aiChatAutoArchive.rawValue:
+            "Archives chats on this Mac as they idle; an import must never arrive carrying an "
+            + "instruction to move the chats this Mac holds.",
+        AppSettingsKey.aiChatFinishNotifications.rawValue:
+            "Asks macOS for notification permission when it is turned on; an import must not ask.",
         AppSettingsKey.mcpEnabled.rawValue:
             "Doubles as consent to run third-party MCP servers, one of which is a local process; a "
             + "flag that grants a capability is never carried by a backup.",

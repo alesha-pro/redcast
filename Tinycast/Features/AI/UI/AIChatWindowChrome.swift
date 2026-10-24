@@ -16,6 +16,7 @@ final class AIChatWindowChrome: NSObject, WindowChrome, NSToolbarDelegate, NSSea
     private var keyMonitor: Any?
     private let searchItem: NSSearchToolbarItem
     private let actionsButton: NSButton
+    private lazy var workspaceKeys = ChatWorkspaceKeys(workspace: coordinator.workspace)  // Fork: chords
 
     private var chat: AIChatState { chats.window }
 
@@ -67,6 +68,7 @@ final class AIChatWindowChrome: NSObject, WindowChrome, NSToolbarDelegate, NSSea
         window.toolbar = toolbar
 
         installKeyMonitor()
+        workspaceKeys.install(in: window, anchor: actionsButton)  // Fork: folders, edits, settings
         observeTitle()
     }
 
@@ -182,6 +184,7 @@ final class AIChatWindowChrome: NSObject, WindowChrome, NSToolbarDelegate, NSSea
     }
 
     private func handle(_ event: NSEvent, in window: NSWindow) -> Bool {
+        if workspaceKeys.handle(event) { return true }  // Fork: the workspace's chords come first
         let modifiers = event.modifierFlags.intersection([.command, .option, .control, .shift])
         let key = (ASCIIKeyboardLayout.character(for: event) ?? event.charactersIgnoringModifiers)?
             .lowercased()

@@ -107,6 +107,9 @@ enum AppSettingsKey: String, CaseIterable {
     case aiQuickAIAgent = "aiQuickAIAgent"
     // Fork: the agent AI Chat's new chats start with; a local agent too, so no file key.
     case aiChatAgent = "aiChatAgent"
+    // Fork: AI Chat's auto-archive and finish notifications; about this Mac's chats, so no file key.
+    case aiChatAutoArchive = "aiChatAutoArchiveDays"
+    case aiChatFinishNotifications = "aiChatFinishNotifications"
     case mcpEnabled = "mcpEnabled"
     case mcpServers = "mcpServers"
     case quickActionsEnabled = "quickActionsEnabled"

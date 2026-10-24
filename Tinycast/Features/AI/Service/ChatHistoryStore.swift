@@ -110,6 +110,8 @@ final class ChatHistoryStore {
         """
 
     @ObservationIgnored let databaseURL: URL
+    // Fork: a chat in Recently Deleted stays on disk but out of every list.
+    @ObservationIgnored var isHidden: (UUID) -> Bool = { _ in false }
     @ObservationIgnored private var database: OpaquePointer?
 
     init(directory: URL) {
@@ -133,7 +135,7 @@ final class ChatHistoryStore {
         defer { sqlite3_finalize(statement) }
         var loaded: [ChatConversation] = []
         while sqlite3_step(statement) == SQLITE_ROW {
-            guard let id = UUID(uuidString: text(statement, 0)) else { continue }
+            guard let id = UUID(uuidString: text(statement, 0)), !isHidden(id) else { continue }
             loaded.append(
                 ChatConversation(
                     id: id, title: text(statement, 1), preview: text(statement, 2),
@@ -161,6 +163,42 @@ final class ChatHistoryStore {
             $0.displayTitle.localizedCaseInsensitiveContains(query)
                 || $0.preview.localizedCaseInsensitiveContains(query)
         }
+    }
+
+    /// Fork: chats whose messages hold the text, for the sidebar's search; case-folded per form.
+    func conversationIDs(containing query: String, limit: Int = 500) -> Set<UUID> {
+        let query = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !query.isEmpty, ensureDatabase(), let database else { return [] }
+        let escaped = query.replacing("\\", with: "\\\\").replacing("%", with: "\\%")
+            .replacing("_", with: "\\_")
+        let forms = [escaped, escaped.lowercased(), escaped.capitalized, escaped.uppercased()]
+        let sql = """
+            SELECT DISTINCT conversation_id FROM messages
+            WHERE text LIKE ?1 ESCAPE '\\' OR text LIKE ?2 ESCAPE '\\'
+              OR text LIKE ?3 ESCAPE '\\' OR text LIKE ?4 ESCAPE '\\'
+            LIMIT ?5;
+            """
+        guard let statement = prepare(sql, in: database) else { return [] }
+        defer { sqlite3_finalize(statement) }
+        for (index, form) in forms.enumerated() { bind("%\(form)%", to: statement, at: Int32(index + 1)) }
+        sqlite3_bind_int64(statement, 5, Int64(limit))
+        var found = Set<UUID>()
+        while sqlite3_step(statement) == SQLITE_ROW {
+            if let id = UUID(uuidString: text(statement, 0)) { found.insert(id) }
+        }
+        return found
+    }
+
+    /// Fork: an edited question and everything after it, before the edit is sent in their place.
+    func dropMessages(of id: UUID, from position: Int) {
+        guard ensureDatabase(), let database,
+            let statement = prepare(
+                "DELETE FROM messages WHERE conversation_id = ? AND position >= ?;", in: database)
+        else { return }
+        defer { sqlite3_finalize(statement) }
+        bind(id.uuidString, to: statement, at: 1)
+        sqlite3_bind_int64(statement, 2, Int64(position))
+        sqlite3_step(statement)
     }
 
     func conversation(id: UUID) -> ChatConversation? {
@@ -281,7 +319,7 @@ final class ChatHistoryStore {
 
     private func replace(_ conversation: ChatConversation) {
         var updated = conversations.filter { $0.id != conversation.id }
-        updated.append(conversation)
+        if !isHidden(conversation.id) { updated.append(conversation) }  // Fork: Recently Deleted
         conversations = updated.sorted { $0.updatedAt > $1.updatedAt }
     }
 

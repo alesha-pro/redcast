@@ -45,15 +45,18 @@ final class AIChatCoordinator {
             window.close()
             core.applyInstalledAILifecycle()
             core.chatHistory.close()
+            core.chatWorkspace.close()  // Fork: folders and Recently Deleted leave memory too
             core.quickAICoordinator.leave()
             return
         }
         core.applyInstalledAILifecycle()
         // Deferred off the launch path like the clipboard's own read; history fills in behind it.
         Task {
+            core.chatWorkspace.prepare()  // Fork: Recently Deleted is hidden from the first list on
             core.chatHistory.load()
             // Inside the enabled branch only: off means the file is untouched, however old it gets.
             applyRetention()
+            core.chatWorkspace.tidy()  // Fork: expired deletions and idle chats, only as history loads
         }
     }
 
@@ -73,6 +76,7 @@ final class AIChatCoordinator {
         guard settings.aiEnabled else { return }
         prepareForChat()
         guard !window.focus() else { return }
+        core.chatWorkspace.tidy()  // Fork: and as the window opens
         if applyingOpenPolicy {
             chats.applyWindowOpenPolicy(
                 opensTo: core.aiSettings.opensTo, newAfter: core.aiSettings.newChatAfter)
@@ -80,9 +84,8 @@ final class AIChatCoordinator {
         // One find per window: the chrome's search field writes it, the transcript reads it.
         let find = ChatFindState()
         window.show(chrome: AIChatWindowChrome(coordinator: self, chats: chats, find: find)) {
-            AIChatSplitViewController(
-                sidebar: AIChatSidebarView().environment(self),
-                detail: AIChatDetailView().environment(self).environment(find))
+            // Fork: the workspace's sidebar with folders, and the chat's settings on the right.
+            ChatWorkspaceSplitViewController(coordinator: self, workspace: core.chatWorkspace, find: find)
         }
     }
 
@@ -300,7 +303,7 @@ final class AIChatCoordinator {
             let sent = chat.send(
                 address.rest, using: try provider(for: chat, scopedTo: address.slug),
                 model: model(for: chat), webSearch: webSearch(for: chat),
-                instructions: instructions(for: chat), contextBudget: contextBudget(for: chat),
+                instructions: workspaceInstructions(for: chat), contextBudget: contextBudget(for: chat),
                 toolScope: address.slug)
             if sent, let title { core.chatHistory.rename(id: chat.session.id, to: title) }
             // Named while the answer streams, so the sidebar has a title before the reply ends.
@@ -320,10 +323,15 @@ final class AIChatCoordinator {
             chat.regenerate(
                 using: try provider(for: chat, scopedTo: scope),
                 model: model(for: chat), webSearch: webSearch(for: chat),
-                instructions: instructions(for: chat), contextBudget: contextBudget(for: chat))
+                instructions: workspaceInstructions(for: chat), contextBudget: contextBudget(for: chat))
         } catch {
             chat.report(error.localizedDescription)
         }
+    }
+
+    /// Fork: the folder's and the chat's own instructions after everything else the turn is told.
+    private func workspaceInstructions(for chat: AIChatState) -> String? {
+        core.chatWorkspace.instructions(for: chat.session.id, base: instructions(for: chat))
     }
 
     /// Codex's own search; an API route searches through Tinycast's `web_search` tool instead.

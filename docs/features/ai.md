@@ -532,7 +532,8 @@ and the Actions menu's own chords, and dies with the window.
   sidebar clears a nonempty filter before a second Escape closes. Closing leaves a reply streaming;
   the next open follows `Opens to`, except that a chat holding a draft or staged files is kept.
 
-- **Sidebar** (`AIChatSidebarView`): a filter field over a `List` of every saved chat, Pinned
+- **Sidebar** (`AIChatSidebarView`; fork: replaced by folders, see
+  [chat workspace](chat-workspace.md)): a filter field over a `List` of every saved chat, Pinned
   first and then bucketed by day like Clipboard. The open chat is the selected row; ⌃⇥ / ⌃⇧⇥ open
   the next or previous one, wrapping, over every saved chat whatever the filter shows. ⌘B shows or
   hides the sidebar. A new chat has none until its first message saves it, so starting one or
