@@ -60,8 +60,7 @@ struct PaletteFilterTests {
 
         // Every other mode was untouched by ⌘P before and has to stay that way.
         for mode in [
-            PaletteMode.launcher, .aiHistory, .calculatorHistory,
-            .quicklinks, .snippets, .schedule, .uninstall
+            PaletteMode.launcher, .aiHistory, .calculatorHistory, .schedule, .uninstall
         ] {
             expect(
                 resolve(mode: mode), .ignored,
@@ -69,6 +68,17 @@ struct PaletteFilterTests {
             expect(
                 resolve(mode: mode, accessory: true), .ignored,
                 "\(mode.rawValue) opens no filter even if a stale accessory flag says so")
+        }
+
+        // Fork: Snippets and Quicklinks filter by tag, a stale accessory flag notwithstanding.
+        for mode in [PaletteMode.snippets, .quicklinks] {
+            expect(resolve(mode: mode), .tagFilter, "\(mode.rawValue) opens its tag filter on ⌘P")
+            expect(
+                resolve(mode: mode, accessory: true), .tagFilter,
+                "\(mode.rawValue) keeps its tag filter even if a stale accessory flag says otherwise")
+            expect(
+                resolve(collapsed: true, mode: mode), .ignored,
+                "the compact bar draws no tag button, so ⌘P opens nothing on \(mode.rawValue)")
         }
 
         // Collapsed there is no header to hang a button off, so no filter may open.

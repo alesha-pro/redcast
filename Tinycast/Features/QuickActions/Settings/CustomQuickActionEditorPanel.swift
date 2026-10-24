@@ -52,6 +52,13 @@ struct CustomQuickActionEditorPanel: View {
             instructionsField
 
             QuickActionModelPicker(selection: $model)
+            if model == nil, let existing,  // Fork: the route a removed connection took away
+                let lapsed = core.quickActionSettings.lapsedOverrides[QuickAction.custom(existing).id]
+            {
+                Text("\(lapsed.model) is no longer connected, so this action runs on the default model.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
 
             if let failure {
                 Text(failure)

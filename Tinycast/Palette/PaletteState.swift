@@ -23,6 +23,10 @@ final class PaletteState {
     }
     var fileSearchFilter: FileSearchFilter = .all
     var emojiCategoryFilter: EmojiCategoryFilter = .all
+    /// Fork: the Snippets or Quicklinks screen's ⌘P tag; nil lists every row.
+    var tagFilter: String? {
+        didSet { if oldValue != tagFilter { restoredSelection = nil } }
+    }
     /// Nil means the configured default; zoom only overrides it for this picker session.
     var emojiGridColumnsOverride: EmojiGridColumns?
     /// Ordering out leaves the SwiftUI tree mounted, so a media preview needs this to stop playing.
@@ -145,6 +149,7 @@ final class PaletteState {
         clipboardFilter = .all
         fileSearchFilter = .all
         emojiCategoryFilter = .all
+        tagFilter = nil  // Fork: Tags
         emojiGridColumnsOverride = nil
         forceExpanded = false
         dropHoverHighlight()

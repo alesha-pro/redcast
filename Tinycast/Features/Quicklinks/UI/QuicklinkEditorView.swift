@@ -8,6 +8,7 @@ struct QuicklinkEditorView: View {
     @Environment(QuicklinkCoordinator.self) private var coordinator
     @Environment(AppIndex.self) private var appIndex
     @Environment(PaletteState.self) private var palette
+    @Environment(QuicklinkStore.self) private var store  // Fork: the library's tags, offered as typed
     @Environment(\.metrics) private var metrics
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var focusedField: QuicklinkEditorSession.Field?
@@ -22,6 +23,12 @@ struct QuicklinkEditorView: View {
                 FormRow("Link", alignment: .top) { linkEditor }
                 FormRow("Name & Icon") { nameField }
                 FormRow("Open With") { applicationMenu }
+                FormRow("Tags", alignment: .top) {  // Fork: Tags
+                    TagTokenField(
+                        draft: $editor.tags, focused: focusBinding(.tags),
+                        library: TagList.library(store.quicklinks.map(\.tags)),
+                        label: String(localized: "Quicklink tags"), moveFocus: editor.advanceFocus)
+                }
                 FormRow {
                     VStack(alignment: .leading, spacing: metrics.spacing.lg) {
                         option(
@@ -58,7 +65,7 @@ struct QuicklinkEditorView: View {
         .onChange(of: editor.focusedField) { _, field in focusedField = field }
         .onChange(of: focusedField) { _, field in
             if let field { editor.focusedField = field }
-            focusedControl = field == .link || field == .name ? nil : field
+            focusedControl = field == .link || field == .name || field == .tags ? nil : field  // Fork: Tags
         }
         .onChange(of: focusedControl) { _, field in
             if let field { focusedField = field }

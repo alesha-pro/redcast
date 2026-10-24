@@ -7,6 +7,7 @@ struct FormTextInput: NSViewRepresentable {
     var placeholder = ""
     let label: String
     var moveFocus: (Bool) -> Void
+    var onCommand: ((Selector) -> Bool)?  // Fork: a tag field takes ↵ and ⌫ before the defaults.
 
     @Environment(\.metrics) private var metrics
     @Environment(\.isEnabled) private var isEnabled
@@ -133,6 +134,7 @@ struct FormTextInput: NSViewRepresentable {
         func control(
             _ control: NSControl, textView: NSTextView, doCommandBy commandSelector: Selector
         ) -> Bool {
+            if input.onCommand?(commandSelector) == true { return true }  // Fork: Tags
             switch commandSelector {
             case #selector(NSResponder.insertTab(_:)):
                 input.moveFocus(false)

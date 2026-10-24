@@ -24,6 +24,13 @@ another app.
   Settings form — resolves to no target at all, so a keyword typed there expands nowhere.
 - The on-disk Markdown format is user-authored and user-editable — an interchange format, not an internal
   one.
+- **Fork: a frontmatter key Tinycast doesn't read is kept, not refused.** `Snippet.unknownFrontmatter`
+  holds its lines, and any indented or `- ` lines under it, verbatim, and `serialize` writes them back
+  after `show_confirmation`, so a file another tool also edits survives a save. Only the retired keys
+  (`showInLauncher`, `category`, `show_in_launcher`, `show_hud`) are still reported, since they once meant
+  something here.
+- **Fork: tags live in the frontmatter, and an untagged file is byte-for-byte what it was.** `tags` is
+  written only when there is one, so old files and their round trips do not change. See [Tags](#tags-fork).
 
 ## Storage and identity
 
@@ -90,6 +97,7 @@ Canonical output uses this order:
 ---
 name: "Meeting Notes"
 keyword: "!notes"
+tags: ["work", "email"]
 enabled: true
 show_confirmation: false
 ---
@@ -97,16 +105,43 @@ show_confirmation: false
 Template body
 ```
 
-`name` is optional when reading and defaults from the filename, and `keyword` is optional. `enabled`
-defaults to `true`; `show_confirmation` defaults to `false`.
+`name` is optional when reading and defaults from the filename, and `keyword` and `tags` are optional.
+`enabled` defaults to `true`; `show_confirmation` defaults to `false`.
 
 String values must use double quotes. The codec escapes and decodes `\\`, `\"`, `\n`, `\r`, and
-`\t`; unsupported escapes, unquoted strings, duplicate or unknown keys, non-exact delimiters, and
+`\t`; unsupported escapes, unquoted strings, duplicate keys, retired keys, non-exact delimiters, and
 booleans other than lowercase `true` or `false` are rejected. Keys are matched case-insensitively;
-there are no aliases, so a key Tinycast does not know names itself in the error.
+there are no aliases. A key Tinycast does not read (Fork) is kept as written, with its block lines,
+and written back after the keys above.
 
 Everything after the closing delimiter's line terminator is the body. Leading and trailing blank
 lines, CR/LF choices, Unicode, and later lines containing `---` are preserved exactly when parsing.
+
+## Tags (fork)
+
+A snippet carries any number of tags, as in Raycast. The rules live in `Features/Tags/Model/` and are
+shared with [quicklinks](quicklinks.md#tags-fork):
+
+- **One spelling.** `TagList.normalized` trims, drops leading `#`, collapses inner whitespace, splits
+  on commas, cuts at 40 characters and keeps the first spelling of a tag that differs only in case or
+  width. Every write goes through it.
+- **Frontmatter.** `TagFrontmatter` writes `tags: ["a", "b"]` and reads leniently: a flow list of
+  quoted or bare items, a bare comma list, one quoted string, or a block list (`tags:` then `  - a`).
+  A malformed list never stops the file loading; at worst it reads fewer tags.
+- **Editor.** A token field under Keyword: ↵ or a comma turns the text into a chip, ⌫ on an empty
+  field takes the last chip back, a chip's × removes it, and ⇥ with text typed takes the first
+  suggestion. Suggestions are the library's tags, prefix matches first, never one already chosen. Text
+  left unfinished in the field is still saved as a tag.
+- **Rows.** The browser shows up to two coloured chips and `+N`. A tag's colour is
+  `RaycastHue.tag`: FNV-1a over its folded spelling into the seven agent hues, so `Work` and `work`
+  share one and it never changes between launches.
+- **Filter.** ⌘P on Search Snippets opens a header dropdown (**All Tags** and each tag with its
+  colour), the same pattern as the clipboard's type filter. ⌘P was unused on this screen. The button
+  only appears once the library has a tag; the filter resets when the screen changes.
+- **Search.** The browser's query matches tags too; `#wo` matches only tags that start with `wo`.
+  Root search finds a snippet by its tags as `AppEntry.keywords`, which find but never rank.
+- **Raycast import** maps `tags` when an export has it: strings, `{name}` or `{title}` objects, or a
+  comma list.
 
 ## Template tokens
 
@@ -226,7 +261,7 @@ cycle and exits with Escape or a bare backspace, and like the clipboard it split
 preview.
 
 The list is every **enabled** snippet — a disabled one is absent here exactly as it is absent from the
-launcher — filtered by name *or* keyword. Substring matching, not the launcher's fuzzy scorer: this is
+launcher — filtered by name, keyword or (fork) tag, and by the ⌘P tag dropdown. Substring matching, not the launcher's fuzzy scorer: this is
 a library being browsed rather than a query racing apps and commands for a rank.
 
 The preview shows the **raw template**, never an expansion. Expanding per selection would capture the
@@ -255,7 +290,7 @@ second editor. The fields stay inside `Features/Snippets/UI/`, not in the palett
 
 The template is on the left, with its own **Insert…** placeholder menu, separate from Actions.
 It uses the palette's searchable popup, keeping its existing placeholder groups.
-**Name**, **Keyword**, **Enabled** and **Show confirmation** are on the right. The draft keeps the
+**Name**, **Keyword**, **Tags** (fork), **Enabled** and **Show confirmation** are on the right. The draft keeps the
 loaded record and its source revision; no file is created or changed before **Save Snippet**.
 The template grows with its text; only the whole form scrolls, never an individual field or column.
 A blank name disables Save.
@@ -444,3 +479,10 @@ a given app takes is a manual check.
 - Type a keyword, then keep typing before the expansion lands: the expansion is abandoned rather than
   landing mid-word.
 - Type a keyword whose text the app changed underneath it: refused, with the keyword left alone.
+- Fork, tags: add `work` and `Email` in the editor with ↵ and a comma, take one back with ⌫, save, and
+  open the file: `tags: ["work", "Email"]` sits after the keyword. Type `wo` in a second snippet's tag
+  field: `work` is suggested, and ⇥ takes it.
+- Fork, tags: on Search Snippets ⌘P opens the tag dropdown; pick `work`, then All Tags. Type `#em`:
+  only tagged rows remain. In root search the tag name finds the snippet.
+- Fork, tags: add `aliases:` with a `  - x` line to a file by hand, edit the snippet in Tinycast and save:
+  the lines are still there. Chips read in both Light and Dark.

@@ -4,7 +4,7 @@ import SwiftUI
 @Observable
 final class QuicklinkEditorSession {
     enum Field: CaseIterable, Hashable {
-        case link, name, icon, application, rootSearch, pin
+        case link, name, icon, application, tags, rootSearch, pin  // Fork: tags
     }
 
     let original: Quicklink?
@@ -15,6 +15,7 @@ final class QuicklinkEditorSession {
     var openWithBundleID: String?
     var showsInRootSearch: Bool
     var isPinned: Bool
+    var tags: TagDraft  // Fork: Tags
     var selection: TextSelection?
     var focusedField: Field = .link
     var errorMessage: String?
@@ -28,6 +29,7 @@ final class QuicklinkEditorSession {
         openWithBundleID = quicklink?.openWithBundleID
         showsInRootSearch = quicklink?.showsInRootSearch ?? true
         isPinned = quicklink?.isPinned ?? false
+        tags = TagDraft(quicklink?.tags ?? [])  // Fork: Tags
     }
 
     var canSave: Bool {
@@ -41,7 +43,7 @@ final class QuicklinkEditorSession {
             iconSymbol: iconSymbol, isEnabled: original?.isEnabled ?? true,
             showsInRootSearch: showsInRootSearch,
             pinnedAt: isPinned ? (original?.pinnedAt ?? now) : nil,
-            createdAt: original?.createdAt ?? now)
+            createdAt: original?.createdAt ?? now, tags: tags.committed)  // Fork: Tags
     }
 
     func advanceFocus(backwards: Bool) {

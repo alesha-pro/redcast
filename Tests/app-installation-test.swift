@@ -513,6 +513,7 @@ struct OtherEntry<Tag: Sendable>: Sendable {
     var isEnabled = true
     var showsInRootSearch = true
     var link = ""
+    var tags: [String] = []  // Fork: Tags
     static var sfSymbol: String { "" }
     static func id(fromEntryID id: String) -> UUID? { nil }
     static func precedes(_ lhs: Self, _ rhs: Self) -> Bool { lhs.name < rhs.name }
@@ -562,7 +563,7 @@ enum QuicklinkDestination {
     var defaultSymbol: String { "" }
 }
 struct StoredSnippet {
-    struct Snippet { var isEnabled = true; var name = ""; var keyword: String? }
+    struct Snippet { var isEnabled = true; var name = ""; var keyword: String?; var tags: [String] = [] }  // Fork
     var snippet = Snippet()
     var entryID = ""
     var fileURL = URL(fileURLWithPath: "/")

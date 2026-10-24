@@ -326,6 +326,11 @@ final class QuickActionCoordinator {
             return try await TextTranslator.translate(state.original, to: state.targetLanguage)
         }
         let provider = try core.quickActionProvider(for: state.action)
+        if let lapsed = store.takeLapsedOverride(for: state.action) {  // Fork: a quiet note, once
+            core.showMessage(
+                String(localized: "\(lapsed.model) is no longer connected, so the default model ran instead"),
+                tone: .neutral)
+        }
         return try await QuickActionRunner.run(
             state.action, selection: state.original, using: provider,
             instructionOverride: store.settings.instructionOverride(for: state.action),

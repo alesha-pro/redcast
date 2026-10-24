@@ -14,7 +14,8 @@ enum RaycastSnippetImport {
             return Snippet(
                 name: name,
                 text: text,
-                keyword: keyword?.isEmpty == false ? keyword : nil)
+                keyword: keyword?.isEmpty == false ? keyword : nil,
+                tags: TagList.imported(entry["tags"]))  // Fork: Tags
         }
     }
 }

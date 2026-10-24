@@ -10,12 +10,13 @@ struct SnippetsScreen: PaletteScreen {
 
     /// A disabled snippet is off everywhere, so the browser lists exactly what the launcher does.
     var rows: [StoredSnippet] {
-        let enabled = store.snippets.filter { $0.snippet.isEnabled }
+        let enabled = TagList.filter(  // Fork: the ⌘P tag filter
+            store.snippets.filter { $0.snippet.isEnabled }, by: vm.tagFilter, tags: \.snippet.tags)
         let query = vm.query.trimmingCharacters(in: .whitespaces)
         guard !query.isEmpty else { return enabled }
         return enabled.filter { record in
-            record.snippet.name.localizedCaseInsensitiveContains(query)
-                || record.snippet.keyword?.localizedCaseInsensitiveContains(query) == true
+            TagList.row(  // Fork: a tag finds its rows, and `#tag` finds only by tag.
+                matching: query, texts: [record.snippet.name, record.snippet.keyword], tags: record.snippet.tags)
         }
     }
 
