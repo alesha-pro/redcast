@@ -519,6 +519,7 @@ private struct ChatDocumentChip: View {
 /// Decoded once per image off the render path; a streaming transcript re-renders every flush.
 struct ChatImageThumbnail: View {
     @Environment(\.metrics) private var metrics
+    @Environment(\.displayScale) private var scale  // Fork: decoded at the tile's own pixels
     let image: AIImage
     let edge: CGFloat
     @State private var decoded: NSImage?
@@ -535,7 +536,8 @@ struct ChatImageThumbnail: View {
         }
         .frame(width: edge, height: edge)
         .clipShape(RoundedRectangle(cornerRadius: metrics.radius.row, style: .continuous))
-        .task(id: image) { decoded = NSImage(data: image.data) }
+        // Fork: a screenshot's full bitmap is never kept for a 96pt tile.
+        .task(id: image) { decoded = await ChatImageDownsampler.tile(image.data, edge: edge * scale) }
     }
 }
 

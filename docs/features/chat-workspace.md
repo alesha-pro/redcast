@@ -217,6 +217,29 @@ No pass moved backwards or changed the document's height, and the offset never s
 asked one by more than one frame's step (25 pt). The agent run holds 60 frames a second at best:
 its main thread spends a whole 120 Hz frame on each step.
 
+### Steps
+
+Each step was measured against the tree before it, back to back. A video render shared the
+machine from step 1 on and doubled every frame time, so compare within a row, not with the
+baseline above.
+
+- **1. Tiles at their size.** `ChatImageThumbnail` decoded an attached picture with
+  `NSImage(data:)`: a 31 MB bitmap per 3456×2234 screenshot behind a 96 pt tile, about 250 MB for
+  the screenshot chat. `ChatImageDownsampler` makes an ImageIO thumbnail whose short edge fills
+  the tile at the screen's scale, one at a time on a serial queue that drains per item. Nothing
+  else reads the tile: a request still sends the original bytes, and a file's Quick Look and Open
+  read the file itself.
+
+| Cycle 2, MB, before → after | Peak | Highest open | After closing | Malloc after closing |
+| --- | ---: | ---: | ---: | ---: |
+| 1. Tiles | 733 → 456 | 686 → 378 | 189 → 212 | 84 → 92 |
+
+Scrolling, two passes each way, ms (interval p50 / p95 / max; busy p50 / p95):
+
+| Before → after | Long replies interval | busy | Agent run interval | busy |
+| --- | --- | --- | --- | --- |
+| 1. Tiles | 16.7 / 16.7 / 25–33 → 16.7 / 16.7 / 31–42 | 11–14 / 15 → 11 / 15–16 | 37–39 / 42–51 / 52–67 → 38 / 46–50 / 56–68 | 36–37 / 41–49 → 37–38 / 43–48 |
+
 ## Manual sweep
 
 - Create two folders: each is named in place and gets its own colour. Rename one from its menu and
