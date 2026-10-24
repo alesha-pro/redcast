@@ -34,6 +34,7 @@ open with an `## Invariants` section; read it before changing anything in that a
 [agent harness](features/agent-harness.md) ·
 [web search](features/web-search.md) ·
 [Quick AI tools](features/quick-ai-tools.md) ·
+[chat files](features/chat-files.md) ·
 [notes and AI](features/notes-ai.md) ·
 [background agents](features/background-agents.md) ·
 [AI usage](features/usage-dashboard.md) ·

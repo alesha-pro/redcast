@@ -68,6 +68,7 @@ struct AgentSessionPreview: View {
     @ViewBuilder private var transcript: some View {
         if let messages, !messages.isEmpty {
             ChatTranscriptView(messages: messages, status: nil, usage: nil, surface: .palette)
+                .environment(\.chatFilesDirectory, session.directory)
         } else if messages != nil {
             Text("Preview unavailable. Resume the session to read it.")
                 .font(metrics.typography.keyCap)

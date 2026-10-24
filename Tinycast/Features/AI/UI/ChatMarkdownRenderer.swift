@@ -9,6 +9,7 @@ struct ChatMarkdownSource: Equatable {
     let prefix: [Int]
     let failedFrom: Int?
     let metrics: InterfaceMetrics
+    var files: ChatFileLinks?  // Fork: the reply's existing files, linked in its text
 }
 
 struct ChatRenderedText {
@@ -202,8 +203,10 @@ struct ChatMarkdownRenderer {
     ) {
         let parsed = MarkdownBlock.inline(text)
         let drawn = attributed(parsed, font: font, color: textColor(context))
+        ChatFileLinker.link(drawn, parsed: parsed, files: source.files)  // Fork: file links
         mark(drawn, leaf: leaf)
         insertCitations(into: drawn, from: parsed)
+        ChatFileLinker.insertIcons(into: drawn, font: font)  // Fork: each file link's icon
         let style = paragraphStyle(in: context, extra: extraBlocks)
         style.alignment = alignment
         configure(style)

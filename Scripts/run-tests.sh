@@ -814,10 +814,13 @@ run chat-markdown-test     Tinycast/Platform/Appearance.swift \
                            Tinycast/Features/AI/Model/SyntaxStructuredLexers.swift \
                            Tinycast/Features/AI/UI/ChatTextHighlight.swift \
                            Tinycast/Features/AI/UI/ChatMarkdownRenderer.swift \
+                           Tinycast/Features/ChatFiles/Model/*.swift \
+                           Tinycast/Features/ChatFiles/UI/ChatFileLinker.swift \
                            Tinycast/Features/AI/UI/MathAttachmentCell.swift \
                            Tinycast/Features/AI/UI/MathBox.swift \
                            Tinycast/Features/AI/UI/MathFont.swift \
                            Tinycast/Features/AI/UI/MathLayoutEngine.swift
+run chat-files-test        Tinycast/Features/ChatFiles/Model/*.swift
 run syntax-highlight-test  Tinycast/Features/AI/Model/SyntaxGrammar.swift \
                            Tinycast/Features/AI/Model/SyntaxHighlighter.swift \
                            Tinycast/Features/AI/Model/SyntaxStructuredLexers.swift
