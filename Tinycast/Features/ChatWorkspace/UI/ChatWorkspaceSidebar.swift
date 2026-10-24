@@ -447,7 +447,7 @@ private struct ChatFolderRow: View {
         .frame(maxHeight: .infinity)
         .contentShape(.rect)
         .onHover { isHovered = $0 }
-        .onTapGesture { workspace.toggleCollapsed(folder.id) }
+        .onTapGesture { if !isRenaming { workspace.toggleCollapsed(folder.id) } }
         .chatDropTarget { workspace.move($0, to: folder.id) }
         .contextMenu { ChatFolderMenu(folder: folder, beginRename: beginRename) }
         .accessibilityElement(children: .combine)
