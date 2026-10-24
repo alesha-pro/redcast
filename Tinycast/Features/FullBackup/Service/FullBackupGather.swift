@@ -46,9 +46,12 @@ enum FullBackupGather {
                     ($0.key.rawValue, FullBackupPaths.override($0.value, portable))
                 }),
             webSearchEngines: core.webSearch.configuration,
+            chatAutoArchiveDays: core.chatWorkspace.settings.autoArchive.rawValue,
+            chatFloatsOnTop: core.chatWorkspace.settings.floatsOnTop,
             consents: .recording([
                 .aiEnabled: core.settings.aiEnabled,
-                .installedAITools: !ai.enabledInstalledProviders.isEmpty
+                .installedAITools: !ai.enabledInstalledProviders.isEmpty,
+                .chatFinishNotifications: core.chatWorkspace.settings.notifiesInBackground
             ]))
     }
 
@@ -172,6 +175,25 @@ enum FullBackupGather {
             ]))
     }
 
+    /// Read from the file, not the store, so a backup never wakes the workspace while AI is off.
+    static func chatWorkspace(from core: AppCore) -> ChatWorkspace {
+        (try? Data(contentsOf: core.chatWorkspace.store.fileURL)).map(ChatWorkspace.init(data:))
+            ?? ChatWorkspace()
+    }
+
+    /// The folders, and only which folder each chat is in: the rest of a chat travels with it.
+    static func chatFolders(from core: AppCore) -> Data {
+        let workspace = chatWorkspace(from: core)
+        let links = workspace.placements.compactMapValues { placement in
+            placement.folderID.map { ChatPlacement(folderID: $0) }
+        }
+        return ChatWorkspace(folders: workspace.folders, placements: links).data
+    }
+
+    static func chatPlacements(from core: AppCore) -> Data {
+        ChatWorkspace(placements: chatWorkspace(from: core).placements).data
+    }
+
     static func chatHistory(from core: AppCore) -> ChatHistoryBackup {
         let store = core.agentStore
         return ChatHistoryBackup(
@@ -191,7 +213,8 @@ enum FullBackupGather {
         var keys: [String: String] = [:]
         var headers: [String: [String: String]] = [:]
         var management: [String: String] = [:]
-        for connection in core.aiSettings.connections {
+        // A ChatGPT plan's sign-in is bound to this host, so it is never read for a backup.
+        for connection in core.aiSettings.connections where connection.provider != .codexPlan {
             let id = connection.id
             if let key = try? KeychainSecretStore.aiAPIKeys.secret(for: id) { keys[id.uuidString] = key }
             if let values = try? KeychainSecretStore.aiRequestHeaders.values(for: id), !values.isEmpty {

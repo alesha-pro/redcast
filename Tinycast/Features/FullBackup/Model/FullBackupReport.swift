@@ -13,6 +13,7 @@ struct FullBackupReport: Sendable, Equatable {
     var droppedRecords = 0
     var skippedSections: [String] = []
     var takenShortcuts = 0
+    var signInAgain: [String] = []
     var problems: [String] = []
 
     var sentences: [String] {
@@ -52,6 +53,9 @@ struct FullBackupReport: Sendable, Equatable {
         }
         if !skippedSections.isEmpty {
             parts.append(String(localized: "Sections from a newer version were skipped: \(list(skippedSections))."))
+        }
+        if !signInAgain.isEmpty {
+            parts.append(String(localized: "Sign in with ChatGPT again on this Mac: \(list(signInAgain))."))
         }
         if takenShortcuts > 0 {
             parts.append(String(localized: "Shortcuts already taken here and skipped: \(takenShortcuts)."))

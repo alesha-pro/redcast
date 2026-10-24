@@ -45,10 +45,12 @@ enum FullBackupRestore {
             let restored = restoreMCP(mcp, mode: request.mode(.mcpServers), core, &report)
             report.applied[.mcpServers] = restored
         }
+        var folderLinks: [UUID: ChatPlacement] = [:]
         if let ai = payload(AIBackup.self, .ai) {
             consents.append(ai.consents)
             let restored = restoreAI(ai, mode: request.mode(.ai), core, &report)
             report.applied[.ai] = restored
+            folderLinks = restoreChatFolders(layout, mode: request.mode(.ai), core)
         }
         if let voice = payload(VoiceBackup.self, .voice) {
             consents.append(voice.consents)
@@ -71,9 +73,14 @@ enum FullBackupRestore {
             let restored = restoreMore(more, core, &report)
             report.applied[.more] = restored
         }
+        var placements: [UUID: ChatPlacement] = [:]
         if let chats = payload(ChatHistoryBackup.self, .chatHistory) {
             let restored = await restoreChats(chats, layout: layout, core, &report)
             report.applied[.chatHistory] = restored
+            placements = readWorkspace(layout.chatPlacementsURL)?.placements ?? [:]
+        }
+        if !folderLinks.isEmpty || !placements.isEmpty {
+            placeChats(placements, folderLinks: folderLinks, core)
         }
         if let secrets = request.secrets {
             report.secretsRestored = restoreSecrets(secrets, core)
@@ -187,7 +194,69 @@ enum FullBackupRestore {
             ai.setCommandPath(local(override.commandPath), for: kind)
         }
         if let engines = backup.webSearchEngines { core.webSearch.save(engines) }
+        let chat = core.chatWorkspace.settings
+        if let days = backup.chatAutoArchiveDays, let value = ChatAutoArchive(rawValue: days) {
+            chat.autoArchive = value
+        }
+        if let flag = backup.chatFloatsOnTop { chat.floatsOnTop = flag }
+        report.signInAgain += FullBackupImportPolicy.signsInAgain(backup)
         return plan.upserts.count
+    }
+
+    // MARK: - AI Chat's workspace
+
+    private static func readWorkspace(_ url: URL) -> ChatWorkspace? {
+        (try? Data(contentsOf: url)).map(ChatWorkspace.init(data:))
+    }
+
+    /// Folders by id, as Merge or Replace says; returns which chat the file filed where.
+    private static func restoreChatFolders(
+        _ layout: FullBackupLayout, mode: FullBackupImportMode, _ core: AppCore
+    ) -> [UUID: ChatPlacement] {
+        guard let incoming = readWorkspace(layout.chatFoldersURL) else { return [:] }
+        let kept = Set(incoming.folders.map(\.id))
+        core.chatWorkspace.store.change { workspace in
+            if mode == .replace {
+                for stale in workspace.folders.map(\.id) where !kept.contains(stale) {
+                    workspace.deleteFolder(stale)
+                }
+            }
+            for folder in incoming.folders {
+                if workspace.folder(id: folder.id) == nil {
+                    workspace.createFolder(named: folder.name, id: folder.id)
+                }
+                workspace.updateFolder(folder.id) { $0 = folder }
+            }
+        }
+        return incoming.placements
+    }
+
+    /// Only chats this Mac has, and only those it has said nothing of yet: a local choice stays.
+    private static func placeChats(
+        _ placements: [UUID: ChatPlacement], folderLinks: [UUID: ChatPlacement], _ core: AppCore
+    ) {
+        let existing = Set(core.chatHistory.conversations.map(\.id))
+        core.chatWorkspace.store.change { workspace in
+            for (chat, placement) in placements
+            where existing.contains(chat) && workspace.placement(of: chat).isEmpty {
+                if let folder = placement.folderID, workspace.folder(id: folder) != nil {
+                    workspace.move(chat, to: folder)
+                }
+                workspace.setInstructions(placement.instructions, of: chat)
+                workspace.setCreativity(placement.creativity, of: chat)
+                if let date = placement.archivedAt { workspace.archive(chat, at: date) }
+                if let date = placement.deletedAt {
+                    workspace.trash(chat, title: placement.deletedTitle ?? "", at: date)
+                }
+            }
+            for (chat, link) in folderLinks {
+                guard existing.contains(chat), let folder = link.folderID, workspace.folder(id: folder) != nil,
+                    workspace.folderID(of: chat) == nil, !workspace.isArchived(chat), !workspace.isTrashed(chat)
+                else { continue }
+                workspace.move(chat, to: folder)
+            }
+        }
+        if !placements.isEmpty { core.chatHistory.load() }
     }
 
     private static func restoreVoice(
@@ -462,6 +531,7 @@ enum FullBackupRestore {
         case .snippetsEnabled: return settings.snippetsEnabled
         case .clipboardTextSearch: return settings.clipboardTextSearchEnabled
         case .installedAITools: return !core.aiSettings.enabledInstalledProviders.isEmpty
+        case .chatFinishNotifications: return core.chatWorkspace.settings.notifiesInBackground
         }
     }
 }

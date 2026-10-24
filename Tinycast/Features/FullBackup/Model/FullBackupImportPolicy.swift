@@ -66,6 +66,11 @@ enum FullBackupImportPolicy {
         }
     }
 
+    /// A ChatGPT sign-in is registered to the Mac that made it, so these connections sign in again.
+    static func signsInAgain(_ ai: AIBackup?) -> [String] {
+        (ai?.connections?.items ?? []).filter { $0.provider == .codexPlan }.map(\.name)
+    }
+
     /// A fallback can only be switched off: an import must never arm Run Shell Command.
     static func disabledFallbacks(recorded: [String], current: Set<String>) -> [String] {
         current.union(recorded).sorted()

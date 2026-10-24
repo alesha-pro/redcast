@@ -16,6 +16,11 @@ struct FullBackupLayout: Sendable {
         chatsDirectory.appendingPathComponent("summaries", isDirectory: true)
     }
 
+    /// AI Chat's folders and which chat is filed in each, in `ai-chat-workspace.json`'s own format.
+    var chatFoldersURL: URL { root.appendingPathComponent("ai-chat-folders.json") }
+    /// Every chat's own instructions, creativity, archive and Recently Deleted state.
+    var chatPlacementsURL: URL { chatsDirectory.appendingPathComponent("ai-chat-workspace.json") }
+
     func payloadURL(_ section: FullBackupSection) -> URL {
         root.appendingPathComponent("\(section.rawValue).json")
     }
