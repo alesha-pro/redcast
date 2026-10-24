@@ -208,27 +208,12 @@ private struct AIChatComposer: View {
     }
 
     private func controlRow(compactSearch: Bool) -> some View {
-        let searches = coordinator.capabilities(for: chat).webSearch
         return HStack(spacing: Theme.Spacing.xxs) {
-            AIAddMenu(chat: chat, coordinator: coordinator, settings: settings, offersSearch: searches)
-            if searches, settings.webSearchEnabled {
-                WebSearchPill(settings: settings, isCompact: compactSearch)
-                    .transition(.opacity.combined(with: .scale(scale: 0.9)))
-            }
+            // Fork: search and tools moved to the chat's settings sidebar; + only attaches.
+            AIAddMenu(chat: chat, coordinator: coordinator, settings: settings, offersSearch: false)
             Spacer(minLength: Theme.Spacing.md)
-            if !coordinator.agents.agents.isEmpty {
-                AIAgentPicker(chat: chat, agents: coordinator.agents, coordinator: coordinator)
-                    .layoutPriority(-1)
-            }
-            if !coordinator.agents.runsOwnRuntime(chat) {
-                AIModelPicker(chat: chat, selected: coordinator.model(for: chat), coordinator: coordinator)
-                    .layoutPriority(-1)
-                AIReasoningPicker(chat: chat, coordinator: coordinator)
-            } else if let options = coordinator.agents.options(for: chat) {
-                AIAgentOptionPickers(chat: chat, options: options, agents: coordinator.agents)
-            }
-            ContextGauge(
-                report: coordinator.contextReport(for: chat, detailed: false), hovered: $showsContext)
+            // Fork: agent, model, reasoning and context too; one chip shows the model and opens them.
+            ChatModelChip(chat: chat).layoutPriority(-1)
             if coordinator.dictation.isEnabled {
                 DictationButton(
                     dictation: coordinator.dictation, editor: editor,
@@ -372,16 +357,16 @@ private struct AIAddMenu: View {
                     coordinator.notes.presentPicker(for: chat)
                 }
             }
-            Divider()
             if offersSearch {
+                Divider()
                 Toggle("Web Search", systemImage: "globe", isOn: $settings.webSearchEnabled)
+                AIToolsMenu(chat: chat, coordinator: coordinator)
             }
-            AIToolsMenu(chat: chat, coordinator: coordinator)
         } label: {
             ComposerControlLabel(showsChevron: false) { ComposerSymbol(name: "plus") }
         }
         .composerMenu()
-        .help("Attach files, search the web, choose tools")
+        .help(offersSearch ? "Attach files, search the web, choose tools" : "Attach files or a note")
         .accessibilityLabel("Add")
     }
 

@@ -10,6 +10,9 @@ final class ChatWorkspaceCoordinator {
     let history: ChatHistoryStore
     let chats: AIChatSurfacesState
     @ObservationIgnored weak var host: (any ChatWorkspaceHost)?
+    @ObservationIgnored weak var settingsSource: (any ChatSettingsSource)?
+    /// The window's split view answers this while it is open.
+    @ObservationIgnored var toggleSettingsSidebar: (() -> Void)?
     /// While ⌘ is down the first ten rows show their digits.
     var showsShortcuts = false
     /// The question ↑ brought back into the composer; one at a time, the window's.
@@ -44,7 +47,7 @@ final class ChatWorkspaceCoordinator {
     func tidy(now: Date = Date()) {
         guard history.isAvailable else { return }
         store.load()
-        let saved = Set(history.conversations.map(\.id))
+        let saved = Set(history.conversations.map(\.id)).union(chats.live.map(\.session.id))
         for id in workspace.expired(at: now) { eraseForever(id) }
         store.change { $0.prune(keeping: saved) }
         let sparing = Set(chats.live.map(\.session.id))

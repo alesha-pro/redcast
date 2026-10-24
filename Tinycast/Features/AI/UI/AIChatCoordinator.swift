@@ -708,10 +708,11 @@ final class AIChatCoordinator {
         guard let selection = model(for: chat) else {
             throw AIProviderError.unavailable(String(localized: "Choose a default AI model in Settings."))
         }
-        return try AIProviderFactory.make(
+        let made = try AIProviderFactory.make(
             selection: selection, settings: core.aiSettings,
             subscription: core.chatGPTSubscription, installedAI: core.installedAI,
             toolServers: toolServers)
+        return ChatCreativityProvider.wrapping(made, temperature: temperature(for: chat))  // Fork
     }
 
     /// Tinycast runs a local server itself only while some live chat's route cannot.

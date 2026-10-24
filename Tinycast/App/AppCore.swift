@@ -289,6 +289,7 @@ final class AppCore {
             store: ChatWorkspaceStore(directory: AppPaths.applicationSupport()),
             settings: ChatWorkspaceSettings(), history: chatHistory, chats: aiChats)
         workspace.host = aiChatCoordinator
+        workspace.settingsSource = aiChatCoordinator
         return workspace
     }()
     // Fork: messages sent while a reply runs, queued or steered into the run.

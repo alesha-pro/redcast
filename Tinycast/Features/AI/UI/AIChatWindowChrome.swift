@@ -78,7 +78,7 @@ final class AIChatWindowChrome: NSObject, WindowChrome, NSToolbarDelegate, NSSea
         [
             .flexibleSpace, Self.sidebar, .space, Self.newChat, .sidebarTrackingSeparator,
             .flexibleSpace, Self.search, Self.actions
-        ]
+        ] + ChatWorkspaceKeys.toolbarItems  // Fork: the chat's settings sidebar
     }
 
     func toolbarAllowedItemIdentifiers(_ toolbar: NSToolbar) -> [NSToolbarItem.Identifier] {
@@ -108,7 +108,7 @@ final class AIChatWindowChrome: NSObject, WindowChrome, NSToolbarDelegate, NSSea
             item.label = String(localized: "Actions")
             return item
         default:
-            return nil
+            return workspaceKeys.toolbarItem(identifier)  // Fork: Chat Settings
         }
     }
 
@@ -168,6 +168,7 @@ final class AIChatWindowChrome: NSObject, WindowChrome, NSToolbarDelegate, NSSea
     private func observeTitle() {
         withObservationTracking {
             window?.title = coordinator.title(of: chat)
+            window?.subtitle = workspaceKeys.subtitle()  // Fork: the model and agent under it
         } onChange: { [weak self] in
             Task { @MainActor in self?.observeTitle() }
         }

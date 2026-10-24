@@ -60,7 +60,8 @@ struct ChatTranscriptView: View {
                         .environment(\.chatTextHighlight, highlight(for: message.id))
                         .id(message.id)
                     }
-                    if let total = usage?.totalTokens {
+                    // Fork: the window lists usage in the chat's settings sidebar instead.
+                    if surface == .palette, let total = usage?.totalTokens {
                         Text("\(total.formatted()) tokens")
                             .font(metrics.typography.rowTrailing)
                             .foregroundStyle(Theme.Colors.textTertiary)
