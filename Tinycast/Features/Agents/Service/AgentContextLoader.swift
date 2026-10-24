@@ -7,7 +7,7 @@ nonisolated enum AgentContextLoader {
 
     static var home: String { FileManager.default.homeDirectoryForCurrentUser.path }
 
-    static func load(_ profile: AgentProfile, memoryURL: URL) -> AgentContext {
+    static func load(_ profile: AgentProfile, memoryURL: URL, home: String = Self.home) -> AgentContext {
         let project =
             profile.readsProjectInstructions
             ? projectInstructionNames.lazy.compactMap {
@@ -16,27 +16,22 @@ nonisolated enum AgentContextLoader {
         let global =
             profile.readsGlobalInstructions
             ? instructions(at: (home as NSString).appendingPathComponent(".agents/AGENTS.md")) : nil
-        let found = skills(in: profile.directory, sources: profile.skillSources)
+        let found = skills(in: profile.directory, sources: profile.skillSources, home: home)
         let memory = (try? String(contentsOf: memoryURL, encoding: .utf8))
         return AgentContext(
             profile: profile, projectInstructions: project, globalInstructions: global,
             skills: AgentSkill.catalog(
-                project: found.project, global: found.global, disabled: profile.disabledSkills),
+                found, disabled: profile.disabledSkills, selection: profile.skillSelection),
             memory: memory)
     }
 
-    /// Both sources whether enabled or not, so the editor can list what a switch would add.
+    /// One per name in `AgentSkillRoot` precedence; every source by default, for the editor's list.
     static func skills(
-        in directory: String, sources: Set<AgentSkillSource> = Set(AgentSkillSource.allCases)
-    ) -> (project: [AgentSkill], global: [AgentSkill]) {
-        let project =
-            sources.contains(.project)
-            ? scan((directory as NSString).appendingPathComponent(".agents/skills"), as: .project)
-            : []
-        let global =
-            sources.contains(.global)
-            ? scan((home as NSString).appendingPathComponent(".agents/skills"), as: .global) : []
-        return (project, global)
+        in directory: String, sources: Set<AgentSkillSource> = Set(AgentSkillSource.allCases),
+        home: String = Self.home
+    ) -> [AgentSkill] {
+        let roots = AgentSkillRoot.ordered(folder: directory, home: home, sources: sources)
+        return AgentSkill.discovered(roots.flatMap { scan($0.path, as: $0.source) })
     }
 
     private static func instructions(at path: String) -> AgentContext.Instructions? {
@@ -50,19 +45,21 @@ nonisolated enum AgentContextLoader {
     private static func scan(_ root: String, as source: AgentSkillSource) -> [AgentSkill] {
         var found: [AgentSkill] = []
         for folder in subfolders(of: root) {
-            if let skill = skill(in: folder, as: source) {
+            if let skill = skill(in: folder, as: source, root: root) {
                 found.append(skill)
                 continue
             }
-            found += subfolders(of: folder).compactMap { skill(in: $0, as: source) }
+            found += subfolders(of: folder).compactMap { skill(in: $0, as: source, root: root) }
         }
         return found
     }
 
-    private static func skill(in folder: String, as source: AgentSkillSource) -> AgentSkill? {
+    private static func skill(
+        in folder: String, as source: AgentSkillSource, root: String
+    ) -> AgentSkill? {
         let manifest = (folder as NSString).appendingPathComponent("SKILL.md")
         guard let text = try? String(contentsOfFile: manifest, encoding: .utf8) else { return nil }
-        return AgentSkill.parse(manifest: text, directory: folder, source: source)
+        return AgentSkill.parse(manifest: text, directory: folder, source: source, root: root)
     }
 
     private static func subfolders(of path: String) -> [String] {

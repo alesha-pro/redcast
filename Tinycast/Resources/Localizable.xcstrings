@@ -24899,6 +24899,58 @@
         }
       }
     },
+    "All skills" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alle Skills"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Todas las skills"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Toutes les skills"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "すべてのスキル"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "모든 스킬"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Todas as skills"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Все навыки"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "全部技能"
+          }
+        }
+      }
+    },
     "Allow" : {
       "localizations" : {
         "de" : {
@@ -61694,6 +61746,58 @@
         }
       }
     },
+    "Every skill found is offered except those switched off; one added later is in." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jeder gefundene Skill wird angeboten, außer den ausgeschalteten; ein später hinzugefügter ist dabei."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Se ofrecen todas las skills encontradas salvo las desactivadas; una añadida más tarde entra."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chaque skill trouvée est proposée, sauf celles désactivées ; une skill ajoutée plus tard en fait partie."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "見つかったスキルは、オフにしたもの以外すべて使えます。あとで追加したものも含まれます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "끈 스킬을 제외하고 찾은 모든 스킬을 제공합니다. 나중에 추가한 스킬도 포함됩니다."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Todas as skills encontradas são oferecidas, exceto as desligadas; uma adicionada depois entra."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Агенту доступны все найденные навыки, кроме выключенных; добавленные позже тоже войдут."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "提供找到的所有技能，已关闭的除外；之后添加的技能也会包含在内。"
+          }
+        }
+      }
+    },
     "Every transcript in it is removed. This can't be undone." : {
       "localizations" : {
         "de" : {
@@ -67844,54 +67948,54 @@
         }
       }
     },
-    "Global skills in ~/.agents/skills" : {
+    "Global skills in ~/.agents, ~/.config/agents and ~/.claude" : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Globale Skills in ~/.agents/skills"
+            "value" : "Globale Skills in ~/.agents, ~/.config/agents und ~/.claude"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Skills globales en ~/.agents/skills"
+            "value" : "Skills globales en ~/.agents, ~/.config/agents y ~/.claude"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Skills globales dans ~/.agents/skills"
+            "value" : "Skills globales dans ~/.agents, ~/.config/agents et ~/.claude"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "~/.agents/skills のグローバルスキル"
+            "value" : "~/.agents、~/.config/agents、~/.claude のグローバルスキル"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "~/.agents/skills의 전역 스킬"
+            "value" : "~/.agents, ~/.config/agents, ~/.claude의 전역 스킬"
           }
         },
         "pt" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Skills globais em ~/.agents/skills"
+            "value" : "Skills globais em ~/.agents, ~/.config/agents e ~/.claude"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Глобальные навыки в ~/.agents/skills"
+            "value" : "Глобальные навыки в ~/.agents, ~/.config/agents и ~/.claude"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "~/.agents/skills 中的全局技能"
+            "value" : "~/.agents、~/.config/agents 和 ~/.claude 中的全局技能"
           }
         }
       }
@@ -94367,6 +94471,58 @@
         }
       }
     },
+    "No skills in these folders yet." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "In diesen Ordnern gibt es noch keine Skills."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aún no hay skills en estas carpetas."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aucune skill dans ces dossiers pour l’instant."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "これらのフォルダにはまだスキルがありません。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "이 폴더들에는 아직 스킬이 없습니다."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ainda não há skills nestas pastas."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "В этих папках пока нет навыков."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "这些文件夹中还没有技能。"
+          }
+        }
+      }
+    },
     "No snippets yet" : {
       "localizations" : {
         "de" : {
@@ -99386,6 +99542,58 @@
         }
       }
     },
+    "Only selected" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nur ausgewählte"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Solo las elegidas"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sélection uniquement"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "選んだものだけ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "선택한 스킬만"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Só as escolhidas"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Только выбранные"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "仅限所选"
+          }
+        }
+      }
+    },
     "Only show events with meetings" : {
       "localizations" : {
         "de" : {
@@ -99486,6 +99694,58 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "只会联系所选的提供商。"
+          }
+        }
+      }
+    },
+    "Only the skills switched on are offered; one added later stays out until picked." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nur eingeschaltete Skills werden angeboten; ein später hinzugefügter bleibt draußen, bis er ausgewählt wird."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Solo se ofrecen las skills activadas; una añadida más tarde queda fuera hasta que la elijas."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Seules les skills activées sont proposées ; une skill ajoutée plus tard reste à l’écart tant qu’elle n’est pas choisie."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "オンにしたスキルだけを使えます。あとで追加したものは、選ぶまで含まれません。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "켠 스킬만 제공합니다. 나중에 추가한 스킬은 선택할 때까지 제외됩니다."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Só as skills ligadas são oferecidas; uma adicionada depois fica de fora até ser escolhida."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Агенту доступны только отмеченные навыки; добавленные позже не войдут, пока вы их не отметите."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "只提供已打开的技能；之后添加的技能在选中前不会包含在内。"
           }
         }
       }

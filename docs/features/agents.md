@@ -1,7 +1,8 @@
 # Agents
 
 An **agent** lives in one folder. A chat given an agent works there: its turns read that folder's
-`AGENTS.md`, the skills in `<folder>/.agents/skills` and `~/.agents/skills`, the agent's own notes and
+`AGENTS.md`, the skills in `<folder>/.agents/skills`, `~/.agents/skills`, `~/.config/agents/skills`
+and `~/.claude/skills` (all of them, or only those picked in its editor), the agent's own notes and
 instructions, and its built-in tools — files, terminal, web and memory — act there. Agents are this
 fork's; upstream lists AI-assistant features under [not planned](../not-planned.md), so the feature
 stays in `Features/Agents/` plus the few lines in `AIChatCoordinator`, `QuickAICoordinator`,
@@ -99,6 +100,24 @@ optional chord: see [background and scheduled agents](background-agents.md).
   returns the `SKILL.md` body and the skill's file list, the progressive disclosure Codex and Claude
   Code use. A project skill shadows a global one of the same name; a skill switched off in the editor
   is left out by name, so one added later is in until switched off.
+- **Skills come from four folders, one per name.** `AgentSkillRoot.ordered` reads
+  `<folder>/.agents/skills` (Project skills), then `~/.agents/skills`, `~/.config/agents/skills` and
+  `~/.claude/skills` (all three are Global skills), and the first folder to name a skill wins; an
+  agent whose folder is the home folder reads `~/.agents/skills` once, as its own. `SKILL.md` front
+  matter is parsed as before, a group folder's skills one level down, and each skill remembers the
+  folder it came from, which the editor shows beside it.
+- **A skill selection is All or Only Selected.** `AgentProfile.skillSelection` is nil, or
+  `{"mode": "all" | "selected", "names": [...]}` under its own key: All (nil, every agent saved
+  before it) offers every skill found but `disabledSkills`; Only Selected offers just its names,
+  so a skill added later stays out until picked. `AgentSkillSelection.offers` is the one rule, read
+  by `AgentSkill.catalog` and the editor's switches alike, so the prompt's Skills list, an ACP
+  briefing, `load_skill` (offered only while the catalog is not empty) and the skill folders a run
+  may read all follow it. The key reads leniently: a mode a newer build wrote reads as All,
+  missing or ill-typed names as none, and a selection that does not decode leaves the agent on All
+  rather than costing it; the previous build ignores the key.
+- **Skills are read only when needed.** The folders are scanned when the editor opens (and again
+  when its folder or a source switch changes) and when a turn's context is loaded or refreshed,
+  never at launch, with no watcher.
 - **Documents and pages are read, not refused.** `read_file` reads text with line numbers, an HTML
   file as Markdown (its source with `raw`, for an edit), and through
   [document text](document-text.md) a PDF by `pages` (a scanned page by OCR), an image's text by
@@ -529,6 +548,8 @@ off by default per agent, bounded by `AgentPathPolicy` and asked through the age
 | `Model/AgentProfile.swift` | The profile: folder, access, tool families, permissions, skill sources, instructions sources, model |
 | `Model/AgentStore.swift` | Agents and chat bindings as JSON; the chats that read personal data; where the agent's notes and a chat's summary live |
 | `Model/AgentSkill.swift` | `SKILL.md` front matter, the merged catalog, and `AgentContext.prompt` |
+| `Model/AgentSkillRoot.swift` | The four skills folders in precedence order, by source |
+| `Model/AgentSkillSelection.swift` | All or Only Selected, its lenient coding, and the one rule a skill is offered by |
 | `Model/AgentToolbox.swift` | `AgentPathPolicy`, the tool definitions per profile, and what each reaches (`spec(for:)`) |
 | `Model/AgentTool.swift` | `AgentToolProvider`, `AgentToolSpec`, `AgentToolRisk`, `AgentTurn`, `AgentRunMode`, the call's context |
 | `Model/AgentConsentPolicy.swift` | Rules (ask, always, never), an agent's own (`AgentConsentRules`), `AgentGrant`, the verdict per rule and mode |
@@ -540,7 +561,7 @@ off by default per agent, bounded by `AgentPathPolicy` and asked through the age
 | `Model/AgentEffort.swift` | Quick, Balanced and Thorough, and the `AgentRunBudget` each sets |
 | `Model/AgentBudgetPolicy.swift` | When a run wraps up and hands over, the words the model reads, the plan's recital |
 | `Model/AgentTurnLead.swift` | What leads a turn's question: its facts, and a reply the last turn could not finish |
-| `Service/AgentContextLoader.swift` | Reads `AGENTS.md` (or a lone `CLAUDE.md`), `~/.agents/AGENTS.md`, skills, notes |
+| `Service/AgentContextLoader.swift` | Reads `AGENTS.md` (or a lone `CLAUDE.md`), `~/.agents/AGENTS.md`, skills from every root, notes |
 | `Model/AgentWebScope.swift` | What one turn's `web_fetch` may open: unattended or narrowed by a personal read or an earlier turn's, the user's links, what was found on the same site, eight pages |
 | `Model/AgentSpotlight.swift` | `search_files`'s Spotlight mode: the `mdfind` query from the model's words, kind and date, what is shown, the listing |
 | `Service/AgentToolExecutor.swift` | `AgentBuiltInTools`, the first provider; the executor runs each call: reads by kind, ripgrep or Spotlight search, terminal with timeout, `web_fetch` through `WebPageReader` |
@@ -672,7 +693,14 @@ this way, as one provider. Nothing else changes: no router edit, no upstream lin
 ## Manual sweep
 
 - Settings → AI → Agents → Add Agent: pick a folder that has an `AGENTS.md` and `.agents/skills`;
-  the editor lists the folder's and `~/.agents/skills`' skills, and switching one off keeps it out.
+  the editor lists the folder's skills and those in `~/.agents/skills`, `~/.config/agents/skills`
+  and `~/.claude/skills`, one row per name with its description and the folder it came from (a name
+  in two folders shows the first), and switching one off keeps it out.
+- Switch Skills to Only selected: the switches keep what All had on. Switch one off, save, reopen:
+  it is still off, and the agent's prompt (ask it which skills it has) lists only the ones on. Add a
+  new skill folder to `~/.claude/skills`, reopen the editor: it is listed and off under Only
+  selected, on under All. Switch Context's Global skills off: the home folders' rows go.
+- An agent saved by the build before this one opens on All with its switched-off skills kept.
 - In AI Chat pick the agent in the composer, on an OpenRouter or API model, and ask what the project
   is: the reply reflects `AGENTS.md`, and the transcript shows `list_dir`/`read_file` calls.
 - Ask it to add a line to a file: the dialog shows the path and the change; Don't Allow leaves the
@@ -790,7 +818,9 @@ this way, as one provider. Nothing else changes: no router edit, no upstream lin
   turns from before the session, a fresh process's `/word` turn waiting for the list and going as
   an ordinary, briefed one, diffs and output reaching their rows once);
   `ai-chat-test`'s fork case (content on its row, saved beside it, unreadable or absent content, a
-  store from before the table, the cascade); `agent-test` (skills, catalog, path policy, tool sets,
+  store from before the table, the cascade); `agent-skills-test` (the four folders' precedence and
+  dedupe on a temp home, sources, the selection's catalog, persistence and lenient reading, and the
+  prompt, briefing and `load_skill` following it); `agent-test` (skills, catalog, path policy, tool sets,
   specs, consent policy and per-agent rules, toolset order and routing, batches, budget, elision,
   the prompt and the rules it states, persistence and the bindings a gone chat leaves behind, the
   plan checklist shared with ACP, newer families kept out of the previous build's way and given back
