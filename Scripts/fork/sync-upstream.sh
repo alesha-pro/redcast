@@ -16,10 +16,16 @@ CATALOG=Tinycast/Resources/Localizable.xcstrings
 INFO_CATALOG=Tinycast/Resources/InfoPlist.xcstrings
 # The fork's own files: every sync keeps them as they are, whatever upstream did to its copy. The
 # two GitHub files carried upstream's donation link and Discord; deleting them would conflict instead.
-FORK_OWNED="README.md .github/FUNDING.yml .github/ISSUE_TEMPLATE/config.yml"
+FORK_OWNED="README.md .github/FUNDING.yml .github/ISSUE_TEMPLATE/config.yml CONTRIBUTING.md SECURITY.md"
+# Upstream's own site, CI, release tooling and contributor terms: the fork deleted them, and every
+# sync deletes what upstream changes or adds under them again.
+FORK_REMOVED="website .github/workflows .github/ISSUE_TEMPLATE/bug_report.yml \
+.github/ISSUE_TEMPLATE/feature_request.yml .github/ISSUE_TEMPLATE/extension_bug.yml \
+CONTRIBUTOR_LICENSE_AND_FEEDBACK_AGREEMENT.md Scripts/release-notes.sh Scripts/upload-website-media.sh \
+docs/release.md docs/support-button.svg docs/screenshot.png"
 # Display- or load-bound: reported, never a reason to hold a sync back.
 ENVIRONMENTAL=" form-input-test onboarding-test icon-cache-test "
-RULE_DOCS=" AGENTS.md CLAUDE.md CONTRIBUTING.md docs/architecture.md docs/standards.md \
+RULE_DOCS=" AGENTS.md CLAUDE.md docs/architecture.md docs/standards.md \
 docs/testing.md docs/ui.md docs/development.md "
 
 usage() {
@@ -213,6 +219,12 @@ resolve_known() {
         git cat-file -e "HEAD:$path" 2>/dev/null || continue
         git checkout -q HEAD -- "$path"
         note "kept the fork's $path; upstream changed its own"
+    done
+    for path in $FORK_REMOVED; do
+        git diff --quiet "$base" MERGE_HEAD -- "$path" && continue
+        git rm -r -q -f --ignore-unmatch -- "$path"
+        rm -rf -- "${path:?}"
+        note "kept $path deleted; upstream changed its own"
     done
     while IFS= read -r path; do
         [ -n "$path" ] || continue
@@ -414,7 +426,8 @@ harness_names() {
 attention() {
     local both workflows rules declined capabilities harnesses review renamed count noun path
     both="$(comm -12 <(git diff --name-only "$OLD_UP" "$FORK_TIP" | sort) <(upstream_changed | sort) |
-        { grep -vxF "$(tr ' ' '\n' <<<"$FORK_OWNED")" || true; } | tr '\n' ' ')"
+        { grep -vxF "$(tr ' ' '\n' <<<"$FORK_OWNED")" || true; } |
+        { grep -vE "^($(tr ' ' '|' <<<"$FORK_REMOVED"))(/|$)" || true; } | tr '\n' ' ')"
     [ -z "$both" ] || printf -- '- Both sides changed: %s\n' "${both% }"
     for path in $FORK_OWNED; do
         git diff --quiet "$BASE" "$UP" -- "$path" ||

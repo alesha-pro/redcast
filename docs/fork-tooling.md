@@ -49,9 +49,13 @@ in the background or adds a setting: each one runs when you start it and leaves 
 - **`README.md` is the fork's own.** It is Redcast's page, rewritten from scratch, so a sync never
   takes upstream's edits to it, whether git would merge them or not; the summary links what upstream
   changed, to port by hand if it matters. `.github/FUNDING.yml` (empty: no Sponsor button) and
-  `.github/ISSUE_TEMPLATE/config.yml` (no Discord) are kept the same way. They stay as files,
-  because a deleted one would conflict on every upstream edit, and the sync only keeps a file the
-  fork has.
+  `.github/ISSUE_TEMPLATE/config.yml` (no Discord), `CONTRIBUTING.md` and `SECURITY.md` are kept the
+  same way.
+- **What the fork deleted stays deleted.** Upstream's website (`website/`, its donation page and
+  Cloudflare worker), its GitHub Actions, its issue forms, its contributor agreement, its release and
+  media scripts, `docs/release.md` and its promotional images are gone. `FORK_REMOVED` lists them,
+  and a sync deletes whatever upstream changed or added under them again, so no modify/delete
+  conflict ever stops it.
 - **A sync branch lands by fast-forward or a merge commit, never squash or rebase.** Either drops
   upstream's ancestry, and the next sync would replay everything.
 
