@@ -286,6 +286,12 @@ final class AISettingsStore {
         shownModels[source.storageKey] = kept
     }
 
+    // Fork: a full backup's import puts back every picker's list and switched-off route.
+    func restoreModelLists(shown: [String: [String]], disabled: Set<String>) {
+        shownModels = shown
+        disabledRoutes = disabled
+    }
+
     func setInstalledProviderEnabled(_ enabled: Bool, for kind: InstalledAIKind) {
         var providers = enabledInstalledProviders
         if enabled {

@@ -293,4 +293,14 @@ final class CalendarStore {
         defaults.set(Array(hiddenCalendarIDs), forKey: hiddenKey)
         reload()
     }
+
+    // Fork: a full backup's import; an id this Mac's calendars lack hides nothing.
+    var hiddenIDs: [String] {
+        get { hiddenCalendarIDs.sorted() }
+        set {
+            hiddenCalendarIDs = Set(newValue)
+            defaults.set(newValue, forKey: hiddenKey)
+            reload()
+        }
+    }
 }

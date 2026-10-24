@@ -271,10 +271,11 @@ final class LauncherCoordinator {
             Task { await quicklinkCoordinator.exportQuicklinks() }
         case .exportSettings:
             dismissPalette()
-            Task { await BackupActions.runExportCommand(core: core) }
+            // Fork: the launcher's export and import carry the full backup's sections too.
+            Task { await FullBackupActions.runExportCommand(core: core) }
         case .importSettings:
             dismissPalette()
-            Task { await BackupActions.runImportCommand(core: core) }
+            Task { await FullBackupActions.runImportCommand(core: core) }  // Fork: full backup
         case .importFromRaycast:
             dismissPalette()
             settingsCoordinator.showBackupSettings()

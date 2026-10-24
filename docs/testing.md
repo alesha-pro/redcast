@@ -190,6 +190,9 @@ If a change touches anything in the right column, the harness on the left is man
 | `window-file-test` | `WindowManagement/Model/WindowManagementFileFormat.swift` — command shortcuts, custom sizes, layouts and rooms as settings.json spells them, hand edits and bad records |
 | `launcher-settings-file-test` | Launcher settings application — invalid records, partial edits, deferred bundles, shortcut moves and records outside search scopes; isolated preferences and in-memory scan/Carbon effects |
 | `backup-archive-test` | all of `Backup/Model/`, plus `Backup/Service/BackupStaging.swift` |
+| `full-backup-test` | `FullBackup/Model/`, `FullBackupCipher` and `FullBackupChatArchive` (fork) — every section's payload through a sealed `.tinycast`, the chat database's snapshot and merge, an old upstream-only file, unknown and newer sections, dropped records, every import rule, sealed secrets with the right and a wrong passphrase and an edited header, no secret in the clear, and export on quit ([backup](features/backup.md#testing)) |
+| `full-backup-coverage-test` | `FullBackupCoverage` against the sources (fork) — every `UserDefaults` key, Application Support name and Keychain scope a store spells has a decision, every `AppSettingsKey` is decided once, consents are recorded and never applied, and no decision is stale |
+| `shortcuts-overview-test` | `ShortcutsOverview/Model/` (fork) — shared chords, aliases and keywords, chords macOS keeps with the reader's symbolic hotkeys, and every filter with search |
 | `updates-test` | `Updates/Model/` — version precedence, channel filtering, install route, readiness |
 | `update-check-test` | `UpdateCheckStore` — stopping, in-flight cancellation, cached prompt suppression, restart and independent manual checking |
 | `support-test` | `Support/Model/` — when the support reminder comes due, and a clock moved backwards |
@@ -930,6 +933,21 @@ Featured and Popular first, then every shelf and category, and writes the cache;
 day makes no request, an older cache shows at once and refreshes behind the spinner; a category
 lists under its own header and Escape leaves it first; ↵ installs, updates or opens, ⌃X asks before
 uninstalling; and closing the palette leaves no thread or network activity behind.
+
+### Full backup
+
+The fork's steps: [backup.md](features/backup.md#manual-sweep). In short, an export with keys names
+every section, an extract holds no key in the clear, an import elsewhere lists the launchable
+commands first and lands servers off and schedules paused with the switches still off named, a wrong
+passphrase changes nothing, chat history merges without duplicates, and export on quit writes once
+per interval and prunes only its own files.
+
+### Shortcuts overview
+
+The fork's steps: [shortcuts-overview.md](features/shortcuts-overview.md#manual-sweep). In short,
+every hotkey and alias is listed and edits show in the owning pane at once, shared aliases and
+⌘Space are flagged, a shortcut turned off in System Settings stops being flagged, and filters and
+search narrow the list.
 
 ### Clean install
 

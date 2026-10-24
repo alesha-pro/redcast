@@ -89,6 +89,8 @@ final class AppCore {
     let quickActionSettings = QuickActionSettingsStore()
     let customQuickActions = CustomQuickActionStore()
     let agentStore = AgentStore()
+    // Fork: the full backup's export on quit.
+    let fullBackupSettings = FullBackupSettings()
     let chatGPTSubscription = ChatGPTSubscriptionManager()
     let installedAI = InstalledAIManager()
     // Fork: Codex (ChatGPT) connections; lazy, so nothing about them runs at launch.
@@ -610,6 +612,8 @@ final class AppCore {
 
     func flushNotesForTermination() async {
         await notesCoordinator.prepareForTermination()
+        // Fork: the full backup's export on quit, once the last note is on disk.
+        await FullBackupActions.exportOnQuitIfDue(core: self)
     }
 
     func stopDictationForTermination() async {

@@ -30,6 +30,7 @@ struct SettingsDetailView: View {
             case .permissions: PermissionsSettingsView()
             case .backup: BackupSettingsView()
             case .about: AboutView()
+            case .shortcuts: ShortcutsSettingsView()  // Fork: Shortcuts overview
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)

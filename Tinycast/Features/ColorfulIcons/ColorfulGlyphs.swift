@@ -74,7 +74,7 @@ extension SettingsTab {
     /// A pane upstream adds since is grey until it is given a family.
     private static let hues: [SettingsTab: RaycastHue] = {
         let families: [RaycastHue: [SettingsTab]] = [
-            .blue: [.permissions, .applications, .fileSearch, .navigation, .dictation],
+            .blue: [.permissions, .applications, .fileSearch, .navigation, .dictation, .shortcuts],
             .green: [.systemActions, .backup],
             .orange: [.commands, .clipboard, .snippets],
             .purple: [.quicklinks, .appleShortcuts, .windowManagement],
