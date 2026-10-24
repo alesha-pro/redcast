@@ -53,7 +53,7 @@ final class FallbackCoordinator {
 
     /// ⌘↵ on a fallback row; only an agent's has a second way to run.
     func secondary(_ fallback: Fallback, query: String) -> Bool {
-        core.agentCoordinator.runTaskInChat(fallback, query: query)
+        core.agentCoordinator.runTaskInBackground(fallback, query: query)
     }
 
     func run(_ fallback: Fallback, query: String) {

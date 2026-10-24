@@ -1,8 +1,11 @@
 import Foundation
+import os
 import Synchronization
 
 /// An agent's run: re-streams the turn until the model stops, or hands over at its budget.
 struct AgentLoopProvider: AIProvider {
+    private static let log = Logger(subsystem: "com.tinycast", category: "AgentLoop")
+
     /// Calls of one round that may run at once, so at most four fetches or four ripgreps.
     static let width = 4
 
@@ -21,12 +24,14 @@ struct AgentLoopProvider: AIProvider {
     private let clock: AgentRunClock?
     /// A sub-agent hands over to its parent, so its last words are the model's, never localized.
     private let answersAnAgent: Bool
+    /// What the user sends mid-run, taken between rounds; nil where nobody can send.
+    private let steering: AgentSteering?
 
     init(
         base: any AIProvider, toolset: AgentToolset, budget: AgentRunBudget,
         compaction: AgentCompaction.Source? = nil, outputCap: Int? = nil,
         retry: AgentRetryPolicy = .standard, origin: String = "", lead: AgentTurnLead = AgentTurnLead(),
-        clock: AgentRunClock? = nil, answersAnAgent: Bool = false
+        clock: AgentRunClock? = nil, answersAnAgent: Bool = false, steering: AgentSteering? = nil
     ) {
         self.base = base
         self.toolset = toolset
@@ -38,6 +43,7 @@ struct AgentLoopProvider: AIProvider {
         self.lead = lead
         self.clock = clock
         self.answersAnAgent = answersAnAgent
+        self.steering = steering
     }
 
     /// One reply of the model: its text, the calls it made and what came with them.
@@ -159,6 +165,13 @@ struct AgentLoopProvider: AIProvider {
                     refuseCalls(of: round, reasoning: reasoning, in: &messages, into: continuation)
                     continue
                 }
+                // pi's rule: a message sent while the model answered gets its turn before the run ends.
+                if !progress.final, round.calls.isEmpty, let steer = steered(round: rounds, into: continuation) {
+                    if round.said { continuation.yield(.text("\n\n")) }
+                    messages.append(AIMessage(role: .assistant, text: round.text, reasoning: reasoning))
+                    messages.append(steer)
+                    continue
+                }
                 if let closing = closing(round, progress) { continuation.yield(.text(closing)) }
                 continuation.yield(.finished)
                 return
@@ -205,7 +218,20 @@ struct AgentLoopProvider: AIProvider {
                 progress.planRound = rounds
                 Self.note(AgentBudgetPolicy.recital(progress.plan), on: &messages)
             }
+            // The step boundary: whatever the user sent meanwhile is read before the next request.
+            if !progress.final, let steer = steered(round: rounds, into: continuation) { messages.append(steer) }
         }
+    }
+
+    /// The user's messages sent mid-run, shown as rows and joined into one turn of theirs.
+    private func steered(round: Int, into continuation: AIProviderStream.Continuation) -> AIMessage? {
+        guard let texts = steering?.take(), !texts.isEmpty else { return nil }
+        for (index, text) in texts.enumerated() {
+            let id = "tinycast-steer-\(round)-\(index)"
+            continuation.yield(.toolCall(id: id, origin: origin, title: AgentSteering.title(text)))
+            continuation.yield(.toolResult(id: id, isError: false))
+        }
+        return AIMessage(role: .user, text: texts.joined(separator: "\n\n"))
     }
 
     /// dsh's rule, a step per overflow: older results and reasoning, older history, then a hand-over.
@@ -244,7 +270,10 @@ struct AgentLoopProvider: AIProvider {
 
     private func row(for call: AIToolCall) -> AIStreamEvent {
         let tool = toolset.tools.first { $0.name == call.name }
-        let title = toolset.title(for: call) ?? tool?.title ?? call.name
+        // A provider's own title names the call already; any other row shows what it was given.
+        let title =
+            toolset.title(for: call)
+            ?? AgentCallSummary.title(tool?.title ?? call.name, arguments: call.arguments)
         return .toolCall(id: call.id, origin: tool?.origin ?? "", title: title)
     }
 
@@ -441,12 +470,21 @@ struct AgentLoopProvider: AIProvider {
                     continue
                 }
                 retries += 1
+                let reason = AgentRetryPolicy.reason(error)
                 guard let wait = retry.delay(before: retries, after: error, random: .random(in: 0...1))
-                else { throw error }
+                else {
+                    Self.log.error("round \(number) failed: \(reason, privacy: .public)")
+                    throw error
+                }
+                let delay = String(describing: wait)
+                Self.log.notice(
+                    "round \(number) retry \(retries) in \(delay, privacy: .public): \(reason, privacy: .public)")
                 let id = "tinycast-retry-\(number)-\(retries)"
+                // The row says what failed, so a wait reads as a provider's trouble, not a hang.
                 continuation.yield(
                     .toolCall(
-                        id: id, origin: origin, title: AgentRetryPolicy.title(retries, of: retry.attempts)))
+                        id: id, origin: origin,
+                        title: AgentRetryPolicy.title(retries, of: retry.attempts, reason: reason)))
                 try await Task.sleep(for: wait)
                 continuation.yield(.toolResult(id: id, isError: false))
             }

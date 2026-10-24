@@ -68,6 +68,8 @@ final class AgentCoordinator {
     private(set) var agentOptions: [UUID: ACPSessionOptions] = [:]
     /// Observed like the selects: a live session's slash commands, then the agent's last list.
     private(set) var chatCommands: [UUID: [ACPCommand]] = [:]
+    /// A chat's run that takes messages between its steps, while it lasts.
+    @ObservationIgnored private var steerings: [UUID: AgentSteering] = [:]
     private(set) var agentCommands: [UUID: [ACPCommand]] = [:]
 
     init(store: AgentStore, core: AppCore) {
@@ -245,9 +247,17 @@ final class AgentCoordinator {
         let interrupted = chat.session.messages.last.flatMap { last in
             last.role == .assistant && last.state == .failed && !last.text.isEmpty ? last.text : nil
         }
+        // Someone at the chat can steer it; a background run has nobody to send anything.
+        var steering: AgentSteering?
+        if case .chat = mode {
+            let fresh = AgentSteering()
+            // The run this turn replaces has ended; the queue already took back what it left.
+            _ = steerings.updateValue(fresh, forKey: chatID)?.close()
+            steering = fresh
+        }
         let turn = loop(
             for: agent, over: base, mode: mode, mcpTools: mcpTools, compaction: compaction,
-            lead: AgentTurnLead(resuming: interrupted)
+            lead: AgentTurnLead(resuming: interrupted), steering: steering
         ) { call in
             await mcp.invoke(call, in: chatID)
         }
@@ -261,6 +271,7 @@ final class AgentCoordinator {
     func loop(
         for agent: AgentProfile, over base: any AIProvider, mode: AgentRunMode,
         mcpTools: [AITool] = [], compaction: AgentCompaction.Source? = nil, lead: AgentTurnLead = AgentTurnLead(),
+        steering: AgentSteering? = nil,
         mcp: @escaping @Sendable (AIToolCall) async -> AIToolResult = {
             .failure($0.id, "There is no tool called \($0.name).")
         }
@@ -301,7 +312,17 @@ final class AgentCoordinator {
         return AgentLoopProvider(
             base: AgentWebRounds(base: base, scope: web), toolset: toolset, budget: budget,
             compaction: compaction, outputCap: AgentTurnBudget.outputTokens, origin: agent.name, lead: lead,
-            clock: clock)
+            clock: clock, steering: steering)
+    }
+
+    /// Send Now on a native agent's run: false when no run of this chat takes messages any more.
+    func steer(_ text: String, in chat: AIChatState) -> Bool {
+        steerings[chat.session.id]?.push(text) ?? false
+    }
+
+    /// A chat's reply ended: its run takes nothing more, and what it never read comes back.
+    func endSteering(forChat chatID: UUID) -> [String] {
+        steerings.removeValue(forKey: chatID)?.close() ?? []
     }
 
     /// The registry: one line per family, built per turn so nothing stays resident between turns.

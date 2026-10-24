@@ -67,10 +67,20 @@ line (`AgentTurnLead`). `AgentLoopProvider` then streams the turn, round after r
    Otherwise calls that may share a round (reads, `web_fetch`, `web_search`, `load_skill`, `delegate`,
    under an Always rule) run four at a time; anything that can ask, change or execute runs alone. Each
    row opens first and closes as its call ends; the model reads the results in the order it asked.
+   A row names what the call was given (`AgentCallSummary`: the command, query, address, path or
+   pattern, on one line and cut at 140 characters), as `run_command: python3 sync.py`.
 4. **Admit.** Each result is held to 32 KB and the run's results to its effort's allowance; past 160
    KB of the turn's results and reasoning, the oldest are elided down to 96 KB.
 5. **Decide.** `AgentBudgetPolicy` says go on, wrap up or hand over, and reads the plan back when the
    model has not touched it for six rounds.
+6. **Steer.** What the user sent meanwhile with Send Now (⌘↵) joins the messages as their turn,
+   one row "You added: …" each, before the next request; a model that meant to stop gets that turn
+   too. This is pi's and DeepSeek Harness's steering (`AgentSteering`): it waits for the step
+   boundary, so no call is cut in the middle, and a run that ends first hands the unread text back to
+   the chat's queue. Return while a reply runs queues the message for after it (`ChatQueue`); a stop
+   or a failure holds the queue. A plain chat or an ACP agent has no step boundary to wait for, so
+   Send Now stops its reply and sends at once; the stopped reply goes back to the model as the next
+   turn's context.
 
 Stop cancels the stream, the running calls, a retry's wait and a sub-agent at once, and voids a
 dialog's late Allow. A sub-agent is the same loop on a read-only toolset with no delegate of its own.
@@ -132,6 +142,10 @@ own ways:
   limit only if a model round itself kept the loop from handing over.
 
 ## A round: cap, retries, cache
+
+- **A retry row says what failed** ("Retrying after a provider error (1 of 4): …", the provider's
+  own words or the network's), and every retry and failed round is logged under
+  `com.tinycast` / `AgentLoop`: `/usr/bin/log show --predicate 'subsystem == "com.tinycast"'`.
 
 - **The output cap is 32,768 tokens where a route needs a number** (`AgentTurnBudget.outputTokens`,
   `AgentOutputCap`). Anthropic must be sent `max_tokens`, and upstream's 4,096 leaves Claude 5.5, which
@@ -431,6 +445,15 @@ the user's words. [Agents](agents.md#invariants) has the method's lines.
 
 ## Manual sweep
 
+- **Rows.** An agent's call reads `run_command: <the command>`, `read_file: <the path>`, `web_search:
+  <the query>`; a long command is cut with "…".
+- **Queue.** While an agent works, type and press ↵: the message shows over the field, the reply
+  runs on, and the message is sent when it finishes. × drops it. Stop the reply: the queue waits.
+- **Send Now.** While an agent runs a command, type and press ⌘↵ (or Send Now on a queued row): a
+  "You added: …" row appears once the command ends, and the agent takes it into account in the same
+  reply. On a plain chat or an ACP agent, ⌘↵ stops the reply and sends at once.
+- **Retry reason.** With DeepSeek or Wi-Fi misbehaving, the retry row ends with what failed, and
+  `/usr/bin/log show --predicate 'subsystem == "com.tinycast"' --last 10m` shows it too.
 Run the Debug build with an agent on each connection you have; the sweep costs a few cents a route.
 
 - **Simple.** Balanced, "What is the capital of France?": one reply, no tool row, no plan.

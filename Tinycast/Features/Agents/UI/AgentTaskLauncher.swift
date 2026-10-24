@@ -32,7 +32,7 @@ extension AgentCoordinator {
         }
     }
 
-    /// ↵: complete the handle, open a chat, or start a background run.
+    /// ↵: complete the handle, open a chat, or ask the agent in front of you.
     func runTask(_ fallback: Fallback, query: String) {
         switch fallback {
         case .agentPick(let id):
@@ -48,23 +48,37 @@ extension AgentCoordinator {
             guard let agent = store.agent(id: id), case .task(id, let text)? = address(query),
                 !text.isEmpty
             else { return }
-            if case .success = background.start(text, with: agent) {
-                core.paletteCoordinator.hidePalette()
+            // Quick AI hosts only agents on a chat's model; a CLI agent answers in AI Chat instead.
+            if agent.runtime == nil {
+                askInQuickAI(text, with: agent)
+            } else {
+                core.paletteCoordinator.hidePalette(restoreFocus: false)
+                startChat(with: agent)
+                core.aiChatCoordinator.send(text, in: core.aiChatCoordinator.chats.window)
             }
         case .builtin, .quicklink:
             return
         }
     }
 
-    /// ⌘↵ on a task row: the same task, run in AI Chat in front of you.
-    func runTaskInChat(_ fallback: Fallback, query: String) -> Bool {
+    /// ⌘↵ on a task row: the same task, run in the background and saved as an AI Chat chat.
+    func runTaskInBackground(_ fallback: Fallback, query: String) -> Bool {
         guard case .agent(let id) = fallback, let agent = store.agent(id: id),
             case .task(id, let text)? = address(query), !text.isEmpty
         else { return false }
-        core.paletteCoordinator.hidePalette(restoreFocus: false)
-        startChat(with: agent)
-        core.aiChatCoordinator.send(text, in: core.aiChatCoordinator.chats.window)
+        if case .success = background.start(text, with: agent) {
+            core.paletteCoordinator.hidePalette()
+        }
         return true
+    }
+
+    /// A fresh Quick AI chat bound to the agent, already asked, in the open palette.
+    private func askInQuickAI(_ text: String, with agent: AgentProfile) {
+        let chat = core.aiChats.quickAI
+        chat.startNewChat()
+        setAgent(agent, for: chat)
+        core.paletteCoordinator.showPalette(mode: .ai)
+        core.quickAICoordinator.send(text)
     }
 
     /// Run Agent Task: root search seeded with `@`; a hotkey bound with no agent does nothing.
@@ -119,13 +133,13 @@ enum AgentTaskActionsMenu {
                 header: entry.name,
                 items: [
                     PopoverMenuItem(
-                        title: fallback.openVerb, systemImage: "person.crop.circle.badge.clock",
+                        title: fallback.openVerb, systemImage: "bubble.left.and.bubble.right",
                         shortcut: "↵"
                     ) { agents.runTask(fallback, query: query) },
                     PopoverMenuItem(
-                        title: String(localized: "Open in AI Chat"),
-                        systemImage: "bubble.left.and.bubble.right", shortcut: "⌘↵"
-                    ) { _ = agents.runTaskInChat(fallback, query: query) },
+                        title: String(localized: "Run in Background"),
+                        systemImage: "person.crop.circle.badge.clock", shortcut: "⌘↵"
+                    ) { _ = agents.runTaskInBackground(fallback, query: query) },
                     settings
                 ])
         case .builtin, .quicklink:

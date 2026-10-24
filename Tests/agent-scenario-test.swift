@@ -230,12 +230,15 @@ struct AgentScenarioTests {
         let outcome = await collect(run.loop, run.request)
         expect(
             outcome.failure == nil && texts(outcome.events) == "It is 18 degrees.", "the run outlasts both")
+        // Each row names the attempt and what the provider said, so a wait never reads as a hang.
         let waits = (1...2).map { number in
-            AIStreamEvent.toolCall(
-                id: "tinycast-retry-1-\(number)", origin: "Scout",
-                title: "Retrying after a provider error (\(number) of 4)")
+            outcome.events.contains { event in
+                guard case .toolCall(let id, "Scout", let title) = event else { return false }
+                return id == "tinycast-retry-1-\(number)"
+                    && title.hasPrefix("Retrying after a provider error (\(number) of 4): ")
+            }
         }
-        expect(waits.allSatisfy(outcome.events.contains), "each wait shows as a retry row")
+        expect(waits.allSatisfy { $0 }, "each wait shows as a retry row with its reason")
         expect(
             wire.bodies.count == 3 && Set(wire.bodies.map { serialized($0) }).count == 1,
             "and nothing of a failed attempt reaches the model: each try is the same request")

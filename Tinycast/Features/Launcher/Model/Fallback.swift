@@ -69,7 +69,7 @@ enum Fallback: Hashable, Sendable {
         case .builtin(.define): return String(localized: "Define Word")
         case .builtin(.agentSessions): return String(localized: "Search Agent Sessions")
         case .quicklink: return String(localized: "Open Quicklink")
-        case .agent: return String(localized: "Run in Background")
+        case .agent: return String(localized: "Ask Agent")
         case .agentPick: return String(localized: "Choose Agent")
         }
     }

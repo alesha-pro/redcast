@@ -147,6 +147,7 @@ private struct AIChatComposer: View {
                     .foregroundStyle(.secondary)
                     .padding(.horizontal, Theme.Spacing.sm)
             }
+            ChatQueueStrip(chat: chat)  // Fork: what waits for the running reply
             chips
             ZStack(alignment: .topLeading) {
                 if chat.draft.isEmpty {
@@ -172,6 +173,11 @@ private struct AIChatComposer: View {
                 .regular, in: RoundedRectangle(cornerRadius: Theme.Radius.dialog, style: .continuous))
         }
         .animation(.snappy, value: settings.webSearchEnabled)
+        // Fork: ⌘↵ sends now, into a native agent's run or in place of the reply; then the queue.
+        .background {
+            Button("Send Now", action: sendNow).keyboardShortcut(.return, modifiers: .command).opacity(0)
+        }
+        .drainsChatQueue(chat)
     }
 
     @ViewBuilder private var chips: some View {
@@ -235,9 +241,11 @@ private struct AIChatComposer: View {
     /// A solid disc, so Send is the one strong mark on a row of quiet controls.
     private var sendButton: some View {
         let enabled = chat.isStreaming || canSend
+        // Fork: with a draft, a running reply's button queues it; empty, it stops the reply.
+        let stops = chat.isStreaming && !canSend
         return Button(action: submit) {
-            Image(systemName: chat.isStreaming ? "stop.fill" : "arrow.up")
-                .font(chat.isStreaming ? Theme.Typography.composerStop : Theme.Typography.composerSend)
+            Image(systemName: stops ? "stop.fill" : "arrow.up")
+                .font(stops ? Theme.Typography.composerStop : Theme.Typography.composerSend)
                 .contentTransition(.symbolEffect(.replace))
                 .foregroundStyle(enabled ? Theme.Colors.composerSendInk : Theme.Colors.textTertiary)
                 .frame(width: Theme.Size.aiChatComposerControl, height: Theme.Size.aiChatComposerControl)
@@ -249,13 +257,23 @@ private struct AIChatComposer: View {
         .buttonStyle(.plain)
         .disabled(!enabled)
         .animation(.easeOut(duration: Theme.Duration.hover), value: enabled)
-        .help(chat.isStreaming ? "Stop Response" : "Send  ↵")
-        .accessibilityLabel(chat.isStreaming ? "Stop Response" : "Send")
+        .help(stops ? "Stop Response" : chat.isStreaming ? "Queue  ↵   Send Now  ⌘↵" : "Send  ↵")
+        .accessibilityLabel(stops ? "Stop Response" : chat.isStreaming ? "Queue" : "Send")
+    }
+
+    /// Fork: ⌘↵ — straight into the running reply, or sent as usual when nothing runs.
+    private func sendNow() {
+        if AppCore.shared.chatQueue.sendNow(chat.draft, in: chat) { chat.draft = "" }
     }
 
     private func submit() {
         if chat.isStreaming {
-            coordinator.stopResponse(in: chat)
+            // Fork: a draft waits for the reply to finish; with none, Return stops the reply.
+            if !canSend {
+                coordinator.stopResponse(in: chat)
+            } else if AppCore.shared.chatQueue.enqueue(chat.draft, in: chat) {
+                chat.draft = ""
+            }
         } else if coordinator.sendBindingAgent(chat.draft, in: chat) {  // Fork: binds a new chat's agent
             chat.draft = ""
         }
