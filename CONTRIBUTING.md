@@ -1,11 +1,11 @@
 # Contributing to Redcast
 
-Redcast is a personal fork of [Tinycast](https://github.com/abue-ammar/tinycast). It is developed
-here for its owner's own use, so it does not take outside pull requests or issues. You are welcome
-to fork it in turn under the [AGPL-3.0](LICENSE). A fix that belongs to Tinycast itself is best sent
-upstream.
+Redcast is a fork of [Tinycast](https://github.com/abue-ammar/tinycast) maintained by
+[@alesha-pro](https://github.com/alesha-pro). Issues and pull requests are welcome; what gets merged,
+and when, is the maintainer's call. For anything bigger than a fix, open an issue first so the idea
+can be settled before you build it. A fix that belongs to Tinycast itself is best sent upstream too.
 
-What follows is the bar every change in this repository meets, by hand or by an agent.
+What follows is the bar every change meets, yours included, whether written by hand or by an agent.
 
 ## Non-negotiables
 
@@ -37,3 +37,9 @@ What follows is the bar every change in this repository meets, by hand or by an 
 - The feature's doc in [`docs/features/`](docs/features/) and [`FORK.md`](FORK.md) change in the same
   commit.
 - Commits are small and say why.
+
+## Pull requests
+
+- Say what changed and why, what you tested, and anything you are unsure about.
+- A visual change comes with before and after screenshots or a short clip.
+- Include idle and peak memory if the change touches what runs in the background.
