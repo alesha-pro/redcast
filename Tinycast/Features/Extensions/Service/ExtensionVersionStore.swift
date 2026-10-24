@@ -19,6 +19,7 @@ final class ExtensionVersionStore {
     }
 
     var tracked: Set<String> { Set(entries.keys) }
+    var commits: [String: String?] { entries.mapValues(\.commitSHA) }  // Fork: Extension Store
 
     func record(_ commitSHA: String?, for name: String) {
         update { $0[name] = Entry(commitSHA: commitSHA) }

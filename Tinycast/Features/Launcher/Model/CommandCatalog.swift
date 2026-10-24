@@ -70,6 +70,7 @@ extension SettingsTab {
             [.createWindowLayout, .captureWindowLayout, .switchRoom, .createRoom]
         case .clipboard: [.clipboardHistory, .pasteSequentially]
         case .dictation: [.dictationHistory]  // Fork: its shortcut is bound in the History section
+        case .extensions: [.extensionStore]  // Fork: its shortcut is bound in the Install section
         case .emoji: [.searchEmoji]
         case .calendar:
             [.joinNextMeeting, .mySchedule, .createEvent, .copyMeetingLink, .openInCalendar]

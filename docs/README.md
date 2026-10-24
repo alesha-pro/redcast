@@ -29,6 +29,7 @@ open with an `## Invariants` section; read it before changing anything in that a
 [screen awareness](features/screen-awareness.md) ·
 [voice AI](features/voice-ai.md) ·
 [dictation history](features/dictation-history.md) ·
+[extension store](features/extension-store.md) ·
 [agents](features/agents.md) ·
 [agent harness](features/agent-harness.md) ·
 [web search](features/web-search.md) ·

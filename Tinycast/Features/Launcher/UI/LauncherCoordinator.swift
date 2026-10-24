@@ -181,6 +181,8 @@ final class LauncherCoordinator {
             core.voiceAskCoordinator.pressed(id)
         case .dictationHistory:  // Fork: Dictation History
             core.dictationHistoryCoordinator.show()
+        case .extensionStore:  // Fork: the Extension Store
+            core.extensionStoreCoordinator.show()
         case .searchAgentSessions:
             core.agentSessionsCoordinator.show()
         case .jumpToAgent:

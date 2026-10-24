@@ -33,7 +33,7 @@ Independently of the folder tree, every mature subsystem has converged on the sa
 │ AutoJoinPolicy · EventDraft · SupportReminderSchedule ·                    │
 │ MenuSearch{Item,Shortcut,Query,TreeNode,SnapshotPolicy,Target} ·           │
 │ WindowSwitch{Entry,Order,Query} · AgentSessions/Model/* ·                  │
-│ DictationHistory/Model/*                                                   │
+│ DictationHistory/Model/* · ExtensionStore/Model/*                          │
 └──────────────────────────────────┬─────────────────────────────────────────┘
                                    │ consumed by
 ┌─ EFFECT ─────────────────────────▼─────────────────────────────────────────┐
@@ -51,7 +51,7 @@ Independently of the folder tree, every mature subsystem has converged on the sa
 │ AppleShortcutRunner · SettingsFileRepository · SettingsFileMonitor ·       │
 │ WindowManagementSettingsFile · AgentSessionsScanner ·                      │
 │ AgentTerminalRunner · AgentHookRepository · AgentProcessHost ·             │
-│ DictationHistoryFile                                                       │
+│ DictationHistoryFile · ExtensionStoreFetcher · ExtensionStoreCache         │
 └──────────────────────────────────┬─────────────────────────────────────────┘
                                    │ published through
 ┌─ OBSERVABLE STATE ───────────────▼─────────────────────────────────────────┐

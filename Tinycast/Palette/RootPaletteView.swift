@@ -129,6 +129,10 @@ struct RootPaletteView: View {
             return DictationHistoryScreen(
                 coordinator: core.dictationHistoryCoordinator, index: core.dictationHistoryCoordinator.index,
                 vm: vm, metrics: metrics, openActions: openActions)
+        case .extensionStore:  // Fork: the Extension Store
+            return ExtensionStoreScreen(
+                coordinator: core.extensionStoreCoordinator, index: core.extensionStoreCoordinator.index,
+                vm: vm, metrics: metrics, openActions: openActions)
         case .dictionary:
             return DictionaryScreen(session: dictionary, core: core, vm: vm)
         case .calculatorHistory:
@@ -572,6 +576,12 @@ struct RootPaletteView: View {
             .onKeyPress(.escape) {
                 // An open control list owns Escape before the palette beneath it.
                 if vm.isControlListOpen { return .ignored }
+                // Fork: Escape on an empty query leaves the store's list before the store itself.
+                if vm.mode == .extensionStore, !menuOpen, vm.query.isEmpty,
+                    core.extensionStoreCoordinator.leaveBrowse()
+                {
+                    return .handled
+                }
                 switch PaletteEscapeAction.resolve(
                     menuOpen: menuOpen, menuQuery: vm.menuQuery,
                     argumentFocused: argumentFocused != nil, query: vm.query, mode: vm.mode,

@@ -111,6 +111,12 @@ struct ExtensionStorePanel: View {
 
     private var footer: some View {
         HStack {
+            // Fork: the same store, browsed by shelf and category in the palette.
+            Button("Open Extension Store") {
+                onClose()
+                core.extensionStoreCoordinator.show()
+            }
+            .buttonStyle(ExtensionSettingsEditorButtonStyle(role: .standard, fillsWidth: false))
             Spacer()
             // Escape, not Return: Return belongs to the search field while typing.
             Button("Done", action: onClose)

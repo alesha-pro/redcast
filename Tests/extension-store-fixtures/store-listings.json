@@ -1,0 +1,621 @@
+{
+ "data": [
+  {
+   "id": "0e43920f-bbf6-4582-bc3f-5f63092c915f",
+   "name": "translate",
+   "native_id": null,
+   "seo_categories": [
+    "web",
+    "productivity",
+    "translation"
+   ],
+   "platforms": [
+    "macOS",
+    "Windows"
+   ],
+   "created_at": 1635337316,
+   "author": {
+    "name": "Slavik Nychkalo",
+    "handle": "gebeto",
+    "bio": null,
+    "twitter_handle": null,
+    "github_handle": null,
+    "location": null,
+    "initials": "SN",
+    "avatar_placeholder_color": "#43B93A",
+    "slack_community_username": null,
+    "slack_community_user_id": null,
+    "website_anchor": null,
+    "created_at": 1631725274,
+    "website": null,
+    "username": "gebeto",
+    "avatar": "https://files.raycast.com/jsl8etfdvbl2oni0i6l77cknkfh1"
+   },
+   "owner": {
+    "name": "Slavik Nychkalo",
+    "handle": "gebeto",
+    "bio": null,
+    "twitter_handle": null,
+    "github_handle": null,
+    "location": null,
+    "initials": "SN",
+    "avatar_placeholder_color": "#43B93A",
+    "slack_community_username": null,
+    "slack_community_user_id": null,
+    "website_anchor": null,
+    "created_at": 1631725274,
+    "website": null,
+    "username": "gebeto",
+    "avatar": "https://files.raycast.com/jsl8etfdvbl2oni0i6l77cknkfh1"
+   },
+   "status": "active",
+   "is_new": false,
+   "access": "public",
+   "store_url": "https://www.raycast.com/gebeto/translate",
+   "download_count": 505557,
+   "kill_listed_at": null,
+   "past_contributors": [],
+   "title": "Google Translate",
+   "description": "Simple translation using Google Translate",
+   "commit_sha": "1ea92d353d04ad6069f4d9ecea05b75fbb17df31",
+   "relative_path": "extensions/google-translate/",
+   "api_version": "1.104.25",
+   "categories": [
+    "Web",
+    "Productivity"
+   ],
+   "prompt_examples": [],
+   "skills": [],
+   "provides_models": false,
+   "has_mcp": false,
+   "metadata_count": 2,
+   "updated_at": 1792170732,
+   "source_url": "https://github.com/raycast/extensions/tree/1ea92d353d04ad6069f4d9ecea05b75fbb17df31/extensions/google-translate/",
+   "readme_url": "https://github.com/raycast/extensions/tree/1ea92d353d04ad6069f4d9ecea05b75fbb17df31/extensions/google-translate/README.md",
+   "readme_assets_path": "https://github.com/raycast/extensions/raw/1ea92d353d04ad6069f4d9ecea05b75fbb17df31/extensions/google-translate//",
+   "icons": {
+    "light": "https://files.raycast.com/o0176fo2hbsxd85tp61kcdgft25d",
+    "dark": null
+   },
+   "download_url": "https://extensions.raycast-releases.com/fixture-translate",
+   "commands": [
+    {
+     "id": "3f6b2322-8615-443d-a41a-34cab45ba99f",
+     "name": "translate",
+     "title": "Translate",
+     "subtitle": "Google Translate",
+     "description": "Simple translation via Google Translate",
+     "keywords": [],
+     "mode": "view",
+     "disabled_by_default": false,
+     "beta": false,
+     "icons": {
+      "light": null,
+      "dark": null
+     }
+    },
+    {
+     "id": "cd82e2e5-b762-4310-bf2f-fcfc54dee3f2",
+     "name": "translate-form",
+     "title": "Translate Form",
+     "subtitle": "Google Translate",
+     "description": "Simple translation via Google Translate",
+     "keywords": [],
+     "mode": "view",
+     "disabled_by_default": false,
+     "beta": false,
+     "icons": {
+      "light": null,
+      "dark": null
+     }
+    },
+    {
+     "id": "7b0256f6-62d9-4544-86d7-19ff74221e37",
+     "name": "quick-translate",
+     "title": "Quick Translate",
+     "subtitle": "Google Translate",
+     "description": "Quickly translate to multiple languages",
+     "keywords": [],
+     "mode": "no-view",
+     "disabled_by_default": false,
+     "beta": false,
+     "icons": {
+      "light": null,
+      "dark": null
+     }
+    }
+   ],
+   "contributors": [
+    {
+     "name": "AlanHuang",
+     "handle": "AlanHuang",
+     "bio": "",
+     "twitter_handle": "",
+     "github_handle": "tangerine1202",
+     "location": "Taiwan",
+     "initials": "Al",
+     "avatar_placeholder_color": "#7871E8",
+     "slack_community_username": null,
+     "slack_community_user_id": null,
+     "website_anchor": null,
+     "created_at": 1656597369,
+     "website": null,
+     "username": "AlanHuang",
+     "avatar": "https://files.raycast.com/zy2zt6gwsdml111i936ms093sx0y"
+    }
+   ],
+   "tools": []
+  },
+  {
+   "id": "320f40ef-a633-415a-ab0e-1e99515478f7",
+   "name": "spotify-player",
+   "native_id": null,
+   "seo_categories": [
+    "media",
+    "productivity"
+   ],
+   "platforms": [
+    "macOS",
+    "Windows"
+   ],
+   "created_at": 1638824391,
+   "author": {
+    "name": "Artem Konovalov",
+    "handle": "mattisssa",
+    "bio": "",
+    "twitter_handle": "mattisssa",
+    "github_handle": "mattisssa",
+    "location": "London, England",
+    "initials": "AK",
+    "avatar_placeholder_color": "#DC829A",
+    "slack_community_username": null,
+    "slack_community_user_id": "U01FEM14KQD",
+    "website_anchor": null,
+    "created_at": 1618576021,
+    "website": null,
+    "username": "mattisssa",
+    "avatar": "https://files.raycast.com/xvcjietexbihjldbhpyqk5nd7wih"
+   },
+   "owner": {
+    "name": "Artem Konovalov",
+    "handle": "mattisssa",
+    "bio": "",
+    "twitter_handle": "mattisssa",
+    "github_handle": "mattisssa",
+    "location": "London, England",
+    "initials": "AK",
+    "avatar_placeholder_color": "#DC829A",
+    "slack_community_username": null,
+    "slack_community_user_id": "U01FEM14KQD",
+    "website_anchor": null,
+    "created_at": 1618576021,
+    "website": null,
+    "username": "mattisssa",
+    "avatar": "https://files.raycast.com/xvcjietexbihjldbhpyqk5nd7wih"
+   },
+   "status": "active",
+   "is_new": false,
+   "access": "public",
+   "store_url": "https://www.raycast.com/mattisssa/spotify-player",
+   "download_count": 498002,
+   "kill_listed_at": null,
+   "past_contributors": [
+    {
+     "name": "Thomas Lombart",
+     "handle": "thomaslombart",
+     "bio": "",
+     "twitter_handle": "thomas_lombart",
+     "github_handle": "thomaslombart",
+     "location": "France",
+     "initials": "TL",
+     "avatar_placeholder_color": "#70920F",
+     "slack_community_username": null,
+     "slack_community_user_id": null,
+     "website_anchor": "thomaslombart.com",
+     "created_at": 1628072121,
+     "website": "https://thomaslombart.com",
+     "username": "thomaslombart",
+     "avatar": "https://files.raycast.com/goncaog0hpye49ez4racdnrwcoaj"
+    }
+   ],
+   "title": "Spotify Player",
+   "description": "Spotify's most common features, now at your fingertips. Search for music and podcasts, browse your library, and control the playback. Glance at what's currently playing directly from the menu bar.",
+   "commit_sha": "5ff98dfce417af0a770b8fb33ccd5fb6e614fa07",
+   "relative_path": "extensions/spotify-player/",
+   "api_version": "1.104.1",
+   "categories": [
+    "Media",
+    "Productivity",
+    "AI Extensions"
+   ],
+   "prompt_examples": [
+    "@spotify-player latest album of fred again",
+    "@spotify-player show me songs by The Beatles",
+    "@spotify-player show me rock songs the 70s",
+    "@spotify-player create me a new playlist with some london hip hop"
+   ],
+   "skills": [],
+   "provides_models": false,
+   "has_mcp": false,
+   "metadata_count": 8,
+   "updated_at": 1790917444,
+   "source_url": "https://github.com/raycast/extensions/tree/5ff98dfce417af0a770b8fb33ccd5fb6e614fa07/extensions/spotify-player/",
+   "readme_url": "https://github.com/raycast/extensions/tree/5ff98dfce417af0a770b8fb33ccd5fb6e614fa07/extensions/spotify-player/README.md",
+   "readme_assets_path": "https://github.com/raycast/extensions/raw/5ff98dfce417af0a770b8fb33ccd5fb6e614fa07/extensions/spotify-player//",
+   "icons": {
+    "light": "https://files.raycast.com/q2qkofuy03qqizkur3fq3cxukzgv",
+    "dark": null
+   },
+   "download_url": "https://extensions.raycast-releases.com/fixture-spotify-player",
+   "commands": [
+    {
+     "id": "779990e9-2b31-4b38-994c-6df119697028",
+     "name": "search",
+     "title": "Search",
+     "subtitle": "Spotify",
+     "description": "A single unified search command. Search for artists, albums, songs, playlists, podcasts, and episodes. Use the dropdown menu to filter your search to a specific category. Each category offers contextual actions, so you can dive deeper into the search.",
+     "keywords": [],
+     "mode": "view",
+     "disabled_by_default": false,
+     "beta": false,
+     "icons": {
+      "light": null,
+      "dark": null
+     }
+    },
+    {
+     "id": "8481c45c-37e7-4ac6-b9c3-9bae52a39536",
+     "name": "yourLibrary",
+     "title": "Your Library",
+     "subtitle": "Spotify",
+     "description": "See your saved artists, albums, songs, playlists, and podcasts. Similar to the \"Search\" command, it includes a category dropdown and contextual actions.",
+     "keywords": [],
+     "mode": "view",
+     "disabled_by_default": false,
+     "beta": false,
+     "icons": {
+      "light": null,
+      "dark": null
+     }
+    },
+    {
+     "id": "c2a561b2-a351-4508-be09-8b8bf3ac02b4",
+     "name": "nowPlaying",
+     "title": "Now Playing",
+     "subtitle": "Spotify",
+     "description": "See what's currently playing. Use the actions (⌘ K) for further actions, such as Play/Pause, Like/Dislike, Skip, Start Radio, Add to Playlist, Connect Device and more.",
+     "keywords": [],
+     "mode": "view",
+     "disabled_by_default": false,
+     "beta": false,
+     "icons": {
+      "light": null,
+      "dark": null
+     }
+    }
+   ],
+   "contributors": [
+    {
+     "name": "Dhruv Suthar",
+     "handle": "0xdhrv",
+     "bio": "Community Engineer @Raycast",
+     "twitter_handle": "0xdhrv",
+     "github_handle": "0xdhrv",
+     "location": "India",
+     "initials": "DS",
+     "avatar_placeholder_color": "#A067DC",
+     "slack_community_username": "Dhruv Suthar",
+     "slack_community_user_id": "U06GBE5E2LA",
+     "website_anchor": "dhrv.pw",
+     "created_at": 1658334122,
+     "website": "https://dhrv.pw",
+     "username": "0xdhrv",
+     "avatar": "https://files.raycast.com/sx6c0szhxmvw5crdhzj0vmankbb3"
+    }
+   ],
+   "tools": [
+    {
+     "id": "e8da87fd-290a-4fe3-baf9-d3b01f5439ae",
+     "name": "search",
+     "title": "Search",
+     "description": "Search for music and podcasts on Spotify. Get Spotify catalog information about albums, artists, playlists, tracks, shows, episodes or audiobooks that match a keyword string.",
+     "keywords": [],
+     "functionalities": [],
+     "mode": null,
+     "side_effects": false,
+     "icons": {
+      "light": null,
+      "dark": null
+     }
+    }
+   ]
+  },
+  {
+   "id": "95e41a2e-a943-4d49-b0df-152c3db2f7e0",
+   "name": "visual-studio-code",
+   "native_id": null,
+   "seo_categories": [
+    "developer-tools",
+    "productivity",
+    "project-management"
+   ],
+   "platforms": [
+    "macOS",
+    "Windows"
+   ],
+   "created_at": 1634068715,
+   "author": {
+    "name": "Thomas Paul Mann",
+    "handle": "thomas",
+    "bio": "Building Raycast 🪄",
+    "twitter_handle": "thomaspaulmann",
+    "github_handle": "thomaspaulmann",
+    "location": "London, UK",
+    "initials": "TM",
+    "avatar_placeholder_color": "#43B93A",
+    "slack_community_username": null,
+    "slack_community_user_id": null,
+    "website_anchor": "thomaspaulmann.com",
+    "created_at": 1622815752,
+    "website": "https://thomaspaulmann.com",
+    "username": "thomas",
+    "avatar": "https://files.raycast.com/0pxp15wpgafuv7tspd7lbrubag0m"
+   },
+   "owner": {
+    "name": "Thomas Paul Mann",
+    "handle": "thomas",
+    "bio": "Building Raycast 🪄",
+    "twitter_handle": "thomaspaulmann",
+    "github_handle": "thomaspaulmann",
+    "location": "London, UK",
+    "initials": "TM",
+    "avatar_placeholder_color": "#43B93A",
+    "slack_community_username": null,
+    "slack_community_user_id": null,
+    "website_anchor": "thomaspaulmann.com",
+    "created_at": 1622815752,
+    "website": "https://thomaspaulmann.com",
+    "username": "thomas",
+    "avatar": "https://files.raycast.com/0pxp15wpgafuv7tspd7lbrubag0m"
+   },
+   "status": "active",
+   "is_new": false,
+   "access": "public",
+   "store_url": "https://www.raycast.com/thomas/visual-studio-code",
+   "download_count": 418665,
+   "kill_listed_at": null,
+   "past_contributors": [],
+   "title": "Visual Studio Code",
+   "description": "Control VS Code and compatible editors directly from Raycast",
+   "commit_sha": "9f71936fadc5d0c8e52a7c33bb5d60b644d145c7",
+   "relative_path": "extensions/visual-studio-code-recent-projects/",
+   "api_version": "2.5.2",
+   "categories": [],
+   "prompt_examples": [],
+   "skills": [],
+   "provides_models": false,
+   "has_mcp": false,
+   "metadata_count": 3,
+   "updated_at": 1792094502,
+   "source_url": "https://github.com/raycast/extensions/tree/9f71936fadc5d0c8e52a7c33bb5d60b644d145c7/extensions/visual-studio-code-recent-projects/",
+   "readme_url": null,
+   "readme_assets_path": "https://github.com/raycast/extensions/raw/9f71936fadc5d0c8e52a7c33bb5d60b644d145c7/extensions/visual-studio-code-recent-projects//",
+   "icons": {
+    "light": "https://files.raycast.com/mcjlohmtcgjp1r53l6sfq6n1aql8",
+    "dark": null
+   },
+   "download_url": "https://extensions.raycast-releases.com/fixture-visual-studio-code",
+   "commands": [
+    {
+     "id": "79580892-ec2e-441f-92e5-2e284070e9f8",
+     "name": "index",
+     "title": "Search Recent Projects",
+     "subtitle": "",
+     "description": "Search and open recent projects from VS Code",
+     "keywords": [],
+     "mode": "view",
+     "disabled_by_default": false,
+     "beta": false,
+     "icons": {
+      "light": null,
+      "dark": null
+     }
+    },
+    {
+     "id": "dfd3ec66-094b-4e89-8035-09d7bddafa93",
+     "name": "open-with-vscode",
+     "title": "Open with Visual Studio Code",
+     "subtitle": "",
+     "description": "Open the currently selected file manager item with VS Code",
+     "keywords": [],
+     "mode": "no-view",
+     "disabled_by_default": false,
+     "beta": false,
+     "icons": {
+      "light": null,
+      "dark": null
+     }
+    },
+    {
+     "id": "dd63e50f-6db7-490c-b598-46893a418d40",
+     "name": "open-new-window",
+     "title": "Open New Window",
+     "subtitle": "",
+     "description": "Open a new VS Code window",
+     "keywords": [],
+     "mode": "no-view",
+     "disabled_by_default": false,
+     "beta": false,
+     "icons": {
+      "light": null,
+      "dark": null
+     }
+    }
+   ],
+   "contributors": [
+    {
+     "name": "才越",
+     "handle": "cy-98",
+     "bio": null,
+     "twitter_handle": null,
+     "github_handle": null,
+     "location": null,
+     "initials": "才越",
+     "avatar_placeholder_color": "#D85A9B",
+     "slack_community_username": null,
+     "slack_community_user_id": null,
+     "website_anchor": null,
+     "created_at": 1634815916,
+     "website": null,
+     "username": "cy-98",
+     "avatar": "https://files.raycast.com/cl8yxtk0q9u8r34ht31lb74dqdi4"
+    }
+   ],
+   "tools": []
+  },
+  {
+   "id": "9349c6b9-c442-4895-98e3-b3a926e74ed7",
+   "name": "brew",
+   "native_id": null,
+   "seo_categories": [
+    "developer-tools",
+    "system"
+   ],
+   "platforms": [
+    "macOS"
+   ],
+   "created_at": 1635240034,
+   "author": {
+    "name": "John Buckley",
+    "handle": "nhojb",
+    "bio": null,
+    "twitter_handle": null,
+    "github_handle": null,
+    "location": null,
+    "initials": "JB",
+    "avatar_placeholder_color": "#DC829A",
+    "slack_community_username": null,
+    "slack_community_user_id": null,
+    "website_anchor": null,
+    "created_at": 1619196653,
+    "website": null,
+    "username": "nhojb",
+    "avatar": "https://files.raycast.com/zbdipbp00pj97d23lhdyignf4fer"
+   },
+   "owner": {
+    "name": "John Buckley",
+    "handle": "nhojb",
+    "bio": null,
+    "twitter_handle": null,
+    "github_handle": null,
+    "location": null,
+    "initials": "JB",
+    "avatar_placeholder_color": "#DC829A",
+    "slack_community_username": null,
+    "slack_community_user_id": null,
+    "website_anchor": null,
+    "created_at": 1619196653,
+    "website": null,
+    "username": "nhojb",
+    "avatar": "https://files.raycast.com/zbdipbp00pj97d23lhdyignf4fer"
+   },
+   "status": "active",
+   "is_new": false,
+   "access": "public",
+   "store_url": "https://www.raycast.com/nhojb/brew",
+   "download_count": 300267,
+   "kill_listed_at": null,
+   "past_contributors": [],
+   "title": "Brew",
+   "description": "Search, install and manage Homebrew formulae and casks",
+   "commit_sha": "645cb29302e41f7730b0e68d84777feb0ad096a9",
+   "relative_path": "extensions/brew/",
+   "api_version": "2.6.0",
+   "categories": [
+    "Developer Tools",
+    "System"
+   ],
+   "prompt_examples": [],
+   "skills": [],
+   "provides_models": false,
+   "has_mcp": false,
+   "metadata_count": 6,
+   "updated_at": 1791891225,
+   "source_url": "https://github.com/raycast/extensions/tree/645cb29302e41f7730b0e68d84777feb0ad096a9/extensions/brew/",
+   "readme_url": "https://github.com/raycast/extensions/tree/645cb29302e41f7730b0e68d84777feb0ad096a9/extensions/brew/README.md",
+   "readme_assets_path": "https://github.com/raycast/extensions/raw/645cb29302e41f7730b0e68d84777feb0ad096a9/extensions/brew//",
+   "icons": {
+    "light": "https://files.raycast.com/gdpv4rvs1cwqlf8gamd1rvqm2zc1",
+    "dark": null
+   },
+   "download_url": "https://extensions.raycast-releases.com/fixture-brew",
+   "commands": [
+    {
+     "id": "ddcf697b-3636-4506-9444-f9b2681ec0ea",
+     "name": "clean-up",
+     "title": "Clean up",
+     "subtitle": "Brew",
+     "description": "Clean files and packages from the cache that are older than 120 days",
+     "keywords": [],
+     "mode": "no-view",
+     "disabled_by_default": false,
+     "beta": false,
+     "icons": {
+      "light": null,
+      "dark": null
+     }
+    },
+    {
+     "id": "91774e4d-f670-499f-b6d6-669166429168",
+     "name": "clear-cache",
+     "title": "Clear Cache",
+     "subtitle": "Brew",
+     "description": "Clear the cached Formulae, Casks, and installed packages files",
+     "keywords": [],
+     "mode": "no-view",
+     "disabled_by_default": true,
+     "beta": false,
+     "icons": {
+      "light": null,
+      "dark": null
+     }
+    },
+    {
+     "id": "aefcf145-e8aa-49ea-9001-5dc3ea3ea2f1",
+     "name": "installed",
+     "title": "Show Installed",
+     "subtitle": "Brew",
+     "description": "List installed brew formulae & casks",
+     "keywords": [],
+     "mode": "view",
+     "disabled_by_default": false,
+     "beta": false,
+     "icons": {
+      "light": null,
+      "dark": null
+     }
+    }
+   ],
+   "contributors": [
+    {
+     "name": "Aayush ",
+     "handle": "Aayush9029",
+     "bio": "❤️ I enjoy programming in Swift, Python & TypeScript.\n\n🧪 Experimenting with go and rust.",
+     "twitter_handle": "aayushbuilds",
+     "github_handle": "Aayush9029",
+     "location": "Travelling ✈️",
+     "initials": "Aa",
+     "avatar_placeholder_color": "#EB6B3E",
+     "slack_community_username": null,
+     "slack_community_user_id": null,
+     "website_anchor": "aayush.art",
+     "created_at": 1636037898,
+     "website": "https://aayush.art",
+     "username": "Aayush9029",
+     "avatar": "https://files.raycast.com/xm6u5jhoh7u90alc2w4w7nbwkzbq"
+    }
+   ],
+   "tools": []
+  }
+ ]
+}

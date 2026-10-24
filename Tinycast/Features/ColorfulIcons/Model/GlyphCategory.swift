@@ -47,7 +47,8 @@ enum GlyphCategory: CaseIterable, Sendable {
             .camera: [.openCamera],
             .app: [
                 .exportSettings, .importSettings, .importFromRaycast, .checkForUpdates, .settings, .about,
-                .support, .quit
+                .support, .quit,
+                .extensionStore  // Fork: the Extension Store
             ]
         ]
         return Dictionary(

@@ -262,6 +262,10 @@ final class AppCore {
     @ObservationIgnored private(set) lazy var dictationHistoryCoordinator = DictationHistoryCoordinator(
         appSettings: settings, voice: voiceSettings, voiceCloud: voiceCloud, appIndex: appIndex,
         injector: textInjector, paletteCoordinator: paletteCoordinator, palette: palette, core: self)
+    // Fork: the Extension Store; nothing is read or fetched until its screen opens.
+    @ObservationIgnored private(set) lazy var extensionStoreCoordinator = ExtensionStoreCoordinator(
+        settings: settings, extensions: extensions, extensionCoordinator: extensionCoordinator,
+        appIndex: appIndex, paletteCoordinator: paletteCoordinator, palette: palette, core: self)
     @ObservationIgnored private(set) lazy var agentCoordinator = AgentCoordinator(
         store: agentStore, core: self)
     @ObservationIgnored private(set) lazy var webSearch = WebSearchSettingsStore()
@@ -344,6 +348,7 @@ final class AppCore {
             extensions.start(appIndex: appIndex, coordinator: extensionCoordinator)
             extensions.ai = extensionAICoordinator.gate
             extensionCoordinator.applyEnabled()
+            extensionStoreCoordinator.applyEnabled()  // Fork: the command's visibility only
             fileSearchCoordinator.applyEnabled()
             windowSwitchCoordinator.applyEnabled()
             menuSearchCoordinator.applyEnabled()
@@ -860,6 +865,8 @@ final class AppCore {
         track(
             { _ = $0.extensionsShowInLauncher },
             reproject: { $0.extensionCoordinator.applyExtensionsLauncherPresence() })
+        // Fork: the Extension Store is listed while extensions are on.
+        track({ _ = $0.extensionsEnabled }, reproject: { $0.extensionStoreCoordinator.applyEnabled() })
         track({ _ = $0.snippetsFolder }, reproject: { $0.applySnippetsFolder() })
         track({ _ = $0.notesFolder }, reproject: { $0.applyNotesFolder() })
         trackChatRoute()
