@@ -146,6 +146,11 @@ struct ChatSession: Equatable, Sendable {
         return true
     }
 
+    /// Fork: an edited question's turn starts again from it; what came after goes with it.
+    mutating func truncate(keeping count: Int) {
+        messages.removeSubrange(min(max(count, 0), messages.count)...)
+    }
+
     func markdownTranscript(title: String) -> String {
         var parts = ["# \(title)"]
         for message in messages

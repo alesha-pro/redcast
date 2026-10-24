@@ -615,7 +615,8 @@ extension AppCore {
     /// After chats are deleted, their agents and the notes and ACP sessions those kept go with them.
     func pruneAgentSummaries() {
         guard chatHistory.isAvailable else { return }
-        let kept = Set(chatHistory.conversations.map(\.id))
+        // Recently Deleted's chats are hidden from the history but keep their agents until purged.
+        let kept = Set(chatHistory.conversations.map(\.id)).union(chatWorkspace.trashedIDs)
         agentStore.pruneSummaries(keeping: kept)
         for chat in agentStore.acpSessions.keys where !kept.contains(chat) {
             agentCoordinator.forgetACPSession(ofChat: chat)

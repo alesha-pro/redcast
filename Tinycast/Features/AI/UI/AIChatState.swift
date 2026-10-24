@@ -91,6 +91,13 @@ final class AIChatState {
         return true
     }
 
+    /// Fork: sending an edited question drops it and what followed, here and on disk.
+    func rewind(keeping count: Int) {
+        guard !isStreaming, count < session.messages.count else { return }
+        session.truncate(keeping: count)
+        history.dropMessages(of: session.id, from: count)
+    }
+
     private func startReply(
         using provider: any AIProvider, webSearch: Bool, instructions: String?, contextBudget: Int
     ) {
