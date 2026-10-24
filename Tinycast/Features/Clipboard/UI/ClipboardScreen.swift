@@ -57,6 +57,8 @@ struct ClipboardScreen: PaletteScreen {
             guard let item = item(at: selection), item.kind == .text else { return false }
             Task { await core.clipboardCoordinator.editClip(item) }
             return true
+        case .continueInChat:  // Fork: Send to AI
+            return SendToAIActions.send(clip: item(at: selection), core: core)
         default: return false
         }
     }
@@ -236,6 +238,7 @@ enum ClipboardActionsMenu {
                     core.clipboardCoordinator.copyClipPath(item)
                 })
         }
+        items += SendToAIActions.menuItems(clip: item, core: core)  // Fork: Send to AI
         items.append(
             PopoverMenuItem(
                 title: String(localized: "Delete Entry"), systemImage: "trash", startsSection: true,

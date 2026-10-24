@@ -53,6 +53,9 @@
 - **No recognition ever runs in the app process.** `ClipboardTextWorker` spawns one bundled
   `ClipboardTextHelper` per item and reaps it, which is the whole reason Vision's and PDFKit's
   allocations do not accumulate in Tinycast. The helper is handed a path and answers with text.
+- **⌘J sends the entry to Quick AI** (the fork's [Send to AI](send-to-ai.md)): text quoted or
+  attached, a colour quoted with its hex, an image or file through the composer's own attachment
+  path, a folder's path quoted; ⌘K adds Send to AI Chat for a new chat.
 
 ## Poll-based capture
 

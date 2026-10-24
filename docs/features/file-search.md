@@ -239,6 +239,7 @@ its default app. A system `QLPreviewPanel` would take key, and the palette hides
 | Copy Name | ⌥⌘C | through `Paster`, palette stays open |
 | Copy Path | ⌃⌘C | the standardized path, palette stays open |
 | Paste File to … | ⇧⌘V | `Paster.pasteFile` into the app the palette was summoned over, named by `PasteTarget` |
+| Send to AI, Send to AI Chat | ⌘J, — | the fork's [Send to AI](send-to-ai.md): the file staged through the composer's own attachment path in Quick AI, or in a new AI Chat chat; a folder's path is quoted. Root search's file rows have both too |
 | Move to Trash | ⌃X | `FileManager.trashItem` off the main actor, then the row leaves the session |
 
 None of the copies is marked with `ClipboardManager.internalType`, so a copied file enters clipboard

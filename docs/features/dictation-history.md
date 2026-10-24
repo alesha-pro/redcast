@@ -164,8 +164,12 @@ anywhere in the text, the transcript, the app or the mode, folding case, accents
 | ↵ | Paste to the app in front; Retry for a failed entry |
 | ⌘C, ⌘↵ | Copy to Clipboard |
 | ⇧⌘C | Copy Raw Transcript, or Copy Request for an Ask or an edit, when the entry has one |
+| ⌘J | [Send to AI](send-to-ai.md): Quick AI with the text quoted, or attached when long; an Ask with its question |
 | ⌃X, ⌘⌫ | Delete Entry |
 | ⌃⇧X | Delete All Entries, after the dialog |
+
+⌘K adds Send to AI and Send to AI Chat (a new chat) to every entry but a failed one, which has no
+text yet.
 
 ⌘C reaches the coordinator from the panel's command shortcut hook only while the first responder is
 a field editor (`isFieldEditor`; SwiftUI's is not the window's `fieldEditor(_:for:)`) with nothing
@@ -240,6 +244,9 @@ reasons in `SettingsBackupCoverage`, the `SettingsAnchor` and the `SettingsSearc
 - Open and close the screen with Activity Monitor watching: memory returns to where it was once the
   palette pops to root, and no thread or wakeup stays while idle.
 - Export a backup with every category: the archive holds no transcript.
+- ⌘J on a short dictation: Quick AI opens with it quoted and Escape comes back to the history; ⌘K →
+  Send to AI Chat on a long one opens a new chat with `Dictation.txt` staged. A failed entry offers
+  neither ([Send to AI](send-to-ai.md)).
 
 ## Harness
 

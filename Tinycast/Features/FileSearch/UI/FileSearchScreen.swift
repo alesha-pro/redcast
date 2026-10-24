@@ -130,7 +130,7 @@ enum FileSearchActionsMenu {
         result: FileSearchResult, core: AppCore, target: PasteTarget?
     ) -> PopoverMenuContent {
         let coordinator = core.fileSearchCoordinator
-        let items = [
+        var items = [  // Fork: var, for Send to AI
             PopoverMenuItem(
                 title: result.isDirectory ? String(localized: "Open Folder") : String(localized: "Open File"),
                 systemImage: result.isDirectory ? "folder" : "doc", shortcut: "↵"
@@ -161,6 +161,8 @@ enum FileSearchActionsMenu {
                 shortcut: "⌃X", isDestructive: true
             ) { coordinator.trash(result) }
         ]
+        let sendToAI = SendToAIActions.menuItems(file: result, core: core)  // Fork: Send to AI
+        items.insert(contentsOf: sendToAI, at: items.count - 1)  // Fork: before Move to Trash
         return PopoverMenuContent(header: result.name, items: items)
     }
 
@@ -174,6 +176,8 @@ enum FileSearchActionsMenu {
         case .pasteFile: coordinator.pasteFile(result)
         // Trashing is undoable, so it asks nothing first, as the clipboard's delete does.
         case .delete: coordinator.trash(result)
+        case .continueInChat:  // Fork: Send to AI
+            return SendToAIActions.send(file: result, core: core)
         default: return false
         }
         return true

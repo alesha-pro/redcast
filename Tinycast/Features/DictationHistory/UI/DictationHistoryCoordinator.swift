@@ -340,6 +340,15 @@ final class DictationHistoryCoordinator {
         Paster.copyPlainText(entry.text)
     }
 
+    /// ⌘J: Quick AI with the entry quoted, or attached when it is long or an Ask's exchange.
+    func sendToAI(_ entry: DictationHistoryEntry) -> Bool {
+        SendToAIActions.send(SendToAISource(dictation: entry), to: .quickAI, core: core)
+    }
+
+    func sendToAIMenuItems(_ entry: DictationHistoryEntry) -> [PopoverMenuItem] {
+        SendToAIActions.menuItems(for: SendToAISource(dictation: entry), core: core)
+    }
+
     func copyTranscript(_ entry: DictationHistoryEntry) {
         guard let transcript = entry.transcript else { return }
         paletteCoordinator.hidePalette(restoreFocus: false)
