@@ -357,29 +357,6 @@ $D/clipboard-thumbnail-performance /tmp/ctp --original
 $D/clipboard-thumbnail-performance /tmp/ctp --copies
 ```
 
-`Scripts/fork/chat-memory.sh` (fork) measures AI Chat's window. It compiles the app's own sources
-around `Tests/chat-memory-harness.swift` with `-O` and builds `AppCore` without `start()`, so no
-hotkey, clipboard, network or Keychain work runs. Its fixture, written to the harness's own
-`com.tinycast.chat-memory` defaults and Application Support, has 40 chats on a stand-in OpenRouter
-connection at `127.0.0.1:9`; both are emptied before and after each run. Each cycle drives the real
-window: open, five switches, paging up through the screenshot chat, Chat Settings open and closed,
-then close. It records phys_footprint and live malloc at each step, with their highs from a 2 ms
-sampler and the kernel's interval peak, and a `heap` count of watched classes after closing.
-`CHAT_MEMORY_DETAIL=1` adds `footprint` and `heap -s` per step of the first cycle.
-`CHAT_MEMORY_PANES=1` measures Settings › Shortcuts, › Backup and the Extension Store instead.
-`xctrace record --launch` on the binary never got past its launch here, so attribution is by
-`footprint`, `heap` and switching one suspect off at a time. A second argument measures another
-checkout with the same harness, which is how the `a8e1601e` and `60cd8723` columns in
-[chat-workspace](features/chat-workspace.md#memory) were taken. It is not part of the suite:
-
-```sh
-CHAT_MEMORY_ONSCREEN=1 ./Scripts/fork/chat-memory.sh /tmp/chat-memory.tsv          # this tree
-CHAT_MEMORY_ONSCREEN=1 ./Scripts/fork/chat-memory.sh /tmp/before.tsv ../other-checkout 2
-```
-
-Without `CHAT_MEMORY_ONSCREEN` the window is moved off every screen, and an occluded window skips
-the GPU work a visible one does, so compare only runs made the same way.
-
 `Tests/agent-sessions-performance.swift` folds 1,000 synthetic sessions, ranks 50 typed prefixes and
 decodes the head and tail of 500 synthetic 96 KB transcripts, printing milliseconds as JSON:
 
@@ -456,7 +433,6 @@ Measured at the end of the 2026 refactor, on `main`. Useful as orders of magnitu
 | `ClipboardStore.pinnedItems` | 27–127 µs per uncached search, 1,000-row window — no cache earns its invalidation yet |
 | Rendered Notes editor, 100,000 characters | 30 ms install and full restyle; 7.5, 5.9 and 3.3 ms per character typed at the end, middle and start (5.2, 3.1 and 0.6 ms with rendering off); 0.6 ms per caret move |
 | `count items of trash` | 5,000 ms against a cold Finder on an *empty* Trash, 110 ms warm — why AppleScript is detached |
-| AI Chat window, 40-chat fixture (fork) | footprint peak idle + 77–84 MB, idle + 54–56 MB after closing, flat across cycles (before: + 478–516 MB and + 187–189 MB); paging up a 60-message chat delays the main thread 2 ms median, 3 ms worst |
 | Agent Sessions, 1,000 sessions | 1.6 ms to fold the keys, 3.2–4.1 ms per typed keystroke (budget 5 ms); 500 head and tail decodes in 97–123 ms (budget 400 ms), `-O` on Apple silicon |
 
 Launch time, allocation counts and RSS have never been captured as numbers. The signposts are in place,

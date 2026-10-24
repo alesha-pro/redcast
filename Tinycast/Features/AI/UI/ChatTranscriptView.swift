@@ -42,8 +42,8 @@ struct ChatTranscriptView: View {
     var body: some View {
         ScrollViewReader { proxy in
             ScrollView {
-                // Fork: lazy in the window only, where a long chat's every message cost ~2 MB.
-                ChatTranscriptStack(isLazy: surface == .window, spacing: metrics.spacing.xl) {
+                // Not lazy: every anchored jump and the end test measure an estimated height
+                VStack(spacing: metrics.spacing.xl) {
                     if let agentBadge { AgentChatHeader(badge: agentBadge) }  // Fork: the agent
                     ForEach(messages) { message in
                         let isLast = message.id == messages.last?.id
@@ -113,9 +113,6 @@ struct ChatTranscriptView: View {
                 followsTail = false
                 // Next turn: the text holding the match takes its anchor in this same update.
                 Task { @MainActor in
-                    // Fork: a lazy transcript builds the match's message only once it is in view.
-                    await ChatTranscriptReveal.message(
-                        current?.messageID, in: proxy, if: surface == .window)
                     withAnimation(.easeOut(duration: Theme.Duration.chatFooter)) {
                         proxy.scrollTo(ChatTextHighlight.currentAnchor, anchor: .center)
                     }
@@ -270,7 +267,7 @@ private struct ChatMessageView: View, @MainActor Equatable {
                 .padding(.horizontal, message.role == .user ? metrics.spacing.xl : replyInset)
                 .padding(.vertical, metrics.spacing.md)
                 .chatBubble(isUser: message.role == .user, radius: metrics.radius.row)  // Fork: accent wash
-                .chatEditing(message)  // Fork: the question being edited, outlined
+                .chatEditing(message.id)  // Fork: the question being edited, outlined
         }
     }
 
@@ -522,7 +519,6 @@ private struct ChatDocumentChip: View {
 /// Decoded once per image off the render path; a streaming transcript re-renders every flush.
 struct ChatImageThumbnail: View {
     @Environment(\.metrics) private var metrics
-    @Environment(\.displayScale) private var scale  // Fork: decoded at the tile's own pixels
     let image: AIImage
     let edge: CGFloat
     @State private var decoded: NSImage?
@@ -539,8 +535,7 @@ struct ChatImageThumbnail: View {
         }
         .frame(width: edge, height: edge)
         .clipShape(RoundedRectangle(cornerRadius: metrics.radius.row, style: .continuous))
-        // Fork: a screenshot's full bitmap is never kept for a 96pt tile.
-        .task(id: image) { decoded = await ChatImageDownsampler.tile(image.data, edge: edge * scale) }
+        .task(id: image) { decoded = NSImage(data: image.data) }
     }
 }
 

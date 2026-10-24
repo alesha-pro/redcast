@@ -63,13 +63,6 @@ that touches them stays mechanical.
   the one a chat started in the folder begins on (New Chat in Folder), bound like a pick in the
   composer, so the working directory is the agent's: a folder adds no second one. ACP agents brief
   their own sessions and are not sent these instructions.
-- **The window holds only what it shows, and its transcript goes when it closes.** The window's
-  transcript is a lazy stack (`ChatTranscriptStack`). A reply's text is drawn only for the slice
-  on screen (`ChatTextViewport`). An attached picture is decoded at its tile's pixels
-  (`ChatImageDownsampler`), and a closed window keeps only its chat's id
-  (`releaseWindowTranscript`). On macOS 27 a transient peak stays in the footprint, so each of
-  these avoids the peak instead of freeing memory afterwards. See [Memory](#memory);
-  `Scripts/fork/chat-memory.sh` measures it.
 
 ## Folders
 
@@ -169,98 +162,6 @@ Everything here is a token: `Theme.Colors.chat…` and `RaycastHue.ink`/`wash` i
 - A code block's language is a small pill in its language's hue (`CodeLanguageHue`).
 - The composer's caret and selection are the accent's (`ChatComposerInk`).
 
-## Memory
-
-On macOS 27, malloc keeps freed small blocks dirty, and AppKit renders a layer-backed view's
-drawing on the GPU in a burst. Both make a transient peak cost as much as a resident one: the
-first stays in the footprint for good, and the second was a 90 MB spike on every switch. The
-window therefore avoids peaks instead of freeing memory later.
-
-- **Lazy transcript.** Upstream's eager `VStack` built every message's SwiftUI graph and
-  `NSTextView` layout on every switch. A 60-message chat cost 80–115 MB of live malloc, and 167 MB
-  with this fork's per-message modifiers. In the window, `ChatTranscriptStack` builds the
-  messages near the viewport only; Quick AI keeps the eager stack. Find scrolls to the match's
-  message by id first (`ChatTranscriptReveal`), so the anchor exists before it is asked for.
-- **Text drawn per slice, on the CPU.** A `ChatSelectableTextView` has no backing of its own
-  (`wantsUpdateLayer`, an empty `updateLayer`). Its `ChatTextViewport` subview covers the visible
-  part of the text plus 200 pt each way and follows scrolls of the enclosing clip view. It draws
-  that slice into an `IOSurface` that becomes the layer's contents. AppKit's own path records a
-  display list and rasterises it on the GPU: footprint rose by about 90 MB for a second or two on
-  each switch, even with backings no taller than the screen. Drawing the same text into a bitmap
-  removed the spike. Snapshots and drag images still call the text view's own `draw(_:)`.
-- **Thumbnails at their size.** `ChatImageThumbnail` decoded the whole picture with
-  `NSImage(data:)`, which cost 24 MB per 2960×2000 screenshot behind a 96 pt tile.
-  `ChatImageDownsampler` makes an ImageIO thumbnail whose short edge fills the tile at the screen's
-  scale. Decodes run one at a time on a serial queue, so at most one full decode is ever in flight.
-- **A closed window releases its chat.** On `willClose`, an idle, saved chat with no draft, nothing
-  staged and its tools untouched is replaced by an empty state that remembers only its id.
-  `showWindow` reloads it from history before the open policy runs, so the window still reopens on
-  the chat it showed. New Chat, opening another chat, Quick AI's ⌘J, AI off and a deletion all clear
-  the remembered id first.
-- The edited-question outline applies to questions only, so a reply carries no editing overlays.
-
-Measured with `Scripts/fork/chat-memory.sh` (Release-like `-O`, macOS 27, on screen). The fixture
-is 40 chats, four of 60 messages each with 70-line code blocks, tables, math, tool rows, sources,
-file links, long reasoning and 2960×2000 screenshots. Each cycle opens the window, switches five
-chats, pages up through the screenshots chat, opens and closes Chat Settings, and closes the
-window. Idle is 11 MB of footprint and 2.5 MB of live malloc; the harness's idle has no palette or
-launcher, so it is about 20 MB below the app's.
-
-| Cycle 2, MB | a8e1601e | 60cd8723 (before) | after |
-| --- | ---: | ---: | ---: |
-| Footprint peak, open to close | 442 | 489 | 95 |
-| Highest footprint while open | 398 | 450 | 88 |
-| Live malloc peak | 148 | 209 | 42 |
-| Footprint 4 s after closing | 134 | 200 | 67 |
-| Live malloc after closing | 37.8 | 44.5 | 20.1 |
-
-Per step, as footprint now / its peak since the last step, then live malloc (cycle 2; a8e1601e has
-no Chat Settings):
-
-| Step | a8e1601e | 60cd8723 | after |
-| --- | ---: | ---: | ---: |
-| Idle | 11 / 11, 2 | 11 / 11, 2 | 11 / 11, 3 |
-| Open on a long chat | 214 / 219, 82 | 244 / 343, 119 | 87 / 87, 34 |
-| A short chat | 195 / 285, 48 | 223 / 318, 70 | 82 / 88, 34 |
-| A long chat | 319 / 324, 98 | 371 / 377, 151 | 88 / 95, 37 |
-| A short chat | 201 / 320, 52 | 223 / 372, 74 | 84 / 90, 35 |
-| The math chat | 315 / 324, 102 | 348 / 355, 154 | 80 / 85, 36 |
-| The screenshot chat | 398 / 416, 106 | 440 / 450, 164 | 88 / 95, 38 |
-| Paged up to its start | 303 / 442, 122 | 350 / 489, 175 | 78 / 94, 36 |
-| Chat Settings open, closed | — | 450 / 462, 162 | 80 / 81, 39 |
-| Window closed | 134 / 303, 38 | 200 / 450, 44 | 67 / 80, 20 |
-
-Each fix on its own, from the runs that found it (cycle 2 or later): the lazy stack alone brought
-the switches to 80–100 MB, but they still spiked to 180–210 MB; slices drawn through AppKit kept the
-spike; slices drawn on the CPU brought the peak to about 90 MB; thumbnails and the release on close
-each moved a few MB with this fixture, whose screenshots compress to well under a real one's size.
-Paging up the 60-message chat delays the main thread by 2 ms median and 3 ms at worst, against
-16–69 ms at worst before, when the eager stack had already built everything at a far higher cost.
-
-Cycles 1–3 settle at 66–68 MB after closing, with no growth across cycles. ICU's `DecimalFormat`
-instances stay at 5. CoreSVG's trees stay at about 4,600 `SVGAttribute`, or 4,800 once a later
-cycle draws one more symbol. They are CoreUI's cache of the SF Symbols already drawn, parsed once
-per symbol, not once per render.
-
-What remains, and why the targets are not fully met:
-
-- **Peak: idle + 77–84 MB, against a target of idle + 60.** About 40 MB is live malloc for the
-  window itself: the sidebar's 40 rows, the visible messages, the toolbar, the composer and the
-  hidden Chat Settings tree. The rest is CoreAnimation and the slice surfaces (6–10 MB), the
-  screenshot tiles, and malloc's own regions.
-- **After closing: idle + 54–56 MB, against a target of idle + 15.** About 16 MB is live, and most of
-  it is one-time runtime state that the real app has mostly paid already at idle: Swift type
-  metadata (3.4 MB), Objective-C method caches (1.6 MB), SwiftUI, AppKit and CoreText caches,
-  and CoreUI's symbol trees (1.3 MB). The other ~35 MB is malloc-small pages, freed after the
-  window's ~40 MB live peak but kept dirty by macOS 27, and no API returns them
-  (`malloc_zone_pressure_relief` included). The only way left to lower it is a smaller peak.
-- Settings, measured the same way (`CHAT_MEMORY_PANES=1`), is the next offender, and it is not
-  this window's: with Shortcuts and then Backup open, the footprint is 99–122 MB from an idle of
-  11, Backup spikes about 100 MB more, and closing leaves 96–112 MB, higher after the second visit
-  than after the first. Settings also holds most of the CoreSVG trees, about 13,000
-  `SVGAttribute`, which stay flat once each pane has been seen. `DecimalFormat` stays at 3–6 there
-  as well, so the hundreds seen in the app come from something neither harness opens.
-
 ## Manual sweep
 
 - Create two folders: each is named in place and gets its own colour. Rename one from its menu and
@@ -296,12 +197,6 @@ What remains, and why the targets are not fully met:
   replies are gone, here and after a relaunch.
 - Paste a question of thirty lines: it shows ten and Show more. Branch from a reply: a new chat
   "… (Branch)" opens with the history up to it.
-- In a long chat with code, tables, math and a screenshot: switching opens at the latest message;
-  paging up draws each message as it arrives, code boxes and tables included; a selection drags
-  across paragraphs and copies; ⌘F finds a word in an early message and scrolls to it; the
-  screenshot's tile is sharp. Close the window and reopen it: the same chat is back. Activity
-  Monitor's Memory for Redcast stays near its value before the window opened, and does not jump
-  by 100 MB on a switch.
 - ⌥⌘T keeps the window above another app's; relaunch and it still does. With Notify on, ask a
   question and switch to another app: a banner names the chat and a click opens it.
 - Turn a server off under Tools: the next turn cannot call it. With a reply that reported usage,

@@ -50,8 +50,7 @@ SOURCES=(
     $CW/UI/ChatWorkspaceHost.swift $CW/UI/ChatWorkspaceCoordinator.swift $CW/UI/ChatSettingsState.swift
     $CW/UI/ChatWorkspaceTheme.swift $CW/UI/ChatWorkspaceSidebar.swift $CW/UI/ChatFolderEditor.swift
     $CW/UI/ChatSettingsSidebar.swift $CW/UI/ChatModelChip.swift $CW/UI/ChatTranscriptColors.swift
-    $CW/UI/ChatMessageActions.swift $CW/UI/ChatComposerInk.swift $CW/UI/ChatTranscriptStack.swift
-    $CW/UI/ChatImageDownsampler.swift $CW/UI/ChatTextViewport.swift
+    $CW/UI/ChatMessageActions.swift $CW/UI/ChatComposerInk.swift
 )
 swiftc -swift-version 6 -Onone "${SOURCES[@]}" Tests/chat-workspace-snapshots.swift \
     -o "$BUNDLE/Contents/MacOS/chat-snapshots"

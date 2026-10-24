@@ -878,7 +878,6 @@ run chat-files-test        Tinycast/Features/ChatFiles/Model/*.swift
 CW=Tinycast/Features/ChatWorkspace
 run chat-workspace-test    $CW/Model/*.swift $CW/Service/*.swift $CW/Settings/ChatWorkspaceSettings.swift \
                            $CW/UI/ChatWorkspaceHost.swift $CW/UI/ChatWorkspaceCoordinator.swift $CW/UI/ChatSettingsState.swift \
-                           $CW/UI/ChatWindowRelease.swift \
                            Tinycast/Features/ColorfulIcons/Model/RaycastHue.swift \
                            Tinycast/Features/Settings/AppSettingsKey.swift \
                            Tinycast/Features/AI/Model/AIRequest.swift \
