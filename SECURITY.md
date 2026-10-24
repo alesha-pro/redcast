@@ -1,29 +1,27 @@
 # Security Policy
 
-## Reporting a Vulnerability
+Redcast is a personal fork of [Tinycast](https://github.com/abue-ammar/tinycast), built from source on
+its owner's Mac. There are no releases or downloads to patch.
 
-Report privately through GitHub: **Security** tab → **Report a vulnerability**.
+## Reporting a vulnerability
 
-Include your macOS version, the Tinycast version and channel, reproduction steps, and the impact.
-Please don't disclose publicly until it's fixed.
+Report privately through GitHub: **Security** tab → **Report a vulnerability**. Include your macOS
+version, the Redcast commit (Settings → About shows it), reproduction steps and the impact. Please
+don't disclose it publicly until it's fixed.
 
-We'll respond as quickly as we can and keep you posted.
-
-## Supported Versions
-
-Current stable and beta only. Update (`brew upgrade --cask tinycast`) before reporting.
+A vulnerability that also affects Tinycast belongs upstream too.
 
 ## Scope
 
 Of particular interest:
 
-- **Accessibility (TCC)** — anything that widens what the paste grant enables.
-- **Clipboard history** — text and images cached on disk; unintended exposure or capture.
-- **Network** — Tinycast is offline by default and every networked feature is consent-gated. A path
-  that reaches the network without consent, or survives consent being withdrawn, is high severity.
+- **Accessibility (TCC)** — anything that widens what the paste or Screen Awareness grants enable.
+- **Agents** — a tool call that runs, writes or fetches without the consent its agent's permissions
+  require, or reaches outside the agent's folder or access level.
+- **Clipboard history and dictation history** — text and images on disk; unintended exposure.
+- **Network** — every networked feature is consent-gated. A path that reaches the network without
+  consent, or survives consent being withdrawn, is high severity.
+- **Keys** — API keys live in the Keychain; anything that sends one to a host other than its own.
 - **Hotkeys** — the in-house hotkey stack and the Input Monitoring grant.
-- **Signing and distribution** — the DMG and Homebrew cask chain.
 
-Out of scope: builds being self-signed rather than notarized (known, see
-[`docs/signing.md`](docs/signing.md)), and anything needing existing code execution or admin rights on
-the machine.
+Out of scope: anything that needs existing code execution or admin rights on the machine.

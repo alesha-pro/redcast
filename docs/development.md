@@ -1,6 +1,6 @@
 # Development
 
-The local loop: set up, build, run, regenerate. Shipping a build is [release.md](release.md);
+The local loop: set up, build, run, regenerate. Installing a build is [fork-tooling.md](fork-tooling.md#scriptsforkinstallsh);
 verifying a change is [testing.md](testing.md).
 
 ## Requirements
