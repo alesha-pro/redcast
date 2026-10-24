@@ -287,7 +287,9 @@ enum SettingsSearchCatalog {
             keywords: [
                 "sign in", "connect", "codex", "claude", "grok", "xai", "opencode", "cursor", "agent",
                 "api key", "connection", "base url", "openai", "anthropic", "ollama", "models",
-                "hide models"
+                "hide models",
+                // Fork: the Codex (ChatGPT) connection signs in with the ChatGPT plan.
+                "chatgpt", "chatgpt plan", "subscription", "oauth", "continue with chatgpt"
             ]),
         .init(.aiDefault, "Default model", keywords: ["llm", "gpt", "claude", "grok"]),
         .init(.aiDefault, "Reasoning effort", keywords: ["thinking", "effort", "deepseek"]),
@@ -367,6 +369,10 @@ enum SettingsSearchCatalog {
                 "tokens", "cost", "spend", "billing", "openrouter", "balance", "credits", "trend",
                 "quick actions", "management key", "provisioning key", "usage log", "clear log"
             ]),
+        // Fork: the plan's windows as the last reply reported them.
+        .init(
+            .aiUsage, "Codex limits",
+            keywords: ["chatgpt", "rate limit", "5-hour", "weekly", "plan", "reset", "remaining"]),
         .init(
             .aiSystemPrompt, "Send a system prompt",
             keywords: ["instructions", "persona"]),

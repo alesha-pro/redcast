@@ -9,6 +9,7 @@ enum AIProviderFactory {
         settings: AISettingsStore,
         subscription: ChatGPTSubscriptionManager,
         installedAI: InstalledAIManager,
+        codexPlan: CodexPlanAccounts,  // Fork: the Codex (ChatGPT) connections' sign-ins
         keyStore: KeychainSecretStore = .aiAPIKeys,
         guardrails: SystemLanguageModel.Guardrails = .default,
         toolServers: AIToolServerSession? = nil
@@ -58,6 +59,10 @@ enum AIProviderFactory {
             guard settings.isRouteEnabled(.api(connectionID)) else {
                 throw AIProviderError.unavailable(
                     String(localized: "\(connection.title) is disabled in AI Settings."))
+            }
+            // Fork: the ChatGPT plan signs in with OAuth, so it reads no API key.
+            if connection.provider == .codexPlan {
+                return codexPlan.provider(for: connection, model: model, effort: savedEffort)
             }
             let baseURL: URL
             do {

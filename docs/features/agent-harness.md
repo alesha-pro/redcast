@@ -227,6 +227,7 @@ rounds of the request being sent; "earlier turns" are history replies loaded fro
 | Anthropic (`api.anthropic.com`) and Anthropic-shaped gateways | `thinking` / `redacted_thinking` blocks where they streamed in the message | yes | never | — |
 | Gemini (`generativelanguage.googleapis.com`) | only the call's `extra_content.google.thought_signature` (upstream's) | signatures | — | — |
 | OpenAI (`api.openai.com`) | nothing | — | — | — |
+| Codex (ChatGPT) connection (Responses API) | `reasoning` items with `encrypted_content`, before the calls | yes | never | — |
 | Any other OpenAI-compatible host | as it came | yes | Always only | — |
 
 Nothing goes back from a reply another model wrote. While the connection's thinking is switched off

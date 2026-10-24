@@ -277,6 +277,7 @@ final class AIChatCoordinator {
             let provider = try? AIProviderFactory.make(
                 selection: selection, settings: core.aiSettings,
                 subscription: core.chatGPTSubscription, installedAI: core.installedAI,
+                codexPlan: core.codexPlan,  // Fork: Codex (ChatGPT) sign-ins
                 toolServers: servers)
         else { return nil }
         // Fork: a title is a side request no message keeps, so the usage log records it.
@@ -714,6 +715,7 @@ final class AIChatCoordinator {
         let made = try AIProviderFactory.make(
             selection: selection, settings: core.aiSettings,
             subscription: core.chatGPTSubscription, installedAI: core.installedAI,
+            codexPlan: core.codexPlan,  // Fork: Codex (ChatGPT) sign-ins
             toolServers: toolServers)
         return ChatCreativityProvider.wrapping(made, temperature: temperature(for: chat))  // Fork
     }

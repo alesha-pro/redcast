@@ -36,6 +36,9 @@ struct UsageSection: View {
         let openRouter = aiSettings.connections.filter {
             $0.provider == .openRouter && aiSettings.isRouteEnabled(.api($0.id))
         }
+        let codexPlans = aiSettings.connections.filter {
+            $0.provider == .codexPlan && aiSettings.isRouteEnabled(.api($0.id))
+        }
         Section {
             periodBar(interval: interval, now: now)
                 // Keyed on the request: a new period, or AI switched off, retires this load.
@@ -62,6 +65,9 @@ struct UsageSection: View {
             }
             ForEach(openRouter) { connection in
                 OpenRouterBalanceRow(connection: connection, showsName: openRouter.count > 1)
+            }
+            ForEach(codexPlans) { connection in
+                CodexPlanUsageRow(connection: connection, showsName: codexPlans.count > 1)
             }
             SettingsRow(
                 title: String(localized: "Usage log"),

@@ -1,0 +1,33 @@
+event: response.created
+data: {"type":"response.created","sequence_number":0,"response":{"id":"resp_fixture_2","status":"in_progress","output":[]}}
+
+event: response.output_item.added
+data: {"type":"response.output_item.added","sequence_number":1,"output_index":0,"item":{"id":"rs_fixture_2","type":"reasoning","summary":[]}}
+
+event: response.output_item.done
+data: {"type":"response.output_item.done","sequence_number":2,"output_index":0,"item":{"id":"rs_fixture_2","type":"reasoning","status":"completed","summary":[],"encrypted_content":"gAAAA_fixture_two"}}
+
+event: response.output_item.added
+data: {"type":"response.output_item.added","sequence_number":3,"output_index":1,"item":{"id":"fc_fixture_a","type":"function_call","status":"in_progress","call_id":"call_a","name":"read_file","arguments":""}}
+
+event: response.function_call_arguments.delta
+data: {"type":"response.function_call_arguments.delta","sequence_number":4,"item_id":"fc_fixture_a","output_index":1,"delta":"{\"path\":"}
+
+event: response.function_call_arguments.delta
+data: {"type":"response.function_call_arguments.delta","sequence_number":5,"item_id":"fc_fixture_a","output_index":1,"delta":"\"notes.md\"}"}
+
+event: response.output_item.added
+data: {"type":"response.output_item.added","sequence_number":6,"output_index":2,"item":{"id":"fc_fixture_b","type":"function_call","status":"in_progress","call_id":"call_b","name":"list_dir","arguments":""}}
+
+event: response.function_call_arguments.delta
+data: {"type":"response.function_call_arguments.delta","sequence_number":7,"item_id":"fc_fixture_b","output_index":2,"delta":"{}"}
+
+event: response.output_item.done
+data: {"type":"response.output_item.done","sequence_number":8,"output_index":1,"item":{"id":"fc_fixture_a","type":"function_call","status":"completed","call_id":"call_a","name":"read_file","arguments":"{\"path\":\"notes.md\"}"}}
+
+event: response.output_item.done
+data: {"type":"response.output_item.done","sequence_number":9,"output_index":2,"item":{"id":"fc_fixture_b","type":"function_call","status":"completed","call_id":"call_b","name":"list_dir","arguments":"{}"}}
+
+event: response.completed
+data: {"type":"response.completed","sequence_number":10,"response":{"id":"resp_fixture_2","status":"completed","usage":{"input_tokens":300,"output_tokens":30,"output_tokens_details":{"reasoning_tokens":12}}}}
+

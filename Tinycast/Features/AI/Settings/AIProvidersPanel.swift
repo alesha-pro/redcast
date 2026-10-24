@@ -45,6 +45,7 @@ struct AIProvidersPanel: View {
     @Environment(AISettingsStore.self) private var settings
     @Environment(ChatGPTSubscriptionManager.self) private var subscription
     @Environment(InstalledAIManager.self) private var installedAI
+    @Environment(CodexPlanAccounts.self) private var codexPlan  // Fork: Codex (ChatGPT) sign-ins
 
     let onDone: () -> Void
 
@@ -116,6 +117,7 @@ struct AIProvidersPanel: View {
         .onAppear {
             selection = selection ?? initialSelection
             loadKeyStatuses()
+            codexPlan.load(settings.connections)  // Fork: read when the panel opens, never at launch
             core.applyInstalledAILifecycle()
         }
         .onChange(of: selection) { modelQuery = "" }
@@ -172,6 +174,8 @@ struct AIProvidersPanel: View {
             Menu {
                 ForEach(AIProviderKind.allCases) { provider in
                     Button(provider.title) {
+                        // Fork: the ChatGPT plan has no key to edit; its page signs in.
+                        if provider == .codexPlan { selection = .api(codexPlan.add()); return }
                         editor = AIConnectionEditorTarget(
                             connection: AIConnection(provider: provider),
                             hasStoredKey: false, headers: [:], isNew: true)
@@ -268,7 +272,7 @@ struct AIProvidersPanel: View {
                         .textSelection(.enabled)
                 }
             case .api(let id):
-                if let connection = settings.connection(id: id) {
+                if let connection = settings.connection(id: id), connection.provider != .codexPlan {  // Fork
                     Button("Edit…") { edit(connection) }
                 }
             case .appleIntelligence:
@@ -550,6 +554,8 @@ struct AIProvidersPanel: View {
             modelsSection(
                 route: .api(connection.id),
                 models: connection.models.map { ProviderModel(id: $0, name: $0) })
+        } else if connection.provider == .codexPlan {  // Fork: signs in rather than holding a key
+            CodexPlanConnectionSections(connection: connection)
         } else {
             connectionSection(connection)
         }
@@ -700,6 +706,7 @@ struct AIProvidersPanel: View {
         case .api(let id):
             guard let connection = settings.connection(id: id) else { return "" }
             guard settings.isRouteEnabled(.api(id)) else { return String(localized: "Off") }
+            if connection.provider == .codexPlan { return codexPlan.caption(for: connection) }  // Fork
             if keyIsMissing(connection) { return String(localized: "Key missing") }
             let count = modelCount(connection.models.count)
             return connection.name.isEmpty ? count : "\(connection.provider.title) · \(count)"
@@ -848,6 +855,7 @@ struct AIProvidersPanel: View {
             try headerStore.removeSecret(for: connection.id)
             // Fork: the Usage section's OpenRouter management key goes with its connection.
             try KeychainSecretStore.openRouterManagementKeys.removeSecret(for: connection.id)
+            if connection.provider == .codexPlan { codexPlan.forget(connection.id) }  // Fork: its sign-in
             settings.removeConnection(id: connection.id)
             pendingRemoval = nil
             loadKeyStatuses()

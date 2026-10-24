@@ -25,6 +25,7 @@ open with an `## Invariants` section; read it before changing anything in that a
 [palette](features/palette.md) ·
 [launcher](features/launcher.md) ·
 [AI providers and chat](features/ai.md) ·
+[Codex (ChatGPT) provider](features/codex-provider.md) ·
 [quick actions](features/quick-actions.md) ·
 [screen awareness](features/screen-awareness.md) ·
 [voice AI](features/voice-ai.md) ·

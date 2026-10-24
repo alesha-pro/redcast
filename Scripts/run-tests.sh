@@ -1121,6 +1121,11 @@ run usage-dashboard-test   Tinycast/Features/AI/Model/AIRequest.swift \
                            Tinycast/Features/UsageDashboard/Service/UsageLedger.swift \
                            Tinycast/Features/UsageDashboard/Service/UsageRecordingProvider.swift \
                            Tinycast/Platform/AppPaths.swift
+run codex-plan-test        Tinycast/Features/CodexProvider/Model/*.swift \
+                           Tinycast/Features/AI/Model/*.swift \
+                           Tinycast/Features/ReasoningReplay/Model/*.swift \
+                           Tinycast/Features/Agents/Model/ChatToolContent.swift \
+                           Tinycast/Features/Settings/AppSettingsKey.swift
 AS=Tinycast/Features/AgentSessions
 run slow agent-sessions-test $L/SearchRelevance.swift $AS/Model/*.swift \
                            $AS/Service/AgentSessionsScanner.swift $AS/Service/AgentTranscriptSearch.swift \

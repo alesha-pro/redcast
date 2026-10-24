@@ -91,6 +91,9 @@ final class AppCore {
     let agentStore = AgentStore()
     let chatGPTSubscription = ChatGPTSubscriptionManager()
     let installedAI = InstalledAIManager()
+    // Fork: Codex (ChatGPT) connections; lazy, so nothing about them runs at launch.
+    @ObservationIgnored private(set) lazy var codexPlan = CodexPlanAccounts(
+        settings: aiSettings, showMessage: { [unowned self] in self.showMessage($0) })
     @ObservationIgnored private var appliedLaunchRevisions: [InstalledAIKind: Int] = [:]
 
     /// Set when a layout editor should open with Settings; the pane consumes it.
@@ -724,7 +727,7 @@ final class AppCore {
         }
         let provider = try AIProviderFactory.make(
             selection: selection, settings: aiSettings, subscription: chatGPTSubscription,
-            installedAI: installedAI,
+            installedAI: installedAI, codexPlan: codexPlan,  // Fork: Codex (ChatGPT) sign-ins
             guardrails: .permissiveContentTransformations)
         // Fork: no chat keeps a Quick Action's reply, so the usage log records what it reported.
         return UsageRecordingProvider.wrapping(provider, for: selection, as: .quickAction)

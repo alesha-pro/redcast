@@ -5881,6 +5881,122 @@
         }
       }
     },
+    "%@: %lld%% left" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@: %2$lld %% übrig"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@: %2$lld%% left"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@: queda el %2$lld %%"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ : %2$lld %% restants"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@：残り%2$lld%%"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@: %2$lld%% 남음"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@: %2$lld%% restantes"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@: осталось %2$lld%%"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@：剩余 %2$lld%%"
+          }
+        }
+      }
+    },
+    "%@: %lld%% left, resets %@" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@: %2$lld %% übrig, wird %3$@ zurückgesetzt"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@: %2$lld%% left, resets %3$@"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@: queda el %2$lld %%, se restablece %3$@"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ : %2$lld %% restants, réinitialisation %3$@"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@：残り%2$lld%%、%3$@にリセット"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@: %2$lld%% 남음, %3$@ 초기화"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@: %2$lld%% restantes, redefine %3$@"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@: осталось %2$lld%%, сброс %3$@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@：剩余 %2$lld%%，%3$@重置"
+          }
+        }
+      }
+    },
     "%@: app %lld needs an “app” and a “display.id”" : {
       "localizations" : {
         "de" : {
@@ -27413,6 +27529,58 @@
         }
       }
     },
+    "Another sign-in is already in progress." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eine andere Anmeldung läuft bereits."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ya hay otro inicio de sesión en curso."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Une autre connexion est déjà en cours."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "別のサインインがすでに進行中です。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "다른 로그인이 이미 진행 중입니다."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Outro início de sessão já está em andamento."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Другой вход уже выполняется."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "另一个登录已在进行中。"
+          }
+        }
+      }
+    },
     "Another sign-in is still waiting. Finish it first." : {
       "localizations" : {
         "de" : {
@@ -30039,6 +30207,58 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "作为消息"
+          }
+        }
+      }
+    },
+    "As of %@" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stand: %@"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Datos de %@"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Données de %@"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@時点"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 기준"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dados de %@"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Данные: %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "截至%@"
           }
         }
       }
@@ -38416,6 +38636,110 @@
         }
       }
     },
+    "ChatGPT plan usage is unavailable right now. Try again shortly." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Nutzung des ChatGPT-Tarifs ist gerade nicht verfügbar. Versuche es gleich noch einmal."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El uso del plan de ChatGPT no está disponible ahora. Inténtalo de nuevo en breve."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L’utilisation de l’abonnement ChatGPT est indisponible pour le moment. Réessayez dans un instant."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "現在ChatGPTプランを利用できません。しばらくしてからもう一度お試しください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "지금은 ChatGPT 요금제를 사용할 수 없습니다. 잠시 후 다시 시도하세요."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O uso do plano do ChatGPT não está disponível agora. Tente novamente em instantes."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сейчас тариф ChatGPT недоступен. Повторите попытку чуть позже."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ChatGPT 套餐暂时无法使用，请稍后再试。"
+          }
+        }
+      }
+    },
+    "ChatGPT usage settings" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nutzungseinstellungen in ChatGPT"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ajustes de uso de ChatGPT"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Réglages d’utilisation de ChatGPT"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ChatGPTの使用量設定"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ChatGPT 사용량 설정"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ajustes de uso do ChatGPT"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Настройки использования в ChatGPT"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ChatGPT 用量设置"
+          }
+        }
+      }
+    },
     "Chats can't be saved on this Mac right now." : {
       "localizations" : {
         "de" : {
@@ -43843,6 +44167,58 @@
         }
       }
     },
+    "Codex limits" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Codex-Limits"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Límites de Codex"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Limites de Codex"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Codexの上限"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Codex 한도"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Limites do Codex"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Лимиты Codex"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Codex 限额"
+          }
+        }
+      }
+    },
     "Codex requires its app-server adapter." : {
       "localizations" : {
         "de" : {
@@ -46716,6 +47092,58 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "在 AI 聊天中继续"
+          }
+        }
+      }
+    },
+    "Continue with ChatGPT" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mit ChatGPT fortfahren"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Continuar con ChatGPT"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Continuer avec ChatGPT"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ChatGPTで続ける"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ChatGPT로 계속하기"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Continuar com o ChatGPT"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Продолжить с ChatGPT"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "使用 ChatGPT 继续"
           }
         }
       }
@@ -67550,6 +67978,58 @@
         }
       }
     },
+    "Finish signing in on the page that opened." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Schließe die Anmeldung auf der geöffneten Seite ab."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Termina de iniciar sesión en la página que se abrió."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Terminez la connexion sur la page qui s’est ouverte."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "開いたページでサインインを完了してください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "열린 페이지에서 로그인을 완료하세요."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Conclua o início de sessão na página que foi aberta."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Завершите вход на открывшейся странице."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请在打开的页面上完成登录。"
+          }
+        }
+      }
+    },
     "Finish the current dictation first." : {
       "localizations" : {
         "de" : {
@@ -85711,6 +86191,58 @@
         }
       }
     },
+    "Manage Usage" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nutzung verwalten"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gestionar uso"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gérer l’utilisation"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "使用量を管理"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "사용량 관리"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gerenciar uso"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Управлять использованием"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "管理用量"
+          }
+        }
+      }
+    },
     "Management Key" : {
       "localizations" : {
         "de" : {
@@ -96001,6 +96533,58 @@
         }
       }
     },
+    "No limits yet. They arrive with your next reply." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Noch keine Limits. Sie kommen mit der nächsten Antwort."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aún no hay límites. Llegarán con tu próxima respuesta."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pas encore de limites. Elles arriveront avec la prochaine réponse."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "まだ上限の情報はありません。次の返信と一緒に届きます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "아직 한도 정보가 없습니다. 다음 응답과 함께 받아옵니다."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ainda não há limites. Eles chegam com a próxima resposta."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Лимитов пока нет. Они придут вместе со следующим ответом."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "暂无限额信息，会随下一次回复一起送达。"
+          }
+        }
+      }
+    },
     "No links in clipboard history" : {
       "localizations" : {
         "de" : {
@@ -105344,6 +105928,168 @@
         }
       }
     },
+    "OpenAI no longer accepts this sign-in. Sign out and sign in again." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OpenAI akzeptiert diese Anmeldung nicht mehr. Melde dich ab und erneut an."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OpenAI ya no acepta este inicio de sesión. Cierra sesión y vuelve a iniciarla."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OpenAI n’accepte plus cette connexion. Déconnectez-vous puis reconnectez-vous."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OpenAIはこのサインインを受け付けなくなりました。サインアウトしてからもう一度サインインしてください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OpenAI가 더 이상 이 로그인을 허용하지 않습니다. 로그아웃한 후 다시 로그인하세요."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A OpenAI não aceita mais este início de sessão. Encerre a sessão e inicie-a novamente."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OpenAI больше не принимает этот вход. Выйдите и войдите снова."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OpenAI 不再接受此登录。请退出登录后重新登录。"
+          }
+        }
+      }
+    },
+    "OpenAI refused the sign-in (HTTP %lld)." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OpenAI hat die Anmeldung abgelehnt (HTTP %lld)."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OpenAI rechazó el inicio de sesión (HTTP %lld)."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OpenAI a refusé la connexion (HTTP %lld)."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OpenAIがサインインを拒否しました（HTTP %lld）。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OpenAI가 로그인을 거부했습니다(HTTP %lld)."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A OpenAI recusou o início de sessão (HTTP %lld)."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OpenAI отклонил вход (HTTP %lld)."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OpenAI 拒绝了登录（HTTP %lld）。"
+          }
+        }
+      }
+    },
+    "OpenAI returned a sign-in Tinycast could not verify." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OpenAI hat eine Anmeldung zurückgegeben, die Redcast nicht prüfen konnte."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OpenAI returned a sign-in Redcast could not verify."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OpenAI devolvió un inicio de sesión que Redcast no pudo verificar."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OpenAI a renvoyé une connexion que Redcast n’a pas pu vérifier."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OpenAIから返されたサインインをRedcastで確認できませんでした。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OpenAI가 반환한 로그인을 Redcast에서 확인할 수 없습니다."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A OpenAI devolveu um início de sessão que o Redcast não conseguiu verificar."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OpenAI вернул данные входа, которые Redcast не смог проверить."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OpenAI 返回的登录信息无法由 Redcast 验证。"
+          }
+        }
+      }
+    },
     "OpenCode could not finish the response." : {
       "localizations" : {
         "de" : {
@@ -109194,6 +109940,58 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "浮动编辑器中的纯 Markdown。"
+          }
+        }
+      }
+    },
+    "Plan usage not allowed" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tarifnutzung nicht erlaubt"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uso del plan no permitido"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Utilisation de l’abonnement non autorisée"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "プランの利用が許可されていません"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "요금제 사용이 허용되지 않음"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uso do plano não permitido"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Использование тарифа не разрешено"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未允许使用套餐"
           }
         }
       }
@@ -113876,6 +114674,58 @@
         }
       }
     },
+    "Read from your own replies; nothing is fetched in the background." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aus deinen eigenen Antworten gelesen; im Hintergrund wird nichts abgerufen."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Se leen de tus propias respuestas; no se consulta nada en segundo plano."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lues dans vos propres réponses ; rien n’est récupéré en arrière-plan."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自分の返信から読み取ります。バックグラウンドでは何も取得しません。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "내 응답에서 읽어 옵니다. 백그라운드에서는 아무것도 가져오지 않습니다."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lidos das suas próprias respostas; nada é buscado em segundo plano."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Берутся из ваших собственных ответов; в фоне ничего не запрашивается."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "从你自己的回复中读取；不会在后台获取任何内容。"
+          }
+        }
+      }
+    },
     "Read only" : {
       "localizations" : {
         "de" : {
@@ -115674,6 +116524,58 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "刷新汇率"
+          }
+        }
+      }
+    },
+    "Refresh Models" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Modelle aktualisieren"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Actualizar modelos"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Actualiser les modèles"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "モデルを更新"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "모델 새로고침"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Atualizar modelos"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Обновить модели"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "刷新模型"
           }
         }
       }
@@ -118415,6 +119317,58 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "正在替换 Redcast…"
+          }
+        }
+      }
+    },
+    "Replies count against your plan’s Codex usage." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Antworten zählen zur Codex-Nutzung deines Tarifs."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Las respuestas cuentan para el uso de Codex de tu plan."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Les réponses sont décomptées de l’utilisation Codex de votre abonnement."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "返信はプランのCodex使用量に含まれます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "응답은 요금제의 Codex 사용량에서 차감됩니다."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "As respostas contam para o uso do Codex do seu plano."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ответы расходуют лимит Codex вашего тарифа."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "回复会计入你套餐的 Codex 用量。"
           }
         }
       }
@@ -132950,6 +133904,58 @@
         }
       }
     },
+    "Sign in with ChatGPT in Settings → AI → Providers." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Melde dich unter „Einstellungen → KI → Anbieter“ mit ChatGPT an."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inicia sesión con ChatGPT en Ajustes → IA → Proveedores."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Connectez-vous avec ChatGPT dans Réglages → IA → Fournisseurs."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "設定 → AI → プロバイダでChatGPTにサインインしてください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "설정 → AI → 제공자에서 ChatGPT로 로그인하세요."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inicie sessão com o ChatGPT em Ajustes → IA → Provedores."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Войдите через ChatGPT в разделе «Настройки» → «ИИ» → «Провайдеры»."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请在“设置”→“AI”→“提供商”中使用 ChatGPT 登录。"
+          }
+        }
+      }
+    },
     "Sign in with `%@` first." : {
       "localizations" : {
         "de" : {
@@ -133158,6 +134164,58 @@
         }
       }
     },
+    "Sign-in failed" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Anmeldung fehlgeschlagen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Error al iniciar sesión"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Échec de la connexion"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "サインインできませんでした"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "로그인 실패"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Falha ao iniciar sessão"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не удалось войти"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "登录失败"
+          }
+        }
+      }
+    },
     "Sign-in required" : {
       "localizations" : {
         "de" : {
@@ -133314,6 +134372,58 @@
         }
       }
     },
+    "Sign-in was cancelled in the browser." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Anmeldung wurde im Browser abgebrochen."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Se canceló el inicio de sesión en el navegador."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La connexion a été annulée dans le navigateur."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ブラウザでサインインがキャンセルされました。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "브라우저에서 로그인이 취소되었습니다."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O início de sessão foi cancelado no navegador."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Вход отменён в браузере."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已在浏览器中取消登录。"
+          }
+        }
+      }
+    },
     "Sign-in was declined." : {
       "localizations" : {
         "de" : {
@@ -133414,6 +134524,110 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "已登录"
+          }
+        }
+      }
+    },
+    "Signed out on this Mac, but OpenAI did not confirm it. Disconnect the app in ChatGPT settings if you need to." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Auf diesem Mac abgemeldet, aber OpenAI hat es nicht bestätigt. Trenne die App bei Bedarf in den ChatGPT-Einstellungen."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Se cerró la sesión en este Mac, pero OpenAI no lo confirmó. Si lo necesitas, desconecta la app en los ajustes de ChatGPT."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Déconnecté sur ce Mac, mais OpenAI ne l’a pas confirmé. Si besoin, déconnectez l’app dans les réglages de ChatGPT."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このMacではサインアウトしましたが、OpenAIからの確認がありませんでした。必要に応じてChatGPTの設定でアプリの接続を解除してください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "이 Mac에서는 로그아웃했지만 OpenAI가 확인하지 않았습니다. 필요하면 ChatGPT 설정에서 앱 연결을 해제하세요."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A sessão foi encerrada neste Mac, mas a OpenAI não confirmou. Se precisar, desconecte o app nos ajustes do ChatGPT."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Выход на этом Mac выполнен, но OpenAI его не подтвердил. При необходимости отключите приложение в настройках ChatGPT."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已在这台 Mac 上退出登录，但 OpenAI 未确认。如有需要，请在 ChatGPT 设置中断开此 App。"
+          }
+        }
+      }
+    },
+    "Signs in with OpenAI’s Sign in with ChatGPT for open-source apps. Tokens stay in your login Keychain." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Meldet sich über „Sign in with ChatGPT“ von OpenAI für Open-Source-Apps an. Tokens bleiben in deinem Anmeldeschlüsselbund."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inicia sesión con Sign in with ChatGPT de OpenAI para apps de código abierto. Los tokens se quedan en tu llavero de inicio de sesión."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Se connecte via Sign in with ChatGPT d’OpenAI pour les apps open source. Les jetons restent dans votre trousseau de session."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "オープンソースアプリ向けのOpenAI「Sign in with ChatGPT」でサインインします。トークンはログインキーチェーンに保存されます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "오픈 소스 앱용 OpenAI Sign in with ChatGPT로 로그인합니다. 토큰은 로그인 키체인에 보관됩니다."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inicia sessão com o Sign in with ChatGPT da OpenAI para apps de código aberto. Os tokens ficam no seu porta-chaves de sessão."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Вход через Sign in with ChatGPT от OpenAI для приложений с открытым кодом. Токены хранятся в связке ключей входа."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "通过 OpenAI 面向开源 App 的 Sign in with ChatGPT 登录。令牌保存在你的登录钥匙串中。"
           }
         }
       }
@@ -140553,6 +141767,58 @@
         }
       }
     },
+    "That is a different ChatGPT account. Add another connection for it." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Das ist ein anderes ChatGPT-Konto. Füge dafür eine weitere Verbindung hinzu."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esa es otra cuenta de ChatGPT. Añade otra conexión para ella."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "C’est un autre compte ChatGPT. Ajoutez une autre connexion pour celui-ci."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "別のChatGPTアカウントです。そのアカウント用に接続をもう1つ追加してください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "다른 ChatGPT 계정입니다. 해당 계정용 연결을 하나 더 추가하세요."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Essa é outra conta do ChatGPT. Adicione outra conexão para ela."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Это другая учётная запись ChatGPT. Добавьте для неё отдельное подключение."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "这是另一个 ChatGPT 账户，请为它另外添加一个连接。"
+          }
+        }
+      }
+    },
     "That repository or branch wasn't found. A private repository can't be read." : {
       "localizations" : {
         "de" : {
@@ -140987,6 +142253,58 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "API 密钥被拒绝。请检查后重试。"
+          }
+        }
+      }
+    },
+    "The ChatGPT sign-in could not be refreshed. Try again shortly." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die ChatGPT-Anmeldung konnte nicht erneuert werden. Versuche es gleich noch einmal."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pudo renovar el inicio de sesión de ChatGPT. Inténtalo de nuevo en breve."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La connexion ChatGPT n’a pas pu être renouvelée. Réessayez dans un instant."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ChatGPTのサインインを更新できませんでした。しばらくしてからもう一度お試しください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ChatGPT 로그인을 갱신할 수 없습니다. 잠시 후 다시 시도하세요."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Não foi possível renovar o início de sessão do ChatGPT. Tente novamente em instantes."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не удалось обновить вход в ChatGPT. Повторите попытку чуть позже."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法刷新 ChatGPT 登录，请稍后再试。"
           }
         }
       }
@@ -148071,6 +149389,58 @@
         }
       }
     },
+    "This ChatGPT account cannot use its plan in other apps." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dieses ChatGPT-Konto kann seinen Tarif nicht in anderen Apps nutzen."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esta cuenta de ChatGPT no puede usar su plan en otras apps."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ce compte ChatGPT ne peut pas utiliser son abonnement dans d’autres apps."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このChatGPTアカウントでは、ほかのアプリでプランを利用できません。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "이 ChatGPT 계정은 다른 앱에서 요금제를 사용할 수 없습니다."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esta conta do ChatGPT não pode usar o plano em outros apps."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Эта учётная запись ChatGPT не может использовать свой тариф в других приложениях."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此 ChatGPT 账户无法在其他 App 中使用其套餐。"
+          }
+        }
+      }
+    },
     "This Mac does not support Apple Intelligence." : {
       "localizations" : {
         "de" : {
@@ -150693,6 +152063,58 @@
         }
       }
     },
+    "This sign-in did not allow ChatGPT plan usage. Sign out and sign in again." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diese Anmeldung erlaubt keine Nutzung des ChatGPT-Tarifs. Melde dich ab und erneut an."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Este inicio de sesión no permitió usar el plan de ChatGPT. Cierra sesión y vuelve a iniciarla."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cette connexion n’a pas autorisé l’utilisation de l’abonnement ChatGPT. Déconnectez-vous puis reconnectez-vous."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このサインインではChatGPTプランの利用が許可されていません。サインアウトしてからもう一度サインインしてください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "이 로그인에서는 ChatGPT 요금제 사용을 허용하지 않았습니다. 로그아웃한 후 다시 로그인하세요."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Este início de sessão não permitiu o uso do plano do ChatGPT. Encerre a sessão e inicie-a novamente."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "При этом входе не было разрешено использование тарифа ChatGPT. Выйдите и войдите снова."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此次登录未允许使用 ChatGPT 套餐。请退出登录后重新登录。"
+          }
+        }
+      }
+    },
     "This version of Notification Center exposes no dismiss control Tinycast can use." : {
       "localizations" : {
         "de" : {
@@ -151689,6 +153111,64 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Redcast 无法为 %@ 构造请求。"
+          }
+        }
+      }
+    },
+    "Tinycast could not open its sign-in callback on this Mac." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Redcast konnte den Rückruf für die Anmeldung auf diesem Mac nicht öffnen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Redcast could not open its sign-in callback on this Mac."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Redcast no pudo abrir su retorno de inicio de sesión en este Mac."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Redcast n’a pas pu ouvrir son retour de connexion sur ce Mac."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "RedcastはこのMacでサインインのコールバックを開けませんでした。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Redcast가 이 Mac에서 로그인 콜백을 열 수 없습니다."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O Redcast não conseguiu abrir o retorno de início de sessão neste Mac."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Redcast не смог открыть адрес возврата для входа на этом Mac."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Redcast 无法在这台 Mac 上打开登录回调。"
           }
         }
       }
@@ -161094,6 +162574,214 @@
         }
       }
     },
+    "Uses your ChatGPT plan’s Codex usage, not an API key." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nutzt das Codex-Kontingent deines ChatGPT-Tarifs, keinen API-Schlüssel."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usa el uso de Codex de tu plan de ChatGPT, no una clave de API."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Utilise le quota Codex de votre abonnement ChatGPT, pas une clé API."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "APIキーではなく、ChatGPTプランのCodex使用量を使います。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "API 키가 아니라 ChatGPT 요금제의 Codex 사용량을 사용합니다."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usa o uso do Codex do seu plano do ChatGPT, não uma chave de API."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Расходует лимит Codex вашего тарифа ChatGPT, а не ключ API."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "使用你 ChatGPT 套餐中的 Codex 用量，而不是 API 密钥。"
+          }
+        }
+      }
+    },
+    "Using ChatGPT plan" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ChatGPT-Tarif wird genutzt"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usando el plan de ChatGPT"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abonnement ChatGPT utilisé"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ChatGPTプランを使用中"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ChatGPT 요금제 사용 중"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usando o plano do ChatGPT"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Используется тариф ChatGPT"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在使用 ChatGPT 套餐"
+          }
+        }
+      }
+    },
+    "Using your ChatGPT plan does not support this request." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mit deinem ChatGPT-Tarif ist diese Anfrage nicht möglich."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El uso de tu plan de ChatGPT no admite esta solicitud."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Votre abonnement ChatGPT ne prend pas en charge cette requête."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ChatGPTプランではこのリクエストに対応していません。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ChatGPT 요금제로는 이 요청을 지원하지 않습니다."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O uso do seu plano do ChatGPT não suporta esta solicitação."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Тариф ChatGPT не поддерживает такой запрос."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "使用 ChatGPT 套餐时不支持此请求。"
+          }
+        }
+      }
+    },
+    "Using your ChatGPT plan does not support “%@”." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mit deinem ChatGPT-Tarif ist „%@“ nicht möglich."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El uso de tu plan de ChatGPT no admite «%@»."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Votre abonnement ChatGPT ne prend pas en charge « %@ »."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ChatGPTプランでは「%@」に対応していません。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ChatGPT 요금제로는 “%@”을(를) 지원하지 않습니다."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O uso do seu plano do ChatGPT não suporta “%@”."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Тариф ChatGPT не поддерживает «%@»."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "使用 ChatGPT 套餐时不支持“%@”。"
+          }
+        }
+      }
+    },
     "Value" : {
       "comment" : "The secret value of an HTTP header",
       "localizations" : {
@@ -162089,6 +163777,58 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "正在等待登录…"
+          }
+        }
+      }
+    },
+    "Waiting for the browser…" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Warten auf den Browser …"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esperando al navegador…"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "En attente du navigateur…"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ブラウザを待っています…"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "브라우저를 기다리는 중…"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aguardando o navegador…"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ожидание браузера…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在等待浏览器…"
           }
         }
       }
@@ -165227,6 +166967,214 @@
         }
       }
     },
+    "Your ChatGPT plan’s usage limit is reached. It resets %@." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Das Nutzungslimit deines ChatGPT-Tarifs ist erreicht. Es wird %@ zurückgesetzt."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Se alcanzó el límite de uso de tu plan de ChatGPT. Se restablece %@."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La limite d’utilisation de votre abonnement ChatGPT est atteinte. Elle sera réinitialisée %@."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ChatGPTプランの使用上限に達しました。%@にリセットされます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ChatGPT 요금제의 사용 한도에 도달했습니다. %@ 초기화됩니다."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O limite de uso do seu plano do ChatGPT foi atingido. Ele será redefinido %@."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Лимит тарифа ChatGPT исчерпан. Он сбросится %@."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你的 ChatGPT 套餐已达到用量上限，将于%@重置。"
+          }
+        }
+      }
+    },
+    "Your ChatGPT plan’s usage limit is reached. Review your plan or this app’s limit in ChatGPT settings → Usage." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Das Nutzungslimit deines ChatGPT-Tarifs ist erreicht. Prüfe deinen Tarif oder das Limit dieser App in den ChatGPT-Einstellungen unter „Nutzung“."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Se alcanzó el límite de uso de tu plan de ChatGPT. Revisa tu plan o el límite de esta app en los ajustes de ChatGPT → Uso."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La limite d’utilisation de votre abonnement ChatGPT est atteinte. Vérifiez votre abonnement ou la limite de cette app dans les réglages de ChatGPT → Utilisation."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ChatGPTプランの使用上限に達しました。ChatGPTの設定 → 使用量で、プランまたはこのアプリの上限を確認してください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ChatGPT 요금제의 사용 한도에 도달했습니다. ChatGPT 설정 → 사용량에서 요금제나 이 앱의 한도를 확인하세요."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O limite de uso do seu plano do ChatGPT foi atingido. Confira seu plano ou o limite deste app nos ajustes do ChatGPT → Uso."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Лимит тарифа ChatGPT исчерпан. Проверьте тариф или лимит этого приложения в настройках ChatGPT → «Использование»."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你的 ChatGPT 套餐已达到用量上限。请在 ChatGPT 设置 →“用量”中查看你的套餐或此 App 的限额。"
+          }
+        }
+      }
+    },
+    "Your ChatGPT sign-in has expired." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deine ChatGPT-Anmeldung ist abgelaufen."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tu inicio de sesión de ChatGPT caducó."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Votre connexion ChatGPT a expiré."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ChatGPTのサインインの有効期限が切れました。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ChatGPT 로그인이 만료되었습니다."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Seu início de sessão do ChatGPT expirou."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Срок действия входа в ChatGPT истёк."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你的 ChatGPT 登录已过期。"
+          }
+        }
+      }
+    },
+    "Your ChatGPT sign-in has expired. Sign in again in Settings → AI → Providers." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deine ChatGPT-Anmeldung ist abgelaufen. Melde dich unter „Einstellungen → KI → Anbieter“ erneut an."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tu inicio de sesión de ChatGPT caducó. Vuelve a iniciar sesión en Ajustes → IA → Proveedores."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Votre connexion ChatGPT a expiré. Reconnectez-vous dans Réglages → IA → Fournisseurs."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ChatGPTのサインインの有効期限が切れました。設定 → AI → プロバイダでもう一度サインインしてください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ChatGPT 로그인이 만료되었습니다. 설정 → AI → 제공자에서 다시 로그인하세요."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Seu início de sessão do ChatGPT expirou. Inicie sessão novamente em Ajustes → IA → Provedores."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Срок действия входа в ChatGPT истёк. Войдите снова в разделе «Настройки» → «ИИ» → «Провайдеры»."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你的 ChatGPT 登录已过期。请在“设置”→“AI”→“提供商”中重新登录。"
+          }
+        }
+      }
+    },
     "Your Codex MCP server “%@” cannot be kept out of a Tinycast chat, because a dot or an equals sign in its name cannot be addressed. Rename it in your Codex configuration." : {
       "localizations" : {
         "de" : {
@@ -165443,6 +167391,58 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "你自己的 SearXNG，需开启 JSON 输出。无限制且私密。"
+          }
+        }
+      }
+    },
+    "You’re using your ChatGPT plan" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Du nutzt deinen ChatGPT-Tarif"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Estás usando tu plan de ChatGPT"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vous utilisez votre abonnement ChatGPT"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ChatGPTプランを使用しています"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ChatGPT 요금제를 사용하고 있습니다"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Você está usando seu plano do ChatGPT"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Вы пользуетесь тарифом ChatGPT"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你正在使用 ChatGPT 套餐"
           }
         }
       }

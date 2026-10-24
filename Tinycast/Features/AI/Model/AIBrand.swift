@@ -47,7 +47,7 @@ enum AIBrand: String, CaseIterable, Sendable {
     /// A vendor endpoint names the brand; aggregators only know it by the model id.
     static func resolve(provider: AIProviderKind, model: String) -> AIBrand? {
         switch provider {
-        case .openAI: return .openAI
+        case .openAI, .codexPlan: return .openAI  // Fork: the ChatGPT plan is OpenAI's
         case .anthropic: return .claude
         case .gemini: return .gemini
         case .openRouter, .openAICompatible: return resolve(model: model)
