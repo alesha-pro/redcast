@@ -338,6 +338,9 @@ final class ExtensionManager: ExtensionRuntimeDelegate, ExtensionHostContext {
         updates[installed.manifest.name] = nil
     }
 
+    /// Fork: the Extension Store's Update badge; the commit each store install came from.
+    var storeCommits: [String: String?] { storeVersions.commits }
+
     /// A folder or GitHub install is the user's own copy, so the store has nothing to offer it.
     private func untrack(_ name: String) {
         storeVersions.forget(name)

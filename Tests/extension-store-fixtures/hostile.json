@@ -1,0 +1,60 @@
+{
+ "total_results": "7",
+ "unknown_top_level": {"anything": [1, 2, 3]},
+ "data": [
+  {
+   "id": "fixture-windows-only",
+   "name": "windows-only",
+   "title": "Windows Only",
+   "platforms": ["Windows"],
+   "status": "active",
+   "download_count": 10
+  },
+  {
+   "id": "fixture-deprecated",
+   "name": "deprecated",
+   "title": "Deprecated",
+   "status": "deprecated",
+   "download_count": 10
+  },
+  {
+   "id": "fixture-kill-listed",
+   "name": "kill-listed",
+   "title": "Kill Listed",
+   "status": "active",
+   "kill_listed_at": 1790000000
+  },
+  {
+   "name": "no-id",
+   "title": "No Id"
+  },
+  "not an object",
+  {
+   "id": "fixture-odd-types",
+   "name": "odd-types",
+   "title": 42,
+   "description": null,
+   "author": "a string where an object belongs",
+   "owner": {"handle": "odd-owner", "name": ""},
+   "icons": {"light": "http://insecure.example/icon.png", "dark": "https://files.raycast.com/dark"},
+   "commands": [{"title": "One"}, {"name": "two"}, {"title": ""}, 7, {"title": "Three", "description": 9}],
+   "categories": ["Productivity", 5, "", "Developer Tools"],
+   "download_count": "1234",
+   "created_at": "1791000000",
+   "updated_at": 1791500000.75,
+   "is_new": "yes",
+   "commit_sha": ["not", "a", "string"],
+   "kill_listed_at": 0,
+   "platforms": ["MACOS"],
+   "a_field_from_the_future": {"nested": true}
+  },
+  {
+   "id": "fixture-minimal",
+   "name": "minimal",
+   "store_url": "https://www.raycast.com/minimal-owner/minimal",
+   "kill_listed_at": null,
+   "platforms": null,
+   "status": null
+  }
+ ]
+}

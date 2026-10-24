@@ -475,7 +475,9 @@ Settings → Extensions offers four routes, under **Install New**:
 1. **Search extensions** — searches the Raycast Store and installs the bundle it already built. Nothing
    is compiled, so no Node or package manager is involved. The search is
    `raycast.com/frontend_api/extensions/search`, the endpoint the store's own site uses; it is
-   unofficial, so Install from GitHub is the way in when it changes.
+   unofficial, so Install from GitHub is the way in when it changes. The fork's
+   [Extension Store](extension-store.md) command browses the same store in the palette, and the
+   panel's Open Extension Store button opens it.
 2. **Install from GitHub** — builds one extension from its source on this Mac. See below.
 3. **Import from Raycast** — copies the already-built bundles out of a local Raycast. Nothing is
    compiled, so no Node, npm or network is involved. The pane also scans whenever it opens, and says

@@ -51,6 +51,7 @@ enum CommandID: String, CaseIterable, Sendable {
     case exportSettings = "command:export-settings"
     case importSettings = "command:import-settings"
     case importFromRaycast = "command:import-from-raycast"
+    case extensionStore = "command:extension-store"  // Fork: the Raycast Store, browsed in the palette
     case checkForUpdates = "command:check-for-updates"
     case settings = "command:settings"
     case about = "command:about"
@@ -112,6 +113,7 @@ enum CommandID: String, CaseIterable, Sendable {
         case .exportSettings: return "Export Backup"
         case .importSettings: return "Import Backup"
         case .importFromRaycast: return "Import from Raycast"
+        case .extensionStore: return "Extension Store"  // Fork: the Extension Store's command
         case .checkForUpdates: return "Check for Updates"
         case .settings: return "Tinycast Settings"
         case .about: return "About Tinycast"
@@ -170,6 +172,7 @@ enum CommandID: String, CaseIterable, Sendable {
         case .exportSettings: return "square.and.arrow.up"
         case .importSettings: return "square.and.arrow.down"
         case .importFromRaycast: return "arrow.down.doc"
+        case .extensionStore: return "storefront"  // Fork: the Extension Store's command
         case .checkForUpdates: return "arrow.down.circle"
         case .settings: return "gearshape"
         case .about: return "info.circle"
@@ -206,6 +209,12 @@ enum CommandID: String, CaseIterable, Sendable {
                 + [
                     String(localized: "transcripts", comment: "A word Dictation History is found by"),
                     String(localized: "voice history", comment: "Words Dictation History is found by")
+                ]
+        case .extensionStore:
+            ["store", "extensions", "raycast store", "install extensions"]
+                + [
+                    String(localized: "store", comment: "A word the Extension Store is found by"),
+                    String(localized: "extensions", comment: "A word the Extension Store is found by")
                 ]
         default: []
         }

@@ -203,6 +203,7 @@ If a change touches anything in the right column, the harness on the left is man
 | `voice-coordinator-test` | `VoiceCloudTranscriber` and `VoiceAskCoordinator` — consent saving what it named, no rerouting, session tokens, supersede, dismissal and the recorder's start/stop order; dictation modes on the capsule; the app Dictation types into read as the capsule shows and riding with the recording, never for Tinycast's own editors, without a screenshot for a model that cannot see one, and left behind when late; the consent dialog naming the window title; Edit Selection by Voice replacing, showing a moved selection and refusing an unreadable one; an agent answering, and the refusal while busy; what Dictation History is handed (the model, mode and rewritten transcript noted, an Ask's and an edit's reply with what was said, nothing for no speech); recorded network, microphone and injection effects only |
 | `quick-ai-tools-test` | `QuickAITools/Model/` and `AgentDefaultStore` (fork) — the clock across zones and quarter-hour edges, the briefing with and without tools, search or an MCP server, the offering rules for Quick AI with Web Search on and off and with and without an agent, which agent answers in Quick AI and in AI Chat's new chats and when a default is worked out at all, which open chats keep a No Agent, when the default falls back to none, and both settings across launches |
 | `dictation-history-test` | `DictationHistory/Model/` and `DictationHistoryFile` (fork) — the line format both ways, a pinned first-build line, a later build's line read and kept byte for byte, unreadable and cut-short lines, the text cap, the retention spans, append, the trim and its slack, load, delete, clear and Off on a scratch folder, and the every-word folded search; an Ask or an edit kept only with the voice-replies switch on |
+| `extension-store-test` | `ExtensionStore/Model/` and `ExtensionStoreCache` (fork) — trimmed fixtures of the three store endpoints in `Tests/extension-store-fixtures/` and a hostile page (bad entries dropped, odd types defaulted, non-macOS, deprecated and kill-listed entries left out), the endpoint URLs and page count, the trimmed cache both ways and a later build's, writing only a whole catalog, the 24-hour freshness, the shelves and their dedupe, a partial catalog, each list's order, category counts and filter, search ranking, and Installed or Update from recorded commits |
 
 `mcp-stdio-test` copies `Tests/ai-fixtures/mcp-stub.js` into a scratch directory. The stub
 reads fd 0 synchronously and writes replies with `fs.writeSync`, so a reply reaches the pipe before
@@ -916,6 +917,15 @@ on-device, a cloud and a mode dictation each add one entry with the right app, m
 length, and an Ask and an edit only with Include Ask by Voice and voice edits on; ↵ pastes it where
 the caret was and keeps the clipboard; ⌘C copies unless query or preview text is selected; a shorter Keep history trims the file at once and Off removes it; Clear asks
 first; and an exported backup holds no transcript.
+
+### Extension Store
+
+The fork's steps: [extension-store.md](features/extension-store.md#manual-sweep). In short, the
+command is found by "store" and "магазин" and only while extensions are on; a cold open fills
+Featured and Popular first, then every shelf and category, and writes the cache; a reopen within a
+day makes no request, an older cache shows at once and refreshes behind the spinner; a category
+lists under its own header and Escape leaves it first; ↵ installs, updates or opens, ⌃X asks before
+uninstalling; and closing the palette leaves no thread or network activity behind.
 
 ### Clean install
 

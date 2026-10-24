@@ -687,6 +687,10 @@ enum SettingsSearchCatalog {
         .init(
             .extensionsInstall, "Search extensions",
             keywords: ["store", "browse", "install"]),
+        // Fork: the Extension Store command's row, with its alias and shortcut.
+        .init(
+            group: .extensionsInstall, "Extension Store",
+            keywords: ["store", "popular", "browse", "categories", "shortcut", "command"]),
         .init(
             .extensionsInstall, "Install from GitHub",
             keywords: ["source", "build", "repository", "package manager", "pnpm", "npm", "yarn", "bun"]),

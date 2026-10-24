@@ -1,0 +1,776 @@
+{
+ "data": [
+  {
+   "id": "23661083-aeb1-4c91-8541-855b37a65215",
+   "name": "kinopio-inbox",
+   "native_id": null,
+   "seo_categories": [
+    "Productivity",
+    "Web",
+    "Project Management",
+    "Communication"
+   ],
+   "platforms": null,
+   "author": {
+    "id": "6a516266-01b5-4001-bdbe-488b8e4a3811",
+    "name": "pirijan",
+    "handle": "pirijan",
+    "bio": null,
+    "twitter_handle": null,
+    "github_handle": null,
+    "location": null,
+    "initials": "pi",
+    "avatar_placeholder_color": "#43B93A",
+    "slack_community_username": null,
+    "slack_community_user_id": null,
+    "created_at": 1660244801,
+    "website_anchor": null,
+    "website": null,
+    "credits": 0,
+    "username": "pirijan",
+    "avatar": null
+   },
+   "created_at": 1673983121,
+   "kill_listed_at": 0,
+   "owner": {
+    "id": "6a516266-01b5-4001-bdbe-488b8e4a3811",
+    "name": "pirijan",
+    "handle": "pirijan",
+    "bio": null,
+    "twitter_handle": null,
+    "github_handle": null,
+    "location": null,
+    "initials": "pi",
+    "avatar_placeholder_color": "#43B93A",
+    "slack_community_username": null,
+    "slack_community_user_id": null,
+    "created_at": 1660244801,
+    "website_anchor": null,
+    "website": null,
+    "credits": 0,
+    "username": "pirijan",
+    "avatar": null
+   },
+   "status": "active",
+   "is_new": false,
+   "access": "public",
+   "store_url": "https://www.raycast.com/pirijan/kinopio-inbox",
+   "download_count": 202,
+   "past_contributors": [],
+   "title": "Kinopio Inbox",
+   "description": "Add cards to your Kinopio inbox",
+   "commit_sha": "30296ed2e3a21b3575567fc1fcfa3c1abd91397b",
+   "relative_path": "extensions/kinopio-inbox/",
+   "api_version": "1.45.3",
+   "categories": [
+    "Productivity",
+    "Web"
+   ],
+   "prompt_examples": [],
+   "skills": [],
+   "provides_models": false,
+   "has_mcp": false,
+   "metadata_count": 1,
+   "updated_at": 1790759981,
+   "source_url": "https://github.com/raycast/extensions/tree/30296ed2e3a21b3575567fc1fcfa3c1abd91397b/extensions/kinopio-inbox/",
+   "readme_url": "https://github.com/raycast/extensions/tree/30296ed2e3a21b3575567fc1fcfa3c1abd91397b/extensions/kinopio-inbox/README.md",
+   "readme_assets_path": "https://github.com/raycast/extensions/raw/30296ed2e3a21b3575567fc1fcfa3c1abd91397b/extensions/kinopio-inbox//",
+   "icons": {
+    "light": "https://files.raycast.com/lms59pek5u893diwxuwoxz66dw87",
+    "dark": null
+   },
+   "commands": [
+    {
+     "id": "0fb8a402-0e83-429c-99d9-05135f79ffb7",
+     "name": "add-card",
+     "title": "Add Card",
+     "subtitle": "",
+     "description": "Add cards to your Kinopio inbox",
+     "keywords": [],
+     "mode": "view",
+     "disabled_by_default": false,
+     "beta": false,
+     "icons": {
+      "light": null,
+      "dark": null
+     }
+    },
+    {
+     "id": "1130a6d1-94c3-45ad-838d-69a499222a6a",
+     "name": "open-inbox",
+     "title": "Open Inbox",
+     "subtitle": "",
+     "description": "Open your Kinopio inbox",
+     "keywords": [],
+     "mode": "no-view",
+     "disabled_by_default": false,
+     "beta": false,
+     "icons": {
+      "light": null,
+      "dark": null
+     }
+    }
+   ],
+   "tools": [],
+   "download_url": "https://extensions.raycast-releases.com/fixture-kinopio-inbox",
+   "contributors": [],
+   "tint_color": "#00b3ff",
+   "links": {
+    "self": "https://www.raycast.com/pirijan/kinopio-inbox",
+    "owner": "https://www.raycast.com/pirijan"
+   }
+  },
+  {
+   "id": "855fc14c-1c8a-4ecc-8bfe-4dea36865068",
+   "name": "snapset",
+   "native_id": null,
+   "seo_categories": [],
+   "platforms": [
+    "macOS"
+   ],
+   "author": {
+    "id": "09ee7199-ce77-448b-b2ad-f3e928abcd86",
+    "name": "Seiya Nishi",
+    "handle": "seiya_nishi",
+    "bio": null,
+    "twitter_handle": null,
+    "github_handle": null,
+    "location": null,
+    "initials": "SN",
+    "avatar_placeholder_color": "#43B93A",
+    "slack_community_username": null,
+    "slack_community_user_id": null,
+    "created_at": 1787575662,
+    "website_anchor": null,
+    "website": null,
+    "credits": 1,
+    "username": "seiya_nishi",
+    "avatar": "https://files.raycast.com/nvt3itp6o2nfw2eqrev3lzji3c8w"
+   },
+   "created_at": 1791856692,
+   "kill_listed_at": 0,
+   "owner": {
+    "id": "09ee7199-ce77-448b-b2ad-f3e928abcd86",
+    "name": "Seiya Nishi",
+    "handle": "seiya_nishi",
+    "bio": null,
+    "twitter_handle": null,
+    "github_handle": null,
+    "location": null,
+    "initials": "SN",
+    "avatar_placeholder_color": "#43B93A",
+    "slack_community_username": null,
+    "slack_community_user_id": null,
+    "created_at": 1787575662,
+    "website_anchor": null,
+    "website": null,
+    "credits": 1,
+    "username": "seiya_nishi",
+    "avatar": "https://files.raycast.com/nvt3itp6o2nfw2eqrev3lzji3c8w"
+   },
+   "status": "active",
+   "is_new": true,
+   "access": "public",
+   "store_url": "https://www.raycast.com/seiya_nishi/snapset",
+   "download_count": 8,
+   "past_contributors": [],
+   "title": "Snapset",
+   "description": "Save and restore complete Mac workspaces, including apps, windows, macOS Spaces, browser tabs, and Finder folders",
+   "commit_sha": "deac00fd59e065652d029755d53fc2f799239238",
+   "relative_path": "extensions/snapset/",
+   "api_version": "2.6.2",
+   "categories": [
+    "Productivity",
+    "System"
+   ],
+   "prompt_examples": [],
+   "skills": [],
+   "provides_models": false,
+   "has_mcp": false,
+   "metadata_count": 3,
+   "updated_at": 1791856693,
+   "source_url": "https://github.com/raycast/extensions/tree/deac00fd59e065652d029755d53fc2f799239238/extensions/snapset/",
+   "readme_url": "https://github.com/raycast/extensions/tree/deac00fd59e065652d029755d53fc2f799239238/extensions/snapset/README.md",
+   "readme_assets_path": "https://github.com/raycast/extensions/raw/deac00fd59e065652d029755d53fc2f799239238/extensions/snapset//",
+   "icons": {
+    "light": "https://files.raycast.com/g0xy9as7f5j7s08gjwmkkzw8l1n3",
+    "dark": null
+   },
+   "commands": [
+    {
+     "id": "07a1fd58-9a94-4f5e-8e5f-055f75de58df",
+     "name": "apply-layout",
+     "title": "Apply Layout",
+     "subtitle": "Snapset",
+     "description": "Restore a workspace saved in Snapset. Snapset reopens missing apps, restores windows to their saved positions across displays and macOS Spaces, reopens saved browser tabs and Finder folders, and can hide apps that are not part of the workspace.",
+     "keywords": [],
+     "mode": "view",
+     "disabled_by_default": false,
+     "beta": false,
+     "icons": {
+      "light": null,
+      "dark": null
+     }
+    },
+    {
+     "id": "bf370145-0483-4cfd-8995-1de9b74bc8c1",
+     "name": "save-layout",
+     "title": "Save Layout",
+     "subtitle": "Snapset",
+     "description": "Save your current Mac workspace as a new Snapset layout. Snapset captures the apps and windows in use, their positions across displays and macOS Spaces, open browser tabs, and Finder folders.",
+     "keywords": [],
+     "mode": "no-view",
+     "disabled_by_default": false,
+     "beta": false,
+     "icons": {
+      "light": null,
+      "dark": null
+     }
+    }
+   ],
+   "tools": [],
+   "download_url": "https://extensions.raycast-releases.com/fixture-snapset",
+   "contributors": [],
+   "tint_color": "#00b3ff",
+   "links": {
+    "self": "https://www.raycast.com/seiya_nishi/snapset",
+    "owner": "https://www.raycast.com/seiya_nishi"
+   }
+  },
+  {
+   "id": "c098b907-a02c-4150-9538-78c8658754ec",
+   "name": "rg-adguard-links",
+   "native_id": null,
+   "seo_categories": [],
+   "platforms": [
+    "macOS",
+    "Windows"
+   ],
+   "author": {
+    "id": "ee21cd9d-5731-49cb-baba-7d6eb293da38",
+    "name": "jergensturdley",
+    "handle": "jergensturdley",
+    "bio": "",
+    "twitter_handle": "",
+    "github_handle": "",
+    "location": "",
+    "initials": "je",
+    "avatar_placeholder_color": "#A067DC",
+    "slack_community_username": null,
+    "slack_community_user_id": null,
+    "created_at": 1751157397,
+    "website_anchor": null,
+    "website": null,
+    "credits": 2,
+    "username": "jergensturdley",
+    "avatar": "https://files.raycast.com/shkqpte48ocrsgohmd8bhuki5pq2"
+   },
+   "created_at": 1764020729,
+   "kill_listed_at": 0,
+   "owner": {
+    "id": "ee21cd9d-5731-49cb-baba-7d6eb293da38",
+    "name": "jergensturdley",
+    "handle": "jergensturdley",
+    "bio": "",
+    "twitter_handle": "",
+    "github_handle": "",
+    "location": "",
+    "initials": "je",
+    "avatar_placeholder_color": "#A067DC",
+    "slack_community_username": null,
+    "slack_community_user_id": null,
+    "created_at": 1751157397,
+    "website_anchor": null,
+    "website": null,
+    "credits": 2,
+    "username": "jergensturdley",
+    "avatar": "https://files.raycast.com/shkqpte48ocrsgohmd8bhuki5pq2"
+   },
+   "status": "active",
+   "is_new": false,
+   "access": "public",
+   "store_url": "https://www.raycast.com/jergensturdley/rg-adguard-links",
+   "download_count": 77,
+   "past_contributors": [],
+   "title": "RG AdGuard Links",
+   "description": "Convert Microsoft Store URLs to rg-adguard.net download links",
+   "commit_sha": "186d955eda64f9e956b25a3fdf5566b1d38f57f2",
+   "relative_path": "extensions/rg-adguard-links/",
+   "api_version": "1.103.7",
+   "categories": [],
+   "prompt_examples": [],
+   "skills": [],
+   "provides_models": false,
+   "has_mcp": false,
+   "metadata_count": 1,
+   "updated_at": 1777038072,
+   "source_url": "https://github.com/raycast/extensions/tree/186d955eda64f9e956b25a3fdf5566b1d38f57f2/extensions/rg-adguard-links/",
+   "readme_url": "https://github.com/raycast/extensions/tree/186d955eda64f9e956b25a3fdf5566b1d38f57f2/extensions/rg-adguard-links/README.md",
+   "readme_assets_path": "https://github.com/raycast/extensions/raw/186d955eda64f9e956b25a3fdf5566b1d38f57f2/extensions/rg-adguard-links//",
+   "icons": {
+    "light": "https://files.raycast.com/42ikkgrrvimcfxe64nec9vr4xdfn",
+    "dark": null
+   },
+   "commands": [
+    {
+     "id": "93d818aa-5869-4f90-96f4-603233da4896",
+     "name": "convert-url",
+     "title": "Convert Store URL",
+     "subtitle": "RG AdGuard Links",
+     "description": "Convert Microsoft Store URL to rg-adguard.net link",
+     "keywords": [],
+     "mode": "view",
+     "disabled_by_default": false,
+     "beta": false,
+     "icons": {
+      "light": null,
+      "dark": null
+     }
+    }
+   ],
+   "tools": [],
+   "download_url": "https://extensions.raycast-releases.com/fixture-rg-adguard-links",
+   "contributors": [
+    {
+     "id": "54fe130f-bd8f-465d-80d7-10f23588a27c",
+     "name": "Dhruv Suthar",
+     "handle": "0xdhrv",
+     "bio": "Community Engineer @Raycast",
+     "twitter_handle": "0xdhrv",
+     "github_handle": "0xdhrv",
+     "location": "India",
+     "initials": "DS",
+     "avatar_placeholder_color": "#A067DC",
+     "slack_community_username": "Dhruv Suthar",
+     "slack_community_user_id": "U06GBE5E2LA",
+     "created_at": 1658334122,
+     "website_anchor": "dhrv.pw",
+     "website": "https://dhrv.pw",
+     "credits": 210,
+     "username": "0xdhrv",
+     "avatar": "https://files.raycast.com/sx6c0szhxmvw5crdhzj0vmankbb3"
+    }
+   ],
+   "tint_color": "#00b3ff",
+   "links": {
+    "self": "https://www.raycast.com/jergensturdley/rg-adguard-links",
+    "owner": "https://www.raycast.com/jergensturdley"
+   }
+  },
+  {
+   "id": "54c243f4-dade-41bf-a6dc-5be9a18bed16",
+   "name": "driveway",
+   "native_id": null,
+   "seo_categories": [],
+   "platforms": [
+    "macOS"
+   ],
+   "author": {
+    "id": "9b27d805-e6d4-43ad-94e9-780f8831f230",
+    "name": "Pankaj Popli",
+    "handle": "pankajpopli",
+    "bio": "",
+    "twitter_handle": "",
+    "github_handle": "https://github.com/pankajpopli",
+    "location": "",
+    "initials": "PP",
+    "avatar_placeholder_color": "#70920F",
+    "slack_community_username": null,
+    "slack_community_user_id": null,
+    "created_at": 1759516005,
+    "website_anchor": "pankajpopli.github.io",
+    "website": "https://pankajpopli.github.io",
+    "credits": 1,
+    "username": "pankajpopli",
+    "avatar": "https://files.raycast.com/1afgkg97cm843ytj9bke9g1fhjm9"
+   },
+   "created_at": 1791546146,
+   "kill_listed_at": 0,
+   "owner": {
+    "id": "9b27d805-e6d4-43ad-94e9-780f8831f230",
+    "name": "Pankaj Popli",
+    "handle": "pankajpopli",
+    "bio": "",
+    "twitter_handle": "",
+    "github_handle": "https://github.com/pankajpopli",
+    "location": "",
+    "initials": "PP",
+    "avatar_placeholder_color": "#70920F",
+    "slack_community_username": null,
+    "slack_community_user_id": null,
+    "created_at": 1759516005,
+    "website_anchor": "pankajpopli.github.io",
+    "website": "https://pankajpopli.github.io",
+    "credits": 1,
+    "username": "pankajpopli",
+    "avatar": "https://files.raycast.com/1afgkg97cm843ytj9bke9g1fhjm9"
+   },
+   "status": "active",
+   "is_new": false,
+   "access": "public",
+   "store_url": "https://www.raycast.com/pankajpopli/driveway",
+   "download_count": 5,
+   "past_contributors": [],
+   "title": "DriveWay",
+   "description": "Finds SMB and WebDAV drives on your network and keeps a list of as many as you like, each with its own alias, username, and protocol: mount, unmount, auto-reconnect, or open any of them from the menu bar. Drives are added with Add Drive; the Domain/IP preference only pins one extra host to always include.",
+   "commit_sha": "e3e724c3e156b00a1f14c51ae778d0981a3df12f",
+   "relative_path": "extensions/driveway/",
+   "api_version": "1.104.25",
+   "categories": [
+    "System",
+    "Productivity"
+   ],
+   "prompt_examples": [],
+   "skills": [],
+   "provides_models": false,
+   "has_mcp": false,
+   "metadata_count": 6,
+   "updated_at": 1791546147,
+   "source_url": "https://github.com/raycast/extensions/tree/e3e724c3e156b00a1f14c51ae778d0981a3df12f/extensions/driveway/",
+   "readme_url": "https://github.com/raycast/extensions/tree/e3e724c3e156b00a1f14c51ae778d0981a3df12f/extensions/driveway/README.md",
+   "readme_assets_path": "https://github.com/raycast/extensions/raw/e3e724c3e156b00a1f14c51ae778d0981a3df12f/extensions/driveway//",
+   "icons": {
+    "light": "https://files.raycast.com/kp7n3k4yuedrxxnaiksjb52mr1eh",
+    "dark": "https://files.raycast.com/sh83jxkz15v3l9gipgbrwqyptgvq"
+   },
+   "commands": [
+    {
+     "id": "155e99d4-a5e7-4de4-8f0e-66d98374ac75",
+     "name": "index",
+     "title": "Manage Drives",
+     "subtitle": "DriveWay",
+     "description": "View, edit, remove, connect, and disconnect your saved drives. If Domain/IP is set in Preferences, also browse that server's shares live.",
+     "keywords": [],
+     "mode": "view",
+     "disabled_by_default": false,
+     "beta": false,
+     "icons": {
+      "light": null,
+      "dark": null
+     }
+    },
+    {
+     "id": "0be82f56-13c4-46b6-8b58-bfe14b694c3f",
+     "name": "add-server",
+     "title": "Add Drive",
+     "subtitle": "DriveWay",
+     "description": "Save a new drive (host, share path, optional alias and username) to your list.",
+     "keywords": [],
+     "mode": "view",
+     "disabled_by_default": false,
+     "beta": false,
+     "icons": {
+      "light": null,
+      "dark": null
+     }
+    },
+    {
+     "id": "b3e078e9-2526-402e-99b1-beb344579693",
+     "name": "scan-network",
+     "title": "Discover Devices",
+     "subtitle": "DriveWay",
+     "description": "Finds SMB and WebDAV servers, computers, and other devices on your local network via Bonjour/mDNS, a subnet scan, and a ping sweep, per the Network Discovery preferences below.",
+     "keywords": [],
+     "mode": "view",
+     "disabled_by_default": false,
+     "beta": false,
+     "icons": {
+      "light": null,
+      "dark": null
+     }
+    }
+   ],
+   "tools": [],
+   "download_url": "https://extensions.raycast-releases.com/fixture-driveway",
+   "contributors": [],
+   "tint_color": "#00b3ff",
+   "links": {
+    "self": "https://www.raycast.com/pankajpopli/driveway",
+    "owner": "https://www.raycast.com/pankajpopli"
+   }
+  },
+  {
+   "id": "c096027d-3822-4517-993a-8532ff6fe302",
+   "name": "adjacent",
+   "native_id": null,
+   "seo_categories": [],
+   "platforms": [
+    "macOS"
+   ],
+   "author": {
+    "id": "9dc1222d-6875-4564-868a-8f6b9563cf2c",
+    "name": "Lucas Kohorst",
+    "handle": "Lucas-Kohorst",
+    "bio": null,
+    "twitter_handle": null,
+    "github_handle": null,
+    "location": null,
+    "initials": "LK",
+    "avatar_placeholder_color": "#A067DC",
+    "slack_community_username": null,
+    "slack_community_user_id": null,
+    "created_at": 1675186404,
+    "website_anchor": null,
+    "website": null,
+    "credits": 1,
+    "username": "Lucas-Kohorst",
+    "avatar": "https://files.raycast.com/ghxmb8n15aimo9yx99j8by66xm88"
+   },
+   "created_at": 1788763308,
+   "kill_listed_at": 0,
+   "owner": {
+    "id": "9dc1222d-6875-4564-868a-8f6b9563cf2c",
+    "name": "Lucas Kohorst",
+    "handle": "Lucas-Kohorst",
+    "bio": null,
+    "twitter_handle": null,
+    "github_handle": null,
+    "location": null,
+    "initials": "LK",
+    "avatar_placeholder_color": "#A067DC",
+    "slack_community_username": null,
+    "slack_community_user_id": null,
+    "created_at": 1675186404,
+    "website_anchor": null,
+    "website": null,
+    "credits": 1,
+    "username": "Lucas-Kohorst",
+    "avatar": "https://files.raycast.com/ghxmb8n15aimo9yx99j8by66xm88"
+   },
+   "status": "active",
+   "is_new": false,
+   "access": "public",
+   "store_url": "https://www.raycast.com/Lucas-Kohorst/adjacent",
+   "download_count": 5,
+   "past_contributors": [],
+   "title": "Adjacent",
+   "description": "Browse, search, and read news on Adjacent prediction markets, indices, and rates.",
+   "commit_sha": "c33bf4cb4b9ad70c2b93432ee713ffb7486ed331",
+   "relative_path": "extensions/adjacent/",
+   "api_version": "1.104.25",
+   "categories": [
+    "Finance",
+    "News",
+    "Web",
+    "AI Extensions"
+   ],
+   "prompt_examples": [],
+   "skills": [],
+   "provides_models": false,
+   "has_mcp": false,
+   "metadata_count": 3,
+   "updated_at": 1791552020,
+   "source_url": "https://github.com/raycast/extensions/tree/c33bf4cb4b9ad70c2b93432ee713ffb7486ed331/extensions/adjacent/",
+   "readme_url": "https://github.com/raycast/extensions/tree/c33bf4cb4b9ad70c2b93432ee713ffb7486ed331/extensions/adjacent/README.md",
+   "readme_assets_path": "https://github.com/raycast/extensions/raw/c33bf4cb4b9ad70c2b93432ee713ffb7486ed331/extensions/adjacent//",
+   "icons": {
+    "light": "https://files.raycast.com/486vtkmm0opwjnulobkx8c24sjlk",
+    "dark": null
+   },
+   "commands": [
+    {
+     "id": "11de6f3c-6404-4aef-8e6c-a8ef20b37e30",
+     "name": "browse",
+     "title": "Browse",
+     "subtitle": "Adjacent",
+     "description": "Browse events, markets, indices, and rates.",
+     "keywords": [],
+     "mode": "view",
+     "disabled_by_default": false,
+     "beta": false,
+     "icons": {
+      "light": null,
+      "dark": null
+     }
+    },
+    {
+     "id": "e955fb06-3811-42ea-8b2e-2443ac1fabfc",
+     "name": "search",
+     "title": "Search",
+     "subtitle": "Adjacent",
+     "description": "Find events, markets, indices, and rates.",
+     "keywords": [],
+     "mode": "view",
+     "disabled_by_default": false,
+     "beta": false,
+     "icons": {
+      "light": null,
+      "dark": null
+     }
+    },
+    {
+     "id": "8ee2f515-cff4-4498-bd3b-baade10c82af",
+     "name": "news",
+     "title": "News",
+     "subtitle": "Adjacent",
+     "description": "Latest headlines and related markets. API key required.",
+     "keywords": [],
+     "mode": "view",
+     "disabled_by_default": false,
+     "beta": false,
+     "icons": {
+      "light": null,
+      "dark": null
+     }
+    }
+   ],
+   "tools": [
+    {
+     "id": "caf2997f-00cf-4f67-a762-982f8d3b7409",
+     "name": "find",
+     "title": "Find",
+     "description": "Discover markets, events, indices, rates, or news by topic when you do not have an id yet.",
+     "keywords": [],
+     "functionalities": [],
+     "mode": null,
+     "side_effects": false,
+     "icons": {
+      "light": null,
+      "dark": null
+     }
+    }
+   ],
+   "download_url": "https://extensions.raycast-releases.com/fixture-adjacent",
+   "contributors": [],
+   "tint_color": "#00b3ff",
+   "links": {
+    "self": "https://www.raycast.com/Lucas-Kohorst/adjacent",
+    "owner": "https://www.raycast.com/Lucas-Kohorst"
+   }
+  },
+  {
+   "id": "3edf56b7-d676-4088-ab85-1be28e3fb441",
+   "name": "happy-squid",
+   "native_id": null,
+   "seo_categories": [],
+   "platforms": [
+    "macOS"
+   ],
+   "author": {
+    "id": "5e1fc06f-8755-40c2-a207-c81773882a71",
+    "name": "Happy Squid",
+    "handle": "happysquid",
+    "bio": "The world's first intelligent website blocker",
+    "twitter_handle": "HappySquidApp",
+    "github_handle": "Happy-Squid-Blocker",
+    "location": "Berlin, Berlin, Germany",
+    "initials": "HS",
+    "avatar_placeholder_color": "#D64854",
+    "slack_community_username": null,
+    "slack_community_user_id": null,
+    "created_at": 1790354041,
+    "website_anchor": "happy-squid.com",
+    "website": "https://happy-squid.com",
+    "credits": 0,
+    "username": "happysquid",
+    "avatar": "https://files.raycast.com/opdbwgh351oa1uow5zko2qtf0lox"
+   },
+   "created_at": 1791546161,
+   "kill_listed_at": 0,
+   "owner": {
+    "id": "73631621-2049-47fa-90be-20741fac424f",
+    "name": "Happy Squid",
+    "handle": "happy-squid",
+    "initials": "HS",
+    "avatar_placeholder_color": "#D64854",
+    "saml": false,
+    "invitations_disabled": false,
+    "ai_enabled": true,
+    "ai_feedback_enabled": true,
+    "cloud_sync_enabled": true,
+    "dictation_enabled": true,
+    "ai_memory_enabled": true,
+    "screen_awareness_enabled": true,
+    "ai_byok_enabled": false,
+    "ai_byok_enforced": true,
+    "private_extension_publishing": "everyone",
+    "b2b_individual_advanced_ai": false,
+    "require_2fa": false,
+    "b2b_2fa_enforcement_toggle_enabled": false,
+    "extension_filtering_enabled": false,
+    "ai_provider_allowlist_enabled": false,
+    "clipboard_history_retention_enabled": false,
+    "allowed_ai_providers": null,
+    "clipboard_history_retention_days": null,
+    "clipboard_history_disabled_applications_enabled": false,
+    "clipboard_history_disabled_applications": [],
+    "ip_restriction_enabled": false,
+    "allowed_ip_ranges": [],
+    "provider_config_enabled": false,
+    "provider_config_version": null,
+    "provider_config_checksum": null,
+    "mcp_servers_enabled": false,
+    "raycast_managed": false,
+    "avatar": "https://files.raycast.com/ywge8fvikutbckrposwkkq4b9jme"
+   },
+   "status": "active",
+   "is_new": false,
+   "access": "public",
+   "store_url": "https://www.raycast.com/happy-squid/happy-squid",
+   "download_count": 2,
+   "past_contributors": [],
+   "title": "Happy Squid",
+   "description": "Start and manage your Happy Squid tasks without leaving Raycast.",
+   "commit_sha": "1a39f367dab9ff3abe4b364032b8028d611ab3cd",
+   "relative_path": "extensions/happy-squid/",
+   "api_version": "2.5.2",
+   "categories": [
+    "Productivity"
+   ],
+   "prompt_examples": [],
+   "skills": [],
+   "provides_models": false,
+   "has_mcp": false,
+   "metadata_count": 4,
+   "updated_at": 1791546161,
+   "source_url": "https://github.com/raycast/extensions/tree/1a39f367dab9ff3abe4b364032b8028d611ab3cd/extensions/happy-squid/",
+   "readme_url": "https://github.com/raycast/extensions/tree/1a39f367dab9ff3abe4b364032b8028d611ab3cd/extensions/happy-squid/README.md",
+   "readme_assets_path": "https://github.com/raycast/extensions/raw/1a39f367dab9ff3abe4b364032b8028d611ab3cd/extensions/happy-squid//",
+   "icons": {
+    "light": "https://files.raycast.com/4rttg5dhzfroiiezuibvz8xulqnk",
+    "dark": null
+   },
+   "commands": [
+    {
+     "id": "e4ab5c27-557f-4f42-b6be-940f33ab195d",
+     "name": "tasks",
+     "title": "Current Task",
+     "subtitle": "Happy Squid",
+     "description": "Open your current task, or choose what to work on next.",
+     "keywords": [],
+     "mode": "no-view",
+     "disabled_by_default": false,
+     "beta": false,
+     "icons": {
+      "light": null,
+      "dark": null
+     }
+    },
+    {
+     "id": "49691513-ed6c-4ddd-82f3-b90cc44d9219",
+     "name": "manage-tasks",
+     "title": "Manage Tasks",
+     "subtitle": "Happy Squid",
+     "description": "Start, review and manage your Happy Squid tasks.",
+     "keywords": [],
+     "mode": "view",
+     "disabled_by_default": false,
+     "beta": false,
+     "icons": {
+      "light": null,
+      "dark": null
+     }
+    }
+   ],
+   "tools": [],
+   "download_url": "https://extensions.raycast-releases.com/fixture-happy-squid",
+   "contributors": [],
+   "tint_color": "#00b3ff",
+   "links": {
+    "self": "https://www.raycast.com/happy-squid/happy-squid",
+    "owner": "https://www.raycast.com/happy-squid"
+   }
+  }
+ ],
+ "total_results": 3411
+}

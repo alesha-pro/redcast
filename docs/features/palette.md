@@ -106,6 +106,7 @@ every screen but two: the clipboard lands past its pins
 | `.dictionary`        | `DictionaryScreen`        | `DictionaryEntryView` (see [dictionary.md](dictionary.md))                       |
 | `.agentSessions`     | `AgentSessionsScreen`     | `AgentSessionsList` + preview (see [agent-sessions.md](agent-sessions.md))      |
 | `.dictationHistory`  | `DictationHistoryScreen`  | `DictationHistoryList` + preview (see [dictation-history.md](dictation-history.md)) |
+| `.extensionStore`    | `ExtensionStoreScreen`    | `ExtensionStoreList` + preview (see [extension-store.md](extension-store.md))    |
 | `.extensionCommand`  | `ExtensionCommandScreen`  | `ExtensionCommandView` (see [extensions.md](extensions.md))                      |
 
 **Tab rings the three surfaces a reader opens directly — launcher → AI chat → clipboard → launcher**

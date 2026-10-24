@@ -386,6 +386,10 @@ final class PaletteWindowController: NSObject, NSWindowDelegate {
             if core.palette.mode == .ai, core.quickAICoordinator.removeLastAttachment() {
                 return true
             }
+            // Fork: as with Escape, the Extension Store's list is left before the store itself.
+            if core.palette.mode == .extensionStore, core.extensionStoreCoordinator.leaveBrowse() {
+                return true
+            }
             if core.palette.pop() { return true }
             guard core.palette.mode != .launcher else { return false }
             core.palette.prepare(mode: .launcher)

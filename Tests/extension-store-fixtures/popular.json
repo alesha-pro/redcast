@@ -1,0 +1,712 @@
+{
+ "data": [
+  {
+   "id": "c0c9423a-7014-481e-8bb9-44c4c6df53be",
+   "name": "kill-process",
+   "native_id": null,
+   "seo_categories": [
+    "developer-tools",
+    "system",
+    "productivity"
+   ],
+   "platforms": [
+    "macOS",
+    "Windows"
+   ],
+   "author": {
+    "id": "787c09e7-4aa7-45ab-b02e-a99aa3c36c5f",
+    "name": "Roland Leth",
+    "handle": "rolandleth",
+    "bio": null,
+    "twitter_handle": null,
+    "github_handle": null,
+    "location": null,
+    "initials": "RL",
+    "avatar_placeholder_color": "#52A9E4",
+    "slack_community_username": null,
+    "slack_community_user_id": null,
+    "created_at": 1634187010,
+    "website_anchor": null,
+    "website": null,
+    "credits": 0,
+    "username": "rolandleth",
+    "avatar": "https://files.raycast.com/ggm68kkfzdyw6g8d6cv3sq4zn64f"
+   },
+   "created_at": 1635151605,
+   "kill_listed_at": 0,
+   "owner": {
+    "id": "787c09e7-4aa7-45ab-b02e-a99aa3c36c5f",
+    "name": "Roland Leth",
+    "handle": "rolandleth",
+    "bio": null,
+    "twitter_handle": null,
+    "github_handle": null,
+    "location": null,
+    "initials": "RL",
+    "avatar_placeholder_color": "#52A9E4",
+    "slack_community_username": null,
+    "slack_community_user_id": null,
+    "created_at": 1634187010,
+    "website_anchor": null,
+    "website": null,
+    "credits": 0,
+    "username": "rolandleth",
+    "avatar": "https://files.raycast.com/ggm68kkfzdyw6g8d6cv3sq4zn64f"
+   },
+   "status": "active",
+   "is_new": false,
+   "access": "public",
+   "store_url": "https://www.raycast.com/rolandleth/kill-process",
+   "download_count": 787940,
+   "past_contributors": [],
+   "title": "Kill Process",
+   "description": "Terminate processes sorted by CPU or memory usage",
+   "commit_sha": "645cb29302e41f7730b0e68d84777feb0ad096a9",
+   "relative_path": "extensions/kill-process/",
+   "api_version": "1.104.1",
+   "categories": [
+    "AI Extensions"
+   ],
+   "prompt_examples": [
+    "@kill-process list all processes",
+    "@kill-process kill PID 12345",
+    "@kill-process list Chrome processes",
+    "@kill-process kill Safari",
+    "@kill-process kill Notion",
+    "@kill-process kill Notion with related processes",
+    "@kill-process kill Notion and Notion Calendar",
+    "@kill-process kill Arc and related processes",
+    "@kill-process kill UpNote",
+    "@kill-process kill all node processes",
+    "@kill-process force kill all Google Chrome Helper processes"
+   ],
+   "skills": [],
+   "provides_models": false,
+   "has_mcp": false,
+   "metadata_count": 3,
+   "updated_at": 1791891445,
+   "source_url": "https://github.com/raycast/extensions/tree/645cb29302e41f7730b0e68d84777feb0ad096a9/extensions/kill-process/",
+   "readme_url": null,
+   "readme_assets_path": "https://github.com/raycast/extensions/raw/645cb29302e41f7730b0e68d84777feb0ad096a9/extensions/kill-process//",
+   "icons": {
+    "light": "https://files.raycast.com/b8kkh6bhnframrlyseywhsc2ao6x",
+    "dark": null
+   },
+   "commands": [
+    {
+     "id": "1e268cd1-8618-4ff0-b81b-12adf2fdb8fb",
+     "name": "index",
+     "title": "Kill Process",
+     "subtitle": "",
+     "description": "Lists all running processes, ordered by CPU or memory usage and allows (force) killing one",
+     "keywords": [],
+     "mode": "view",
+     "disabled_by_default": false,
+     "beta": false,
+     "icons": {
+      "light": null,
+      "dark": null
+     }
+    }
+   ],
+   "tools": [
+    {
+     "id": "9304efe9-4ffa-4d5e-8c4c-61de4bdc24e6",
+     "name": "list-processes",
+     "title": "List Processes",
+     "description": "Lists running processes with their CPU and memory usage, sorted by memory usage",
+     "keywords": [],
+     "functionalities": [],
+     "mode": null,
+     "side_effects": false,
+     "icons": {
+      "light": null,
+      "dark": null
+     }
+    }
+   ],
+   "download_url": "https://extensions.raycast-releases.com/fixture-kill-process",
+   "contributors": [
+    {
+     "id": "54fe130f-bd8f-465d-80d7-10f23588a27c",
+     "name": "Dhruv Suthar",
+     "handle": "0xdhrv",
+     "bio": "Community Engineer @Raycast",
+     "twitter_handle": "0xdhrv",
+     "github_handle": "0xdhrv",
+     "location": "India",
+     "initials": "DS",
+     "avatar_placeholder_color": "#A067DC",
+     "slack_community_username": "Dhruv Suthar",
+     "slack_community_user_id": "U06GBE5E2LA",
+     "created_at": 1658334122,
+     "website_anchor": "dhrv.pw",
+     "website": "https://dhrv.pw",
+     "credits": 210,
+     "username": "0xdhrv",
+     "avatar": "https://files.raycast.com/sx6c0szhxmvw5crdhzj0vmankbb3"
+    }
+   ],
+   "tint_color": "#fff700",
+   "links": {
+    "self": "https://www.raycast.com/rolandleth/kill-process",
+    "owner": "https://www.raycast.com/rolandleth"
+   }
+  },
+  {
+   "id": "40ebc708-964f-473b-8d19-d4e9cbd27ae9",
+   "name": "color-picker",
+   "native_id": null,
+   "seo_categories": [
+    "design-tools",
+    "productivity"
+   ],
+   "platforms": [
+    "macOS",
+    "Windows"
+   ],
+   "author": {
+    "id": "848ad973-f18d-48eb-b4ef-90b0a1d71e72",
+    "name": "Thomas Paul Mann",
+    "handle": "thomas",
+    "bio": "Building Raycast 🪄",
+    "twitter_handle": "thomaspaulmann",
+    "github_handle": "thomaspaulmann",
+    "location": "London, UK",
+    "initials": "TM",
+    "avatar_placeholder_color": "#43B93A",
+    "slack_community_username": null,
+    "slack_community_user_id": null,
+    "created_at": 1622815752,
+    "website_anchor": "thomaspaulmann.com",
+    "website": "https://thomaspaulmann.com",
+    "credits": 55,
+    "username": "thomas",
+    "avatar": "https://files.raycast.com/0pxp15wpgafuv7tspd7lbrubag0m"
+   },
+   "created_at": 1675858513,
+   "kill_listed_at": 0,
+   "owner": {
+    "id": "848ad973-f18d-48eb-b4ef-90b0a1d71e72",
+    "name": "Thomas Paul Mann",
+    "handle": "thomas",
+    "bio": "Building Raycast 🪄",
+    "twitter_handle": "thomaspaulmann",
+    "github_handle": "thomaspaulmann",
+    "location": "London, UK",
+    "initials": "TM",
+    "avatar_placeholder_color": "#43B93A",
+    "slack_community_username": null,
+    "slack_community_user_id": null,
+    "created_at": 1622815752,
+    "website_anchor": "thomaspaulmann.com",
+    "website": "https://thomaspaulmann.com",
+    "credits": 55,
+    "username": "thomas",
+    "avatar": "https://files.raycast.com/0pxp15wpgafuv7tspd7lbrubag0m"
+   },
+   "status": "active",
+   "is_new": false,
+   "access": "public",
+   "store_url": "https://www.raycast.com/thomas/color-picker",
+   "download_count": 626196,
+   "past_contributors": [
+    {
+     "id": "2e9fabe2-f70f-4907-9bed-b78ea4bde44b",
+     "name": "Thomas Lombart",
+     "handle": "thomaslombart",
+     "bio": "",
+     "twitter_handle": "thomas_lombart",
+     "github_handle": "thomaslombart",
+     "location": "France",
+     "initials": "TL",
+     "avatar_placeholder_color": "#70920F",
+     "slack_community_username": null,
+     "slack_community_user_id": null,
+     "created_at": 1628072121,
+     "website_anchor": "thomaslombart.com",
+     "website": "https://thomaslombart.com",
+     "credits": 100,
+     "username": "thomaslombart",
+     "avatar": "https://files.raycast.com/goncaog0hpye49ez4racdnrwcoaj"
+    }
+   ],
+   "title": "Color Picker",
+   "description": "Pick and organize colors, everywhere on your Mac",
+   "commit_sha": "6cbda2f8ad2365219417b501ff062a58fc31854b",
+   "relative_path": "extensions/color-picker/",
+   "api_version": "1.104.6",
+   "categories": [
+    "Design Tools",
+    "AI Extensions"
+   ],
+   "prompt_examples": [
+    "@color-picker Convert #FF6363 to OKLCH.",
+    "@color-picker What is the closest name for #663399?",
+    "@color-picker Show my 5 most recent favorite colors.",
+    "@color-picker Save #FF6363 and #66D3BB to my color history.",
+    "@color-picker Add #E6E6E7 to my favourites.",
+    "@color-picker Does #777777 text on #FFFFFF pass WCAG AA contrast?",
+    "@color-picker Generate a 50-950 color scale from #FF6363.",
+    "@color-picker Format #FF6363 and #66D3BB as CSS variables."
+   ],
+   "skills": [],
+   "provides_models": false,
+   "has_mcp": false,
+   "metadata_count": 6,
+   "updated_at": 1791491323,
+   "source_url": "https://github.com/raycast/extensions/tree/6cbda2f8ad2365219417b501ff062a58fc31854b/extensions/color-picker/",
+   "readme_url": "https://github.com/raycast/extensions/tree/6cbda2f8ad2365219417b501ff062a58fc31854b/extensions/color-picker/README.md",
+   "readme_assets_path": "https://github.com/raycast/extensions/raw/6cbda2f8ad2365219417b501ff062a58fc31854b/extensions/color-picker//",
+   "icons": {
+    "light": "https://files.raycast.com/knialaks7jcb2zn98f0ssytarma4",
+    "dark": null
+   },
+   "commands": [
+    {
+     "id": "d0b56923-09a7-4539-a63f-c1d19e6065f3",
+     "name": "pick-color",
+     "title": "Pick Color",
+     "subtitle": "",
+     "description": "Pick a color on your desktop",
+     "keywords": [],
+     "mode": "no-view",
+     "disabled_by_default": false,
+     "beta": false,
+     "icons": {
+      "light": null,
+      "dark": null
+     }
+    },
+    {
+     "id": "b6fee04c-9341-4cf7-b2a4-f17f9c2cb71a",
+     "name": "extract-color",
+     "title": "Extract Color from Selected Image",
+     "subtitle": "",
+     "description": "Extract colors from the selected File Explorer image",
+     "keywords": [],
+     "mode": "view",
+     "disabled_by_default": false,
+     "beta": false,
+     "icons": {
+      "light": null,
+      "dark": null
+     }
+    },
+    {
+     "id": "641c50c4-9ab4-4cce-bef6-882b07c37158",
+     "name": "menu-bar",
+     "title": "Menu Bar Color Picker",
+     "subtitle": "",
+     "description": "Access your colors from the menu bar",
+     "keywords": [],
+     "mode": "menu-bar",
+     "disabled_by_default": false,
+     "beta": false,
+     "icons": {
+      "light": null,
+      "dark": null
+     }
+    }
+   ],
+   "tools": [
+    {
+     "id": "10012691-ca4e-4120-96f9-e932343326b1",
+     "name": "convert-color",
+     "title": "Convert Color",
+     "description": "Convert a CSS color to a requested format.",
+     "keywords": [],
+     "functionalities": [],
+     "mode": null,
+     "side_effects": false,
+     "icons": {
+      "light": null,
+      "dark": null
+     }
+    }
+   ],
+   "download_url": "https://extensions.raycast-releases.com/fixture-color-picker",
+   "contributors": [
+    {
+     "id": "54fe130f-bd8f-465d-80d7-10f23588a27c",
+     "name": "Dhruv Suthar",
+     "handle": "0xdhrv",
+     "bio": "Community Engineer @Raycast",
+     "twitter_handle": "0xdhrv",
+     "github_handle": "0xdhrv",
+     "location": "India",
+     "initials": "DS",
+     "avatar_placeholder_color": "#A067DC",
+     "slack_community_username": "Dhruv Suthar",
+     "slack_community_user_id": "U06GBE5E2LA",
+     "created_at": 1658334122,
+     "website_anchor": "dhrv.pw",
+     "website": "https://dhrv.pw",
+     "credits": 210,
+     "username": "0xdhrv",
+     "avatar": "https://files.raycast.com/sx6c0szhxmvw5crdhzj0vmankbb3"
+    }
+   ],
+   "tint_color": "#00b3ff",
+   "links": {
+    "self": "https://www.raycast.com/thomas/color-picker",
+    "owner": "https://www.raycast.com/thomas"
+   }
+  },
+  {
+   "id": "c5ce763c-8582-4da2-badb-10b63d514297",
+   "name": "google-chrome",
+   "native_id": null,
+   "seo_categories": [],
+   "platforms": [
+    "macOS"
+   ],
+   "author": {
+    "id": "1d3ed9ff-d0ca-4ec9-adc0-be522048ae71",
+    "name": "Codely",
+    "handle": "Codely",
+    "bio": "",
+    "twitter_handle": "CodelyTV",
+    "github_handle": "CodelyTV",
+    "location": "Barcelona, Spain",
+    "initials": "Co",
+    "avatar_placeholder_color": "#D85A9B",
+    "slack_community_username": null,
+    "slack_community_user_id": null,
+    "created_at": 1634207147,
+    "website_anchor": "codely.com",
+    "website": "https://codely.com",
+    "credits": 0,
+    "username": "Codely",
+    "avatar": "https://files.raycast.com/qn3q9w5zodmigpsohdsiogyu3un6"
+   },
+   "created_at": 1635276516,
+   "kill_listed_at": 0,
+   "owner": {
+    "id": "1d3ed9ff-d0ca-4ec9-adc0-be522048ae71",
+    "name": "Codely",
+    "handle": "Codely",
+    "bio": "",
+    "twitter_handle": "CodelyTV",
+    "github_handle": "CodelyTV",
+    "location": "Barcelona, Spain",
+    "initials": "Co",
+    "avatar_placeholder_color": "#D85A9B",
+    "slack_community_username": null,
+    "slack_community_user_id": null,
+    "created_at": 1634207147,
+    "website_anchor": "codely.com",
+    "website": "https://codely.com",
+    "credits": 0,
+    "username": "Codely",
+    "avatar": "https://files.raycast.com/qn3q9w5zodmigpsohdsiogyu3un6"
+   },
+   "status": "active",
+   "is_new": false,
+   "access": "public",
+   "store_url": "https://www.raycast.com/Codely/google-chrome",
+   "download_count": 578779,
+   "past_contributors": [
+    {
+     "id": "7b5debf1-47f7-4757-a127-11fc75aee2fd",
+     "name": "Jonas",
+     "handle": "jonasengelmann",
+     "bio": "",
+     "twitter_handle": "",
+     "github_handle": "",
+     "location": "",
+     "initials": "Jo",
+     "avatar_placeholder_color": "#D36CDD",
+     "slack_community_username": null,
+     "slack_community_user_id": null,
+     "created_at": 1745316628,
+     "website_anchor": null,
+     "website": null,
+     "credits": 4,
+     "username": "jonasengelmann",
+     "avatar": "https://files.raycast.com/uzl697z2yj6mogovg8r4mfc4ukit"
+    }
+   ],
+   "title": "Google Chrome",
+   "description": "Search open tabs, bookmarks and history in Google Chrome.",
+   "commit_sha": "645cb29302e41f7730b0e68d84777feb0ad096a9",
+   "relative_path": "extensions/google-chrome/",
+   "api_version": "1.104.1",
+   "categories": [
+    "AI Extensions"
+   ],
+   "prompt_examples": [
+    "@google-chrome open a new tab",
+    "@google-chrome open a new tab to raycast.com",
+    "@google-chrome open a new window",
+    "@google-chrome open a new window to raycast.com",
+    "@google-chrome open a new guest window",
+    "@google-chrome open a new guest window to github.com",
+    "@google-chrome open current tab in guest",
+    "@google-chrome search bookmarks for raycast",
+    "@google-chrome search history for raycast",
+    "@google-chrome get me my profiles"
+   ],
+   "skills": [],
+   "provides_models": false,
+   "has_mcp": false,
+   "metadata_count": 4,
+   "updated_at": 1791891421,
+   "source_url": "https://github.com/raycast/extensions/tree/645cb29302e41f7730b0e68d84777feb0ad096a9/extensions/google-chrome/",
+   "readme_url": "https://github.com/raycast/extensions/tree/645cb29302e41f7730b0e68d84777feb0ad096a9/extensions/google-chrome/README.md",
+   "readme_assets_path": "https://github.com/raycast/extensions/raw/645cb29302e41f7730b0e68d84777feb0ad096a9/extensions/google-chrome//",
+   "icons": {
+    "light": "https://files.raycast.com/cmiuzl2xta1ezw2baa0iogeve894",
+    "dark": null
+   },
+   "commands": [
+    {
+     "id": "a89b0a67-1a10-41ed-9305-86eb629f34d1",
+     "name": "new-tab",
+     "title": "New Tab",
+     "subtitle": "Google Chrome",
+     "description": "Open a new Google Chrome tab.",
+     "keywords": [],
+     "mode": "view",
+     "disabled_by_default": false,
+     "beta": false,
+     "icons": {
+      "light": null,
+      "dark": null
+     }
+    },
+    {
+     "id": "86dc304d-483d-484c-bb5d-394794180ae4",
+     "name": "search-tab",
+     "title": "Search Tabs",
+     "subtitle": "Google Chrome",
+     "description": "List all tabs and go to the selected.",
+     "keywords": [],
+     "mode": "view",
+     "disabled_by_default": false,
+     "beta": false,
+     "icons": {
+      "light": null,
+      "dark": null
+     }
+    },
+    {
+     "id": "6283d9a4-8167-4222-b38c-7099d63a0d4b",
+     "name": "search-history",
+     "title": "Search History",
+     "subtitle": "Google Chrome",
+     "description": "Search browser history.",
+     "keywords": [],
+     "mode": "view",
+     "disabled_by_default": false,
+     "beta": false,
+     "icons": {
+      "light": null,
+      "dark": null
+     }
+    }
+   ],
+   "tools": [
+    {
+     "id": "8efd0484-7bfb-4ef1-b9f0-f5801fb04ad7",
+     "name": "new-tab",
+     "title": "New Tab",
+     "description": "Open a blank new tab or a tab to a given website.",
+     "keywords": [],
+     "functionalities": [],
+     "mode": null,
+     "side_effects": false,
+     "icons": {
+      "light": null,
+      "dark": null
+     }
+    }
+   ],
+   "download_url": "https://extensions.raycast-releases.com/fixture-google-chrome",
+   "contributors": [
+    {
+     "id": "54fe130f-bd8f-465d-80d7-10f23588a27c",
+     "name": "Dhruv Suthar",
+     "handle": "0xdhrv",
+     "bio": "Community Engineer @Raycast",
+     "twitter_handle": "0xdhrv",
+     "github_handle": "0xdhrv",
+     "location": "India",
+     "initials": "DS",
+     "avatar_placeholder_color": "#A067DC",
+     "slack_community_username": "Dhruv Suthar",
+     "slack_community_user_id": "U06GBE5E2LA",
+     "created_at": 1658334122,
+     "website_anchor": "dhrv.pw",
+     "website": "https://dhrv.pw",
+     "credits": 210,
+     "username": "0xdhrv",
+     "avatar": "https://files.raycast.com/sx6c0szhxmvw5crdhzj0vmankbb3"
+    }
+   ],
+   "tint_color": "#00b3ff",
+   "links": {
+    "self": "https://www.raycast.com/Codely/google-chrome",
+    "owner": "https://www.raycast.com/Codely"
+   }
+  },
+  {
+   "id": "0e43920f-bbf6-4582-bc3f-5f63092c915f",
+   "name": "translate",
+   "native_id": null,
+   "seo_categories": [
+    "web",
+    "productivity",
+    "translation"
+   ],
+   "platforms": [
+    "macOS",
+    "Windows"
+   ],
+   "author": {
+    "id": "ce8f6b4d-4d6f-4e72-97c4-309dc6b003aa",
+    "name": "Slavik Nychkalo",
+    "handle": "gebeto",
+    "bio": null,
+    "twitter_handle": null,
+    "github_handle": null,
+    "location": null,
+    "initials": "SN",
+    "avatar_placeholder_color": "#43B93A",
+    "slack_community_username": null,
+    "slack_community_user_id": null,
+    "created_at": 1631725274,
+    "website_anchor": null,
+    "website": null,
+    "credits": 11,
+    "username": "gebeto",
+    "avatar": "https://files.raycast.com/jsl8etfdvbl2oni0i6l77cknkfh1"
+   },
+   "created_at": 1635337316,
+   "kill_listed_at": 0,
+   "owner": {
+    "id": "ce8f6b4d-4d6f-4e72-97c4-309dc6b003aa",
+    "name": "Slavik Nychkalo",
+    "handle": "gebeto",
+    "bio": null,
+    "twitter_handle": null,
+    "github_handle": null,
+    "location": null,
+    "initials": "SN",
+    "avatar_placeholder_color": "#43B93A",
+    "slack_community_username": null,
+    "slack_community_user_id": null,
+    "created_at": 1631725274,
+    "website_anchor": null,
+    "website": null,
+    "credits": 11,
+    "username": "gebeto",
+    "avatar": "https://files.raycast.com/jsl8etfdvbl2oni0i6l77cknkfh1"
+   },
+   "status": "active",
+   "is_new": false,
+   "access": "public",
+   "store_url": "https://www.raycast.com/gebeto/translate",
+   "download_count": 505640,
+   "past_contributors": [],
+   "title": "Google Translate",
+   "description": "Simple translation using Google Translate",
+   "commit_sha": "1ea92d353d04ad6069f4d9ecea05b75fbb17df31",
+   "relative_path": "extensions/google-translate/",
+   "api_version": "1.104.25",
+   "categories": [
+    "Web",
+    "Productivity"
+   ],
+   "prompt_examples": [],
+   "skills": [],
+   "provides_models": false,
+   "has_mcp": false,
+   "metadata_count": 2,
+   "updated_at": 1792170732,
+   "source_url": "https://github.com/raycast/extensions/tree/1ea92d353d04ad6069f4d9ecea05b75fbb17df31/extensions/google-translate/",
+   "readme_url": "https://github.com/raycast/extensions/tree/1ea92d353d04ad6069f4d9ecea05b75fbb17df31/extensions/google-translate/README.md",
+   "readme_assets_path": "https://github.com/raycast/extensions/raw/1ea92d353d04ad6069f4d9ecea05b75fbb17df31/extensions/google-translate//",
+   "icons": {
+    "light": "https://files.raycast.com/o0176fo2hbsxd85tp61kcdgft25d",
+    "dark": null
+   },
+   "commands": [
+    {
+     "id": "3f6b2322-8615-443d-a41a-34cab45ba99f",
+     "name": "translate",
+     "title": "Translate",
+     "subtitle": "Google Translate",
+     "description": "Simple translation via Google Translate",
+     "keywords": [],
+     "mode": "view",
+     "disabled_by_default": false,
+     "beta": false,
+     "icons": {
+      "light": null,
+      "dark": null
+     }
+    },
+    {
+     "id": "cd82e2e5-b762-4310-bf2f-fcfc54dee3f2",
+     "name": "translate-form",
+     "title": "Translate Form",
+     "subtitle": "Google Translate",
+     "description": "Simple translation via Google Translate",
+     "keywords": [],
+     "mode": "view",
+     "disabled_by_default": false,
+     "beta": false,
+     "icons": {
+      "light": null,
+      "dark": null
+     }
+    },
+    {
+     "id": "7b0256f6-62d9-4544-86d7-19ff74221e37",
+     "name": "quick-translate",
+     "title": "Quick Translate",
+     "subtitle": "Google Translate",
+     "description": "Quickly translate to multiple languages",
+     "keywords": [],
+     "mode": "no-view",
+     "disabled_by_default": false,
+     "beta": false,
+     "icons": {
+      "light": null,
+      "dark": null
+     }
+    }
+   ],
+   "tools": [],
+   "download_url": "https://extensions.raycast-releases.com/fixture-translate",
+   "contributors": [
+    {
+     "id": "907b4a54-d022-49f8-b25d-b6d2a7e440a4",
+     "name": "AlanHuang",
+     "handle": "AlanHuang",
+     "bio": "",
+     "twitter_handle": "",
+     "github_handle": "tangerine1202",
+     "location": "Taiwan",
+     "initials": "Al",
+     "avatar_placeholder_color": "#7871E8",
+     "slack_community_username": null,
+     "slack_community_user_id": null,
+     "created_at": 1656597369,
+     "website_anchor": null,
+     "website": null,
+     "credits": 2,
+     "username": "AlanHuang",
+     "avatar": "https://files.raycast.com/zy2zt6gwsdml111i936ms093sx0y"
+    }
+   ],
+   "tint_color": "#00b3ff",
+   "links": {
+    "self": "https://www.raycast.com/gebeto/translate",
+    "owner": "https://www.raycast.com/gebeto"
+   }
+  }
+ ],
+ "total_results": 3448
+}

@@ -878,6 +878,13 @@ run dictation-history-test Tinycast/Features/DictationHistory/Model/*.swift \
                            Tinycast/Features/DictationHistory/Service/DictationRecordingFolder.swift \
                            Tinycast/Features/VoiceAI/Model/VoiceAudio.swift \
                            Tinycast/Platform/AppPaths.swift
+# Fork: the Extension Store's three endpoints, cache, shelves, categories, search and install state.
+run extension-store-test   Tinycast/Features/ExtensionStore/Model/*.swift \
+                           Tinycast/Features/ExtensionStore/Service/ExtensionStoreCache.swift \
+                           $L/SearchRelevance.swift \
+                           Tinycast/Features/Extensions/Model/ExtensionListing.swift \
+                           Tinycast/Features/Extensions/Model/ExtensionStoreResponse.swift \
+                           Tinycast/Platform/AppPaths.swift
 run alias-actions-test     Tinycast/Features/AliasActions/Model/*.swift
 run acp-test               Tinycast/Features/Agents/Model/*.swift \
                            Tinycast/Features/WebSearch/Model/*.swift \

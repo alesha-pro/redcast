@@ -215,6 +215,8 @@ struct ExtensionsSettingsView: View {
             } trailing: {
                 Button("Search…") { browsingStore = true }
             }
+            // Fork: the Extension Store command, its alias and shortcut.
+            ForEach(CommandCatalog.entries(ownedBy: .extensions)) { FeatureCommandRow(entry: $0) }
             SettingsRow(
                 title: "Install from GitHub",
                 subtitle: String(localized: "Builds from source with your package manager."),

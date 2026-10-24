@@ -7,6 +7,7 @@ enum PaletteMode: String, CaseIterable, Identifiable {
     case aiHistory
     case agentSessions
     case dictationHistory  // Fork: Dictation History's list of past transcripts
+    case extensionStore  // Fork: the Extension Store's shelves, categories and search
     case calculatorHistory
     case emoji
     case fileSearch
@@ -44,6 +45,7 @@ enum PaletteMode: String, CaseIterable, Identifiable {
         case .aiHistory: return "clock.arrow.circlepath"
         case .agentSessions: return "clock.arrow.2.circlepath"
         case .dictationHistory: return "waveform.badge.magnifyingglass"  // Fork: Dictation History
+        case .extensionStore: return "storefront"  // Fork: the Extension Store
         case .calculatorHistory: return "plus.forwardslash.minus"
         case .emoji: return "face.smiling"
         case .fileSearch: return "doc.text.magnifyingglass"
@@ -70,6 +72,7 @@ enum PaletteMode: String, CaseIterable, Identifiable {
         case .aiHistory: return String(localized: "Search chats…")
         case .agentSessions: return String(localized: "Search agent sessions…")
         case .dictationHistory: return String(localized: "Search dictations…")  // Fork: its field
+        case .extensionStore: return String(localized: "Search extensions…")  // Fork: the Extension Store
         case .calculatorHistory:
             return String(localized: "Do math, convert units, or search your past calculations…")
         case .emoji: return String(localized: "Search emoji and symbols…")
