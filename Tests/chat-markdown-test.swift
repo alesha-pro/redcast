@@ -53,6 +53,7 @@ struct ChatMarkdownTests {
         formulasTypesetByTheirStructure()
         wideFormulasShrinkToTheLine()
         equationsStillArrivingHoldTheirPlace()
+        filesLinkOnlyWhatResolved()
         print("\(passes) passed, \(failures) failed")
         if failures > 0 { exit(1) }
     }
@@ -291,5 +292,46 @@ struct ChatMarkdownTests {
         expect(
             links == ["https://example.com", "mailto:a@example.com"],
             "only web and mail links stay clickable, got \(links)")
+    }
+    static func filesLinkOnlyWhatResolved() {
+        let text = "Saved `card.png` in `out/`, see /tmp/a.txt, not `gone.png` or [web](https://example.com)."
+        let blocks = MarkdownBlock.parse(text, midStream: false)
+        func rendered(_ files: ChatFileLinks?) -> NSAttributedString {
+            ChatMarkdownRenderer(
+                ChatMarkdownSource(
+                    blocks: blocks, highlight: nil, citations: [:], prefix: [0], failedFrom: nil,
+                    metrics: .standard, files: files)
+            ).render().string
+        }
+        let card = ChatFileItem(path: "/w/out/card.png", kind: .image)
+        let folder = ChatFileItem(path: "/w/out", kind: .folder)
+        let note = ChatFileItem(path: "/tmp/a.txt", kind: .document)
+        let files = ChatFileLinks(
+            byMention: ["card.png": card, "out/": folder, "/tmp/a.txt": note], files: [card, folder, note])
+        let linked = rendered(files)
+        var links: [String: String] = [:]
+        linked.enumerateAttribute(.link, in: NSRange(location: 0, length: linked.length)) { value, range, _ in
+            guard let url = value as? URL else { return }
+            let shown = (linked.string as NSString).substring(with: range)
+                .replacingOccurrences(of: "\u{FFFC}", with: "")
+            links[url.isFileURL ? url.path : url.absoluteString, default: ""] += shown
+        }
+        expect(
+            links == ["/w/out/card.png": "card.png", "/w/out": "out/", "/tmp/a.txt": "/tmp/a.txt",
+                      "https://example.com": "web"],
+            "a resolved code span, folder and bare path link to their files, the web link stays, got \(links)")
+        var icons = 0
+        linked.enumerateAttribute(.attachment, in: NSRange(location: 0, length: linked.length)) { value, range, _ in
+            guard value != nil else { return }
+            icons += 1
+            let copied = linked.attribute(ChatMarkdownRenderer.mathSource, at: range.location, effectiveRange: nil)
+            expect(copied as? String == "", "an icon copies as nothing")
+        }
+        expect(icons == 3, "each file link is led by its icon, got \(icons)")
+        let plain = rendered(nil).string
+        expect(
+            linked.string.replacingOccurrences(of: "\u{FFFC}", with: "") == plain,
+            "linking changes no text, only adds the icons")
+        expect(!plain.contains("\u{FFFC}"), "a reply with no resolved files gains nothing")
     }
 }

@@ -165,6 +165,8 @@ struct AgentContext: Equatable, Sendable {
             you used inline as a Markdown link with its URL; never write a link without one.
             - Stop as soon as the task is done: lead with the result, briefly, then anything the user \
             must know or do.
+            - Name every file or folder you create or change by its absolute path, in backticks or as \
+            a Markdown link, so the user can open it from your reply.
             - If you cannot finish (a tool fails, access is refused, the run's budget ends), say what \
             is done, what is not, and what to do next.
             """

@@ -513,6 +513,9 @@ struct AgentTests {
                 && prompt.contains("search with web_search, then read the best result with web_fetch")
                 && !toolless.contains("How to work"),
             "a general assistant's method, calibrated to the task, where it has tools to work with")
+        expect(
+            prompt.contains("by its absolute path, in backticks or as a Markdown link"),
+            "files it makes are cited by absolute path, so the reply links them exactly")
         let standing = context.prompt(
             now: Date(), timeZone: .current, hasTools: true, standing: ["Reply in haiku."])
         let order = ["## How to work", "Run make test.", "## Skills", "Answer in Russian.", "Reply in haiku.",

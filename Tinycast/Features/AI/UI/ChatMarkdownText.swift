@@ -7,6 +7,7 @@ struct ChatMarkdownText: View {
     @Environment(\.chatTextHighlight) private var highlight
     @Environment(\.chatCitations) private var citations
     @Environment(\.chatFindPath) private var path
+    @Environment(\.chatFileLinks) private var files  // Fork: a finished reply's files
     let blocks: [MarkdownBlock]
     var failedFrom: Int?
 
@@ -22,7 +23,7 @@ struct ChatMarkdownText: View {
         ChatTextRepresentable(
             source: ChatMarkdownSource(
                 blocks: blocks, highlight: highlight, citations: citations, prefix: path,
-                failedFrom: failedFrom, metrics: metrics)
+                failedFrom: failedFrom, metrics: metrics, files: files)
         ) { rect in
             if rect != currentMatch { currentMatch = rect }
         }
@@ -162,6 +163,16 @@ final class ChatSelectableTextView: NSTextView {
                 in: range, with: NSAttributedString(string: replacement, attributes: attributes))
         }
         return result
+    }
+
+    // Fork: a file link goes through ChatFiles, which reveals whatever would run.
+    override func clicked(onLink link: Any, at charIndex: Int) {
+        if !ChatFileActions.clicked(link) { super.clicked(onLink: link, at: charIndex) }
+    }
+
+    // Fork: a file link's own menu, from Open to Copy Path.
+    override func menu(for event: NSEvent) -> NSMenu? {
+        ChatFileActions.menu(for: event, in: self) ?? super.menu(for: event)
     }
 
     override func setFrameSize(_ newSize: NSSize) {

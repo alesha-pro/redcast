@@ -328,6 +328,7 @@ private struct ChatMessageView: View, @MainActor Equatable {
                 }
                 if !references.isEmpty { ChatSourcesView(references: references) }
             }
+            .chatFiles(for: message)  // Fork: file links and the Files strip
             .environment(\.chatCitations, ChatReferences.numbers(for: references))
         } else {
             Text(highlight?.attributed(message.text, leaf: [0]) ?? AttributedString(message.text))

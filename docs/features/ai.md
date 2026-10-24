@@ -115,6 +115,9 @@ bottom with the model picker. ⌘J hands a Quick AI conversation to the window.
   linked `[n]`: `ChatCitations` finds each link's sentence end in the drawn text and inserts after
   it, two sources in one sentence sharing it, so prose and chips always agree. The preamble asks the model to link a page it relies on inline, so a cited
   answer carries its sources without a second request.
+- **Fork: a reply's files are links too.** Paths a finished reply names that exist on disk link
+  through `ChatFiles`, which opens or reveals them and lists them in a Files strip under the
+  reply; the reply's own `file:` and app links still never open ([chat files](chat-files.md)).
 - **Tools are chosen per chat.** The Tools submenu under the composer's `+` switches MCP off for the
   chat or turns
   single servers off (`ChatToolScope`, held on `AIChatState`, not stored); `@server` still narrows

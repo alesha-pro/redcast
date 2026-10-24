@@ -64,8 +64,9 @@ optional chord: see [background and scheduled agents](background-agents.md).
   calibrates the effort: answer a simple question directly, after one quick look at most; plan a task
   of several steps briefly and work through it; look up what it does not know (`web_search`, then
   `web_fetch`, where the Web family is on); check key facts against their sources and link every page
-  used; stop when the task is done, result first; and when it cannot finish, say what is done, what is
-  not and what to do next. The order keeps a provider's cache: header, method, global and project
+  used; stop when the task is done, result first; name every file or folder it creates or changes by
+  its absolute path, so the reply links it ([chat files](chat-files.md)); and when it cannot finish,
+  say what is done, what is not and what to do next. The order keeps a provider's cache: header, method, global and project
   instructions, skills, the agent's instructions, the user's standing text, then the agent's notes,
   which change most. Agents on Codex or Claude keep the shared prompt with the agent's after it.
 - **The prompt stays put; the turn carries the time.** The agent's prompt names the user's time zone
