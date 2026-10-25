@@ -3,8 +3,8 @@
 </p>
 
 <p align="center">
-  <strong>An agent-native, Raycast-style launcher for macOS.</strong><br>
-  Fast, native and local-first, with your own models and agents.
+  <strong>The free, open-source Raycast replacement for macOS.</strong><br>
+  Native and local-first, with your own models, agents and voice.
 </p>
 
 <p align="center">
@@ -17,105 +17,154 @@
 
 <p align="center"><a href="https://redcast.io"><b>redcast.io</b></a> · <a href="#install">Install</a> · <a href="docs/README.md">Docs</a> · <a href="FORK.md">What's new in the fork</a></p>
 
-Redcast is a launcher for the Mac: one hotkey, a palette, and the apps, text, windows and commands you
-reach for all day. It is a fork of [Tinycast](https://github.com/abue-ammar/tinycast), a native SwiftUI
-and AppKit launcher that runs real Raycast extensions, and it keeps all of that. What it adds is built
-around agents: AI that sees the window in front of you, voice, agents that live in a folder, and the
-coding agents you already run (Claude Code, Codex, Gemini CLI, OpenCode, Goose, Hermes), all on your
-own keys, logins and machines.
+> **Built on [Tinycast](https://github.com/abue-ammar/tinycast).** Redcast is a fork of Abue Ammar's
+> native macOS launcher and follows its `main` branch. Everything Tinycast does is here, and Redcast
+> builds a lot on top: agents, AI Chat, voice, an extension store and more.
 
-## What Redcast adds
+**Redcast is a complete, free replacement for Raycast.** Press one hotkey anywhere and a palette opens
+for your apps, files, windows, clipboard, snippets, commands and Raycast extensions. AI runs on
+your own models and accounts, and your agents run there too. The app is native SwiftUI and AppKit:
+no Electron, no account, no subscription and no telemetry, and it stays quiet when idle.
 
-### Agents
+## Why Redcast
 
-- **[Native agents](docs/features/agents.md)**: a chat that lives in a folder, reads its `AGENTS.md`,
-  skills and notes, and works there with built-in tools for files, terminal, web and memory, on any
-  tool-calling API model. Every change and command is asked first unless the agent's permissions say
-  otherwise.
-- **[ACP agents](docs/features/agents.md#acp-agents)**: Claude Code, Codex, Gemini CLI, OpenCode,
-  Goose, Hermes or any other command runs as its own CLI over the Agent Client Protocol, on your own
-  logins, with its diffs, plans, slash commands and model pickers in AI Chat.
-- **[Background and scheduled runs](docs/features/background-agents.md)**: `@agent do X` in the
-  launcher runs with no window and ends as a chat. Schedules run an agent daily, on working days or
-  every few hours while Redcast is open, with an optional daily spend cap.
-- **[Agent Sessions](docs/features/agent-sessions.md)**: every past Claude Code, Codex, Gemini CLI,
-  OpenCode and Redcast session, searchable from the launcher and resumed in its folder and terminal
-  with one key. Opt-in live status shows which agent is waiting for you.
+- **Everything you used Raycast for.** Root search, aliases and hotkeys, clipboard history,
+  snippets, quicklinks, window management, the calculator, the calendar, notes, emoji, system
+  commands and real **Raycast extensions**, installed from a built-in store.
+- **AI on your terms.** Quick AI and a full AI Chat on any model you connect: OpenAI, Anthropic,
+  Gemini, OpenRouter, a local OpenAI-compatible server, or your ChatGPT plan through
+  **Sign in with ChatGPT**. Bring a key or a subscription; nothing is resold.
+- **Agents built in.** Agents work in a folder with tools, skills and memory, run in the background or
+  on a schedule, and the coding agents you already use (Claude Code, Codex, Gemini CLI, OpenCode,
+  Goose, Hermes) are one hotkey away.
+- **Voice everywhere.** On-device or cloud dictation into any field, modes that polish or translate
+  as you speak, and questions about the window in front of you.
+- **Free and open source.** AGPL-3.0, and your data stays on your Mac.
+
+## Features
+
+### Palette and search
+- **Root search** with fuzzy matching, ranking that learns what you open, favorites on ⌘1–⌘0, and
+  **⌘K actions** on every row.
+- **Aliases**: type an alias and press Space to open it. Change an alias or a hotkey from ⌘K.
+- **Hotkeys** for anything: combos, double-taps of a modifier, a single modifier, and a **Hyper Key**
+  on Caps Lock. **Settings › Shortcuts** lists every hotkey and alias in one place and flags conflicts.
+- **Fallbacks** for what nothing matched: ask AI, search files, run it in the shell, define the word,
+  or open a quicklink.
+- **Search Files** with Redcast's own index of the disk, kept current by FSEvents.
+- **Search Menu Bar Items** presses any menu item of the app in front. **Switch Windows** raises any
+  open window.
+- **Apple Shortcuts** listed and run from the palette.
+- **Custom commands**: shell commands with arguments, which can show their output.
+- **Send to AI (⌘J)** from clipboard history, file search and dictation history.
+
+### Raycast extensions
+- **Real Raycast extensions**, the same bundles Raycast runs, rendered as native SwiftUI. No Electron,
+  no browser.
+- **Extension Store** in the palette: Featured, Popular, Recently Updated, New and every category,
+  with ↵ to install, update or open.
+- **Extension AI**: `AI.ask` and `useAI` answered by your own model, once you allow each extension.
+- **Import from Raycast**: settings, aliases, hotkeys, favorites, snippets, quicklinks and clipboard history from a `.rayconfig`.
+
+### Text and clipboard
+- **Clipboard history** with text, links, images, files and colours. Text is recognised in images and
+  PDFs, entries can be pinned and filtered by type, and Paste Sequentially is there.
+- **Snippets** that expand when you type their keyword, with Raycast's placeholders (cursor, date,
+  clipboard, other snippets), tags and plain Markdown storage.
+- **Quicklinks** with arguments, placeholders, tags and the app to open them in.
+- **Quick Actions** on selected text in any app: Fix Grammar, Rewrite, Translate and Summarize, plus
+  your own actions, each with its own model, placeholders and a hotkey.
+- **Calculator** with units, currencies and crypto, time zones, dates and durations, and a history.
+- **Dictionary** from the dictionaries on your Mac, and an **emoji picker** with skin tones and pins.
+
+### Windows
+- **35 window actions**: halves, thirds, quarters, fourths, displays, Spaces and fullscreen, plus your
+  own sizes and gaps.
+- **Window layouts** that open apps and place every window in one go.
+- **Rooms**: a named set of windows you walk into, with everything else stepped aside.
+
+### Your day
+- **Notes**: Markdown notes in a floating editor, with a switcher, pins, tasks and a menu bar item.
+- **Calendar**: a join card for the next meeting, one-key join, meetings that join themselves, a
+  menu bar agenda and **My Schedule**.
+- **Camera** preview before a call, and a photo to the clipboard.
+- **System commands**: lock, sleep, restart, empty the Trash, appearance, Bluetooth and more.
+- **Uninstall** an app together with everything it left behind.
 
 ### AI
+- **Quick AI** right in the palette (Tab from any query), with the model and reasoning effort beside it,
+  web search, and an agent of your choice answering with its tools.
+- **AI Chat**, a full window:
+  - coloured folders that act as projects with their own instructions;
+  - a settings sidebar per chat (model, reasoning, creativity, instructions, tools, context and cost);
+  - edit, regenerate or branch from any message;
+  - archive and Recently Deleted;
+  - the files a reply names as links you can open, with a Files strip;
+  - ⌘1–⌘9 to switch chats and Keep on Top.
+- **Your models**: OpenAI, Anthropic, Gemini, OpenRouter and any OpenAI-compatible endpoint
+  (Ollama, LM Studio), each with its own reasoning settings. Interleaved thinking is replayed per
+  provider.
+- **Your subscriptions**: **Codex (ChatGPT)** through Sign in with ChatGPT, and the installed Claude
+  Code, Codex, OpenCode, Grok and Cursor CLIs.
+- **Web search** with Exa, Parallel or DuckDuckGo out of the box, or your SearXNG, Brave or Tavily. A
+  chat also reads the pages you link.
+- **MCP servers** over stdio or HTTP, OAuth included, with per-chat tool choices.
+- **Screen Awareness**: double-tap right ⌘ and the window in front (its text, selection and, if you
+  allow it, a screenshot) joins the chat.
+- **Usage**: tokens and cost per model and agent, by day, week or month.
 
-- **[Web search](docs/features/web-search.md)**: Exa, Parallel or DuckDuckGo with no key, or your
-  SearXNG, Brave or Tavily, for agents and every API model in AI Chat and Quick AI; with it on, a chat
-  also reads a page you linked or a search found.
-- **[Quick AI with tools](docs/features/quick-ai-tools.md)**: web search from Quick AI's ⌘K, and an
-  agent of your choice answering there with its tools, folder and permissions.
-- **[Screen Awareness](docs/features/screen-awareness.md)**: double-tap right ⌘ and the window in front
-  (title, URL, selection, focused field, readable text and, if you allow it, a screenshot) is attached
-  to a chat.
-- **[Quick Action placeholders](docs/features/quick-actions.md#placeholders)**: `{clipboard}`,
-  `{date}` and `{argument}` in your own actions, and ⌘J to continue a result in AI Chat.
-- **[Notes and AI](docs/features/notes-ai.md)**: attach a note with `@note`. Agents with the Notes tools
-  search, read and append to your notes, and ask before every addition.
-- **[Raycast extensions with AI](docs/features/extension-ai.md)**: `AI.ask` and `useAI` are answered by
-  your own model, once you allow each extension.
-- **[Usage](docs/features/usage-dashboard.md)**: tokens and cost per model or agent for a day, a week
-  or a month, counted from what is on this Mac, and your OpenRouter balance on request.
+### Agents
+- **Native agents** that live in a folder and read its `AGENTS.md`, skills and notes:
+  - tools for files, the terminal, the web, memory and notes;
+  - permissions asked before each change unless you allow more;
+  - effort levels from quick to thorough;
+  - a message sent mid-run is queued or steers the agent at its next step.
+- **Skills** from `~/.agents`, `~/.config/agents` and `~/.claude`, chosen per agent.
+- **ACP agents**: Claude Code, Codex, Gemini CLI, OpenCode, Goose, Hermes or any other Agent Client
+  Protocol agent, on your own logins, with their diffs, plans and model pickers in AI Chat.
+- **Background runs**: type `@agent do this` in the palette and it works with no window, then
+  ends as a chat. **Schedules** run an agent daily, on working days or every few hours, with a daily
+  spend cap.
+- **Agent Sessions**: every past Claude Code, Codex, Gemini CLI, OpenCode and Redcast session,
+  searchable and resumed in its folder and terminal with one key, with optional live status.
 
 ### Voice
-
-- **[Cloud dictation](docs/features/voice-ai.md)**: Gemini Flash on your own OpenRouter, Gemini or
-  OpenAI-compatible connection, with spoken punctuation, lists and corrections, the languages you
-  speak, your own spellings, and modes (Translate to English, Polish, As a message, or your own) that
-  Tab switches mid-dictation.
-- **[Ask and Edit by Voice](docs/features/voice-ai.md#ask-by-voice)**: ask about the window in front
-  and get the answer beside it or typed into the field, hand the request to an agent, or say how to
+- **On-device dictation** (NVIDIA Parakeet or Qwen3-ASR, 25+ languages) into any text field.
+- **Cloud dictation** on your own OpenRouter, Gemini or OpenAI-compatible connection:
+  - spoken punctuation, lists and corrections;
+  - your own spellings;
+  - modes like Polish, Translate to English and As a message, switched with Tab.
+- **Ask and Edit by Voice**: ask about the window in front, hand the request to an agent, or say how to
   change the selected text.
-- **[Dictation History](docs/features/dictation-history.md)**: every transcript kept as text, never
-  audio, searchable from the launcher and pasted again with ↵.
+- **Dictation History**: every transcript searchable. A failed dictation keeps its audio for a
+  week, so it can be retried on another model.
 
-### Look and feel
-
-- **[Raycast look](docs/ui.md#colour-the-raycast-palette-fork)**: Raycast's palette and red accent,
-  command tiles coloured by family, and a colour for every agent. Settings → General → Appearance →
-  Colorful icons brings back Tinycast's tiles.
-- **[Alias + Space](docs/features/alias-actions.md)**: type an entry's alias and press Space to open it.
-  Change an alias or a shortcut right from ⌘K.
-
-## Kept from Tinycast
-
-The launcher Tinycast built is all here:
-
-- **Launch:** apps, files and folders, Apple Shortcuts, custom shell commands, global and per-app hotkeys
-- **Text:** clipboard history with images, snippets with keyword expansion, quicklinks, a calculator
-  with units and currencies, the dictionary, an emoji picker
-- **Windows:** 35 Rectangle-style actions, saved layouts and rooms, a window switcher, menu bar search
-- **Your day:** Markdown notes, your calendar with one-key meeting join, a camera preview
-- **System:** lock, sleep, restart, empty the Trash, appearance, Bluetooth and more; uninstall an app
-  with everything it left behind
-- **AI:** Quick AI and AI Chat on your own keys or installed accounts, MCP servers, Quick Actions on
-  selected text, on-device dictation
-- **Raycast:** real Raycast extensions rendered as native SwiftUI, import from Raycast, backups and a
-  `settings.json` mirror
-
-Each one has its own page in [docs/](docs/README.md#features).
+### Settings and data
+- **Full backup** of every configuration, including agents, MCP servers, AI connections, voice modes,
+  extensions and hotkeys. With a passphrase it can also carry your keys. Import shows a preview and
+  lands anything that runs code switched off.
+- **settings.json** mirror for dotfiles, and **8 languages**: English, Deutsch, Español, Français,
+  日本語, 한국어, Português, Русский and 简体中文.
+- **The Raycast look**, with command tiles coloured by family and a colour for every agent.
 
 ## Light by design
 
-- **Native and small.** SwiftUI and AppKit, no Electron, no third-party dependencies and no
-  telemetry, built to Tinycast's 100 MB memory budget.
-- **Quiet when idle.** The fork's features wait for you: ACP agents stop after two idle minutes, voice
-  keeps no timer or process between presses (a single-key hold shares the one listen-only key tap),
-  schedules wait as one sleeping task, and histories and sessions are read when you open them.
-- **The network on your terms.** AI requests go to the providers you connect, with your keys and
-  logins, when you ask. A Redcast build never checks for updates. Timed requests are the ones you set
-  up (a schedule, an extension's background refresh) and the calculator's daily exchange rates.
-- **Local data.** Chats, notes, clipboard, dictation history and usage stay on this Mac, and AI is off
-  until you connect a provider in Settings → AI.
+- **Native and small.** SwiftUI and AppKit, with no Electron and no third-party dependencies, built to
+  a 100 MB memory budget.
+- **Quiet when idle.** Features wait for you:
+  - ACP agents stop after two idle minutes;
+  - voice keeps no process between presses;
+  - schedules wait as one sleeping task;
+  - histories are read only when you open them.
+- **The network on your terms.** AI requests go only to the providers you connect, when you ask.
+  Timed requests are only the ones you set up (a schedule, an extension's refresh) and the
+  calculator's daily exchange rates.
+- **Local data.** Chats, notes, clipboard, dictation history and usage stay on your Mac. AI is off
+  until you connect a provider.
 
 ## Install
 
-Redcast is built from source on your Mac. There are no release downloads, no Homebrew cask and no
-auto-updates: to update, pull and run the installer again.
+Redcast is built from source on your Mac for now; to update, pull and run the installer again.
 
 **You need** macOS 26 or later, Xcode 26, and one Apple Development signing identity in your keychain.
 Xcode makes one in Settings → Accounts → Manage Certificates, and a free Apple ID is enough; with
@@ -167,10 +216,11 @@ only when a dictation fails, on this Mac, for at most a week, so Dictation Histo
 
 ## Documentation
 
-- [FORK.md](FORK.md): everything the fork ships, its roadmap, and how it lives with upstream
 - [docs/](docs/README.md): architecture, standards, testing, the design system and a page per feature
+- [FORK.md](FORK.md): what Redcast adds on top of Tinycast, its roadmap, and how it follows upstream
 - [docs/fork-tooling.md](docs/fork-tooling.md): `install.sh`, `sync-upstream.sh` and the rebrand script
 - [AGENTS.md](AGENTS.md): the short version, for coding agents working on this repository
+- [CONTRIBUTING.md](CONTRIBUTING.md): issues and pull requests are welcome
 
 ## Staying in sync with Tinycast
 
