@@ -193,7 +193,8 @@ under a third of them, 72 reasoning folds, text between the calls and eleven fil
 per reply for the links and Files strip; and 40 messages of long Russian prose. The screenshot
 chat carries eight 3456×2234 screenshots of 3.6 MB each. Each cycle opens on a long chat, switches
 seven times (short, the long replies, short, the agent run, Russian, math, screenshots), pages up
-through the screenshots, opens and closes Chat Settings and closes the window. Idle is 11 MB of
+through the screenshots, opens and closes Chat Settings, searches the sidebar (from step 3 on)
+and closes the window. Idle is 11 MB of
 footprint and 2.6 MB of live malloc; the harness has no palette or launcher, so the app's idle is
 about 20 MB higher.
 
@@ -223,9 +224,10 @@ its main thread spends a whole 120 Hz frame on each step.
 
 ### Steps
 
-Each step was measured against the tree before it, back to back. A video render shared the
-machine from step 1 on and doubled every frame time, so compare within a row, not with the
-baseline above.
+Each step was measured against the tree before it, back to back. From step 1 on a video render
+shared the machine, and every tree's frames, `96cb7402` rebuilt then included, took two to four
+times the baseline's, with the main thread's own CPU per frame up as much; so compare within a
+row, not with the baseline above.
 
 - **1. Tiles at their size.** `ChatImageThumbnail` decoded an attached picture with
   `NSImage(data:)`: a 31 MB bitmap per 3456×2234 screenshot behind a 96 pt tile, about 250 MB for
@@ -294,6 +296,7 @@ baseline above.
 | 2. Release | 502 → 391 | 449 → 353 | 244 → 182 | 91 → 32 |
 | 3. Per message | 417 → 421 | 392 → 390 | 200 → 183 | 26 → 26 |
 | 4. One copy of the text, two runs | 406–415 → 403–421 | 347–349 → 342–354 | 179–180 → 174–183 | 32–36 → 33–34 |
+| All four, against 96cb7402 | 720 → 423 | 674 → 356 | 232 → 174 | 79 → 35 |
 
 Scrolling, two passes each way, ms (interval p50 / p95 / max; busy p50 / p95):
 
@@ -304,6 +307,7 @@ Scrolling, two passes each way, ms (interval p50 / p95 / max; busy p50 / p95):
 
 | 3. Per message | 8–25 / 29–31 / 37–42 → 8–25 / 29–30 / 44–467 | 5–24 / 27–29 → 5–24 / 27–28 | 57–63 / 63–70 / 87–102 → 56–63 / 62–70 / 74–92 | 55–62 / 60–69 → 54–61 / 60–68 |
 | 4. One copy of the text | 8–26 / 29–31 / 37–45 → 8–26 / 29–31 / 36–163 | 5–24 / 27–29 → 5–25 / 27–29 | 57–64 / 62–71 / 80–99 → 56–63 / 62–71 / 82–94 | 55–62 / 60–69 → 54–62 / 60–68 |
+| All four, against 96cb7402 | 8–25 / 29–30 / 36–42 → 8–25 / 19–30 / 38–77 | 5–24 / 27–29 → 5–24 / 18–28 | 57–64 / 63–71 / 81–212 → 56–64 / 63–70 / 84–105 | 55–63 / 60–69 → 54–62 / 61–69 |
 
 Step 2 ran twice, four passes a chat; its 833 ms is one frame of one pass, and its other passes
 fall inside the spread of the tree before it. Step 3 ran four times; the table is the run with the
@@ -312,7 +316,10 @@ main thread used 36 ms of CPU, so the wait was elsewhere; the main thread's CPU 
 which no other process can inflate, was 4.3–22.8 / 52–58 ms (p50, long replies / agent run)
 before and 4.4–22.7 / 52–58 after. From step 1 on, a chat's first pass held 8.3 ms frames and the
 later ones about 25 ms, in every tree alike, against 8.3 ms throughout in the quiet baseline.
-Step 4 ran twice each way; its 163 ms is one frame whose main thread used 37 ms of CPU.
+Step 4 ran twice each way; its 163 ms is one frame whose main thread used 37 ms of CPU. Against
+96cb7402 the final tree's main thread spent 5–22.8 / 52–59 ms of CPU per frame (p50) against
+4.4–22.8 / 52–59, no pass moved backwards or changed the document's height, and the live malloc
+peak, the chat itself loaded whole, stays at 204–235 MB against 223–246.
 
 ## Manual sweep
 
