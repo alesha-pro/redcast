@@ -38,6 +38,22 @@ final class ChatWorkspaceSplitViewController: NSSplitViewController {
 
     private var settingsItem: NSSplitViewItem?
     private weak var workspace: ChatWorkspaceCoordinator?
+    private var closing: NotificationToken?
+
+    /// The transcript goes when the window closes, not when it hides or minimises.
+    override func viewDidAppear() {
+        super.viewDidAppear()
+        guard closing == nil, let window = view.window else { return }
+        let token = NotificationCenter.default.addObserver(
+            forName: NSWindow.willCloseNotification, object: window, queue: nil
+        ) { [weak self] _ in
+            MainActor.assumeIsolated {
+                guard let workspace = self?.workspace else { return }
+                workspace.chats.releaseWindowTranscript { workspace.history.conversation(id: $0) != nil }
+            }
+        }
+        closing = NotificationToken(token, center: .default)
+    }
 
     /// ⇧⌘I, the toolbar button and the sidebar's ✕; the choice is remembered for the next window.
     func toggleSettings() {

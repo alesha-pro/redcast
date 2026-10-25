@@ -80,6 +80,7 @@ final class AIChatCoordinator {
         prepareForChat()
         guard !window.focus() else { return }
         core.chatWorkspace.tidy()  // Fork: and as the window opens
+        chats.restoreWindowTranscript { core.chatHistory.conversation(id: $0) != nil }  // Fork
         if applyingOpenPolicy {
             chats.applyWindowOpenPolicy(
                 opensTo: core.aiSettings.opensTo, newAfter: core.aiSettings.newChatAfter)

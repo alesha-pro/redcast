@@ -1096,6 +1096,7 @@
 		F44DA0C81285A90138E13A7B /* ChatGPTSubscription.swift in Sources */ = {isa = PBXBuildFile; fileRef = D43E5D47E198B86901D75515 /* ChatGPTSubscription.swift */; };
 		F46DE2571A85FA24BD4E3B3A /* WindowSwitchEntry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 479047BCB47CE279EB1D256D /* WindowSwitchEntry.swift */; };
 		F4A75F90028F57D6DC1EF7DB /* ASCIIKeyboardLayout.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2D1CA733FFAEF665D867A45 /* ASCIIKeyboardLayout.swift */; };
+		F4BEAEAA0961BB229DDCB4AB /* ChatWindowRelease.swift in Sources */ = {isa = PBXBuildFile; fileRef = 912C80C2EF2565E62B6B0A4B /* ChatWindowRelease.swift */; };
 		F51785CF5A6EC0B87D6802C9 /* ExtensionScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCCBDD92DEAD780A1DC423CA /* ExtensionScreen.swift */; };
 		F538C1CE835CA676686DE145 /* AgentTurnBudget.swift in Sources */ = {isa = PBXBuildFile; fileRef = C708D9723F8471AB65EEF339 /* AgentTurnBudget.swift */; };
 		F5CC30A7FD6D8F11187D631B /* ExtensionPickerList.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5B1FC5C77AA5F4DD6E2D9B4D /* ExtensionPickerList.swift */; };
@@ -1868,6 +1869,7 @@
 		90DEF8D0211CA35DF44537B2 /* MenuSearchItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuSearchItem.swift; sourceTree = "<group>"; };
 		90E23F92F4B4DEEE55077C7C /* AppIconView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppIconView.swift; sourceTree = "<group>"; };
 		91151402A1A4586B2496BF35 /* NotesPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotesPanel.swift; sourceTree = "<group>"; };
+		912C80C2EF2565E62B6B0A4B /* ChatWindowRelease.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatWindowRelease.swift; sourceTree = "<group>"; };
 		916971391D1DCC0A533F1C16 /* ChatFind.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatFind.swift; sourceTree = "<group>"; };
 		9188FA8A06EAE3E55FFCBC70 /* UpdateInstaller.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpdateInstaller.swift; sourceTree = "<group>"; };
 		91D0784E49BC5899A585F285 /* Scrypt.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Scrypt.swift; sourceTree = "<group>"; };
@@ -3488,6 +3490,7 @@
 				9B9929C58A7D5B306DF2B1D8 /* ChatSettingsSidebar.swift */,
 				7D23B1804B6AB8D69079D528 /* ChatSettingsState.swift */,
 				418854F883866247F80602E4 /* ChatTranscriptColors.swift */,
+				912C80C2EF2565E62B6B0A4B /* ChatWindowRelease.swift */,
 				AD145827F45836B124B4B258 /* ChatWorkspaceCoordinator.swift */,
 				42152030C055613CA586AAC8 /* ChatWorkspaceHost.swift */,
 				1A366C6E33DF3D2E000FBBAF /* ChatWorkspaceKeys.swift */,
@@ -5875,6 +5878,7 @@
 				454AD9FFAB6FC2F69C1A515C /* ChatToolScope.swift in Sources */,
 				FEBF2030CA1BD578E10455A1 /* ChatTranscriptColors.swift in Sources */,
 				E77BF5D26A6D9E9FC7E82259 /* ChatTranscriptView.swift in Sources */,
+				F4BEAEAA0961BB229DDCB4AB /* ChatWindowRelease.swift in Sources */,
 				7838D442894E3D777BCBFFD5 /* ChatWorkspace.swift in Sources */,
 				66681786025470CFCF2DE2E2 /* ChatWorkspaceCoordinator.swift in Sources */,
 				60CCD8346181EF485FB0E978 /* ChatWorkspaceHost.swift in Sources */,

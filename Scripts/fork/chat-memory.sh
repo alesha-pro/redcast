@@ -4,6 +4,7 @@
 #   CHAT_MEMORY_ONSCREEN=1 shows the window (otherwise it is moved off every screen);
 #   CHAT_MEMORY_SCROLL=1 times steady scrolls through two long chats instead of the memory steps;
 #   CHAT_MEMORY_CENSUS=1 adds a heap count of the watched classes after every step of the last cycle;
+#   CHAT_MEMORY_GRAPH=<step,…> saves a memory graph at those steps of the last cycle;
 #   CHAT_MEMORY_DETAIL=1 dumps footprint and heap per step of the first cycle;
 #   CHAT_MEMORY_EARLY=<s> also dumps them, with the layers, that long after each switch;
 #   CHAT_MEMORY_SHOTS=<dir> saves the window's layers after each switch;

@@ -180,6 +180,20 @@ final class ChatSelectableTextView: NSTextView {
         layoutOverlays()
     }
 
+    // Fork: off the window its text goes at once, as AppKit keeps a removed text view for seconds.
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        if window == nil, rendered != nil {
+            rendered = nil
+            textStorage?.setAttributedString(NSAttributedString())
+            while let header = headers.popLast() { header.removeFromSuperview() }
+            codeBoxes = []
+        } else if window != nil, rendered == nil, let shown = source {
+            source = nil
+            show(shown)
+        }
+    }
+
     override func mouseMoved(with event: NSEvent) {
         guard ownsPointer() else {
             NSCursor.arrow.set()

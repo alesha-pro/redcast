@@ -175,9 +175,10 @@ private struct AIChatComposer: View {
                 .regular, in: RoundedRectangle(cornerRadius: Theme.Radius.dialog, style: .continuous))
         }
         .animation(.snappy, value: settings.webSearchEnabled)
-        // Fork: ⌘↵ sends now, into a native agent's run or in place of the reply; then the queue.
+        // Fork: ⌘↵ sends now; SwiftUI keeps a shortcut's action past a switch, so it reads the window's.
         .background {
-            Button("Send Now", action: sendNow).keyboardShortcut(.return, modifiers: .command).opacity(0)
+            Button("Send Now") { [coordinator] in Self.sendNow(in: coordinator.chats.window) }
+                .keyboardShortcut(.return, modifiers: .command).opacity(0)
         }
         .drainsChatQueue(chat)
     }
@@ -249,7 +250,7 @@ private struct AIChatComposer: View {
     }
 
     /// Fork: ⌘↵ — straight into the running reply, or sent as usual when nothing runs.
-    private func sendNow() {
+    private static func sendNow(in chat: AIChatState) {
         if AppCore.shared.chatQueue.sendNow(chat.draft, in: chat) { chat.draft = "" }
     }
 

@@ -38,6 +38,7 @@ struct ChatWorkspaceTests {
         toolKindsAndLanguageHues()
         colouredTextReadsInBothAppearances()
         bannersOnlyForChatsOutOfSight()
+        aClosedWindowReleasesItsTranscriptAndReopensIt()
         print("\(passes) passed, \(failures) failed")
         if failures > 0 { exit(1) }
     }
@@ -481,6 +482,43 @@ struct ChatWorkspaceTests {
         let settings = ChatWorkspaceSettings(defaults: defaults)
         expect(!settings.notifiesInBackground && settings.autoArchive == .never, "both start off")
         expect(settings.showsInspector && !settings.floatsOnTop, "settings open, window not floating")
+    }
+
+    // MARK: - Memory
+
+    static func aClosedWindowReleasesItsTranscriptAndReopensIt() {
+        let (workspace, _) = coordinator(directory("release"))
+        let history = workspace.history
+        let chats = workspace.chats
+        let saved = { (id: UUID) in history.conversation(id: id) != nil }
+        let first = Self.saved(history, "first")
+        let second = Self.saved(history, "second")
+        _ = chats.openInWindow(id: first)
+        chats.releaseWindowTranscript(isSaved: saved)
+        expect(chats.window.session.messages.isEmpty, "a closed window keeps no transcript")
+        chats.restoreWindowTranscript(isSaved: saved)
+        expect(chats.window.holds(first), "the reopened window shows the chat it closed on")
+        chats.releaseWindowTranscript(isSaved: saved)
+        _ = chats.openInWindow(id: second)
+        chats.restoreWindowTranscript(isSaved: saved)
+        expect(chats.window.holds(second), "a chat opened while closed wins over the released one")
+        chats.releaseWindowTranscript(isSaved: saved)
+        chats.newWindowChat()
+        chats.restoreWindowTranscript(isSaved: saved)
+        expect(chats.window.session.messages.isEmpty, "New Chat while closed is not undone on show")
+        _ = chats.openInWindow(id: first)
+        chats.window.draft = "half typed"
+        chats.releaseWindowTranscript(isSaved: saved)
+        expect(chats.window.holds(first), "a draft keeps its chat resident")
+        chats.window.draft = ""
+        chats.window.toolScope.toggle("github")
+        chats.releaseWindowTranscript(isSaved: saved)
+        expect(chats.window.holds(first), "a chat's own tool picks keep it resident")
+        chats.window.toolScope = ChatToolScope()
+        chats.releaseWindowTranscript(isSaved: saved)
+        workspace.trash(first)
+        chats.restoreWindowTranscript(isSaved: saved)
+        expect(chats.window.session.messages.isEmpty, "a chat deleted while closed does not come back")
     }
 
     static func settle(_ chat: AIChatState) async {

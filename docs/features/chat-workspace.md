@@ -66,6 +66,10 @@ that touches them stays mechanical.
 - **The window's transcript is upstream's eager stack, drawn by AppKit as before.** No lazy stack
   and no custom text drawing, so scrolling is exactly upstream's; memory is saved only around it.
   See [Memory](#memory); `Scripts/fork/chat-memory.sh` measures both memory and scrolling.
+- **A chat is loaded whole when it opens and let go whole when it is left.** Nothing outlives a
+  switch: a text view leaving the window drops its text at once, and no action keeps the chat it
+  was made for. A closed window keeps only an idle, saved chat's id and reloads it on reopen
+  (`ChatWindowRelease`).
 
 ## Folders
 
@@ -230,15 +234,36 @@ baseline above.
   else reads the tile: a request still sends the original bytes, and a file's Quick Look and Open
   read the file itself.
 
+- **2. The chat goes when the window leaves it.** On a switch, the old chat outlived the new
+  one: SwiftUI kept the composer's ⌘↵ Send Now action from the first render, so its
+  `AIChatState`, with every message and attached picture, stayed alive behind a keyboard-shortcut
+  binding (`leaks --traceTree` on a memory graph). The action now reads the window's chat when
+  it runs. And AppKit keeps a removed `NSTextView` for seconds, in a deferred drag-type block, so
+  a left chat's text views, attributed strings, tables and code headers overlapped the next chat's;
+  `ChatSelectableTextView` now drops its text and headers as it leaves the window and renders
+  again if it ever comes back. On close, `ChatWindowRelease` (from `ddef6f46`) keeps only an
+  idle, saved chat's id, with no draft, staged file or tool picks, and `showWindow` reloads it
+  before the open policy, so the window reopens on the same chat. With `CHAT_MEMORY_CENSUS=1`
+  every switch leaves the counts of the chat it shows, and nothing of the one before:
+  `AIChatState` stays at 2 (Quick AI and the window) where it was 3, code headers read 40, 0, 96,
+  0, 0, 20, 40, 40 for the chats in turn, `NSTextTableBlock` 1,080, 0, 2,688, 0, 0, 0, 1,080, 1,080,
+  and after closing both are 0. Only empty text-view shells linger until AppKit lets them go.
+
 | Cycle 2, MB, before → after | Peak | Highest open | After closing | Malloc after closing |
 | --- | ---: | ---: | ---: | ---: |
 | 1. Tiles | 733 → 456 | 686 → 378 | 189 → 212 | 84 → 92 |
+| 2. Release | 502 → 391 | 449 → 353 | 244 → 182 | 91 → 32 |
 
 Scrolling, two passes each way, ms (interval p50 / p95 / max; busy p50 / p95):
 
 | Before → after | Long replies interval | busy | Agent run interval | busy |
 | --- | --- | --- | --- | --- |
 | 1. Tiles | 16.7 / 16.7 / 25–33 → 16.7 / 16.7 / 31–42 | 11–14 / 15 → 11 / 15–16 | 37–39 / 42–51 / 52–67 → 38 / 46–50 / 56–68 | 36–37 / 41–49 → 37–38 / 43–48 |
+| 2. Release | 8–25 / 28–30 / 37–50 → 8–25 / 27–30 / 33–52 | 5–24 / 27–29 → 5–24 / 26–28 | 41–61 / 56–70 / 77–99 → 32–62 / 37–76 / 56–833 | 39–60 / 54–67 → 31–60 / 36–74 |
+
+Step 2 ran twice, four passes a chat; its 833 ms is one frame of one pass, and its other passes
+fall inside the spread of the tree before it. From step 2 on, under the render, a chat's first
+pass held 8.3 ms frames and the later ones about 25 ms, in both trees alike.
 
 ## Manual sweep
 

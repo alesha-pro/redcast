@@ -182,6 +182,17 @@ enum MemoryDetail {
             toFile: "\(base)-\(name).txt", atomically: true, encoding: .utf8)
     }
 
+    /// `CHAT_MEMORY_GRAPH=<step>` saves a memory graph there, for `leaks --trace` on what stayed.
+    static func graph(at step: String, beside report: URL) -> Bool {
+        guard let wanted = ProcessInfo.processInfo.environment["CHAT_MEMORY_GRAPH"],
+            wanted.split(separator: ",").contains(where: { step.hasPrefix($0) })
+        else { return false }
+        let name = step.replacing(" ", with: "-")
+        let file = report.deletingPathExtension().path + "-\(name).memgraph"
+        _ = run("/usr/bin/leaks", ["--outputGraph=\(file)", String(getpid())])
+        return true
+    }
+
     private static func run(_ tool: String, _ arguments: [String]) -> String {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: tool)
@@ -234,6 +245,7 @@ struct ChatMemoryRun {
                 census.append((step, HeapCensus.take().counts))
                 _ = probe.mark()
             }
+            if cycle == cycles, MemoryDetail.graph(at: step, beside: report) { _ = probe.mark() }
         }
         _ = probe.mark()
         await settle(1)
@@ -248,6 +260,8 @@ struct ChatMemoryRun {
             await settle(2.5)
             record(cycle, "open")
             for (index, id) in order.dropFirst().enumerated() {
+                // `heap` blocks the main thread, so AppKit's deferred releases get their turn first.
+                if HeapCensus.everyStep, cycle == cycles { await settle(2) }
                 core.aiChatCoordinator.openChat(id: id)
                 if let early = MemoryDetail.early, cycle == 1 {
                     print(ChatMemoryWindow.layerCensus())

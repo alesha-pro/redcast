@@ -366,7 +366,8 @@ OpenRouter connection at `127.0.0.1:9`; both are emptied before and after each r
 drives the real window: open, seven switches, paging up through the screenshot chat, Chat Settings
 open and closed, then close. It records phys_footprint and live malloc at each step, with their
 highs from a 2 ms sampler and the kernel's interval peak, and a `heap` count of watched classes
-after closing; `CHAT_MEMORY_CENSUS=1` takes that count after every step of the last cycle.
+after closing; `CHAT_MEMORY_CENSUS=1` takes that count after every step of the last cycle, and
+`CHAT_MEMORY_GRAPH=<step,…>` saves a memory graph there for `leaks --traceTree` on what stayed.
 `CHAT_MEMORY_SCROLL=1` instead scrolls the two tallest chats end to end and back at 3,000 pt/s,
 one precise wheel event per display frame sent to the real `NSScrollView`. Per pass it reports
 the frame intervals (p50, p95, max, frames over 16.7 ms, refreshes missed), the main thread's busy

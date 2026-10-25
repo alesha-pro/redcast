@@ -9,6 +9,7 @@ final class AIChatSurfacesState {
     private(set) var window: AIChatState
     /// Window conversations left mid-reply; each saves itself when its reply ends.
     private var answeringElsewhere: [UUID: AIChatState] = [:]
+    @ObservationIgnored var releasedWindowID: UUID?  // Fork: the closed window's chat, reloaded later
 
     private let history: ChatHistoryStore
 
@@ -73,6 +74,7 @@ final class AIChatSurfacesState {
 
     /// An empty chat is already new; replacing it would only drop what is staged in it.
     func newWindowChat() {
+        releasedWindowID = nil  // Fork
         guard !window.session.messages.isEmpty else { return }
         show(makeState())
     }
@@ -112,6 +114,7 @@ final class AIChatSurfacesState {
     }
 
     private func show(_ next: AIChatState) {
+        releasedWindowID = nil  // Fork: whatever shows now replaces the closed window's chat
         if window.isStreaming { answeringElsewhere[window.session.id] = window }
         window = next
         answeringElsewhere = answeringElsewhere.filter { $0.value.isStreaming }
@@ -160,6 +163,7 @@ final class AIChatSurfacesState {
 
     /// Off, or quitting: every reply stops and saves, and both surfaces start over.
     func reset() {
+        releasedWindowID = nil  // Fork
         for state in live { state.startNewChat() }
         answeringElsewhere = [:]
     }
