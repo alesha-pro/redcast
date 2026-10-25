@@ -52,6 +52,12 @@ nothing about MCP. `AIChatCoordinator.send` is the one place the two meet.
   Allow** — which is what Escape does — refuses that one call and lets the next ask again. Escape is
   never allowed to persist a decision, and `.never` is set on the server's row in Settings.
   `MCPTrustPolicy` is the whole rule and it is pure.
+- **Fork: a chat's Access level stands over a server's trust, never over Never Allow.**
+  `MCPTrustPolicy.decide(trust:isGrantedForChat:access:)` (`MCPChatAccess.swift`): Agent's Settings
+  is the rule above; Ask Every Time asks every call, ignores Allow This Chat and offers only Allow
+  and Don't Allow (`MCPTrustChoice.once`), so no answer outlives the call; Allow Everything allows
+  every call unasked. A server set to Never Allow stays refused. A background run's chat keeps the
+  server's own trust. See [agents](agents.md#invariants).
 - **A refused or failed call is content, never a thrown error.** It comes back as an `AIToolResult`
   the model can read and work around, so a declined tool ends in an honest sentence rather than a
   failed turn.
@@ -127,7 +133,7 @@ nothing about MCP. `AIChatCoordinator.send` is the one place the two meet.
 - **Redcast exposes nothing back.** A server request — sampling, elicitation, roots — is declined
   with a JSON-RPC error. The client advertises no capabilities in `initialize`.
 - **`Model/` stays Foundation-only.** `mcp-test` compiles the shipped models and pins the framing,
-  handles, tool names, output flattening, trust and addressing; `mcp-stdio-test` drives a real
+  handles, tool names, output flattening, trust under each Access level and addressing; `mcp-stdio-test` drives a real
   subprocess. `mcp-oauth-test` pins OAuth parsing, PKCE, endpoint binding, callback lifetime,
   dynamic and supplied client registration, refresh coalescing, redirects and bounded 401 recovery.
 

@@ -32,6 +32,7 @@ struct ChatWorkspaceTests {
         bulkFactsWordTheActions()
         instructionsComposeAfterTheAppPrompt()
         creativityKeepsTheRestOfTheRequest()
+        aChatsAccessLevelIsKeptTolerantly()
         do { try await creativityRidesEveryRequestAndYieldsToARefusal() } catch { expect(false, "\(error)") }
         autoArchiveSparesPinnedOpenAndRecentChats()
         deletionsExpireAfterSixtyDays()
@@ -483,6 +484,47 @@ struct ChatWorkspaceTests {
         let off = ChatInstructions.compose(base: nil, chat: "Only this.")
         expect(off?.contains("Only this.") == true, "with the system prompt off a chat's own text still goes")
         expect(ChatInstructions.compose(base: "App.", folder: "  ", chat: "\n") == "App.", "blank text adds nothing")
+    }
+
+    static func aChatsAccessLevelIsKeptTolerantly() {
+        var workspace = ChatWorkspace()
+        let strict = UUID()
+        let free = UUID()
+        workspace.setAccess(.askEveryTime, of: strict)
+        workspace.setAccess(.allowEverything, of: free)
+        let reread = ChatWorkspace(data: workspace.data)
+        expect(
+            reread.placement(of: strict).access == .askEveryTime && reread.placement(of: free).access == .allowEverything,
+            "each chat keeps its own Access level")
+        let entry = JSONValue(data: workspace.data)?.objectValue?["chats"]?.objectValue?[free.uuidString]?.objectValue
+        expect(entry?["access"] == .string("allowEverything"), "under its own key, by name")
+        workspace.setAccess(.agentSettings, of: free)
+        expect(workspace.placements[free] == nil, "Agent's Settings is the default and writes nothing")
+        let old = UUID()
+        let odd = UUID()
+        let spelled = UUID()
+        let json = """
+            {"chats": {"\(old.uuidString)": {"instructions": "Be brief."},
+                       "\(odd.uuidString)": {"access": "everything", "creativity": "low"},
+                       "\(spelled.uuidString)": {"access": "agentSettings", "creativity": "low"}}}
+            """
+        let file = ChatWorkspace(data: Data(json.utf8))
+        expect(file.placement(of: old).access == nil, "a file from before the level reads as Agent's Settings")
+        expect(file.placement(of: odd).access == nil, "and so does a value this build does not know")
+        expect(file.placement(of: spelled).access == nil, "and the default spelled out")
+        var branched = reread
+        let branch = UUID()
+        branched.copyPlacement(from: strict, to: branch)
+        expect(branched.placement(of: branch).access == .askEveryTime, "a branch is asked the same way")
+
+        let root = directory("access")
+        let (coordinator, _) = Self.coordinator(root)
+        let chat = UUID()
+        expect(coordinator.access(of: chat) == .agentSettings, "a chat starts on Agent's Settings")
+        coordinator.setAccess(.allowEverything, of: chat)
+        expect(coordinator.access(of: chat) == .allowEverything, "and keeps the level picked")
+        let (relaunched, _) = Self.coordinator(root)
+        expect(relaunched.access(of: chat) == .allowEverything, "across a relaunch")
     }
 
     static func creativityKeepsTheRestOfTheRequest() {

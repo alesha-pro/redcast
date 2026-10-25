@@ -75,8 +75,11 @@ struct AgentContext: Equatable, Sendable {
     static let maxMemoryBytes = 8 * 1_024
 
     /// Steady parts first and the notes last: a provider caches a prompt up to its first change.
-    func prompt(now: Date, timeZone: TimeZone, hasTools: Bool, standing: [String] = []) -> String {
-        var sections = [header(now: now, timeZone: timeZone, hasTools: hasTools)]
+    func prompt(
+        now: Date, timeZone: TimeZone, hasTools: Bool, standing: [String] = [],
+        access level: ChatAccess = .agentSettings
+    ) -> String {
+        var sections = [header(now: now, timeZone: timeZone, hasTools: hasTools, access: level)]
         if hasTools { sections.append(method) }
         if let global = globalInstructions {
             sections.append(
@@ -144,13 +147,13 @@ struct AgentContext: Equatable, Sendable {
     }
 
     /// The zone, never the date: a date here would change the cached prompt every day.
-    private func header(now: Date, timeZone: TimeZone, hasTools: Bool) -> String {
+    private func header(now: Date, timeZone: TimeZone, hasTools: Bool, access level: ChatAccess) -> String {
         [
             "# Agent: \(profile.name)",
             "You are \(profile.name), a general assistant working on the user's Mac, in the folder "
                 + "\(profile.directory); relative paths are relative to it. The user's time zone is "
                 + "\(AgentTurnLead.zone(timeZone, at: now)); each turn opens with the current time.",
-            access,
+            access(level),
             hasTools ? "" : "This model cannot call tools here, so answer from what the conversation holds."
         ].filter { !$0.isEmpty }.joined(separator: "\n")
     }
@@ -185,14 +188,16 @@ struct AgentContext: Equatable, Sendable {
     }
 
     /// Read from the toolset's own rules, so the model never counts on a check that is not there.
-    private var access: String {
+    private func access(_ level: ChatAccess) -> String {
         guard profile.access.writes else {
             return "Access: read-only. You may read the folder and your skills; you cannot change "
                 + "files or run commands."
         }
         let place = profile.access == .fullAccess ? "anywhere" : "inside the folder"
         let changes: String =
-            switch AgentConsentPolicy.rule(for: .change, in: .files, of: profile) {
+            switch AgentConsentPolicy.rule(for: .change, in: .files, of: profile, access: level) {
+            case .ask where level == .askEveryTime:
+                "Access: you may change files \(place); the user approves each change first."
             case .ask:
                 "Access: you may change files \(place); the user approves each change first, or "
                     + "allows them for the rest of the chat."
@@ -202,7 +207,9 @@ struct AgentContext: Equatable, Sendable {
             case .never: "Access: you cannot change files."
             }
         let commands: String =
-            switch AgentConsentPolicy.rule(for: .execute, in: .terminal, of: profile) {
+            switch AgentConsentPolicy.rule(for: .execute, in: .terminal, of: profile, access: level) {
+            case .ask where level == .askEveryTime:
+                "You may run commands in the folder; the user approves each one first."
             case .ask:
                 "You may run commands in the folder; the user approves each one first, or allows "
                     + "them for the rest of the chat."

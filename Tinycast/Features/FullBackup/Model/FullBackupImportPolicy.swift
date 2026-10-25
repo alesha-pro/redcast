@@ -28,6 +28,11 @@ enum FullBackupImportPolicy {
         return (landed, disabled)
     }
 
+    /// A chat's Access level may only narrow on import: Allow Everything lands as Agent's Settings.
+    static func chatAccess(_ recorded: ChatAccess?) -> ChatAccess? {
+        recorded == .allowEverything ? nil : recorded
+    }
+
     /// The commands a file can make this Mac launch later, shown before anything is applied.
     static func launches(
         agents: AgentsBackup?, mcp: MCPBackup?, ai: AIBackup?

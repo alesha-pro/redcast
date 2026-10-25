@@ -6,6 +6,8 @@ struct ChatPlacement: Equatable, Sendable {
     /// The chat's own Additional Instructions, sent last in its system prompt.
     var instructions: String?
     var creativity: ChatCreativity?
+    /// Nil is Agent's Settings, so a chat on the default writes nothing.
+    var access: ChatAccess?
     var archivedAt: Date?
     /// Set once the chat is in Recently Deleted; purged `ChatWorkspace.trashLifetime` later.
     var deletedAt: Date?
@@ -19,7 +21,7 @@ struct ChatPlacement: Equatable, Sendable {
 
     /// An entry with nothing left in it is dropped, so the file only names chats it says something of.
     var isEmpty: Bool {
-        folderID == nil && instructions == nil && creativity == nil && archivedAt == nil
+        folderID == nil && instructions == nil && creativity == nil && access == nil && archivedAt == nil
             && deletedAt == nil && parentID == nil && !foldsBranches && unknown.isEmpty
     }
 }
@@ -105,6 +107,10 @@ struct ChatWorkspace: Equatable, Sendable {
 
     mutating func setCreativity(_ creativity: ChatCreativity?, of chat: UUID) {
         update(chat) { $0.creativity = creativity }
+    }
+
+    mutating func setAccess(_ access: ChatAccess?, of chat: UUID) {
+        update(chat) { $0.access = access == .agentSettings ? nil : access }
     }
 
     mutating func archive(_ chat: UUID, at date: Date) {
@@ -208,12 +214,12 @@ struct ChatWorkspace: Equatable, Sendable {
 extension ChatWorkspace {
     private enum Key {
         static let version = "version", folders = "folders", chats = "chats"
-        static let folder = "folder", instructions = "instructions", creativity = "creativity"
+        static let folder = "folder", instructions = "instructions", creativity = "creativity", access = "access"
         static let archived = "archivedAt", deleted = "deletedAt", deletedTitle = "deletedTitle"
         static let parent = "branchOf", folded = "branchesFolded"
         static let top: Set<String> = [version, folders, chats]
         static let chat: Set<String> = [
-            folder, instructions, creativity, archived, deleted, deletedTitle, parent, folded
+            folder, instructions, creativity, access, archived, deleted, deletedTitle, parent, folded
         ]
     }
 
@@ -229,6 +235,8 @@ extension ChatWorkspace {
             placement.folderID = fields[Key.folder]?.stringValue.flatMap(UUID.init(uuidString:))
             placement.instructions = Self.cleanText(fields[Key.instructions]?.stringValue)
             placement.creativity = fields[Key.creativity]?.stringValue.flatMap(ChatCreativity.init(rawValue:))
+            placement.access = fields[Key.access]?.stringValue.flatMap(ChatAccess.init(rawValue:))
+            if placement.access == .agentSettings { placement.access = nil }
             placement.archivedAt = fields[Key.archived]?.workspaceDate
             placement.deletedAt = fields[Key.deleted]?.workspaceDate
             placement.deletedTitle = fields[Key.deletedTitle]?.stringValue
@@ -251,6 +259,7 @@ extension ChatWorkspace {
             if let folder = placement.folderID { fields[Key.folder] = .string(folder.uuidString) }
             if let text = placement.instructions { fields[Key.instructions] = .string(text) }
             if let creativity = placement.creativity { fields[Key.creativity] = .string(creativity.rawValue) }
+            if let access = placement.access { fields[Key.access] = .string(access.rawValue) }
             if let date = placement.archivedAt { fields[Key.archived] = .number(date.timeIntervalSince1970) }
             if let date = placement.deletedAt { fields[Key.deleted] = .number(date.timeIntervalSince1970) }
             if let title = placement.deletedTitle { fields[Key.deletedTitle] = .string(title) }

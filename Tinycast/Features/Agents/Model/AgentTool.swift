@@ -43,6 +43,8 @@ struct AgentTurn: Sendable {
     var isBackground = false
     /// What its `web_fetch` may open; a sub-agent shares its parent's.
     var web: AgentWebScope?
+    /// The chat's Access level, set only on a turn the user sent and on that turn's sub-agents.
+    var access = ChatAccess.agentSettings
 
     /// The user sent this turn from its chat; never a background run or a sub-agent.
     var isUserTurn: Bool {

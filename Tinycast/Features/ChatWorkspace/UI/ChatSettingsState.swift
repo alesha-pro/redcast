@@ -65,6 +65,9 @@ struct ChatSettingsState {
     var creativity: ChatCreativity?
     /// Only an API route takes a temperature, and Gemini keeps its own.
     var creativityApplies: Bool
+    var access = ChatAccess.agentSettings
+    /// Only an agent, or an MCP server the chat may call, gives the level something to change.
+    var accessApplies = false
     var instructions: String
     var webSearch: Bool?
     var tools: ChatToolsFacts?
@@ -103,4 +106,17 @@ struct ChatModelSummary: Equatable {
     var icon: ChatSettingsIcon?
     var model: String
     var agent: ChatAgentChoice?
+    /// Set only when the chat's Access level is not the default and has something to change.
+    var access: ChatAccess?
+}
+
+extension ChatAccess {
+    /// Allow Everything in red, as the warning it is; Ask Every Time in blue.
+    var icon: ChatSettingsIcon {
+        switch self {
+        case .agentSettings: .symbol(symbol, nil)
+        case .askEveryTime: .symbol(symbol, .blue)
+        case .allowEverything: .symbol(symbol, .red)
+        }
+    }
 }

@@ -16,7 +16,8 @@ that touches them stays mechanical.
 - **One small document beside the history, and nothing about a chat is lost by reading it.**
   `ChatWorkspaceStore` keeps `ai-chat-workspace.json` next to `ai-chats.sqlite3` in the bundle's
   Application Support folder. It holds the folders, in order, and an entry per chat that has
-  something to say: its folder, Additional Instructions, Creativity, when it was archived, and
+  something to say: its folder, Additional Instructions, Creativity, Access (`access`, only when not
+  Agent's Settings; a missing or unknown value reads as Agent's Settings), when it was archived, and
   when it went to Recently Deleted with the title it had, the chat a branch was made from
   (`branchOf`) and whether a parent's branches are folded (`branchesFolded`). `ChatWorkspace(data:)` keeps whatever parses — a folder without an
   id or name, a chat key that is not a UUID or a date that is not a number is dropped alone, never
@@ -64,8 +65,17 @@ that touches them stays mechanical.
   (`ChatSettingsSidebar`) reads one `ChatSettingsState` that `AIChatCoordinator` builds from the
   same calls the composer's menus made (`ChatSettingsSource`), so a pick there is the pick the
   composer used to make: the model and effort still move the app default, an ACP agent's selects
-  still go to its session. Additional Instructions and Creativity are new and per chat, kept in the
-  chat's workspace entry; Web Search stays the app-wide switch it was, and says so.
+  still go to its session. Additional Instructions, Creativity and Access are new and per chat, kept
+  in the chat's workspace entry, and a branch starts with its source's; Web Search stays the
+  app-wide switch it was, and says so.
+- **Access never sits there doing nothing, and an import never widens it.** Agent's Settings,
+  Ask Every Time or Allow Everything ([what each does](agents.md#invariants)) is enabled for a chat
+  with an agent on a route that runs tools or on its own CLI, or with an MCP server it may call;
+  elsewhere it is disabled with "No tool in this chat asks first". A level other than the default
+  shows its line under the field, Allow Everything's in the accent red, and a small shield in the
+  composer's chip. The level travels with AI Chat History in a full backup like Creativity, but
+  `FullBackupImportPolicy.chatAccess` lands Allow Everything as Agent's Settings: an import never
+  grants a capability.
 - **Creativity reaches only a route that takes it.** `ChatCreativityProvider` sets
   `AIRequest.temperature` (Raycast's levels: None 0, Low 0.4, Medium 0.7, High 1, Maximum 1.5) on
   every request an API route sends, tool rounds included, and is not there at all while the chat is
@@ -153,8 +163,8 @@ inspector split item that collapses first when the window narrows, so the transc
 minimum width, and comes back as the window widens. Its cards:
 
 - **Title** (rename; a chat with no message yet has none to rename), **Agent** with each agent's
-  tile and Manage Agents…, **Model** with the maker's mark, **Reasoning**, **Creativity** and
-  **Folder**. A chat on an ACP agent shows that agent's own selects instead of Model and Reasoning:
+  tile and Manage Agents…, **Model** with the maker's mark, **Reasoning**, **Access**, **Creativity**
+  and **Folder**. A chat on an ACP agent shows that agent's own selects instead of Model and Reasoning:
   its model, reasoning, mode and the rest, as its session lists them.
 - **Additional Instructions**, a multi-line field saved as it is typed and sent last in the chat's
   system prompt, after the folder's.
@@ -414,6 +424,10 @@ of ids and the trees are rebuilt with the layout, so neither holds anything betw
   no temperature. On a Codex, Claude CLI or Gemini model the control is disabled.
 - Write Additional Instructions ("Reply in one sentence"): the next reply obeys, another chat does
   not, and they survive a relaunch.
+- In an agent chat set Access to Allow Everything: a file write and a command run with no dialog,
+  the chip shows a red shield, and a Never Allow family is still not offered; Ask Every Time: a
+  `web_fetch` asks, with no Allow for This Chat. A chat with no agent and no MCP server shows the
+  field disabled.
 - In light and dark: folders, headers, the selected row, the user bubble, tool glyphs, a Swift and a
   JSON code block's language pills and the composer's caret all take their colours, and switching
   the system appearance repaints them without reopening the window.

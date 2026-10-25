@@ -354,6 +354,14 @@ final class ChatWorkspaceCoordinator {
         store.change { $0.setCreativity(creativity, of: chat) }
     }
 
+    func setAccess(_ access: ChatAccess, of chat: UUID) {
+        store.change { $0.setAccess(access, of: chat) }
+    }
+
+    func access(of chat: UUID) -> ChatAccess {
+        workspace.placement(of: chat).access ?? .agentSettings
+    }
+
     /// The app's prompt, then the folder's instructions, then the chat's own.
     func instructions(for chat: UUID, base: String?) -> String? {
         let placement = workspace.placement(of: chat)

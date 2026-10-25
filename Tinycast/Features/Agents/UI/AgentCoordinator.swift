@@ -211,7 +211,8 @@ final class AgentCoordinator {
     /// The agent's part of the instructions; nil for a chat without one.
     func prompt(for chat: AIChatState, hasTools: Bool) -> String? {
         guard let agent = agent(for: chat) else { return nil }
-        let prompt = context(for: agent).prompt(now: Date(), timeZone: .current, hasTools: hasTools)
+        let prompt = context(for: agent).prompt(
+            now: Date(), timeZone: .current, hasTools: hasTools, access: access(forChat: chat.session.id))
         guard backgroundRuns?.isUnattended(chat.session.id) == true else { return prompt }
         return prompt + "\n\n" + AgentBackgroundBriefing.text
     }
@@ -227,7 +228,8 @@ final class AgentCoordinator {
             ? [settings.choicesEnabled && !unattended ? AIPreamble.choices : "", own] : []
         return context(for: agent).prompt(
             now: Date(), timeZone: .current, hasTools: true,
-            standing: standing + (unattended ? [AgentBackgroundBriefing.text] : []))
+            standing: standing + (unattended ? [AgentBackgroundBriefing.text] : []),
+            access: access(forChat: chat.session.id))
     }
 
     /// An agent chat's turn on the fork's loop, MCP's tools beside its own; nil leaves it upstream.
@@ -280,6 +282,8 @@ final class AgentCoordinator {
         var turn = AgentTurn(
             profile: agent, skills: context.skills, memoryURL: store.memoryURL(for: agent.id),
             mode: mode, isBackground: backgroundRuns?.isUnattended(mode.chatID) == true)
+        turn.access = ChatAccess.effective(
+            core.chatWorkspace.access(of: mode.chatID), isUserTurn: turn.isUserTurn)
         let run = backgroundRuns?.effort(forChat: mode.chatID)
         let effort = run ?? agent.effortLevel
         let budget = effort.budget
@@ -298,15 +302,15 @@ final class AgentCoordinator {
         let toolset = AgentToolset(
             turn: turn,
             providers: providers(
-                for: agent, in: context, over: base, mode: mode, budget: budget, clock: clock, web: web),
+                for: agent, in: context, over: base, turn: turn, budget: budget, clock: clock, web: web),
             mcpTools: mcpTools, mcp: mcp,
             refused: { [weak self] _ in
                 guard case .unattended(let chatID) = mode else { return }
                 Task { @MainActor in self?.backgroundRuns?.noteDeclined(chatID) }
             }
-        ) { [weak self] spec, request in
+        ) { [weak self, access = turn.access] spec, request in
             guard case .chat(let chatID) = mode else { return false }
-            return await self?.ask(spec, request, by: agent, in: chatID) ?? false
+            return await self?.ask(spec, request, by: agent, in: chatID, access: access) ?? false
         }
         guard !toolset.tools.isEmpty else { return nil }
         return AgentLoopProvider(
@@ -327,7 +331,7 @@ final class AgentCoordinator {
 
     /// The registry: one line per family, built per turn so nothing stays resident between turns.
     private func providers(
-        for agent: AgentProfile, in context: AgentContext, over base: any AIProvider, mode: AgentRunMode,
+        for agent: AgentProfile, in context: AgentContext, over base: any AIProvider, turn: AgentTurn,
         budget: AgentRunBudget, clock: AgentRunClock?, web: AgentWebScope
     ) -> [any AgentToolProvider] {
         var providers = familyProviders(for: agent)
@@ -336,7 +340,7 @@ final class AgentCoordinator {
         if agent.tools.contains(.delegate), budget.subAgents > 0 {
             providers.append(
                 delegate(
-                    for: agent, in: context, over: base, parent: mode.chatID,
+                    for: agent, in: context, over: base, parent: turn,
                     allowance: AgentSubAgentAllowance(budget.subAgents), clock: clock, web: web))
         }
         return providers
@@ -361,17 +365,21 @@ final class AgentCoordinator {
 
     /// A read-only copy of the agent with no delegate of its own, so sub-agents stop at one level.
     private func delegate(
-        for agent: AgentProfile, in context: AgentContext, over base: any AIProvider, parent: UUID,
+        for agent: AgentProfile, in context: AgentContext, over base: any AIProvider, parent turn: AgentTurn,
         allowance: AgentSubAgentAllowance, clock: AgentRunClock?, web: AgentWebScope
     ) -> AgentDelegateTools {
         var reader = agent
         reader.access = .readOnly
         reader.tools.remove(.delegate)
+        let parent = turn.mode.chatID
+        var child = AgentTurn(
+            profile: reader, skills: context.skills, memoryURL: store.memoryURL(for: agent.id),
+            mode: .unattended(parent), web: web)
+        child.access = turn.access
         let toolset = AgentToolset(
-            turn: AgentTurn(
-                profile: reader, skills: context.skills, memoryURL: store.memoryURL(for: agent.id),
-                mode: .unattended(parent), web: web),
-            providers: familyProviders(for: reader), mcpTools: [], offering: AgentToolRisk.reads,
+            turn: child, providers: familyProviders(for: reader), mcpTools: [],
+            // Nobody can answer a sub-agent, so Ask Every Time offers it plain reading only.
+            offering: turn.access == .askEveryTime ? [.read] : AgentToolRisk.reads,
             mcp: { .failure($0.id, "There is no tool called \($0.name).") },
             // A sub-agent never asks, so what it is refused counts toward its parent's active run.
             refused: { [weak self] _ in
@@ -430,11 +438,19 @@ final class AgentCoordinator {
 
     // MARK: - Consent
 
+    /// The chat's Access level while someone is there; a background run's chat keeps its rules.
+    func access(forChat id: UUID) -> ChatAccess {
+        ChatAccess.effective(
+            core.chatWorkspace.access(of: id), isUserTurn: backgroundRuns?.isUnattended(id) != true)
+    }
+
     /// The dialog behind a rule of ask; a chat grant skips it, and Stop voids its answer.
     private func ask(
-        _ spec: AgentToolSpec, _ request: AgentConsentRequest, by agent: AgentProfile, in chatID: UUID
+        _ spec: AgentToolSpec, _ request: AgentConsentRequest, by agent: AgentProfile, in chatID: UUID,
+        access: ChatAccess
     ) async -> Bool {
-        if chatGrants[chatID]?.contains(spec.grant) == true { return true }
+        let grants = access != .askEveryTime
+        if grants, chatGrants[chatID]?.contains(spec.grant) == true { return true }
         let title =
             switch (spec.family, spec.risk) {
             case (_, .execute): String(localized: "\(agent.name) wants to run a command")
@@ -443,20 +459,19 @@ final class AgentCoordinator {
             case (.screen?, .personal): String(localized: "\(agent.name) wants to read your screen")
             default: String(localized: "\(agent.name) wants to use \(spec.tool.title)")
             }
+        let options =
+            [DialogAction(title: String(localized: "Allow"))]
+            + (grants ? [DialogAction(title: String(localized: "Allow for This Chat"))] : [])
+            + [DialogAction(title: String(localized: "Don't Allow"), role: .cancel)]
         let answer = await choose(
             in: chatID, title: title,
             message: [request.summary, request.detail].filter { !$0.isEmpty }.joined(separator: "\n\n"),
-            symbol: agent.symbol,
-            options: [
-                DialogAction(title: String(localized: "Allow")),
-                DialogAction(title: String(localized: "Allow for This Chat")),
-                DialogAction(title: String(localized: "Don't Allow"), role: .cancel)
-            ], refusal: 2)
+            symbol: agent.symbol, options: options, refusal: options.count - 1)
         // Stop while the dialog was up: the turn is gone, so its answer must not act.
         guard !Task.isCancelled else { return false }
         switch answer {
         case 0: return true
-        case 1:
+        case 1 where grants:
             chatGrants[chatID, default: []].insert(spec.grant)
             return true
         default: return false
@@ -464,15 +479,21 @@ final class AgentCoordinator {
     }
 
     /// The agent's own options, allows first; the last is the dialog's cancel and refuses once.
-    private func permit(_ request: ACPPermissionRequest, by agent: AgentProfile) async -> String? {
+    private func permit(_ incoming: ACPPermissionRequest, by agent: AgentProfile) async -> String? {
+        let chatID = acpHost.chatID(forSession: incoming.sessionID, of: agent.id)
+        let request: ACPPermissionRequest
+        switch incoming.answer(under: chatID.map(access(forChat:)) ?? .agentSettings) {
+        case .select(let optionID): return optionID
+        case .ask(let asked): request = asked
+        }
         let options = request.dialogOptions
         guard !options.isEmpty else { return nil }
         let title = request.toolCall.title ?? request.toolCall.kind ?? String(localized: "Use a tool")
         let summary = request.toolCall.summary
         let refusal = request.refusalIndex
         let answer = await choose(
-            in: acpHost.chatID(forSession: request.sessionID, of: agent.id),
-            title: String(localized: "\(agent.name): \(title)"), message: summary, symbol: agent.symbol,
+            in: chatID, title: String(localized: "\(agent.name): \(title)"), message: summary,
+            symbol: agent.symbol,
             options: options.enumerated().map { index, option in
                 DialogAction(
                     title: option.name,

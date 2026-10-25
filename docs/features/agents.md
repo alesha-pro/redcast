@@ -57,6 +57,28 @@ optional chord: see [background and scheduled agents](background-agents.md).
   Allow also covers runs nobody is watching. `agents.json` has no `SettingsFileKey` and is not in
   `SettingsBackupCoverage`, and it must stay out of both while it carries rules, so an import can
   never grant an agent a capability.
+- **A chat's Access level stands over those rules, never over Never Allow.** Chat Settings → Access
+  (`ChatAccess`, kept per chat in the [workspace](chat-workspace.md)) is Agent's Settings, the rules
+  above unchanged; Ask Every Time, where changes, commands, network and personal reads all ask, the
+  Notes reads included (`NoteAgentTools` asks before a read under a rule of ask), the dialog has no
+  Allow for This Chat and no earlier grant counts; or Allow Everything, where every tool the turn is
+  offered runs unasked. `AgentConsentPolicy.rule(for:in:of:access:)` is the one pure rule:
+  Never Allow, an unticked family and read-only access stay never at every level, so a level never
+  offers a tool the agent lacks; reading and the agent's own notes keep running; and two asks stay
+  under Allow Everything (`isSafetyAsk`): an addition to the user's Notes, whose text may carry an
+  injected prompt, and a Screen read, which names the window in front each time. The level rides
+  `AgentTurn.access`, set by `AgentCoordinator.loop` through `ChatAccess.effective` only on a turn
+  the user sent from its chat: a scheduled, launcher or other unattended run, even in that chat,
+  keeps the agent's rules and refuses what would ask. A sub-agent shares its parent's level, and
+  under Ask Every Time is offered plain reading only, since nobody can answer it. The prompt's Access
+  line reads the same rule. An ACP chat applies the level to `session/request_permission`
+  (`ACPPermissionRequest.answer(under:)`): Allow Everything picks the agent's allow once, else its
+  allow always, unasked, never a reject or an option of unknown kind (none: the dialog asks); Ask
+  Every Time always shows the dialog and drops allow always where an allow once exists, so the
+  agent keeps asking. The agent's own mode (Claude Code's or Codex's, in the sidebar's Mode select)
+  still decides which calls it asks about at all: a mode that never asks leaves Ask Every Time
+  nothing to ask, and an "always" the agent already remembers stays its own. MCP tools in any chat
+  follow the level too (see [MCP](mcp.md)).
 - **A general assistant, told how much to do.** An agent chat on Redcast's loop is sent the agent's
   own prompt (`AgentCoordinator.loopInstructions`) in place of the shared one: no launcher
   self-description (`AIPreamble`), the user's system prompt and the suggested-replies block where those
@@ -804,7 +826,7 @@ this way, as one provider. Nothing else changes: no router edit, no upstream lin
   before its first message; a chat on an API model or with no agent never shows the card. With
   Codex, `/status` answers with its status; in a fresh chat it is the first block (its reply is the
   command's, not a model's).
-- Harnesses: `acp-test` (framing, updates, permissions, prompts, tool content compaction, slash
+- Harnesses: `acp-test` (framing, updates, permissions and the option each Access level picks, prompts, tool content compaction, slash
   commands, config options and the older models and modes: decoding, caps, slots, updates, what a
   remembered value comes to, the picks on the profile and in `agents.json`, a chat's own picks on
   disk and gone with its session, and a scripted agent process in
@@ -823,7 +845,8 @@ this way, as one provider. Nothing else changes: no router edit, no upstream lin
   prompt, briefing and `load_skill` following it); `agent-test` (skills, catalog, path policy, tool sets,
   specs, consent policy and per-agent rules, toolset order and routing, batches, budget, elision,
   the prompt and the rules it states, persistence and the bindings a gone chat leaves behind, the
-  plan checklist shared with ACP, newer families kept out of the previous build's way and given back
+  plan checklist shared with ACP, every Access level over every risk, rule and family with the
+  safety asks, Never Allow and unattended runs, the toolset and prompt under each level, newer families kept out of the previous build's way and given back
   after its save, a reading-only toolset and per-call row titles, compaction's coverage, reuse,
   bounds, a long newest question and notes kept per chat, the reading tools' arguments, and the
   Spotlight query: terms, escaping, control characters, kinds, dates, arguments, what is shown with
@@ -834,7 +857,8 @@ this way, as one provider. Nothing else changes: no router edit, no upstream lin
   as Markdown and as its source, an image by OCR, a binary file, a folder and a missing helper; reads
   beyond the folder narrowing `web_fetch` and its refusal; Spotlight's refusals; a NUL in a
   pattern, a command or a document path refused rather than crashing; the built-ins
-  through a toolset, with and without an agent's own rules; every refused effect; `update_plan`); `document-text-test` (see
+  through a toolset, with and without an agent's own rules and under each Access level, a run
+  nobody watches keeping its rules; every refused effect; `update_plan`); `document-text-test` (see
   [document text](document-text.md)); and
   `agent-loop-test` (the fork's loop and upstream's on the same scripts under 128 KB; routing,
   signals, Stop, parallel batches, a long turn that elides; `delegate`'s spec and name, a

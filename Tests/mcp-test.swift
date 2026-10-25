@@ -179,6 +179,24 @@ struct MCPTests {
         expect(
             MCPTrustPolicy.decide(trust: .ask, isGrantedForChat: true) == .allow,
             "and the rest of that chat is not")
+        for trust in MCPTrust.allCases {
+            for granted in [false, true] {
+                let name = "\(trust), granted \(granted)"
+                expect(
+                    MCPTrustPolicy.decide(trust: trust, isGrantedForChat: granted, access: .agentSettings)
+                        == MCPTrustPolicy.decide(trust: trust, isGrantedForChat: granted),
+                    "Agent's Settings keeps the server's own trust: \(name)")
+                let never = trust == .never
+                expect(
+                    MCPTrustPolicy.decide(trust: trust, isGrantedForChat: granted, access: .askEveryTime)
+                        == (never ? .refuse : .ask),
+                    "Ask Every Time asks each call, ignoring a chat's grant: \(name)")
+                expect(
+                    MCPTrustPolicy.decide(trust: trust, isGrantedForChat: granted, access: .allowEverything)
+                        == (never ? .refuse : .allow),
+                    "Allow Everything allows all but a server set to Never Allow: \(name)")
+            }
+        }
     }
 
     static func addressingTakesOnlyAKnownHandle() {

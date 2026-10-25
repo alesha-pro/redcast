@@ -249,9 +249,15 @@ struct ACPPermissionRequest: Sendable {
         var allows: Bool { kind == .allowOnce || kind == .allowAlways }
     }
 
+    /// What a chat's Access level makes of a request: an option picked unasked, or the dialog's.
+    enum Answer: Sendable {
+        case select(String)
+        case ask(ACPPermissionRequest)
+    }
+
     let sessionID: String
     let toolCall: ACPToolCall
-    let options: [Option]
+    private(set) var options: [Option]
 
     init?(_ params: JSONValue) {
         guard let object = params.objectValue, let sessionID = object["sessionId"]?.stringValue,
@@ -290,6 +296,23 @@ struct ACPPermissionRequest: Sendable {
     var refusalIndex: Int? {
         let options = dialogOptions
         return options.last?.allows == false ? options.count - 1 : nil
+    }
+
+    /// Allow Everything picks an allow, once before always, and never an option of unknown kind.
+    func answer(under access: ChatAccess) -> Answer {
+        switch access {
+        case .agentSettings:
+            return .ask(self)
+        case .allowEverything:
+            let allow = options.first { $0.kind == .allowOnce } ?? options.first { $0.kind == .allowAlways }
+            return allow.map { .select($0.id) } ?? .ask(self)
+        case .askEveryTime:
+            // An "always" would stop the agent asking, so it goes wherever a one-time allow exists.
+            guard options.contains(where: { $0.kind == .allowOnce }) else { return .ask(self) }
+            var narrowed = self
+            narrowed.options.removeAll { $0.kind == .allowAlways }
+            return .ask(narrowed)
+        }
     }
 
     /// A dialog answer's option; no answer refuses once, or cancels, never leaving an "always".

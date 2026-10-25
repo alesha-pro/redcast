@@ -50,6 +50,7 @@ private struct ChatSettingsContent: View {
                     }
                     if let agent = state.agent { menuField(agent) }
                     ForEach(state.pickers) { menuField($0) }
+                    accessField
                     creativityField
                     folderField
                 }
@@ -96,6 +97,37 @@ private struct ChatSettingsContent: View {
             .buttonStyle(.plain)
             .help("Hide Chat Settings  ⇧⌘I")
             .accessibilityLabel("Hide Chat Settings")
+        }
+    }
+
+    private var accessField: some View {
+        let current = state.access
+        let menu = ChatSettingsMenu(
+            id: "access", label: String(localized: "Access"), title: current.title, icon: current.icon,
+            groups: [
+                .init(
+                    id: "levels",
+                    choices: ChatAccess.allCases.map { level in
+                        .init(
+                            id: level.rawValue, title: level.title, detail: level.summary, icon: level.icon,
+                            isOn: current == level, select: { workspace.setAccess(level, of: state.chatID) })
+                    })
+            ],
+            isEnabled: state.accessApplies,
+            help: state.accessApplies ? current.summary : String(localized: "No tool in this chat asks first"))
+        return VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
+            menuField(menu)
+            if !state.accessApplies {
+                Text("No tool in this chat asks first")
+                    .font(.caption)
+                    .foregroundStyle(Theme.Colors.textTertiary)
+            } else if current != .agentSettings {
+                Text(verbatim: current.summary)
+                    .font(.caption)
+                    .foregroundStyle(
+                        current == .allowEverything ? Color(nsColor: Theme.Colors.accentInk) : Theme.Colors.textTertiary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
         }
     }
 

@@ -149,6 +149,40 @@ struct ACPTests {
             "with no refuse-once, no answer cancels rather than leave a rule nobody chose")
         let allowsOnly = offering(#"{"optionId":"o","name":"Once","kind":"allow_once"}"#)
         expect(allowsOnly?.refusalIndex == nil, "an agent that offers no refusal has no cancel to put on Return")
+
+        func picked(_ request: ACPPermissionRequest?, _ access: ChatAccess) -> String? {
+            guard case .select(let id)? = request?.answer(under: access) else { return nil }
+            return id
+        }
+        func asked(_ request: ACPPermissionRequest?, _ access: ChatAccess) -> ACPPermissionRequest? {
+            guard case .ask(let asked)? = request?.answer(under: access) else { return nil }
+            return asked
+        }
+        expect(
+            asked(request, .agentSettings)?.dialogOptions.map(\.id) == ["o", "a", "ra", "r"],
+            "Agent's Settings shows the agent's own dialog, as before")
+        expect(picked(request, .allowEverything) == "o", "Allow Everything picks allow once, unasked")
+        let alwaysOnly = offering(
+            #"{"optionId":"r","name":"Reject","kind":"reject_once"},"#
+                + #"{"optionId":"a","name":"Always","kind":"allow_always"}"#)
+        expect(picked(alwaysOnly, .allowEverything) == "a", "or allow always where that is the only allow")
+        let unknown = offering(
+            #"{"optionId":"x","name":"Sure"},{"optionId":"r","name":"Reject","kind":"reject_once"}"#)
+        expect(
+            picked(unknown, .allowEverything) == nil && asked(unknown, .allowEverything) != nil,
+            "an option of no known kind is never picked for the user; the dialog asks")
+        let rejects = offering(#"{"optionId":"r","name":"Reject","kind":"reject_once"}"#)
+        expect(picked(rejects, .allowEverything) == nil, "and a refusal is never picked as an allow")
+        let strict = asked(request, .askEveryTime)
+        expect(
+            strict?.dialogOptions.map(\.id) == ["o", "ra", "r"] && picked(request, .askEveryTime) == nil,
+            "Ask Every Time always asks, and offers no allow always that would stop the next ask")
+        expect(
+            strict?.refusalIndex == 2 && strict?.optionID(answering: nil) == "r",
+            "its unanswered dialog still refuses once")
+        expect(
+            asked(alwaysOnly, .askEveryTime)?.dialogOptions.map(\.id) == ["a", "r"],
+            "an agent whose only allow is always keeps it, so the user can still allow")
     }
 
     static func theBriefingSaysNobodyMayAnswer() {

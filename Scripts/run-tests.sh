@@ -886,6 +886,7 @@ run chat-workspace-test    $CW/Model/*.swift $CW/Service/*.swift $CW/Settings/Ch
                            Tinycast/Features/Settings/AppSettingsKey.swift \
                            Tinycast/Features/AI/Model/AIRequest.swift \
                            Tinycast/Features/Agents/Model/ChatToolContent.swift \
+                           Tinycast/Features/Agents/Model/ChatAccess.swift \
                            Tinycast/Features/AI/Model/AIConnection.swift \
                            Tinycast/Features/AI/Model/AIConversationOpenPolicy.swift \
                            Tinycast/Features/AI/Model/AppleIntelligence.swift \
@@ -910,7 +911,7 @@ run mcp-test               Tinycast/Features/Settings/AppSettingsKey.swift \
                            Tinycast/Features/AI/Model/AITool.swift \
                            Tinycast/Features/AI/Model/AIToolServer.swift \
                            Tinycast/Features/AI/Model/JSONValue.swift \
-                           Tinycast/Features/MCP/Model/*.swift \
+                           Tinycast/Features/MCP/Model/*.swift Tinycast/Features/Agents/Model/ChatAccess.swift \
                            Tinycast/Features/MCP/Settings/MCPSettingsStore.swift
 run -O text-diff-test      Tinycast/Features/QuickActions/Model/TextDiffEngine.swift
 run index text-diff-performance Tinycast/Features/QuickActions/Model/TextDiffEngine.swift
@@ -1226,6 +1227,7 @@ run mcp-oauth-test         Tinycast/Platform/ExecutableLocator.swift \
                            Tinycast/Features/AI/Model/AIThinkTagDecoder.swift \
                            Tinycast/Features/AI/Model/AIRequest.swift \
                            Tinycast/Features/Agents/Model/ChatToolContent.swift \
+                           Tinycast/Features/Agents/Model/ChatAccess.swift \
                            Tinycast/Features/AI/Model/JSONValue.swift \
                            Tinycast/Features/MCP/Model/*.swift \
                            Tinycast/Features/MCP/Service/*.swift
@@ -1244,6 +1246,7 @@ run slow mcp-stdio-test    Tinycast/Platform/ExecutableLocator.swift \
                            Tinycast/Features/AI/Model/AIThinkTagDecoder.swift \
                            Tinycast/Features/AI/Model/AIRequest.swift \
                            Tinycast/Features/Agents/Model/ChatToolContent.swift \
+                           Tinycast/Features/Agents/Model/ChatAccess.swift \
                            Tinycast/Features/AI/Model/JSONValue.swift \
                            Tinycast/Features/MCP/Model/*.swift \
                            Tinycast/Features/MCP/Service/*.swift

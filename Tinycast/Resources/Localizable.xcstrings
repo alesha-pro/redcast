@@ -26325,6 +26325,58 @@
         }
       }
     },
+    "Agent's Settings" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wie beim Agenten"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Como el agente"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Comme l’agent"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "エージェントの設定どおり"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "에이전트 설정대로"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Como no agente"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Как у агента"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "按智能体设置"
+          }
+        }
+      }
+    },
     "Agent: %@" : {
       "localizations" : {
         "de" : {
@@ -27155,6 +27207,58 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "允许访问日历…"
+          }
+        }
+      }
+    },
+    "Allow Everything" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alles erlauben"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Permitir todo"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tout autoriser"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "すべて許可"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "모두 허용"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Permitir tudo"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Разрешать всё"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "全部允许"
           }
         }
       }
@@ -31909,6 +32013,58 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "“每个聊天都询问”会让每个对话的首次工具调用经过确认。“永不允许”会停用该服务器但不移除它。"
+          }
+        }
+      }
+    },
+    "Ask Every Time" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jedes Mal fragen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Preguntar siempre"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Toujours demander"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "毎回確認"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "매번 묻기"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Perguntar sempre"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Спрашивать каждый раз"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "每次都询问"
           }
         }
       }
@@ -66598,6 +66754,58 @@
         }
       }
     },
+    "Every change, command, web request and read of your data asks first" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jede Änderung, jeder Befehl, jede Webanfrage und jeder Zugriff auf deine Daten fragt vorher"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cada cambio, comando, petición web y lectura de tus datos pregunta antes"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chaque modification, commande, requête web et lecture de vos données demande d’abord"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "変更、コマンド、Web へのアクセス、データの読み取りのたびに確認します"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "변경, 명령, 웹 요청, 데이터 읽기마다 먼저 묻습니다"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cada alteração, comando, solicitação na web e leitura dos seus dados pergunta antes"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Каждое изменение, команда, запрос в сеть и чтение ваших данных требуют разрешения"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "每次更改、命令、网络请求和读取你的数据前都会先询问"
+          }
+        }
+      }
+    },
     "Every chat with this agent starts in its folder, with that folder's context." : {
       "localizations" : {
         "de" : {
@@ -87838,6 +88046,58 @@
         }
       }
     },
+    "List your newest notes" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deine neuesten Notizen auflisten"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Listar tus notas más recientes"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lister vos notes les plus récentes"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最新のメモを一覧表示"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "최근 메모 나열"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Listar suas notas mais recentes"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Показать последние заметки"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "列出你最新的笔记"
+          }
+        }
+      }
+    },
     "List, detail, form, grid, no-view and menu-bar commands, preferences, storage and OAuth." : {
       "localizations" : {
         "de" : {
@@ -102349,6 +102609,58 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "剪贴板历史记录中没有文本"
+          }
+        }
+      }
+    },
+    "No tool in this chat asks first" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kein Werkzeug in diesem Chat fragt vorher"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ninguna herramienta de este chat pregunta antes"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aucun outil de cette discussion ne demande d’abord"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このチャットには確認が必要なツールがありません"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "이 채팅에는 먼저 묻는 도구가 없습니다"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nenhuma ferramenta deste chat pergunta antes"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "В этом чате нет инструментов, которые спрашивают разрешение"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此聊天中没有需要先询问的工具"
           }
         }
       }
@@ -118720,6 +119032,58 @@
         }
       }
     },
+    "Read the note “%@”" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Notiz „%@“ lesen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Leer la nota “%@”"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lire la note « %@ »"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "メモ「%@」を読む"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "메모 ‘%@’ 읽기"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ler a nota “%@”"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Прочитать заметку «%@»"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "读取笔记“%@”"
+          }
+        }
+      }
+    },
     "Read the window of %@" : {
       "localizations" : {
         "de" : {
@@ -132308,6 +132672,58 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "附带网页摘录的搜索。无需密钥即可在共享速率限制内免费使用；免费密钥可增加每月额度。"
+          }
+        }
+      }
+    },
+    "Search your notes for “%@”" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notizen nach „%@“ durchsuchen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Buscar “%@” en tus notas"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rechercher « %@ » dans vos notes"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "メモで「%@」を検索"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "메모에서 ‘%@’ 검색"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Buscar “%@” nas suas notas"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Найти «%@» в заметках"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在笔记中搜索“%@”"
           }
         }
       }
@@ -161535,6 +161951,58 @@
         }
       }
     },
+    "Tools ask or run as the agent and each MCP server are set to" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Werkzeuge fragen oder laufen, wie der Agent und jeder MCP-Server es festlegen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Las herramientas preguntan o se ejecutan según el agente y cada servidor MCP"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Les outils demandent ou s’exécutent selon l’agent et chaque serveur MCP"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ツールはエージェントと各 MCP サーバの設定どおりに確認または実行します"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "도구는 에이전트와 각 MCP 서버 설정대로 묻거나 실행됩니다"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "As ferramentas perguntam ou são executadas conforme o agente e cada servidor MCP"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Инструменты спрашивают или работают так, как настроены агент и каждый сервер MCP"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "工具按智能体和各 MCP 服务器的设置询问或运行"
+          }
+        }
+      }
+    },
     "Tools run on API connections. For Codex or Claude with their own tools, choose them under Runs on." : {
       "localizations" : {
         "de" : {
@@ -161583,6 +162051,58 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "工具在 API 连接上运行。若要让 Codex 或 Claude 使用自己的工具，请在“运行于”中选择它们。"
+          }
+        }
+      }
+    },
+    "Tools run without asking; Never Allow still refuses, Notes and screen reads still ask" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Werkzeuge laufen ohne Nachfrage; „Nie erlauben“ lehnt weiter ab, Notizen und Bildschirmlesen fragen weiter"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Las herramientas se ejecutan sin preguntar; “No permitir nunca” sigue rechazando, y las notas y la lectura de pantalla siguen preguntando"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Les outils s’exécutent sans demander ; « Ne jamais autoriser » refuse toujours, les notes et la lecture de l’écran demandent toujours"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ツールは確認なしで実行されます。「許可しない」は引き続き拒否し、メモと画面の読み取りは引き続き確認します"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "도구가 묻지 않고 실행됩니다. ‘허용 안 함’은 계속 거부하며 메모와 화면 읽기는 계속 묻습니다"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "As ferramentas são executadas sem perguntar; “Nunca permitir” continua recusando, e as notas e a leitura da tela continuam perguntando"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Инструменты работают без вопросов; «Никогда не разрешать» по-прежнему запрещает, а заметки и чтение экрана по-прежнему спрашивают"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "工具无需询问即可运行；“永不允许”仍会拒绝，笔记和读取屏幕仍会询问"
           }
         }
       }

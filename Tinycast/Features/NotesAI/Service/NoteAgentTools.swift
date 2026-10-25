@@ -19,11 +19,26 @@ struct NoteAgentTools: AgentToolProvider {
     }
 
     func run(_ call: AIToolCall, in context: AgentToolContext) async -> AIToolResult {
-        await NoteToolRunner(
+        // A read asks only under a rule of ask, as in an Ask Every Time chat; by default it runs.
+        if call.name != NoteTools.append, await !context.consent(Self.readRequest(for: call)) {
+            return .failure(call.id, NoteToolRunner.declined)
+        }
+        return await NoteToolRunner(
             repository: repository, canWrite: context.turn.profile.access.writes,
             timeZone: timeZone, isEnabled: isEnabled,
             consent: { await context.consent(Self.request(for: $0)) }, writer: writer
         ).run(call)
+    }
+
+    static func readRequest(for call: AIToolCall) -> AgentConsentRequest {
+        let arguments = JSONValue(data: Data(call.arguments.utf8))?.objectValue ?? [:]
+        let query = arguments["query"]?.stringValue ?? ""
+        let summary =
+            call.name == NoteTools.search
+            ? query.isEmpty
+                ? String(localized: "List your newest notes") : String(localized: "Search your notes for “\(query)”")
+            : String(localized: "Read the note “\(arguments["note"]?.stringValue ?? "")”")
+        return AgentConsentRequest(summary: summary, detail: "")
     }
 
     static func request(for consent: NoteToolConsent) -> AgentConsentRequest {

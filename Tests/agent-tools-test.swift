@@ -167,12 +167,14 @@ struct AgentToolsTests {
         let mcp = MCPRecorder()
         func toolset(
             _ access: AgentAccess, mode: AgentRunMode = .chat(UUID()), allowing: Bool = true,
-            rules: AgentConsentRules? = nil
+            rules: AgentConsentRules? = nil, level: ChatAccess = .agentSettings
         ) -> AgentToolset {
-            AgentToolset(
-                turn: AgentTurn(
-                    profile: AgentProfile(name: "T", directory: folder, access: access, consent: rules),
-                    skills: [], memoryURL: memory, mode: mode),
+            var turn = AgentTurn(
+                profile: AgentProfile(name: "T", directory: folder, access: access, consent: rules),
+                skills: [], memoryURL: memory, mode: mode)
+            turn.access = ChatAccess.effective(level, isUserTurn: turn.isUserTurn)
+            return AgentToolset(
+                turn: turn,
                 providers: [AgentBuiltInTools()],
                 mcpTools: [
                     AITool(name: "srv__tool", description: "", parameters: .object([:]), origin: "srv")
@@ -248,6 +250,39 @@ struct AgentToolsTests {
             barred.content == "There is no tool called run_command."
                 && !FileManager.default.fileExists(atPath: folder + "/barred.txt"),
             "and Never Allow on commands withholds the terminal")
+
+        let freely = await asks.count
+        let allowed = await toolset(.workspaceWrite, level: .allowEverything).run(
+            call(AgentToolbox.writeFile, #"{"path":"free.md","content":"x"}"#), signal: quiet)
+        _ = await toolset(.workspaceWrite, level: .allowEverything).run(
+            call(AgentToolbox.runCommand, #"{"command":"touch free.txt"}"#), signal: quiet)
+        let afterFree = await asks.count
+        expect(
+            !allowed.isError && afterFree == freely && FileManager.default.fileExists(atPath: folder + "/free.md")
+                && FileManager.default.fileExists(atPath: folder + "/free.txt"),
+            "Allow Everything writes and runs a command without asking")
+        let stillBarred = await toolset(.workspaceWrite, rules: trusted, level: .allowEverything).run(
+            call(AgentToolbox.runCommand, #"{"command":"touch still.txt"}"#), signal: quiet)
+        expect(
+            stillBarred.content == "There is no tool called run_command."
+                && !FileManager.default.fileExists(atPath: folder + "/still.txt"),
+            "and never lifts the agent's Never Allow")
+        let scheduled = await toolset(.workspaceWrite, mode: .unattended(UUID()), level: .allowEverything).run(
+            call(AgentToolbox.writeFile, #"{"path":"scheduled.md","content":"x"}"#), signal: quiet)
+        expect(
+            scheduled.isError && !FileManager.default.fileExists(atPath: folder + "/scheduled.md"),
+            "a run nobody watches keeps the agent's rules, whatever its chat's level")
+        let strict = await toolset(.workspaceWrite, allowing: false, level: .askEveryTime).run(
+            call(AgentToolbox.webFetch, #"{"url":"http://127.0.0.1:9/"}"#), signal: quiet)
+        let fetchAsk = await asks.last
+        let afterStrict = await asks.count
+        expect(
+            afterStrict == freely + 1 && fetchAsk?.risk == .network && strict.content.contains("declined"),
+            "Ask Every Time asks before a fetch, and a refusal fetches nothing, got \(strict.content)")
+        _ = await toolset(.workspaceWrite, level: .askEveryTime).run(
+            call(AgentToolbox.readFile, #"{"path":"src/a.txt"}"#), signal: quiet)
+        let afterRead = await asks.count
+        expect(afterRead == afterStrict, "and plain reading still runs unasked")
 
         let offered = await toolset(.workspaceWrite).run(call("srv__tool", "{}"), signal: quiet)
         let reached = await mcp.names

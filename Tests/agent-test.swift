@@ -24,6 +24,8 @@ struct AgentTests {
         builtInToolsDeclareWhatTheyReach()
         riskDecidesExposure()
         consentPolicyTable()
+        aChatsAccessLevelStandsOverTheAgentsRules()
+        aChatsAccessLevelReachesTheToolsetAndThePrompt()
         toolsetOffersInProviderOrder()
         toolsetAppliesTheProfile()
         batchesKeepCallOrder()
@@ -252,6 +254,133 @@ struct AgentTests {
                 AgentConsentPolicy.rule(for: risk, of: profile()) == .always,
                 "reading and the agent's own notes never ask")
         }
+    }
+
+    /// Every level over every risk, rule and family an agent may set, the safety asks included.
+    static func aChatsAccessLevelStandsOverTheAgentsRules() {
+        let families: [AgentToolKind?] = [nil] + AgentToolKind.allCases.map(Optional.some)
+        for rule in AgentConsentRule.allCases {
+            var agent = profile(.fullAccess)
+            agent.tools = Set(AgentToolKind.allCases)
+            for risk in [AgentToolRisk.network, .personal, .change, .execute] {
+                agent.consent = AgentConsentRules.setting(rule, for: risk, in: agent.consent)
+            }
+            for risk in AgentToolRisk.allCases {
+                for family in families {
+                    let own = AgentConsentPolicy.rule(for: risk, in: family, of: agent)
+                    let safety = AgentConsentPolicy.isSafetyAsk(risk, in: family)
+                    let name = "\(rule) \(risk) in \(family.map(\.rawValue) ?? "no family")"
+                    func under(_ access: ChatAccess) -> AgentConsentRule {
+                        AgentConsentPolicy.rule(for: risk, in: family, of: agent, access: access)
+                    }
+                    expect(under(.agentSettings) == own, "Agent's Settings keeps today's rule: \(name)")
+                    if own == .never {
+                        for access in ChatAccess.allCases {
+                            expect(under(access) == .never, "never stays never under \(access): \(name)")
+                        }
+                        continue
+                    }
+                    let quiet = risk == .read || risk == .own
+                    expect(
+                        under(.askEveryTime) == (quiet ? own : .ask),
+                        "Ask Every Time asks for all but reading and the agent's notes: \(name)")
+                    expect(
+                        under(.allowEverything) == (safety ? .ask : .always),
+                        "Allow Everything runs all but the safety asks unasked: \(name)")
+                }
+            }
+        }
+        var writer = profile()
+        writer.consent = AgentConsentRules(risks: [.change: .never])
+        writer.tools.insert(.notes)
+        expect(
+            AgentConsentPolicy.rule(for: .change, in: .notes, of: writer, access: .allowEverything) == .ask,
+            "a Notes addition asks under Allow Everything, as under every rule")
+        var screen = profile()
+        screen.tools.insert(.screen)
+        expect(
+            AgentConsentPolicy.rule(for: .personal, in: .screen, of: screen, access: .allowEverything) == .ask,
+            "and so does a screen read, which names its window")
+        let bare = profile(.readOnly)
+        for access in ChatAccess.allCases {
+            expect(
+                AgentConsentPolicy.rule(for: .change, in: .files, of: bare, access: access) == .never
+                    && AgentConsentPolicy.rule(for: .personal, in: .notes, of: bare, access: access) == .never,
+                "\(access) offers no tool a read-only agent or an unticked family lacks")
+        }
+        let id = UUID()
+        var background = AgentTurn(
+            profile: profile(), skills: [], memoryURL: URL(fileURLWithPath: "/tmp/memory.md"), mode: .chat(id))
+        expect(
+            ChatAccess.effective(.allowEverything, isUserTurn: background.isUserTurn) == .allowEverything,
+            "a turn the user sent takes the chat's level")
+        background.isBackground = true
+        let alone = AgentTurn(
+            profile: profile(), skills: [], memoryURL: URL(fileURLWithPath: "/tmp/memory.md"),
+            mode: .unattended(id))
+        for turn in [background, alone] {
+            for level in ChatAccess.allCases {
+                expect(
+                    ChatAccess.effective(level, isUserTurn: turn.isUserTurn) == .agentSettings,
+                    "a scheduled or unattended run in the chat keeps the agent's rules under \(level)")
+            }
+        }
+        expect(
+            AgentConsentPolicy.decide(
+                AgentConsentPolicy.rule(for: .network, in: .web, of: profile(), access: .askEveryTime),
+                mode: .unattended(id)) == .refuse,
+            "a sub-agent of an Ask Every Time chat is refused what would ask, since nobody can answer")
+    }
+
+    static func aChatsAccessLevelReachesTheToolsetAndThePrompt() {
+        var agent = profile()
+        agent.tools = [.files, .terminal, .web]
+        let provider = FakeProvider(offered: [
+            AgentToolSpec(tool: tool("look"), family: .files, risk: .read, concurrent: true),
+            AgentToolSpec(tool: tool("fetch"), family: .web, risk: .network, concurrent: true),
+            spec("write", .files, .change), spec("run", .terminal, .execute),
+            spec("note", .notes, .change)
+        ])
+        func toolset(_ access: ChatAccess) -> AgentToolset {
+            var built = turn(agent)
+            built.access = access
+            return AgentToolset(
+                turn: built, providers: [provider], mcpTools: [], mcp: { .failure($0.id, "mcp") },
+                ask: { _, _ in false })
+        }
+        let offered = toolset(.agentSettings).tools.map(\.name)
+        for access in ChatAccess.allCases {
+            expect(
+                toolset(access).tools.map(\.name) == offered,
+                "\(access) offers exactly the agent's own tools, never one it lacks")
+        }
+        expect(!offered.contains("note"), "an unticked family stays out under every level")
+        expect(
+            toolset(.agentSettings).isConcurrent("fetch") && !toolset(.askEveryTime).isConcurrent("fetch"),
+            "a fetch that asks under Ask Every Time runs alone")
+        expect(toolset(.askEveryTime).isConcurrent("look"), "while reading still shares a round")
+
+        func prompt(_ access: ChatAccess) -> String {
+            AgentContext(profile: agent, projectInstructions: nil, globalInstructions: nil, skills: [], memory: nil)
+                .prompt(now: Date(), timeZone: .current, hasTools: true, access: access)
+        }
+        expect(prompt(.agentSettings).contains("or allows them for the rest of the chat"), "the default offers grants")
+        let strict = prompt(.askEveryTime)
+        expect(
+            strict.contains("approves each change first.") && !strict.contains("rest of the chat"),
+            "Ask Every Time promises an approval for each, and no grant")
+        let free = prompt(.allowEverything)
+        expect(
+            free.contains("change files inside the folder without asking")
+                && free.contains("run commands in the folder without asking") && !free.contains("approves"),
+            "Allow Everything tells the model nobody sees a change or command first")
+        var barred = agent
+        barred.consent = AgentConsentRules(risks: [.execute: .never])
+        expect(
+            AgentContext(profile: barred, projectInstructions: nil, globalInstructions: nil, skills: [], memory: nil)
+                .prompt(now: Date(), timeZone: .current, hasTools: true, access: .allowEverything)
+                .contains("You cannot run commands."),
+            "and states Never Allow as it stands")
     }
 
     static func toolsetOffersInProviderOrder() {

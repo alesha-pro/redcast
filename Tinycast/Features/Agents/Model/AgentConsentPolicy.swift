@@ -72,6 +72,24 @@ enum AgentConsentPolicy {
         return rule(for: risk, of: profile)
     }
 
+    /// The agent's rule under the chat's Access level: never stays never, the safety asks stay.
+    static func rule(
+        for risk: AgentToolRisk, in family: AgentToolKind?, of profile: AgentProfile, access: ChatAccess
+    ) -> AgentConsentRule {
+        let own = rule(for: risk, in: family, of: profile)
+        guard own != .never else { return .never }
+        switch access {
+        case .agentSettings: return own
+        case .askEveryTime: return risk == .read || risk == .own ? own : .ask
+        case .allowEverything: return isSafetyAsk(risk, in: family) ? .ask : .always
+        }
+    }
+
+    /// The two asks above, which no rule or level silences.
+    static func isSafetyAsk(_ risk: AgentToolRisk, in family: AgentToolKind?) -> Bool {
+        (family == .notes && risk == .change) || (family == .screen && risk == .personal)
+    }
+
     static func decide(_ rule: AgentConsentRule, mode: AgentRunMode) -> Verdict {
         switch (rule, mode) {
         case (.never, _): .refuse

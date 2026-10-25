@@ -83,6 +83,8 @@ extension AIChatCoordinator: ChatSettingsSource {
             tools: toolsFacts(for: chat, takesTools: can.tools),
             usage: usageFacts(for: chat))
         state.pickers = ownRuntime ? agentPickers(for: chat) : [modelMenu(for: chat), reasoningMenu(for: chat)]
+        state.access = workspace.access(of: id)
+        state.accessApplies = accessApplies(to: chat, takesTools: can.tools)
         state.rename = { [weak self] in self?.rename(id: id, to: $0) }
         state.setWebSearch = { [weak self] in self?.aiSettings.webSearchEnabled = $0 }
         state.showSettings = { [weak self] in self?.showSettings() }
@@ -93,16 +95,28 @@ extension AIChatCoordinator: ChatSettingsSource {
         let agent = agents.agent(for: chat).map {
             ChatAgentChoice(id: $0.id, name: $0.name, symbol: $0.symbol, hue: $0.hue)
         }
+        let level = workspace.access(of: chat.session.id)
+        let access =
+            level != .agentSettings && accessApplies(to: chat, takesTools: capabilities(for: chat).tools)
+            ? level : nil
         if agents.runsOwnRuntime(chat) {
             let model = agents.options(for: chat)?.model?.currentTitle
             return ChatModelSummary(
                 icon: Self.settingsIcon(agents.modelIcon(for: chat)), model: model ?? agent?.name ?? "",
-                agent: agent)
+                agent: agent, access: access)
         }
         let selected = model(for: chat)
         return ChatModelSummary(
             icon: Self.settingsIcon(modelIcon(of: selected)),
-            model: modelTitle(of: selected, among: modelOptions), agent: agent)
+            model: modelTitle(of: selected, among: modelOptions), agent: agent, access: access)
+    }
+
+    /// The level changes something only for an agent's tools or an MCP server the chat may call.
+    private func accessApplies(to chat: AIChatState, takesTools: Bool) -> Bool {
+        if let agent = agents.agent(for: chat) { return agent.runtime != nil || takesTools }
+        let scope = chat.toolScope
+        return takesTools && scope.isEnabled
+            && mcpServers.contains { $0.trust != .never && scope.allows($0.slug) }
     }
 
     /// The chat's Creativity as a temperature, where its route takes one.

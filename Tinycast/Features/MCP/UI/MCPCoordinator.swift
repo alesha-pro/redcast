@@ -183,19 +183,24 @@ final class MCPCoordinator {
     }
 
     private func isPermitted(_ server: MCPServer, tool: String, in chat: UUID) async -> Bool {
+        // Fork: the chat's Access level; Ask Every Time asks each call and remembers no answer.
+        let access = core.agentCoordinator.access(forChat: chat)
         switch MCPTrustPolicy.decide(
-            trust: server.trust, isGrantedForChat: chatGrants[chat]?.contains(server.id) == true)
+            trust: server.trust, isGrantedForChat: chatGrants[chat]?.contains(server.id) == true,
+            access: access)
         {
         case .allow: return true
         case .refuse: return false
         case .ask: break
         }
-        switch await ask(server, tool: tool) {
+        switch await ask(server, tool: tool, once: access == .askEveryTime) {
         case .always:
             store.setTrust(.always, for: server.id)
             return true
         case .thisChat:
             chatGrants[chat, default: []].insert(server.id)
+            return true
+        case .once:
             return true
         case .refuse:
             return false
@@ -203,8 +208,9 @@ final class MCPCoordinator {
     }
 
     /// Escape refuses this one call: a dialog can grant a server, only Settings can withhold one.
-    private func ask(_ server: MCPServer, tool: String) async -> MCPTrustChoice {
-        let choices: [MCPTrustChoice] = [.always, .thisChat, .refuse]
+    private func ask(_ server: MCPServer, tool: String, once: Bool) async -> MCPTrustChoice {
+        // Fork: Ask Every Time offers only this call's Allow, so no answer outlives it.
+        let choices: [MCPTrustChoice] = once ? [.once, .refuse] : [.always, .thisChat, .refuse]
         let index = await core.choose(
             title: String(localized: "Let \(server.title) run its tools?"),
             message: String(
@@ -213,12 +219,17 @@ final class MCPCoordinator {
                     server and cannot vouch for what it does.
                     """),
             symbol: "wrench.and.screwdriver",
-            options: [
-                DialogAction(title: String(localized: "Always Allow")),
-                DialogAction(title: String(localized: "Allow This Chat")),
-                DialogAction(title: String(localized: "Don't Allow"), role: .cancel)
-            ],
-            defaultIndex: 1)
+            options: once
+                ? [
+                    DialogAction(title: String(localized: "Allow")),
+                    DialogAction(title: String(localized: "Don't Allow"), role: .cancel)
+                ]
+                : [
+                    DialogAction(title: String(localized: "Always Allow")),
+                    DialogAction(title: String(localized: "Allow This Chat")),
+                    DialogAction(title: String(localized: "Don't Allow"), role: .cancel)
+                ],
+            defaultIndex: once ? 0 : 1)
         return choices.indices.contains(index) ? choices[index] : .refuse
     }
 }

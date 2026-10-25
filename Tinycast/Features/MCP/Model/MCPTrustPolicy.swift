@@ -21,5 +21,7 @@ enum MCPTrustPolicy {
 enum MCPTrustChoice: Equatable, Sendable {
     case always
     case thisChat
+    /// Fork: this call only, as a chat on Ask Every Time offers.
+    case once
     case refuse
 }

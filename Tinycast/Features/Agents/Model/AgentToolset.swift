@@ -28,7 +28,8 @@ struct AgentToolset: Sendable {
         for provider in providers {
             for spec in provider.specs(for: turn)
             where routes[spec.tool.name] == nil && risks.contains(spec.risk) {
-                let rule = AgentConsentPolicy.rule(for: spec.risk, in: spec.family, of: turn.profile)
+                let rule = AgentConsentPolicy.rule(
+                    for: spec.risk, in: spec.family, of: turn.profile, access: turn.access)
                 guard rule != .never else { continue }
                 tools.append(spec.tool)
                 routes[spec.tool.name] = .agent(provider, spec, rule)

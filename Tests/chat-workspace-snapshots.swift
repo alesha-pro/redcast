@@ -269,6 +269,7 @@ final class SnapshotFixture {
         workspace.move(open.id, to: work.id)
         workspace.setInstructions(text.instructions, of: open.id)
         workspace.setCreativity(.medium, of: open.id)
+        workspace.setAccess(.allowEverything, of: open.id)
         history.load()
         _ = workspace.chats.openInWindow(id: open.id)
         if editing { workspace.beginEditing(in: workspace.chats.window) }
@@ -444,7 +445,9 @@ final class SnapshotSettingsSource: ChatSettingsSource {
     }
 
     func modelSummary(for chat: AIChatState) -> ChatModelSummary {
-        ChatModelSummary(icon: .asset("AIBrandClaude", .orange), model: "Claude Sonnet 4.5", agent: agent)
+        ChatModelSummary(
+            icon: .asset("AIBrandClaude", .orange), model: "Claude Sonnet 4.5", agent: agent,
+            access: workspace?.access(of: chat.session.id))
     }
 
     func settingsState(for chat: AIChatState) -> ChatSettingsState {
@@ -464,6 +467,7 @@ final class SnapshotSettingsSource: ChatSettingsSource {
                     String(localized: "creativity-medium", defaultValue: "Medium"), .symbol("brain", .magenta))
             ],
             creativity: placement?.creativity, creativityApplies: true,
+            access: placement?.access ?? .agentSettings, accessApplies: true,
             instructions: placement?.instructions ?? "", webSearch: true,
             tools: ChatToolsFacts(
                 takesTools: true, isEnabled: true,

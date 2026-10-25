@@ -355,6 +355,13 @@ struct FullBackupTest {
         check("a wider screen context is kept back", widened.level == .title && widened.widened)
         let narrowed = FullBackupImportPolicy.appContext(recorded: .off, current: .title)
         check("a narrower screen context applies", narrowed.level == .off && !narrowed.widened)
+        check(
+            "an imported chat on Allow Everything lands on Agent's Settings",
+            FullBackupImportPolicy.chatAccess(.allowEverything) == nil)
+        check(
+            "while Ask Every Time, which only narrows, and the default land as they were",
+            FullBackupImportPolicy.chatAccess(.askEveryTime) == .askEveryTime
+                && FullBackupImportPolicy.chatAccess(nil) == nil)
         let background = FullBackupImportPolicy.backgroundCommands(extensions.extensions?.items ?? [])
         check(
             "background and menu-bar commands are named once each",

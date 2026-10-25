@@ -215,7 +215,7 @@ full/contents.json         format, each section's version and count, the secrets
 full/<section>.json        one payload per section: agents, mcpServers, ai, voice, quickActions,
                            extensions, more, chatHistory
 full/ai-chat-folders.json  AI Chat's folders and which chat is in each, in the workspace file's format
-full/chats/ai-chat-workspace.json  each chat's instructions, creativity, archive and deletion state
+full/chats/ai-chat-workspace.json  each chat's instructions, creativity, access, archive and deletion state
 full/chats/ai-chats.sqlite3      the chat database, with its images
 full/chats/summaries/<id>.json   agent chats' summaries
 full/secrets.sealed        AES-GCM sealed JSON of every secret, only with the opt-in
@@ -447,7 +447,7 @@ Every store the app persists and its decision, as `FullBackupCoverage` states it
 | `agent-personal-chats.json` | Application Support | AI Chat History |
 | `agent-summaries` | Application Support | AI Chat History |
 | `ai-chats.sqlite3` | Application Support | AI Chat History (opt-in), the whole database merged row by row |
-| `ai-chat-workspace.json` | Application Support | AI Connections: folders (name, colour, icon, instructions, agent) and which chat is filed where, applied to chats this Mac has; each chat's instructions, creativity, archive and Recently Deleted state travel with AI Chat History |
+| `ai-chat-workspace.json` | Application Support | AI Connections: folders (name, colour, icon, instructions, agent) and which chat is filed where, applied to chats this Mac has; each chat's instructions, creativity, Access level (Allow Everything lands as Agent's Settings), archive and Recently Deleted state travel with AI Chat History |
 | `CodexPlan/limits.json` | Application Support | Excluded: The last limits a ChatGPT plan reported; the next reply reports them anew. |
 | `quick-actions.json` | Application Support | Quick Actions |
 | `extensions` | Application Support | Extensions: the list (name, author, Store commit) to reinstall from; the code never travels |

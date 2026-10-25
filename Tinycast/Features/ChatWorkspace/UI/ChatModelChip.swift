@@ -32,6 +32,9 @@ struct ChatModelChipLabel: View {
                     .lineLimit(1)
                     .truncationMode(.middle)
                     .foregroundStyle(Theme.Colors.textSecondary)
+                if let access = summary.access {
+                    ChatSettingsIconView(icon: access.icon, side: Theme.Size.aiChatComposerGlyph - 4)
+                }
             }
             .padding(.horizontal, Theme.Spacing.md)
             .frame(height: Theme.Size.aiChatComposerControl)
