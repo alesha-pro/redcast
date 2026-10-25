@@ -362,12 +362,14 @@ private struct ChatWorkspaceRow<Title: View>: View {
         HStack(spacing: Theme.Spacing.sm) {
             if folder != nil || row.depth > 0 {
                 HStack(spacing: Theme.Spacing.sm) {
-                    if let folder {
-                        Capsule()
-                            .fill(folder.hue.color)
-                            .frame(width: Theme.Size.chatFolderBar)
-                            .padding(.vertical, Theme.Spacing.xxs)
+                    if folder != nil {
+                        // One quiet guide down the folder, drawn like a branch's, not a coloured bar per row.
+                        Rectangle()
+                            .fill(Theme.Colors.chatBranchGuide)
+                            .frame(width: Theme.Size.hairline)
+                            .frame(maxHeight: .infinity)
                             .padding(.leading, Theme.Size.chatFolderIndent)
+                            .accessibilityHidden(true)
                     }
                     if row.depth > 0 {
                         ChatBranchGuideShape(guides: row.guides)

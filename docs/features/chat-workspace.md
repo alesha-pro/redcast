@@ -208,7 +208,8 @@ subtitle, as Raycast's title bar has.
 Everything here is a token: `Theme.Colors.chat…` and `RaycastHue.ink`/`wash` in
 `ChatWorkspaceTheme.swift`, over the brand's vermilion (#F23D32), and `ChatPalette` for the inks.
 
-- Folders wear their own hue: the tile, the bar beside their chats, the menus' tiles.
+- Folders wear their own hue on the tile and the menus' tiles; their chats sit behind a quiet grey
+  hairline, the same guide a branch uses, so a long folder never reads as a column of stripes.
 - Section headers are tinted: Pinned yellow, Folders purple, the days red, Archived and Recently
   Deleted grey. Their ink is the tile's tone a fifth darker on light (`ChatPalette.lightInk`) and
   Raycast Dark's value on dark, so every hue reads at 4.5:1 or better on white, on `#F2F2F2` and on

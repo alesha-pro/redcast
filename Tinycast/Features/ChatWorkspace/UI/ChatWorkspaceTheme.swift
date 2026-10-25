@@ -55,9 +55,8 @@ extension RaycastHue {
 extension Theme.Size {
     static let chatFolderTile: CGFloat = 18
     static let chatHeaderGlyph: CGFloat = 11
-    /// A chat filed in a folder sits in under it, behind a bar in the folder's colour.
+    /// A chat filed in a folder sits in under it, behind the same hairline guide as a branch.
     static let chatFolderIndent: CGFloat = 14
-    static let chatFolderBar: CGFloat = 2
     static let chatSettingsMinimum: CGFloat = 260
     static let chatSettingsMaximum: CGFloat = 380
     static let chatSwatch: CGFloat = 18
