@@ -65,5 +65,6 @@ private struct VoiceModeChip: View {
         .glassEffect(.regular, in: .capsule)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(Text("Dictation mode: \(name)"))
+        .motionScope()
     }
 }

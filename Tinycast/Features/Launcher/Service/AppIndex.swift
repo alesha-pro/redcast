@@ -173,7 +173,7 @@ struct AppEntry: Identifiable, Hashable, Sendable {
         alternateTitles.append(candidate)
     }
 
-    var kindLabel: String { ownerName ?? String(localized: kind.descriptor.label) }
+    var kindLabel: String { ownerName ?? kind.descriptor.label.resolved() }
 
     var hotKeyAction: HotKeyAction? {
         switch kind {
@@ -342,7 +342,7 @@ extension AppEntry.Kind {
     private var englishCategoryNames: [String] { [descriptor.sectionTitle.key, descriptor.label.key] }
 
     private var localizedCategoryNames: [String] {
-        [descriptor.sectionTitle, descriptor.label].map { String(localized: $0) }
+        [descriptor.sectionTitle, descriptor.label].map { $0.resolved() }
     }
 
     static func named(by query: LauncherOrder.CategoryQuery) -> AppEntry.Kind? {

@@ -282,6 +282,11 @@ final class AppSettings {
         didSet { defaults.set(colorfulIcons, forKey: Key.colorfulIcons.rawValue) }
     }
 
+    /// Off, every surface changes at once; on, Reduce Motion still trims movement where it did.
+    var animationsEnabled: Bool {
+        didSet { defaults.set(animationsEnabled, forKey: Key.animationsEnabled.rawValue) }
+    }
+
     /// Where a drag left the panel's top-left, per display and relative to it.
     var palettePositions: [String: [Double]] {
         didSet { defaults.set(palettePositions, forKey: Key.palettePosition.rawValue) }
@@ -382,6 +387,10 @@ final class AppSettings {
     /// Off by default: chunked transcription costs extra inference while recording.
     var dictationLiveInsertion: Bool {
         didSet { defaults.set(dictationLiveInsertion, forKey: Key.dictationLiveInsertion.rawValue) }
+    }
+
+    var dictationPlaysSounds: Bool {
+        didSet { defaults.set(dictationPlaysSounds, forKey: Key.dictationPlaysSounds.rawValue) }
     }
 
     var dictationIdleRelease: DictationIdleRelease {
@@ -802,6 +811,9 @@ final class AppSettings {
         colorfulIcons =
             defaults.object(forKey: Key.colorfulIcons.rawValue) == nil
             || defaults.bool(forKey: Key.colorfulIcons.rawValue)
+        animationsEnabled =
+            defaults.object(forKey: Key.animationsEnabled.rawValue) == nil
+            || defaults.bool(forKey: Key.animationsEnabled.rawValue)
         palettePositions =
             defaults.dictionary(forKey: Key.palettePosition.rawValue)
             as? [String: [Double]] ?? [:]
@@ -833,6 +845,9 @@ final class AppSettings {
             defaults.object(forKey: Key.dictationAdaptsCapitalization.rawValue) == nil
             || defaults.bool(forKey: Key.dictationAdaptsCapitalization.rawValue)
         dictationLiveInsertion = defaults.bool(forKey: Key.dictationLiveInsertion.rawValue)
+        dictationPlaysSounds =
+            defaults.object(forKey: Key.dictationPlaysSounds.rawValue) == nil
+            || defaults.bool(forKey: Key.dictationPlaysSounds.rawValue)
         dictationIdleRelease =
             defaults.object(forKey: Key.dictationIdleRelease.rawValue)
             .flatMap { $0 as? Int }

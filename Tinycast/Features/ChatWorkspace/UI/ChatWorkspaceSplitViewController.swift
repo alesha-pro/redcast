@@ -9,17 +9,18 @@ final class ChatWorkspaceSplitViewController: NSSplitViewController {
     init(coordinator: AIChatCoordinator, workspace: ChatWorkspaceCoordinator, find: ChatFindState) {
         super.init(nibName: nil, bundle: nil)
         let sidebar = ChatWorkspaceSidebar().environment(coordinator).environment(workspace)
-        let sidebarController = NSHostingController(rootView: sidebar)
+        let sidebarController = NSHostingController(rootView: sidebar.motionScope())
         let sidebarItem = NSSplitViewItem(sidebarWithViewController: sidebarController)
         sidebarItem.minimumThickness = Theme.Size.aiChatSidebarMinimum
         sidebarItem.maximumThickness = Theme.Size.aiChatSidebarMaximum
         sidebarItem.canCollapse = true
 
         let detail = AIChatDetailView().environment(coordinator).environment(find).environment(workspace)
-        let detailItem = NSSplitViewItem(viewController: NSHostingController(rootView: detail))
+        let detailItem = NSSplitViewItem(viewController: NSHostingController(rootView: detail.motionScope()))
         detailItem.minimumThickness = Theme.Size.aiChatDetailMinimum
 
-        let settings = NSHostingController(rootView: ChatSettingsSidebar().environment(workspace))
+        let settings = NSHostingController(
+            rootView: ChatSettingsSidebar().environment(workspace).motionScope())
         let settingsItem = NSSplitViewItem(inspectorWithViewController: settings)
         settingsItem.minimumThickness = Theme.Size.chatSettingsMinimum
         settingsItem.maximumThickness = Theme.Size.chatSettingsMaximum

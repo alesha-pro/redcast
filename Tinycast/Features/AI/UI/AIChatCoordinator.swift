@@ -336,7 +336,8 @@ final class AIChatCoordinator {
 
     /// Fork: the folder's and the chat's own instructions after everything else the turn is told.
     private func workspaceInstructions(for chat: AIChatState) -> String? {
-        core.chatWorkspace.instructions(for: chat.session.id, base: instructions(for: chat))
+        guard model(for: chat)?.isOnDevice != true else { return nil }
+        return core.chatWorkspace.instructions(for: chat.session.id, base: turnInstructions(for: chat))
     }
 
     /// Codex's own search; an API route searches through Tinycast's `web_search` tool instead.
@@ -345,15 +346,16 @@ final class AIChatCoordinator {
         return core.aiSettings.webSearchEnabled && capabilities(for: chat).webSearch
     }
 
-    private var instructions: String? {
+    private func instructions(for chat: AIChatState) -> String? {
         AIInstructions.compose(
             userPrompt: core.aiSettings.systemPrompt,
             isEnabled: core.aiSettings.systemPromptEnabled,
-            offersChoices: core.aiSettings.choicesEnabled)
+            offersChoices: core.aiSettings.choicesEnabled,
+            model: model(for: chat))
     }
 
     /// An agent's chat adds its own context after the shared prompt, even when that one is off.
-    private func instructions(for chat: AIChatState) -> String? {
+    private func turnInstructions(for chat: AIChatState) -> String? {
         let attachesTools =
             capabilities(for: chat).tools && model(for: chat)?.runsItsOwnTools != true
         // Fork: an agent on Tinycast's loop is a general assistant; the launcher's blurb is not for it.
@@ -363,11 +365,11 @@ final class AIChatCoordinator {
             return own
         }
         // Fork: the shared prompt ends with the time and, in a plain chat, what it can look up.
-        let instructions = self.instructions.map { $0 + "\n\n" + briefing(for: chat) }
+        let shared = instructions(for: chat).map { $0 + "\n\n" + briefing(for: chat) }
         guard let agent = core.agentCoordinator.prompt(for: chat, hasTools: attachesTools) else {
-            return instructions
+            return shared
         }
-        return [instructions, agent].compactMap { $0 }.joined(separator: "\n\n")
+        return [shared, agent].compactMap { $0 }.joined(separator: "\n\n")
     }
 
     /// A turn's route and its tools: a CLI with its own client is handed servers, others the loop.

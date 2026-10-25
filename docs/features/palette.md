@@ -52,6 +52,10 @@ The command palette is a borderless floating `NSPanel` hosting SwiftUI; see
 Everything resolved "once per summon" is resolved there deliberately, not per render. `AppCore` holds
 only the closure wiring; the behaviour is `PaletteCoordinator`'s.
 
+Opening the app summons the launcher too: a Dock click or a second open through `handleReopen`, and a
+cold launch from Finder, Spotlight or a relaunch through `start(launchedByUser:)`. A login-item or URL
+launch shows nothing, and the very first launch shows onboarding instead.
+
 ## Screens
 
 `PaletteState` (mode / query / selection / `focusToken`) is the bridge between the panel and the app.
@@ -499,9 +503,9 @@ The panel is a second SwiftUI hierarchy, so it observes nothing of `RootPaletteV
 `paletteEnvironment` injects the same stores into both hierarchies so they cannot drift.
 `WindowReader` reports the palette's `NSWindow`, which the menu's frame is placed against.
 
-`PaletteMenuContent` may supply its own host-layer clip path. `MenuPanel` uses
-`animationBehavior = .documentWindow`, so every menu opens and closes with AppKit's native window
-animation and has no motion of its own. The close animation keeps drawing the panel after
+`PaletteMenuContent` may supply its own host-layer clip path. `MenuPanel` is an `AnimatedPanel` on
+`.documentWindow`, so every menu opens and closes with AppKit's native window animation — none while
+**Show animations** is off — and has no motion of its own. The close animation keeps drawing the panel after
 `orderOut`, so the controller releases the hosted tree from `orderOutAnimated`, once it is off screen. AppKit refreshes the shadow after layout and display. Each extension menu supplies its
 own clip path; the controller applies it as an opaque value and never reconstructs extension
 geometry.

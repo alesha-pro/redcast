@@ -32,6 +32,7 @@ enum AppSettingsKey: String, CaseIterable {
     case paletteDraggable = "paletteDraggable"
     // Fork: General › Appearance › Colourful Icons.
     case colorfulIcons = "colorfulIcons"
+    case animationsEnabled = "animationsEnabled"
     case palettePosition = "palettePosition"
     case paletteExpandedCenterDisplays = "paletteExpandedCenterDisplays"
     case fileSearchEnabled = "fileSearchEnabled"
@@ -147,6 +148,7 @@ enum AppSettingsKey: String, CaseIterable {
     case dictationDestination = "dictationDestination"
     case dictationAdaptsCapitalization = "dictationAdaptsCapitalization"
     case dictationLiveInsertion = "dictationLiveInsertion"
+    case dictationPlaysSounds = "dictationPlaysSounds"
     case dictationIdleRelease = "dictationIdleReleaseMinutes"
     case dictationLanguage = "dictationLanguage"
     // Fork: Dictation History's span, and whether voice replies and failed audio too; per Mac.

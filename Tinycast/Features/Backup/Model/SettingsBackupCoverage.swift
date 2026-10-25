@@ -29,6 +29,7 @@ enum SettingsBackupCoverage {
         "openOnCursorScreen": .openOnCursorScreen,
         "paletteDraggable": .paletteDraggable,
         "colorfulIcons": .colorfulIcons,  // Fork: Colourful Icons
+        "animationsEnabled": .animationsEnabled,
         "fileSearchEnabled": .fileSearchEnabled,
         "fileSearchScopes": .fileSearchScopes,
         "fileSearchIgnorePatterns": .fileSearchIgnorePatterns,
@@ -89,6 +90,8 @@ enum SettingsBackupCoverage {
         AppSettingsKey.dictationAdaptsCapitalization.rawValue:
             "Dictation preferences stay local until backup supports them.",
         AppSettingsKey.dictationLiveInsertion.rawValue:
+            "Dictation preferences stay local until backup supports them.",
+        AppSettingsKey.dictationPlaysSounds.rawValue:
             "Dictation preferences stay local until backup supports them.",
         AppSettingsKey.dictationIdleRelease.rawValue:
             "Dictation memory use stays a device-local preference.",

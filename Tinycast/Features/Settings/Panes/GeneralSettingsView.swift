@@ -82,6 +82,9 @@ struct GeneralSettingsView: View {
                     SettingsRowTitle(.generalAppearance, "Colorful icons")
                     Text("Commands, menus and agents in their own colors.")
                 }
+                Toggle(isOn: $settings.animationsEnabled) {
+                    SettingsRowTitle(.generalAppearance, "Show animations")
+                }
                 InterfaceSizeRow()
                 WindowModeRow()
                 Toggle(isOn: $settings.showFavoritesInCompactMode) {

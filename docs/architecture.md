@@ -104,8 +104,9 @@ app: the stores (`AppIndex`, `ClipboardStore`, `SnippetsStore`, `QuicklinkStore`
 `MeetingClock`), `NotesStore`, the twenty-two feature coordinators, and the
 window controllers.
 
-`AppDelegate.applicationDidFinishLaunching` calls `AppCore.shared.start()` and nothing else. That is the
-one wiring point, and `start()` reads as the app's whole boot sequence in one screen.
+`AppDelegate.applicationDidFinishLaunching` calls `AppCore.shared.start(launchedByUser:)` and nothing
+else; the delegate only reads the launch Apple Event to tell a plain open from a login-item or URL
+launch. That is the one wiring point, and `start` reads as the app's whole boot sequence in one screen.
 
 **Feature actions live on that feature's coordinator, and a view must never reach past a coordinator
 into a store to mutate it.** That is the rule; `AppCore` holds only the closure wiring that connects a
@@ -184,7 +185,9 @@ a transient `NSStatusItem` owned by `Features/Agents/` in the same way.
 
 `NSAlert` is never used, and that is load-bearing. Appearance is a setting: `AppCore.applyAppearance()`
 assigns `NSApp.appearance` from `AppSettings.appearance`, and `.system` assigns `nil` so AppKit follows
-macOS by itself. Nothing else in the app sets an appearance.
+macOS by itself. Nothing else in the app sets an appearance. Animations take the same shape:
+`AppCore.applyMotion()` projects `AppSettings.animationsEnabled` into `Motion.isEnabled` and re-points
+every live `AnimatedPanel` (see [ui.md](ui.md#non-negotiable-invariants)).
 
 ## Observation
 
