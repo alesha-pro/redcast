@@ -20,14 +20,20 @@ extension View {
         modifier(ChatWorkspaceActionsWiring(chat: chat))
     }
 
-    /// The edited question's outline and its Editing tag.
-    func chatEditing(_ id: UUID) -> some View {
-        modifier(ChatEditingOutline(id: id))
+    /// The edited question's outline and its Editing tag; a reply is never edited, so takes neither.
+    @ViewBuilder func chatEditing(
+        _ message: ChatMessage, actions: ChatMessageActions?, radius: CGFloat
+    ) -> some View {
+        if message.role == .user {
+            modifier(ChatEditingOutline(editing: actions?.editingID == message.id, radius: radius))
+        } else {
+            self
+        }
     }
 
     /// A long question folds to ten lines with Show more; find opens it.
-    func chatFolding(_ text: String, forcedOpen: Bool) -> some View {
-        modifier(ChatFold(text: text, forcedOpen: forcedOpen))
+    func chatFolding(_ text: String, forcedOpen: Bool, actions: ChatMessageActions?) -> some View {
+        modifier(ChatFold(text: text, forcedOpen: forcedOpen, inWindow: actions != nil))
     }
 }
 
@@ -48,8 +54,9 @@ private struct ChatWorkspaceActionsWiring: ViewModifier {
 
 /// Branch on a finished reply, Edit on a question; shown with the footer's Copy, on hover.
 struct ChatMessageActionButtons: View {
-    @Environment(\.chatMessageActions) private var actions
     let message: ChatMessage
+    /// Read once by the message, which hands it to each of its parts.
+    let actions: ChatMessageActions?
 
     var body: some View {
         if let actions {
@@ -66,7 +73,7 @@ struct ChatMessageActionButtons: View {
         _ symbol: String, label: LocalizedStringResource, hue: RaycastHue, action: @escaping () -> Void
     ) -> some View {
         ChatHoverGlyphButton(symbol: symbol, hue: hue, action: action)
-            .help(Text(label))
+            .chatToolTip(String(localized: label))
             .accessibilityLabel(Text(label))
     }
 }
@@ -93,16 +100,14 @@ private struct ChatHoverGlyphButton: View {
 }
 
 private struct ChatEditingOutline: ViewModifier {
-    @Environment(\.metrics) private var metrics
-    @Environment(\.chatMessageActions) private var actions
-    let id: UUID
+    let editing: Bool
+    let radius: CGFloat
 
     func body(content: Content) -> some View {
-        let editing = actions?.editingID == id
         content
             .overlay {
                 if editing {
-                    RoundedRectangle(cornerRadius: metrics.radius.row, style: .continuous)
+                    RoundedRectangle(cornerRadius: radius, style: .continuous)
                         .strokeBorder(Theme.Colors.chatEditingEdge, lineWidth: 1.5)
                 }
             }
@@ -122,13 +127,13 @@ private struct ChatEditingOutline: ViewModifier {
 }
 
 private struct ChatFold: ViewModifier {
-    @Environment(\.chatMessageActions) private var actions
     let text: String
     let forcedOpen: Bool
+    let inWindow: Bool
     @State private var expanded = false
 
     func body(content: Content) -> some View {
-        if actions != nil, ChatMessageFold.folds(text) {
+        if inWindow, ChatMessageFold.folds(text) {
             let open = expanded || forcedOpen
             VStack(alignment: .trailing, spacing: Theme.Spacing.xs) {
                 content.lineLimit(open ? nil : ChatMessageFold.lineLimit)

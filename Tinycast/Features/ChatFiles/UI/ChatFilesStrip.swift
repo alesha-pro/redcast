@@ -118,26 +118,29 @@ private struct ChatFileChip: View {
                 ChatFileActions.quickLook(file.path)
                 return .handled
             }
-            .help(path)
+            .chatToolTip(path)
             .accessibilityLabel(Text(verbatim: file.name))
             .accessibilityHint(Text(verbatim: path))
             .accessibilityAction(named: Text("Quick Look")) {
                 ChatFileActions.quickLook(file.path)
             }
-            Button {
-                ChatFileActions.quickLook(file.path)
-            } label: {
-                Image(systemName: "eye")
-                    .font(metrics.typography.keyCap)
-                    .foregroundStyle(Theme.Colors.textSecondary)
-                    .frame(width: metrics.size.chatMessageAction, height: metrics.size.chatMessageAction)
-                    .contentShape(Rectangle())
+            // Its slot is kept at rest, so a hover cannot reflow the strip; the button comes with it.
+            if hovered {
+                Button {
+                    ChatFileActions.quickLook(file.path)
+                } label: {
+                    Image(systemName: "eye")
+                        .font(metrics.typography.keyCap)
+                        .foregroundStyle(Theme.Colors.textSecondary)
+                        .frame(width: metrics.size.chatMessageAction, height: metrics.size.chatMessageAction)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .help("Quick Look")
+                .accessibilityHidden(true)
+            } else {
+                Color.clear.frame(width: metrics.size.chatMessageAction, height: metrics.size.chatMessageAction)
             }
-            .buttonStyle(.plain)
-            .help("Quick Look")
-            .accessibilityHidden(true)
-            // Laid out at rest and only faded in, so a hover cannot reflow the strip.
-            .opacity(hovered ? 1 : 0)
         }
         .font(metrics.typography.rowTrailing)
         .chatChip(leadsWithBadge: true)

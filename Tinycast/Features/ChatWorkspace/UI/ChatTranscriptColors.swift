@@ -25,24 +25,29 @@ enum ChatCodeBadge {
 
 /// Fork: a finished tool call's glyph, in the colour of what it did: web, files, terminal, MCP.
 struct ChatToolGlyph: View {
-    @Environment(\.metrics) private var metrics
     let use: ChatToolUse
+    /// The row's own font, handed down so a row reads the metrics once.
+    let font: Font
 
     var body: some View {
         let kind = ChatToolKind.of(title: use.title, origin: use.origin)
         Image(systemName: kind.symbol)
-            .font(metrics.typography.rowTrailing)
+            .font(font)
             .symbolRenderingMode(.hierarchical)
             .foregroundStyle(kind.hue.color)
     }
 }
 
 extension View {
-    /// Fork: the reader's own message on a wash of the accent, edged a step deeper.
-    func chatBubble(isUser: Bool, radius: CGFloat) -> some View {
-        let shape = RoundedRectangle(cornerRadius: radius, style: .continuous)
-        return background(shape.fill(isUser ? Theme.Colors.chatUserBubble : Color.clear))
-            .overlay { if isUser { shape.strokeBorder(Theme.Colors.chatUserBubbleEdge) } }
+    /// Fork: the reader's own message on a wash of the accent, edged a step deeper; a reply, bare.
+    @ViewBuilder func chatBubble(isUser: Bool, radius: CGFloat) -> some View {
+        if isUser {
+            let shape = RoundedRectangle(cornerRadius: radius, style: .continuous)
+            background(shape.fill(Theme.Colors.chatUserBubble))
+                .overlay { shape.strokeBorder(Theme.Colors.chatUserBubbleEdge) }
+        } else {
+            self
+        }
     }
 }
 

@@ -371,8 +371,12 @@ after closing; `CHAT_MEMORY_CENSUS=1` takes that count after every step of the l
 `CHAT_MEMORY_SCROLL=1` instead scrolls the two tallest chats end to end and back at 3,000 pt/s,
 one precise wheel event per display frame sent to the real `NSScrollView`. Per pass it reports
 the frame intervals (p50, p95, max, frames over 16.7 ms, refreshes missed), the main thread's busy
-time per frame up to its idle, backward moves, the worst drift from the asked offset, and changes
-of the document's height. `CHAT_MEMORY_DETAIL=1` adds `footprint` and `heap -s` per step of the
+time per frame up to its idle and its own CPU time, frames with the pointer over the window,
+backward moves, the worst drift from the asked offset, and changes of the document's height. The
+window is placed in the screen's corner farthest from the pointer, since a hover redraws rows.
+`CHAT_MEMORY_SHOTS=<dir>` saves the window after each switch and, in the scroll mode, at four
+depths of each chat; the fixture's times are fixed per day and its files share one path, so two
+trees' shots compare pixel for pixel. `CHAT_MEMORY_DETAIL=1` adds `footprint` and `heap -s` per step of the
 first cycle, and `CHAT_MEMORY_PANES=1` measures Settings › Shortcuts, › Backup and the Extension
 Store. A second argument measures another checkout with the same harness. It is not part of the
 suite:

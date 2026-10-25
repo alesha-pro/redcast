@@ -23,11 +23,13 @@ BUNDLE="$WORK/ChatMemory.app"
 SUPPORT="$HOME/Library/Application Support/$ID"
 BIN="$BUNDLE/Contents/MacOS/chat-memory"
 GUARD="$WORK/no-keychain.dylib"
+# One place for every tree's run, so the replies name the same paths and wrap alike.
+FILES="${TMPDIR:-/tmp}/tinycast-chat-memory/files"
 
 # The harness's own channel: its defaults and Application Support are emptied before and after.
 reset() {
     defaults delete "$ID" >/dev/null 2>&1 || true
-    rm -rf "$SUPPORT" "$HOME/Library/Caches/$ID" "$WORK/files"
+    rm -rf "$SUPPORT" "$HOME/Library/Caches/$ID" "$FILES"
 }
 trap reset EXIT
 
@@ -107,7 +109,7 @@ PLIST
 [ -z "${CHAT_MEMORY_BUILD_ONLY:-}" ] || exit 0
 reset
 run() { DYLD_INSERT_LIBRARIES="$GUARD" "$BIN" "$@" -AppleLanguages "(en)"; }
-run fixtures "$WORK/files"
+run fixtures "$FILES"
 if [ -n "${CHAT_MEMORY_PANES:-}" ]; then
     run panes "$REPORT" "$CYCLES"
 elif [ -n "${CHAT_MEMORY_SCROLL:-}" ]; then

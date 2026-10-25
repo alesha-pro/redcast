@@ -282,6 +282,13 @@ struct ChatMemoryRun {
                 core.chatWorkspace.toggleSettingsSidebar?()
                 await settle(1.5)
                 record(cycle, "settings closed")
+                // The sidebar's search reaches message text, as a reader looking for a word would.
+                core.chatWorkspace.query = "budget"
+                await settle(1.5)
+                record(cycle, "searched")
+                core.chatWorkspace.query = ""
+                await settle(1)
+                record(cycle, "search cleared")
             #endif
             ChatMemoryWindow.close()
             await settle(4)
@@ -367,10 +374,22 @@ struct ChatMemoryRun {
         core.aiChatCoordinator.showWindow()
         ChatMemoryWindow.park()
         await settle(3)
+        var previous: NSScrollView?
         for (title, id) in chats {
             core.aiChatCoordinator.openChat(id: id)
             await settle(3)
+            // Under load the old transcript can still be in the window; wait for the new one.
+            for _ in 0..<40 where ChatMemoryWindow.transcriptScrollView() === previous {
+                await settle(0.25)
+            }
+            print("scroll views: " + ChatMemoryWindow.scrollViewHeights())
             guard let scrollView = ChatMemoryWindow.transcriptScrollView() else { continue }
+            previous = scrollView
+            for (index, fraction) in [0, 0.25, 0.5, 0.75].enumerated() {
+                ChatScrollProbe.jump(scrollView, to: fraction)
+                await settle(0.8)
+                ChatMemoryWindow.shoot("\(ChatMemoryFixture.scrollTitles.firstIndex(of: title) ?? 0)-\(index)")
+            }
             for pass in 1...cycles {
                 ChatScrollProbe.jump(scrollView, toTop: true)
                 await settle(1.5)
@@ -404,9 +423,24 @@ enum ChatMemoryWindow {
     }
 
     static func park() {
-        guard ProcessInfo.processInfo.environment["CHAT_MEMORY_ONSCREEN"] == nil else { return }
-        window?.setFrameOrigin(NSPoint(x: -12_000, y: -12_000))
+        guard let window else { return }
+        guard ProcessInfo.processInfo.environment["CHAT_MEMORY_ONSCREEN"] != nil else {
+            return window.setFrameOrigin(NSPoint(x: -12_000, y: -12_000))
+        }
+        // In the screen's corner farthest from the pointer: a hover redraws rows on every frame.
+        let mouse = NSEvent.mouseLocation
+        guard let screen = NSScreen.screens.first(where: { $0.frame.contains(mouse) }) ?? NSScreen.main else {
+            return
+        }
+        let visible = screen.visibleFrame
+        let size = window.frame.size
+        window.setFrameOrigin(
+            NSPoint(
+                x: mouse.x < visible.midX ? visible.maxX - size.width : visible.minX,
+                y: mouse.y < visible.midY ? visible.maxY - size.height : visible.minY))
     }
+
+    static var holdsPointer: Bool { window?.frame.contains(NSEvent.mouseLocation) == true }
 
     /// The layers holding contents, largest first, as bytes their backing would take.
     static func layerCensus() -> String {
@@ -438,16 +472,22 @@ enum ChatMemoryWindow {
             + top.joined(separator: "\n")
     }
 
-    /// The tallest scroll view in the window, which is the transcript's.
+    /// The tallest scroll view showing in the window, which is the transcript's.
     static func transcriptScrollView() -> NSScrollView? {
+        scrollViews().max { ($0.documentView?.frame.height ?? 0) < ($1.documentView?.frame.height ?? 0) }
+    }
+
+    static func scrollViews() -> [NSScrollView] {
         func scrollViews(in view: NSView) -> [NSScrollView] {
             let own = (view as? NSScrollView).map { [$0] } ?? []
             return own + view.subviews.flatMap(scrollViews)
         }
-        guard let root = window?.contentView else { return nil }
-        return scrollViews(in: root).max {
-            ($0.documentView?.frame.height ?? 0) < ($1.documentView?.frame.height ?? 0)
-        }
+        guard let root = window?.contentView else { return [] }
+        return scrollViews(in: root).filter { !$0.isHiddenOrHasHiddenAncestor && !$0.visibleRect.isEmpty }
+    }
+
+    static func scrollViewHeights() -> String {
+        scrollViews().map { "\(Int($0.documentView?.frame.height ?? 0))" }.joined(separator: ", ")
     }
 
     /// The reader paging up through the whole open chat, 300 points at a time.
@@ -524,7 +564,7 @@ final class ChatScrollProbe: NSObject {
         static let header = [
             "chat", "pass", "direction", "mode", "frames", "seconds", "interval_p50_ms", "interval_p95_ms",
             "interval_max_ms", "over_16.7ms", "missed_refreshes", "busy_p50_ms", "busy_p95_ms", "busy_max_ms",
-            "backward_moves",
+            "cpu_p50_ms", "cpu_p95_ms", "cpu_max_ms", "pointer_frames", "backward_moves",
             "worst_backward_pt", "worst_drift_pt", "height_changes", "height_min_pt", "height_max_pt",
             "distance_pt"
         ].joined(separator: "\t")
@@ -532,6 +572,10 @@ final class ChatScrollProbe: NSObject {
         var intervals: [Double] = []
         var refresh = 1000.0 / 60
         var busy: [Double] = []
+        /// The main thread's own CPU time per frame, which another process's load cannot inflate.
+        var cpu: [Double] = []
+        /// Frames with the pointer over the window, whose hovers make them slower.
+        var pointerFrames = 0
         var backwards = 0
         var worstBackward: CGFloat = 0
         var worstDrift: CGFloat = 0
@@ -554,7 +598,8 @@ final class ChatScrollProbe: NSObject {
                 String(format: "%.1f", seconds), percentile(intervals, 0.5), percentile(intervals, 0.95),
                 percentile(intervals, 1), "\(intervals.count { $0 > ChatScrollProbe.budget })",
                 "\(intervals.reduce(0) { $0 + max(0, Int(($1 / refresh).rounded()) - 1) })",
-                percentile(busy, 0.5), percentile(busy, 0.95), percentile(busy, 1), "\(backwards)",
+                percentile(busy, 0.5), percentile(busy, 0.95), percentile(busy, 1), percentile(cpu, 0.5),
+                percentile(cpu, 0.95), percentile(cpu, 1), "\(pointerFrames)", "\(backwards)",
                 String(format: "%.0f", worstBackward), String(format: "%.0f", worstDrift), "\(heightChanges)",
                 String(format: "%.0f", lowest), String(format: "%.0f", highest), String(format: "%.0f", distance)
             ].joined(separator: "\t")
@@ -570,6 +615,7 @@ final class ChatScrollProbe: NSObject {
     private var started: CFTimeInterval = 0
     private var lastTick: CFTimeInterval?
     private var tickStart: CFTimeInterval?
+    private var tickCPU: Double = 0
     private var lastOffset: CGFloat = 0
     private var lastHeight: CGFloat = 0
     private var expected: CGFloat = 0
@@ -590,9 +636,15 @@ final class ChatScrollProbe: NSObject {
     }
 
     static func jump(_ scrollView: NSScrollView, toTop: Bool) {
+        jump(scrollView, to: toTop ? 0 : 1)
+    }
+
+    /// To a fraction of the way down, rounded to whole points so two trees land alike.
+    static func jump(_ scrollView: NSScrollView, to fraction: CGFloat) {
         let range = range(of: scrollView)
         let clip = scrollView.contentView
-        clip.scroll(to: NSPoint(x: clip.bounds.minX, y: toTop ? range.lowerBound : range.upperBound))
+        let offset = (range.lowerBound + (range.upperBound - range.lowerBound) * fraction).rounded()
+        clip.scroll(to: NSPoint(x: clip.bounds.minX, y: offset))
         scrollView.reflectScrolledClipView(clip)
     }
 
@@ -622,7 +674,24 @@ final class ChatScrollProbe: NSObject {
     private func idle() {
         guard let tickStart else { return }
         pass.busy.append((CACurrentMediaTime() - tickStart) * 1000)
+        pass.cpu.append(Self.threadCPU() - tickCPU)
         self.tickStart = nil
+    }
+
+    /// Milliseconds of CPU the calling thread has used, user and system.
+    private static func threadCPU() -> Double {
+        var info = thread_basic_info()
+        var count = mach_msg_type_number_t(MemoryLayout<thread_basic_info>.size / MemoryLayout<integer_t>.size)
+        let port = mach_thread_self()
+        defer { mach_port_deallocate(mach_task_self_, port) }
+        let result = withUnsafeMutablePointer(to: &info) {
+            $0.withMemoryRebound(to: integer_t.self, capacity: Int(count)) {
+                thread_info(port, thread_flavor_t(THREAD_BASIC_INFO), $0, &count)
+            }
+        }
+        guard result == KERN_SUCCESS else { return 0 }
+        let user = Double(info.user_time.seconds) * 1000 + Double(info.user_time.microseconds) / 1000
+        return user + Double(info.system_time.seconds) * 1000 + Double(info.system_time.microseconds) / 1000
     }
 
     @objc private func tick(_ link: CADisplayLink) {
@@ -632,6 +701,7 @@ final class ChatScrollProbe: NSObject {
         let height = scrollView.documentView?.frame.height ?? 0
         pass.lowest = min(pass.lowest, height)
         pass.highest = max(pass.highest, height)
+        if ChatMemoryWindow.holdsPointer { pass.pointerFrames += 1 }
         var elapsed = link.targetTimestamp - link.timestamp
         pass.refresh = elapsed * 1000
         if let lastTick {
@@ -661,6 +731,7 @@ final class ChatScrollProbe: NSObject {
         remainder = wanted - pixels
         expected = offset + (down ? pixels : -pixels)
         tickStart = now
+        tickCPU = Self.threadCPU()
         if pass.wheel,
             let event = CGEvent(
                 scrollWheelEvent2Source: nil, units: .pixel, wheelCount: 1, wheel1: Int32(down ? -pixels : pixels),
@@ -742,7 +813,8 @@ enum ChatMemoryFixture {
         #endif
         core.chatHistory.load()
         let paths = writeFiles(into: files)
-        let now = Date()
+        // A minute before today began: every run of a day shows the same times and day headers.
+        let now = Calendar.current.startOfDay(for: Date()).addingTimeInterval(-60)
         var ids: [UUID] = []
         for index in 0..<shortChats {
             let at = now.addingTimeInterval(-Double(index + 5) * 7_200)

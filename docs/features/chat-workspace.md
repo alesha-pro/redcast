@@ -249,10 +249,28 @@ baseline above.
   0, 0, 20, 40, 40 for the chats in turn, `NSTextTableBlock` 1,080, 0, 2,688, 0, 0, 0, 1,080, 1,080,
   and after closing both are 0. Only empty text-view shells linger until AppKit lets them go.
 
+- **3. Lighter per message, the same pixels.** Measured, not assumed: switching parts off in
+  throwaway builds and counting SwiftUI's `PropertyList.Element` (its environment and modifier
+  nodes, about 150 B each) in `heap -s` at the agent run. It held 190,697 nodes, 28 MB; without
+  the Files strips and links 94,816, without the message footers 161,753. Inside a strip, `.help`
+  alone cost 37,000 nodes, about 130 per tooltip, while a chip's right-click overlay and its Space
+  key cost almost nothing. The fork's per-message environment reads and wrappers were small:
+  reading the window's actions once per message and handing them down (Edit, Branch, the fold,
+  the editing outline), the outline and the bubble's wash only on the reader's own messages, the
+  tool glyph given its row's font, and the metrics read only by a tool row that unfolds took 442
+  nodes together. So a Files chip's path and the footer's Edit and Branch tips are AppKit tooltips
+  from one small overlay (`ChatToolTip`), and a chip's Quick Look eye is built only while the chip
+  is hovered, a clear frame of its size holding the slot. Nodes at the agent run: 126,006
+  (18.6 MB); at the long store chat 134,388 → 95,557; live malloc at the agent run 147 → 136 MB,
+  while the footprint peaks below stay where malloc's dirty pages hold them. The snapshot harness's eight renders (English
+  and Russian, light and dark, editing) and the memory harness's 15 shots of the real window
+  (each switch, and four depths of the two tallest chats) are pixel-identical to the tree before.
+
 | Cycle 2, MB, before → after | Peak | Highest open | After closing | Malloc after closing |
 | --- | ---: | ---: | ---: | ---: |
 | 1. Tiles | 733 → 456 | 686 → 378 | 189 → 212 | 84 → 92 |
 | 2. Release | 502 → 391 | 449 → 353 | 244 → 182 | 91 → 32 |
+| 3. Per message | 417 → 421 | 392 → 390 | 200 → 183 | 26 → 26 |
 
 Scrolling, two passes each way, ms (interval p50 / p95 / max; busy p50 / p95):
 
@@ -261,9 +279,15 @@ Scrolling, two passes each way, ms (interval p50 / p95 / max; busy p50 / p95):
 | 1. Tiles | 16.7 / 16.7 / 25–33 → 16.7 / 16.7 / 31–42 | 11–14 / 15 → 11 / 15–16 | 37–39 / 42–51 / 52–67 → 38 / 46–50 / 56–68 | 36–37 / 41–49 → 37–38 / 43–48 |
 | 2. Release | 8–25 / 28–30 / 37–50 → 8–25 / 27–30 / 33–52 | 5–24 / 27–29 → 5–24 / 26–28 | 41–61 / 56–70 / 77–99 → 32–62 / 37–76 / 56–833 | 39–60 / 54–67 → 31–60 / 36–74 |
 
+| 3. Per message | 8–25 / 29–31 / 37–42 → 8–25 / 29–30 / 44–467 | 5–24 / 27–29 → 5–24 / 27–28 | 57–63 / 63–70 / 87–102 → 56–63 / 62–70 / 74–92 | 55–62 / 60–69 → 54–61 / 60–68 |
+
 Step 2 ran twice, four passes a chat; its 833 ms is one frame of one pass, and its other passes
-fall inside the spread of the tree before it. From step 2 on, under the render, a chat's first
-pass held 8.3 ms frames and the later ones about 25 ms, in both trees alike.
+fall inside the spread of the tree before it. Step 3 ran four times; the table is the run with the
+window kept off the pointer, and the other three agree with it. Its 467 ms is one frame whose
+main thread used 36 ms of CPU, so the wait was elsewhere; the main thread's CPU time per frame,
+which no other process can inflate, was 4.3–22.8 / 52–58 ms (p50, long replies / agent run)
+before and 4.4–22.7 / 52–58 after. From step 1 on, a chat's first pass held 8.3 ms frames and the
+later ones about 25 ms, in every tree alike, against 8.3 ms throughout in the quiet baseline.
 
 ## Manual sweep
 

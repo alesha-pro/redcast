@@ -9,41 +9,52 @@ extension View {
 
 /// Collapsed by default, and the expansion is the row's own, so nothing outlives the transcript.
 private struct ChatToolContentFold: ViewModifier {
-    @Environment(\.metrics) private var metrics
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     let toolContent: ChatToolContent?
     @State private var isExpanded = false
 
     func body(content row: Content) -> some View {
         if let toolContent {
-            VStack(alignment: .leading, spacing: metrics.spacing.sm) {
-                Button {
-                    isExpanded.toggle()
-                } label: {
-                    HStack(spacing: metrics.spacing.sm) {
-                        row
-                        Image(systemName: "chevron.down")
-                            .font(metrics.typography.disclosure)
-                            .foregroundStyle(Theme.Colors.textSecondary)
-                            .rotationEffect(.degrees(isExpanded ? 180 : 0))
-                            .animation(
-                                reduceMotion ? nil : Theme.MenuMotion.chevronAnimation,
-                                value: isExpanded)
-                    }
-                    .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-                .accessibilityValue(isExpanded ? "Expanded" : "Collapsed")
-                if isExpanded {
-                    ChatToolContentView(content: toolContent)
-                        .transition(.opacity)
-                }
-            }
-            .animation(
-                reduceMotion ? nil : .easeOut(duration: Theme.Duration.chatFooter), value: isExpanded)
+            ChatToolDisclosure(row: row, toolContent: toolContent, isExpanded: $isExpanded)
         } else {
             row
         }
+    }
+}
+
+/// Only a call with something to unfold reads the metrics; most rows have nothing.
+private struct ChatToolDisclosure<Row: View>: View {
+    @Environment(\.metrics) private var metrics
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    let row: Row
+    let toolContent: ChatToolContent
+    @Binding var isExpanded: Bool
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: metrics.spacing.sm) {
+            Button {
+                isExpanded.toggle()
+            } label: {
+                HStack(spacing: metrics.spacing.sm) {
+                    row
+                    Image(systemName: "chevron.down")
+                        .font(metrics.typography.disclosure)
+                        .foregroundStyle(Theme.Colors.textSecondary)
+                        .rotationEffect(.degrees(isExpanded ? 180 : 0))
+                        .animation(
+                            reduceMotion ? nil : Theme.MenuMotion.chevronAnimation,
+                            value: isExpanded)
+                }
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityValue(isExpanded ? "Expanded" : "Collapsed")
+            if isExpanded {
+                ChatToolContentView(content: toolContent)
+                    .transition(.opacity)
+            }
+        }
+        .animation(
+            reduceMotion ? nil : .easeOut(duration: Theme.Duration.chatFooter), value: isExpanded)
     }
 }
 

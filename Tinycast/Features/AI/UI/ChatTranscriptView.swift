@@ -234,7 +234,7 @@ private struct ChatMessageView: View, @MainActor Equatable {
             if message.role == .user { timestamp }
             ChatCopyButton(text: parts.text)
             if let onRegenerate { RegenerateButton(action: onRegenerate) }
-            ChatMessageActionButtons(message: message)  // Fork: edit a question, branch at a reply
+            ChatMessageActionButtons(message: message, actions: workspaceActions)  // Fork: edit, branch
             if message.role == .assistant { timestamp }
         }
         // Fork: the window keeps the latest reply's actions in view, as Raycast's row is.
@@ -267,7 +267,7 @@ private struct ChatMessageView: View, @MainActor Equatable {
                 .padding(.horizontal, message.role == .user ? metrics.spacing.xl : replyInset)
                 .padding(.vertical, metrics.spacing.md)
                 .chatBubble(isUser: message.role == .user, radius: metrics.radius.row)  // Fork: accent wash
-                .chatEditing(message.id)  // Fork: the question being edited, outlined
+                .chatEditing(message, actions: workspaceActions, radius: metrics.radius.row)  // Fork: outlined
         }
     }
 
@@ -335,7 +335,7 @@ private struct ChatMessageView: View, @MainActor Equatable {
         } else {
             Text(highlight?.attributed(message.text, leaf: [0]) ?? AttributedString(message.text))
                 .findAnchor(highlight, leaf: [0])
-                .chatFolding(message.text, forcedOpen: highlight != nil)  // Fork: long questions fold
+                .chatFolding(message.text, forcedOpen: highlight != nil, actions: workspaceActions)  // Fork
         }
     }
 }
@@ -613,7 +613,7 @@ private struct ChatToolRow: View {
             case .running:
                 ProgressView().controlSize(.small)
             case .completed:
-                ChatToolGlyph(use: use)  // Fork: coloured by what the call does
+                ChatToolGlyph(use: use, font: metrics.typography.rowTrailing)  // Fork: coloured by kind
             case .failed:
                 glyph("exclamationmark.triangle")
                     .foregroundStyle(Theme.Colors.destructive)
