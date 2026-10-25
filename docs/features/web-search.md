@@ -237,7 +237,7 @@ A configuration saved by an older build gains the engine at the end of its order
     "Read https://excalidraw.com/" says the page needs its scripts and names its title.
 13. Export a backup and import it on a clean profile: the engine list is back at the defaults and no
     key travels.
-14. Quit with the AI pane never opened and no agent search run: `defaults read com.tinycast.app.fork
+14. Quit with the AI pane never opened and no agent search run: `defaults read io.redcast.app
     aiWebSearchEngines` finds nothing.
 
 Harness: `web-search-test` (the tool's schema, arguments, every engine's exact request, the address

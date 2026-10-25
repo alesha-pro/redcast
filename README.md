@@ -1,8 +1,6 @@
 <p align="center">
-  <img src="docs/brand/redcast-icon-256.png" width="128" height="128" alt="Redcast icon: the command key, its top-right loop burning into an ember">
+  <a href="https://redcast.io"><img src="docs/brand/redcast-banner.jpg" alt="Redcast: the palette with “sttngs” typed, System Settings found and the ⌘K action menu open" width="100%"></a>
 </p>
-
-<h1 align="center">Redcast</h1>
 
 <p align="center">
   <strong>An agent-native, Raycast-style launcher for macOS.</strong><br>
@@ -10,11 +8,14 @@
 </p>
 
 <p align="center">
+  <a href="https://redcast.io"><img alt="Website: redcast.io" src="https://img.shields.io/badge/website-redcast.io-F23D32?style=flat"></a>
   <a href="LICENSE"><img alt="License: AGPL-3.0" src="https://img.shields.io/badge/license-AGPL--3.0-F23D32?style=flat"></a>
   <img alt="macOS 26 or later" src="https://img.shields.io/badge/macOS-26%2B-F23D32?style=flat&logo=apple&logoColor=white">
   <img alt="Swift 6" src="https://img.shields.io/badge/Swift-6-F23D32?style=flat&logo=swift&logoColor=white">
   <a href="https://github.com/abue-ammar/tinycast"><img alt="Fork of Tinycast" src="https://img.shields.io/badge/fork%20of-Tinycast-F23D32?style=flat"></a>
 </p>
+
+<p align="center"><a href="https://redcast.io"><b>redcast.io</b></a> · <a href="#install">Install</a> · <a href="docs/README.md">Docs</a> · <a href="FORK.md">What's new in the fork</a></p>
 
 Redcast is a launcher for the Mac: one hotkey, a palette, and the apps, text, windows and commands you
 reach for all day. It is a fork of [Tinycast](https://github.com/abue-ammar/tinycast), a native SwiftUI
@@ -137,7 +138,9 @@ Redcast gracefully and swaps the new copy in by rename, so an app is always inst
 - Privacy grants survive a reinstall: they follow the bundle id and your certificate. A build whose
   code requirement would change is refused; `--accept-new-identity` installs it anyway and prints the
   `tccutil` lines to run.
-- Redcast keeps its own settings (bundle id `com.tinycast.app.fork`), so it can sit beside Tinycast.
+- Redcast has its own bundle id, `io.redcast.app`, so it keeps its own settings and can sit beside Tinycast.
+  A copy installed under the fork's old id (`com.tinycast.app.fork`) moves its settings, data and keys over on
+  its first launch ([bundle-migration](docs/features/bundle-migration.md)); macOS asks for privacy grants once more.
 
 Then open Settings → General, record a hotkey and press it anywhere.
 

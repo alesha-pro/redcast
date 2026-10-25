@@ -8,6 +8,8 @@ struct KeychainSecretStore: Sendable {
     }
 
     private let service: String
+    // Fork: the item's service under the fork's old bundle id; read once, then moved (bundle-migration.md).
+    private let legacyService: String?
 
     /// Every scope the app stores under, named here so the whole keychain surface is one list.
     static let aiAPIKeys = KeychainSecretStore(scope: "ai-api-keys")
@@ -22,13 +24,14 @@ struct KeychainSecretStore: Sendable {
 
     init(scope: String, bundleIdentifier: String? = Bundle.main.bundleIdentifier) {
         service = "\(bundleIdentifier ?? "com.tinycast.app").\(scope)"
+        legacyService = LegacyBundleMigration.legacyService(scope: scope, bundleID: bundleIdentifier)  // Fork
     }
 
     func secret(for account: UUID) throws -> String? {
         var result: CFTypeRef?
         let status = SecItemCopyMatching(
             query(for: account, returningData: true) as CFDictionary, &result)
-        if status == errSecItemNotFound { return nil }
+        if status == errSecItemNotFound { return try movedLegacySecret(for: account) }  // Fork
         guard status == errSecSuccess else { throw StoreError.keychain(status) }
         guard let data = result as? Data, let secret = String(data: data, encoding: .utf8) else {
             throw StoreError.invalidEncoding
@@ -40,7 +43,7 @@ struct KeychainSecretStore: Sendable {
     func hasSecret(for account: UUID) throws -> Bool {
         let status = SecItemCopyMatching(
             query(for: account, returningData: false) as CFDictionary, nil)
-        if status == errSecItemNotFound { return false }
+        if status == errSecItemNotFound { return legacyExists(for: account) }  // Fork
         guard status == errSecSuccess else { throw StoreError.keychain(status) }
         return true
     }
@@ -61,6 +64,9 @@ struct KeychainSecretStore: Sendable {
     }
 
     func removeSecret(for account: UUID) throws {
+        if let legacyService {  // Fork: a removed key never comes back from the old id
+            _ = SecItemDelete(query(for: account, returningData: false, service: legacyService) as CFDictionary)
+        }
         let status = SecItemDelete(query(for: account, returningData: false) as CFDictionary)
         guard status == errSecSuccess || status == errSecItemNotFound else {
             throw StoreError.keychain(status)
@@ -81,10 +87,28 @@ struct KeychainSecretStore: Sendable {
         try setSecret(encoded, for: account)
     }
 
-    private func query(for account: UUID, returningData: Bool) -> [String: Any] {
+    // Fork: the old id's item, copied under the new service on first read; macOS may ask once to allow it.
+    private func movedLegacySecret(for account: UUID) throws -> String? {
+        guard let legacyService else { return nil }
+        var result: CFTypeRef?
+        let status = SecItemCopyMatching(
+            query(for: account, returningData: true, service: legacyService) as CFDictionary, &result)
+        guard status == errSecSuccess, let data = result as? Data, let secret = String(data: data, encoding: .utf8)
+        else { return nil }
+        try? setSecret(secret, for: account)
+        return secret
+    }
+
+    private func legacyExists(for account: UUID) -> Bool {
+        guard let legacyService else { return false }
+        return SecItemCopyMatching(
+            query(for: account, returningData: false, service: legacyService) as CFDictionary, nil) == errSecSuccess
+    }
+
+    private func query(for account: UUID, returningData: Bool, service: String? = nil) -> [String: Any] {
         var query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: service,
+            kSecAttrService as String: service ?? self.service,
             kSecAttrAccount as String: account.uuidString
         ]
         if returningData {

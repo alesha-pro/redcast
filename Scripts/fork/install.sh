@@ -6,8 +6,9 @@ cd "$(dirname "$0")/../.." || exit 1
 ROOT="$PWD"
 SELF="$ROOT/Scripts/fork/install.sh"
 export DEVELOPER_DIR="${DEVELOPER_DIR:-/Applications/Xcode.app/Contents/Developer}"
-BUNDLE_ID="${TINYCAST_FORK_BUNDLE_ID:-com.tinycast.app.fork}"
-# The visible name only: the bundle id, and with it data, grants and Keychain items, stays.
+BUNDLE_ID="${TINYCAST_FORK_BUNDLE_ID:-io.redcast.app}"
+# The fork's id before Redcast had its own: a copy under it is this fork, replaced and migrated.
+LEGACY_ID="${TINYCAST_FORK_LEGACY_ID:-com.tinycast.app.fork}"
 APP_NAME=Redcast
 DEST="${TINYCAST_INSTALL_PATH:-/Applications/$APP_NAME.app}"
 PARENT="$(dirname "$DEST")"
@@ -89,7 +90,8 @@ done
 
 plist() { /usr/libexec/PlistBuddy -c "Print :$2" "$1/Contents/Info.plist" 2>/dev/null; }
 bundle_id() { plist "$1" CFBundleIdentifier; }
-is_fork() { [ -e "$1" ] && [ "$(bundle_id "$1" || true)" = "$BUNDLE_ID" ]; }
+is_fork_id() { [ "$1" = "$BUNDLE_ID" ] || [ "$1" = "$LEGACY_ID" ]; }
+is_fork() { [ -e "$1" ] && is_fork_id "$(bundle_id "$1" || true)"; }
 # An ad hoc signature prints its requirement, the cdhash, as a comment.
 designated() { codesign -d -r- "$1" 2>&1 | sed -nE 's/^(# )?designated => //p'; }
 app_running() { pgrep -f "^$1/Contents/MacOS/" >/dev/null; }
@@ -124,7 +126,7 @@ check_installed() {
     [ -e "$DEST" ] || return 0
     local found
     found="$(bundle_id "$DEST" || true)"
-    [ "$found" = "$BUNDLE_ID" ] || refuse_foreign "$DEST" "$found"
+    is_fork_id "$found" || refuse_foreign "$DEST" "$found"
 }
 
 # Upstream's Tinycast.app beside the fork is only named. A second fork copy beside an installed
@@ -151,10 +153,10 @@ warn_legacy() {
 
 # Every path LaunchServices has registered under the fork's ids, the helper's included.
 registered_copies() {
-    "$LSREGISTER" -dump 2>/dev/null | awk -v id="$BUNDLE_ID" '
+    "$LSREGISTER" -dump 2>/dev/null | awk -v id="$BUNDLE_ID" -v old="$LEGACY_ID" '
         /^-----/ { path = ""; next }
         /^path:/ { sub(/^path:[ ]+/, ""); sub(/ \(0x[0-9a-f]+\)$/, ""); path = $0; next }
-        /^identifier:/ { if (path != "" && ($2 == id || $2 == id ".dictation")) print path }'
+        /^identifier:/ { if (path != "" && ($2 == id || $2 == id ".dictation" || $2 == old || $2 == old ".dictation")) print path }'
 }
 
 stale_registrations() {
@@ -265,7 +267,12 @@ verify_build() {
     check_installed
     local old_dr
     old_dr="$(designated "$INSTALLED")"
-    if [ "$old_dr" = "$NEW_DR" ]; then
+    MOVES_ID=0
+    if [ "$(bundle_id "$INSTALLED" || true)" = "$LEGACY_ID" ]; then
+        # The move to Redcast's own id: the app carries settings and data over on its first launch.
+        MOVES_ID=1
+        DR_NOTE="bundle id $LEGACY_ID → $BUNDLE_ID: privacy grants are asked once more"
+    elif [ "$old_dr" = "$NEW_DR" ]; then
         DR_NOTE="unchanged"
     elif [ "$ACCEPT_NEW" -eq 1 ]; then
         DR_NOTE="changed: re-grant Accessibility and the other privacy services once"
@@ -331,7 +338,7 @@ quit_app() {
     # Asked only while it runs: AppleScript would launch a quit app just to quit it.
     if app_running "$app"; then
         say "Quitting ${label}…"
-        osascript -e "tell application id \"$BUNDLE_ID\" to quit" >/dev/null 2>&1 || true
+        osascript -e "tell application id \"$(bundle_id "$app" || echo "$BUNDLE_ID")\" to quit" >/dev/null 2>&1 || true
     fi
     local _
     for _ in $(seq 100); do
@@ -412,6 +419,14 @@ relaunch() {
     note "identity:    ${authority:-ad hoc}"
     note "requirement: $DR_NOTE"
     note "path:        $live ($(du -sh "$live" | awk '{ print $1 }'))"
+    if [ "${MOVES_ID:-0}" -eq 1 ]; then
+        note "bundle id:   now $BUNDLE_ID. On its first launch $label moves its settings, Application"
+        note "             Support and settings.json from $LEGACY_ID (the old paths become links), and"
+        note "             each Keychain key the first time it is used (macOS may ask once to allow it)."
+        note "             Re-grant Accessibility, Input Monitoring, Screen Recording, Automation and the"
+        note "             Dictation helper's Microphone in System Settings › Privacy & Security, switch"
+        note "             Launch at login off and on, and update Agent Sessions' live status if it is on."
+    fi
     if [ -n "$INSTALLED" ] && [ "$INSTALLED" != "$live" ]; then
         note "renamed:     $(basename "$INSTALLED") is in the rollback slot; --rollback restores it"
         note "Privacy grants follow the bundle id and code requirement, so they carry over. The"

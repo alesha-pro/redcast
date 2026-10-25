@@ -64,6 +64,7 @@ open with an `## Invariants` section; read it before changing anything in that a
 [uninstall](features/uninstall.md) ·
 [backup](features/backup.md) ·
 [full backup](features/backup.md#full-backup-fork) ·
+[bundle id migration](features/bundle-migration.md) ·
 [settings file](features/settings-file.md) ·
 [Raycast import](features/raycast-import.md) ·
 [Raycast extensions](features/extensions.md) ·

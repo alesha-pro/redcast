@@ -545,6 +545,7 @@ run slow snippets-test     Tinycast/Platform/NotificationToken.swift \
                            Tinycast/Features/Snippets/UI/SnippetEditorSession.swift $TAG_RULES \
                            Tinycast/Features/TextInjection/Service/*.swift
 # Fork: tags on snippets and quicklinks: frontmatter, the store's column, imports, filter and colour.
+run bundle-migration-test  Tinycast/Features/BundleMigration/Model/*.swift
 run tags-test              Tinycast/Features/Tags/Model/*.swift \
                            Tinycast/Features/ColorfulIcons/Model/RaycastHue.swift \
                            Tinycast/Features/Snippets/Model/Snippet.swift \
@@ -1211,6 +1212,7 @@ run apple-intelligence-test Tinycast/Features/Settings/AppSettingsKey.swift \
 run mcp-oauth-test         Tinycast/Platform/ExecutableLocator.swift \
                            Tinycast/Platform/ProcessExit.swift \
                            Tinycast/Platform/KeychainSecretStore.swift \
+                           Tinycast/Features/BundleMigration/Model/LegacyBundleMigration.swift \
                            Tinycast/Features/Settings/AppSettingsKey.swift \
                            Tinycast/Features/AI/Model/AIConnection.swift \
                            Tinycast/Features/AI/Model/AppleIntelligence.swift \
@@ -1228,6 +1230,7 @@ run mcp-oauth-test         Tinycast/Platform/ExecutableLocator.swift \
 run slow mcp-stdio-test    Tinycast/Platform/ExecutableLocator.swift \
                            Tinycast/Platform/ProcessExit.swift \
                            Tinycast/Platform/KeychainSecretStore.swift \
+                           Tinycast/Features/BundleMigration/Model/LegacyBundleMigration.swift \
                            Tinycast/Features/Settings/AppSettingsKey.swift \
                            Tinycast/Features/AI/Model/AIConnection.swift \
                            Tinycast/Features/AI/Model/AppleIntelligence.swift \

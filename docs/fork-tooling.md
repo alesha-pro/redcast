@@ -75,7 +75,8 @@ builds keep upstream's icon. The menu-bar item draws `RedcastMenuBarIcon`, the s
 | Environment | Default | Meaning |
 | --- | --- | --- |
 | `TINYCAST_SIGN_IDENTITY` | the single `Apple Development: …` identity | full name to sign with |
-| `TINYCAST_FORK_BUNDLE_ID` | `com.tinycast.app.fork` | `TINYCAST_BUNDLE_IDENTIFIER` for the build |
+| `TINYCAST_FORK_BUNDLE_ID` | `io.redcast.app` | `TINYCAST_BUNDLE_IDENTIFIER` for the build |
+| `TINYCAST_FORK_LEGACY_ID` | `com.tinycast.app.fork` | the fork's earlier id: an install under it is this fork, replaced, and migrated on first launch |
 | `TINYCAST_INSTALL_PATH` | `/Applications/Redcast.app` | where the app is installed; a fork `Tinycast.app` in the same folder is migrated |
 | `DEVELOPER_DIR` | `/Applications/Xcode.app/Contents/Developer` | as `build-dmg.sh` |
 

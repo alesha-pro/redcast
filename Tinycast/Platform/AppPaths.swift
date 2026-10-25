@@ -54,6 +54,7 @@ enum AppPaths {
     }
 
     private static func configFolderName(bundleID: String) -> String {
+        if bundleID == "io.redcast.app" { return "redcast" }  // Fork: Redcast's own id
         let stable = "com.tinycast.app"
         if bundleID == stable { return "tinycast" }
         guard bundleID.hasPrefix(stable + ".") else { return bundleID }

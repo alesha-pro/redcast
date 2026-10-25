@@ -11,8 +11,7 @@ for exactly those features, and keeps everything else as close to upstream as it
 `Redcast Dictation` helper, and its menus, windows, onboarding and privacy prompts say Redcast in
 English and all eight translations. About still says it is based on Tinycast by Abue Ammar, and
 Support names Tinycast, since its checkout funds upstream's author. Underneath it stays Tinycast, so upstream merges stay mechanical and an upgrade keeps everything: the
-Xcode project, targets, sources and type names, the bundle id `com.tinycast.app.fork` (and with it
-settings, Application Support, privacy grants and Keychain items), `.tinycast` backups, the
+Xcode project, targets, sources and type names, `.tinycast` backups, the
 `tinycast://` scheme, file paths and log subsystems. The name is set at build time and in the string
 catalogs, never in `project.yml` ([how](docs/fork-tooling.md#scriptsforkrebrandmjs)). Older sections
 below say Tinycast where they mean the app.
@@ -57,10 +56,13 @@ OpenCode, Goose, Hermes, local models — on the subscriptions and machines you 
 | Change Alias / Change Shortcut | Edit an entry's alias in place, or record its global shortcut, from its ⌘K menu. From `jhasubhash/tinycast`, as reshaped in `sermelipharo/tinycast-space` | [alias actions](docs/features/alias-actions.md#change-alias--change-shortcut) |
 | Full backup | A `.tinycast` that carries every configuration: beside upstream's categories, Agents (skills, folders, schedules, memory), MCP Servers, AI Connections (providers, URLs, models, defaults, reasoning, web search, AI Chat's folders and window settings; a Codex (ChatGPT) connection asks to sign in again), Voice & Dictation (modes, prompts), Quick Actions, Extensions (the list to reinstall, non-secret preferences, appearance), More Shortcuts & Settings (every hotkey kind upstream skips, fallbacks, hidden calendars, Screen Awareness) and, opt-in, AI Chat History with each chat's instructions and creativity. Opt-in **Include API keys and tokens** seals the app's Keychain items and extension passwords with a passphrase (PBKDF2-SHA256 at 600,000 iterations, AES-256-GCM). Import previews the file, picks sections, merges or replaces where that means something, lists commands the file can launch first, lands MCP servers off and schedules paused, never turns on a switch that grants a capability and names what it left off; older files import, newer sections are skipped by name. Optional export when the app quits, every N days into a folder, keeping the last K. `full-backup-coverage-test` fails when a store appears without a decision | [backup](docs/features/backup.md#full-backup-fork) |
 | Shortcuts overview | Settings › Shortcuts («Сочетания клавиш»): every hotkey and alias the app knows — commands, extension commands, quicklinks, snippet keywords, agents, Quick Actions, window commands, apps and panes, Hyper chords and double taps — with icon, name, kind, alias and hotkey, edited in place with the panes' own field and recorder. Filters All, With Hotkey, With Alias, Conflicts and Disabled, search by name, kind, alias or keycaps, and an audit of shortcuts used twice, shared aliases and keywords, and chords macOS keeps, read with your own changes from System Settings | [shortcuts overview](docs/features/shortcuts-overview.md) |
+| Own bundle id | Redcast builds as `io.redcast.app`, not `com.tinycast.app.fork`. On the first launch under it, the old id's settings, Application Support and settings.json folder move over (the old paths stay as links, for a rollback), and Keychain keys move the first time each is used. `install.sh` replaces a copy under the old id and prints the re-grant steps. About links redcast.io | [bundle-migration](docs/features/bundle-migration.md) |
 
-Builds of this fork use the bundle id `com.tinycast.app.fork`: they never update themselves from
-upstream's feed, and they keep their settings apart from an installed upstream Tinycast, which can sit
-next to Redcast in `/Applications`.
+Builds of this fork use Redcast's own bundle id, `io.redcast.app` (until October 2026 they used
+`com.tinycast.app.fork`): they never update themselves from upstream's feed, and they keep their settings
+apart from an installed upstream Tinycast, which can sit next to Redcast in `/Applications`. A copy under
+the old id moves its settings, Application Support, settings.json and Keychain keys over on its first
+launch ([bundle-migration](docs/features/bundle-migration.md)).
 
 ## Living with upstream
 

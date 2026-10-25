@@ -3,6 +3,7 @@ import SwiftUI
 @main
 enum TinycastLaunch {
     static func main() {
+        LegacyBundleMigration.runIfNeeded()  // Fork: carry the old bundle id's settings and data, once
         AppSettings.pinLanguage()
         TinycastApp.main()
     }

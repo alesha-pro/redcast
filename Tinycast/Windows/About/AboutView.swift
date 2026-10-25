@@ -111,8 +111,12 @@ private struct AboutLink: Identifiable {
     let detail: String
     let url: URL
 
-    // Fork: Redcast's own repository and the upstream it is built on; no author promotion.
+    // Fork: Redcast's site and repository, and the upstream it is built on; no author promotion.
     static let all: [AboutLink] = [
+        AboutLink(
+            id: "website", glyph: .symbol("globe"), title: "Redcast",
+            detail: "redcast.io",
+            url: URL(string: "https://redcast.io")!),
         AboutLink(
             id: "github", glyph: .brand("BrandGitHub"), title: "GitHub",
             detail: "github.com/alesha-pro/redcast",
