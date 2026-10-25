@@ -266,11 +266,34 @@ baseline above.
   and Russian, light and dark, editing) and the memory harness's 15 shots of the real window
   (each switch, and four depths of the two tallest chats) are pixel-identical to the tree before.
 
+- **4. What the harness missed.** Each candidate was measured in a build of its own against
+  step 3, two runs each:
+  - *Sidebar search over message text* adds nothing: a search for a word in a hundred chats left
+    live malloc at 154 MB against 159 before it. It is SQL over `messages` with SQLite's own small
+    page cache, and returns only ids.
+  - *The history store* keeps summaries only: the harness idles at 11 MB with 107 chats and 36 MB
+    of pictures on disk, and opening the window reads no chat but the one it shows.
+  - *The Chat Settings sidebar while hidden* costs nothing measurable: a build that skips it while
+    collapsed measured the same at every switch, within 5 MB either way. Left as it is.
+  - *Files strips and file links* were the largest SwiftUI cost per reply; step 3 trimmed them.
+  - *Very long replies:* each text view kept its rendered string beside the text storage's copy
+    of it. It now keeps only the code blocks and the find match: 1–2 MB less on a long chat.
+    Releasing the measuring layout after each measure saved 3–6 MB more, but would lay the glyphs
+    out again on every resize, so it was left out.
+  - *Attached pictures' bytes* stay in the chat while it is open (32 MB for the eight
+    screenshots); that is the chat loaded whole, as the owner asked.
+  - *Why the app settles higher than the harness:* malloc keeps a peak's pages dirty. After
+    closing, live malloc is back to 31–38 MB while the footprint stays near 175 MB, so a session's
+    settled footprint is its highest live malloc plus the app's own idle, not what is live.
+    AppKit's own drawing of a long chat adds a transient 85–94 MB of graphics memory
+    (`footprint`'s "Owned physical footprint (graphics)"); its drawing is upstream's and stays.
+
 | Cycle 2, MB, before → after | Peak | Highest open | After closing | Malloc after closing |
 | --- | ---: | ---: | ---: | ---: |
 | 1. Tiles | 733 → 456 | 686 → 378 | 189 → 212 | 84 → 92 |
 | 2. Release | 502 → 391 | 449 → 353 | 244 → 182 | 91 → 32 |
 | 3. Per message | 417 → 421 | 392 → 390 | 200 → 183 | 26 → 26 |
+| 4. One copy of the text, two runs | 406–415 → 403–421 | 347–349 → 342–354 | 179–180 → 174–183 | 32–36 → 33–34 |
 
 Scrolling, two passes each way, ms (interval p50 / p95 / max; busy p50 / p95):
 
@@ -280,6 +303,7 @@ Scrolling, two passes each way, ms (interval p50 / p95 / max; busy p50 / p95):
 | 2. Release | 8–25 / 28–30 / 37–50 → 8–25 / 27–30 / 33–52 | 5–24 / 27–29 → 5–24 / 26–28 | 41–61 / 56–70 / 77–99 → 32–62 / 37–76 / 56–833 | 39–60 / 54–67 → 31–60 / 36–74 |
 
 | 3. Per message | 8–25 / 29–31 / 37–42 → 8–25 / 29–30 / 44–467 | 5–24 / 27–29 → 5–24 / 27–28 | 57–63 / 63–70 / 87–102 → 56–63 / 62–70 / 74–92 | 55–62 / 60–69 → 54–61 / 60–68 |
+| 4. One copy of the text | 8–26 / 29–31 / 37–45 → 8–26 / 29–31 / 36–163 | 5–24 / 27–29 → 5–25 / 27–29 | 57–64 / 62–71 / 80–99 → 56–63 / 62–71 / 82–94 | 55–62 / 60–69 → 54–62 / 60–68 |
 
 Step 2 ran twice, four passes a chat; its 833 ms is one frame of one pass, and its other passes
 fall inside the spread of the tree before it. Step 3 ran four times; the table is the run with the
@@ -288,6 +312,7 @@ main thread used 36 ms of CPU, so the wait was elsewhere; the main thread's CPU 
 which no other process can inflate, was 4.3–22.8 / 52–58 ms (p50, long replies / agent run)
 before and 4.4–22.7 / 52–58 after. From step 1 on, a chat's first pass held 8.3 ms frames and the
 later ones about 25 ms, in every tree alike, against 8.3 ms throughout in the quiet baseline.
+Step 4 ran twice each way; its 163 ms is one frame whose main thread used 37 ms of CPU.
 
 ## Manual sweep
 

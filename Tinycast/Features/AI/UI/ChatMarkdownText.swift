@@ -108,7 +108,9 @@ final class ChatSelectableTextView: NSTextView {
         guard next != source else { return }
         source = next
         let output = ChatMarkdownRenderer(next).render()
-        rendered = output
+        // Fork: the storage holds the text, so a second copy of the string is not kept beside it.
+        rendered = ChatRenderedText(
+            string: NSAttributedString(), codeBlocks: output.codeBlocks, current: output.current)
         measured = nil
         textStorage?.setAttributedString(output.string)
         layoutOverlays()

@@ -74,7 +74,8 @@ next to Redcast in `/Applications`.
   conflict: it is one contiguous block, so resolve it there and keep upstream's comments above their
   lines.
 - AI Chat's memory work touches upstream files in marked lines: `ChatTranscriptView` (the tile's
-  decode), `ChatMarkdownText` (a text view drops its text off the window), `AIChatDetailView` (⌘↵
+  decode), `ChatMarkdownText` (a text view drops its text off the window and keeps no second copy
+  of its rendered string), `AIChatDetailView` (⌘↵
   reads the window's chat), `AIChatSurfacesState` (the released chat's id) and `AIChatCoordinator`
   (its reload as the window shows).
   Keep the transcript eager and drawn by AppKit when merging a change there: a lazy stack and

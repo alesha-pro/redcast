@@ -364,7 +364,7 @@ hotkey, clipboard or network work runs, and it loads a small interposer that ref
 `com.tinycast.chat-memory` defaults and Application Support, has 107 chats on a stand-in
 OpenRouter connection at `127.0.0.1:9`; both are emptied before and after each run. Each cycle
 drives the real window: open, seven switches, paging up through the screenshot chat, Chat Settings
-open and closed, then close. It records phys_footprint and live malloc at each step, with their
+open and closed, a sidebar search for a word in the messages, then close. It records phys_footprint and live malloc at each step, with their
 highs from a 2 ms sampler and the kernel's interval peak, and a `heap` count of watched classes
 after closing; `CHAT_MEMORY_CENSUS=1` takes that count after every step of the last cycle, and
 `CHAT_MEMORY_GRAPH=<step,…>` saves a memory graph there for `leaks --traceTree` on what stayed.
