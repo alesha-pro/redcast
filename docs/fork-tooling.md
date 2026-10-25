@@ -54,8 +54,9 @@ in the background or adds a setting: each one runs when you start it and leaves 
   `.github/FUNDING.yml` (empty: no Sponsor button), `.github/ISSUE_TEMPLATE/config.yml` (no Discord),
   `CONTRIBUTING.md` and `SECURITY.md` are kept the same way.
 - **What the fork deleted stays deleted.** Upstream's website (`website/`, its donation page and
-  Cloudflare worker), its GitHub Actions, its issue forms, its contributor agreement, its release and
-  media scripts, `docs/release.md`, `docs/not-planned.md` and its promotional images are gone. `FORK_REMOVED` lists them,
+  Cloudflare worker), its GitHub Actions, its CodeRabbit config, its issue forms, its contributor
+  agreement, its release and media scripts, `docs/release.md`, `docs/not-planned.md` and its
+  promotional images are gone. `FORK_REMOVED` lists them,
   and a sync deletes whatever upstream changed or added under them again, so no modify/delete
   conflict ever stops it.
 - **A sync branch lands by fast-forward or a merge commit, never squash or rebase.** Either drops

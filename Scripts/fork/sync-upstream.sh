@@ -24,7 +24,8 @@ SECURITY.md"
 FORK_REMOVED="website .github/workflows .github/ISSUE_TEMPLATE/bug_report.yml \
 .github/ISSUE_TEMPLATE/feature_request.yml .github/ISSUE_TEMPLATE/extension_bug.yml \
 CONTRIBUTOR_LICENSE_AND_FEEDBACK_AGREEMENT.md Scripts/release-notes.sh Scripts/upload-website-media.sh \
-docs/release.md docs/support-button.svg docs/screenshot.png docs/not-planned.md"
+docs/release.md docs/support-button.svg docs/screenshot.png docs/not-planned.md \
+.coderabbit.yaml"
 # Display- or load-bound: reported, never a reason to hold a sync back.
 ENVIRONMENTAL=" form-input-test onboarding-test icon-cache-test "
 RULE_DOCS=" AGENTS.md CLAUDE.md docs/architecture.md docs/standards.md \
