@@ -375,6 +375,24 @@ Step 4 ran twice each way; its 163 ms is one frame whose main thread used 37 ms 
 4.4–22.8 / 52–59, no pass moved backwards or changed the document's height, and the live malloc
 peak, the chat itself loaded whole, stays at 204–235 MB against 223–246.
 
+### The sidebar's selection and branches
+
+The memory fixture links thirty of its short chats as branches (nested, across a folder, Pinned and
+Archived) by writing `branchOf` into the file, so a tree from before branches loads the same chats
+flat. Measured against `cad47c08` with that fixture, three cycles each, -O, off screen, MB:
+
+| | cad47c08 | branches + selection |
+| --- | ---: | ---: |
+| Idle footprint / live malloc | 11.6 / 2.6 | 11.4 / 2.6 |
+| Open, live malloc, cycles 1–3 | 108.1 / 114.0 / 115.7 | 110.4 / 115.3 / 116.7 |
+| Live malloc peak while open, cycle 2 | 203.2 | 206.0 |
+| Live malloc after closing, cycles 1–3 | 26.2 / 28.6 / 27.0 | 26.7 / 31.1 / 27.0 |
+| Footprint after closing, cycles 1–3 | 225.5 / 189.2 / 162.0 | 190.0 / 197.8 / 169.6 |
+
+The sidebar with its trees costs 1–3 MB of live malloc while the window is open and nothing once it
+closes; the footprint moves by tens of MB either way between runs and trees. The selection is a set
+of ids and the trees are rebuilt with the layout, so neither holds anything between changes.
+
 ## Manual sweep
 
 - Create two folders: each is named in place and gets its own colour. Rename one from its menu and
