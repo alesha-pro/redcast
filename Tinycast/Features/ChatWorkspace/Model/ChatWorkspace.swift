@@ -11,12 +11,16 @@ struct ChatPlacement: Equatable, Sendable {
     var deletedAt: Date?
     /// The title it had, so Recently Deleted can list it while the history hides it.
     var deletedTitle: String?
+    /// The chat Branch Chat made this one from; the sidebar nests it there.
+    var parentID: UUID?
+    /// Its branches are folded away under it in the sidebar.
+    var foldsBranches = false
     var unknown: [String: JSONValue] = [:]
 
     /// An entry with nothing left in it is dropped, so the file only names chats it says something of.
     var isEmpty: Bool {
         folderID == nil && instructions == nil && creativity == nil && archivedAt == nil
-            && deletedAt == nil && unknown.isEmpty
+            && deletedAt == nil && parentID == nil && !foldsBranches && unknown.isEmpty
     }
 }
 
@@ -125,9 +129,10 @@ struct ChatWorkspace: Equatable, Sendable {
         }
     }
 
-    /// A chat deleted for good takes its entry with it.
+    /// A chat deleted for good takes its entry with it, and its branches become ordinary chats.
     mutating func forget(_ chat: UUID) {
         placements[chat] = nil
+        unlinkBranches { $0 == chat }
     }
 
     /// A branch starts where its source is filed, asked the same way, but never archived or deleted.
@@ -136,7 +141,27 @@ struct ChatWorkspace: Equatable, Sendable {
         placement.archivedAt = nil
         placement.deletedAt = nil
         placement.deletedTitle = nil
-        placements[branch] = placement.isEmpty ? nil : placement
+        placement.foldsBranches = false
+        placement.parentID = source
+        placements[branch] = placement
+    }
+
+    func parentID(of chat: UUID) -> UUID? { placements[chat]?.parentID }
+    func foldsBranches(of chat: UUID) -> Bool { placements[chat]?.foldsBranches == true }
+
+    /// A backup's link back; a chat is never its own parent.
+    mutating func setParent(_ parent: UUID?, of chat: UUID) {
+        update(chat) { $0.parentID = parent == chat ? nil : parent }
+    }
+
+    mutating func setBranchesFolded(_ folded: Bool, of chat: UUID) {
+        update(chat) { $0.foldsBranches = folded }
+    }
+
+    private mutating func unlinkBranches(where gone: (UUID) -> Bool) {
+        for (id, placement) in placements {
+            if let parent = placement.parentID, gone(parent) { update(id) { $0.parentID = nil } }
+        }
     }
 
     /// Recently Deleted, newest first.
@@ -160,6 +185,8 @@ struct ChatWorkspace: Equatable, Sendable {
     /// Entries for chats the history no longer has; deleted ones stay until their purge.
     mutating func prune(keeping saved: Set<UUID>) {
         placements = placements.filter { saved.contains($0.key) || $0.value.deletedAt != nil }
+        let kept = saved.union(placements.keys)
+        unlinkBranches { !kept.contains($0) }
     }
 
     private mutating func update(_ chat: UUID, _ change: (inout ChatPlacement) -> Void) {
@@ -183,8 +210,11 @@ extension ChatWorkspace {
         static let version = "version", folders = "folders", chats = "chats"
         static let folder = "folder", instructions = "instructions", creativity = "creativity"
         static let archived = "archivedAt", deleted = "deletedAt", deletedTitle = "deletedTitle"
+        static let parent = "branchOf", folded = "branchesFolded"
         static let top: Set<String> = [version, folders, chats]
-        static let chat: Set<String> = [folder, instructions, creativity, archived, deleted, deletedTitle]
+        static let chat: Set<String> = [
+            folder, instructions, creativity, archived, deleted, deletedTitle, parent, folded
+        ]
     }
 
     /// Whatever parses is kept: a bad folder or chat is dropped alone, never the whole file.
@@ -202,6 +232,9 @@ extension ChatWorkspace {
             placement.archivedAt = fields[Key.archived]?.workspaceDate
             placement.deletedAt = fields[Key.deleted]?.workspaceDate
             placement.deletedTitle = fields[Key.deletedTitle]?.stringValue
+            placement.parentID = fields[Key.parent]?.stringValue.flatMap(UUID.init(uuidString:))
+            placement.foldsBranches = fields[Key.folded]?.boolValue ?? false
+            if placement.parentID == id { placement.parentID = nil }
             placement.unknown = fields.filter { !Key.chat.contains($0.key) }
             if !placement.isEmpty { placements[id] = placement }
         }
@@ -221,6 +254,8 @@ extension ChatWorkspace {
             if let date = placement.archivedAt { fields[Key.archived] = .number(date.timeIntervalSince1970) }
             if let date = placement.deletedAt { fields[Key.deleted] = .number(date.timeIntervalSince1970) }
             if let title = placement.deletedTitle { fields[Key.deletedTitle] = .string(title) }
+            if let parent = placement.parentID { fields[Key.parent] = .string(parent.uuidString) }
+            if placement.foldsBranches { fields[Key.folded] = .bool(true) }
             chats[id.uuidString] = .object(fields)
         }
         object[Key.chats] = .object(chats)

@@ -14,6 +14,8 @@ protocol ChatWorkspaceHost: AnyObject {
     /// A new window chat, already bound to the agent when one is named.
     func newChat(agentID: UUID?)
     func copyChat(id: UUID)
+    /// The sidebar's selection as one text, each chat's transcript in turn.
+    func copyChats(ids: [UUID])
     func exportChat(id: UUID)
     /// Upstream's delete, asked first.
     func deleteChat(id: UUID) async

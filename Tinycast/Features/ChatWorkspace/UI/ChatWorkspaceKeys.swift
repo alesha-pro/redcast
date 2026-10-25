@@ -7,6 +7,7 @@ final class ChatWorkspaceKeys: NSObject {
     private weak var window: NSWindow?
     private weak var anchor: NSView?
     private var flagsMonitor: Any?
+    private var clickMonitor: Any?
     private var resignToken: NotificationToken?
 
     init(workspace: ChatWorkspaceCoordinator) {
@@ -16,6 +17,7 @@ final class ChatWorkspaceKeys: NSObject {
 
     isolated deinit {
         if let flagsMonitor { NSEvent.removeMonitor(flagsMonitor) }
+        if let clickMonitor { NSEvent.removeMonitor(clickMonitor) }
         workspace.showsShortcuts = false
     }
 
@@ -32,6 +34,11 @@ final class ChatWorkspaceKeys: NSObject {
             if self.workspace.showsShortcuts != shows { self.workspace.showsShortcuts = shows }
             return event
         }
+        clickMonitor = NSEvent.addLocalMonitorForEvents(matching: .leftMouseDown) { [weak self] event in
+            guard let self, event.window === self.window else { return event }
+            self.workspace.clickKind = Self.clickKind(event.modifierFlags)
+            return event
+        }
         let center = NotificationCenter.default
         let observer = center.addObserver(
             forName: NSWindow.didResignKeyNotification, object: window, queue: .main
@@ -43,9 +50,15 @@ final class ChatWorkspaceKeys: NSObject {
 
     private var chat: AIChatState { workspace.chats.window }
 
+    /// A sidebar row's tap fires after the event is gone, so the mouse-down's own keys decide.
+    static func clickKind(_ flags: NSEvent.ModifierFlags) -> ChatSelection.Click {
+        flags.contains(.command) ? .toggle : flags.contains(.shift) ? .extend : .plain
+    }
+
     func handle(_ event: NSEvent) -> Bool {
         let modifiers = event.modifierFlags.intersection([.command, .option, .control, .shift])
         if modifiers.isEmpty, let handled = handleComposerKey(event.keyCode) { return handled }
+        if handleSelectionKey(event.keyCode, modifiers) { return true }
         let key = (ASCIIKeyboardLayout.character(for: event) ?? event.charactersIgnoringModifiers)?
             .lowercased()
         if modifiers == [.command], let key, key.count == 1, let digit = key.first,
@@ -56,6 +69,8 @@ final class ChatWorkspaceKeys: NSObject {
         switch (modifiers, key) {
         case ([.control, .command], "m"):
             showMoveMenu()
+        case ([.command], "a") where workspace.sidebarHasFocus?() == true:
+            workspace.selectAll()
         case ([.command, .shift], "i"):
             workspace.toggleSettingsSidebar?()
         case ([.command, .option], "t"):
@@ -75,6 +90,22 @@ final class ChatWorkspaceKeys: NSObject {
         case 53: return workspace.cancelEditing(in: chat) ? true : nil
         default: return nil
         }
+    }
+
+    /// Esc lets a selection go and ⌫ deletes it, unless a text field is taking the keys.
+    private func handleSelectionKey(_ code: UInt16, _ modifiers: NSEvent.ModifierFlags) -> Bool {
+        guard !workspace.selection.isEmpty, modifiers.isEmpty || modifiers == [.command] else { return false }
+        let text = window?.firstResponder as? NSTextView
+        switch code {
+        case 53 where modifiers.isEmpty && text?.isFieldEditor != true:
+            workspace.selection.clear()
+        case 51, 117:
+            guard text?.isEditable != true else { return false }
+            Task { await workspace.deleteSelection() }
+        default:
+            return false
+        }
+        return true
     }
 
     /// ⌥⌘T or the Actions menu: above other apps' windows, remembered for the next window.
@@ -111,11 +142,15 @@ final class ChatWorkspaceKeys: NSObject {
             .joined(separator: " · ")
     }
 
-    /// ⌃⌘M: the open chat's Move to Folder, hung under the toolbar's Actions button.
+    /// ⌃⌘M: the selection's or else the open chat's Move to Folder, under the Actions button.
     private func showMoveMenu() {
         let id = chat.session.id
-        guard workspace.history.conversation(id: id) != nil, let anchor else { return }
-        let menu = ChatMoveNSMenu.build(chat: id, workspace: workspace)
+        let selected = workspace.selectionIsInTrash ? [] : workspace.selectedIDs
+        guard !selected.isEmpty || workspace.history.conversation(id: id) != nil, let anchor else { return }
+        let menu =
+            selected.isEmpty
+            ? ChatMoveNSMenu.build(chat: id, workspace: workspace)
+            : ChatMoveNSMenu.build(chats: selected, workspace: workspace)
         menu.popUp(positioning: nil, at: NSPoint(x: 0, y: anchor.bounds.maxY + Theme.Spacing.xs), in: anchor)
     }
 }
@@ -124,17 +159,29 @@ final class ChatWorkspaceKeys: NSObject {
 @MainActor
 enum ChatMoveNSMenu {
     static func build(chat: UUID, workspace: ChatWorkspaceCoordinator) -> NSMenu {
-        let menu = NSMenu(title: String(localized: "Move to Folder"))
-        let current = workspace.workspace.folderID(of: chat)
-        let recent = WorkspaceMenuItem(String(localized: "Recent"), symbol: "clock") {
-            workspace.move(chat, to: nil)
+        build(current: workspace.workspace.folderID(of: chat), workspace: workspace) { workspace.move(chat, to: $0) }
+    }
+
+    /// The sidebar's selection, all filed at once; the check is on a folder only when all share it.
+    static func build(chats: [UUID], workspace: ChatWorkspaceCoordinator) -> NSMenu {
+        let facts = ChatBulkFacts(chats, conversations: workspace.history.conversations, workspace: workspace.workspace)
+        return build(current: facts.sharedFolder, anyFiled: facts.anyFiled, workspace: workspace) { folder in
+            workspace.selection.clear()
+            workspace.move(chats, to: folder)
         }
-        recent.isEnabled = current != nil
+    }
+
+    private static func build(
+        current: UUID?, anyFiled: Bool? = nil, workspace: ChatWorkspaceCoordinator, move: @escaping (UUID?) -> Void
+    ) -> NSMenu {
+        let menu = NSMenu(title: String(localized: "Move to Folder"))
+        let recent = WorkspaceMenuItem(String(localized: "Recent"), symbol: "clock") { move(nil) }
+        recent.isEnabled = anyFiled ?? (current != nil)
         menu.autoenablesItems = false
         menu.addItem(recent)
         if !workspace.workspace.folders.isEmpty { menu.addItem(.separator()) }
         for folder in workspace.workspace.folders {
-            let item = WorkspaceMenuItem(folder.name, symbol: nil) { workspace.move(chat, to: folder.id) }
+            let item = WorkspaceMenuItem(folder.name, symbol: nil) { move(folder.id) }
             item.image = ChatFolderTileImage.make(symbol: folder.symbol, hue: folder.hue)
             item.state = current == folder.id ? .on : .off
             menu.addItem(item)

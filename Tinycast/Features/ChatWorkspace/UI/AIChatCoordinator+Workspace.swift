@@ -34,6 +34,16 @@ extension AIChatCoordinator: ChatWorkspaceHost {
         AppCore.shared.showMessage(message)
     }
 
+    func copyChats(ids: [UUID]) {
+        let texts = ids.compactMap { id -> String? in
+            guard let session = chats.holder(of: id)?.session ?? history.session(id: id) else { return nil }
+            return session.markdownTranscript(title: history.conversation(id: id)?.displayTitle ?? session.title)
+        }
+        guard !texts.isEmpty else { return }
+        Paster.copyPlainText(texts.joined(separator: "\n\n---\n\n"))
+        showMessage(String(localized: "\(texts.count) chats copied"))
+    }
+
     func forgetChat(id: UUID) {
         AppCore.shared.chatGPTSubscription.turns.discardConversation(id: id)
         agents.chatDeleted(id)

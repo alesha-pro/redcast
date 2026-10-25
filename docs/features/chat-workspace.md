@@ -3,7 +3,8 @@
 AI Chat's window, reorganised the way Raycast's AI Chat is: folders in the sidebar above Recent,
 and the chat's settings in a sidebar of their own on the right, plus what Raycast's chat does that
 upstream's did not: Archive and Recently Deleted, branches, editing a sent question, folding long
-ones, ⌘1–⌘0, Always on Top and a banner when a reply finishes out of sight.
+ones, ⌘1–⌘0, Always on Top and a banner when a reply finishes out of sight. Its list selects several
+chats at once with ⌘ and ⇧ for bulk actions, and nests a branch under the chat it came from.
 The feature is this fork's, in `Features/ChatWorkspace/`, plus marked lines in
 `AIChatCoordinator` (the split view it shows, instructions, history load), `AIChatWindowChrome`
 (its chords), `ChatHistoryStore`, `ChatSession`, `AIChatState`, `AgentCoordinator` and `AppCore`.
@@ -16,7 +17,8 @@ that touches them stays mechanical.
   `ChatWorkspaceStore` keeps `ai-chat-workspace.json` next to `ai-chats.sqlite3` in the bundle's
   Application Support folder. It holds the folders, in order, and an entry per chat that has
   something to say: its folder, Additional Instructions, Creativity, when it was archived, and
-  when it went to Recently Deleted with the title it had. `ChatWorkspace(data:)` keeps whatever parses — a folder without an
+  when it went to Recently Deleted with the title it had, the chat a branch was made from
+  (`branchOf`) and whether a parent's branches are folded (`branchesFolded`). `ChatWorkspace(data:)` keeps whatever parses — a folder without an
   id or name, a chat key that is not a UUID or a date that is not a number is dropped alone, never
   the file — and every field it does not know, at the top, in a folder or in a chat's entry, is
   written back as it came (`unknown`). A missing or unreadable file is an empty workspace, so a
@@ -42,6 +44,20 @@ that touches them stays mechanical.
 - **A chat is listed once.** `ChatSidebarLayout` puts a pinned chat in Pinned wherever it is filed,
   an unpinned one in its folder, and the rest in Recent by day. Filing a chat unpins it, as dropping
   it on a folder does; dropping one on a day header takes it back to Recent.
+- **A branch is a chat of its own; the tree is drawn, never stored.** Branch Chat writes the
+  source's id into the new chat's entry, and that link is all there is. `ChatBranchTree` builds each
+  section's trees from the summaries already in memory as the layout is built, when the list changes
+  and never per frame or on a timer. A branch nests only under a parent in the same section; anywhere
+  else it is an ordinary top-level row. Moving, archiving or deleting a parent moves, archives or
+  deletes the parent alone, so no action reaches a chat the reader did not pick. A link whose parent
+  is erased for good is dropped, and a loop of links a hand-edited file could hold leaves its chats
+  as top-level rows, so no chat is ever hidden or listed twice.
+  Branches made before the link existed stay flat: their messages were copied under new ids and their
+  titles can be renamed, so nothing ties them to a parent reliably.
+- **The selection lives in memory, in the sidebar alone.** `ChatSelection` is never written anywhere;
+  closing the window or turning AI off drops it, and so does any change to the rows the list shows
+  (a search, a fold, a chat coming or going). Every bulk action uses it up. It is never the open
+  chat, which keeps its own wash.
 - **Deleting a folder never deletes a chat.** `ChatWorkspace.deleteFolder` moves its chats back to
   Recent and keeps their own settings; the confirmation says so.
 - **The chat's settings are the chat's, wherever they are shown.** The right sidebar
@@ -91,7 +107,43 @@ behind a bar in its colour.
   to take it out.
 - The open chat's row wears the accent's wash rather than the list's own selection, so it reads the
   same whether or not the window is key; a click opens a chat, a double click on its title renames it.
-  The list selects nothing, so ⌫ no longer deletes the open chat; its menu and ⌘K do.
+  A plain click never selects, so ⌫ alone still does not delete the open chat; its menu and ⌘K do.
+
+## Selecting several chats
+
+- **⌘-click** toggles a chat in the selection, **⇧-click** takes every row shown from the anchor (the
+  last ⌘-clicked row) to the clicked one, and **⌘A**, while the list has the keyboard, takes every
+  chat it shows. The first ⌘- or ⇧-click starts from the open chat, as a list's selected row would.
+  A plain click or **Esc** clears it. Folded folders' and folded branches' chats are not shown, so
+  they are never selected; Archived counts only while it is open.
+- Selected rows wear the theme's selection with an accent edge, apart from the open chat's wash.
+- With two or more selected, a bar under the list names the count and offers Move to Folder, Pin or
+  Unpin, Archive or Unarchive, Delete and a ✕; the menu of any selected row offers the same plus
+  Remove from Folder, New Folder… under Move to Folder, and Copy Chats (their transcripts one after
+  another). Pin applies unless every chat is pinned already, then Unpin; Archive likewise.
+- **Delete** (the bar, the menu, or **⌫** with a selection) asks once, naming the count, and moves
+  them to Recently Deleted, where each restores. ⌫ does nothing while a text field has the keyboard.
+- **Dragging** a selected row drags the whole selection onto a folder, Pinned or a day header;
+  **⌃⌘M** moves the selection instead of the open chat.
+- In **Recently Deleted** the same clicks select deleted chats, and the bar and menu offer Restore and
+  Delete Permanently…, asked once. A selection is in one list at a time: a click in the other starts
+  over there.
+- Modifiers come from the click's own mouse-down (`ChatWorkspaceKeys` records them), since SwiftUI
+  recognises the row's tap a moment after the event.
+
+## Branches in the sidebar
+
+- A branch sits under its parent, a step in, joined by a thin line that ends in a rounded elbow at the
+  last branch; branches of branches nest further, drawn at most three indents deep. Branches sort
+  newest first, and a parent with its branches sits where its newest chat would, in Recent's day too.
+- A parent shows ▾ after its title, ▸ once folded; the fold is per parent and kept in the file.
+  Branching a folded parent unfolds it, so the new branch is in view.
+- A branch whose parent is in another section, in Archived or in Recently Deleted is a top-level row
+  with a small branch glyph; its tooltip says "Branched from <title>" and a click on it opens the
+  parent, unless the parent is in Recently Deleted. Pinned, each folder, Recent and Archived are
+  separate sections.
+- Search lists results flat, each branch with its glyph. ⌘1–⌘0 count rows as drawn, branches
+  included, folded ones skipped.
 
 ## Chat Settings
 
@@ -124,15 +176,17 @@ subtitle, as Raycast's title bar has.
 - **The latest reply's actions stay in view** under it: Copy, Regenerate (⌘R), Branch Chat and the
   time; earlier ones show theirs on hover. A question offers Edit Message.
 - **Branch Chat** (a reply's row, a chat's menu or ⌘K) makes a new chat with the history up to that
-  message, under new ids, named "… (Branch)", filed and asked as the original, on its agent.
+  message, under new ids, named "… (Branch)", filed and asked as the original, on its agent, and
+  remembers the chat it came from, under which the sidebar nests it.
 - **↑ in an empty composer** brings the last question back to edit; ↑ and ↓ step through earlier
   ones while the recalled text is unchanged, and stepping past the newest, or Esc, gives the draft
   back. The question is outlined with an Editing tag and a line over the composer says what Return
   will do (`ChatRecall`, `ChatEditingBanner`).
 - **A long question folds** to ten lines (a line past ninety characters counts as several) behind
   Show more; Find in Chat opens it. Quick AI draws questions as before.
-- **⌘1…⌘9 and ⌘0** open the first ten rows the sidebar shows, from the top, skipping folded folders
-  and Archived; while ⌘ alone is held each of those rows shows its digit (`ChatShortcutIndex`).
+- **⌘1…⌘9 and ⌘0** open the first ten rows the sidebar shows, from the top, skipping folded folders,
+  folded branches and Archived; while ⌘ alone is held each of those rows shows its digit
+  (`ChatShortcutIndex`).
 - **Archive** (a chat's menu or ⌘K) moves a chat to the collapsed Archived section; filing or
   pinning it brings it back. Settings → AI → AI Chat Window → Archive inactive chats (Never, the
   default, a week, a month or three months) archives unpinned chats idle that long, sparing any
@@ -355,7 +409,20 @@ peak, the chat itself loaded whole, stays at 204–235 MB against 223–246.
   steps back, ↓ forward, Esc restores what you had typed. Edit and send: the old question and its
   replies are gone, here and after a relaunch.
 - Paste a question of thirty lines: it shows ten and Show more. Branch from a reply: a new chat
-  "… (Branch)" opens with the history up to it.
+  "… (Branch)" opens with the history up to it, nested under its source with a line and an elbow.
+  Branch the branch: it nests a step further. Fold the parent with ▾, quit and relaunch: still folded.
+- Move the parent to a folder: only it moves, and the branch stays in Recent with a branch glyph whose
+  tooltip names the parent; a click on the glyph opens it. Delete the parent: the branch stays, its
+  glyph still names it; Restore it and move it back, and the branch nests again.
+- Hold ⌘ with a nested tree: digits run down the tree; fold it and its branches lose theirs.
+- ⌘-click two chats while one is open: three are selected, the open one keeps its wash, the bar says
+  3. ⇧-click further down: the range from the last ⌘-clicked row. Esc and a plain click clear it;
+  typing a search clears it too.
+- With three selected: Move to Folder files all three, Pin pins all, Archive archives all; drag one
+  of them onto a folder and all three go; ⌃⌘M lists the folders for the three; Delete asks once,
+  "Delete 3 chats?", and all three are in Recently Deleted, from where a ⇧-click range restores.
+- Click a chat, then ⌘A: every chat shown is selected. Click into the composer and press ⌘A or ⌫:
+  the text is selected or deleted, no chat is.
 - ⌥⌘T keeps the window above another app's; relaunch and it still does. With Notify on, ask a
   question and switch to another app: a banner names the chat and a click opens it.
 - Turn a server off under Tools: the next turn cannot call it. With a reply that reported usage,

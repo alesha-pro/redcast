@@ -27,11 +27,22 @@ struct ChatWorkspaceSnapshots {
                 render(fixture, appearance: appearance, to: url)
                 print(url.path)
             }
+            for selecting in [false, true] {
+                let root = scratch.appendingPathComponent("\(language)-\(name)-sidebar-\(selecting)")
+                let fixture = SnapshotFixture(sidebar: root, russian: language == "ru", selecting: selecting)
+                app.appearance = NSAppearance(named: appearance)
+                let suffix = selecting ? "select" : "tree"
+                let url = output.appendingPathComponent("chat-sidebar-\(language)-\(name)-\(suffix).png")
+                render(fixture, appearance: appearance, to: url, size: NSSize(width: 1100, height: 760), cropWidth: 270)
+                print(url.path)
+            }
         }
     }
 
-    static func render(_ fixture: SnapshotFixture, appearance: NSAppearance.Name, to url: URL) {
-        let size = NSSize(width: 1480, height: 1000)
+    static func render(
+        _ fixture: SnapshotFixture, appearance: NSAppearance.Name, to url: URL,
+        size: NSSize = NSSize(width: 1480, height: 1000), cropWidth: CGFloat? = nil
+    ) {
         let window = SnapshotWindow(
             contentRect: NSRect(origin: .zero, size: size),
             styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
@@ -55,7 +66,8 @@ struct ChatWorkspaceSnapshots {
             window.displayIfNeeded()
         }
         guard let frame = window.contentView?.superview else { return }
-        let bounds = frame.bounds
+        var bounds = frame.bounds
+        if let cropWidth { bounds.size.width = cropWidth }
         guard let bitmap = frame.bitmapImageRepForCachingDisplay(in: bounds) else { return }
         frame.cacheDisplay(in: bounds, to: bitmap)
         try? bitmap.representation(using: .png, properties: [:])?.write(to: url)
@@ -262,6 +274,58 @@ final class SnapshotFixture {
         if editing { workspace.beginEditing(in: workspace.chats.window) }
     }
 
+    /// The sidebar alone: a parent, branches two deep, one away from its parent, and a selection.
+    init(sidebar root: URL, russian: Bool, selecting: Bool) {
+        text = russian ? .ru : .en
+        try? FileManager.default.removeItem(at: root)
+        let history = ChatHistoryStore(directory: root)
+        let defaults = UserDefaults(suiteName: "tinycast-snapshots-\(UUID().uuidString)")!
+        workspace = ChatWorkspaceCoordinator(
+            store: ChatWorkspaceStore(directory: root),
+            settings: ChatWorkspaceSettings(defaults: defaults), history: history,
+            chats: AIChatSurfacesState(history: history))
+        source = SnapshotSettingsSource(text: text)
+        source.workspace = workspace
+        workspace.host = host
+        workspace.prepare()
+        let now = Date()
+        let tree = russian ? SnapshotText.ruTree : SnapshotText.enTree
+        func save(_ title: String, minutesAgo: Double) -> UUID {
+            let at = now.addingTimeInterval(-minutesAgo * 60)
+            var session = ChatSession(createdAt: at)
+            session.append(ChatMessage(role: .user, text: title, sentAt: at))
+            session.append(ChatMessage(role: .assistant, text: "…", sentAt: at))
+            history.save(session)
+            history.rename(id: session.id, to: title)
+            return session.id
+        }
+        func branch(_ title: String, of parent: UUID, minutesAgo: Double) -> UUID {
+            let id = save(title, minutesAgo: minutesAgo)
+            workspace.store.change { $0.copyPlacement(from: parent, to: id) }
+            return id
+        }
+        let work = workspace.createFolder(
+            named: text.chats[1], hue: .blue, symbol: "briefcase.fill", instructions: nil, agentID: nil)!
+        let report = save(text.chats[4], minutesAgo: 600)
+        workspace.move(report, to: work.id)
+        workspace.move(save(text.chats[5], minutesAgo: 900), to: work.id)
+        let reportBranch = branch(tree[4], of: report, minutesAgo: 20)
+        workspace.move(reportBranch, to: nil)
+        let parent = save(tree[0], minutesAgo: 120)
+        _ = branch(tree[1], of: parent, minutesAgo: 25)
+        let landing = branch(tree[2], of: parent, minutesAgo: 90)
+        _ = branch(tree[3], of: landing, minutesAgo: 30)
+        let picks = [save(text.chats[9], minutesAgo: 200), save(text.chats[10], minutesAgo: 260),
+            save(text.chats[11], minutesAgo: 320)]
+        _ = save(text.chats[12], minutesAgo: 400)
+        history.load()
+        _ = workspace.chats.openInWindow(id: landing)
+        if selecting {
+            let layout = workspace.sidebarLayout
+            workspace.selection.selectAll(picks, contents: workspace.selectionContents(layout))
+        }
+    }
+
     private static func reply(_ text: SnapshotText, at date: Date) -> ChatMessage {
         ChatMessage(
             role: .assistant, text: text.reply, sentAt: date,
@@ -292,6 +356,16 @@ struct SnapshotText {
     let followUp: String
     let answer: String
     let instructions: String
+
+    /// A parent, two branches, a branch of the second, and a branch of a filed chat.
+    static let enTree = [
+        "Search the Raycast session", "Motion Design", "Landing", "Landing: hero copy",
+        "Quarterly report outline (Branch)"
+    ]
+    static let ruTree = [
+        "Поиск сессии про Raycast", "Motion Design", "Landing", "Landing: текст первого экрана",
+        "План квартального отчёта (ветка)"
+    ]
 
     static let en = SnapshotText(
         chats: [
@@ -415,6 +489,7 @@ final class SnapshotHost: ChatWorkspaceHost {
     var isWindowInFront: Bool { true }
     func newChat(agentID: UUID?) {}
     func copyChat(id: UUID) {}
+    func copyChats(ids: [UUID]) {}
     func exportChat(id: UUID) {}
     func deleteChat(id: UUID) async {}
     func confirm(title: String, message: String, symbol: String, confirmTitle: String) async -> Bool { false }

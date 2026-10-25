@@ -26,6 +26,14 @@ final class ChatWorkspaceCoordinator {
     /// The sidebar's search: titles match at once, message text as the debounced lookup returns.
     var query = ""
     var contentMatches: Set<UUID> = []
+    /// The sidebar's ⌘- and ⇧-click selection; it never leaves memory.
+    var selection = ChatSelection()
+    var showsArchived = false
+    var showsDeleted = false
+    /// The split view answers whether a sidebar row, not a text field, has the keyboard.
+    @ObservationIgnored var sidebarHasFocus: (() -> Bool)?
+    /// What the window's last mouse-down held, read when a row's tap is recognised a moment later.
+    @ObservationIgnored var clickKind = ChatSelection.Click.plain
 
     init(
         store: ChatWorkspaceStore, settings: ChatWorkspaceSettings, history: ChatHistoryStore,
@@ -65,6 +73,7 @@ final class ChatWorkspaceCoordinator {
 
     func close() {
         recall = nil
+        selection.clear()
         store.close()
     }
 
@@ -126,41 +135,60 @@ final class ChatWorkspaceCoordinator {
 
     // MARK: - Moving chats
 
+    func move(_ chat: UUID, to folder: UUID?) { move([chat], to: folder) }
+
     /// A folder lists only unpinned chats, so filing one unpins it, as dropping it there does.
-    func move(_ chat: UUID, to folder: UUID?) {
-        if history.conversation(id: chat)?.isPinned == true { history.setPinned(false, id: chat) }
-        store.change { $0.move(chat, to: folder) }
+    func move(_ chats: [UUID], to folder: UUID?) {
+        unpin(chats)
+        store.change { $0.move(chats, to: folder) }
     }
+
+    func pin(_ chat: UUID) { pin([chat]) }
 
     /// Dropped on Pinned: pinned, and out of Archived.
-    func pin(_ chat: UUID) {
-        history.setPinned(true, id: chat)
-        store.change { $0.unarchive(chat) }
+    func pin(_ chats: [UUID]) {
+        for chat in chats { history.setPinned(true, id: chat) }
+        store.change { $0.unarchive(chats) }
     }
 
-    func archive(_ chat: UUID, now: Date = Date()) {
-        if history.conversation(id: chat)?.isPinned == true { history.setPinned(false, id: chat) }
-        store.change { $0.archive(chat, at: now) }
+    func archive(_ chat: UUID, now: Date = Date()) { archive([chat], now: now) }
+
+    func archive(_ chats: [UUID], now: Date = Date()) {
+        unpin(chats)
+        store.change { $0.archive(chats, at: now) }
     }
 
-    func unarchive(_ chat: UUID) {
-        store.change { $0.unarchive(chat) }
+    func unarchive(_ chat: UUID) { unarchive([chat]) }
+
+    func unarchive(_ chats: [UUID]) {
+        store.change { $0.unarchive(chats) }
+    }
+
+    private func unpin(_ chats: [UUID]) {
+        for chat in chats where history.conversation(id: chat)?.isPinned == true {
+            history.setPinned(false, id: chat)
+        }
     }
 
     // MARK: - Recently Deleted
 
+    func trash(_ id: UUID, now: Date = Date()) { trash([id], now: now) }
+
     /// Out of every list at once, kept 60 days; a reply still running stops and saves first.
-    func trash(_ id: UUID, now: Date = Date()) {
-        guard let conversation = history.conversation(id: id) else { return }
-        if conversation.isPinned { history.setPinned(false, id: id) }
-        store.change { $0.trash(id, title: conversation.displayTitle, at: now) }
-        chats.holder(of: id)?.startNewChat()
+    func trash(_ ids: [UUID], now: Date = Date()) {
+        let doomed = ids.compactMap(history.conversation(id:))
+        guard !doomed.isEmpty else { return }
+        unpin(doomed.map(\.id))
+        store.change { $0.trash(doomed.map { ($0.id, $0.displayTitle) }, at: now) }
+        for chat in doomed { chats.holder(of: chat.id)?.startNewChat() }
         history.load()
-        if recall?.chatID == id { recall = nil }
+        if let editing = recall?.chatID, ids.contains(editing) { recall = nil }
     }
 
-    func restore(_ id: UUID) {
-        store.change { $0.restore(id) }
+    func restore(_ id: UUID) { restore([id]) }
+
+    func restore(_ ids: [UUID]) {
+        store.change { $0.restore(ids) }
         history.load()
     }
 
@@ -173,6 +201,21 @@ final class ChatWorkspaceCoordinator {
                 symbol: "trash", confirmTitle: String(localized: "Delete"))
         else { return }
         eraseForever(id)
+    }
+
+    /// Recently Deleted's selection, gone for good after one question naming how many.
+    func deleteForever(_ ids: [UUID]) async {
+        guard ids.count > 1 else {
+            if let id = ids.first { await deleteForever(id) }
+            return
+        }
+        guard let host,
+            await host.confirm(
+                title: String(localized: "Delete \(ids.count) chats?"),
+                message: String(localized: "\(ids.count) chats will be removed. This can't be undone."),
+                symbol: "trash", confirmTitle: String(localized: "Delete"))
+        else { return }
+        for id in ids { eraseForever(id) }
     }
 
     func emptyTrash() async {
@@ -205,10 +248,23 @@ final class ChatWorkspaceCoordinator {
         history.save(branch)
         let title = history.conversation(id: chatID)?.displayTitle ?? session.title
         history.rename(id: branch.id, to: String(localized: "\(title) (Branch)"))
-        store.change { $0.copyPlacement(from: chatID, to: branch.id) }
+        store.change {
+            $0.copyPlacement(from: chatID, to: branch.id)
+            $0.setBranchesFolded(false, of: chatID)
+        }
         if let agent = host?.agentID(ofChat: chatID) { host?.bindAgent(agent, toChat: branch.id) }
         host?.openChat(id: branch.id)
         return branch.id
+    }
+
+    func toggleBranches(of chat: UUID) {
+        store.change { $0.setBranchesFolded(!$0.foldsBranches(of: chat), of: chat) }
+    }
+
+    /// The branch glyph's click: the chat it was made from, while the history still lists it.
+    func openParent(of chat: UUID) {
+        guard let parent = workspace.parentID(of: chat), history.conversation(id: parent) != nil else { return }
+        host?.openChat(id: parent)
     }
 
     // MARK: - Editing a sent question

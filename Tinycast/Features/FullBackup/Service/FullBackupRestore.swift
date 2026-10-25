@@ -244,6 +244,7 @@ enum FullBackupRestore {
                 }
                 workspace.setInstructions(placement.instructions, of: chat)
                 workspace.setCreativity(placement.creativity, of: chat)
+                workspace.setParent(placement.parentID, of: chat)
                 if let date = placement.archivedAt { workspace.archive(chat, at: date) }
                 if let date = placement.deletedAt {
                     workspace.trash(chat, title: placement.deletedTitle ?? "", at: date)

@@ -9,7 +9,8 @@ final class ChatWorkspaceSplitViewController: NSSplitViewController {
     init(coordinator: AIChatCoordinator, workspace: ChatWorkspaceCoordinator, find: ChatFindState) {
         super.init(nibName: nil, bundle: nil)
         let sidebar = ChatWorkspaceSidebar().environment(coordinator).environment(workspace)
-        let sidebarItem = NSSplitViewItem(sidebarWithViewController: NSHostingController(rootView: sidebar))
+        let sidebarController = NSHostingController(rootView: sidebar)
+        let sidebarItem = NSSplitViewItem(sidebarWithViewController: sidebarController)
         sidebarItem.minimumThickness = Theme.Size.aiChatSidebarMinimum
         sidebarItem.maximumThickness = Theme.Size.aiChatSidebarMaximum
         sidebarItem.canCollapse = true
@@ -34,6 +35,11 @@ final class ChatWorkspaceSplitViewController: NSSplitViewController {
         addSplitViewItem(settingsItem)
         splitView.autosaveName = Self.autosaveName
         workspace.toggleSettingsSidebar = { [weak self] in self?.toggleSettings() }
+        let sidebarView = sidebarController.view
+        workspace.sidebarHasFocus = { [weak sidebarView] in
+            guard let sidebarView, let responder = sidebarView.window?.firstResponder as? NSView else { return false }
+            return !(responder is NSText) && responder.isDescendant(of: sidebarView)
+        }
     }
 
     private var settingsItem: NSSplitViewItem?

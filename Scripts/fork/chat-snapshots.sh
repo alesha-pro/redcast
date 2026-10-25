@@ -48,6 +48,7 @@ SOURCES=(
     Tinycast/Features/ColorfulIcons/Model/RaycastHue.swift
     $CW/Model/*.swift $CW/Service/*.swift $CW/Settings/ChatWorkspaceSettings.swift
     $CW/UI/ChatWorkspaceHost.swift $CW/UI/ChatWorkspaceCoordinator.swift $CW/UI/ChatSettingsState.swift
+    $CW/UI/ChatWorkspaceCoordinator+Selection.swift
     $CW/UI/ChatWorkspaceTheme.swift $CW/UI/ChatWorkspaceSidebar.swift $CW/UI/ChatFolderEditor.swift
     $CW/UI/ChatSettingsSidebar.swift $CW/UI/ChatModelChip.swift $CW/UI/ChatTranscriptColors.swift
     $CW/UI/ChatMessageActions.swift $CW/UI/ChatComposerInk.swift $CW/UI/ChatImageDownsampler.swift

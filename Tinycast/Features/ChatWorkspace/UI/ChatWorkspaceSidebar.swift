@@ -4,8 +4,6 @@ import SwiftUI
 struct ChatWorkspaceSidebar: View {
     @Environment(ChatWorkspaceCoordinator.self) private var workspace
     @State private var renameText = ""
-    @State private var showsArchived = false
-    @State private var showsDeleted = false
     @State private var renamingFolder: UUID?
     @FocusState private var searchFocused: Bool
     @FocusState private var renameFocused: Bool
@@ -48,6 +46,9 @@ struct ChatWorkspaceSidebar: View {
             }
         }
         .animation(.snappy, value: workspace.editingFolder?.id)
+        .onChange(of: workspace.selectionContents(layout)) { _, contents in
+            workspace.selection.reconcile(contents: contents)
+        }
         .task(id: workspace.query) {
             let trimmed = workspace.query.trimmingCharacters(in: .whitespacesAndNewlines)
             guard !trimmed.isEmpty else {
@@ -70,21 +71,21 @@ struct ChatWorkspaceSidebar: View {
     }
 
     private func list(_ layout: ChatSidebarLayout) -> some View {
+        @Bindable var workspace = workspace
         let order = layout.shortcutOrder
         let answering = chats.answeringIDs
         let openID = chats.window.session.id
         let badges = workspace.showsShortcuts ? order : []
-        func row(_ chat: ChatConversation, folder: ChatFolder? = nil) -> some View {
-            ChatWorkspaceRow(
-                conversation: chat, folder: folder, isAnswering: answering.contains(chat.id),
-                isSelected: chat.id == openID,
-                shortcut: ChatShortcutIndex.badge(for: chat.id, in: badges)
+        func row(_ row: ChatTreeRow, folder: ChatFolder? = nil) -> some View {
+            let chat = row.chat
+            return ChatWorkspaceRow(
+                row: row, folder: folder, isAnswering: answering.contains(chat.id), isOpen: chat.id == openID,
+                shortcut: ChatShortcutIndex.badge(for: chat.id, in: badges), click: { click(chat.id) }
             ) {
                 title(of: chat)
             }
-            .simultaneousGesture(TapGesture().onEnded { open(chat.id) })
-            .draggable(ChatDragPayload.text(for: chat.id))
-            .contextMenu { ChatRowMenu(conversation: chat, beginRename: beginRename) }
+            .draggable(ChatDragPayload.text(for: workspace.dragged(chat.id)))
+            .contextMenu { ChatRowContextMenu(conversation: chat, beginRename: beginRename) }
         }
         return List {
             if let results = layout.results {
@@ -111,7 +112,7 @@ struct ChatWorkspaceSidebar: View {
                             commitRename: { commitFolderRename(group.folder) },
                             beginRename: { beginRename(folder: group.folder) })
                         if !group.folder.isCollapsed {
-                            ForEach(group.chats) { row($0, folder: group.folder) }
+                            ForEach(group.rows) { row($0, folder: group.folder) }
                         }
                     }
                 } header: {
@@ -126,14 +127,14 @@ struct ChatWorkspaceSidebar: View {
                 }
                 ForEach(layout.recent) { day in
                     Section {
-                        ForEach(day.chats) { row($0) }
+                        ForEach(day.rows) { row($0) }
                     } header: {
                         ChatSectionHeader(verbatim: day.title, symbol: nil, hue: .red)
                             .chatDropTarget { workspace.move($0, to: nil) }
                     }
                 }
                 if !layout.archived.isEmpty {
-                    Section(isExpanded: $showsArchived) {
+                    Section(isExpanded: $workspace.showsArchived) {
                         ForEach(layout.archived) { row($0) }
                     } header: {
                         ChatSectionHeader(
@@ -144,7 +145,7 @@ struct ChatWorkspaceSidebar: View {
             }
             let trashed = workspace.workspace.trashed
             if !trashed.isEmpty {
-                Section(isExpanded: $showsDeleted) {
+                Section(isExpanded: $workspace.showsDeleted) {
                     ForEach(trashed, id: \.id) { entry in
                         ChatTrashRow(id: entry.id, title: entry.title, deletedAt: entry.deletedAt)
                     }
@@ -160,6 +161,7 @@ struct ChatWorkspaceSidebar: View {
             }
         }
         .listStyle(.sidebar)
+        .safeAreaInset(edge: .bottom, spacing: 0) { ChatSelectionBar() }
     }
 
     @ViewBuilder private var emptyState: some View {
@@ -231,6 +233,11 @@ struct ChatWorkspaceSidebar: View {
         workspace.updateFolder(renamed)
     }
 
+    /// ⌘ toggles the row and ⇧ takes the range into the selection; a plain click opens the chat.
+    private func click(_ id: UUID) {
+        if workspace.click(id, workspace.clickKind) { open(id) }
+    }
+
     /// The open chat wears the accent's wash; the list itself selects nothing, so no grey bar.
     private func open(_ id: UUID) {
         guard id != chats.window.session.id, workspace.renaming != id else { return }
@@ -238,27 +245,28 @@ struct ChatWorkspaceSidebar: View {
     }
 }
 
-/// Fork: a chat dragged between sections travels as text only the sidebar reads back.
+/// Fork: chats dragged between sections travel as text only the sidebar reads back.
 enum ChatDragPayload {
     private static let prefix = "tinycast-chat:"
 
-    static func text(for id: UUID) -> String { prefix + id.uuidString }
+    static func text(for ids: [UUID]) -> String { prefix + ids.map(\.uuidString).joined(separator: ",") }
 
-    static func chat(in text: String) -> UUID? {
-        guard text.hasPrefix(prefix) else { return nil }
-        return UUID(uuidString: String(text.dropFirst(prefix.count)))
+    static func chats(in text: String) -> [UUID] {
+        guard text.hasPrefix(prefix) else { return [] }
+        return text.dropFirst(prefix.count).split(separator: ",").compactMap { UUID(uuidString: String($0)) }
     }
 }
 
 extension View {
-    /// Takes a dragged chat and says so with the accent's wash while one hovers.
-    func chatDropTarget(_ drop: @escaping (UUID) -> Void) -> some View {
+    /// Takes dragged chats, a whole selection at once, and says so with the accent's wash.
+    func chatDropTarget(_ drop: @escaping ([UUID]) -> Void) -> some View {
         modifier(ChatDropTarget(drop: drop))
     }
 }
 
 private struct ChatDropTarget: ViewModifier {
-    let drop: (UUID) -> Void
+    @Environment(ChatWorkspaceCoordinator.self) private var workspace
+    let drop: ([UUID]) -> Void
     @State private var isTargeted = false
 
     func body(content: Content) -> some View {
@@ -269,9 +277,11 @@ private struct ChatDropTarget: ViewModifier {
                     .padding(.horizontal, -Theme.Spacing.sm)
             }
             .dropDestination(for: String.self) { items, _ in
-                let ids = items.compactMap(ChatDragPayload.chat(in:))
-                for id in ids { drop(id) }
-                return !ids.isEmpty
+                let ids = items.flatMap(ChatDragPayload.chats(in:))
+                guard !ids.isEmpty else { return false }
+                if ids.contains(where: workspace.selection.contains) { workspace.selection.clear() }
+                drop(ids)
+                return true
             } isTargeted: {
                 isTargeted = $0
             }
@@ -334,62 +344,174 @@ struct ChatSectionHeader<Accessory: View>: View {
 
 /// A chat's row; content fills the cell so hover never blinks between rows.
 private struct ChatWorkspaceRow<Title: View>: View {
-    let conversation: ChatConversation
+    @Environment(ChatWorkspaceCoordinator.self) private var workspace
+    let row: ChatTreeRow
     let folder: ChatFolder?
     let isAnswering: Bool
-    let isSelected: Bool
+    let isOpen: Bool
     let shortcut: String?
+    let click: () -> Void
     @ViewBuilder let title: Title
     @State private var isHovered = false
 
+    private var conversation: ChatConversation { row.chat }
+
+    /// The disclosure and the branch glyph take their own clicks; the rest of the row opens it.
     var body: some View {
+        let isSelected = workspace.selection.contains(row.id)
         HStack(spacing: Theme.Spacing.sm) {
-            if let folder {
-                Capsule()
-                    .fill(folder.hue.color)
-                    .frame(width: Theme.Size.chatFolderBar)
-                    .padding(.vertical, Theme.Spacing.xxs)
-                    .padding(.leading, Theme.Size.chatFolderIndent)
+            if folder != nil || row.depth > 0 {
+                HStack(spacing: Theme.Spacing.sm) {
+                    if let folder {
+                        Capsule()
+                            .fill(folder.hue.color)
+                            .frame(width: Theme.Size.chatFolderBar)
+                            .padding(.vertical, Theme.Spacing.xxs)
+                            .padding(.leading, Theme.Size.chatFolderIndent)
+                    }
+                    if row.depth > 0 {
+                        ChatBranchGuideShape(guides: row.guides)
+                            .stroke(Theme.Colors.chatBranchGuide, lineWidth: Theme.Size.hairline)
+                            .frame(width: CGFloat(row.depth) * Theme.Size.chatBranchIndent)
+                            .accessibilityHidden(true)
+                    }
+                }
+                .frame(maxHeight: .infinity)
+                .contentShape(.rect)
+                .simultaneousGesture(TapGesture().onEnded(click))
             }
+            if let origin = row.origin { ChatBranchOriginGlyph(chat: row.id, origin: origin) }
             title
-            Spacer(minLength: 0)
-            if let shortcut {
-                Text(verbatim: "⌘\(shortcut)")
-                    .font(.caption.weight(.semibold).monospacedDigit())
-                    .foregroundStyle(Theme.Colors.textSecondary)
-                    .padding(.horizontal, Theme.Spacing.xs)
-                    .frame(minWidth: Theme.Size.chatShortcutBadge, minHeight: Theme.Size.chatShortcutBadge)
-                    .background(RoundedRectangle(cornerRadius: Theme.Radius.keyCap).fill(Theme.Colors.controlSurface))
-            } else if isAnswering {
-                ProgressView()
-                    .controlSize(.mini)
-                    .accessibilityLabel("Answering")
-            } else if conversation.isPinned {
-                Image(systemName: "pin.fill")
-                    .font(.caption)
-                    .foregroundStyle(RaycastHue.yellow.color)
-                    .accessibilityLabel("Pinned")
+                .contentShape(.rect)
+                .simultaneousGesture(TapGesture().onEnded(click))
+                .layoutPriority(1)
+            if row.branches > 0 { ChatBranchDisclosure(chat: row.id, isFolded: row.isFolded) }
+            HStack(spacing: Theme.Spacing.sm) {
+                Spacer(minLength: 0)
+                if let shortcut {
+                    Text(verbatim: "⌘\(shortcut)")
+                        .font(.caption.weight(.semibold).monospacedDigit())
+                        .foregroundStyle(Theme.Colors.textSecondary)
+                        .padding(.horizontal, Theme.Spacing.xs)
+                        .frame(minWidth: Theme.Size.chatShortcutBadge, minHeight: Theme.Size.chatShortcutBadge)
+                        .background(RoundedRectangle(cornerRadius: Theme.Radius.keyCap).fill(Theme.Colors.controlSurface))
+                } else if isAnswering {
+                    ProgressView()
+                        .controlSize(.mini)
+                        .accessibilityLabel("Answering")
+                } else if conversation.isPinned {
+                    Image(systemName: "pin.fill")
+                        .font(.caption)
+                        .foregroundStyle(RaycastHue.yellow.color)
+                        .accessibilityLabel("Pinned")
+                }
             }
+            .frame(maxHeight: .infinity)
+            .contentShape(.rect)
+            .simultaneousGesture(TapGesture().onEnded(click))
         }
         .frame(maxHeight: .infinity)
         .listRowInsets(EdgeInsets())
         .contentShape(.rect)
         .onHover { isHovered = $0 }
-        .listRowBackground(background)
+        .listRowBackground(ChatRowBackground(isSelected: isSelected, isOpen: isOpen, isHovered: isHovered))
         .help(conversation.displayTitle)
-        .accessibilityAddTraits(isSelected ? [.isButton, .isSelected] : .isButton)
+        .accessibilityAddTraits(isSelected || isOpen ? [.isButton, .isSelected] : .isButton)
     }
+}
 
-    @ViewBuilder private var background: some View {
-        if isSelected {
-            RoundedRectangle(cornerRadius: Theme.Radius.row, style: .continuous)
-                .fill(Theme.Colors.chatSelectedRow)
-                .padding(.horizontal, Theme.Spacing.lg)
-        } else if isHovered {
-            RoundedRectangle(cornerRadius: Theme.Radius.row, style: .continuous)
-                .fill(Theme.Colors.rowHover)
-                .padding(.horizontal, Theme.Spacing.lg)
+/// The selection wears the theme's selection with an accent edge; the open chat keeps its wash.
+private struct ChatRowBackground: View {
+    let isSelected: Bool
+    var isOpen = false
+    var isHovered = false
+
+    var body: some View {
+        let shape = RoundedRectangle(cornerRadius: Theme.Radius.row, style: .continuous)
+        Group {
+            if isSelected {
+                shape.fill(Theme.Colors.selection)
+                    .overlay(shape.strokeBorder(Theme.Colors.chatSelectionEdge, lineWidth: Theme.Size.hairline))
+                    .padding(.vertical, Theme.Size.hairline)
+            } else if isOpen {
+                shape.fill(Theme.Colors.chatSelectedRow)
+            } else if isHovered {
+                shape.fill(Theme.Colors.rowHover)
+            }
         }
+        .padding(.horizontal, Theme.Spacing.lg)
+    }
+}
+
+/// The lines from a parent down to its branches: one column per indent, an elbow into the last.
+struct ChatBranchGuideShape: Shape {
+    let guides: [ChatTreeRow.Guide]
+
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+        let width = Theme.Size.chatBranchIndent
+        let middle = rect.midY
+        let radius = min(Theme.Size.chatBranchElbow, middle)
+        for (column, guide) in guides.enumerated() {
+            let x = rect.minX + CGFloat(column) * width + Theme.Size.chatBranchLine
+            switch guide {
+            case .blank:
+                continue
+            case .line:
+                path.move(to: CGPoint(x: x, y: rect.minY))
+                path.addLine(to: CGPoint(x: x, y: rect.maxY))
+            case .elbow:
+                path.move(to: CGPoint(x: x, y: rect.minY))
+                path.addLine(to: CGPoint(x: x, y: middle - radius))
+                path.addQuadCurve(to: CGPoint(x: x + radius, y: middle), control: CGPoint(x: x, y: middle))
+                path.addLine(to: CGPoint(x: rect.minX + CGFloat(column + 1) * width, y: middle))
+            }
+        }
+        return path
+    }
+}
+
+/// ▾ or ▸ after a parent's title: its branches shown or folded away, remembered per chat.
+private struct ChatBranchDisclosure: View {
+    @Environment(ChatWorkspaceCoordinator.self) private var workspace
+    let chat: UUID
+    let isFolded: Bool
+
+    var body: some View {
+        Button {
+            workspace.toggleBranches(of: chat)
+        } label: {
+            Image(systemName: isFolded ? "chevron.right" : "chevron.down")
+                .font(Theme.Typography.disclosure)
+                .foregroundStyle(Theme.Colors.textTertiary)
+                .frame(width: Theme.Size.chatShortcutBadge, height: Theme.Size.chatShortcutBadge)
+                .contentShape(.rect)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(isFolded ? "Show Branches" : "Hide Branches")
+    }
+}
+
+/// A branch listed away from its parent: a glyph naming the parent, which a click opens.
+private struct ChatBranchOriginGlyph: View {
+    @Environment(ChatWorkspaceCoordinator.self) private var workspace
+    let chat: UUID
+    let origin: ChatBranchOrigin
+
+    var body: some View {
+        let title = origin.title.isEmpty ? String(localized: "Untitled Chat") : origin.title
+        let tip = String(localized: "Branched from \(title)")
+        Button {
+            workspace.openParent(of: chat)
+        } label: {
+            Image(systemName: "arrow.triangle.branch")
+                .font(.caption)
+                .foregroundStyle(Theme.Colors.textTertiary)
+                .contentShape(.rect)
+        }
+        .buttonStyle(.plain)
+        .chatToolTip(tip)
+        .accessibilityLabel(tip)
     }
 }
 
@@ -438,8 +560,8 @@ private struct ChatFolderRow: View {
                 .buttonStyle(.plain)
                 .help("New Chat in Folder")
                 .accessibilityLabel("New Chat in Folder")
-            } else if !group.chats.isEmpty {
-                Text(verbatim: "\(group.chats.count)")
+            } else if group.count > 0 {
+                Text(verbatim: "\(group.count)")
                     .font(.caption.monospacedDigit())
                     .foregroundStyle(Theme.Colors.textTertiary)
             }
@@ -481,6 +603,7 @@ private struct ChatTrashRow: View {
     let deletedAt: Date
 
     var body: some View {
+        let isSelected = workspace.selection.contains(id)
         HStack(spacing: Theme.Spacing.sm) {
             Text(verbatim: title.isEmpty ? String(localized: "Untitled Chat") : title)
                 .lineLimit(1)
@@ -491,13 +614,38 @@ private struct ChatTrashRow: View {
                 .foregroundStyle(Theme.Colors.textTertiary)
         }
         .contentShape(.rect)
+        .simultaneousGesture(
+            TapGesture().onEnded {
+                workspace.click(id, workspace.clickKind, inTrash: true)
+            })
+        .listRowBackground(ChatRowBackground(isSelected: isSelected))
         .contextMenu {
-            Button("Restore", systemImage: "arrow.uturn.backward") { workspace.restore(id) }
-            Button("Delete Permanently…", systemImage: "trash", role: .destructive) {
-                Task { await workspace.deleteForever(id) }
+            if workspace.selection.count > 1, isSelected {
+                ChatBulkTrashMenu()
+            } else {
+                Button("Restore", systemImage: "arrow.uturn.backward") { workspace.restore(id) }
+                Button("Delete Permanently…", systemImage: "trash", role: .destructive) {
+                    Task { await workspace.deleteForever(id) }
+                }
             }
         }
         .help("Deleted chats are removed for good after 60 days.")
+        .accessibilityAddTraits(isSelected ? [.isSelected] : [])
+    }
+}
+
+/// A row's menu: its own, or the selection's when it is one of several selected.
+private struct ChatRowContextMenu: View {
+    @Environment(ChatWorkspaceCoordinator.self) private var workspace
+    let conversation: ChatConversation
+    let beginRename: (ChatConversation) -> Void
+
+    var body: some View {
+        if workspace.selection.count > 1, workspace.selection.contains(conversation.id) {
+            ChatBulkMenu()
+        } else {
+            ChatRowMenu(conversation: conversation, beginRename: beginRename)
+        }
     }
 }
 
@@ -537,43 +685,176 @@ struct ChatRowMenu: View {
     }
 }
 
-/// Move to Folder: every folder, Recent, and a new folder made for this chat.
-struct ChatMoveMenu: View {
+/// Several chats' menu: what applies to them all, done to every one at once.
+struct ChatBulkMenu: View {
     @Environment(ChatWorkspaceCoordinator.self) private var workspace
-    let chat: UUID
 
     var body: some View {
-        let current = workspace.workspace.folderID(of: chat)
+        let facts = workspace.selectionFacts
+        Button(
+            facts.pins ? "Pin Chats" : "Unpin Chats", systemImage: facts.pins ? "pin" : "pin.slash",
+            action: workspace.togglePinSelection)
+        ChatMoveMenu(selection: facts)
+        if facts.anyFiled {
+            Button("Remove from Folder", systemImage: "folder.badge.minus", action: workspace.removeSelectionFromFolders)
+        }
+        Button(
+            facts.archives ? "Archive" : "Unarchive", systemImage: facts.archives ? "archivebox" : "tray.and.arrow.up",
+            action: workspace.toggleArchiveSelection)
+        Divider()
+        Button("Copy Chats", systemImage: "doc.on.doc", action: workspace.copySelection)
+        Divider()
+        Button("Delete \(facts.ids.count) Chats…", systemImage: "trash", role: .destructive) {
+            Task { await workspace.trashSelection() }
+        }
+    }
+}
+
+/// Recently Deleted's selection: back to where each was, or gone for good.
+private struct ChatBulkTrashMenu: View {
+    @Environment(ChatWorkspaceCoordinator.self) private var workspace
+
+    var body: some View {
+        Button("Restore", systemImage: "arrow.uturn.backward", action: workspace.restoreSelection)
+        Button("Delete Permanently…", systemImage: "trash", role: .destructive) {
+            Task { await workspace.deleteSelectionForever() }
+        }
+    }
+}
+
+/// Move to Folder: every folder, Recent, and a new folder made for this chat or the selection.
+struct ChatMoveMenu: View {
+    @Environment(ChatWorkspaceCoordinator.self) private var workspace
+    private let chat: UUID?
+    private let facts: ChatBulkFacts?
+
+    init(chat: UUID) {
+        self.chat = chat
+        facts = nil
+    }
+
+    init(selection facts: ChatBulkFacts) {
+        chat = nil
+        self.facts = facts
+    }
+
+    var body: some View {
         Menu {
-            Button("Recent", systemImage: "clock") { workspace.move(chat, to: nil) }
-                .disabled(current == nil)
-            if !workspace.workspace.folders.isEmpty { Divider() }
-            ForEach(workspace.workspace.folders) { folder in
-                Button {
-                    workspace.move(chat, to: folder.id)
-                } label: {
-                    Label {
-                        Text(verbatim: folder.name)
-                    } icon: {
-                        Image(nsImage: ChatFolderTileImage.make(symbol: folder.symbol, hue: folder.hue))
-                    }
-                }
-                .disabled(current == folder.id)
-            }
-            Divider()
-            Button("New Folder…", systemImage: "folder.badge.plus") {
-                if let folder = workspace.createFolder(
-                    named: String(localized: "New Folder"),
-                    hue: ChatFolder.nextHue(after: workspace.workspace.folders),
-                    symbol: ChatFolder.symbols[0], instructions: nil, agentID: nil)
-                {
-                    workspace.move(chat, to: folder.id)
-                    workspace.editingFolder = folder
-                }
-            }
+            ChatMoveMenuItems(chat: chat, facts: facts)
         } label: {
             Label("Move to Folder", systemImage: "folder")
         }
+    }
+}
+
+/// The folders a chat or the selection can go to; the check sits on the one they all share.
+private struct ChatMoveMenuItems: View {
+    @Environment(ChatWorkspaceCoordinator.self) private var workspace
+    let chat: UUID?
+    let facts: ChatBulkFacts?
+
+    var body: some View {
+        let current = chat.map(workspace.workspace.folderID(of:)) ?? facts?.sharedFolder
+        let anyFiled = facts?.anyFiled ?? (current != nil)
+        Button("Recent", systemImage: "clock") { move(to: nil) }
+            .disabled(!anyFiled)
+        if !workspace.workspace.folders.isEmpty { Divider() }
+        ForEach(workspace.workspace.folders) { folder in
+            Button {
+                move(to: folder.id)
+            } label: {
+                Label {
+                    Text(verbatim: folder.name)
+                } icon: {
+                    Image(nsImage: ChatFolderTileImage.make(symbol: folder.symbol, hue: folder.hue))
+                }
+            }
+            .disabled(current == folder.id)
+        }
+        Divider()
+        Button("New Folder…", systemImage: "folder.badge.plus") {
+            guard let chat else { return workspace.moveSelectionToNewFolder() }
+            if let folder = workspace.createFolder(
+                named: String(localized: "New Folder"),
+                hue: ChatFolder.nextHue(after: workspace.workspace.folders),
+                symbol: ChatFolder.symbols[0], instructions: nil, agentID: nil)
+            {
+                workspace.move(chat, to: folder.id)
+                workspace.editingFolder = folder
+            }
+        }
+    }
+
+    private func move(to folder: UUID?) {
+        if let chat {
+            workspace.move(chat, to: folder)
+        } else {
+            workspace.moveSelection(to: folder)
+        }
+    }
+}
+
+/// Fork: with two or more chats selected, what can be done to all of them, under the list.
+private struct ChatSelectionBar: View {
+    @Environment(ChatWorkspaceCoordinator.self) private var workspace
+
+    var body: some View {
+        if workspace.selection.count > 1 {
+            let inTrash = workspace.selectionIsInTrash
+            let facts = workspace.selectionFacts
+            HStack(spacing: Theme.Spacing.xs) {
+                Text("\(workspace.selection.count) Selected")
+                    .font(.callout.weight(.medium).monospacedDigit())
+                    .foregroundStyle(Theme.Colors.textSecondary)
+                    .lineLimit(1)
+                Spacer(minLength: Theme.Spacing.sm)
+                if inTrash {
+                    action("arrow.uturn.backward", "Restore", run: workspace.restoreSelection)
+                    action("trash", "Delete Permanently…") { Task { await workspace.deleteSelectionForever() } }
+                } else {
+                    Menu {
+                        ChatMoveMenuItems(chat: nil, facts: facts)
+                    } label: {
+                        glyph("folder")
+                    }
+                    .menuStyle(.button)
+                    .buttonStyle(.plain)
+                    .menuIndicator(.hidden)
+                    .fixedSize()
+                    .help("Move to Folder")
+                    .accessibilityLabel("Move to Folder")
+                    action(
+                        facts.pins ? "pin" : "pin.slash", facts.pins ? "Pin Chats" : "Unpin Chats",
+                        run: workspace.togglePinSelection)
+                    action(
+                        facts.archives ? "archivebox" : "tray.and.arrow.up", facts.archives ? "Archive" : "Unarchive",
+                        run: workspace.toggleArchiveSelection)
+                    action("trash", "Delete Chats…") { Task { await workspace.trashSelection() } }
+                }
+                action("xmark", "Clear Selection") { workspace.selection.clear() }
+            }
+            .padding(.leading, Theme.Spacing.lg)
+            .padding(.trailing, Theme.Spacing.xs)
+            .frame(height: Theme.Size.aiChatSearchField)
+            .background { Color.clear.frosted(in: Capsule()) }
+            .padding(.horizontal, Theme.Spacing.lg)
+            .padding(.vertical, Theme.Spacing.md)
+        }
+    }
+
+    private func action(_ symbol: String, _ label: LocalizedStringKey, run: @escaping () -> Void) -> some View {
+        Button(action: run) { glyph(symbol) }
+            .buttonStyle(.plain)
+            .help(label)
+            .accessibilityLabel(label)
+    }
+
+    private func glyph(_ symbol: String) -> some View {
+        Image(systemName: symbol)
+            .font(Theme.Typography.composerSymbol)
+            .foregroundStyle(Theme.Colors.textSecondary)
+            .frame(width: Theme.Size.chatSelectionButton, height: Theme.Size.chatSelectionButton)
+            .contentShape(.rect)
     }
 }
 

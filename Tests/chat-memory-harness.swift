@@ -897,6 +897,7 @@ enum ChatMemoryFixture {
             }
             workspace.archive(ids[30])
             workspace.archive(ids[31])
+            linkBranches(among: ids, in: workspace.store.fileURL)
         #endif
         print("fixture: \(core.chatHistory.conversations.count) chats")
         for title in switchTitles {
@@ -911,6 +912,23 @@ enum ChatMemoryFixture {
                 "  \(title): \(session.messages.count) messages, \(lines) lines, \(tools) tool rows, "
                     + "\(thinking) reasoning folds, \(images) images (\(bytes / 1_048_576) MB)")
         }
+    }
+
+    /// Thirty nested branches as the file stores them; a tree from before them keeps them as unknown.
+    private static func linkBranches(among ids: [UUID], in file: URL) {
+        guard let data = try? Data(contentsOf: file),
+            var object = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any]
+        else { return }
+        var chats = object["chats"] as? [String: Any] ?? [:]
+        for parent in stride(from: 0, to: 90, by: 9) {
+            for (child, of) in [(parent + 2, parent), (parent + 3, parent + 2), (parent + 4, parent)] {
+                var entry = chats[ids[child].uuidString] as? [String: Any] ?? [:]
+                entry["branchOf"] = ids[of].uuidString
+                chats[ids[child].uuidString] = entry
+            }
+        }
+        object["chats"] = chats
+        try? JSONSerialization.data(withJSONObject: object).write(to: file, options: .atomic)
     }
 
     private static func russianQuestion(_ turn: Int) -> String {

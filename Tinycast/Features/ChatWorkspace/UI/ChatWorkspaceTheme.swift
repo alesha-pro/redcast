@@ -10,6 +10,11 @@ extension Theme.Colors {
     /// The open chat's row in the sidebar, the selection's own wash.
     static let chatSelectedRow = adaptive(
         dark: vermilion.withAlphaComponent(0.26), light: vermilion.withAlphaComponent(0.14))
+    /// A row in the sidebar's ⌘- or ⇧-selection: the theme's selection, edged in the accent.
+    static let chatSelectionEdge = adaptive(
+        dark: vermilion.withAlphaComponent(0.55), light: vermilion.withAlphaComponent(0.45))
+    /// The line from a parent chat down to its branches, quieter than any text.
+    static let chatBranchGuide = ramp(dark: 0.22, light: 0.22)
     /// A folder or section under a dragged chat.
     static let chatDropTarget = adaptive(
         dark: vermilion.withAlphaComponent(0.30), light: vermilion.withAlphaComponent(0.16))
@@ -60,4 +65,9 @@ extension Theme.Size {
     static let chatInstructionsHeight: CGFloat = 96
     static let chatShortcutBadge: CGFloat = 18
     static let chatModelChipMaxWidth: CGFloat = 220
+    /// A branch sits this far in under its parent, its line under the parent's first letter.
+    static let chatBranchIndent: CGFloat = 14
+    static let chatBranchLine: CGFloat = 4.5
+    static let chatBranchElbow: CGFloat = 5
+    static let chatSelectionButton: CGFloat = 24
 }

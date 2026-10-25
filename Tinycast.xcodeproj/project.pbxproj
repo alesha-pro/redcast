@@ -31,6 +31,7 @@
 		04A4E6EF474136471C5ED85D /* CodexPlanLimits.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0BFBD162F7F89D0515F0915 /* CodexPlanLimits.swift */; };
 		050B0F0221560063469074EF /* AppleShortcutCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 439D94674FA1F5020C3AA0E8 /* AppleShortcutCoordinator.swift */; };
 		058EFDE8E2770FAE8B5EC45D /* ModalActionButtonStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E62A0BA3E85C8942167A310 /* ModalActionButtonStyle.swift */; };
+		05A10A0BBD0523AF1F040BE3 /* ChatSelection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 07A19B72CEDD69065A5F74A8 /* ChatSelection.swift */; };
 		05A237890B4BD21EE91D8090 /* DictionaryService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 732AEAA3A5C5DE559B739295 /* DictionaryService.swift */; };
 		05DD364ADC75E040E2C17AE1 /* MenuSearchQuery.swift in Sources */ = {isa = PBXBuildFile; fileRef = 631BCDD61FD48D31C3A7AE6D /* MenuSearchQuery.swift */; };
 		06118397F59E4C9F6F2EAC3A /* MCPOAuthService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A4618E5608C3E4F7D1E911F1 /* MCPOAuthService.swift */; };
@@ -405,6 +406,7 @@
 		55C603F567C3C627865B6A0E /* MCPOAuthManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 370B1767182D5C53ADBEDA35 /* MCPOAuthManager.swift */; };
 		55CDBFDB13B816FFFB6CC867 /* MCPTrustPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = A724FAAD08B77AA54D080E45 /* MCPTrustPolicy.swift */; };
 		55EA76C9D881F6D3295B7E45 /* CustomCommandEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7CEAC6A9B7AF400E10A2FB3B /* CustomCommandEditorView.swift */; };
+		55EFC2254CE597C73A178F02 /* ChatWorkspaceCoordinator+Selection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5BA9952C976208FE93AEDFB5 /* ChatWorkspaceCoordinator+Selection.swift */; };
 		5628F6136EE7CF71AD0B87C0 /* ModifierKey.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58E4CA2F03AC089232301F8E /* ModifierKey.swift */; };
 		564CB6D0052C9A7C0AF9C9BF /* InProcessInjection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 33A73B92320ED5A4F802EE54 /* InProcessInjection.swift */; };
 		5679661058689EC8FF1C5C11 /* PaletteFilterAction.swift in Sources */ = {isa = PBXBuildFile; fileRef = 621B09CB5CF15517D9FDAB5B /* PaletteFilterAction.swift */; };
@@ -898,6 +900,7 @@
 		C4DF15A01B44C42740234472 /* ChatFilesStrip.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E9D3741F1283D8C07063974 /* ChatFilesStrip.swift */; };
 		C5246D93BBA447893D58BD91 /* FallbackStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 75614189EED9B440D911B412 /* FallbackStore.swift */; };
 		C567D5C8F8873CA595B1536A /* TextInjector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74904E7C8CE9B121B32594B9 /* TextInjector.swift */; };
+		C5A31F60819E469D9D28DD79 /* ChatBulkEdit.swift in Sources */ = {isa = PBXBuildFile; fileRef = 520BB03D58F2AC5D5500D2B4 /* ChatBulkEdit.swift */; };
 		C5F60D8681235B95DAA3314F /* GeneralSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 418DA899A1546F3B4AC44777 /* GeneralSettingsView.swift */; };
 		C6426B6394EA434D2960B18D /* ChatToolTip.swift in Sources */ = {isa = PBXBuildFile; fileRef = BCD1FCEA2378D87A66420AAC /* ChatToolTip.swift */; };
 		C64E1E78A80C4742745CB235 /* ReleaseArchitecture.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63E3B7CDDB6A9D790548648B /* ReleaseArchitecture.swift */; };
@@ -1116,6 +1119,7 @@
 		F801D00F877421DC7045C5F3 /* RedactedPlaceholder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 131B15F5EF86A067FA6C36D7 /* RedactedPlaceholder.swift */; };
 		F85CE4CDCF7589ACAEF2CA20 /* AppIconView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 90E23F92F4B4DEEE55077C7C /* AppIconView.swift */; };
 		F88C1B7A8E2C46404792C826 /* ExtensionNameResolver.swift in Sources */ = {isa = PBXBuildFile; fileRef = C40D65C644389618DF5F5E26 /* ExtensionNameResolver.swift */; };
+		F890CF86BE95446285AD7DFB /* ChatBranchTree.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8B9C88B294A75279A2929B4 /* ChatBranchTree.swift */; };
 		F8D5FEA018AD948E5A052282 /* ChatFind.swift in Sources */ = {isa = PBXBuildFile; fileRef = 916971391D1DCC0A533F1C16 /* ChatFind.swift */; };
 		F8D69CE2A8C04DEEC1810A1F /* UninstallRunner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9D134673CB1B563A3758FC37 /* UninstallRunner.swift */; };
 		F8E1B044D84E96FB455155CD /* AIModelDiscoveryService.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD4B27ECEB1C09B14C403FC8 /* AIModelDiscoveryService.swift */; };
@@ -1234,6 +1238,7 @@
 		06B5C0B83C3645AC90639B85 /* AppleIntelligenceProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppleIntelligenceProvider.swift; sourceTree = "<group>"; };
 		06C755B1815C781CBEC5BACA /* ExtensionAIBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExtensionAIBridge.swift; sourceTree = "<group>"; };
 		072DA32B7365FAAB7C38F25C /* AppleShortcutsSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppleShortcutsSettingsView.swift; sourceTree = "<group>"; };
+		07A19B72CEDD69065A5F74A8 /* ChatSelection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatSelection.swift; sourceTree = "<group>"; };
 		0805655B4808B5B407C7BE7A /* CustomWindowSizeEditorPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomWindowSizeEditorPanel.swift; sourceTree = "<group>"; };
 		0814A6707E67A3BD3772E119 /* MCPServerEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MCPServerEditor.swift; sourceTree = "<group>"; };
 		08279257B0F5995E86FF2C03 /* EntryIconView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EntryIconView.swift; sourceTree = "<group>"; };
@@ -1590,6 +1595,7 @@
 		51903548B005B2EF070C8AE2 /* ClipboardEditField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardEditField.swift; sourceTree = "<group>"; };
 		51B0B6A6DBC020A53A9EE2B2 /* ChatQueue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatQueue.swift; sourceTree = "<group>"; };
 		51D65B24A72F4217FEA70A18 /* MathFont.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MathFont.swift; sourceTree = "<group>"; };
+		520BB03D58F2AC5D5500D2B4 /* ChatBulkEdit.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatBulkEdit.swift; sourceTree = "<group>"; };
 		52146CB01C791AB02518273D /* ExtensionCommandScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExtensionCommandScreen.swift; sourceTree = "<group>"; };
 		524404EF88622426B0AA4E33 /* PaletteEnvironment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaletteEnvironment.swift; sourceTree = "<group>"; };
 		525AE0062E8E8F00E21BAEF9 /* NotesWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotesWindowController.swift; sourceTree = "<group>"; };
@@ -1633,6 +1639,7 @@
 		5B751DA923C4C086D65ED402 /* VoiceAppContext.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceAppContext.swift; sourceTree = "<group>"; };
 		5B883E55507FA5BE11A31B54 /* MCPServerConnection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MCPServerConnection.swift; sourceTree = "<group>"; };
 		5B942F9F9B93A7F3D1108B15 /* ShortcutsSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShortcutsSettingsView.swift; sourceTree = "<group>"; };
+		5BA9952C976208FE93AEDFB5 /* ChatWorkspaceCoordinator+Selection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ChatWorkspaceCoordinator+Selection.swift"; sourceTree = "<group>"; };
 		5BBDB6A6CE9564ADA2D16F53 /* AppDisplayName.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDisplayName.swift; sourceTree = "<group>"; };
 		5C2E13EA78A8A8C9648E8C54 /* SnippetEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SnippetEditorView.swift; sourceTree = "<group>"; };
 		5C46C5CB8C686EC441513CED /* NewChatAgent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewChatAgent.swift; sourceTree = "<group>"; };
@@ -2205,6 +2212,7 @@
 		D7FCA9FA81B1CF8B8C37E48A /* BackupApplier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackupApplier.swift; sourceTree = "<group>"; };
 		D817AF0E23DDCC95147B5AFB /* InstalledAIStream.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InstalledAIStream.swift; sourceTree = "<group>"; };
 		D8B10DA3A9B1CBD9A03F3DE5 /* NoteDocument.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoteDocument.swift; sourceTree = "<group>"; };
+		D8B9C88B294A75279A2929B4 /* ChatBranchTree.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatBranchTree.swift; sourceTree = "<group>"; };
 		D8DDFAE9E9F7F9A15292D329 /* DictationHistoryScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DictationHistoryScreen.swift; sourceTree = "<group>"; };
 		D902FEC80F5D07AA992A72B0 /* ExtensionStoreScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExtensionStoreScreen.swift; sourceTree = "<group>"; };
 		D91C2362D91E8B9312C31C0F /* AgentDefaultPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentDefaultPicker.swift; sourceTree = "<group>"; };
@@ -3067,11 +3075,14 @@
 			isa = PBXGroup;
 			children = (
 				00234D118353252B8E722F7F /* ChatAutoArchive.swift */,
+				D8B9C88B294A75279A2929B4 /* ChatBranchTree.swift */,
+				520BB03D58F2AC5D5500D2B4 /* ChatBulkEdit.swift */,
 				C15D904880FBD013D67F6AED /* ChatCreativity.swift */,
 				D3636E3328FCD797E53ADE5E /* ChatFolder.swift */,
 				DFE8E62B7B2C62C7AF357A13 /* ChatInstructions.swift */,
 				D20C46A7522EF31745B937E0 /* ChatPalette.swift */,
 				20E2E599DCB4A4E07D1B2DB2 /* ChatRecall.swift */,
+				07A19B72CEDD69065A5F74A8 /* ChatSelection.swift */,
 				47B339DF81171A5219C51FD1 /* ChatSidebarLayout.swift */,
 				0CD72044C7F30AB7DA0A2799 /* ChatWorkspace.swift */,
 			);
@@ -3505,6 +3516,7 @@
 				418854F883866247F80602E4 /* ChatTranscriptColors.swift */,
 				912C80C2EF2565E62B6B0A4B /* ChatWindowRelease.swift */,
 				AD145827F45836B124B4B258 /* ChatWorkspaceCoordinator.swift */,
+				5BA9952C976208FE93AEDFB5 /* ChatWorkspaceCoordinator+Selection.swift */,
 				42152030C055613CA586AAC8 /* ChatWorkspaceHost.swift */,
 				1A366C6E33DF3D2E000FBBAF /* ChatWorkspaceKeys.swift */,
 				6F528E7AD8EC4CD85B6FE1F2 /* ChatWorkspaceSidebar.swift */,
@@ -5848,7 +5860,9 @@
 				CFAC92920F69461FA653AEDA /* CameraView.swift in Sources */,
 				A26453FE6C16B6BF051D8ABE /* ChatAttachmentReader.swift in Sources */,
 				32B62A8FBA746C9F2A03B21C /* ChatAutoArchive.swift in Sources */,
+				F890CF86BE95446285AD7DFB /* ChatBranchTree.swift in Sources */,
 				D6C12802837A23FCB131DD25 /* ChatBriefing.swift in Sources */,
+				C5A31F60819E469D9D28DD79 /* ChatBulkEdit.swift in Sources */,
 				2ED6B99BCA201DB001FF5638 /* ChatChoices.swift in Sources */,
 				69C70F5A7AB20EBCD5454F63 /* ChatCitations.swift in Sources */,
 				2357B6890CBD2698A8E839C1 /* ChatComposerChips.swift in Sources */,
@@ -5886,6 +5900,7 @@
 				6E253E7EE14F3B220D897E06 /* ChatQuickLookPanel.swift in Sources */,
 				08535C9195DE87C12A659DB7 /* ChatRecall.swift in Sources */,
 				C22CDD56D33AB01C8D86F47B /* ChatReferences.swift in Sources */,
+				05A10A0BBD0523AF1F040BE3 /* ChatSelection.swift in Sources */,
 				52D95C1FF343FCD57D5425A0 /* ChatSession.swift in Sources */,
 				6F18F76C8CC301FDA5DA1CC6 /* ChatSettingsSidebar.swift in Sources */,
 				BE216D61D25E78F0F0FADEF9 /* ChatSettingsState.swift in Sources */,
@@ -5903,6 +5918,7 @@
 				E77BF5D26A6D9E9FC7E82259 /* ChatTranscriptView.swift in Sources */,
 				F4BEAEAA0961BB229DDCB4AB /* ChatWindowRelease.swift in Sources */,
 				7838D442894E3D777BCBFFD5 /* ChatWorkspace.swift in Sources */,
+				55EFC2254CE597C73A178F02 /* ChatWorkspaceCoordinator+Selection.swift in Sources */,
 				66681786025470CFCF2DE2E2 /* ChatWorkspaceCoordinator.swift in Sources */,
 				60CCD8346181EF485FB0E978 /* ChatWorkspaceHost.swift in Sources */,
 				67C53224AF698A38A2A0B28C /* ChatWorkspaceKeys.swift in Sources */,
