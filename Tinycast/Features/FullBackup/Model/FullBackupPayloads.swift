@@ -61,6 +61,7 @@ struct VoiceBackup: Codable, Sendable, Equatable {
     var dictationLanguage: String?
     var dictationAdaptsCapitalization: Bool?
     var dictationLiveInsertion: Bool?
+    var dictationPlaysSounds: Bool?
     var dictationIdleReleaseMinutes: Int?
     var consents: FullBackupConsents?
 

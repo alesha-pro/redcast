@@ -312,6 +312,7 @@ Every store the app persists and its decision, as `FullBackupCoverage` states it
 | `dictationDestination` | UserDefaults (`AppSettingsKey.dictationDestination`) | Excluded: An import must not change where dictated text is sent. |
 | `dictationAdaptsCapitalization` | UserDefaults (`AppSettingsKey.dictationAdaptsCapitalization`) | Voice & Dictation |
 | `dictationLiveInsertion` | UserDefaults (`AppSettingsKey.dictationLiveInsertion`) | Voice & Dictation |
+| `dictationPlaysSounds` | UserDefaults (`AppSettingsKey.dictationPlaysSounds`) | Voice & Dictation |
 | `dictationIdleReleaseMinutes` | UserDefaults (`AppSettingsKey.dictationIdleRelease`) | Voice & Dictation |
 | `dictationHistoryRetentionDays` | UserDefaults (`AppSettingsKey.dictationHistoryRetention`) | Excluded: An import must never carry an instruction to delete text. |
 | `dictationHistoryKeepsVoiceReplies` | UserDefaults (`AppSettingsKey.dictationHistoryVoiceReplies`) | Excluded: An import must never start keeping voice replies. |

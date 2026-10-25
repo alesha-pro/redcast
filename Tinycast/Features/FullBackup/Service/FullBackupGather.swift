@@ -65,6 +65,7 @@ enum FullBackupGather {
             dictationMode: settings.dictationMode.rawValue, dictationLanguage: settings.dictationLanguage,
             dictationAdaptsCapitalization: settings.dictationAdaptsCapitalization,
             dictationLiveInsertion: settings.dictationLiveInsertion,
+            dictationPlaysSounds: settings.dictationPlaysSounds,
             dictationIdleReleaseMinutes: settings.dictationIdleRelease.rawValue,
             consents: .recording([
                 .cloudDictation: voice.cloudDictation, .askByVoice: voice.askEnabled,

@@ -97,7 +97,8 @@ struct FullBackupTest {
             dictationModel: .api(connection: connectionID, model: "flash", effort: nil), cleanup: false,
             vocabulary: "Redcast, Tinycast", languages: ["ru", "en"], appContext: "screenshot", modes: modes,
             askMode: "pushToTalk", askModel: nil, askAgent: agentID, dictationMode: "toggle", dictationLanguage: "ru",
-            dictationAdaptsCapitalization: true, dictationLiveInsertion: false, dictationIdleReleaseMinutes: 5,
+            dictationAdaptsCapitalization: true, dictationLiveInsertion: false, dictationPlaysSounds: false,
+            dictationIdleReleaseMinutes: 5,
             consents: FullBackupConsents([.cloudDictation, .dictationAppScreenshot]))
     }()
 

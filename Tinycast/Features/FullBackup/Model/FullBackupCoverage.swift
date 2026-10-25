@@ -25,6 +25,7 @@ enum FullBackupCoverage {
         .dictationDestination: .excluded("An import must not change where dictated text is sent."),
         .dictationAdaptsCapitalization: .section(.voice),
         .dictationLiveInsertion: .section(.voice),
+        .dictationPlaysSounds: .section(.voice),
         .dictationIdleRelease: .section(.voice),
         .dictationHistoryRetention: .excluded("An import must never carry an instruction to delete text."),
         .dictationHistoryVoiceReplies: .excluded("An import must never start keeping voice replies."),

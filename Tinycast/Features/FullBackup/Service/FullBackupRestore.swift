@@ -284,6 +284,7 @@ enum FullBackupRestore {
         if let language = backup.dictationLanguage { settings.dictationLanguage = language }
         if let flag = backup.dictationAdaptsCapitalization { settings.dictationAdaptsCapitalization = flag }
         if let flag = backup.dictationLiveInsertion { settings.dictationLiveInsertion = flag }
+        if let flag = backup.dictationPlaysSounds { settings.dictationPlaysSounds = flag }
         if let raw = backup.dictationIdleReleaseMinutes, let value = DictationIdleRelease(rawValue: raw) {
             settings.dictationIdleRelease = value
         }
