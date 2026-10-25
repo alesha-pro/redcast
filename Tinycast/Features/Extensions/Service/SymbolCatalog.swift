@@ -7,7 +7,7 @@ struct SymbolCategory: Identifiable, Hashable, Sendable {
 
     static let suggested = SymbolCategory(id: "tinycast.suggested", title: String(localized: "Suggested"))
     static let all = SymbolCategory(id: "tinycast.all", title: String(localized: "All Symbols"))
-    static let bundled = SymbolCategory(id: "tinycast.bundled", title: "Tinycast")
+    static let bundled = SymbolCategory(id: "tinycast.bundled", title: "Redcast")  // Fork: the app's name
 }
 
 /// Read from `CoreGlyphs.bundle` at runtime; every read is optional, with a curated fallback.

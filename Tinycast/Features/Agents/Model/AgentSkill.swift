@@ -114,7 +114,7 @@ struct AgentContext: Equatable, Sendable {
     /// An ACP agent's first message of a session: the folder's context, read by its own tools.
     func briefing() -> String {
         var sections = [
-            "# Context from Tinycast",
+            "# Context from Redcast",
             "You are working as \(profile.name) in \(profile.directory). This block is context for "
                 + "the conversation, not a request; the user's message follows it."
         ]

@@ -105,5 +105,5 @@ extension InstalledAIKind {
         {"share":"disabled","snapshots":false,"agents":{"\(openCodeAgent)":{"system":\
         "You are generating text inside Tinycast. Use only the conversation in this request.",\
         "permissions":[{"action":"*","resource":"*","effect":"deny"}]}}}
-        """
+        """.forkBranded  // Fork: the model is told it is in Redcast
 }

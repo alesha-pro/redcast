@@ -38,11 +38,6 @@ struct AboutView: View {
             .formStyle(.grouped)
             .settingsScrollTarget(.about)
 
-            // Fork: the AGPL credit a renamed build owes upstream; rebrand.mjs never renames it.
-            Text("Based on Tinycast by Abue Ammar")
-                .font(.caption2)
-                .foregroundStyle(.tertiary)
-                .padding(.bottom, Theme.Spacing.xs)
             // Outside the form, so the copyright stays pinned to the bottom edge.
             footer
                 .padding(.bottom, Theme.Spacing.xxl)
@@ -92,9 +87,15 @@ struct AboutView: View {
     }
 
     private var footer: some View {
-        Text("© 2026 Abue Ammar · Released under AGPL-3.0")
-            .font(.caption2)
-            .foregroundStyle(.tertiary)
+        // Fork: AGPL §5(d)'s notices: copyrights, the licence's freedoms, no warranty; License above.
+        VStack(spacing: Theme.Spacing.xs / 2) {
+            Text("A modified version of Tinycast, © 2026 Abue Ammar.")
+            Text("Changes © 2026 Alexey Fateev. Free to share and change under the GNU AGPL v3. No warranty.")
+        }
+        .font(.caption2)
+        .foregroundStyle(.tertiary)
+        .multilineTextAlignment(.center)
+        .padding(.horizontal, Theme.Spacing.xl)
     }
 }
 
@@ -111,7 +112,7 @@ private struct AboutLink: Identifiable {
     let detail: String
     let url: URL
 
-    // Fork: Redcast's site and repository, and the upstream it is built on; no author promotion.
+    // Fork: Redcast's site, its source and its licence; no author promotion.
     static let all: [AboutLink] = [
         AboutLink(
             id: "website", glyph: .symbol("globe"), title: "Redcast",
@@ -122,9 +123,9 @@ private struct AboutLink: Identifiable {
             detail: "github.com/alesha-pro/redcast",
             url: URL(string: "https://github.com/alesha-pro/redcast")!),
         AboutLink(
-            id: "upstream", glyph: .symbol("arrow.triangle.branch"), title: "Tinycast",
-            detail: "github.com/abue-ammar/tinycast",
-            url: URL(string: "https://github.com/abue-ammar/tinycast")!)
+            id: "license", glyph: .symbol("doc.text"), title: String(localized: "License"),
+            detail: "GNU AGPL v3",
+            url: URL(string: "https://github.com/alesha-pro/redcast/blob/main/LICENSE")!)
     ]
 }
 

@@ -1,6 +1,6 @@
 # Raycast import
 
-Tinycast reads the `.rayconfig` written by Raycast v2.x: a `RAYCFG3` container holding an AES-256-GCM
+Redcast reads the `.rayconfig` written by Raycast v2.x: a `RAYCFG3` container holding an AES-256-GCM
 payload under a scrypt-derived key. It is the only format read — the v1.x export and the Raycast X beta
 between them are both gone, deleted rather than carried, as of **v0.10.5**.
 
@@ -35,7 +35,7 @@ and a `quicklinks` object holding `quicklinks` plus `openWithPlatforms`.
 
 Raycast encrypts even when the user never chose a password — it generates one and stores it in the
 login keychain (service `Raycast`, account `export_passphrase`), viewable at Raycast → Settings →
-Extensions → Export Settings & Data. **Tinycast never reads the keychain**; the user supplies the
+Extensions → Export Settings & Data. **Redcast never reads the keychain**; the user supplies the
 passphrase.
 
 ## Mapping
@@ -53,7 +53,7 @@ import already does. Importing at least one quicklink turns `quicklinksEnabled` 
 grants no permission class.
 
 Clipboard entries with the Boolean `pinned: true` remain pinned, for both text and existing images,
-so they are exempt from Tinycast's retention pruning even when their original `createdAt` is old.
+so they are exempt from Redcast's retention pruning even when their original `createdAt` is old.
 The pin flag has no timestamp or order in the observed v2.x clipboard payload; `pinnedAt` uses
 `createdAt` as a deterministic fallback, so imported pins sort by creation date, oldest first.
 Missing, false or malformed pin flags leave an entry unpinned and subject to the configured retention.
@@ -65,7 +65,7 @@ have their own importer, described in
 ## Layout
 
 `RaycastDecoder` unwraps the container and returns Raycast's own values; `RaycastImportReader` turns
-those into Tinycast's domain types. That is the same pure-layer / platform-layer split
+those into Redcast's domain types. That is the same pure-layer / platform-layer split
 `Features/WindowManagement/` uses — the reader needs AppKit, so it lives in `Service/` and is covered by
 the app build. `RaycastClipboardImport` holds the clipboard mapping with an injected clock and file
 existence check; `raycast-test` compiles it alongside the real `ClipboardStore` to cover pin metadata

@@ -36,12 +36,12 @@ struct ScreenAgentTools: AgentToolProvider {
             return .failure(call.id, "The screen is read only in a chat the user is writing in.")
         }
         guard await isEnabled() else {
-            return .failure(call.id, "Screen Awareness is off in Tinycast, so the screen cannot be read.")
+            return .failure(call.id, "Screen Awareness is off in Redcast, so the screen cannot be read.")
         }
         guard isTrusted() else {
             return .failure(
                 call.id,
-                "Tinycast lacks the Accessibility permission, so it cannot read the screen. Tell the user.")
+                "Redcast lacks the Accessibility permission, so it cannot read the screen. Tell the user.")
         }
         guard let target = target() else {
             return .failure(call.id, "No window of another app is on screen.")
@@ -64,7 +64,7 @@ struct ScreenAgentTools: AgentToolProvider {
         AITool(
             name: name,
             description:
-                "Read what the user has on screen behind Tinycast: the app, window title, page URL, "
+                "Read what the user has on screen behind Redcast: the app, window title, page URL, "
                 + "selected text, the field being typed in and the window's readable text. Text only, "
                 + "read now. Use it when the user refers to what they are looking at.",
             parameters: .object(["type": .string("object"), "properties": .object([:])]),

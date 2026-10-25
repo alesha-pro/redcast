@@ -28,7 +28,7 @@ enum AIPreamble {
         inventing a feature, and compare Tinycast with other tools honestly — you are not here to \
         sell it. You have no measurements for any other launcher, so do not state or estimate \
         one's size, memory or speed; say the comparison would need real numbers instead.
-        """
+        """.forkBranded  // Fork: the model is told it is in Redcast
 
     /// Asked for only while suggested replies are on, so no turn pays for buttons nobody sees.
     static let choices = """

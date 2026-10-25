@@ -1,4 +1,4 @@
-# Tinycast
+# Redcast
 
 A native macOS menu-bar launcher: fuzzy app launcher, global and per-app hotkeys, a text/image
 clipboard history, an inline calculator, a floating note, snippets, quicklinks, window management
@@ -8,7 +8,7 @@ dependencies.
 
 ## Posture: modern-first, always
 
-**Tinycast supports macOS 26 and later, with macOS 27 strongly preferred.** Swift 6+ with complete
+**Redcast supports macOS 26 and later, with macOS 27 strongly preferred.** Swift 6+ with complete
 strict concurrency is required. Prefer the latest Swift patterns and modern Apple APIs.
 
 Prefer current APIs and language features:
@@ -79,7 +79,7 @@ feature's doc, under its own `## Invariants`.
   the forced-dark build shipped, restated rather than re-derived. Retune a light branch freely — change
   a dark one only when the task is to change Dark. `AppAppearance` drives `NSApp.appearance`, and
   `.system` maps to `nil` so AppKit follows macOS on its own.
-- **Tinycast presents its own dialogs — never `NSAlert` or a system popover.** A question
+- **Redcast presents its own dialogs — never `NSAlert` or a system popover.** A question
   goes through `DialogController`, a report through a HUD via `HUDPresenter`.
 - **A networked feature fetches on a private `.ephemeral`, `urlCache = nil` session**, never
   `URLSession.shared`, so its own cache file stays the only copy on disk. `CurrencyRateStore` is the

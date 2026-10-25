@@ -263,7 +263,7 @@ struct ACPTests {
                 asked.requests.append(request)
                 return answer.choice ?? request.dialogOptions.first?.id
             },
-            context: { _ in "# Context from Tinycast\nYou are Fake." },
+            context: { _ in "# Context from Redcast\nYou are Fake." },
             briefing: { $0 == unattended ? AgentBackgroundBriefing.acp : nil })
         host.onOptions = { _, _, options in if let options { seen.options.append(options) } }
         let server = AIToolServer(
@@ -360,7 +360,7 @@ struct ACPTests {
         host.stopAll()
         let relaunched = AgentACPHost(
             store: store, permit: { _, request in request.dialogOptions.first?.id },
-            context: { _ in "# Context from Tinycast" })
+            context: { _ in "# Context from Redcast" })
         let reloaded = await turn("After relaunch", chat: chat, host: relaunched)
         let afterRelaunch = text(reloaded.events)
         expect(
@@ -789,7 +789,7 @@ extension ACPTests {
         let unattended = UUID()
         let host = AgentACPHost(
             store: AgentStore(directory: root.appendingPathComponent("support")),
-            permit: { _, _ in nil }, context: { _ in "# Context from Tinycast" },
+            permit: { _, _ in nil }, context: { _ in "# Context from Redcast" },
             briefing: { $0 == unattended ? AgentBackgroundBriefing.acp : nil })
         defer {
             host.stopAll()
@@ -819,7 +819,7 @@ extension ACPTests {
         let host = AgentACPHost(
             store: AgentStore(directory: root.appendingPathComponent("support")),
             permit: { _, request in request.dialogOptions.first?.id },
-            context: { _ in "# Context from Tinycast" })
+            context: { _ in "# Context from Redcast" })
         return (agent, host, root)
     }
 
@@ -1070,7 +1070,7 @@ extension ACPTests {
         func host() -> AgentACPHost {
             let made = AgentACPHost(
                 store: store, permit: { _, request in request.dialogOptions.first?.id },
-                context: { _ in "# Context from Tinycast" },
+                context: { _ in "# Context from Redcast" },
                 briefing: { $0 == unattended ? AgentBackgroundBriefing.acp : nil })
             made.onOptions = { _, _, options in if let options { seen.options.append(options) } }
             return made

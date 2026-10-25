@@ -63,7 +63,7 @@ below, and the `Fork:`-marked lines listed under [Upstream touches](#upstream-to
   line is more than 430 days old rewrites the file atomically without the lines older than 400 days
   (and any it cannot read). So it holds 400–430 days and is rewritten about once a month, never on a
   timer. A failed write never touches the reply. **Usage log → Clear…** at the section's foot
-  removes the file under the same lock after Tinycast's own confirmation; chats keep their usage,
+  removes the file under the same lock after Redcast's own confirmation; chats keep their usage,
   and the next logged reply starts a new file.
 - **The log stays readable both ways.** A reader ignores fields past the ninth and reads missing
   trailing ones as unreported, so a later build can add columns; an origin it does not know is
@@ -186,7 +186,7 @@ search keywords in `SettingsSearchCatalog`.
   no text of the selection or the answer. Do the same with Ask by Voice, Edit Selection by Voice, a
   cloud dictation in a mode, an extension's `AI.ask` and a new chat's title. A Quick Action on Apple Intelligence adds nothing.
 - Stop a streaming Quick Action after its first words: no line, unless usage had already arrived.
-- Usage log → Clear…: Tinycast's own dialog asks; Clear Log removes `ai-usage.tsv`, the Quick Action
+- Usage log → Clear…: Redcast's own dialog asks; Clear Log removes `ai-usage.tsv`, the Quick Action
   lines leave the section at once while chats keep theirs, and the next Quick Action starts a new
   file.
 - The trend: Day shows a bar per hour, Week seven and Month one per day; the current one is tinted

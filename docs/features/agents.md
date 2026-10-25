@@ -4,7 +4,7 @@ An **agent** lives in one folder. A chat given an agent works there: its turns r
 `AGENTS.md`, the skills in `<folder>/.agents/skills`, `~/.agents/skills`, `~/.config/agents/skills`
 and `~/.claude/skills` (all of them, or only those picked in its editor), the agent's own notes and
 instructions, and its built-in tools — files, terminal, web and memory — act there. Agents are this
-fork's; upstream lists AI-assistant features under [not planned](../not-planned.md), so the feature
+fork's; upstream lists AI-assistant features under [not planned](https://github.com/abue-ammar/tinycast/blob/main/docs/not-planned.md), so the feature
 stays in `Features/Agents/` plus the few lines in `AIChatCoordinator`, `QuickAICoordinator`,
 `AIChatDetailView`, `AISettingsView` and `AppCore` that wire it in. An agent can also work with no
 window, from `@handle` in root search or on a schedule, and is a launcher row of its own with an
@@ -57,7 +57,7 @@ optional chord: see [background and scheduled agents](background-agents.md).
   Allow also covers runs nobody is watching. `agents.json` has no `SettingsFileKey` and is not in
   `SettingsBackupCoverage`, and it must stay out of both while it carries rules, so an import can
   never grant an agent a capability.
-- **A general assistant, told how much to do.** An agent chat on Tinycast's loop is sent the agent's
+- **A general assistant, told how much to do.** An agent chat on Redcast's loop is sent the agent's
   own prompt (`AgentCoordinator.loopInstructions`) in place of the shared one: no launcher
   self-description (`AIPreamble`), the user's system prompt and the suggested-replies block where those
   are on (the block only with someone watching), and the unattended briefing in a background run, which
@@ -72,7 +72,7 @@ optional chord: see [background and scheduled agents](background-agents.md).
   which change most. Agents on Codex or Claude keep the shared prompt with the agent's after it.
 - **The prompt stays put; the turn carries the time.** The agent's prompt names the user's time zone
   (`Europe/Moscow (UTC+03:00)`) and no date, so a provider's prompt cache holds from one turn and one
-  day to the next; the shared prompt's quarter-hour clock is left out of an agent chat on Tinycast's
+  day to the next; the shared prompt's quarter-hour clock is left out of an agent chat on Redcast's
   loop. `AgentTurnLead` puts the date and time to the minute, with the run's effort and round budget,
   at the head of the turn's question as the loop sends it (`[Now: Friday 2026-10-23 22:45,
   Europe/Moscow. Balanced effort: tools only as the task needs them, at most 25 rounds.]`), never
@@ -246,7 +246,7 @@ optional chord: see [background and scheduled agents](background-agents.md).
   an Anthropic cache write is new input billed above it, so it counts as input. Prompt = input +
   cached on every route, and the usage card's "cached" share is the hit rate.
 - **One plan for the whole run.** `update_plan` belongs to no family and is the agent's own (risk
-  own), so every agent on Tinycast's loop has it and it never asks. The model sends the whole checklist
+  own), so every agent on Redcast's loop has it and it never asks. The model sends the whole checklist
   each time; `AgentPlanTools` shows it as a reasoning fold with the same lines `ACPEventMapper` draws for
   an ACP agent's plan (`AgentPlan.checklist`) and answers with where it stands ("Plan updated: 1 of 3
   steps done. Now: …"). The loop keeps the latest one for the rest of the run, nowhere on disk: a plan
@@ -289,7 +289,7 @@ optional chord: see [background and scheduled agents](background-agents.md).
   [ui.md](../ui.md#colour-the-raycast-palette-fork).
 - **A long agent chat keeps notes on what no longer fits, made once and grown rarely.**
   `ChatSession.requestMessages` drops a chat's oldest turns past its text budget. For an agent chat on
-  Tinycast's loop, `AgentLoopProvider` first reads the chat's history (`AgentCompaction.Source`, read on
+  Redcast's loop, `AgentLoopProvider` first reads the chat's history (`AgentCompaction.Source`, read on
   the main actor when the turn starts) and counts what was dropped. Nothing dropped: no file is read and
   no request is made. Dropped and already covered: the stored notes are reused, with no request.
   Dropped past them: one request to the chat's own model, with no tools, folds the notes so far and only
@@ -396,8 +396,8 @@ optional chord: see [background and scheduled agents](background-agents.md).
   chat's turns from before it, captured as `session/new` answers, keyed by chat; when a slash
   command opens the session, the briefing waits for the next ordinary turn and still carries only
   those, never the command's own turn and reply, which the agent already holds.
-- **Tinycast lends an ACP agent no file system and no terminal.** `initialize` declares `fs` and
-  `terminal` off and every such request is refused; [why](#tinycasts-own-fs-and-terminal).
+- **Redcast lends an ACP agent no file system and no terminal.** `initialize` declares `fs` and
+  `terminal` off and every such request is refused; [why](#redcasts-own-fs-and-terminal).
 
 ## A new chat's agent
 
@@ -421,7 +421,7 @@ An agent whose `runtime` is set runs over the [Agent Client Protocol](https://ag
 newline-delimited JSON-RPC 2.0 on the agent's stdio. `AgentRuntime.preset` gives the commands —
 `npx -y @agentclientprotocol/claude-agent-acp`, `npx -y @agentclientprotocol/codex-acp`, `gemini
 --acp`, `opencode acp`, `goose acp`, `hermes acp` — and the editor lets either half be rewritten.
-They run on the user's own logins and subscriptions; Tinycast never sees a key.
+They run on the user's own logins and subscriptions; Redcast never sees a key.
 
 - **One process per agent, one session per chat.** `AgentACPHost` launches the process in the agent's
   folder through `ExecutableLocator`, so `npx`, `node` and Homebrew tools resolve as in Terminal;
@@ -432,7 +432,7 @@ They run on the user's own logins and subscriptions; Tinycast never sees a key.
   own, and two agents may both say `sess_1`, so turns, updates and permission requests are routed
   by agent and session together.
 - **Its sessions show once in Agent Sessions.** A Claude or Codex session whose id is in
-  `acpSessions` is listed only as its Tinycast chat (see [agent-sessions.md](agent-sessions.md)).
+  `acpSessions` is listed only as its Redcast chat (see [agent-sessions.md](agent-sessions.md)).
 - **Nothing outlives the agent.** An ACP agent is a tree — `npx`, the adapter, the vendor CLI it
   spawns (Claude Code's is about 380 MB together) — and closing stdin lets the top go while a
   grandchild lingers, orphaned to launchd. `ProcessTree` reads the descendants by `proc_listchildpids`
@@ -456,9 +456,9 @@ They run on the user's own logins and subscriptions; Tinycast never sees a key.
   only the stored session id. A turn nobody is watching adds the unattended briefing
   after the context, on every such turn but a slash command's, which goes as typed
   ([background agents](background-agents.md#while-and-after-a-run)).
-- **Tinycast offers no fs or terminal of its own.** `initialize` declares both off, so the agent
+- **Redcast offers no fs or terminal of its own.** `initialize` declares both off, so the agent
   uses its own tools and asks about them with `session/request_permission`; any `fs/*`, `terminal/*`
-  or other request is answered with method-not-found ([why](#tinycasts-own-fs-and-terminal)). The
+  or other request is answered with method-not-found ([why](#redcasts-own-fs-and-terminal)). The
   permission dialog lists the agent's own options, allows first and the least committal refusal
   last, where the dialog keeps its cancel; the agent remembers an "always" itself. Stop sends
   `session/cancel` and answers every open permission request as cancelled. A dialog closed
@@ -501,7 +501,7 @@ They run on the user's own logins and subscriptions; Tinycast never sees a key.
   arrived, any name without a `/`, so `/Users/me` stays text. Other chats never show the card.
 - **Models, reasoning and modes are the agent's.** A session's Session Config Options
   (`configOptions` in the `session/new` and `session/load` answers) are its selects; booleans are
-  never sent to Tinycast, which declares none. The first option of category `model` takes the
+  never sent to Redcast, which declares none. The first option of category `model` takes the
   model picker's place, `thought_level` the reasoning picker's and `mode` sits after them, in the
   same composer style as an API chat's; every other select (Claude Code's Fast mode and agent,
   Codex's collaboration mode and Fast mode) is in one ⋯ menu. An agent that sends only the older
@@ -519,10 +519,10 @@ They run on the user's own logins and subscriptions; Tinycast never sees a key.
 - **The chat's MCP servers ride `session/new`.** Command servers always, HTTP ones when the agent
   declares `mcpCapabilities.http`, narrowed by the chat's tools menu like any other route.
 
-### Tinycast's own fs and terminal
+### Redcast's own fs and terminal
 
 ACP lets a client offer `fs/read_text_file`, `fs/write_text_file` and `terminal/*`, so that an
-editor can serve unsaved buffers, see each write and run commands in its own terminal. Tinycast
+editor can serve unsaved buffers, see each write and run commands in its own terminal. Redcast
 offers none of them, by decision rather than omission:
 
 - **No adapter in the presets needs them.** `claude-agent-acp` (0.94) and `codex-acp` (2.2) carry
@@ -530,11 +530,11 @@ offers none of them, by decision rather than omission:
   Codex edit and run with their own tools, ask with `session/request_permission`, and report diffs
   and output as tool content, which the rows above already show.
 - **The one that would use `fs/*` gains nothing.** Gemini CLI routes its file tools through the
-  client when offered. Tinycast has no editor buffer to serve, and its diffs already arrive, so the
-  offer would only move Gemini's writes into Tinycast, a second write path that would need its own
+  client when offered. Redcast has no editor buffer to serve, and its diffs already arrive, so the
+  offer would only move Gemini's writes into Redcast, a second write path that would need its own
   folder boundary beside the agent's.
-- **A client terminal would run an agent's commands as Tinycast's children.** They would run outside
-  Codex's sandbox, and Tinycast would own their lifetimes, output buffers and teardown for agents
+- **A client terminal would run an agent's commands as Redcast's children.** They would run outside
+  Codex's sandbox, and Redcast would own their lifetimes, output buffers and teardown for agents
   whose own runners already do this. That is the opposite of the lightweight posture: no resident
   process, nothing left running.
 
@@ -592,7 +592,7 @@ Background runs and schedules add their own files, listed in
 The composer's agent menu is `AIAgentPicker` in `AIChatDetailView.swift`, beside the model picker,
 and an ACP chat's pickers are `AIAgentOptionPickers` there, because the composer's label and menu
 styles are private to that file. The agent editor's Model row for an ACP agent lists the models its
-last session in this run of Tinycast offered (and "The agent's default"), or is a text field until
+last session in this run of Redcast offered (and "The agent's default"), or is a text field until
 one has started.
 
 ## Tools
@@ -617,7 +617,7 @@ The notes family is off for every agent until ticked, and offered only while Not
 [notes and AI](notes-ai.md). Sub-agents is off until ticked too, and so is Screen, which is offered
 only while [Screen Awareness](screen-awareness.md) is on, only on a turn the user sent from the chat
 (never a background run or a sub-agent), asks before each read unless allowed for the chat, and
-reads the window behind Tinycast as text.
+reads the window behind Redcast as text.
 
 `run_command` runs through `ShellCommandRunner.stream` with the login shell's environment in the
 agent's folder, stopped after its timeout (120 s by default, 600 s at most); escape sequences are
@@ -775,7 +775,7 @@ this way, as one provider. Nothing else changes: no router edit, no upstream lin
   turn may wait while npx fetches the adapter; then the dialog lists Claude's own options, the
   transcript shows its tool rows, and the composer shows its model, effort and mode pickers and a ⋯
   menu instead of the API model picker.
-  Switch to Plan and ask again; Stop mid-turn; quit Tinycast and continue the chat — the session
+  Switch to Plan and ask again; Stop mid-turn; quit Redcast and continue the chat — the session
   reloads. Repeat with Codex and with `hermes acp`, and with a command that does not exist (an error
   names it).
 - ACP models: in a Claude Code chat pick Sonnet and High effort, then ask which model it is; open a
@@ -783,7 +783,7 @@ this way, as one provider. Nothing else changes: no router edit, no upstream lin
   Settings → AI → Agents → the agent's editor shows Sonnet in its Model row. Pick Haiku: Fast mode
   leaves the ⋯ menu and comes back with Opus. Repeat with Codex (a model's own efforts; Plan under
   ⋯ as Collaboration mode) and with `hermes acp` (its provider models, no effort). In two Codex
-  chats pick a different model and effort in each, wait two minutes (or quit Tinycast) and continue
+  chats pick a different model and effort in each, wait two minutes (or quit Redcast) and continue
   both: each reloads on its own picks, and a third, new chat starts on the last one picked. Pick a
   model in a chat whose session slept, then continue it: the turn runs on that model. After a
   relaunch, before any chat with it, type a model the agent does not have in the editor and start a

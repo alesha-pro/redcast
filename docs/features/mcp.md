@@ -1,10 +1,10 @@
 # MCP servers
 
-Tinycast connects [Model Context Protocol](https://modelcontextprotocol.io) servers and offers their
-tools to the model during a chat. A server is either a remote HTTP endpoint or a command Tinycast
-runs on this Mac; either way it advertises tools, Tinycast namespaces them by the server's handle,
-and the model calls what it wants. On an API route Tinycast is the MCP client; on the Codex and
-Claude routes the vendor CLI is, and Tinycast supplies the servers and answers for them.
+Redcast connects [Model Context Protocol](https://modelcontextprotocol.io) servers and offers their
+tools to the model during a chat. A server is either a remote HTTP endpoint or a command Redcast
+runs on this Mac; either way it advertises tools, Redcast namespaces them by the server's handle,
+and the model calls what it wants. On an API route Redcast is the MCP client; on the Codex and
+Claude routes the vendor CLI is, and Redcast supplies the servers and answers for them.
 `Features/MCP/` owns servers and knows nothing about chat; [AI](ai.md) owns tool calling and knows
 nothing about MCP. `AIChatCoordinator.send` is the one place the two meet.
 
@@ -47,7 +47,7 @@ nothing about MCP. `AIChatCoordinator.send` is the one place the two meet.
   so the shape that could produce one is never written down. It also means a later turn sees the
   model's own answer rather than the raw tool output it was billed for once already.
 - **A dialog can grant a server, and only Settings can withhold one.** `MCPTrust` is `.ask` by
-  default; the first call of a conversation goes through Tinycast's own three-way dialog. **Always
+  default; the first call of a conversation goes through Redcast's own three-way dialog. **Always
   Allow** persists `.always`, **Allow This Chat** grants for that `ChatSession.id` alone, and **Don't
   Allow** — which is what Escape does — refuses that one call and lets the next ask again. Escape is
   never allowed to persist a decision, and `.never` is set on the server's row in Settings.
@@ -67,7 +67,7 @@ nothing about MCP. `AIChatCoordinator.send` is the one place the two meet.
   number bounds a CLI route, in the terms its own client counts in: Claude takes it as
   `--max-turns`, which bounds model requests exactly as the loop's rounds do, and Codex — which
   names no round at all — is interrupted once a turn has spent that many **calls**, which is
-  stricter, never looser. Neither result size is Tinycast's to cut there: the output goes back to
+  stricter, never looser. Neither result size is Redcast's to cut there: the output goes back to
   the model inside the CLI, and what the transcript keeps is the row. Unlimited reaches a CLI route
   as an `AIToolServerSession.rounds` of `nil`: Claude is given no `--max-turns`, since it has no
   cap without one, and Codex counts nothing, so there too only the model or Stop ends the turn. A
@@ -82,28 +82,28 @@ nothing about MCP. `AIChatCoordinator.send` is the one place the two meet.
 - **Who runs the loop is the route's own answer, and it is the only thing that differs.**
   `AIModelCapabilities.tools` is true for `.api`, for Codex and for the Claude command, and false
   for Apple Intelligence, Grok, OpenCode and Cursor — the three CLIs whose configurations merge
-  with no opt-out, which is why none of them may be handed a server. On an API route Tinycast is
+  with no opt-out, which is why none of them may be handed a server. On an API route Redcast is
   the MCP client and `AIToolLoopProvider` runs the loop. On the two subscription routes the vendor
   CLI is the MCP client: `AIModelSelection.runsItsOwnTools` says so, and `AIChatCoordinator` hands
   the route an `AIToolServerSession` instead of wrapping it. The same servers — less an OAuth one
   nobody is signed into, which a CLI could not explain — the same `MCPTrust` and the same
   `ChatToolUse` rows either way.
 - **A CLI is told what to run, never where to keep it.** Launch arguments, the child's environment
-  and files inside Tinycast's own workspace are the whole surface; `~/.codex` and `~/.claude` are
-  never written. The secrets Tinycast keeps never reach argv, where `ps` would show them: Codex
+  and files inside Redcast's own workspace are the whole surface; `~/.codex` and `~/.claude` are
+  never written. The secrets Redcast keeps never reach argv, where `ps` would show them: Codex
   reads them from the app-server's environment through the config keys that name a variable, and
   Claude reads them from a `0600` file written per turn into the private workspace and deleted when
-  the turn ends — or, when Tinycast did not live to see it end, by `InstalledAIManager` at the next
+  the turn ends — or, when Redcast did not live to see it end, by `InstalledAIManager` at the next
   launch. A credential typed into a server's URL is not one of them: it is part of the URL, which
   Codex takes as a launch argument like the rest of its configuration. Neither
   route is ever told to persist a decision — no Codex `persist`, no Claude `updatedPermissions` —
   because only Settings may change a standing one.
-- **The user's own CLI servers stay out of a Tinycast thread, and never mix with Tinycast's.**
+- **The user's own CLI servers stay out of a Redcast thread, and never mix with Redcast's.**
   Codex's launch disables every one of them by name, read first by a short-lived
   `codex mcp list --json` under the same flags the app-server runs with, because that command
   starts nothing and because a name the configuration does not define cannot be disabled — naming
-  one makes the whole config refuse to load. Tinycast's own go by `tinycast-<handle>`: `-c` sets
-  single keys, so a Tinycast `github` under the reader's own name would inherit everything of theirs
+  one makes the whole config refuse to load. Redcast's own go by `tinycast-<handle>`: `-c` sets
+  single keys, so a Redcast `github` under the reader's own name would inherit everything of theirs
   it did not set — their `env` table with its literal secrets, `cwd`, a per-tool `approval_mode`
   that skips consent — and a remote one over their stdio one makes Codex refuse the whole config.
   A reader's server already named `tinycast-<handle>` for an armed handle refuses the launch rather
@@ -112,9 +112,9 @@ nothing about MCP. `AIChatCoordinator.send` is the one place the two meet.
   so does a name with a dot or `=`, which `-c` splits and so cannot switch off. The Providers row
   and the failed turn both say why. Claude's `--strict-mcp-config` does it in one flag. This is
   what closes the leak the route shipped with: its launch flags never touched `mcp_servers`, so
-  every server in `~/.codex/config.toml` used to start inside a Tinycast thread, invisible because
+  every server in `~/.codex/config.toml` used to start inside a Redcast thread, invisible because
   `CodexTurnRunner` ignored the items.
-- **Every Codex tool call asks Tinycast, read-only ones included.** Left alone, the app-server runs
+- **Every Codex tool call asks Redcast, read-only ones included.** Left alone, the app-server runs
   a tool its server annotates `readOnlyHint: true` without raising an elicitation, even under
   `approvalPolicy: "untrusted"` — and that annotation is the server's own claim. So each server is
   passed with `default_tools_approval_mode="prompt"`, which makes Codex ask for every tool; the
@@ -124,7 +124,7 @@ nothing about MCP. `AIChatCoordinator.send` is the one place the two meet.
   routes them through approval (codex-rs `spec_plan.rs`, `read_mcp_resource.rs`, 0.156). So on
   Codex **Ask Each Chat** covers a server's tools, not its resources; **Never Allow** still keeps
   the server out, because it is never passed.
-- **Tinycast exposes nothing back.** A server request — sampling, elicitation, roots — is declined
+- **Redcast exposes nothing back.** A server request — sampling, elicitation, roots — is declined
   with a JSON-RPC error. The client advertises no capabilities in `initialize`.
 - **`Model/` stays Foundation-only.** `mcp-test` compiles the shipped models and pins the framing,
   handles, tool names, output flattening, trust and addressing; `mcp-stdio-test` drives a real
@@ -167,7 +167,7 @@ resolved through RFC 8414, with the OIDC discovery locations as fallbacks. Its i
 a trailing slash aside — Google advertises one and publishes none — and it must advertise S256.
 A supplied client ID and optional secret take precedence, trimmed of the whitespace a paste brings;
 the secret goes as HTTP Basic, or in the form body when the server advertises
-`client_secret_post` and not Basic. Otherwise Tinycast uses RFC 7591 dynamic registration with a
+`client_secret_post` and not Basic. Otherwise Redcast uses RFC 7591 dynamic registration with a
 native public client. CIMD and device flow are not implemented.
 
 The canonical configured MCP URL is the RFC 8707 `resource` on authorization and token requests.
@@ -223,7 +223,7 @@ that must arrive as **one** user turn however many of them there are.
 
 On Codex and Claude the CLI is the MCP client, so there is no loop to wrap. `AIToolServer` is the
 hand-off — a server shaped for someone else to start — exactly as `AITool` is for the routes
-Tinycast runs itself, and `MCPServer.toolServer` is the one place the mapping happens.
+Redcast runs itself, and `MCPServer.toolServer` is the one place the mapping happens.
 `AIToolServerSession` carries the three things the route needs: what to run, who to ask, and how
 many rounds it may spend. `MCPCoordinator.toolServers` builds the list from `enabledServers`
 honouring `@slug` and dropping `.never`; `MCPCoordinator.permit` answers with `MCPTrustPolicy` and
@@ -234,7 +234,7 @@ for the first dialog to close and is then decided afresh, seeing whatever grant 
 waiting when its turn ends is never asked. An OAuth server with no live session is left out rather
 than passed without one — a CLI cannot turn a 401 into a sentence the model can work around, and a
 tool result is the only place that explanation would fit. A lent token always goes as
-`Authorization`, as Tinycast's own transport sends it, whatever header name the server kept from
+`Authorization`, as Redcast's own transport sends it, whatever header name the server kept from
 before it switched to OAuth; and a Header server with no value is offered with no header at all,
 which both encoders omit, rather than dropped — it needs no credential on the API route either.
 
@@ -245,7 +245,7 @@ server, `url` with `bearer_token_env_var` — or `env_http_headers` when the hea
 the route always passed, and one of those, `features.plugins=false`, also keeps a plugin's own
 servers out of both the listing and the launch. `CodexMCPLaunch.handle(ofServer:)` is the way
 back: an elicitation's `serverName` and an `mcpToolCall` item's `server` name a Codex server, and
-only one with the prefix is Tinycast's to ask about or to title a row with. The values live in the
+only one with the prefix is Redcast's to ask about or to title a row with. The values live in the
 app-server's environment under `TC_MCP_<server>_<key>`, two positions in the launch's own
 list rather than any spelling of the handle and key: `github-x` + `TOKEN` and `github` + `X_TOKEN`
 would upper-case to one name, and so would `token` and `TOKEN`, a header and a local key, or two
@@ -280,8 +280,8 @@ at the next launch, which removes only `tinycast-mcp-*` and `tinycast-prompt-*` 
 that launch. The turn then runs `--input-format stream-json` so the consent channel has a
 pipe to answer on, and drops `--disallowedTools "*"` — verified to remove the MCP tools along with
 the built-ins, after which the model narrates a call it never made. The question only reaches
-Tinycast if the CLI's own permission system asks it, and the reader's settings can answer first:
-an allow rule `mcp__github` written for their own `github` server matches Tinycast's too, and a
+Redcast if the CLI's own permission system asks it, and the reader's settings can answer first:
+an allow rule `mcp__github` written for their own `github` server matches Redcast's too, and a
 `defaultMode` of `bypassPermissions` skips every question. So the armed turn pins
 `--permission-mode default`, which beats a settings `defaultMode`, and passes `--settings` with a
 `permissions.ask` rule `mcp__<handle>` for every armed server, which outranks an allow rule from any
@@ -293,8 +293,8 @@ one thing this leaves open.
 `ClaudeControlProtocol` is the whole of that channel: `--permission-prompt-tool stdio` puts a
 `control_request` of subtype `can_use_tool` on stdout and takes a `control_response` of `allow`,
 with the arguments untouched, or `deny` with a reason, on stdin. `updatedPermissions` is never
-sent: it would have the CLI write its own settings, and only Tinycast's Settings may change a
-standing decision. Any other control request — a subtype Tinycast does not know, or a tool that is
+sent: it would have the CLI write its own settings, and only Redcast's Settings may change a
+standing decision. Any other control request — a subtype Redcast does not know, or a tool that is
 not one of its servers — gets the SDK's `error` response, because the CLI holds the turn until
 something answers. **It is the Agent SDK's wire format and is not documented for a host that is not
 the SDK**; a CLI release may change it, which is why everything about it is one type. The
@@ -304,7 +304,7 @@ asks no per-call question at all, so it could not express Ask Each Chat. `tool_u
 `tool_result` blocks become the two events.
 
 While Codex or Claude is the model of every live chat — Quick AI's, the window's and any window chat
-still answering after the reader left it — Tinycast keeps no connection of its own to a local server:
+still answering after the reader left it — Redcast keeps no connection of its own to a local server:
 the CLI starts its own copy, and a second would only run it twice.
 `MCPServer.runsInTinycast(whileCLIRouteSelected:)` is the rule,
 `AIChatCoordinator.everyChatRunsItsOwnTools` the verdict, and `AppCore` re-applies it whenever that

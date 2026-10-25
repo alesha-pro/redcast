@@ -22,7 +22,7 @@ struct WebSearchEnginesPanel: View {
     }
 
     private static let setupGuide = URL(string: "https://docs.searxng.org/admin/installation.html")!
-    private static let testQuery = WebSearchQuery(text: "Tinycast macOS launcher", count: 3, recency: nil)
+    private static let testQuery = WebSearchQuery(text: "Redcast macOS launcher", count: 3, recency: nil)
 
     init(configuration: WebSearchConfiguration, onDone: @escaping () -> Void) {
         _draft = State(initialValue: configuration)

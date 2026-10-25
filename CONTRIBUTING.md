@@ -1,9 +1,9 @@
 # Contributing to Redcast
 
-Redcast is a fork of [Tinycast](https://github.com/abue-ammar/tinycast) maintained by
+Redcast is a fork of [Abue Ammar's launcher](https://github.com/abue-ammar/tinycast), upstream, maintained by
 [@alesha-pro](https://github.com/alesha-pro). Issues and pull requests are welcome; what gets merged,
 and when, is the maintainer's call. For anything bigger than a fix, open an issue first so the idea
-can be settled before you build it. A fix that belongs to Tinycast itself is best sent upstream too.
+can be settled before you build it. A fix to upstream's code is best sent upstream too.
 
 What follows is the bar every change meets, yours included, whether written by hand or by an agent.
 

@@ -325,7 +325,7 @@ enum AgentBackgroundBriefing {
     static let acp = """
         # Running unattended
 
-        This turn runs in the background, started by Tinycast rather than typed by the user: nobody \
+        This turn runs in the background, started by Redcast rather than typed by the user: nobody \
         may be at the Mac, and nobody can answer a question until it ends. Permission requests are \
         declined unless someone at the Mac answers them, so do what you can without them. Finish \
         with the result as your final message: what you did, what you found, and what is left for \

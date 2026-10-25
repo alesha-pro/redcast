@@ -23,7 +23,7 @@ any `.application` entry; it opens the `.uninstall` palette sub-screen scoped to
 - **Discovery never waits on sizing.** `UninstallScanner.discover` publishes the list; the directory
   walks stream in behind it. Anything that makes the screen wait for a size — a spinner, a completeness
   gate on ↵ — puts the slow half back in front of the fast half.
-- Tinycast refuses to plan its own uninstall, compared against the **running** identity so the Dev channel
+- Redcast refuses to plan its own uninstall, compared against the **running** identity so the Dev channel
   refuses itself too.
 
 ## Layers
@@ -97,7 +97,7 @@ it is called. On a stock Mac `/usr/local/bin` is root-owned, so the row renders 
 Homebrew has made it user-owned it is removable, and the classifier reaches that from the facts
 without a special case.
 
-`UninstallIdentity.make` returns `nil` — refusing the whole uninstall — when the target is Tinycast
+`UninstallIdentity.make` returns `nil` — refusing the whole uninstall — when the target is Redcast
 itself, by bundle ID _or_ bundle URL, compared against the **running** identity so the Dev channel
 refuses itself too.
 

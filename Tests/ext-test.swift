@@ -964,6 +964,10 @@ struct ExtensionTests {
             "store Install accepts the Tinycast scheme",
             ExtensionDeepLink.route(
                 url: URL(string: "tinycast://extensions/linear/linear?source=webstore")!) == install)
+        check(  // Fork: Redcast's own scheme
+            "store Install accepts the Redcast scheme",
+            ExtensionDeepLink.route(
+                url: URL(string: "redcast://extensions/linear/linear?source=webstore")!) == install)
         check(
             "store Install accepts the path-based scheme",
             ExtensionDeepLink.route(

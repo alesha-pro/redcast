@@ -55,7 +55,7 @@ and `SettingsSearchCatalog`.
   prompt off sends none of it, and an agent's prompt still follows it; `send` and `regenerate` call
   it exactly as upstream does, so their lines merge untouched. Every chat gets the local weekday,
   date, quarter hour, zone and UTC offset. A plain chat on a route that calls tools also hears which
-  tools it has: Tinycast's `web_search` and `read_page` by name, and, while its tools menu leaves an
+  tools it has: Redcast's `web_search` and `read_page` by name, and, while its tools menu leaves an
   MCP server on, "the MCP server tools in your tool list". MCP tools are pointed at, never named: a
   message's `@server` decides which ones its request carries, the definitions name them, and the
   loop runs any name the model writes, so a list of every server's tools could pull a call past the
@@ -65,7 +65,7 @@ and `SettingsSearchCatalog`.
   Search is turned on (⌘K in Quick AI, the **+** menu in AI Chat), naming the item as the app's
   language spells it, and invents no current figures; a chat with MCP tools hears that built-in
   search is off, and gives that line only when none of its tools can look the answer up. An agent's
-  chat on Tinycast's loop gets none of it: its own prompt names the zone and describes its tools, and
+  chat on Redcast's loop gets none of it: its own prompt names the zone and describes its tools, and
   its loop leads each turn's question with the time to the minute ([agents](agents.md#invariants));
   an agent on Codex or Claude gets only the time.
 - **To the quarter hour, so the cache keeps.** The instructions open every request, and a provider's

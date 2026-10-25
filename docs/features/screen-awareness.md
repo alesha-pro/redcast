@@ -4,7 +4,7 @@
 **Open captures in** — with it attached, ready for a question: the app and window title, the page's URL in a browser, the selected text, the field the
 caret is in, the window's readable text and, when allowed, a screenshot of that window. It is the
 fork's take on Raycast's Screen Awareness; upstream lists screen reading under
-[not planned](../not-planned.md), so this feature lives only here, kept to `Features/ScreenAwareness/`
+[not planned](https://github.com/abue-ammar/tinycast/blob/main/docs/not-planned.md), so this feature lives only here, kept to `Features/ScreenAwareness/`
 plus the few lines that wire it in.
 
 ## Invariants
@@ -17,15 +17,15 @@ plus the few lines that wire it in.
 - **Enabling is consent.** The toggle confirms through `DialogController` first, then asks for
   Accessibility, as Quick Actions do. Turning the screenshot on is what asks for Screen Recording;
   without that grant a capture simply carries no picture and one HUD line says why.
-- **A stale grant is reported, not captured.** After a reinstall macOS can keep Tinycast listed and
+- **A stale grant is reported, not captured.** After a reinstall macOS can keep Redcast listed and
   `AXIsProcessTrusted` true while every call answers `kAXErrorAPIDisabled`. The reader stops at the
   first such answer from all three window lookups rather than staging a capture that holds only the
   app's name. With `AXIsProcessTrusted` true the refusal is the target's own — Chrome keeps refusing a
   client it was asked about while the grant was stale, until it is relaunched — so the dialog names
   that app and says to reopen it; otherwise it is the missing-grant dialog.
-- **Only on a gesture, and never Tinycast itself.** Nothing is read until the command runs. With the
+- **Only on a gesture, and never Redcast itself.** Nothing is read until the command runs. With the
   palette open the target is the app behind it (`PaletteCoordinator.targetApp`); with it closed, the
-  frontmost app. Tinycast's own bundle is refused with a HUD rather than captured. For an agent the
+  frontmost app. Redcast's own bundle is refused with a HUD rather than captured. For an agent the
   gesture is a message the user sends in its chat: a schedule's or the launcher's background run and a
   sub-agent never read the screen (see below).
 - **Passwords are not context.** A secure text field is skipped by role or subrole everywhere the walk
@@ -48,9 +48,9 @@ plus the few lines that wire it in.
 - **The capture is taken before anything comes forward.** Both destinations are shown only after the
   window was read, so neither the AI Chat window nor the palette can become the window captured.
 - **An agent reads the screen only when ticked, as text, and keeps nothing.** `ScreenAgentTools`
-  offers `screen_context` to an agent on Tinycast's loop with the Screen family ticked (off for
+  offers `screen_context` to an agent on Redcast's loop with the Screen family ticked (off for
   every agent until then), and only while AI and this feature are on, checked again at each call. It
-  reads the frontmost normal-layer window of a regular app other than Tinycast, found in
+  reads the frontmost normal-layer window of a regular app other than Redcast, found in
   `CGWindowListCopyWindowInfo` by owner pid at call time (no observer, no Screen Recording), through
   the same `ScreenContextReader` and `AccessibilityText` selection Ask About Screen uses, never a
   screenshot. The text goes into that call's result only, cut by `ScreenContextFormatter` under
@@ -76,7 +76,7 @@ plus the few lines that wire it in.
 | `Model/ScreenContextFormatter.swift` | The capture as the Markdown attachment, its budget and its name |
 | `Service/ScreenContextReader.swift` | The Accessibility walk, off-main: focused window, title, frame, web area URL, focused field |
 | `Service/WindowScreenshotter.swift` | Finds the window by pid and frame, captures it with ScreenCaptureKit; `ScreenRecordingAccess` |
-| `Service/ScreenAgentTools.swift` | `screen_context` for agents: the window behind Tinycast, read as text when called |
+| `Service/ScreenAgentTools.swift` | `screen_context` for agents: the window behind Redcast, read as text when called |
 | `UI/ScreenAwarenessCoordinator.swift` | The one funnel: target, permission, capture, staging; the capture is shared with Ask by Voice |
 | `Model/ScreenAwarenessDestination.swift` | AI Chat (the default, as in Raycast) or Quick AI |
 | `Settings/ScreenAwarenessSettingsSection.swift` | The AI pane's section |
@@ -120,9 +120,9 @@ bounded to 1568px like any pasted picture.
   window's picture; refused, it carries text and one HUD line points to System Settings.
 - Pick a text-only model in Quick AI and capture: only the text is staged, and a HUD says why.
 - Run Ask About Screen from the launcher (⌘Space → "Ask About Screen"): the app behind the palette is
-  what gets captured, not Tinycast, and the palette closes as AI Chat opens.
+  what gets captured, not Redcast, and the palette closes as AI Chat opens.
 - Switch **Open captures in** to Quick AI: the same capture lands in the palette's chat instead.
-- With Tinycast's Settings in front, press the shortcut: refused with a HUD.
+- With Redcast's Settings in front, press the shortcut: refused with a HUD.
 - Turn the feature off: the launcher row disappears and the shortcut does nothing.
 - Tick Screen for an agent (Settings → AI → Agents), open a page in Safari, then ask the agent in AI
   Chat what is on the page: a dialog names Safari first; allowed, the transcript shows

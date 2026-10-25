@@ -1,14 +1,17 @@
 # Updates
 
-By default, Tinycast checks GitHub Releases once a day and offers the newest release for its own
+Fork: off in Redcast. Its builds never update themselves (`Scripts/fork/install.sh` builds the next
+one), so this page describes the updater as upstream ships it.
+
+By default, Redcast checks GitHub Releases once a day and offers the newest release for its own
 channel in a native window with its release notes, installs it and relaunches. There is no Sparkle and
 no appcast: the release feed the website already reads is the feed the app reads.
 
 ## Invariants
 
-- **Tinycast installs its own updates, and Homebrew stays out of the way.** Both casks declare
+- **Redcast installs its own updates, and Homebrew stays out of the way.** Both casks declare
   `auto_updates true`, which is Homebrew's own flag for an app that manages its own version. `brew
-  update && brew upgrade` therefore skips Tinycast entirely — it is never reported outdated, never
+  update && brew upgrade` therefore skips Redcast entirely — it is never reported outdated, never
   re-downloaded, and a self-updated copy is never trashed or rolled back. `brew install`, `brew
   uninstall` and `brew list` keep working unchanged.
 - **The archive is a zip, never the DMG.** A zip expands with `ditto`; a DMG would have to be mounted,
@@ -18,9 +21,9 @@ no appcast: the release feed the website already reads is the feed the app reads
   `-Universal-` one. Intel takes the universal zip and is offered *nothing* if it is missing, since a
   thin build would install and then refuse to launch; Apple silicon prefers the thin zip and falls
   back to universal.
-- **Nobody ever runs `xattr`.** An archive Tinycast fetched itself is not quarantined — macOS sets
+- **Nobody ever runs `xattr`.** An archive Redcast fetched itself is not quarantined — macOS sets
   that flag for sandboxed downloaders and for apps that opt in with `LSFileQuarantineEnabled`, and
-  Tinycast is neither. `Quarantine` checks anyway through `getxattr`/`removexattr` rather than the
+  Redcast is neither. `Quarantine` checks anyway through `getxattr`/`removexattr` rather than the
   `xattr` tool, and an app that still carries the flag is refused rather than installed.
 - **The signature is the only integrity guarantee.** A downloaded bundle is trusted when its seal
   validates, nested helper included, *and* it either satisfies the Developer ID requirement pinned in

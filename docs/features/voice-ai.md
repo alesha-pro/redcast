@@ -50,7 +50,7 @@ tables and `AppCore`.
   (`DictationCoordinator.target`) is read locally when the dictation capsule shows, in a task that
   ends with it: its name at once, its focused window's title through Accessibility only when it is
   already granted (two calls of at most 0.25 s each, off the main actor), and the picture only with
-  Screen Recording. Nothing is read for one of Tinycast's own editors, such as a Note, whose
+  Screen Recording. Nothing is read for one of Redcast's own editors, such as a Note, whose
   nonactivating panel leaves another app frontmost. The recording never waits on it to start, and a
   finished one waits at most 0.5 s more for a capture still running, then goes without it. Ask
   by Voice and Edit Selection by Voice each register one Carbon hotkey, only when bound to a key
@@ -87,7 +87,7 @@ tables and `AppCore`.
   cannot be read refuses the press and stops the recording at once, so nothing is sent.
 - **The capture is material, not instructions.** The Ask instructions say so, the screen Markdown
   opens by saying so, and the spoken request travels last, after the text and the picture.
-- **Only a body Tinycast writes with `input_audio` hears audio.** `VoiceRoutePolicy.accepts` takes
+- **Only a body Redcast writes with `input_audio` hears audio.** `VoiceRoutePolicy.accepts` takes
   every OpenAI-compatible connection and never Anthropic. A disabled route is skipped.
 - **Dictation thinks as little as the model offers, and Gemini is never sent a temperature.** Gemini
   3 cannot turn reasoning off and loops below its default temperature; `fastestEffort` prefers any
@@ -142,10 +142,10 @@ tables and `AppCore`.
   Selection by Voice always answers with the model.
 - **Insert while recording is off with the cloud engine.** Each chunk would be a paid request, so
   `DictationCoordinator` never starts the live loop while `cloudIsOn()`.
-- **Retention is the provider's.** Tinycast keeps no copy of the audio it sends, beyond a failed
+- **Retention is the provider's.** Redcast keeps no copy of the audio it sends, beyond a failed
   dictation's recording kept on this Mac for Retry. What OpenRouter and Google
   keep follows the OpenRouter account's privacy settings (data collection and Zero Data Retention);
-  Tinycast adds no body field for them. `VoiceAIRoute` wraps both uses in the usage log's recorder,
+  Redcast adds no body field for them. `VoiceAIRoute` wraps both uses in the usage log's recorder,
   so only the tokens and cost a reply reported are written (see
   [usage-dashboard.md](usage-dashboard.md)).
 
@@ -193,7 +193,7 @@ no request), builds the provider (so a missing key surfaces before any encoding)
 waits at most 0.5 s for the app it started reading when the capsule showed, drops the screenshot for
 a route that cannot see one, sends the request fitted to the route, collects the text deltas and
 takes the transcript from its tag. `AppCore` hands it `DictationCoordinator.target`'s app, so a
-dictation into a Note or another of Tinycast's own editors describes no app at all.
+dictation into a Note or another of Redcast's own editors describes no app at all.
 Cancelling Dictation cancels the task, and the stream's termination cancels the URL session task.
 
 The Cloud transcription section adds two rows. **Languages I speak** is a menu of checkmarks, at most
@@ -241,7 +241,7 @@ mode always has the cleaned rules, and decides its own wording.
 its recorder among the AI pane's commands. The row leaves the launcher while AI, Screen Awareness or
 the switch is off, and the bound shortcut stays registered but does nothing.
 
-A press, from the shortcut or the row, is refused with a HUD while Dictation is busy, when Tinycast
+A press, from the shortcut or the row, is refused with a HUD while Dictation is busy, when Redcast
 itself is in front, when the consented route is gone or its key is missing, and with Screen Awareness's
 dialog when Accessibility is missing. Otherwise it hides the palette, starts the window capture and the
 microphone together, and shows Dictation's capsule (`DictationCapture` and `DictationPanelController`
@@ -485,7 +485,7 @@ ends.
   keeps None, Continue saves it. Change only the model: no dialog. Repeat for Ask by Voice.
 - **Hold Fn.** In TextEdit say "Привет, это тест OpenRouter и Kubernetes, ну, как бы, в пятницу, нет, в
   субботу": clean Cyrillic and Latin text, no fillers, "в субботу".
-- **Cleanup off and vocabulary.** Turn Clean up speech off: the fillers stay. Add "Tinycast" to Words
+- **Cleanup off and vocabulary.** Turn Clean up speech off: the fillers stay. Add "Redcast" to Words
   to spell exactly and say it: it is spelled right.
 - **A dictated question.** Dictate "Какая сегодня погода?": it is transcribed, not answered.
 - **Smart formatting in Russian.** Clean up speech on, Languages I speak Russian and English, hold Fn
@@ -613,7 +613,7 @@ ends.
   with no recording. Stay silent: "No speech was recorded" and no run. Escape in the
   capsule while it processes: no run. Edit Selection by Voice still edits with the model. Delete the
   agent: Answer with shows the model, and a question opens the panel again.
-- **Refusals.** Ask while Dictation records: a HUD refuses. With Tinycast in front: refused. Without
+- **Refusals.** Ask while Dictation records: a HUD refuses. With Redcast in front: refused. Without
   Screen Recording: text only plus a HUD. Escape in the panel mid-stream: the stream stops (a proxy
   shows it cancelled).
 - **Turning things off.** Turn off Screen Awareness: the Ask by Voice row disappears and the shortcut
@@ -658,7 +658,7 @@ ends.
   audio alone, and refusing a press while it or three agents are busy; the model, mode and rewritten
   transcript noted for Dictation History, and each Ask's and edit's reply handed to it with what was
   said; the app Dictation types into read once as the capsule shows, at the allowed level, never when
-  Off or for one of Tinycast's own editors, riding with the recording on Gemini's two turns or a local
+  Off or for one of Redcast's own editors, riding with the recording on Gemini's two turns or a local
   server's one without its screenshot, left behind when still running 0.5 s after the recording, a
   typed Gemini Flash sent at low, the consent dialog naming the window title, and the tag's text
   typed; a kept recording's retry on the chosen route with the live prompt, the app by name alone and

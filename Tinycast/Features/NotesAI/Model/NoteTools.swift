@@ -19,7 +19,7 @@ enum NoteTools {
         var tools = [
             tool(
                 search,
-                "Search the user's Tinycast Notes — their own Markdown notes, not your memory — by "
+                "Search the user's Redcast Notes — their own Markdown notes, not your memory — by "
                     + "words in titles and text. Returns titles, dates and a matching line.",
                 [
                     "query": string("Words to find in note titles and text. Empty lists the newest notes."),
@@ -28,7 +28,7 @@ enum NoteTools {
                 required: [], origin: origin),
             tool(
                 read,
-                "Read one of the user's Tinycast Notes. Page through a long one with offset and limit.",
+                "Read one of the user's Redcast Notes. Page through a long one with offset and limit.",
                 [
                     "note": string("The note's title as notes_search shows it, or its file name."),
                     "offset": integer("First line, from 1."),
@@ -40,7 +40,7 @@ enum NoteTools {
         tools.append(
             tool(
                 append,
-                "Add Markdown to the end of one of the user's Tinycast Notes, creating it when no note "
+                "Add Markdown to the end of one of the user's Redcast Notes, creating it when no note "
                     + "has that title. Use it for reports and summaries the user asked you to keep. "
                     + "The user is asked first.",
                 [

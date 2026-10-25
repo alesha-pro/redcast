@@ -21,7 +21,7 @@ compilation of its 2-bit weights; Ultra's encoder and both variants' decoder/joi
 ## Invariants
 
 - `AppCore` owns the model store and coordinator. The microphone session, panel and focused target
-  belong only to `DictationCoordinator`; no recording starts merely by launching Tinycast or opening
+  belong only to `DictationCoordinator`; no recording starts merely by launching Redcast or opening
   Settings.
 - The enable switch is consent. It explains microphone and Accessibility access before enabling,
   and is excluded from backups so importing settings cannot arm a global recording shortcut.
@@ -59,7 +59,7 @@ compilation of its 2-bit weights; Ultra's encoder and both variants' decoder/joi
   Relaunch restores the original device only if its volume still matches that record, including
   when Dictation is disabled. An unavailable device keeps its record for a later attempt; new ducking
   waits for that recovery. File writes run off-main and finish before the hardware changes.
-- The microphone, waveform, permissions and insertion stay in Tinycast. Model loading, audio
+- The microphone, waveform, permissions and insertion stay in Redcast. Model loading, audio
   features and decoding run in `Tinycast Dictation` (`Tinycast Dev Dictation` in Debug), started
   only for transcription. Main-app state never retains Core ML models or imports the adapters.
   The helper is an embedded accessory app with no bundled icon, Dock item or windows.
@@ -73,7 +73,7 @@ compilation of its 2-bit weights; Ultra's encoder and both variants' decoder/joi
   over the network unless Cloud transcription is on: then the finished recording, trimmed and
   encoded as WAV in memory, is sent once to the chosen connection, with the name, window title and,
   if allowed and the model sees pictures, a screenshot of the app it types into, never of the app
-  behind one of Tinycast's own editors ([Voice AI](voice-ai.md#invariants)), and live insertion
+  behind one of Redcast's own editors ([Voice AI](voice-ai.md#invariants)), and live insertion
   never runs. A recording whose transcription fails is the one exception kept on disk, bounded, for
   [Dictation History's Retry](dictation-history.md#failed-dictations-and-retry).
   Long recordings split near a quiet passage without overlapping samples.

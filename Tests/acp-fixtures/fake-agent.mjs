@@ -119,7 +119,7 @@ async function prompt(id, params) {
   }
   const first = prompt[0]?.type === "text" ? prompt[0].text : "";
   if (first.startsWith("/")) {
-    const context = text.includes("Context from Tinycast") ? "with context" : "without context";
+    const context = text.includes("Context from Redcast") ? "with context" : "without context";
     update(sessionId, {
       sessionUpdate: "agent_message_chunk",
       content: { type: "text", text: `ran ${first}; ${context}; blocks ${prompt.length}` },
@@ -172,7 +172,7 @@ async function prompt(id, params) {
   });
   update(sessionId, { sessionUpdate: "tool_call", toolCallId: "call_2", title: "Never finished", kind: "read" });
   update(sessionId, { sessionUpdate: "usage_update", used: 1200, size: 200000, cost: { amount: 0.01, currency: "USD" } });
-  const context = text.includes("Context from Tinycast") ? "with context" : "without context";
+  const context = text.includes("Context from Redcast") ? "with context" : "without context";
   const earlier = text.split("## Earlier in this conversation")[1];
   const history = earlier === undefined
     ? "no history"

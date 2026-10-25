@@ -93,7 +93,7 @@ xcodebuild -project Tinycast.xcodeproj -scheme Tinycast -configuration Debug \
 
 Both files are git-ignored because they embed absolute paths, and `sourcekit-lsp` looks for
 `buildServer.json` at the workspace root by name, so it cannot live in a subfolder. After this the
-**Build Tinycast.app (debug)** task (⌘⇧B) and **F5** re-run the script on every build, so new and
+**Build Redcast.app (debug)** task (⌘⇧B) and **F5** re-run the script on every build, so new and
 renamed files keep resolving.
 
 **Do not run `xcode-build-server config`.** It writes `kind: xcode`, and in that mode the server ignores

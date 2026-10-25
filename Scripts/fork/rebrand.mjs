@@ -1,8 +1,11 @@
 #!/usr/bin/env node
-// Renames the app in the string catalogs, Tinycast to Redcast, idempotently. docs/fork-tooling.md
+// Renames the app in the string catalogs and docs, Tinycast to Redcast, idempotently. docs/fork-tooling.md
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { isMain, parse, serialize } from "./xcstrings.mjs";
+import {
+  ALLOWED_PROSE, ALLOWED_SWIFT, docMentions, rebrandDoc, skeleton, swiftMentions, tracked,
+} from "./rebrand-text.mjs";
 
 const ROOT = fileURLToPath(new URL("../..", import.meta.url));
 const CATALOGS = [
@@ -14,7 +17,7 @@ const NAME = "Redcast";
 
 // Text about upstream rather than this app keeps upstream's name. Keys, in either catalog.
 export const EXCLUDED = new Map([
-  ["Based on Tinycast by Abue Ammar", "About's AGPL credit names upstream and its author"],
+  ["A modified version of Tinycast, © 2026 Abue Ammar.", "About's AGPL notice names upstream and its author"],
   ["Join the Tinycast community", "About's Discord row links upstream's community"],
   ["Support Tinycast", "the support checkout is upstream's and funds its author"],
 ]);
@@ -24,10 +27,13 @@ export const EXCLUDED = new Map([
 const word = (name) => new RegExp(`(?<![A-Za-z0-9_./])${name}(?=s?(?![A-Za-z0-9_/]))`, "g");
 const WORD = word("Tinycast");
 const RENAMED = word(NAME);
+// The backup file's extension, `.redcast` since Redcast writes it; `com.tinycast.backup` stays.
+const EXTENSION = /(?<![A-Za-z0-9_/])\.tinycast(?![A-Za-z0-9_])/g;
+const MENTION = new RegExp(`${WORD.source}|${EXTENSION.source}`, "g");
 
 const says = (text, pattern) => typeof text === "string" && text.search(pattern) >= 0;
-const mentions = (text) => says(text, WORD);
-const rename = (text) => text.replace(WORD, NAME);
+const mentions = (text) => says(text, MENTION);
+const rename = (text) => text.replace(WORD, NAME).replace(EXTENSION, ".redcast");
 const quoted = (key) => JSON.stringify(key);
 const byCodePoint = (a, b) => Buffer.compare(Buffer.from(a), Buffer.from(b));
 const keys = (count) => `${count} ${count === 1 ? "key" : "keys"}`;
@@ -102,7 +108,7 @@ export function rebrand(catalog) {
   for (const [key, entry] of strings) {
     const exclude = EXCLUDED.has(key);
     if (exclude) excluded.push(key);
-    if (!(entry instanceof Map) || !mentioned(key, entry, exclude ? RENAMED : WORD)) {
+    if (!(entry instanceof Map) || !mentioned(key, entry, exclude ? RENAMED : MENTION)) {
       result.set(key, entry);
       continue;
     }
@@ -120,11 +126,10 @@ export function rebrandText(text) {
 }
 
 const XML_ENTITIES = { amp: "&", apos: "'", gt: ">", lt: "<", quot: '"' };
-const PLIST_STRING =
-  /<key>(NS\w+UsageDescription|UTTypeDescription)<\/key>\s*<string>([^<]*)<\/string>/g;
+const PLIST_STRING = /<key>(\w+)<\/key>\s*<string>([^<]*)<\/string>/g;
 
-// Info.plist's prompts and type description show its own text in a language the catalog gives
-// no value: these name Tinycast where InfoPlist.xcstrings has no English for them.
+// Info.plist's text shows as it is in a language the catalog gives no value: these name Tinycast
+// where InfoPlist.xcstrings has no English for them, prompts, type names and any other value.
 export function uncovered(plist, catalog) {
   const strings = catalog.get("strings") ?? new Map();
   const missing = [];
@@ -132,10 +137,10 @@ export function uncovered(plist, catalog) {
     const text = raw.replace(/&(amp|apos|gt|lt|quot);/g, (_, name) => XML_ENTITIES[name]);
     // Xcode keys a usage string by its Info.plist key, and anything else by its text.
     const key = field.endsWith("UsageDescription") ? field : text;
-    if (!mentions(text) || EXCLUDED.has(key)) continue;
+    if (!says(text, WORD) || EXCLUDED.has(key)) continue;
     const english = strings.get(key)?.get?.("localizations")?.get("en")?.get("stringUnit");
     const value = english instanceof Map ? english.get("value") : undefined;
-    if (typeof value !== "string" || mentions(value)) missing.push(key);
+    if (typeof value !== "string" || says(value, WORD)) missing.push(key);
   }
   return missing;
 }
@@ -201,7 +206,52 @@ function run(paths, check) {
         + " InfoPlist.xcstrings has no English for it: build in Xcode to extract it, then rerun");
     }
   }
+  if (!runDocs(check)) stale = true;
+  if (check && !checkSwift()) stale = true;
   return stale ? 1 : 0;
+}
+
+// Markdown prose says Redcast; ALLOWED_PROSE keeps the legal attribution. Code spans, links' targets
+// and fenced code keep their paths and ids.
+function runDocs(check) {
+  const found = [];
+  for (const path of tracked(ROOT, "*.md")) {
+    if (!existsSync(ROOT + path)) continue;
+    const text = readFileSync(ROOT + path, "utf8");
+    if (check) {
+      for (const hit of docMentions(path, text)) found.push(`${path}:${hit.line}: ${hit.text}`);
+      continue;
+    }
+    const result = rebrandDoc(path, text);
+    if (result.text === text) continue;
+    writeFileSync(ROOT + path, result.text);
+    console.log(`${path}: renamed Tinycast on ${result.renamed.length} lines`);
+  }
+  if (found.length === 0) return true;
+  console.error(`✗ ${found.length} Markdown lines still say Tinycast; run Scripts/fork/rebrand.mjs,`
+    + " say upstream where a line means it, or add the line to ALLOWED_PROSE");
+  for (const line of found.slice(0, 20)) console.error(`  ${line.slice(0, 160)}`);
+  if (found.length > 20) console.error(`  … and ${found.length - 20} more`);
+  return false;
+}
+
+// Swift literals that are no catalog key show as written: they say Redcast, or end `.forkBranded`.
+function checkSwift() {
+  const catalog = parse(readFileSync(ROOT + CATALOGS[0], "utf8")).get("strings") ?? new Map();
+  const keys = new Set([...catalog.keys()].map(skeleton));
+  const found = [];
+  for (const path of tracked(ROOT, "Tinycast/*.swift")) {
+    if (!existsSync(ROOT + path)) continue;
+    for (const hit of swiftMentions(path, readFileSync(ROOT + path, "utf8"), keys)) {
+      found.push(`${path}:${hit.line}: "${hit.text}"`);
+    }
+  }
+  if (found.length === 0) return true;
+  console.error(`✗ ${found.length} Swift literals outside the catalogs say Tinycast: say Redcast,`
+    + " append .forkBranded, or add them to ALLOWED_SWIFT with a reason");
+  for (const line of found.slice(0, 20)) console.error(`  ${line}`);
+  if (found.length > 20) console.error(`  … and ${found.length - 20} more`);
+  return false;
 }
 
 const unit = (value, state = "translated") => ({ stringUnit: { state, value } });
@@ -234,9 +284,10 @@ const FIXTURE = {
     "A .tinycast file exported from Tinycast.": {
       localizations: { de: unit("Eine aus Tinycast exportierte .tinycast-Datei.") },
     },
-    "Based on Tinycast by Abue Ammar": {
-      localizations: { de: unit("Basiert auf Tinycast von Abue Ammar") },
+    "A modified version of Tinycast, © 2026 Abue Ammar.": {
+      localizations: { de: unit("Eine geänderte Version von Tinycast, © 2026 Abue Ammar.") },
     },
+    "com.tinycast.backup files end .tinycast, not x.tinycast2": {},
     "Context %#@n@": {
       localizations: {
         en: {
@@ -313,8 +364,11 @@ function selfTest() {
   expect(text(shortcut, "es") === "%@: “%@” no es un atajo que Redcast pueda asignar",
     "and so is every other language");
   const file = "A .tinycast file exported from Tinycast.";
-  expect(text(file, "en") === "A .tinycast file exported from Redcast.", "the extension stays");
-  expect(text(file, "de") === "Eine aus Redcast exportierte .tinycast-Datei.", "in German too");
+  expect(text(file, "en") === "A .redcast file exported from Redcast.", "the extension is renamed");
+  expect(text(file, "de") === "Eine aus Redcast exportierte .redcast-Datei.", "in German too");
+  const ext = "com.tinycast.backup files end .tinycast, not x.tinycast2";
+  expect(text(ext, "en") === "com.tinycast.backup files end .redcast, not x.tinycast2",
+    "only a whole extension, never an id's or a longer one");
   expect([...loc(file).keys()].join() === "de,en", "English is inserted in code-point order");
   const windows = "%lld Tinycast windows";
   expect(text(windows, "en", "variations", "plural", "one") === "%lld Redcast window",
@@ -343,7 +397,7 @@ function selfTest() {
   const word = "Tinycast’s window, Tinycast-Backup";
   expect(text(word, "en") === "Redcast’s window, Redcast-Backup", "a possessive is renamed");
   expect(text(word, "de") === "Redcast-Backup", "and so is a compound");
-  const credit = "Based on Tinycast by Abue Ammar";
+  const credit = "A modified version of Tinycast, © 2026 Abue Ammar.";
   expect(serialize(strings.get(credit)) === serialize(parse(original).get("strings").get(credit)),
     "the credit stays byte for byte");
   expect(first.excluded.join() === `${credit},Support Tinycast`, "and is reported as excluded");
@@ -352,8 +406,8 @@ function selfTest() {
   expect(!loc("Support Tinycast").has("en"), "and loses the English that repeated its key");
   expect(first.restored.join() === "Support Tinycast", "and is reported as restored");
   expect(!loc("no current meeting").has("en"), "a mention in a comment changes nothing");
-  expect(first.changed.length === 9 && !first.changed.includes("no current meeting"),
-    `nine keys change, got ${first.changed.length}`);
+  expect(first.changed.length === 10 && !first.changed.includes("no current meeting"),
+    `ten keys change, got ${first.changed.length}`);
   const second = rebrandText(first.text);
   expect(second.text === first.text && second.changed.length + second.restored.length === 0,
     "a second run changes nothing");
@@ -373,8 +427,8 @@ function selfTest() {
       "Tinycast Backup": { localizations: { de: unit("Tinycast-Sicherung") } },
     },
   }))).catalog;
-  expect(uncovered(plist, prompts).join() === "NSFooUsageDescription",
-    "a prompt naming Tinycast with no English in the catalog is found");
+  expect(uncovered(plist, prompts).join() === "NSFooUsageDescription,Tinycast",
+    "a prompt or any other value naming Tinycast with no English in the catalog is found");
   const info = ROOT + INFO_PLIST;
   if (existsSync(info) && existsSync(ROOT + CATALOGS[1])) {
     const committed = parse(readFileSync(ROOT + CATALOGS[1], "utf8"));
@@ -392,8 +446,18 @@ if (isMain(import.meta.url)) {
     console.log("Usage: node Scripts/fork/rebrand.mjs [--check] [catalog…] | --self-test");
     console.log("Exit codes: 0 rebranded · 1 --check found a key to rename or restore, or an"
       + " Info.plist prompt with no English · 2 unreadable");
+    console.log("       node Scripts/fork/rebrand.mjs --doc PATH < upstream.md  # one doc, stdin to stdout");
     console.log("Kept as Tinycast:");
     for (const [key, reason] of EXCLUDED) console.log(`  “${key}”: ${reason}`);
+    for (const [path, lines] of ALLOWED_PROSE) {
+      for (const [phrase, reason] of lines) console.log(`  ${path} “${phrase}…”: ${reason}`);
+    }
+    for (const [path, piece, reason] of ALLOWED_SWIFT) console.log(`  ${path} “${piece}”: ${reason}`);
+    process.exit(0);
+  }
+  const doc = args.indexOf("--doc");
+  if (doc >= 0) {
+    process.stdout.write(rebrandDoc(args[doc + 1] ?? "", readFileSync(0, "utf8")).text);
     process.exit(0);
   }
   if (args.includes("--self-test")) process.exit(selfTest());

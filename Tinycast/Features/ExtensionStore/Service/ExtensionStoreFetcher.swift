@@ -66,7 +66,7 @@ struct ExtensionStoreFetcher: Sendable {
     private func page(_ url: URL?) async throws -> ExtensionStorePage {
         guard let url else { throw ExtensionStoreError.malformedResponse }
         var request = URLRequest(url: url, timeoutInterval: 30)
-        request.setValue("Tinycast", forHTTPHeaderField: "User-Agent")
+        request.setValue("Redcast", forHTTPHeaderField: "User-Agent")
         let (data, response) = try await session.data(for: request)
         if let http = response as? HTTPURLResponse, !(200..<300).contains(http.statusCode) {
             throw ExtensionStoreError.downloadFailed("HTTP \(http.statusCode)")

@@ -64,7 +64,7 @@ before the placeholders are resolved.
 
 ## Placeholders
 
-Quicklinks reuse Tinycast's one template engine — the same
+Quicklinks reuse Redcast's one template engine — the same
 [`SnippetTemplateEngine`](snippets.md#template-tokens) snippets use, so every token and every modifier
 is available and there is no second parser to keep in sync. `{cursor}` and `{snippet:…}` are text
 concerns with nothing to resolve against in a destination, so they are left literal.
@@ -121,7 +121,7 @@ every owed argument is in, through the two tiers in
 [quick-actions.md](quick-actions.md#reading-the-selection): Accessibility, then a ⌘C. The ⌘C is sent
 at most once per open, only when the expansion reads `{selection}`, and with the palette hidden
 first, since it holds key. When neither tier yields text, nothing opens: the HUD says "Couldn’t get
-the selected text", or names the Accessibility permission when Tinycast lacks it.
+the selected text", or names the Accessibility permission when Redcast lacks it.
 
 `openQuicklink(id:forcingDefaultApp:values:)` and `openQuicklinkFromHotKey(id:)` share one private
 funnel, which captures the expansion context on **every** call rather than holding one across a
@@ -165,7 +165,7 @@ frontmost tab; that is what "prefer existing tabs" means, so it is the same swit
 second one.
 
 Every failure — unresolvable link, missing file, missing app, refused open — reports through
-Tinycast's own dialog and leaves no partial state.
+Redcast's own dialog and leaves no partial state.
 
 ## Search and pinning
 
@@ -286,7 +286,7 @@ Unlike `snippetsEnabled`, `quicklinksEnabled` grants no permission class and ena
 excluding it would be cargo-culting.
 
 The encrypted `.rayconfig` flow in **Settings → Backup** can import Raycast's quicklinks as an
-independently selectable category. Tinycast reads `name`, `link`, `createdAt` and the optional
+independently selectable category. Redcast reads `name`, `link`, `createdAt` and the optional
 `openWith` / `applicationId` from the export's `quicklinks.quicklinks` collection, resolving an app
 path through `openWithPlatforms` when the field is a platform id. Invalid entries are skipped; valid
 entries merge into the existing library the same way **Import Quicklinks** does. Importing at least

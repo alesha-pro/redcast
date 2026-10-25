@@ -54,7 +54,7 @@ leave it, in memory until it is transcribed.
   A shorter span applies to the file at once, and Off removes it and records nothing. A file left
   with no line is removed.
 - **Clear is asked first.** ⌃⇧X, the ⌘K row and Settings' **Clear…** all reach one coordinator
-  method that asks through Tinycast's own dialog before the file goes. **Delete Entry** (⌃X) is not
+  method that asks through Redcast's own dialog before the file goes. **Delete Entry** (⌃X) is not
   asked, as in Clipboard History.
 - **Never in a backup, never in settings.json.** The history is private text, and the kept
   recordings private audio, on this Mac: no `BackupCategory` carries either, and its three keys are
@@ -106,7 +106,7 @@ final text, the engine's own transcript, the sample count and the injection targ
 capsule closes. `VoiceCloudTranscriber` notes its last transcript, the mode it used, the model and,
 when a mode took two requests, the transcript it rewrote, and forgets them when the capsule closes;
 the coordinator takes them when the transcript matches, and otherwise records the on-device model
-(`DictationModel.title`). A dictation into AI Chat's composer names Tinycast itself as the app. The
+(`DictationModel.title`). A dictation into AI Chat's composer names Redcast itself as the app. The
 length is the whole recording's, to a tenth of a second. Gemini rewrites a mode in one request, so
 only a mode on another model keeps a raw transcript.
 

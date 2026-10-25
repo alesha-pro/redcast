@@ -77,11 +77,11 @@ bridge.sessionEnded() ──▶ cancelAll(owner)   (leaving the command, shutdow
   throws rejects the answer and cancels it.
 - Only `AIStreamEvent.text` is forwarded. Reasoning, thinking, search and usage events are dropped. A
   provider error after some text delivers the text first; the next read throws its message.
-- The first `ai.start` of an extension without an answer shows Tinycast's dialog — "Allow “Color
+- The first `ai.start` of an extension without an answer shows Redcast's dialog — "Allow “Color
   Picker” to use AI?", naming the model, and with the model switch on also the closest model among
   your API connections — after activating the app: **Allow**, **Don't Allow** and **Not Now**.
   Concurrent asks from one extension share it. Only the first two are kept; Escape, a click elsewhere
-  and Not Now refuse this ask once, and the next one asks again. While another Tinycast dialog is up
+  and Not Now refuse this ask once, and the next one asks again. While another Redcast dialog is up
   nothing is shown and the ask is refused the same way, since a second dialog would resolve unseen. A
   command left while it was up starts nothing.
 - `environment.canAccess(AI)` is injected per launch: true when the user opened the command or the
@@ -161,7 +161,7 @@ already redacted by the route.
 
 ## What maps to what
 
-| Raycast | Tinycast |
+| Raycast | Redcast |
 | --- | --- |
 | `AI.ask(prompt, { model, creativity, signal })` | the extension model answers, or a named vendor's closest model with the switch on; `creativity` is a temperature; `signal` cancels |
 | `useAI` | works unchanged on top of `AI.ask` |
@@ -175,7 +175,7 @@ already redacted by the route.
 **Extension model providers** (`ai.modelProvider` in the manifest, `getModels`, `streamCompletion`) are
 left out on purpose. Surfacing them means a JS-backed route in AI Chat's pickers that keeps an extension
 runtime alive across chats, with the AI SDK's message, tool and stream parts — a second provider layer,
-not a small step, and a resident runtime the rest of Tinycast avoids.
+not a small step, and a resident runtime the rest of Redcast avoids.
 
 ## Layout
 
@@ -231,7 +231,7 @@ Install from the store and turn on Settings → Extensions → AI.
 4. Don't Allow, then rerun: the extension sees `canAccess(AI) === false` or the "not allowed" error.
    Flip it in Settings and rerun: it works without a dialog. Ask Again brings the dialog back.
    Escape, Not Now, or a click on another app: the "ask again next time" error, no entry appears
-   in Settings, and the next run asks again. With another Tinycast dialog up (an extension's
+   in Settings, and the next run asks again. With another Redcast dialog up (an extension's
    `confirmAlert`, say), an `AI.ask` fails the same way and no second dialog appears.
 5. Eleven quick reruns: the failure toast names the wait.
 6. Turn AI off in Settings → AI mid-answer: the answer ends with the AI-off message.

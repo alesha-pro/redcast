@@ -35,7 +35,7 @@ enum FullBackupActions {
         core: AppCore, categories: Set<BackupCategory>, draft: FullBackupDraft
     ) async throws -> ExportResult {
         guard
-            let destination = BackupActions.chooseSaveLocation(named: "Tinycast", type: .tinycastBackup)
+            let destination = BackupActions.chooseSaveLocation(named: ForkBrand.name, type: .redcastBackup)
         else { throw CancellationError() }
         let result = try await export(
             core: core, categories: categories, sections: draft.exportSections,
@@ -66,7 +66,7 @@ enum FullBackupActions {
     static func runExportCommand(core: AppCore) async {
         do {
             guard
-                let destination = BackupActions.chooseSaveLocation(named: "Tinycast", type: .tinycastBackup)
+                let destination = BackupActions.chooseSaveLocation(named: ForkBrand.name, type: .redcastBackup)
             else { return }
             let result = try await export(
                 core: core, categories: BackupCategory.all, sections: FullBackupSection.exportedByDefault,

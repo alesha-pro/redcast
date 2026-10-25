@@ -1,4 +1,4 @@
-# Tinycast documentation
+# Redcast documentation
 
 Start with [`AGENTS.md`](../AGENTS.md) at the repo root — it is the short version, and it links here for
 anything that needs more than a line.

@@ -38,7 +38,7 @@ nonisolated struct NoteToolRunner: Sendable {
     let consent: @Sendable (NoteToolConsent) async -> Bool
     let writer: NoteToolWriter
 
-    static let turnedOff = "Notes is turned off in Tinycast's settings."
+    static let turnedOff = "Notes is turned off in Redcast's settings."
     static let declined = "The user declined this. Ask what they would like instead."
 
     func run(_ call: AIToolCall) async -> AIToolResult {

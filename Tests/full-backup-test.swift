@@ -188,6 +188,7 @@ struct FullBackupTest {
             return
         }
         check("the upstream manifest still reads", (try? BackupBundle(root: opened).readManifest()) != nil)
+        backupOpensUnderEitherExtension(sealed: file, in: root)
         let back = FullBackupLayout(bundleRoot: opened)
         let preview = back.preview()
         check(
@@ -506,6 +507,20 @@ struct FullBackupTest {
 
     // MARK: - On quit
 
+    /// Redcast writes `.redcast`; a `.tinycast` from upstream or an older build opens the same.
+    static func backupOpensUnderEitherExtension(sealed file: URL, in root: URL) {
+        let manifest = { (name: String) -> BackupManifest? in
+            let copy = root.appendingPathComponent("either.\(name)")
+            let opened = root.appendingPathComponent("opened-\(name)")
+            try? FileManager.default.copyItem(at: file, to: copy)
+            guard (try? BackupArchive.open(file: copy, into: opened)) != nil else { return nil }
+            return try? BackupBundle(root: opened).readManifest()
+        }
+        let redcast = manifest("redcast")
+        check("a .redcast backup opens", redcast?.appVersion == "test")
+        check("a .tinycast backup opens the same", manifest("tinycast")?.appVersion == redcast?.appVersion)
+    }
+
     static func autoExport() {
         let now = Date(timeIntervalSince1970: 1_800_000_000)
         check("a first export is due", FullBackupAutoExportPolicy.isDue(lastExport: nil, now: now, days: 7))
@@ -516,14 +531,19 @@ struct FullBackupTest {
             "an old export is due",
             FullBackupAutoExportPolicy.isDue(lastExport: now.addingTimeInterval(-8 * 86_400), now: now, days: 7))
         let name = FullBackupAutoExportPolicy.fileName(at: now, timeZone: TimeZone(identifier: "UTC")!)
-        check("the file name sorts by time", name == "Tinycast-Auto-2027-01-15-080000.tinycast")
+        check("the file name sorts by time", name == "Redcast-Auto-2027-01-15-080000.redcast")
         let names = [
-            "Tinycast-Auto-2027-01-01-080000.tinycast", "Tinycast-Auto-2027-01-03-080000.tinycast",
-            "Tinycast-Auto-2027-01-02-080000.tinycast", "Mine.tinycast", "Tinycast-Auto-notes.txt"
+            "Tinycast-Auto-2027-01-01-080000.tinycast", "Redcast-Auto-2027-01-03-080000.redcast",
+            "Tinycast-Auto-2027-01-02-080000.tinycast", "Mine.tinycast", "Mine.redcast",
+            "Tinycast-Auto-notes.txt", "Redcast-Auto-2027-01-04-080000.tinycast"
         ]
         check(
             "pruning keeps the newest and never touches the user's files",
             FullBackupAutoExportPolicy.pruned(names, keeping: 2) == ["Tinycast-Auto-2027-01-01-080000.tinycast"])
+        check(
+            "older .tinycast exports age out by their time, after the newer .redcast ones",
+            FullBackupAutoExportPolicy.pruned(names, keeping: 1)
+                == ["Tinycast-Auto-2027-01-02-080000.tinycast", "Tinycast-Auto-2027-01-01-080000.tinycast"])
     }
 
     static func reportNamesWhatItLeft() {

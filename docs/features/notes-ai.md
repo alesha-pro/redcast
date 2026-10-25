@@ -1,6 +1,6 @@
 # Notes and AI
 
-Tinycast's [Notes](notes.md) reach AI Chat in two ways. **Attach Note…** in the composer's **+** menu,
+Redcast's [Notes](notes.md) reach AI Chat in two ways. **Attach Note…** in the composer's **+** menu,
 or `@note` typed into the draft, opens a searchable picker, and the note you pick rides the next
 message as a text file; in Quick AI the same item sits in the ⌘K menu and the same picker opens under
 the query field. And an [agent](agents.md) given the **Notes** tools can search and read your
@@ -44,7 +44,7 @@ agent registry.
   the token as its address.
 - **The tools are off per agent until ticked.** `AgentToolKind.notes` is not in
   `AgentToolKind.defaults`, so no agent has it until its editor's Notes box is ticked, and only an
-  agent on the chat's model (`runtime == nil`) runs Tinycast's tools at all. `agents.json` carries
+  agent on the chat's model (`runtime == nil`) runs Redcast's tools at all. `agents.json` carries
   the family and is in no backup and no settings file.
 - **Reading is personal, adding always asks.** `notes_search` and `notes_read` are
   `AgentToolRisk.personal` and do not ask. `notes_append` is `.change`, and `AgentConsentPolicy` gives

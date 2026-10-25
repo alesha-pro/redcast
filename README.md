@@ -12,14 +12,13 @@
   <a href="LICENSE"><img alt="License: AGPL-3.0" src="https://img.shields.io/badge/license-AGPL--3.0-F23D32?style=flat"></a>
   <img alt="macOS 26 or later" src="https://img.shields.io/badge/macOS-26%2B-F23D32?style=flat&logo=apple&logoColor=white">
   <img alt="Swift 6" src="https://img.shields.io/badge/Swift-6-F23D32?style=flat&logo=swift&logoColor=white">
-  <a href="https://github.com/abue-ammar/tinycast"><img alt="Fork of Tinycast" src="https://img.shields.io/badge/fork%20of-Tinycast-F23D32?style=flat"></a>
 </p>
 
 <p align="center"><a href="https://redcast.io"><b>redcast.io</b></a> · <a href="#install">Install</a> · <a href="docs/README.md">Docs</a> · <a href="FORK.md">What's new in the fork</a></p>
 
-> **Built on [Tinycast](https://github.com/abue-ammar/tinycast).** Redcast is a fork of Abue Ammar's
-> native macOS launcher and follows its `main` branch. Everything Tinycast does is here, and Redcast
-> builds a lot on top: agents, AI Chat, voice, an extension store and more.
+> **A fork that follows upstream.** Redcast is built on Abue Ammar's native macOS launcher and
+> follows its `main` branch. Everything upstream does is here, and Redcast builds a lot on top:
+> agents, AI Chat, voice, an extension store and more ([credits and license](#credits-and-license)).
 
 **Redcast is a complete, free replacement for Raycast.** Press one hotkey anywhere and a palette opens
 for your apps, files, windows, clipboard, snippets, commands and Raycast extensions. AI runs on
@@ -187,7 +186,7 @@ Redcast gracefully and swaps the new copy in by rename, so an app is always inst
 - Privacy grants survive a reinstall: they follow the bundle id and your certificate. A build whose
   code requirement would change is refused; `--accept-new-identity` installs it anyway and prints the
   `tccutil` lines to run.
-- Redcast has its own bundle id, `io.redcast.app`, so it keeps its own settings and can sit beside Tinycast.
+- Redcast has its own bundle id, `io.redcast.app`, so it keeps its own settings and can sit beside upstream's app.
   A copy installed under the fork's old id (`com.tinycast.app.fork`) moves its settings, data and keys over on
   its first launch ([bundle-migration](docs/features/bundle-migration.md)); macOS asks for privacy grants once more.
 
@@ -217,14 +216,14 @@ only when a dictation fails, on this Mac, for at most a week, so Dictation Histo
 ## Documentation
 
 - [docs/](docs/README.md): architecture, standards, testing, the design system and a page per feature
-- [FORK.md](FORK.md): what Redcast adds on top of Tinycast, its roadmap, and how it follows upstream
+- [FORK.md](FORK.md): what Redcast adds on top of upstream, its roadmap, and how it follows it
 - [docs/fork-tooling.md](docs/fork-tooling.md): `install.sh`, `sync-upstream.sh` and the rebrand script
 - [AGENTS.md](AGENTS.md): the short version, for coding agents working on this repository
 - [CONTRIBUTING.md](CONTRIBUTING.md): issues and pull requests are welcome
 
-## Staying in sync with Tinycast
+## Staying in sync with upstream
 
-Redcast follows Tinycast's `main`, which lands almost daily. Fork features live in folders of their own
+Redcast follows upstream's `main`, which lands almost daily. Fork features live in folders of their own
 and touch shared files in as few lines as possible, so a sync stays mechanical. `sync-upstream.sh`
 merges upstream into a branch of its own, regenerates the Xcode project, merges the string catalogs
 key by key, keeps this README as it is, and runs the build, harness and lint gates before anything
@@ -232,16 +231,15 @@ lands. How it works is in [docs/fork-tooling.md](docs/fork-tooling.md#scriptsfor
 
 ## Credits and license
 
-Redcast is an unofficial fork of [Tinycast](https://github.com/abue-ammar/tinycast) by Abue Ammar. The
-launcher and most of its code come from Tinycast, Copyright © 2026 Abue Ammar, and Redcast is
-distributed under the same [GNU Affero General Public License v3.0](LICENSE). The app's About window
-says so too. Redcast's changes, made from October 2026 on and listed in [FORK.md](FORK.md) and the git
-history, are Copyright © 2026 [alesha-pro](https://github.com/alesha-pro) under the same licence.
+Redcast is a modified version of [Tinycast](https://github.com/abue-ammar/tinycast) by Abue Ammar,
+Copyright © 2026 Abue Ammar, distributed under the same [GNU Affero General Public License v3.0](LICENSE)
+with no warranty. The launcher and most of its code are upstream's work. Redcast's changes, made from
+October 2026 on and listed in [FORK.md](FORK.md) and the git history, are Copyright © 2026 Alexey
+Fateev ([alesha-pro](https://github.com/alesha-pro)) under the same licence. The app's About window
+shows the same notice.
 
-Ported from other Tinycast forks under the same licence: alias + Space and the extension-runtime fixes
-from [sermelipharo/tinycast-space](https://github.com/sermelipharo/tinycast-space), ⌘K alias and
-shortcut editing from [jhasubhash/tinycast](https://github.com/jhasubhash/tinycast), and the alias +
-Space idea from [mSarheed/pipcast](https://github.com/mSarheed/pipcast). The commits are listed in
+Ported from other forks of upstream under the same licence: alias + Space, ⌘K alias and shortcut
+editing, and the extension-runtime fixes; their authors and commits are listed in
 [FORK.md](FORK.md#credits).
 
 Third-party work keeps its own licence, recorded in [NOTICE.md](NOTICE.md): window rooms adapted from
@@ -251,4 +249,4 @@ from Simple Icons, Lobe Icons and OpenCode, and the optional dictation models (N
 4.0; Qwen3-ASR, Apache 2.0).
 
 Raycast is a trademark of its owner. Redcast is not affiliated with Raycast, and not endorsed by
-Tinycast's author.
+upstream's author.

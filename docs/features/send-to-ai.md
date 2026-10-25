@@ -12,7 +12,7 @@ and two methods on the fork's own `DictationHistoryCoordinator`.
 - **No staging of its own.** A file goes through the composer's own file path
   (`QuickAICoordinator.attachPastedFileFromLauncher`, or `AIChatCoordinator.attach(files:to:)` for a
   new chat), so the route decides with the usual refusals: an image on a model that sees none, a
-  PDF on one that reads none, a type Tinycast never attaches, a file past the size cap. Text staged
+  PDF on one that reads none, a type Redcast never attaches, a file past the size cap. Text staged
   as a file goes through `stage(_:into:)`, exactly as a Screen Awareness capture does, and a quote
   is typed into the composer's draft: the palette query in Quick AI, `AIChatState.draft` in a chat,
   each appended to what is already there.

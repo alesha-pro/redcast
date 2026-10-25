@@ -39,7 +39,7 @@ keeps working as it was, with an **Open Extension Store** button beside Done.
 - **Installs go through the existing paths.** Install and Update look the extension up again with
   `ExtensionStoreClient.lookup` (the store signs each download URL, so a cached one is never used)
   and hand the listing to `ExtensionManager.install`, which records its commit exactly as Settings'
-  panel does. Uninstall is `ExtensionCoordinator.confirmUninstall`, Tinycast's own dialog first. The
+  panel does. Uninstall is `ExtensionCoordinator.confirmUninstall`, Redcast's own dialog first. The
   command is listed only while extensions are enabled, since enabling them is the consent to run
   third-party code; turning them off closes the screen.
 - **Update means a newer commit.** A row says Update when the install came from the store and the
@@ -125,7 +125,7 @@ the catalog partial: it is listed, says "Part of the store didn't load.", and is
 | ↵ | Install; **Update** when the store has a newer commit; **Open Extension** once it is current. On a list row, show it |
 | ⌘↵, ⌘O | Open the store page in the browser |
 | ⇧⌘C | Copy the store link |
-| ⌃X | Uninstall…, after Tinycast's own dialog |
+| ⌃X | Uninstall…, after Redcast's own dialog |
 | ⌘R | Refresh Store: the whole catalog again, whatever the cache's age |
 | ⌘K | All of the above, plus Show in Settings, Browse Category for each of the extension's categories, and Show All Lists |
 | ⎋ / ⌫ | Leave the list being browsed, then the screen |
@@ -185,7 +185,7 @@ install state from recorded commits.
   field; type to search inside it; Escape returns to the shelves, a second Escape leaves the store.
 - Install an extension with ↵: the row shows Downloading… and Installing…, a HUD says it is
   installed, the badge reads Installed and ↵ now opens it. Its commands are in the launcher.
-- Uninstall it with ⌃X: Tinycast's dialog asks first; Cancel keeps it.
+- Uninstall it with ⌃X: Redcast's dialog asks first; Cancel keeps it.
 - Install an older build of a store extension by hand (or edit `extension-versions.json` to an old
   commit): the row says Update, ↵ updates it, and preferences survive.
 - ⌘↵ opens the store page; ⇧⌘C copies `https://www.raycast.com/<owner>/<name>`.

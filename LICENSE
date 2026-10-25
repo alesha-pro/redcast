@@ -1,5 +1,10 @@
-Tinycast
+Redcast, a modified version of Tinycast
 Copyright (C) 2026 Abue Ammar
+Copyright (C) 2026 Alexey Fateev (the modifications)
+
+Redcast is a modified version of Tinycast <https://github.com/abue-ammar/tinycast>,
+changed by Alexey Fateev from October 2026 on. The changes are listed in FORK.md and in
+the git history at <https://github.com/alesha-pro/redcast>.
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by

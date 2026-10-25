@@ -19956,55 +19956,55 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Eine aus Redcast exportierte .tinycast-Datei."
+            "value" : "Eine aus Redcast exportierte .redcast-Datei."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "A .tinycast file exported from Redcast."
+            "value" : "A .redcast file exported from Redcast."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Un archivo .tinycast exportado desde Redcast."
+            "value" : "Un archivo .redcast exportado desde Redcast."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Un fichier .tinycast exporté depuis Redcast."
+            "value" : "Un fichier .redcast exporté depuis Redcast."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Redcastから書き出した.tinycastファイル。"
+            "value" : "Redcastから書き出した.redcastファイル。"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Redcast에서 내보낸 .tinycast 파일입니다."
+            "value" : "Redcast에서 내보낸 .redcast 파일입니다."
           }
         },
         "pt" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Um arquivo .tinycast exportado do Redcast."
+            "value" : "Um arquivo .redcast exportado do Redcast."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Файл .tinycast, экспортированный из Redcast."
+            "value" : "Файл .redcast, экспортированный из Redcast."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "从 Redcast 导出的 .tinycast 文件。"
+            "value" : "从 Redcast 导出的 .redcast 文件。"
           }
         }
       }
@@ -20641,6 +20641,59 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "模式会在输入前改写你说的话。在听写胶囊中按 Tab 可切换模式；Redcast 会为前台应用记住这个选择。"
+          }
+        }
+      }
+    },
+    "A modified version of Tinycast, © 2026 Abue Ammar." : {
+      "comment" : "About: the AGPL notice naming the upstream app and its author; keep Tinycast and the name",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eine geänderte Version von Tinycast, © 2026 Abue Ammar."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Una versión modificada de Tinycast, © 2026 Abue Ammar."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Une version modifiée de Tinycast, © 2026 Abue Ammar."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tinycast（© 2026 Abue Ammar）の改変版です。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tinycast(© 2026 Abue Ammar)의 수정 버전입니다."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uma versão modificada do Tinycast, © 2026 Abue Ammar."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Изменённая версия Tinycast, © 2026 Abue Ammar."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tinycast 的修改版本，© 2026 Abue Ammar。"
           }
         }
       }
@@ -34621,59 +34674,6 @@
         }
       }
     },
-    "Based on Tinycast by Abue Ammar" : {
-      "comment" : "About’s credit for the upstream app this fork is built from; keep the name Tinycast",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Basiert auf Tinycast von Abue Ammar"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Basado en Tinycast de Abue Ammar"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Basé sur Tinycast d’Abue Ammar"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Abue AmmarによるTinycastがベースです"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Abue Ammar의 Tinycast 기반"
-          }
-        },
-        "pt" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Baseado no Tinycast de Abue Ammar"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Основано на Tinycast от Abue Ammar"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "基于 Abue Ammar 的 Tinycast"
-          }
-        }
-      }
-    },
     "Before and after a meeting starts." : {
       "localizations" : {
         "de" : {
@@ -39604,6 +39604,59 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "无法存储更改：无法打开数据库。其文件未被改动。"
+          }
+        }
+      }
+    },
+    "Changes © 2026 Alexey Fateev. Free to share and change under the GNU AGPL v3. No warranty." : {
+      "comment" : "About: the fork's copyright, the licence's freedoms and the absence of warranty; keep the name",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Änderungen © 2026 Alexey Fateev. Frei weiterzugeben und zu ändern unter der GNU AGPL v3. Ohne Gewährleistung."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cambios © 2026 Alexey Fateev. Libre para compartir y modificar bajo la GNU AGPL v3. Sin garantía."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Modifications © 2026 Alexey Fateev. Libre de partage et de modification sous la GNU AGPL v3. Sans garantie."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "変更部分 © 2026 Alexey Fateev。GNU AGPL v3 のもとで自由に共有・改変できます。無保証です。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "변경 사항 © 2026 Alexey Fateev. GNU AGPL v3에 따라 자유롭게 공유하고 수정할 수 있습니다. 보증하지 않습니다."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alterações © 2026 Alexey Fateev. Livre para compartilhar e modificar sob a GNU AGPL v3. Sem garantia."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Изменения © 2026 Alexey Fateev. Можно свободно распространять и изменять по GNU AGPL v3. Без гарантий."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "修改部分 © 2026 Alexey Fateev。可依据 GNU AGPL v3 自由分享和修改。不提供任何担保。"
           }
         }
       }
@@ -87154,6 +87207,59 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "资源库"
+          }
+        }
+      }
+    },
+    "License" : {
+      "comment" : "About: the row that opens the licence's text",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lizenz"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Licencia"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Licence"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ライセンス"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "라이선스"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Licença"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Лицензия"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "许可证"
           }
         }
       }
@@ -153958,49 +154064,55 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Die ausgewählten Objekte als eine .tinycast-Datei."
+            "value" : "Die ausgewählten Objekte als eine .redcast-Datei."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The ticked items, as one .redcast file."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Los ítems marcados, en un único archivo .tinycast."
+            "value" : "Los ítems marcados, en un único archivo .redcast."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Enregistre les éléments sélectionnés dans un fichier .tinycast."
+            "value" : "Enregistre les éléments sélectionnés dans un fichier .redcast."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "チェックを入れた項目を、1つの.tinycastファイルにまとめます。"
+            "value" : "チェックを入れた項目を、1つの.redcastファイルにまとめます。"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "선택한 항목을 하나의 .tinycast 파일로 저장합니다."
+            "value" : "선택한 항목을 하나의 .redcast 파일로 저장합니다."
           }
         },
         "pt" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Os itens marcados, em um único arquivo .tinycast."
+            "value" : "Os itens marcados, em um único arquivo .redcast."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Отмеченные объекты в одном файле .tinycast."
+            "value" : "Отмеченные объекты в одном файле .redcast."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "已勾选的项目，合为一个 .tinycast 文件。"
+            "value" : "已勾选的项目，合为一个 .redcast 文件。"
           }
         }
       }

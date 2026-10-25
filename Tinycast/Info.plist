@@ -24,10 +24,11 @@
 	<array>
 		<dict>
 			<key>CFBundleURLName</key>
-			<string>Raycast and Tinycast URL Scheme</string>
+			<string>Raycast and Redcast URL Scheme</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
 				<string>raycast</string>
+				<string>redcast</string>
 				<string>tinycast</string>
 				<string>com.raycast</string>
 			</array>
@@ -38,6 +39,25 @@
 	     is fixed rather than per-channel so Dev and stable can read each other's exports. -->
 	<key>UTExportedTypeDeclarations</key>
 	<array>
+		<!-- Fork: Redcast writes .redcast; upstream's .tinycast below still opens. -->
+		<dict>
+			<key>UTTypeIdentifier</key>
+			<string>io.redcast.backup</string>
+			<key>UTTypeDescription</key>
+			<string>Redcast Backup</string>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.data</string>
+				<string>public.archive</string>
+			</array>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>redcast</string>
+				</array>
+			</dict>
+		</dict>
 		<dict>
 			<key>UTTypeIdentifier</key>
 			<string>com.tinycast.backup</string>
@@ -76,6 +96,6 @@
 	<key>NSBluetoothAlwaysUsageDescription</key>
 	<string>Tinycast uses Bluetooth access only when you run the Toggle Bluetooth action.</string>
 	<key>NSHumanReadableCopyright</key>
-	<string>Tinycast</string>
+	<string>© 2026 Abue Ammar, © 2026 Alexey Fateev. GNU AGPL v3.</string>
 </dict>
 </plist>

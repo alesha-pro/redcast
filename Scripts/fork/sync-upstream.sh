@@ -16,13 +16,15 @@ CATALOG=Tinycast/Resources/Localizable.xcstrings
 INFO_CATALOG=Tinycast/Resources/InfoPlist.xcstrings
 # The fork's own files: every sync keeps them as they are, whatever upstream did to its copy. The
 # two GitHub files carried upstream's donation link and Discord; deleting them would conflict instead.
-FORK_OWNED="README.md .github/FUNDING.yml .github/ISSUE_TEMPLATE/config.yml CONTRIBUTING.md SECURITY.md"
+# LICENSE carries the fork's notice of its changes above the licence's text.
+FORK_OWNED="README.md LICENSE .github/FUNDING.yml .github/ISSUE_TEMPLATE/config.yml CONTRIBUTING.md \
+SECURITY.md"
 # Upstream's own site, CI, release tooling and contributor terms: the fork deleted them, and every
 # sync deletes what upstream changes or adds under them again.
 FORK_REMOVED="website .github/workflows .github/ISSUE_TEMPLATE/bug_report.yml \
 .github/ISSUE_TEMPLATE/feature_request.yml .github/ISSUE_TEMPLATE/extension_bug.yml \
 CONTRIBUTOR_LICENSE_AND_FEEDBACK_AGREEMENT.md Scripts/release-notes.sh Scripts/upload-website-media.sh \
-docs/release.md docs/support-button.svg docs/screenshot.png"
+docs/release.md docs/support-button.svg docs/screenshot.png docs/not-planned.md"
 # Display- or load-bound: reported, never a reason to hold a sync back.
 ENVIRONMENTAL=" form-input-test onboarding-test icon-cache-test "
 RULE_DOCS=" AGENTS.md CLAUDE.md docs/architecture.md docs/standards.md \
@@ -202,6 +204,34 @@ merge_catalog() {
     renamed_keys "$output"
 }
 
+# Upstream's Markdown merges with its Tinycast already renamed, so a line the fork only renamed takes
+# upstream's edit; where that still conflicts and git's merge did not, git's result stands.
+merge_docs() {
+    local base=$1 path status
+    while IFS= read -r path; do
+        [ -n "$path" ] || continue
+        if has_word " $FORK_OWNED " "$path"; then continue; fi
+        git cat-file -e "HEAD:$path" 2>/dev/null && git cat-file -e "$base:$path" 2>/dev/null &&
+            git cat-file -e "MERGE_HEAD:$path" 2>/dev/null || continue
+        git show "HEAD:$path" >"$WORK/doc-ours"
+        git show "$base:$path" | node Scripts/fork/rebrand.mjs --doc "$path" >"$WORK/doc-base"
+        git show "MERGE_HEAD:$path" | node Scripts/fork/rebrand.mjs --doc "$path" >"$WORK/doc-theirs"
+        if git diff "$base" MERGE_HEAD -- "$path" | grep '^+[^+]' | grep -q 'Tinycast'; then
+            printf '%s\n' "$path" >>"$WORK/renamed-docs.txt"
+        fi
+        status=0
+        git merge-file -q -L ours -L base -L upstream \
+            "$WORK/doc-ours" "$WORK/doc-base" "$WORK/doc-theirs" || status=$?
+        if [ "$status" -eq 0 ]; then
+            cp "$WORK/doc-ours" "$path"
+            git add -- "$path"
+            note "merged $path with upstream's Tinycast renamed"
+        elif [ "$status" -lt 128 ] && [ -n "$(git diff --name-only --diff-filter=U -- "$path")" ]; then
+            cp "$WORK/doc-ours" "$path"
+        fi
+    done < <(git diff --name-only "$base" MERGE_HEAD -- '*.md')
+}
+
 # Generated files take upstream's side and are rebuilt; the catalogs merge key by key; the fork's
 # own files stay the fork's, whether git merged upstream's edit on its own or left a conflict.
 resolve_known() {
@@ -214,6 +244,7 @@ resolve_known() {
         merge_catalog "$path" ||
             NOTES="${NOTES}- merge-xcstrings.mjs could not merge $path; it stays as git merged it"$'\n'
     done
+    merge_docs "$base"
     for path in $FORK_OWNED; do
         git diff --quiet "$base" MERGE_HEAD -- "$path" && continue
         git cat-file -e "HEAD:$path" 2>/dev/null || continue
@@ -263,7 +294,7 @@ merge_upstream() {
 }
 
 # Whatever the merges left saying Tinycast (a catalog merge-xcstrings could not take, a conflict
-# resolved by hand) says Redcast in the merge commit, before any gate builds it.
+# resolved by hand, upstream's new prose) says Redcast in the merge commit, before any gate builds it.
 rebrand_catalogs() {
     [ -e "$(git rev-parse --git-path MERGE_HEAD)" ] || return 0
     local output warnings
@@ -274,12 +305,14 @@ rebrand_catalogs() {
     if grep -q 'renamed Tinycast\|restored Tinycast' <<<"$output"; then
         note "$(grep 'renamed Tinycast\|restored Tinycast' <<<"$output" | tr '\n' ' ')"
     fi
+    sed -n 's/^\(.*\.md\): renamed Tinycast on .*/\1/p' <<<"$output" >>"$WORK/renamed-docs.txt"
     renamed_keys "$output"
     warnings="$(grep '^! ' <<<"$output" || true)"
     [ -z "$warnings" ] || NOTES="${NOTES}$(sed 's/^! /- rebrand.mjs: /' <<<"$warnings")"$'\n'
 
     local path
     for path in "$CATALOG" "$INFO_CATALOG"; do [ ! -e "$path" ] || git add -- "$path"; done
+    while IFS= read -r path; do git add -- "$path"; done < <(git ls-files -m -- '*.md')
 }
 
 regenerate() {
@@ -449,6 +482,9 @@ attention() {
         [ "$count" -le 20 ] || printf -- ' and %s more' "$((count - 20))"
         printf '\n'
     fi
+    renamed="$(awk '!seen[$0]++' "$WORK/renamed-docs.txt" 2>/dev/null | paste -sd, - | sed 's/,/, /g')"
+    [ -z "$renamed" ] || printf -- '- Rebrand: upstream prose now says Redcast in %s; say upstream on %s\n' \
+        "$renamed" "any line that means it, then rerun rebrand.mjs --check"
     workflows="$(git diff --name-status "$BASE" "$UP" -- .github/workflows)"
     while IFS=$'\t' read -r status path; do
         [ -n "$path" ] || continue
@@ -606,6 +642,7 @@ sync() {
     preconditions
     mkdir -p "$WORK"
     : >"$WORK/renamed-keys.txt"
+    : >"$WORK/renamed-docs.txt"
     FORK_TIP="$(git rev-parse HEAD)"
     OLD_UP="$(last_synced)"
     fetch
@@ -853,6 +890,22 @@ self_test() {
         "$summary"
     check "leaving a clean tree" [ -z "$(git -C "$FORK" status --porcelain --untracked-files=no)" ]
 
+    new_case docs
+    docs_case
+    up="$(git -C "$UPR" rev-parse HEAD)"
+    status="$(run_sync)"
+    check "upstream's edit to a doc line the fork only renamed merges (exit $status)" [ "$status" = 0 ]
+    check "taking upstream's wording, renamed" git -C "$FORK" grep -q '^Redcast opens fast\.$' HEAD -- docs/a.md
+    check "a line upstream adds arrives renamed" \
+        git -C "$FORK" grep -q '^Redcast adds rooms\.$' HEAD -- docs/a.md
+    check "the fork's own wording stays" \
+        git -C "$FORK" grep -q '^Upstream wrote the base\.$' HEAD -- docs/a.md
+    check "a path keeps upstream's name" git -C "$FORK" grep -qF '`Tinycast/App` holds it.' HEAD -- docs/a.md
+    check "the summary asks for the renamed doc to be read" \
+        grep -q "Rebrand: upstream prose now says Redcast in docs/a.md" \
+        "$FORK/build/sync/summary-${up:0:7}.md"
+    check "leaving a clean tree" [ -z "$(git -C "$FORK" status --porcelain --untracked-files=no)" ]
+
     new_case readme
     readme_case
     up="$(git -C "$UPR" rev-parse HEAD)"
@@ -937,6 +990,20 @@ rebrand_case() {
         NSMicrophoneUsageDescription "Tinycast nimmt auf." \
         "Tinycast backup" "Tinycast-Sicherung" >"$UPR/$INFO_CATALOG"
     git -C "$UPR" commit -q -am "Upstream's strings"
+}
+
+# Upstream's doc, renamed by the fork with one line reworded by hand; then upstream rewords a line the
+# fork only renamed, which git alone would conflict on, and adds one.
+docs_case() {
+    local gap=$'\n\nA line.\n\nAnother line.\n\n'
+    commit_file "$UPR" docs/a.md "# Tinycast${gap}Tinycast opens quickly.${gap}Tinycast wrote the base.${gap}\`Tinycast/App\` holds it." \
+        "Upstream's doc"
+    git -C "$FORK" pull -q --no-rebase --no-edit upstream main
+    (cd "$FORK" && node Scripts/fork/rebrand.mjs >/dev/null 2>&1)
+    sed -i '' 's/^Redcast wrote the base\.$/Upstream wrote the base./' "$FORK/docs/a.md"
+    git -C "$FORK" commit -q -am "The fork's doc"
+    commit_file "$UPR" docs/a.md "# Tinycast${gap}Tinycast opens fast.${gap}Tinycast wrote the base.${gap}\`Tinycast/App\` holds it.${gap}Tinycast adds rooms." \
+        "Upstream edits its doc"
 }
 
 # Upstream's README.md, the fork's own rewrite of its title, then an upstream commit that edits its

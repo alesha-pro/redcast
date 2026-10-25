@@ -1,6 +1,6 @@
 import Foundation
 
-/// `tinycast://agent-sessions/…`; every such URL is claimed, so none falls through to the launcher.
+/// `redcast://` or `tinycast://agent-sessions/…`: each is claimed, so none reaches the launcher.
 enum AgentDeepLink: Equatable, Sendable {
     case open(query: String?)
     case jump
@@ -10,7 +10,7 @@ enum AgentDeepLink: Equatable, Sendable {
     static let queryLimit = 200
 
     static func claims(_ url: URL) -> Bool {
-        url.scheme?.lowercased() == "tinycast" && url.host()?.lowercased() == host
+        ["redcast", "tinycast"].contains(url.scheme?.lowercased()) && url.host()?.lowercased() == host
     }
 
     /// Nil drops the link: anything outside the grammar, or an event without the right token.

@@ -33,7 +33,7 @@ enum MCPOAuthRequest {
 
     static func registration(redirectURI: String) throws -> Data {
         try JSONSerialization.data(withJSONObject: [
-            "client_name": "Tinycast", "application_type": "native",
+            "client_name": "Redcast", "application_type": "native",  // Fork: the consent page's name
             "redirect_uris": [redirectURI],
             "grant_types": ["authorization_code", "refresh_token"], "response_types": ["code"],
             "token_endpoint_auth_method": "none"

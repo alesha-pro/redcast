@@ -4,6 +4,7 @@ import UniformTypeIdentifiers
 extension UTType {
     /// Not per-channel: a UTI names an interchange format, so Dev must read stable's exports.
     static let tinycastBackup = UTType(exportedAs: "com.tinycast.backup")
+    static let redcastBackup = UTType(exportedAs: "io.redcast.backup")  // Fork: what Redcast writes
 }
 
 @MainActor
@@ -35,13 +36,13 @@ enum BackupActions {
         return panel.url
     }
 
-    static func chooseJSONFile() -> URL? { chooseFile(ofType: .json) }
+    static func chooseJSONFile() -> URL? { chooseFile(ofTypes: [.json]) }
 
-    static func chooseBackupFile() -> URL? { chooseFile(ofType: .tinycastBackup) }
+    static func chooseBackupFile() -> URL? { chooseFile(ofTypes: [.redcastBackup, .tinycastBackup]) }  // Fork
 
-    private static func chooseFile(ofType type: UTType) -> URL? {
+    private static func chooseFile(ofTypes types: [UTType]) -> URL? {  // Fork: several types
         let panel = NSOpenPanel()
-        panel.allowedContentTypes = [type]
+        panel.allowedContentTypes = types
         panel.allowsMultipleSelection = false
         NSApp.activate(ignoringOtherApps: true)
         guard panel.runModal() == .OK else { return nil }
@@ -56,7 +57,8 @@ enum BackupActions {
     ) async throws
         -> BackupComposer.Result
     {
-        guard let destination = chooseSaveLocation(named: "Tinycast", type: .tinycastBackup) else {
+        // Fork: Redcast's backups are `.redcast`; `.tinycast` ones still open.
+        guard let destination = chooseSaveLocation(named: ForkBrand.name, type: .redcastBackup) else {
             throw CancellationError()
         }
         let plan = BackupComposer.plan(categories, from: core)

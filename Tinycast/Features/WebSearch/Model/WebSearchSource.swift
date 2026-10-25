@@ -80,7 +80,7 @@ enum WebSearchFailure: Error, Equatable, Sendable {
         case .refused: "refused the request (a CAPTCHA or a block)"
         case .unauthorized: "the key was not accepted"
         case .status(let code): "HTTP \(code)"
-        case .unreadable: "an answer Tinycast cannot read"
+        case .unreadable: "an answer Redcast cannot read"
         case .empty: "no results"
         case .failed(let message): message
         }

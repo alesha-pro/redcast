@@ -1,6 +1,6 @@
 # Raycast extensions
 
-Tinycast runs Raycast extensions: the same `package.json` + prebuilt CommonJS bundles Raycast itself
+Redcast runs Raycast extensions: the same `package.json` + prebuilt CommonJS bundles Raycast itself
 produces, rendered natively into the palette. No Electron, no browser, no Node.js.
 
 - [How it works](#how-it-works) · [The JS runtime](#the-js-runtime) ·
@@ -42,7 +42,7 @@ produces, rendered natively into the palette. No Electron, no browser, no Node.j
 ## How it works
 
 A Raycast extension command is a **prebuilt CommonJS file** that keeps `react`,
-`react/jsx-runtime`, `@raycast/api` and the Node built-ins external. Tinycast supplies those and
+`react/jsx-runtime`, `@raycast/api` and the Node built-ins external. Redcast supplies those and
 resolves any third-party packages shipped under `node_modules/`, then renders the React tree:
 
 ```
@@ -86,7 +86,7 @@ timers, `fetch`, `URL`, `URLSearchParams`, `Blob`/`File`/`FormData`, `DOMExcepti
 ## The JS runtime
 
 `Tinycast/Resources/RaycastRuntime.generated.js` (~263 KB minified) is **generated and committed**, the
-same arrangement as `EmojiData.generated.swift`: building Tinycast never needs Node. Sources live in
+same arrangement as `EmojiData.generated.swift`: building Redcast never needs Node. Sources live in
 [`Scripts/raycast-runtime/`](../../Scripts/raycast-runtime):
 
 | File                                             | What it is                                                                                                             |
@@ -251,7 +251,7 @@ screens hold (see [palette.md](palette.md)).
   `ExtensionSearchAccessoryButton` at the header's trailing edge and drop `ExtensionPickerList` as one
   of the palette's `OpenMenu` cases, so the arrows, ↵, Escape and the click-away come from the one menu
   path and no second key handler exists to disagree with it. `PaletteFilterAction` routes ⌘P, so a
-  command's own dropdown answers before Tinycast's clipboard filter can. The list is
+  command's own dropdown answers before Redcast's clipboard filter can. The list is
   `listWidth` (240) rather than a form picker's field width: it hangs off a chip, not a field.
   Its native search field sits above the choices and uses the palette menu's fuzzy matcher.
   **Swift owns the selection** — the runtime keeps `makeSearchDropdown` hook-free so an extension may
@@ -481,7 +481,7 @@ Settings → Extensions offers four routes, under **Install New**:
 2. **Install from GitHub** — builds one extension from its source on this Mac. See below.
 3. **Import from Raycast** — copies the already-built bundles out of a local Raycast. Nothing is
    compiled, so no Node, npm or network is involved. The pane also scans whenever it opens, and says
-   so when Raycast has something Tinycast doesn't — installing in Raycast otherwise leaves no trace
+   so when Raycast has something Redcast doesn't — installing in Raycast otherwise leaves no trace
    here. **Both channels are searched**: `~/.config/raycast` and `~/.config/raycast-x`, the latter
    being Raycast Beta v2. Checking only the first reported "no Raycast install" to every Beta user,
    whose stable directory is present but empty. The same extension in both is offered once.
@@ -600,7 +600,7 @@ global Show in launcher switch, or this extension's — because the ranker never
 
 ## Deeplinks
 
-Tinycast registers `raycast`, `com.raycast` and `tinycast` to receive extension links. An installed
+Redcast registers `raycast`, `com.raycast`, `redcast` and `tinycast` to receive extension links. An installed
 Raycast competes for its schemes, and macOS chooses which app receives a link.
 
 `raycast://extensions/<owner>/<extension>?source=webstore`, used by the Store website's Install
@@ -610,7 +610,8 @@ opens their Settings pane so they can be enabled through the usual consent flow.
 
 `raycast://extensions/<owner>/<extension>/<command>` runs an installed command from outside the app —
 a browser link, another app, a Shortcut — and `tinycast://` mirrors it so our own links never depend
-on Raycast winning the scheme. Both accept Raycast's query parameters: `arguments` as URL-encoded
+on Raycast winning the scheme. Fork: `redcast://` mirrors it too, and is the one no upstream install
+can take. Both accept Raycast's query parameters: `arguments` as URL-encoded
 JSON, `fallbackText`, and `launchType=background`, which only a no-view command receives — a view
 command always takes over the palette, so it launches as `userInitiated`. The owner is a hint: a
 scoped install matches by `owner/extension` first and falls back to the bare slug, so short links
@@ -683,7 +684,7 @@ and `@raycast/utils`' `useAI`, answered by your own model ([extension-ai](extens
 
 **`raycast://` URLs** — extensions address Raycast by scheme; the most common is a bare
 `open("raycast://")` to bring the window back after something stole focus (1Password's auth flow does
-this). `ExtensionHostBridge` keeps those inside Tinycast: `raycast://extensions/<author>/<extension>/<command>`
+this). `ExtensionHostBridge` keeps those inside Redcast: `raycast://extensions/<author>/<extension>/<command>`
 runs that command when it's installed, anything else reopens the palette. Handing them to the workspace
 would launch Raycast itself.
 
@@ -750,7 +751,7 @@ than waiting for room on its readable side, so only a transform nobody reads fro
 
 `url.fileURLToPath` decodes percent-escapes the way Node does on darwin, so an asset path carrying a
 space resolves to a file the image loader can open, and it rejects an encoded separator or a non-local
-host rather than returning a wrong path. Node's `windows` override is absent: Tinycast only runs on
+host rather than returning a wrong path. Node's `windows` override is absent: Redcast only runs on
 macOS, so drive-letter and UNC output would be unreachable. `url.pathToFileURL` escapes `?` and `#`
 so a filename holding either survives the round trip.
 

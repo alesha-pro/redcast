@@ -245,7 +245,7 @@ final class CodexAppServerClient {
                 params: [
                     "clientInfo": [
                         "name": "tinycast",
-                        "title": "Tinycast",
+                        "title": ForkBrand.name,  // Fork: Codex names its client Redcast
                         "version": Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String
                             ?? "0"
                     ],
@@ -389,7 +389,7 @@ final class CodexAppServerClient {
         default:
             try? send(
                 CodexAppServerProtocol.errorResponse(
-                    id: id, message: "Tinycast does not expose Codex tools."))
+                    id: id, message: "Tinycast does not expose Codex tools.".forkBranded))  // Fork
             return
         }
         try? send(CodexAppServerProtocol.response(id: id, result: result))

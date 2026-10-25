@@ -1,12 +1,12 @@
 # Agent Sessions
 
-**Search Agent Sessions** lists every past Claude Code, Codex, Gemini CLI, OpenCode and Tinycast AI
+**Search Agent Sessions** lists every past Claude Code, Codex, Gemini CLI, OpenCode and Redcast AI
 session in one palette screen: titles, first and last prompts, folder and branch, and a preview of the
 last turns. ↵ resumes a session where it lived — `cd` into its folder and `claude --resume <id>`,
 `codex resume <id>`, `gemini --resume <id>` or `opencode --session <id>` in the terminal it ran in — or
-reopens a Tinycast chat in AI Chat; ⌘O opens a Claude app session in Claude itself. **Jump to Agent**
+reopens a Redcast chat in AI Chat; ⌘O opens a Claude app session in Claude itself. **Jump to Agent**
 brings forward the terminal tab of an agent that is waiting for you. An opt-in **live status** adds
-small hooks to Claude Code and Codex so Tinycast can say, with a HUD, when an agent finishes or needs
+small hooks to Claude Code and Codex so Redcast can say, with a HUD, when an agent finishes or needs
 you. The feature lives in `Features/AgentSessions/`, plus the few lines that wire it in.
 
 ## Invariants
@@ -24,7 +24,7 @@ you. The feature lives in `Features/AgentSessions/`, plus the few lines that wir
 - **No timers, no watchers, no resident process.** A refresh happens when the screen opens and on ⌘R.
   Activity ages out when it is next touched. The only child process is `claude agents --json`, with a
   3 s watchdog; on timeout or cancellation its whole tree is reaped through `ProcessTree`. Terminals
-  are launched by LaunchServices and are never Tinycast's children.
+  are launched by LaunchServices and are never Redcast's children.
 - **Live status changes the agents' files only through an approved diff.** Settings shows each file,
   whether it is created, changed or removed, and the exact lines; nothing is written before **Turn
   On** or **Turn Off**. Each file is re-read first and a file that changed meanwhile sends the panel
@@ -34,9 +34,11 @@ you. The feature lives in `Features/AgentSessions/`, plus the few lines that wir
 - **Events need the token.** `tinycast://agent-sessions/event` carries the per-install token from
   `live-status.json`, compared in constant time; a wrong or missing token, an unknown field value or a
   malformed one drops the event silently. Every `tinycast://agent-sessions/…` URL is claimed, so none
-  falls through to opening the launcher. A HUD's words come from Tinycast's own lookup of the session
-  and fixed strings, never from the URL.
-- **Hooks never launch Tinycast and never slow the agent.** Each hook is `async`, drains stdin after a
+  falls through to opening the launcher. A HUD's words come from Redcast's own lookup of the session
+  and fixed strings, never from the URL. Fork: `redcast://agent-sessions/…` is claimed the same way,
+  but hooks keep writing `tinycast://`: the marker above finds installed hooks by that exact text,
+  so a new one would orphan every hook already in a user's agent settings.
+- **Hooks never launch Redcast and never slow the agent.** Each hook is `async`, drains stdin after a
   64 KB head, uses absolute tool paths, exits 0, and does nothing unless `lsappinfo` finds this
   channel's bundle running; `open -g -b <bundle>` delivers to this channel only.
 - **Capabilities stay off and never travel.** Live status is off by default and is a capability: it is
@@ -45,7 +47,7 @@ you. The feature lives in `Features/AgentSessions/`, plus the few lines that wir
   only `agentSessionsEnabled` has a settings-file key (`ai.agentSessions`). Its menu-bar rows are
   off by default and show in the one Agents item only while an agent works, waits or finished
   unseen ([background agents](background-agents.md#while-and-after-a-run)).
-- **A moved folder counts everywhere.** Tinycast cannot see `CLAUDE_CONFIG_DIR` or `CODEX_HOME`, so
+- **A moved folder counts everywhere.** Redcast cannot see `CLAUDE_CONFIG_DIR` or `CODEX_HOME`, so
   Settings holds **Claude Code folder** and **Codex folder** in their place (empty is `~/.claude` /
   `~/.codex`, `~` is expanded, relative text is ignored). One `AgentSessionsLocations`, built from
   them at each use, feeds reading, the cache root, the live probe, event lookup, the hook files and
@@ -56,8 +58,8 @@ you. The feature lives in `Features/AgentSessions/`, plus the few lines that wir
   folder's file holds this channel's hooks, and from a live-status button until its panel closes and
   the status is read again. The note under each field then says to turn live status off first; an
   unsaved edit in a field reverts when it locks.
-- **Tinycast's own ACP sessions show once.** A session of any of the four agents whose id is in
-  `AgentStore.acpSessions` is a Tinycast chat and is listed only as that chat; Codex threads with the
+- **Redcast's own ACP sessions show once.** A session of any of the four agents whose id is in
+  `AgentStore.acpSessions` is a Redcast chat and is listed only as that chat; Codex threads with the
   `tinycast` originator are dropped for the same reason.
 - **Gemini CLI and OpenCode are history only.** They are read when the screen opens like the others,
   and resumed; nothing probes, hooks or watches them, and they never touch live status. On a Mac
@@ -69,8 +71,8 @@ you. The feature lives in `Features/AgentSessions/`, plus the few lines that wir
   handler accepts (`local_` and 1–64 of `[0-9A-Za-z-]`) and is handed to Claude.app by bundle, so no
   other app that claims `claude://` receives it. Without a record, ⌘O only brings Claude forward.
 - **Only a person's own sessions are tracked.** An event for an automated run (`claude -p`, an SDK
-  run, `codex exec`, a Codex subagent or guardian review) or for Tinycast's own session (an
-  `acpSessions` id, the `tinycast` originator, or an agent whose process runs under Tinycast) is
+  run, `codex exec`, a Codex subagent or guardian review) or for Redcast's own session (an
+  `acpSessions` id, the `tinycast` originator, or an agent whose process runs under Redcast) is
   dropped, along with any entry it had before it was known. So no HUD, menu-bar row or Jump to Agent
   ever points at one, and a burst of them never evicts a waiting session from the 32 kept.
 
@@ -143,7 +145,7 @@ Formats were measured on Claude Code 2.1.285–2.1.303 and codex-cli 0.162; no p
   `part` text parts that are not `synthetic` (attached files) or `ignored`. A `New session - <date>`
   title is a placeholder and the first prompt stands in; a session with neither is left out. Columns are
   probed, and a schema without `message`/`part` still lists titles.
-- **Tinycast.** `ChatHistoryStore.conversations`, already resident while AI is on; a chat bound to an
+- **Redcast.** `ChatHistoryStore.conversations`, already resident while AI is on; a chat bound to an
   agent takes that agent's folder.
 - **Claude app records** (read on ⌘O only; Claude.app 2.42304). The app keeps one record per Code
   session under `~/Library/Application Support/Claude/` in
@@ -215,7 +217,7 @@ other byte of the file stays as it was.
 
 An event resolves its session from this Mac's own history and its host app and tty from the pid; a
 Codex thread is looked up by id even when the listing hides it, so a subagent reads as automated and
-Tinycast's own thread as Tinycast's. Only a person's own sessions are kept (see Invariants). A HUD is
+Redcast's own thread as Redcast's. Only a person's own sessions are kept (see Invariants). A HUD is
 shown only for finished, waiting or failed; never for a Claude app or Codex app session, a host that
 is in front, an unchanged status, or a repeat within 10 s. Activity keeps at most 32 entries, drops
 an ended one after 10 minutes and anything after 12 hours.
@@ -231,7 +233,7 @@ row or Search Agent Sessions at all.
 
 Run in `Tinycast Dev.app` with AI on.
 
-1. **Search Agent Sessions** lists Claude, Codex and Tinycast rows; a first open shows progress, a
+1. **Search Agent Sessions** lists Claude, Codex and Redcast rows; a first open shows progress, a
    re-open and a relaunch are instant (the cache works).
 2. A title, a folder name and words from the first prompt each find the session.
 3. ↵ on a Claude CLI session resumes it in Terminal (Automation prompt once); repeat with iTerm2,
@@ -242,7 +244,7 @@ Run in `Tinycast Dev.app` with AI on.
 5. A Codex thread resumes with `codex resume`; ⌘O opens it in the Codex app.
 6. A Claude app session: ⌘O opens that very session in Claude.app, with Claude running and with it
    quit; an archived one shows Claude's Code home. A Claude CLI session has no Open in Claude.
-7. A Tinycast chat opens in AI Chat; ⌘↵ opens it in Quick AI; an agent's chat shows the agent's name.
+7. A Redcast chat opens in AI Chat; ⌘↵ opens it in Quick AI; an agent's chat shows the agent's name.
 8. A session whose folder was deleted: ↵ copies the command and the HUD explains.
 9. ⌘K → Show Automated Runs reveals `claude -p` and `codex exec` runs; Include Archived Sessions shows
    archived Codex threads.
@@ -255,14 +257,14 @@ Run in `Tinycast Dev.app` with AI on.
 13. With another app in front, a finished Claude turn gives "Claude Code finished in <folder>", a
     permission prompt "… needs you …"; none while that Terminal is in front, none for a Claude.app
     session. `claude -p`, `codex exec`, an AI Chat turn on the Codex route and an agent chat in
-    Tinycast give no HUD, no menu-bar row and are never a Jump to Agent target. Check `$PPID`
+    Redcast give no HUD, no menu-bar row and are never a Jump to Agent target. Check `$PPID`
     resolves the host for both agents.
 14. The Agents menu-bar item (opt-in for sessions) appears while an agent works and leaves after
     Clear Finished; its Agent Sessions rows jump. With only one finished agent left, open the menu
     and click its row: the terminal comes forward and the item then leaves. When another agent
     finishes, choose Search Agent Sessions from the menu instead: the screen opens. A background run
     at the same time shares the item, under Background Runs.
-15. Quit Tinycast and run an agent: nothing launches, and the transcript shows no hook error.
+15. Quit Redcast and run an agent: nothing launches, and the transcript shows no hook error.
 16. **Turn Off…** restores the original bytes (`diff` against the backup). Edit `settings.json` while
     the panel is open: Turn On refuses and shows the new diff.
 17. `open "tinycast://agent-sessions/event?v=1&k=wrong&agent=claude&event=finished&session=x"`:

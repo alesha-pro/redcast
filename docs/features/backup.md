@@ -1,7 +1,9 @@
 # Backup
 
-Export and import of Tinycast's own data as a single `.tinycast` file, plus the entry point for
-importing a Raycast export. The feature lives in `Features/Backup/`.
+Export and import of Redcast's own data as a single `.tinycast` file, plus the entry point for
+importing a Raycast export. The feature lives in `Features/Backup/`. Fork: Redcast writes the same
+format as `.redcast` (`io.redcast.backup`), and Import still opens `.tinycast` from upstream or an
+older build; the format and the code keep upstream's name.
 
 A backup carries five independently selectable categories, ticked on export and again on import:
 **Settings & Shortcuts**, **Clipboard History**, **Snippets**, **Notes** and **Launcher Learning**.
@@ -62,7 +64,7 @@ A backup carries five independently selectable categories, ticked on export and 
 | `Service/BackupApplier.swift` | Staging → stores, returning a per-category summary |
 | `Service/BackupActions.swift` | The effectful half: file pickers, the archive calls, dialogs, the settings-file switch |
 | `Service/RaycastDecoder.swift` | Container recognition, decrypt and decode |
-| `Service/RaycastImportReader.swift` | Raycast → Tinycast field mapping |
+| `Service/RaycastImportReader.swift` | Raycast → Redcast field mapping |
 | `Service/Scrypt.swift`, `Platform/Compression/Zlib.swift` | The crypto and decompression primitives |
 | `Settings/BackupCategorySelection.swift` | The category checkboxes, on both halves of the pane |
 | `Settings/BackupSettingsView.swift` | The pane, which also holds the [settings file](settings-file.md) switch |
@@ -157,7 +159,7 @@ The owner's ask: a backup complete enough to move to another Mac or keep, where 
 comes back. Fork code in `Features/FullBackup/`; upstream's pane, export and import call into it in a
 few `Fork:` lines, and the launcher's Export and Import commands carry it too.
 
-A `.tinycast` keeps upstream's five categories and adds eight sections, ticked on export and again
+A `.redcast` keeps upstream's five categories and adds eight sections, ticked on export and again
 on import beside them: **Agents**, **MCP Servers**, **AI Connections**, **Voice & Dictation**,
 **Quick Actions**, **Extensions**, **More Shortcuts & Settings** and, unticked by default, **AI Chat
 History**. One opt-in, **Include API keys and tokens**, seals the app's secrets with a passphrase.
@@ -284,10 +286,11 @@ unknown consent name is dropped. The upstream manifest guard stays as it is.
 
 ### Export on quit
 
-Settings › Backup › Automatic Backup: **Export when Tinycast quits** writes
-`Tinycast-Auto-<yyyy-MM-dd-HHmmss>.tinycast` into the chosen folder when the last export (by hand or
+Settings › Backup › Automatic Backup: **Export when Redcast quits** writes
+`Redcast-Auto-<yyyy-MM-dd-HHmmss>.redcast` into the chosen folder when the last export (by hand or
 on quit) is older than 1, 3, 7, 14 or 30 days, then deletes all but the newest 3, 5, 10 or 20 files
-of that name pattern, never another file. It carries Settings & Shortcuts, Snippets, Notes, Launcher
+of that name pattern, never another file. Older builds' `Tinycast-Auto-….tinycast` files count by
+their time too, so they age out first. It carries Settings & Shortcuts, Snippets, Notes, Launcher
 Learning and every section except chat history, never the clipboard or secrets. It runs inside the
 quit, after notes flush, so there is no timer and nothing runs while the app is open. The folder,
 the switch and the last export date live in `FullBackupSettings`, per Mac.
@@ -535,10 +538,11 @@ they are the manual sweep's.
   agent made after the export is gone.
 - Tick AI Chat History, export and import into a Mac with chats: the old chats join, none is
   duplicated by a second import.
-- Turn on Export when Tinycast quits with a folder and 1 day; quit: a file appears. Quit again at
+- Turn on Export when Redcast quits with a folder and 1 day; quit: a file appears. Quit again at
   once: no second file. With Keep at 3 and older auto files present, only the newest three remain,
   and a file of another name is untouched.
-- Import an upstream Tinycast `.tinycast`: only its categories are offered and import as before.
+- Import a `.tinycast` from upstream: only its categories are offered and import as before. A
+  `.tinycast` from an older Redcast build imports like a `.redcast`.
 - With two AI Chat folders (one with instructions and an agent), a chat filed in each, one with its
   own instructions and one archived: export with AI Connections and AI Chat History, import into a Mac
   without them. The folders arrive; the chats land filed, archived and instructed as they were. Import

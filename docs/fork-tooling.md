@@ -7,7 +7,8 @@ in the background or adds a setting: each one runs when you start it and leaves 
 | Tool | Does |
 | --- | --- |
 | [`install.sh`](#scriptsforkinstallsh) | builds Redcast in Release, swaps it into `/Applications`, migrates a fork `Tinycast.app` |
-| [`rebrand.mjs`](#scriptsforkrebrandmjs) | renames the app in both string catalogs, Tinycast to Redcast |
+| [`rebrand.mjs`](#scriptsforkrebrandmjs) | says Redcast in both string catalogs and the docs, and checks the rest |
+| `rebrand-text.mjs` | the docs' and Swift literals' rename and checks, with their allowlists |
 | [`sync-upstream.sh`](#scriptsforksync-upstreamsh) | merges upstream into a branch of its own and runs the gates |
 | [`merge-xcstrings.mjs`](#scriptsforkmerge-xcstringsmjs) | the key-by-key catalog merge the sync uses |
 | `xcstrings.mjs` | the catalog parser and Xcode-layout writer the two `.mjs` tools share |
@@ -36,24 +37,25 @@ in the background or adds a setting: each one runs when you start it and leaves 
   `Tinycast Dictation`), which is one more reason it stays disabled here. `verify-signature.sh` looks
   for the helper under the same name, so such a build fails verification instead of shipping with
   dictation broken.
-- **The rename is visible only.** Nothing the code, macOS or the user's data looks up by name
-  changes: the bundle id, `.tinycast`, `tinycast://`, Keychain services, paths and log subsystems stay.
-  `rebrand.mjs` renames whole, capitalised words in catalog values and never a key.
-- **Started from Tinycast, it leaves Tinycast's process group before it builds.** An agent's
-  `run_command` watchdog (120 s by default, 600 s at most) and Tinycast's own quit both signal the
+- **The rename never breaks a lookup.** Redcast writes `.redcast` and answers `redcast://`, and
+  still opens `.tinycast` and answers `tinycast://`; the bundle id moved with a migration. Names the
+  code, macOS or upstream's merges look up stay ([what and why](#what-keeps-upstreams-name)).
+  `rebrand.mjs` renames whole, capitalised words in catalog values and doc prose, never a key.
+- **Started from Redcast, it leaves Redcast's process group before it builds.** An agent's
+  `run_command` watchdog (120 s by default, 600 s at most) and Redcast's own quit both signal the
   whole group that started the script, and a Release build outlasts the watchdog. Only the refusals
   that need no build, an ambiguous identity and a foreign installed bundle, answer the caller first.
 - **`sync-upstream.sh` never pushes and never guesses.** It merges into a branch of its own, resolves
-  only the seven files whose resolution is mechanical, and stops on anything else. When upstream
+  only the files whose resolution is mechanical, and stops on anything else. When upstream
   rewrote history it re-anchors only on commits it can prove are already merged.
 - **`README.md` is the fork's own.** It is Redcast's page, rewritten from scratch, so a sync never
   takes upstream's edits to it, whether git would merge them or not; the summary links what upstream
-  changed, to port by hand if it matters. `.github/FUNDING.yml` (empty: no Sponsor button) and
-  `.github/ISSUE_TEMPLATE/config.yml` (no Discord), `CONTRIBUTING.md` and `SECURITY.md` are kept the
-  same way.
+  changed, to port by hand if it matters. `LICENSE` (the fork's notice above the licence),
+  `.github/FUNDING.yml` (empty: no Sponsor button), `.github/ISSUE_TEMPLATE/config.yml` (no Discord),
+  `CONTRIBUTING.md` and `SECURITY.md` are kept the same way.
 - **What the fork deleted stays deleted.** Upstream's website (`website/`, its donation page and
   Cloudflare worker), its GitHub Actions, its issue forms, its contributor agreement, its release and
-  media scripts, `docs/release.md` and its promotional images are gone. `FORK_REMOVED` lists them,
+  media scripts, `docs/release.md`, `docs/not-planned.md` and its promotional images are gone. `FORK_REMOVED` lists them,
   and a sync deletes whatever upstream changed or added under them again, so no modify/delete
   conflict ever stops it.
 - **A sync branch lands by fast-forward or a merge commit, never squash or rebase.** Either drops
@@ -124,7 +126,7 @@ macOS App Management can refuse the renames in `/Applications` with `Operation n
 script names the setting (System Settings › Privacy & Security › App Management) and leaves the old
 app in place.
 
-### From Tinycast.app to Redcast.app
+### From Redcast.app to Redcast.app
 
 Until the rename the fork installed itself as `/Applications/Tinycast.app`. The first install after
 it finds that copy, and when its bundle id is the fork's it is the installed copy for every step:
@@ -141,7 +143,7 @@ goes to the rollback slot and is unregistered, so Spotlight, `open -b` and the U
   `Tinycast.app` back, moves `Redcast.app` into the slot and unregisters it; a second `--rollback`
   migrates again. A slot from before the rename has no origin and rolls back in place. A rollback
   whose place is taken by something else stops with exit 2.
-- **Upstream's Tinycast.app** (`com.tinycast.app`, or Beta or Dev) is never moved or unregistered;
+- **Upstream's Redcast.app** (`com.tinycast.app`, or Beta or Dev) is never moved or unregistered;
   the script installs `Redcast.app` beside it and says both are installed.
 - **A second fork copy.** Every worktree that has not merged this change still installs
   `/Applications/Tinycast.app`: run from one after the migration, it installs and opens a second copy
@@ -183,77 +185,134 @@ captured before you touch the grant. The script's last line says the same.
 ## `Scripts/fork/rebrand.mjs`
 
 ```sh
-node Scripts/fork/rebrand.mjs                 # rename in both catalogs, in place; lists each key
-node Scripts/fork/rebrand.mjs --check         # exit 1 while a key still needs it; changes nothing
+node Scripts/fork/rebrand.mjs                 # rename in both catalogs and the docs, in place
+node Scripts/fork/rebrand.mjs --check         # exit 1 while anything still says it; changes nothing
 node Scripts/fork/rebrand.mjs --self-test     # fixtures, and the committed catalogs round-trip
-node Scripts/fork/rebrand.mjs --help          # usage and the exclusions with their reasons
+node Scripts/fork/rebrand.mjs --help          # usage, and everything kept with its reason
+node Scripts/fork/rebrand.mjs --doc PATH < a.md   # one Markdown file, stdin to stdout (the sync's)
 ```
 
-The app's name comes from two places. The bundle's name is the build's: `install.sh` passes
+The app's name comes from four places. The bundle's name is the build's: `install.sh` passes
 `PRODUCT_NAME=Redcast`, `Info.plist` reads `CFBundleName` from it, and `Bundle.main.appDisplayName`
 gives every surface built from it (the menu bar item and its accessibility name, About's title, the
-app menu's Quit, Updates) the new name. Text written with the name in it lives in
-`Localizable.xcstrings` and `InfoPlist.xcstrings` (the privacy prompts and the backup type's
-description), and that is what this script renames. Source keys never change, so upstream's
-`String(localized:)` calls, the catalog's structure and every translation key stay upstream's.
+app menu's Quit) the new name. Text written with the name in it lives in `Localizable.xcstrings` and
+`InfoPlist.xcstrings` (the privacy prompts and the backup types' descriptions), which this script
+renames. Text no catalog holds, such as the prompts sent to models, says Redcast in the fork's own
+files and ends `.forkBranded` (`ForkBrand.swift`) in upstream's, so the body stays upstream's line
+for line. And the Markdown docs, whose prose this script renames as well. Source keys never change,
+so upstream's `String(localized:)` calls, the catalog's structure and every translation key stay
+upstream's.
 
-For each entry whose key or values say `Tinycast` as a whole, capitalised word:
+For each catalog entry whose key or values say `Tinycast` as a whole, capitalised word, or the
+backup extension `.tinycast`:
 
-- **English** gets a `translated` value: the key with `Tinycast` renamed, or, when English already has
-  text of its own (a plural, positional arguments, a usage string keyed by its `Info.plist` key), that
-  text renamed in place.
+- **English** gets a `translated` value: the key renamed, or, when English already has text of its
+  own (a plural, positional arguments, a usage string keyed by its `Info.plist` key), that text
+  renamed in place.
 - **Every other language** has the word renamed in each value, plural and device variations and
   substitutions included. Placeholders, punctuation, states and comments are untouched, as is every
   entry that does not say the name; the catalog is written back in Xcode's own layout, so only the
   renamed lines and the added English blocks change.
 - **Renamed** wherever the word stands alone, a genitive `s` included (`Tinycasts Fenster`), and
-  before a `.` (`Tinycast.app`, a sentence's last word).
-- **Kept:** lowercase `tinycast` (`.tinycast`, `tinycast://`, ids), the word inside another
+  before a `.` (`Tinycast.app`, a sentence's last word); `.tinycast` becomes `.redcast`, since that is
+  what Redcast writes.
+- **Kept:** lowercase ids (`tinycast://`, `com.tinycast.backup`), the word inside another
   (`TinycastAgents`), right after a `.` or `/` or right before a `/` (paths, ids), a mention in a
   comment, and these keys, which speak about upstream rather than this app:
 
-  | Key | Why it keeps Tinycast |
+  | Key | Why it keeps upstream's name |
   | --- | --- |
-  | `Based on Tinycast by Abue Ammar` | About's AGPL credit for the upstream app and its author |
-  | `Join the Tinycast community` | About's Discord row links upstream's community |
+  | `A modified version of Tinycast, © 2026 Abue Ammar.` | About's AGPL notice for the upstream app and its author |
+  | `Join the Tinycast community` | upstream's Discord row, unused since About dropped it, kept for the sync |
   | `Support Tinycast` | the support checkout (`tinycast.dev/support`, on Polar) is upstream's and funds its author |
 
   The Support window says the same in code: its heading, its button and the menu bar's Support row
-  name `SupportCoordinator.upstreamName`, one `// Fork:` line each, while its reminder hint still
-  says the app will ask.
-- **Restored:** an entry renamed before its key joined `EXCLUDED` gets Tinycast back in every value,
-  and the English the rename added, which only repeated the key, goes; the entry is upstream's again,
-  byte for byte. So a key about upstream that a sync renamed is fixed by adding it to `EXCLUDED` and
-  rerunning the script.
+  name `SupportCoordinator.upstreamName`, one `// Fork:` line each. The launcher hides its command.
+- **Restored:** an entry renamed before its key joined `EXCLUDED` gets upstream's name back in every
+  value, and the English the rename added, which only repeated the key, goes; the entry is upstream's
+  again, byte for byte. So a key about upstream that a sync renamed is fixed by adding it to
+  `EXCLUDED` and rerunning the script.
+
+**Docs.** Every tracked `*.md` has its prose renamed: text outside fenced code, code spans, link
+targets, URLs, HTML and HTML comments, so paths, ids and anchors stay real. A relative link's anchor
+follows a heading the rename changed (`#tinycasts-own-…` becomes `#redcasts-own-…`). The text of a
+link to upstream's repository is never renamed: it names upstream, so `--check` lists it for a person
+to reword as "upstream". `ALLOWED_PROSE` in `rebrand-text.mjs` keeps the README's one attribution.
+
+**`--check`** fails, and so does the sync gate that runs it, on any of:
+
+- a catalog key that still needs renaming or restoring;
+- an `Info.plist` value that names `Tinycast` without an English value in `InfoPlist.xcstrings` that
+  does not, a usage string or a type's description that upstream adds before Xcode extracts it;
+- a Markdown line whose prose says it, outside `ALLOWED_PROSE`;
+- a Swift string literal under `Tinycast/` that says it and is no catalog key, does not end
+  `.forkBranded`, is not logged or trapped (`NSLog`, `fatalError`, …), and is not in `ALLOWED_SWIFT`
+  with its reason.
 
 A run is idempotent: the second one finds nothing to rename. A write prints every key it renamed or
-restored, quoted, one per line; `--check` prints the first 20 it would change. `xcstringstool sync` with a Release
-build's `.stringsdata` leaves the rebranded catalog byte for byte, English values included, so
-`./Scripts/sync-strings.sh` keeps them too. `check-localizations.js` checks the English values'
-specifiers like any translation's.
+restored, quoted, one per line, and every doc it changed; `--check` prints the first 20 of each.
+`xcstringstool sync` with a Release build's `.stringsdata` leaves the rebranded catalog byte for byte,
+English values included, so `./Scripts/sync-strings.sh` keeps them too. `check-localizations.js`
+checks the English values' specifiers like any translation's.
 
-New text is written as upstream writes it, with Tinycast in the key and in its translations; run the
-script before committing, and `--check` (a sync gate) fails until you do. A new key about upstream
-itself joins `EXCLUDED` in the script with its reason. An exclusion whose key no catalog has any more
-is printed: upstream reworded or removed it, so point the exclusion at the new key, or drop it.
-`sync-upstream.sh` merges both catalogs key by key with the three sides rebranded, so upstream's
-edits to a string the fork only renamed merge without a conflict to review, and lists every upstream
-string the merge renamed for you to read.
+New UI text is written as upstream writes it, with `Tinycast` in the key and in its translations;
+run the script before committing, and `--check` fails until you do. A new key about upstream itself
+joins `EXCLUDED` with its reason, a new literal `ALLOWED_SWIFT`. An exclusion whose key no catalog has
+any more is printed: upstream reworded or removed it, so point the exclusion at the new key, or drop
+it. `sync-upstream.sh` merges both catalogs key by key, and upstream's docs line by line, with the
+three sides rebranded, so upstream's edits to a line the fork only renamed merge without a conflict,
+and it lists every upstream string and doc it renamed for you to read.
 
-`--check` also reads `Info.plist`: a usage string or the backup type's description that names
-Tinycast must have an English value in `InfoPlist.xcstrings` that does not, or English would show
-`Info.plist`'s own text. A prompt upstream adds there without its catalog entry fails the check
-until a build in Xcode extracts it and the script runs; a write only warns.
+## What keeps upstream's name
 
-Left as Tinycast on purpose, outside the catalogs: protocol and request identifiers (`User-Agent`,
-whose URL is this repository's; ACP and Codex `clientInfo`; MCP's OAuth `client_name`, which an MCP
-server's consent page shows as "Tinycast" while the page it returns to says Redcast), the title
-`--title Tinycast` the AI Chat gives the OpenCode sessions it starts (Agent Sessions lists them so),
-prompts sent to models, default export file names (`Tinycast.tinycast`, `Tinycast-Quicklinks`),
-`NSHumanReadableCopyright` (Finder's Get Info), the extension symbol browser's bundled category and
-the extension bridge's "not supported in Tinycast extensions" error (a harness asserts it), and the
-Debug channel's `Tinycast Dev.app`, whose catalog text says Redcast like any other build's.
-OpenRouter's `X-OpenRouter-Title` comes from `appDisplayName`, so OpenRouter sees Redcast.
+After this pass `git grep -ic tinycast` counts what is left, and each of it is either legal or
+load-bearing. Legal: the AGPL asks for exactly these, and nothing more.
+
+| Where | What it says | Required by |
+| --- | --- | --- |
+| `LICENSE` | `Redcast, a modified version of Tinycast`, `Copyright (C) 2026 Abue Ammar`, `Copyright (C) 2026 Alexey Fateev (the modifications)`, changed from October 2026, then the licence unchanged | §4 "keep intact all notices", §5(a) "prominent notices stating that you modified it, and giving a relevant date", §5(b) |
+| About | `A modified version of Tinycast, © 2026 Abue Ammar.` and `Changes © 2026 Alexey Fateev. Free to share and change under the GNU AGPL v3. No warranty.`, in all eight languages, with a License row that opens `LICENSE` on GitHub | §5(d), and §0's "Appropriate Legal Notices": a copyright notice, no warranty, that licensees may convey the work, and how to view the licence |
+| `README.md` | one sentence, `Redcast is a modified version of [Tinycast](…) by Abue Ammar`, with the copyright and the AGPL | §5(a), on the page people read first |
+| `NOTICE.md` | third parties' notices only; it names no upstream brand | §4 for those works |
+
+Load-bearing: renaming these would break data or links already out there, or make every upstream
+merge conflict. The bundle id is no longer among them: Redcast is `io.redcast.app`
+([bundle-migration](features/bundle-migration.md)).
+
+| What | Why it stays |
+| --- | --- |
+| `Tinycast/`, `Tinycast.xcodeproj`, `project.yml`'s targets and Debug product (`Tinycast Dev.app`), Swift type and file names, `.swiftlint.yml`, `.vscode/` | upstream owns them; a rename turns every sync into conflicts in hundreds of files |
+| `com.tinycast.app.fork` | the fork's old id: `LegacyBundleMigration`, Keychain's lazy move and `install.sh` find a copy under it |
+| `bundleIdPrefix: com.tinycast`, so `com.tinycast.ClipboardTextHelper` and `com.tinycast.FileIndexHelper` | command-line helpers' signing ids, seen in no list a user reads (Activity Monitor shows the process name); the Dictation helper follows the app's id (`io.redcast.app.dictation`) |
+| defaults keys, log subsystems (`com.tinycast`), queue labels, pasteboard types, attributed-string keys | read back by the code or by Console filters; the reason is merge cost, since no user sees them |
+| `tinycast://` | hooks the user installed into Claude Code and Codex call it and are found again by its exact text; extension links and upstream's own links use it. `redcast://` is registered beside it |
+| `.tinycast` and `com.tinycast.backup` | backups already made, by upstream or older builds, still open; Redcast writes `.redcast` |
+| `Tinycast-Auto-` | older automatic exports, recognised so they age out |
+| ACP's and Codex's client `name: tinycast` (their `title` says Redcast), OpenCode's `tinycast` agent | Codex records the name as a thread's originator, which Agent Sessions reads to know Redcast's own threads |
+| `Scripts/raycast-runtime` and its `not supported in Tinycast extensions` errors, mirrored by `ExtensionHostBridge` | upstream's runtime sources, rebuilt into `RaycastRuntime.generated.js`; a harness asserts the wording |
+| `TINYCAST_*` environment variables, `tinycast-*` temporary files, harness names in `run-tests.sh` and `Tests/` | test and script internals, and upstream's |
+| `Join the Tinycast community`, `Support Tinycast` | upstream's catalog keys, kept so a sync merges; the Support command is hidden |
+| upstream's repository URL (`abue-ammar/tinycast`) in links, credits, scripts and the README's `git remote` line | it is the address |
+| `SettingsSearchCatalog`'s `tinycast` keyword | About still names upstream, so searching for it finds About |
+
+`docs/not-planned.md`, upstream's list of declined requests, is gone: the fork links upstream's copy
+where it cites a decision, and the sync still reports the lines upstream adds to it (`FORK_REMOVED`).
+
+The AGPL text relied on, quoted from `LICENSE`:
+
+- §4: "keep intact all notices stating that this License and any non-permissive terms added in
+  accord with section 7 apply to the code; keep intact all notices of the absence of any warranty"
+- §5(a): "The work must carry prominent notices stating that you modified it, and giving a relevant
+  date."
+- §5(b): "The work must carry prominent notices stating that it is released under this License"
+- §5(d): "If the work has interactive user interfaces, each must display Appropriate Legal Notices"
+- §0: "displays an appropriate copyright notice, and (2) tells the user that there is no warranty
+  for the work (except to the extent that warranties are provided), that licensees may convey the
+  work under this License, and how to view a copy of this License."
+
+None of it asks for the upstream name anywhere else. §7(b) would let upstream require "preservation
+of specified reasonable legal notices or author attributions", but upstream adds no section 7 terms,
+and §13 (offering source to network users) does not apply to a local app.
 
 ## `Scripts/fork/sync-upstream.sh`
 
@@ -287,18 +346,20 @@ remote when it is missing.
    | `Tinycast.xcodeproj/project.pbxproj` | upstream's, then `xcodegen generate` |
    | `Tinycast/Resources/RaycastRuntime.generated.js` | upstream's, then rebuilt from the merged sources when the fork patches them |
    | `Tinycast/Resources/Localizable.xcstrings`, `InfoPlist.xcstrings` | `merge-xcstrings.mjs`, key by key and rebranded, whenever upstream changed the catalog, conflicted or not; a key both sides changed keeps the fork's value and is listed |
-   | `README.md`, `.github/FUNDING.yml`, `.github/ISSUE_TEMPLATE/config.yml` (`FORK_OWNED`) | the fork's, whenever upstream changed it, conflicted or not: `HEAD`'s copy is checked out, and the summary's "Kept the fork's …" line gives the `git diff` of upstream's change, never repeated under "Both sides changed" |
+   | Markdown upstream changed | merged by `git merge-file` with base and upstream's copies rebranded first (`rebrand.mjs --doc`), so a line the fork only renamed takes upstream's edit; a conflict git had keeps its fewer markers for a human, and a doc git merged cleanly that still conflicts stays as git merged it |
+   | `README.md`, `LICENSE`, `.github/FUNDING.yml`, `.github/ISSUE_TEMPLATE/config.yml`, `CONTRIBUTING.md`, `SECURITY.md` (`FORK_OWNED`) | the fork's, whenever upstream changed it, conflicted or not: `HEAD`'s copy is checked out, and the summary's "Kept the fork's …" line gives the `git diff` of upstream's change, never repeated under "Both sides changed" |
    | anything else | left for a human |
 
    A catalog git merges on its own is merged again key by key because git's line merge is wrong for
    it in one case: upstream rewording a key in place (a typo, an apostrophe) keeps the English the
    fork derived from the old key, under the new one, and nothing else would notice. Then
-   **`rebrand.mjs`** runs on both catalogs, so whatever still says Tinycast (a catalog the merge
-   could not take, a conflict resolved by hand before `--continue`) says Redcast in the merge
-   commit, before any gate builds it. The summary's "Rebrand:" line names every upstream string
-   either renamed, for you to read: one about upstream itself (a credit, a sponsor, a community link)
-   joins `EXCLUDED`, and a rerun of `rebrand.mjs` gives it Tinycast back. Any exclusion whose key
-   upstream reworded or removed is listed too.
+   **`rebrand.mjs`** runs on both catalogs and the docs, so whatever still says `Tinycast` (a catalog
+   the merge could not take, a conflict resolved by hand before `--continue`, a doc upstream added)
+   says Redcast in the merge commit, before any gate builds it. The summary's "Rebrand:" lines name
+   every upstream string and doc renamed, for you to read: a string about upstream itself (a credit,
+   a sponsor, a community link) joins `EXCLUDED`, and a rerun of `rebrand.mjs` gives it upstream's
+   name back; a doc line that means upstream is reworded to say so. Any exclusion whose key upstream
+   reworded or removed is listed too.
 
 6. **Commit** `Merge upstream <old>..<new> (<n> commits)` with `Upstream-Sync: <sha>` and, after a
    re-anchor, `Upstream-Rewrite-Anchor: <sha>`.

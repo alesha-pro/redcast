@@ -114,7 +114,7 @@ final class ACPConnection {
                         "fs": ["readTextFile": false, "writeTextFile": false], "terminal": false
                     ],
                     "clientInfo": [
-                        "name": "tinycast", "title": "Tinycast",
+                        "name": "tinycast", "title": "Redcast",
                         "version": Bundle.main.infoDictionary?["CFBundleShortVersionString"]
                             as? String ?? "0"
                     ]
@@ -259,7 +259,7 @@ final class ACPConnection {
                 // Tinycast offers no fs or terminal of its own, so the agent uses its own tools.
                 try? send(
                     ACPProtocol.errorResponse(
-                        id: id, code: -32601, message: "Tinycast does not implement \(method)."))
+                        id: id, code: -32601, message: "Redcast does not implement \(method)."))
                 return
             }
             let ask = onPermission

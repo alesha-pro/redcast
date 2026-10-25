@@ -9,7 +9,7 @@ A palette sub-screen (reached like Clipboard / Calculator History) presenting a 
 - **`EmojiData.generated.swift` and `Resources/EmojiKeywords/` are emitted by `node Scripts/gen-emoji.js`**
   (Node 18+ for global `fetch`) and are never edited by hand. Regenerate and commit instead.
 - **Keyword packs are plain files, never `.lproj` folders.** Search loads packs for the user's
-  macOS languages independently of Tinycast's UI language.
+  macOS languages independently of Redcast's UI language.
 
 ## Layout
 

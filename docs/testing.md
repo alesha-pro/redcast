@@ -1,6 +1,6 @@
 # Testing and verification
 
-How to check that a change holds up. Tinycast has no XCTest target and no UI tests: the automated half
+How to check that a change holds up. Redcast has no XCTest target and no UI tests: the automated half
 is a set of standalone harnesses, and the manual half is the sweep at the bottom of this file.
 
 ## Definition of done
@@ -84,7 +84,7 @@ assertion, and it is the more important one.
 
 A harness also runs in your own login session against the real system, with no sandbox and no fixture
 world, so it must never mutate state the machine shares with the apps you use. `NSPasteboard.general`
-is the trap: a running Tinycast records every write to it as a genuine copy, so a fixture left there
+is the trap: a running Redcast records every write to it as a genuine copy, so a fixture left there
 lands in clipboard history looking like something the user copied. `notes-editor-test` seeded one on
 every run from #232 onward by calling the native `copy:`/`cut:`/`paste:` actions; it now drives the
 `writeSelection(to:types:)` and `readSelection(from:)` primitives those actions delegate to, against
@@ -191,6 +191,7 @@ If a change touches anything in the right column, the harness on the left is man
 | `launcher-settings-file-test` | Launcher settings application — invalid records, partial edits, deferred bundles, shortcut moves and records outside search scopes; isolated preferences and in-memory scan/Carbon effects |
 | `backup-archive-test` | all of `Backup/Model/`, plus `Backup/Service/BackupStaging.swift` |
 | `full-backup-test` | `FullBackup/Model/`, `FullBackupCipher` and `FullBackupChatArchive` (fork) — every section's payload through a sealed `.tinycast`, the chat database's snapshot and merge, an old upstream-only file, unknown and newer sections, dropped records, every import rule, sealed secrets with the right and a wrong passphrase and an edited header, no secret in the clear, and export on quit ([backup](features/backup.md#testing)) |
+| `rebrand-test` | `ForkBrand` (fork) — Redcast for upstream's name in prompts and other text no catalog holds, ids and paths kept; `Info.plist` registering `redcast://` beside `tinycast://` and `.redcast` beside `.tinycast`, and Import Backup offering both |
 | `full-backup-coverage-test` | `FullBackupCoverage` against the sources (fork) — every `UserDefaults` key, Application Support name and Keychain scope a store spells has a decision, every `AppSettingsKey` is decided once, consents are recorded and never applied, and no decision is stale |
 | `shortcuts-overview-test` | `ShortcutsOverview/Model/` (fork) — shared chords, aliases and keywords, chords macOS keeps with the reader's symbolic hotkeys, and every filter with search |
 | `updates-test` | `Updates/Model/` — version precedence, channel filtering, install route, readiness |
@@ -200,12 +201,12 @@ If a change touches anything in the right column, the harness on the left is man
 | `usage-dashboard-test` | `UsageDashboard/Model/` and `UsageQuery` against a real chat history — sums, period edges, read-only and absent databases, model merging, ACP attribution and running totals, trend slices, OpenRouter decoding and the management key's request — the usage log's format, append, trim, cut lines, clear and merge, the recording provider, plus the tool loop's turn cost and OpenAI's `stream_options` |
 | `apple-intelligence-test` | On-device status, snapshot deltas, transcript assembly and error mapping; real generation is opt-in |
 | `syntax-highlight-test` | `AI/Model/SyntaxGrammar.swift`, `SyntaxHighlighter.swift`, `SyntaxStructuredLexers.swift` — every grammar's tokens, language aliases, the size limit and streaming prefixes |
-| `mcp-test` | `MCP/Model/` and `MCPSettingsStore` — JSON-RPC framing, handles, tool names, output flattening, trust, `@server` addressing, the shape a vendor CLI is handed, and which servers Tinycast leaves to that CLI |
+| `mcp-test` | `MCP/Model/` and `MCPSettingsStore` — JSON-RPC framing, handles, tool names, output flattening, trust, `@server` addressing, the shape a vendor CLI is handed, and which servers Redcast leaves to that CLI |
 | `mcp-stdio-test` | `MCP/Service/` against a stub server — handshake, listing, calling, and every way one can go away |
 | `agent-sessions-test` | `AgentSessions/Model/` plus `AgentSessionsScanner`, `AgentTranscriptSearch`, `AgentHookRepository`, `ClaudeLiveSessionsProbe` and `ProcessTree` — the line filter, head and tail reads, titles, the rescan policy, a Codex database built per run, ranking, resume commands with hostile folders and moved agent folders, Gemini CLI chats (head, tail, a reply written twice, a rewind, legacy `.json`, a subagent's chat, the cache steps), an OpenCode database built per run (prompts, placeholders, children, archived, turns, search), Gemini and OpenCode found by transcript search, the Claude app record lookup and its `claude://code/continue` URL, hook-file install and removal byte for byte, the hook command run against shims, deep links, activity and which sessions it tracks, event resolution, the hook files written in a scratch home (a file changed after its diff, every file checked before any is written, backups and their rotation, symlinks written through, permissions kept, `live-status.json`), and `claude agents --json` run as a shim (decoding, a failed run, the watchdog and cancellation reaping a detached grandchild); synthetic fixtures in `Tests/agent-sessions-fixtures/` |
 | `mcp-oauth-test` | OAuth parsing, RFC 7636 PKCE, discovery and resource binding, loopback callback validation/cancellation, dynamic registration, supplied client credentials and their token-endpoint authentication, Keychain token rotation, concurrent refresh, the wider margin for a token lent to a CLI, redirects and one-retry 401 handling |
 | `voice-ai-test` | `VoiceAI/Model/` — the speech gate and WAV encoder, the exact dictation prompt with cleanup on and off and its user turns (dictionary, languages, the app in front, a screenshot), Ask prompts, `input_audio` request bodies, the streamed reply header and reply session, transcript cleanup and the `<transcript>` tag, the consented route and the proposal, a request fitted to its route, the dictation effort from the catalog, temperature by route and which routes see a screenshot, Languages I speak, the insert policy, dictation modes in one and two steps and their precedence, edit and agent request bodies, and mode settings |
-| `voice-coordinator-test` | `VoiceCloudTranscriber` and `VoiceAskCoordinator` — consent saving what it named, no rerouting, session tokens, supersede, dismissal and the recorder's start/stop order; dictation modes on the capsule; the app Dictation types into read as the capsule shows and riding with the recording, never for Tinycast's own editors, without a screenshot for a model that cannot see one, and left behind when late; the consent dialog naming the window title; Edit Selection by Voice replacing, showing a moved selection and refusing an unreadable one; an agent answering, and the refusal while busy; what Dictation History is handed (the model, mode and rewritten transcript noted, an Ask's and an edit's reply with what was said, nothing for no speech); recorded network, microphone and injection effects only |
+| `voice-coordinator-test` | `VoiceCloudTranscriber` and `VoiceAskCoordinator` — consent saving what it named, no rerouting, session tokens, supersede, dismissal and the recorder's start/stop order; dictation modes on the capsule; the app Dictation types into read as the capsule shows and riding with the recording, never for Redcast's own editors, without a screenshot for a model that cannot see one, and left behind when late; the consent dialog naming the window title; Edit Selection by Voice replacing, showing a moved selection and refusing an unreadable one; an agent answering, and the refusal while busy; what Dictation History is handed (the model, mode and rewritten transcript noted, an Ask's and an edit's reply with what was said, nothing for no speech); recorded network, microphone and injection effects only |
 | `quick-ai-tools-test` | `QuickAITools/Model/` and `AgentDefaultStore` (fork) — the clock across zones and quarter-hour edges, the briefing with and without tools, search or an MCP server, the offering rules for Quick AI with Web Search on and off and with and without an agent, which agent answers in Quick AI and in AI Chat's new chats and when a default is worked out at all, which open chats keep a No Agent, when the default falls back to none, and both settings across launches |
 | `dictation-history-test` | `DictationHistory/Model/` and `DictationHistoryFile` (fork) — the line format both ways, a pinned first-build line, a later build's line read and kept byte for byte, unreadable and cut-short lines, the text cap, the retention spans, append, the trim and its slack, load, delete, clear and Off on a scratch folder, and the every-word folded search; an Ask or an edit kept only with the voice-replies switch on |
 | `send-to-ai-test` | `SendToAI/Model/` (fork) — what Send to AI hands Quick AI or a new chat for each kind of row: short text quoted, long or multi-line text attached and cut on a character at the cap, a colour quoted with its hex, an image and a file attached by path, a folder's path quoted, a dictation quoted or attached, an Ask with its question, and rows with nothing to send |
@@ -529,7 +530,7 @@ caches, TCC grants and login item, so this cannot disturb an installed copy.
 - Footer menus are about 30pt wider; their row hover keeps the shared 10pt menu-row corner
 - Tab toggles launcher ↔ clipboard; bare Backspace on an empty query backs out of a sub-screen
 - Launching an app focuses it; escaping the palette returns focus to the app you came from
-- Paste from clipboard history lands in that app, not in Tinycast
+- Paste from clipboard history lands in that app, not in Redcast
 - No flash, flicker or reflow on open, and row metrics unchanged
 
 ### Clipboard
@@ -542,7 +543,7 @@ caches, TCC grants and login item, so this cannot disturb an installed copy.
 - With enough pins to fill the list, opening it — the first show after launch too — highlights the
   newest clip, centred with pins above; clearing a query or the filter lands there again
 - ⌃X deletes the selected entry and ⌃⇧X clears the history, from the list and from an open ⌘K menu
-- ⌃⇧X asks first, through Tinycast's own dialog; Cancel and Esc both leave every entry in place
+- ⌃⇧X asks first, through Redcast's own dialog; Cancel and Esc both leave every entry in place
 - ↵ pastes into the previous app; ⌥↵ pastes without closing the palette
 - ⌃⌘↵ pastes as plain text: a text entry as typed, a file entry as its path rather than the file
 - Default action ▸ Paste as Plain Text: ↵ pastes plain, ⌃⌘↵ pastes, ⌘↵ still copies; an image
@@ -597,10 +598,10 @@ caches, TCC grants and login item, so this cannot disturb an installed copy.
   Compatibility: a Hyper shortcut now fires there, and Diagnostics… names the Secure Input holder
 - With Secure Input held, record Hyper+J with and without Secure Input Compatibility: both save ✦J,
   never F18 or ⌃J, and a quick Hyper+J leaves Caps Lock off
-- Quit Tinycast: Caps Lock types capitals again on every keyboard, the built-in one included
+- Quit Redcast: Caps Lock types capitals again on every keyboard, the built-in one included
 - 🎤 records in a recorder and fires its binding; unbound, it starts macOS Dictation again
 - With Karabiner-Elements running and Caps Lock left alone there, Hyper with Caps Lock still works;
-  quit Tinycast and Karabiner's own remaps keep working. Remap Caps Lock in Karabiner instead:
+  quit Redcast and Karabiner's own remaps keep working. Remap Caps Lock in Karabiner instead:
   Diagnostics… reports a Karabiner conflict
 - Every binding survives quit and relaunch
 - `Enable Commands` off leaves every pane-owned command listed, searchable and firing — Notes,
@@ -645,7 +646,7 @@ caches, TCC grants and login item, so this cannot disturb an installed copy.
 - A row's hotkey runs it with the palette closed; switching the feature off silences it
 - Unchecking a row hides it from search, and its hotkey still fires
 - Deleting a shortcut in Shortcuts frees its alias and hotkey on the next launcher open
-- A shortcut that fails shows Tinycast's dialog with the tool's error
+- A shortcut that fails shows Redcast's dialog with the tool's error
 
 ### File Search
 
@@ -653,7 +654,7 @@ caches, TCC grants and login item, so this cannot disturb an installed copy.
 - Without Full Disk Access the pane shows **Required** with the hint, the palette says so, and ↵ and the
   button both open Privacy & Security › Full Disk Access; granting it starts a build with no relaunch
 - The first build shows a rising item count in Settings and the palette, then a final count and date;
-  Activity Monitor shows the helper's memory, and Tinycast's own footprint is back at its baseline after
+  Activity Monitor shows the helper's memory, and Redcast's own footprint is back at its baseline after
 - Enabling in Settings exposes Search Files immediately; it persists across relaunch and backup import
 - Disabling during a query cancels it, returns the open screen to the launcher and deletes the index
 - File Search and Quicklinks remain independently visible in all four enabled/disabled combinations
@@ -701,7 +702,7 @@ caches, TCC grants and login item, so this cannot disturb an installed copy.
   autosave — in the browse list; naming it replaces that, and clearing the name brings it back
 - Inline rename updates the Markdown filename without changing source, and starts from that filename
   even where the row shows a derived title; collisions receive a suffix
-- Delete confirms through Tinycast, moves the file to Trash, and selecting another note never loses an
+- Delete confirms through Redcast, moves the file to Trash, and selecting another note never loses an
   unsaved edit
 - An existing `Floating Note.md` appears as an ordinary note without conversion
 - A note using every construct renders in Dark and Light: sized headings, emphasis, strikethrough,
@@ -781,7 +782,7 @@ caches, TCC grants and login item, so this cannot disturb an installed copy.
 - Dragging the title bar moves the window and dragging an edge resizes it; both survive relaunch
 - Clicking another app leaves the panel visible; Escape, Command-W, and the red light hide it
 - Command-Q does nothing anywhere; with Settings in front, Command-W closes Settings
-- Hiding restores the previous external app or Tinycast window
+- Hiding restores the previous external app or Redcast window
 - Open Notes Folder opens Finder with the active Markdown file selected, or the folder with no note
 - Hide a saved checklist, reset its boxes in another editor, and reopen: the boxes match the file
 - Reopen an unchanged note: Undo still works; an external content change starts fresh history
@@ -833,7 +834,7 @@ caches, TCC grants and login item, so this cannot disturb an installed copy.
 - Two upcoming meetings with titles in reverse alphabetical order appear earliest first in the
   launcher's Meetings section and the `Meetings` category listing, even after opening the later one
 - Import a backup taken with Calendar on: it comes back **off**, and no calendar toggle travels
-- Calendar in Menu Bar on Disabled: the calendar item is gone and Tinycast's own item is unaffected;
+- Calendar in Menu Bar on Disabled: the calendar item is gone and Redcast's own item is unaffected;
   turning `Show in menu bar` off leaves an enabled calendar item in place, and both off leaves neither
 - On Meeting Title with Show Upcoming Events at 5 minutes, the title and countdown appear at T-5 and
   step on the minute boundary, not on a keystroke
@@ -923,7 +924,7 @@ caches, TCC grants and login item, so this cannot disturb an installed copy.
   round trip preserve the choice.
 - Every pane renders and the sidebar switches without flicker
 - A feature switch takes effect in the launcher immediately; every setting survives relaunch
-- Export produces a `.tinycast`; import applies it and reports a per-category summary
+- Export produces a `.redcast` (fork; upstream writes `.tinycast`, which still imports); import applies it and reports a per-category summary
 - Untick a category on export, and the import picker greys that row out rather than offering it
 - Untick a category on **import** and confirm it did not arrive, while the ticked ones did
 - An image clip round-trips and still renders; the archive can then be deleted without breaking it
@@ -939,14 +940,14 @@ Agents menu-bar item, a spoofed event, moved agent folders and Gemini CLI and Op
 [agent-sessions.md](features/agent-sessions.md#manual-sweep).
 In short:
 
-- Search Agent Sessions lists Claude Code, Codex and Tinycast rows, fast again after a relaunch, and
+- Search Agent Sessions lists Claude Code, Codex and Redcast rows, fast again after a relaunch, and
   Gemini CLI and OpenCode rows where they are installed
 - ↵ resumes in Terminal, iTerm2, Ghostty, Warp and Zap (Zap must *run* the `.command`); ⌃⌘↵ forks;
   ⌘↵ copies the command; a deleted folder copies it and says so
 - A waiting Claude CLI session shows **Needs you** and Jump to Agent brings its tab forward
 - Turn On… shows only the inserted hook lines, writes them with a backup, and Turn Off… restores the
   original bytes; a file edited while the panel is open is re-diffed, never overwritten
-- With Tinycast quit an agent runs normally, and a URL with a wrong token does nothing
+- With Redcast quit an agent runs normally, and a URL with a wrong token does nothing
 - A Claude Code or Codex folder set in Settings is listed, resumed with `env CLAUDE_CONFIG_DIR=…` /
   `CODEX_HOME=…`, and is where live status writes its hooks
 

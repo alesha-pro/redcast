@@ -2,7 +2,7 @@
 
 Two launcher behaviours upstream chose not to have. **Alias + Space** is Raycast's alias jump, which
 upstream declined ([#1128](https://github.com/abue-ammar/tinycast/issues/1128) and five more,
-[not planned](../not-planned.md)): type an entry's alias exactly, press Space, and the entry opens or
+[not planned](https://github.com/abue-ammar/tinycast/blob/main/docs/not-planned.md)): type an entry's alias exactly, press Space, and the entry opens or
 its first field takes the caret. **Change Alias / Change Shortcut** edit an entry's alias and global
 shortcut from its ⌘K menu, where upstream keeps both in Settings only. Fork code in
 `Features/AliasActions/`, plus one-line hooks in the palette and the shared menu row. Upstream's own

@@ -33,7 +33,7 @@ enum MCPProtocol {
         try encode(
             [
                 "jsonrpc": "2.0", "id": id.jsonObject,
-                "error": ["code": -32_601, "message": "Tinycast exposes no MCP capabilities."]
+                "error": ["code": -32_601, "message": "Redcast exposes no MCP capabilities."]  // Fork
             ],
             newlineTerminated: newlineTerminated)
     }

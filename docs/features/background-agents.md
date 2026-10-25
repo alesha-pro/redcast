@@ -43,7 +43,7 @@ row and chord, `AppIndex`, `LauncherList`, `LauncherCoordinator`, `AppActionsMen
   reach the scheduler in any order. Each compares the continuous clock, which counts sleep, with the
   suspending one, which does not; any gap over a second means the Mac slept, so the first of them
   already holds a due run 60 s for the network.
-- **Schedules are only active while Tinycast runs.** There is no launchd job, helper or XPC service.
+- **Schedules are only active while Redcast runs.** There is no launchd job, helper or XPC service.
   Times are local wall-clock times wherever the Mac is. A run up to five minutes late is on time;
   after launch or wake a due run waits 60 s for the network.
 - **Missed runs collapse or are dropped.** Under **Run once when back** every missed occurrence
@@ -52,7 +52,7 @@ row and chord, `AppIndex`, `LauncherList`, `LauncherCoordinator`, `AppActionsMen
   run waits for its current run to end rather than being retried on a timer.
 - **An unattended request reaches only someone at the Mac.** A request that would ask — a change, a
   command, an ACP permission — follows the agent's **In the background** choice. **Ask me** shows
-  the dialog only when the Mac was used in the last two minutes; it never activates Tinycast, waits
+  the dialog only when the Mac was used in the last two minutes; it never activates Redcast, waits
   its turn behind any open dialog and puts Return on Don't Allow, so typing elsewhere can never
   approve anything. When nobody is there, or under **Decline**, the request is refused at once and
   counted on the run's row, as is anything a sub-agent of the run is refused, since it never asks.
@@ -223,7 +223,7 @@ decides, and a new day starts at zero. A run is checked as it is due — at or p
 and its row reads "Not started: scheduled runs reached today's cap of $5.00", and opening that row
 shows the cap — and again on every cost its route reports while it runs, which ACP agents send
 mid-turn and the native loop after each round. When the turn ends, its last reported cost joins the
-day's total, also when AI is switched off, Tinycast quits or the chat is deleted before it ends. The
+day's total, also when AI is switched off, Redcast quits or the chat is deleted before it ends. The
 held run's row shows only its reason, with no "Failed:" in front, since it never started. The cap is
 local to the Mac's day and time zone, like the schedules.
 
@@ -256,7 +256,7 @@ local to the Mac's day and time zone, like the schedules.
   background", the item appears and AI Chat's sidebar shows the chat answering. On finish: HUD "Rig
   finished" and a ✓; the menu lists the run and **Open** shows it; closing the menu removes the item.
 - `@rig add a line to README` under **Ask me** while typing in another app: the dialog appears without
-  activating Tinycast, says it is from a background run, and Return answers **Don't Allow**. Under
+  activating Redcast, says it is from a background run, and Return answers **Don't Allow**. Under
   **Decline**: no dialog, and the row says "1 request declined".
 - **Ask me** while away for more than two minutes (start a run, leave the mouse and keyboard alone): no
   dialog; declined and counted.

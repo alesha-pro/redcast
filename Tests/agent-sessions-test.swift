@@ -914,6 +914,9 @@ struct AgentSessionsTests {
         func url(_ text: String) -> URL { URL(string: text)! }
         expect(AgentDeepLink.claims(url("tinycast://agent-sessions/x")), "agent-sessions is claimed")
         expect(!AgentDeepLink.claims(url("tinycast://extensions/a/b")), "extensions are not")
+        expect(AgentDeepLink.claims(url("redcast://agent-sessions/x")), "Redcast's own scheme is claimed too")
+        expect(AgentDeepLink.parse(url("redcast://agent-sessions/jump"), token: nil) == .jump, "and parsed alike")
+        expect(!AgentDeepLink.claims(url("redcast://extensions/a/b")), "its extensions are not")
         let base = "tinycast://agent-sessions/event?v=1&k=\(token)&agent=codex&event=finished&session=\(s1)"
         let full = base + "&kind=permission_prompt&pid=4242"
         expect(

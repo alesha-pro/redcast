@@ -546,6 +546,8 @@ run slow snippets-test     Tinycast/Platform/NotificationToken.swift \
                            Tinycast/Features/TextInjection/Service/*.swift
 # Fork: tags on snippets and quicklinks: frontmatter, the store's column, imports, filter and colour.
 run bundle-migration-test  Tinycast/Features/BundleMigration/Model/*.swift
+# Fork: Redcast's name outside the catalogs, both URL schemes and both backup extensions.
+run rebrand-test           Tinycast/Features/AI/Model/ForkBrand.swift
 run tags-test              Tinycast/Features/Tags/Model/*.swift \
                            Tinycast/Features/ColorfulIcons/Model/RaycastHue.swift \
                            Tinycast/Features/Snippets/Model/Snippet.swift \

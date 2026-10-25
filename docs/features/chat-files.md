@@ -88,7 +88,7 @@ Show Less.
 | Full path | tooltip | tooltip |
 
 Open is left out of the menu for anything the policy reveals, and Open With for folders and revealed
-items. Quick Look shows `ChatQuickLookPanel`, Tinycast's own panel around a `QLPreviewView`, centred
+items. Quick Look shows `ChatQuickLookPanel`, Redcast's own panel around a `QLPreviewView`, centred
 over the chat as its child window: the same item again, Space or Escape (when it has the keyboard),
 its close button, or its chat closing closes it, and the preview closes with it. Over Quick AI it
 never takes the keyboard, since the palette hides when it loses it; there, and in the window, it is
