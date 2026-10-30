@@ -119,7 +119,7 @@ struct SettingsHistoryTests {
         expect(grouped.count == SettingsTab.allCases.count, "and none appears twice")
     }
 
-    /// A selectable `List` flattens section and row IDs into one namespace.
+    /// The sidebar keys its rows by tab, so section and row IDs must stay distinct.
     static func sidebarIdentityNamespacesAreDisjoint() {
         let sections = Set(SettingsSection.allCases.map { AnyHashable($0.id) })
         let tabs = Set(SettingsTab.allCases.map { AnyHashable($0.id) })
@@ -139,7 +139,7 @@ struct SettingsHistoryTests {
             "every pane is reachable from Settings search")
     }
 
-    /// The results `List` is keyed by `id`; a duplicate would make two rows select as one.
+    /// The results table is keyed by `id`; a duplicate would make two rows select as one.
     static func catalogIdentitiesAreUnique() {
         let ids = SettingsSearchCatalog.entries.map(\.id)
         expect(Set(ids).count == ids.count, "no two catalog entries share an identity")

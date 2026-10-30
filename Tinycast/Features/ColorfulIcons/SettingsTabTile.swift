@@ -1,20 +1,11 @@
 import SwiftUI
 
-/// A Settings tab's tile: its hue under a white glyph, or upstream's tinted glyph while off.
+/// A Settings tab's tile, on its hue while Colourful Icons is on and on grey while it is off.
 struct SettingsTabTile: View {
     let tab: SettingsTab
-    var tint = Color.accentColor
-    var size = Theme.Size.settingsSidebarGlyph + Theme.Spacing.xs * 2
-    var isSelected = false
+    var size = Theme.Size.settingsSidebarTile
 
     var body: some View {
-        IconCache.observeStyle()
-        return Group {
-            if ColorfulIcons.isEnabled {
-                GlyphTile(symbol: tab.systemImage, hue: tab.hue, size: size, isSelected: isSelected)
-            } else {
-                SettingsTabIcon(systemImage: tab.systemImage, tint: tint, size: size)
-            }
-        }
+        GlyphTile(symbol: tab.systemImage, hue: tab.hue, size: size)
     }
 }

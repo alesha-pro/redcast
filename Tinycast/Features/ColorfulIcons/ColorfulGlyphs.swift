@@ -68,16 +68,17 @@ extension AppCore {
 }
 
 extension SettingsTab {
-    /// The sidebar's families match the launcher's, so a feature wears one colour everywhere.
+    /// Launcher families, so a feature wears one colour; magenta only parts two like neighbours.
     var hue: RaycastHue { Self.hues[self] ?? .gray }
 
     /// A pane upstream adds since is grey until it is given a family.
     private static let hues: [SettingsTab: RaycastHue] = {
         let families: [RaycastHue: [SettingsTab]] = [
-            .blue: [.permissions, .applications, .fileSearch, .navigation, .dictation, .shortcuts],
-            .green: [.systemActions, .backup],
+            .blue: [.applications, .fileSearch, .navigation, .dictation, .shortcuts],
+            .green: [.permissions, .systemActions, .backup],
             .orange: [.commands, .clipboard, .snippets],
-            .purple: [.quicklinks, .appleShortcuts, .windowManagement],
+            .purple: [.quicklinks, .windowManagement],
+            .magenta: [.appleShortcuts],
             .yellow: [.notes, .calendar, .emoji],
             .red: [.ai, .quickActions, .extensions]
         ]

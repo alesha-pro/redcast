@@ -143,7 +143,7 @@ struct CalendarSettingsView: View {
         .settingsScrollTarget(.calendar)
         .releasesFocusOnOutsideClick()
         // The snapshot reloads only while the feature runs, so a Settings grant lands here.
-        .onAppear { store.refreshAccess() }
+        .task { await store.refreshAccessOffMain() }
     }
 
     private var enableSubtitle: LocalizedStringResource {

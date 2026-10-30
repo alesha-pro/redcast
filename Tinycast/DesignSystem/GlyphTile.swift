@@ -5,19 +5,16 @@ struct GlyphTile: View {
     let symbol: String
     let hue: RaycastHue
     var size: CGFloat = Theme.Size.settingsRowIcon
-    var isSelected = false
 
     var body: some View {
         IconCache.observeStyle()
-        let colorful = ColorfulIcons.isEnabled
-        let shape = RoundedRectangle(cornerRadius: size * Theme.Size.glyphTileCorner, style: .continuous)
-        return SymbolImage(name: symbol, size: size * Theme.Size.glyphTileGlyph, monochrome: true)
-            .foregroundStyle(colorful ? Color.white : Theme.Colors.textSecondary)
+        let image = IconCache.symbolIcon(named: symbol, tint: ColorfulIcons.isEnabled ? hue.symbolTint : nil)
+        // Overflows its frame on purpose: the shadow is in the image's margin, not the layout.
+        return Image(nsImage: image)
+            .resizable()
+            .interpolation(.high)
+            .frame(width: size * IconCache.tileImageScale, height: size * IconCache.tileImageScale)
             .frame(width: size, height: size)
-            .background(shape.fill(colorful ? hue.tileColor : Theme.Colors.controlSurface))
-            .overlay {
-                if isSelected { shape.strokeBorder(Theme.Colors.selectedTileEdge) }
-            }
             .accessibilityHidden(true)
     }
 

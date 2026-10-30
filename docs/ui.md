@@ -290,10 +290,10 @@ dark surface a bare glyph takes Raycast Dark's value.
 | `red`     | `#FF6363` | `#B12424`   | `#F2453D`       | AI, agents, Quick Actions, AI Usage; Extensions in Settings |
 | `orange`  | `#FF9217` | `#C75D07`   | `#D9650B`       | clipboard, snippets, calculator                             |
 | `yellow`  | `#FFC531` | `#F8A300`   | `#BF7A00`       | notes, calendar and meetings, emoji, schedules              |
-| `green`   | `#59D499` | `#006B4F`   | `#1A9A5C`       | system actions, camera, backups                             |
+| `green`   | `#59D499` | `#006B4F`   | `#1A9A5C`       | system actions, camera, backups, Permissions                |
 | `blue`    | `#56C2FF` | `#138AF2`   | `#138AF2`       | files, menu items, dictionary, web, voice                   |
 | `purple`  | `#A485FF` | `#6A3DEC`   | `#7D55F0`       | windows (commands, layouts, rooms), quicklinks              |
-| `magenta` | `#CF2F98` | `#9A1B6E`   | `#CF2F98`       | no family: an agent's swatch and extensions only            |
+| `magenta` | `#CF2F98` | `#9A1B6E`   | `#CF2F98`       | no family: an agent's swatch, extensions and one Settings tile |
 | `gray`    | `#999999` | `#666666`   | `#7A7F8A`       | scripts and Redcast's housekeeping (Settings, Quit…)       |
 
 The yellow and orange tiles sit deeper than Raycast's yellow and orange, because a white glyph needs
@@ -310,7 +310,8 @@ The yellow and orange tiles sit deeper than Raycast's yellow and orange, because
   link colour), `#C4343A` on light (4.8:1 on `#F2F2F2`) and the brand `#FF6363` on dark.
   `AccentSelection` is the fill at 16% on light and 24% on dark: it is `Colors.selection`, so the row
   under the keyboard reads at a glance in every list. Raycast's own selection is a neutral 10%; the
-  owner asked for what matters to stand out. A harness has no asset catalog, so
+  owner asked for what matters to stand out, and only Settings' sidebar takes Raycast's neutral pill
+  (`sidebarSelection`), since its tiles carry the colour there. A harness has no asset catalog, so
   `Theme.Colors.catalog` gives nil there and each token falls back to upstream's value.
 - **Red never says two things at once.** A dialog's primary action is a solid accent capsule under
   `primaryActionInk` white, so it can't pass for the tinted destructive one beside it (the same in
@@ -322,13 +323,16 @@ The yellow and orange tiles sit deeper than Raycast's yellow and orange, because
   artwork; content rows (clipboard items, past chats, calculator history) stay neutral. A command or
   Settings pane upstream adds stays grey until it is mapped, and `colorful-icons-test` names every
   unmapped command, so a sync still builds.
-- **One tile, two drawings.** A launcher row asks `AppEntry.colorfulIcon(symbol:)` from
-  `defaultIcon` and gets `IconCache`'s existing `.tintedSymbol` tile, so no new cache exists. SwiftUI
-  surfaces draw `GlyphTile` at that tile's proportions (`Theme.Size.glyphTileGlyph` and
-  `glyphTileCorner`), and a menu item that only takes an image gets `GlyphTile.menuImage`, drawn from
-  the same cached tile. The Settings sidebar, its search results and feature switches draw
-  `SettingsTabTile` in `SettingsTabIcon`'s place, as System Settings does; the selected row's fill is
-  the accent, so its tile wears a white `selectedTileEdge`.
+- **One tile, one drawing, never white on flat.** Launcher rows, pane rows, menus, `GlyphTile` and the
+  Settings sidebar all come from `IconCache.symbolIcon`, and it draws through `TileArtwork`: a lit
+  gradient, a sheen and a shadow in the image's margin. The tile's `accent` colours a symbol's second
+  layer and every line glyph, `objectColors` gives things a colour of their own (a yellow bolt), and
+  a glaze tints the rest. `vivid` lifts the two dull tones, grey to slate and mustard to gold, so the
+  3:1 test on `tile` is a floor for the hue, not a pin on this drawing. A symbol takes its `.fill` form
+  where that reads; `LayerExtents` measures its palette layers, so a command upstream adds needs no
+  entry. Twelve symbols have compositions of their own, and `face.smiling` is the real 😀, set small on
+  its tile. `.aqua` is pinned because a few symbols swap shape with appearance. The image is
+  `tileImageScale` larger than the visible tile, so a view sizes by the tile.
 - **A bare glyph takes its hue only where it says something.** ⌘K rows colour by their glyph's
   meaning (`GlyphCategory.menuHue(forSymbol:)`): copy orange, Finder and search blue, favourite and
   pin yellow, open and run green, edit and links purple, anything else `menuSymbol`. The AI Chat
@@ -347,8 +351,8 @@ The yellow and orange tiles sit deeper than Raycast's yellow and orange, because
   the header names the chat's agent instead of badging each reply. An agent session's tile takes its
   CLI maker's hue (Claude orange, Codex green, Gemini blue, OpenCode purple, Redcast red).
 - **General › Appearance › Colorful icons** (`AppSettings.colorfulIcons`, on by default, in backups
-  and `settings.json` as `appearance.colorfulIcons`) turns tiles and tinted glyphs back to upstream's
-  look: grey launcher tiles, `menuSymbol` glyphs, and `SettingsTabIcon`'s accent-tinted glyphs. The
+  and `settings.json` as `appearance.colorfulIcons`) turns tiles and tinted glyphs neutral: the same
+  tiles and art on `TileArtwork.neutral` grey, and `menuSymbol` glyphs. The
   accent, the selection wash, the solid primary button and the headers stay. `AppCore` mirrors the
   setting into `ColorfulIcons`, an atomic because `AppEntry.iconSource` is asked off the main actor,
   and a change calls `IconCache.invalidateStyled()`, so every view keyed on `IconCache.style` repaints
@@ -357,7 +361,7 @@ The yellow and orange tiles sit deeper than Raycast's yellow and orange, because
 - **Contrast is pinned** by `colorful-icons-test`: a white glyph at least 3:1 on every tile, every
   tile tone at least 3:1 as a glyph on `#F2F2F2` and every dark value on `#1E1E1E`, and the three
   colour sets read from the catalog: white on the fill, links at 4.5:1 on either surface, and the
-  selection a 10–30% wash of the fill. Everything is a static table: no images, no timers, no cache.
+  selection a 10–30% wash of the fill. Everything is a static table, with no timers.
 
 ---
 
@@ -841,7 +845,7 @@ system-drawn and a pane reads exactly as macOS System Settings does.
   titlebar they were tuned for. Never hand-draw a header band; a main surface takes the system's
   material, not `glassEffect`.
 - `SettingsComponents.swift` holds only what more than one pane or editor needs: **`SettingsRow`**,
-  **`SettingsTabIcon`** (the sidebar tile reused by feature switches),
+  **`SettingsTabTile`** (the sidebar tile reused by feature switches),
   **`SettingsFeatureToggleLabel`** (the icon, title and subtitle of a feature's master switch),
   **`FeatureSwitchSection`** (a feature's master switch plus its launcher-visibility companion),
   **`SettingsFilterField`** (the filter row above a long list), **`launcherVisibilityHelp()`**, and the
@@ -861,16 +865,27 @@ system-drawn and a pane reads exactly as macOS System Settings does.
   scrolls at a stated row count instead — Custom Commands caps its arguments at `visibleArgumentRows` —
   so a panel's height stays a property of the editor, not of what has been typed into it. Extension
   editor visuals stay inside `Features/Extensions/`; the shared presenter treats them as opaque content.
-- **The sidebar searches every pane *and* its rows.** `.searchable(placement: .sidebar)` sits above the list and
-  swaps it for a flat, ranked result list; each result carries the pane's `systemImage`, the row's
+- **The sidebar is an `NSTableView`, `SettingsSidebarTable`.** `List` can't draw a neutral selection,
+  and a table keeps first responder at open, arrow keys, type-select and the soft edge. One pill sits
+  behind the rows and slides as a Core Animation spring, so the pane built next can't freeze it; no
+  row's `body` runs on a selection. Groups are parted by a non-floating gap row, since a floating one
+  pins itself under the field and hardens the edge. A local key monitor gives the field's ↓ and Esc
+  to the table, because the field lives in its own hosting view; it checks the field is in the sidebar,
+  as a pane's filter field shares the window's field editor.
+- **The pane lags the selection by a frame** (`SettingsDetailView.presented`, `.task(id:)`). A build
+  blocks the main thread for up to 190 ms, so the selection commits first, and while an arrow is held
+  the wait outlasts the key repeat, so only the last pane is built. Permission status calls are
+  blocking XPC, so a pane polls them through `pollingPermissions`, off main.
+- **The sidebar searches every pane *and* its rows.** `.searchable(placement: .sidebar)` sits above the table and
+  swaps it for a flat, ranked result list; each result carries the pane's tile, the row's
   title and a `Pane › Section` breadcrumb, and arrowing through them moves the pane, as System
   Settings does. Selection runs through `SettingsNavigationState.select`, so a result is an ordinary
   navigation the Back/Forward chevrons can walk. **A row result also reveals its section**: the pane
   scrolls the matched setting to centre and pulses its own name once (`Colors.searchFlash`) before
   settling; a result no single row answers pulses the section's header instead.
-  It is a **second `List`**, keyed by
+  It is a **second table**, keyed by
   `SettingsSearchEntry.ID`, so result identities never share a selection namespace with `SettingsTab`.
-  ⌘F focuses the field, Escape clears it.
+  ⌘F focuses the field, Escape clears it, and a second Escape returns to the rows.
 - **`SettingsSearchCatalog` is hand-written, and that is the only option.** A `Form` cannot be asked
   what rows it holds, so a new row is searchable only once it is listed there — with its anchor, its
   title and the keywords the title doesn't contain ("caps lock" for Hyper Key).

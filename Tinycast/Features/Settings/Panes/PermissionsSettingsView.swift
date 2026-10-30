@@ -1,14 +1,15 @@
 import AVFoundation
-import Combine
 import SwiftUI
 
 struct PermissionsSettingsView: View {
     @Environment(AppCore.self) private var core
-    @State private var accessibilityTrusted = Permissions.isAccessibilityTrusted()
-    @State private var fullDiskAccess = Permissions.hasFullDiskAccess()
-    @State private var calendarAccess = Permissions.calendarAccess()
-    @State private var microphoneAccess = Permissions.microphoneAccess()
-    private let refreshTimer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
+    // Remembered: a read is blocking XPC per service, and a default would flash a prompt.
+    @State private var status = PermissionStatus.lastRead ?? .read()
+
+    private var accessibilityTrusted: Bool { status.accessibilityTrusted }
+    private var fullDiskAccess: Bool { status.fullDiskAccess }
+    private var calendarAccess: CalendarAccess { status.calendarAccess }
+    private var microphoneAccess: AVAuthorizationStatus { status.microphoneAccess }
 
     var body: some View {
         Form {
@@ -124,7 +125,7 @@ struct PermissionsSettingsView: View {
                             if microphoneAccess == .notDetermined {
                                 Task {
                                     _ = await Permissions.requestMicrophoneAccess()
-                                    refresh()
+                                    apply(PermissionStatus.read())
                                 }
                             } else {
                                 Permissions.openMicrophoneSettings()
@@ -154,8 +155,7 @@ struct PermissionsSettingsView: View {
         }
         .formStyle(.grouped)
         .settingsScrollTarget(.permissions)
-        .onAppear(perform: refresh)
-        .onReceive(refreshTimer) { _ in refresh() }
+        .pollingPermissions(read: PermissionStatus.read, apply: apply)
     }
 
     private var calendarNeedsPrompt: Bool { calendarAccess == .notDetermined }
@@ -192,18 +192,27 @@ struct PermissionsSettingsView: View {
         }
     }
 
-    private func refresh() {
-        let trusted = Permissions.isAccessibilityTrusted()
-        if trusted != accessibilityTrusted { accessibilityTrusted = trusted }
-        let diskAccess = Permissions.hasFullDiskAccess()
-        if diskAccess != fullDiskAccess {
-            fullDiskAccess = diskAccess
-            core.fileIndexer.refreshAccess()
-        }
-        let access = Permissions.calendarAccess()
-        if access != calendarAccess { calendarAccess = access }
-        let microphone = Permissions.microphoneAccess()
-        if microphone != microphoneAccess { microphoneAccess = microphone }
+    private func apply(_ read: PermissionStatus) {
+        PermissionStatus.lastRead = read
+        if read.fullDiskAccess != status.fullDiskAccess { core.fileIndexer.refreshAccess() }
+        if read != status { status = read }
+    }
+}
+
+private struct PermissionStatus: Equatable, Sendable {
+    let accessibilityTrusted: Bool
+    let fullDiskAccess: Bool
+    let calendarAccess: CalendarAccess
+    let microphoneAccess: AVAuthorizationStatus
+
+    @MainActor static var lastRead: PermissionStatus?
+
+    @Sendable static func read() -> PermissionStatus {
+        PermissionStatus(
+            accessibilityTrusted: Permissions.isAccessibilityTrusted(),
+            fullDiskAccess: Permissions.hasFullDiskAccess(),
+            calendarAccess: Permissions.calendarAccess(),
+            microphoneAccess: Permissions.microphoneAccess())
     }
 }
 

@@ -923,7 +923,8 @@ caches, TCC grants and login item, so this cannot disturb an installed copy.
   no background check or update prompt occurs, and Check for Updates still works. Re-enable it:
   checks resume. Settings search for "updates" reveals the toggle; settings.json edits and a backup
   round trip preserve the choice.
-- Every pane renders and the sidebar switches without flicker
+- Every pane renders and the sidebar switches without flicker; the pill slides while a heavy pane builds
+- Sidebar keys: arrows work at open and skip the group gaps; typing jumps to a row; ⌘F, then Esc clears and a second Esc returns the arrows to the rows; ↓ in the field enters the results; opening About scrolls its row into view
 - A feature switch takes effect in the launcher immediately; every setting survives relaunch
 - Export produces a `.redcast` (fork; upstream writes `.tinycast`, which still imports); import applies it and reports a per-category summary
 - Untick a category on export, and the import picker greys that row out rather than offering it

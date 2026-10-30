@@ -38,11 +38,34 @@ extension Theme.Size {
     static let glyphTileCorner: CGFloat = 9.0 / 40
     /// The image AppKit gives a menu row, so a tile there sits where a symbol would.
     static let menuItemImage: CGFloat = 16
+    /// Settings' sidebar: Raycast's roomy rows; the pill's inset leaves the tile a soft margin.
+    static let settingsSidebarRow: CGFloat = 32
+    static let settingsSidebarResultRow: CGFloat = 42
+    static let settingsSidebarGroupGap: CGFloat = 12
+    static let settingsSidebarTile: CGFloat = 24
+    static let settingsSidebarTileGap: CGFloat = 8
+    static let settingsSidebarTileInset: CGFloat = 4
+    static let settingsSidebarRowInset: CGFloat = 8
 }
 
 extension Theme.Colors {
     /// Fork: a primary button's label on its solid accent, white in both appearances.
     static let primaryActionInk = Color.white
-    /// Fork: a selected Settings row is the accent, which a red or orange tile would melt into.
-    static let selectedTileEdge = adaptive(dark: .srgbInk(1, alpha: 0.9), light: .srgbInk(1, alpha: 0.9))
+    /// Fork: Settings' sidebar pill; neutral so a red or orange tile doesn't melt into it.
+    static let sidebarSelection = ramp(dark: 0.08, light: 0.06)
+    static let sidebarSelectionFocused = ramp(dark: 0.12, light: 0.09)
+    static let sidebarSelectionEdge = ramp(dark: 0.05, light: 0.04)
+    static let sidebarHover = ramp(dark: 0.05, light: 0.04)
+}
+
+extension Theme.Radius {
+    /// Fork: Settings' sidebar pill.
+    static let settingsSidebarSelection: CGFloat = 8
+}
+
+extension Theme.Duration {
+    /// Fork: a spring's perceptual length, as the pill slides between sidebar rows.
+    static let sidebarSelection: TimeInterval = 0.22
+    /// One frame, so the selection commits before the pane build blocks the main thread.
+    static let settingsPaneDefer = Swift.Duration.milliseconds(16)
 }

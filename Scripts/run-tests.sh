@@ -424,13 +424,16 @@ run callout-test          Tinycast/Platform/Appearance.swift \
                            Tinycast/DesignSystem/InterfaceMetrics.swift \
                            Tinycast/Features/HotKeys/UI/CalloutPlacement.swift
 run icon-cache-test        Tinycast/Platform/Appearance.swift \
-                           Tinycast/Platform/Images/IconCache.swift
+                           Tinycast/Platform/Images/IconCache.swift \
+                           Tinycast/Platform/Images/TileArtwork.swift
 run entry-icon-test        Tinycast/Platform/Appearance.swift \
                            Tinycast/Platform/Images/IconCache.swift \
+                           Tinycast/Platform/Images/TileArtwork.swift \
                            Tinycast/Platform/Images/FileIconStamp.swift
 run ext-icon-test          Tinycast/Platform/Appearance.swift \
                            Tinycast/Platform/AppDisplayName.swift \
                            Tinycast/Platform/Images/IconCache.swift \
+                           Tinycast/Platform/Images/TileArtwork.swift \
                            Tinycast/Platform/Compression/Zlib.swift \
                            Tinycast/DesignSystem/Theme.swift \
                            $FORK_PALETTE \
@@ -789,6 +792,7 @@ run slow ext-test          -parse-as-library \
                            Tinycast/Platform/Appearance.swift \
                            Tinycast/Platform/AppDisplayName.swift \
                            Tinycast/Platform/Images/IconCache.swift \
+                           Tinycast/Platform/Images/TileArtwork.swift \
                            Tinycast/DesignSystem/Theme.swift \
                            $FORK_PALETTE \
                            Tinycast/DesignSystem/InterfaceMetrics.swift \

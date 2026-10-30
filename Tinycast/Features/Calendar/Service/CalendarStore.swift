@@ -45,6 +45,17 @@ final class CalendarStore {
         access = Permissions.calendarAccess()
     }
 
+    /// For a pane that re-reads as it appears: the status call is blocking XPC, 30–50 ms cold.
+    func refreshAccessOffMain() async {
+        let read = await Self.readAccess()
+        guard !Task.isCancelled, read != access else { return }
+        access = read
+    }
+
+    @concurrent private static func readAccess() async -> CalendarAccess {
+        Permissions.calendarAccess()
+    }
+
     // MARK: - Lifecycle
 
     func start() {

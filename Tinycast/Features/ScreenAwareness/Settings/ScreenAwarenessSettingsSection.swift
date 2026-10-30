@@ -1,4 +1,3 @@
-import Combine
 import SwiftUI
 
 /// A section of the AI pane: the feature only exists to feed Quick AI.
@@ -9,7 +8,6 @@ struct ScreenAwarenessSettingsSection: View {
     /// Polled: both grants land in System Settings, which tells the app nothing.
     @State private var isTrusted = Permissions.isAccessibilityTrusted()
     @State private var canRecord = ScreenRecordingAccess.isGranted
-    private let refreshTimer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
 
     var body: some View {
         Section {
@@ -54,9 +52,11 @@ struct ScreenAwarenessSettingsSection: View {
             .font(.caption)
             .foregroundStyle(.secondary)
         }
-        .onReceive(refreshTimer) { _ in
-            isTrusted = Permissions.isAccessibilityTrusted()
-            canRecord = ScreenRecordingAccess.isGranted
+        .pollingPermissions {
+            ScreenGrants(isTrusted: Permissions.isAccessibilityTrusted(), canRecord: ScreenRecordingAccess.isGranted)
+        } apply: { grants in
+            if grants.isTrusted != isTrusted { isTrusted = grants.isTrusted }
+            if grants.canRecord != canRecord { canRecord = grants.canRecord }
         }
     }
 
@@ -103,4 +103,9 @@ struct ScreenAwarenessSettingsSection: View {
             get: { appSettings.screenAwarenessScreenshot },
             set: { core.screenAwarenessCoordinator.setScreenshotEnabled($0) })
     }
+}
+
+private struct ScreenGrants: Equatable, Sendable {
+    let isTrusted: Bool
+    let canRecord: Bool
 }

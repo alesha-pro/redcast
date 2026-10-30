@@ -93,6 +93,9 @@ enum IconCache {
     }()
 
     private static let displayPixel: CGFloat = 48
+    private static let tileMargin: CGFloat = 4
+    /// How much larger than the visible tile a symbol's image is, for a view sizing by the tile.
+    static let tileImageScale = displayPixel / (displayPixel - tileMargin * 2)
 
     private static let cache: Cache = {
         let cache = Cache()
@@ -251,51 +254,15 @@ enum IconCache {
         if let cached = cache.object(forKey: key) { return cached }
 
         let side = displayPixel
-        let isDark = darkSurface.withLock { $0 }
-        let plainInk: CGFloat = isDark ? 1 : 0
-        let image = NSImage(size: NSSize(width: side, height: side), flipped: false) { _ in
+        let image = NSImage(size: NSSize(width: side, height: side), flipped: true) { _ in
             // Tile inset mirrors the margin macOS app icons carry inside their canvas.
-            let tile = NSRect(x: 0, y: 0, width: side, height: side).insetBy(dx: 4, dy: 4)
-            (tint?.color ?? .srgbInk(plainInk, alpha: 0.09)).setFill()
-            NSBezierPath(roundedRect: tile, xRadius: 9, yRadius: 9).fill()
-
-            // A tinted tile keeps white ink in both appearances; the tint carries the contrast.
-            let ink = tint == nil ? NSColor.srgbInk(plainInk, alpha: 0.85) : .white
-            // A symbol picks its glyph by the drawing appearance, which off-main isn't the surface's.
-            NSAppearance(named: isDark ? .darkAqua : .aqua)?.performAsCurrentDrawingAppearance {
-                guard let symbol = glyph(named: name, tint: ink, isDark: isDark) else { return }
-                let size = symbol.size
-                symbol.draw(
-                    in: NSRect(
-                        x: (side - size.width) / 2, y: (side - size.height) / 2,
-                        width: size.width, height: size.height))
-            }
+            let tile = NSRect(x: 0, y: 0, width: side, height: side).insetBy(dx: tileMargin, dy: tileMargin)
+            TileArtwork.draw(symbol: name, base: tint?.color, in: tile)
             return true
         }
         let (icon, cost) = downsampled(image)
         cache.setObject(icon, forKey: key, cost: cost)
         return icon
-    }
-
-    private static func glyph(named name: String, tint: NSColor, isDark: Bool) -> NSImage? {
-        let config = NSImage.SymbolConfiguration(pointSize: 21, weight: .medium)
-            .applying(.init(paletteColors: [tint]))
-        if let symbol = NSImage(
-            systemSymbolName: SystemSymbolName.resolve(name, isDark: isDark),
-            accessibilityDescription: nil
-        )?
-        .withSymbolConfiguration(config) {
-            return symbol
-        }
-        guard let asset = NSImage(named: name) else { return nil }
-        // A 24pt box lands the asset's ink at the symbols' ~22pt optical height.
-        let assetSize = NSSize(width: 24, height: 24)
-        return NSImage(size: assetSize, flipped: false) { rect in
-            asset.draw(in: rect)
-            tint.set()
-            rect.fill(using: .sourceAtop)
-            return true
-        }
     }
 
     /// What an app icon paints: the reference for every other artwork.

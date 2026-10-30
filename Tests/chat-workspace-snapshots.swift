@@ -539,7 +539,6 @@ struct GlyphTile: View {
     let symbol: String
     let hue: RaycastHue
     var size: CGFloat = Theme.Size.settingsRowIcon
-    var isSelected = false
 
     var body: some View { ChatFolderTile(symbol: symbol, hue: hue, size: size) }
 }

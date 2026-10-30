@@ -202,7 +202,6 @@ struct DictationSettingsView: View {
         .formStyle(.grouped)
         .settingsScrollTarget(.dictation)
         .onAppear {
-            microphoneAccess = Permissions.microphoneAccess()
             if settings.dictationEnabled { microphones = DictationCapture.microphones }
         }
         .onChange(of: settings.dictationEnabled) { _, enabled in

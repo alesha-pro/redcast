@@ -3,30 +3,6 @@ import SwiftUI
 
 // The few pieces more than one Settings pane or editor needs; everything else stays feature-owned.
 
-struct SettingsTabIcon: View {
-    let systemImage: String
-    let tint: Color
-    var size = Theme.Size.settingsSidebarGlyph + Theme.Spacing.xs * 2
-    @Environment(\.colorScheme) private var colorScheme
-
-    var body: some View {
-        let scale = size / (Theme.Size.settingsSidebarGlyph + Theme.Spacing.xs * 2)
-        Image(systemName: SystemSymbolName.resolve(systemImage, isDark: colorScheme == .dark))
-            .resizable()
-            .scaledToFit()
-            .frame(
-                width: Theme.Size.settingsSidebarGlyph * scale,
-                height: Theme.Size.settingsSidebarGlyph * scale
-            )
-            .foregroundStyle(tint)
-            .padding(Theme.Spacing.xs * scale)
-            .background(
-                tint.opacity(0.1),
-                in: RoundedRectangle(
-                    cornerRadius: Theme.Radius.thumbnail * scale, style: .continuous))
-    }
-}
-
 struct SettingsFeatureToggleLabel: View {
     let anchor: SettingsAnchor
     let title: LocalizedStringResource

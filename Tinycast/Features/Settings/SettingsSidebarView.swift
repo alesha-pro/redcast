@@ -2,71 +2,70 @@ import SwiftUI
 
 struct SettingsSidebarView: View {
     @Environment(SettingsNavigationState.self) private var navigation
-    @Environment(\.appearsActive) private var appearsActive
     @State private var query = ""
     @State private var highlighted: SettingsSearchEntry.ID?
     @State private var searching = false
 
-    private var results: [SettingsSearchEntry] { SettingsSearchCatalog.results(for: query) }
-
     var body: some View {
-        VStack(spacing: 0) {
+        // Computed once: the catalog ranks every row, and `found` reads it several times over.
+        let results = query.isEmpty ? [] : SettingsSearchCatalog.results(for: query)
+        return VStack(spacing: 0) {
             if query.isEmpty {
                 browse
             } else {
-                found
+                found(results)
             }
         }
         .searchable(text: $query, isPresented: $searching, placement: .sidebar, prompt: "Search")
         .onExitCommand { query = "" }
+        .onChange(of: query) { _, _ in highlighted = nil }
         .background(focusShortcut)
     }
 
+    // Fork: an AppKit table with a neutral sliding selection; see `SettingsSidebarTable`.
     private var browse: some View {
-        List(selection: selection) {
-            ForEach(SettingsSection.allCases) { section in
-                Section(section.title) {
-                    ForEach(section.tabs) { tab in
-                        Label {
-                            Text(tab.title)
-                        } icon: {
-                            // Fork: System Settings' coloured tiles while Colourful Icons is on.
-                            SettingsTabTile(
-                                tab: tab,
-                                tint: appearsActive
-                                    ? (navigation.tab == tab ? Color.primary : Color.accentColor)
-                                    : Color.secondary,
-                                isSelected: navigation.tab == tab)
-                        }
-                        .tag(tab)
-                    }
-                }
-            }
+        SettingsSidebarTable(rows: browseRows, selection: AnyHashable(navigation.tab)) { id in
+            if let tab = id.base as? SettingsTab { navigation.select(tab) }
         }
-        .listStyle(.sidebar)
-        // Pin the style before mounting; the implicit sidebar style paints icons a frame late.
-        .labelStyle(.titleAndIcon)
+        // Reaches under the field: the system's soft edge needs the rows to scroll beneath it.
+        .ignoresSafeArea()
     }
 
-    @ViewBuilder private var found: some View {
+    private var browseRows: [SettingsSidebarTable.Row] {
+        SettingsSection.allCases.enumerated().flatMap { index, section in
+            let rows = section.tabs.map { tab in
+                SettingsSidebarTable.Row(id: tab, title: tab.title) {
+                    AnyView(SettingsSidebarRow(tab: tab, title: tab.title))
+                }
+            }
+            guard index > 0 else { return rows }
+            return [SettingsSidebarTable.Row(
+                id: nil, title: section.title, height: Theme.Size.settingsSidebarGroupGap)] + rows
+        }
+    }
+
+    @ViewBuilder private func found(_ results: [SettingsSearchEntry]) -> some View {
         if results.isEmpty {
             // Greedy: a finite max height here becomes a constraint that shrinks the whole window.
             ContentUnavailableView.search(text: query)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
         } else {
-            // A second `List`, so result IDs and `SettingsTab` never share a selection namespace.
-            List(selection: $highlighted) {
-                Section("Results") {
-                    ForEach(results) { entry in
-                        SettingsSearchResultRow(entry: entry).tag(entry.id)
-                    }
-                }
-            }
-            .listStyle(.sidebar)
-            .onChange(of: highlighted) { _, id in
-                guard let entry = results.first(where: { $0.id == id }) else { return }
+            SettingsSidebarTable(
+                rows: results.map { entry in
+                    SettingsSidebarTable.Row(
+                        id: entry.id, title: entry.title,
+                        height: Theme.Size.settingsSidebarResultRow
+                    ) { AnyView(SettingsSearchResultRow(entry: entry)) }
+                },
+                selection: highlighted.map(AnyHashable.init),
+                isResultsList: true,
+                accessibilityLabel: String(localized: "Results")
+            ) { id in
+                guard let entry = results.first(where: { AnyHashable($0.id) == id }) else { return }
+                highlighted = entry.id
                 navigation.select(entry.tab, revealing: entry.target)
             }
+            .ignoresSafeArea()
         }
     }
 
@@ -79,42 +78,50 @@ struct SettingsSidebarView: View {
             .opacity(0)
             .accessibilityHidden(true)
     }
+}
 
-    /// `List` hands back an optional selection; routing it through `select` records history.
-    private var selection: Binding<SettingsTab?> {
-        Binding(
-            get: { navigation.tab },
-            set: { if let tab = $0 { navigation.select(tab) } }
-        )
+/// Knows nothing of selection: the table's pill moves and no row's `body` runs again.
+private struct SettingsSidebarRow: View {
+    let tab: SettingsTab
+    let title: String
+    @Environment(\.appearsActive) private var appearsActive
+
+    var body: some View {
+        HStack(spacing: Theme.Size.settingsSidebarTileGap) {
+            SettingsTabTile(tab: tab)
+            Text(title)
+                .lineLimit(1)
+                .foregroundStyle(appearsActive ? .primary : .secondary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .help(title)
+        }
+        .padding(.leading, Theme.Size.settingsSidebarRowInset + Theme.Size.settingsSidebarTileInset)
+        .padding(.trailing, Theme.Size.settingsSidebarRowInset + Theme.Size.settingsSidebarTileInset)
+        .frame(maxHeight: .infinity)
     }
 }
 
 private struct SettingsSearchResultRow: View {
     let entry: SettingsSearchEntry
+    @Environment(\.appearsActive) private var appearsActive
 
     var body: some View {
-        Label {
+        HStack(spacing: Theme.Size.settingsSidebarTileGap) {
+            SettingsTabTile(tab: entry.tab)
             VStack(alignment: .leading, spacing: Theme.Spacing.xxs) {
                 Text(entry.title).lineLimit(1)
+                    .foregroundStyle(appearsActive ? .primary : .secondary)
                 Text(entry.breadcrumb)
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
                     .truncationMode(.middle)
             }
-        } icon: {
-            SettingsTabTile(tab: entry.tab)  // Fork: the pane's own coloured tile
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .help(entry.title)
         }
-        // Centred, not first-baseline: the tile sits against a two-line title and breadcrumb.
-        .labelStyle(CenteredLabelStyle())
-    }
-}
-
-private struct CenteredLabelStyle: LabelStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        HStack(alignment: .center) {
-            configuration.icon
-            configuration.title
-        }
+        .padding(.leading, Theme.Size.settingsSidebarRowInset + Theme.Size.settingsSidebarTileInset)
+        .padding(.trailing, Theme.Size.settingsSidebarRowInset + Theme.Size.settingsSidebarTileInset)
+        .frame(maxHeight: .infinity)
     }
 }

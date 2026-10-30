@@ -273,6 +273,6 @@ feature owns (General, Permissions) lives in `Settings/Panes/`. The four launche
 Applications, System Settings, System Actions, Commands — are thin wrappers over the shared
 `LauncherItemsSection`; Apple Shortcuts pairs its feature switch with the same `LauncherItemsList`.
 
-`SettingsTab` and `SettingsSection` both identify by the case itself, never by an index. A selectable
-`List` flattens section and row IDs into one namespace, so overlapping `Int` IDs make SwiftUI drop
-whole sidebar groups; `Tests/settings-history-test.swift` pins the two namespaces apart.
+`SettingsTab` and `SettingsSection` both identify by the case itself, never by an index, and
+`Tests/settings-history-test.swift` pins the two namespaces apart. The sidebar is
+`SettingsSidebarTable`, an `NSTableView`; [ui.md](ui.md) says why.

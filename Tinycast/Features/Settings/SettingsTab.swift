@@ -4,7 +4,7 @@ enum SettingsTab: CaseIterable, Identifiable {
         dictation, ai, quickActions, extensions, permissions, backup, about
     // Fork: every hotkey and alias in one list.
     case shortcuts
-    /// The case, never an index: a selectable `List` flattens section and row IDs together.
+    /// The case, never an index: the sidebar's rows are keyed by it.
     var id: Self { self }
 
     var title: String {
@@ -41,13 +41,13 @@ enum SettingsTab: CaseIterable, Identifiable {
         case .general: return "switch.2"
         case .applications: return "square.grid.2x2"
         case .systemSettings: return "gearshape"
-        case .systemActions: return "bolt"
+        case .systemActions: return "power.circle"
         case .commands: return "terminal"
         case .quicklinks: return "link"
-        case .appleShortcuts: return "square.2.layers.3d"
-        case .fallbacks: return "arrow.turn.down.right"
+        case .appleShortcuts: return "play.square.stack"
+        case .fallbacks: return "arrow.triangle.turn.up.right.diamond"
         case .ai: return "sparkles"
-        case .quickActions: return "wand.and.sparkles"
+        case .quickActions: return "bolt"
         case .dictation: return "waveform"
         case .fileSearch: return "doc.text.magnifyingglass"
         case .notes: return "text.page"
@@ -58,8 +58,8 @@ enum SettingsTab: CaseIterable, Identifiable {
         case .emoji: return "face.smiling"
         case .calendar: return "calendar"
         case .extensions: return "puzzlepiece.extension"
-        case .permissions: return "lock.shield"
-        case .backup: return "arrow.up.arrow.down.circle"
+        case .permissions: return "checkmark.shield"
+        case .backup: return "archivebox"
         case .about: return "info.circle"
         case .shortcuts: return "keyboard"  // Fork: Shortcuts overview
         }

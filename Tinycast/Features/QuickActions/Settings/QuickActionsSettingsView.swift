@@ -1,4 +1,3 @@
-import Combine
 import SwiftUI
 
 /// A peer of the AI pane, not a section in it: it only borrows the provider layer.
@@ -14,7 +13,6 @@ struct QuickActionsSettingsView: View {
     @State private var isTrusted = Permissions.isAccessibilityTrusted()
     @State private var editingAction: BuiltInQuickAction?
     @State private var customEditing: CustomQuickActionEditRequest?
-    private let refreshTimer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
 
     var body: some View {
         Form {
@@ -54,7 +52,9 @@ struct QuickActionsSettingsView: View {
         }
         .formStyle(.grouped)
         .settingsScrollTarget(.quickActions)
-        .onReceive(refreshTimer) { _ in isTrusted = Permissions.isAccessibilityTrusted() }
+        .pollingPermissions(read: Permissions.isAccessibilityTrusted) { trusted in
+            if trusted != isTrusted { isTrusted = trusted }
+        }
         .settingsEditorPanel(item: $editingAction) { action in
             InstructionsEditorPanel(
                 action: action,

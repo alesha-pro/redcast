@@ -1,4 +1,3 @@
-import Combine
 import SwiftUI
 
 struct FileSearchSettingsView: View {
@@ -34,8 +33,6 @@ struct FileSearchSettingsView: View {
 private struct FileSearchAccessSection: View {
     @Environment(AppCore.self) private var core
     @State private var granted = Permissions.hasFullDiskAccess()
-    /// Nothing announces a grant made in System Settings, so the pane asks while it is open.
-    private let refreshTimer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
 
     var body: some View {
         Section {
@@ -75,12 +72,10 @@ private struct FileSearchAccessSection: View {
                 .foregroundStyle(.secondary)
             }
         }
-        .onAppear(perform: refresh)
-        .onReceive(refreshTimer) { _ in refresh() }
+        .pollingPermissions(read: Permissions.hasFullDiskAccess, apply: apply)
     }
 
-    private func refresh() {
-        let now = Permissions.hasFullDiskAccess()
+    private func apply(_ now: Bool) {
         guard now != granted else { return }
         granted = now
         core.fileIndexer.refreshAccess()
