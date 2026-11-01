@@ -117,6 +117,8 @@ final class AIChatCoordinator {
     }
 
     func newChat() {
+        // Fork: a question recalled to edit belongs here; the draft from before it moves on.
+        core.chatWorkspace.cancelEditing(in: chats.window)
         // Fork: ⌘N keeps an empty chat as the new one, so its No Agent gives way to the default.
         agents.restoreDefault(in: chats.window)
         chats.newWindowChat()
@@ -463,6 +465,18 @@ final class AIChatCoordinator {
 
     func showDictationSettings() {
         settingsCoordinator.showSettings(tab: .dictation)
+    }
+
+    /// The composer's keystroke, all a long draft costs; `@note ` typed at its end opens the picker.
+    func typed(_ text: String, in chat: AIChatState) {
+        let old = chat.draft
+        chat.typeDraft(text)
+        guard notes.isAvailable,
+            let draft = NoteMention.consume(
+                old: old, new: text, reservedAtStart: addressedServer(in: NoteMention.token) != nil)
+        else { return }
+        chat.draft = draft
+        notes.presentPicker(for: chat, fromMention: true)
     }
 
     /// The server a draft is addressed to, so the composer can show it as a chip while typing.

@@ -105,9 +105,12 @@ final class QuickAICoordinator {
     }
 
     func startNewChat() {
-        chat.startNewChat()
+        // Fork: what the composer holds goes on to the new chat, as in the window.
+        let typed = palette.query
+        chat.startNewChat(keepingStaging: true)
         // A fresh conversation, not a fresh root: whatever opened chat is still behind it.
         palette.replace(mode: .ai)
+        palette.query = typed
     }
 
     func showHistory() {

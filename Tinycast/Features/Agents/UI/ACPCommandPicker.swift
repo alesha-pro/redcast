@@ -45,8 +45,8 @@ private final class ACPCommandPicker {
     }
 
     var matches: [ACPCommand] {
-        guard chat.draft != hiddenDraft else { return [] }
-        return ACPCommand.matches(for: chat.draft, in: agents.commands(for: chat))
+        guard chat.draftHead != hiddenDraft else { return [] }
+        return ACPCommand.matches(for: chat.draftHead, in: agents.commands(for: chat))
     }
 
     var selected: Int {
@@ -83,10 +83,10 @@ private final class ACPCommandPicker {
             complete(command)
         case kVK_Return, kVK_ANSI_KeypadEnter:
             // A name typed out in full sends, so `/compact` and Return run it at once.
-            guard !command.isTypedOut(in: chat.draft) else { return false }
+            guard !command.isTypedOut(in: chat.draftHead) else { return false }
             complete(command)
         case kVK_Escape:
-            hiddenDraft = chat.draft
+            hiddenDraft = chat.draftHead
         default:
             return false
         }
@@ -102,7 +102,7 @@ private struct ACPCommandPickerModifier: ViewModifier {
 
     /// Whether the draft could name a command at all; the picker narrows it from there.
     private var isTyping: Bool {
-        ACPCommand.typedName(in: chat.draft) != nil && !agents.commands(for: chat).isEmpty
+        ACPCommand.typedName(in: chat.draftHead) != nil && !agents.commands(for: chat).isEmpty
     }
 
     func body(content: Content) -> some View {
@@ -124,7 +124,7 @@ private struct ACPCommandPickerModifier: ViewModifier {
                 picker?.stop()
                 picker = typing ? ACPCommandPicker(chat: chat, agents: agents, editor: editor) : nil
             }
-            .onChange(of: chat.draft) { picker?.selection = 0 }
+            .onChange(of: chat.draftHead) { picker?.selection = 0 }
             .onDisappear {
                 picker?.stop()
                 picker = nil

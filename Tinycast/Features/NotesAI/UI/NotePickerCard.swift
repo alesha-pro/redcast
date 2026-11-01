@@ -7,7 +7,7 @@ extension View {
         chat: AIChatState, chats: AIChatCoordinator, editor: ComposerTextViewHandle
     ) -> some View {
         modifier(
-            NotePickerModifier(chat: chat, chats: chats, alignment: .bottom, watchesDraft: true) {
+            NotePickerModifier(chat: chat, chats: chats, alignment: .bottom) {
                 guard let textView = editor.textView else { return }
                 textView.window?.makeFirstResponder(textView)
             })
@@ -26,7 +26,6 @@ private struct NotePickerModifier: ViewModifier {
     let chat: AIChatState
     let chats: AIChatCoordinator
     let alignment: VerticalAlignment
-    let watchesDraft: Bool
     let focusComposer: () -> Void
     @State private var model: NotePickerModel?
     /// The chat this card opened for; another surface taking the picker is not a cancel.
@@ -58,15 +57,6 @@ private struct NotePickerModifier: ViewModifier {
                 if !shown, let shownFor, notes.pickerChatID == shownFor { notes.dismissPicker() }
                 shownFor = shown ? chat.session.id : nil
             }
-            .onChange(of: chat.draft) { old, new in
-                guard watchesDraft, notes.isAvailable,
-                    let draft = NoteMention.consume(
-                        old: old, new: new,
-                        reservedAtStart: chats.addressedServer(in: NoteMention.token) != nil)
-                else { return }
-                chat.draft = draft
-                notes.presentPicker(for: chat, fromMention: true)
-            }
     }
 
     private func pick(_ summary: NoteSummary) {
@@ -96,7 +86,7 @@ private struct QuickNotePickerModifier: ViewModifier {
     func body(content: Content) -> some View {
         content
             .modifier(
-                NotePickerModifier(chat: chat, chats: chats, alignment: .top, watchesDraft: false) {
+                NotePickerModifier(chat: chat, chats: chats, alignment: .top) {
                     palette.focusToken = UUID()
                 })
             .onChange(of: isShown, initial: true) { old, shown in

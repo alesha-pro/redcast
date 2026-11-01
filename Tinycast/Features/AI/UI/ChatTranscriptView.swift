@@ -500,18 +500,23 @@ private struct ChatDocumentChip: View {
     private var isPDF: Bool { document.mimeType == AIAttachmentPolicy.pdfMIMEType }
 
     var body: some View {
-        HStack(spacing: metrics.spacing.xs) {
-            Image(systemName: isPDF ? "doc.richtext" : "doc.plaintext")
-                .font(metrics.typography.chip)
-                .symbolRenderingMode(.hierarchical)
-            Text(document.name)
-                .font(metrics.typography.chip)
-                .lineLimit(1)
+        // Fork: a click previews it
+        ChatAttachmentButton(
+            attachment: ChatAttachmentFile(document: document.data, isPDF: isPDF, name: document.name)
+        ) {
+            HStack(spacing: metrics.spacing.xs) {
+                Image(systemName: isPDF ? "doc.richtext" : "doc.plaintext")
+                    .font(metrics.typography.chip)
+                    .symbolRenderingMode(.hierarchical)
+                Text(document.name)
+                    .font(metrics.typography.chip)
+                    .lineLimit(1)
+            }
+            .foregroundStyle(Theme.Colors.textSecondary)
+            .padding(.horizontal, metrics.spacing.sm)
+            .padding(.vertical, metrics.spacing.xxs)
+            .background(Capsule().fill(Theme.Colors.controlSurface))
         }
-        .foregroundStyle(Theme.Colors.textSecondary)
-        .padding(.horizontal, metrics.spacing.sm)
-        .padding(.vertical, metrics.spacing.xxs)
-        .background(Capsule().fill(Theme.Colors.controlSurface))
         .accessibilityLabel("Attached file \(document.name)")
     }
 }
@@ -524,18 +529,25 @@ struct ChatImageThumbnail: View {
     let edge: CGFloat
     @State private var decoded: NSImage?
 
+    private var attachment: ChatAttachmentFile {
+        ChatAttachmentFile(image: image.data, mimeType: image.mimeType, name: String(localized: "Image"))
+    }
+
     var body: some View {
-        Group {
-            if let decoded {
-                Image(nsImage: decoded)
-                    .resizable()
-                    .aspectRatio(contentMode: .fill)
-            } else {
-                Color.clear
+        ChatAttachmentButton(attachment: attachment) {  // Fork: a click previews the file, not this tile
+            Group {
+                if let decoded {
+                    Image(nsImage: decoded)
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                } else {
+                    Color.clear
+                }
             }
+            .frame(width: edge, height: edge)
+            .clipShape(RoundedRectangle(cornerRadius: metrics.radius.row, style: .continuous))
         }
-        .frame(width: edge, height: edge)
-        .clipShape(RoundedRectangle(cornerRadius: metrics.radius.row, style: .continuous))
+        .accessibilityLabel("Attached \(attachment.name)")
         // Fork: a screenshot's full bitmap is never kept for a 96pt tile.
         .task(id: image) { decoded = await ChatImageDownsampler.tile(image.data, edge: edge * scale) }
     }

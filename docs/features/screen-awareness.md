@@ -64,6 +64,10 @@ plus the few lines that wire it in.
   dialog, "<agent> wants to read your screen", names the app it would read. Allow for This Chat
   grants only the Screen family, never a Notes read, and an asking call never shares a round.
   Without Accessibility it says so rather than prompting.
+- **A capture outlives New Chat.** ⌘N hands whatever the composer holds on to the new chat, the
+  capture and the question typed under it included, in the window and in Quick AI, as Raycast's does;
+  see [AI Chat](ai.md#invariants). Opening another saved chat still drops it: staged files belong to
+  the chat they were picked in.
 - **A picture the route cannot see stays behind.** `AIChatCoordinator.stage` checks
   `AIModelCapabilities.images`; on a text-only route only the text is staged and a HUD says so, rather
   than staging an image the send would refuse.
@@ -123,6 +127,8 @@ bounded to 1568px like any pasted picture.
   what gets captured, not Redcast, and the palette closes as AI Chat opens.
 - Switch **Open captures in** to Quick AI: the same capture lands in the palette's chat instead.
 - With Redcast's Settings in front, press the shortcut: refused with a HUD.
+- Capture into a chat that has messages, type a question, then ⌘N: the new chat holds the capture's
+  chips and the question, and the old chat keeps neither. The same with **Open captures in** Quick AI.
 - Turn the feature off: the launcher row disappears and the shortcut does nothing.
 - Tick Screen for an agent (Settings → AI → Agents), open a page in Safari, then ask the agent in AI
   Chat what is on the page: a dialog names Safari first; allowed, the transcript shows

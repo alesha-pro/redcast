@@ -682,6 +682,7 @@ final class AppCore {
         snippetListener.stop()
         snippetsStore.stop()
         aiChats.reset()
+        ChatAttachmentFiles.removeAll()  // Fork: copies made to preview sent attachments
         agentCoordinator.stopAll()
         chatGPTSubscription.stop()
         mcpOAuth.stop()

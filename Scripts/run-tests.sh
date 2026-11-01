@@ -375,6 +375,7 @@ run dictation-field-test   Tinycast/Features/Dictation/Model/DictationModel.swif
                            Tinycast/Features/Dictation/Service/DictationCoordinator.swift \
                            Tinycast/Features/Dictation/Service/DictationInsertionContext.swift \
                            Tinycast/Features/AI/UI/ChatComposerTextView.swift \
+                           Tinycast/Features/AI/Model/ChatDraftFacts.swift \
                            Tinycast/Features/ChatWorkspace/UI/ChatComposerInk.swift \
                            Tinycast/Features/TextInjection/Service/*.swift \
                            Tinycast/Features/Snippets/Model/*.swift $TAG_RULES \
@@ -871,6 +872,7 @@ run ai-chat-test           Tinycast/Features/AI/Model/AIRequest.swift \
                            Tinycast/Features/AI/Service/ChatHistoryStore.swift \
                            Tinycast/Features/AI/Service/AIToolLoopProvider.swift \
                            Tinycast/Features/WebSearch/Model/*.swift \
+                           Tinycast/Features/AI/Model/ChatDraftFacts.swift \
                            Tinycast/Features/AI/UI/AIChatState.swift \
                            Tinycast/Features/AI/UI/AIChatSurfacesState.swift \
                            Tinycast/Features/AI/UI/ChatFindState.swift
@@ -903,7 +905,8 @@ run chat-markdown-test     Tinycast/Platform/Appearance.swift \
                            Tinycast/Features/AI/UI/MathBox.swift \
                            Tinycast/Features/AI/UI/MathFont.swift \
                            Tinycast/Features/AI/UI/MathLayoutEngine.swift
-run chat-files-test        Tinycast/Features/ChatFiles/Model/*.swift
+run chat-files-test        Tinycast/Features/ChatFiles/Model/*.swift \
+                           Tinycast/Features/ChatFiles/Service/ChatAttachmentFiles.swift
 CW=Tinycast/Features/ChatWorkspace
 run chat-workspace-test    $CW/Model/*.swift $CW/Service/*.swift $CW/Settings/ChatWorkspaceSettings.swift \
                            $CW/UI/ChatWorkspaceHost.swift $CW/UI/ChatWorkspaceCoordinator.swift $CW/UI/ChatSettingsState.swift \
@@ -928,6 +931,7 @@ run chat-workspace-test    $CW/Model/*.swift $CW/Service/*.swift $CW/Settings/Ch
                            Tinycast/Features/AI/Model/ChatToolScope.swift \
                            Tinycast/Features/AI/Service/AIProvider.swift \
                            Tinycast/Features/AI/Service/ChatHistoryStore.swift \
+                           Tinycast/Features/AI/Model/ChatDraftFacts.swift \
                            Tinycast/Features/AI/UI/AIChatState.swift \
                            Tinycast/Features/AI/UI/AIChatSurfacesState.swift
 run syntax-highlight-test  Tinycast/Features/AI/Model/SyntaxGrammar.swift \

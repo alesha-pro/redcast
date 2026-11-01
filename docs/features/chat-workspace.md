@@ -308,7 +308,9 @@ row, not with the baseline above.
   the screenshot chat. `ChatImageDownsampler` makes an ImageIO thumbnail whose short edge fills
   the tile at the screen's scale, one at a time on a serial queue that drains per item. Nothing
   else reads the tile: a request still sends the original bytes, and a file's Quick Look and Open
-  read the file itself.
+  read the file itself, as a click on a sent picture does, from a copy written only at that click
+  ([chat files](chat-files.md#invariants)). Making tiles and document chips clickable moved nothing:
+  cycle 2's footprint peak was 414–428 MB against 418–419 before, live malloc's 208 against 207–208.
 
 - **2. The chat goes when the window leaves it.** On a switch, the old chat outlived the new
   one: SwiftUI kept the composer's ⌘↵ Send Now action from the first render, so its

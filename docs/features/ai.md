@@ -13,6 +13,22 @@ bottom with the model picker. ⌘J hands a Quick AI conversation to the window.
 
 ## Invariants
 
+- **A keystroke costs the same at any draft's length.** `AIChatState.draft` is not observed. Its text
+  view hands each keystroke to `typeDraft`, which only refreshes `ChatDraftFacts`: empty, blank, and a
+  `draftHead` that exists only for a draft opening with `@` or `/`. A view reads those, so plain typing
+  changes nothing SwiftUI sees. Any other write goes through `draft`'s setter and moves `draftRevision`,
+  the only thing that makes the text view read the draft back. The field's height comes from the part
+  that fits under its cap (`ChatDraftFacts.measuredPart`), and is rechecked per keystroke only to move
+  `heightChange` when it differs. A new reader of `chat.draft` in a view body would see stale text and,
+  if it compared it, bring back the per-keystroke cost. The field runs on TextKit 1 with
+  non-contiguous layout, since TextKit 2 sets a whole paragraph per edit. `CHAT_MEMORY_TYPING=1`
+  measures it ([testing](../testing.md#recorded-baselines)).
+- **New Chat keeps what the composer holds.** ⌘N, the toolbar, New Chat in Folder and an agent's Start
+  Chat hand the unsent text and staged files on to the new chat (`AIChatState.takeComposer`), with
+  nothing left behind, even in a chat still answering; Quick AI keeps its query and staged files the
+  same way. There is one rule for a capture and a plain draft, since typed text is the reader's work and
+  clearing it takes a keystroke, while losing it cannot be undone. A question recalled with ↑ stays in
+  its own chat, and the draft from before it moves on. Opening another saved chat still drops them.
 - **AI is off out of the box, and off means fully off.** `AppSettings.aiEnabled` is the flag:
   no `Quick AI` or `AI Chat` command in the launcher, no history database opened or created, no Codex
   helper for chat, no stop for it on Tab's ring, the palette leaves `.ai` and the window closes.
@@ -715,6 +731,12 @@ window, and every chat action either surface sends — is the nineteenth feature
   the unsent line in its composer, and Quick AI is empty on the next summon.
 - In the window, send, then press ⌘N before the reply ends: the old chat keeps its sidebar spinner,
   finishes, and reopens complete. Rename one, send another turn in it, and the name holds.
+- In a chat with messages type a line and attach a file, then ⌘N: both are in the new chat, the caret
+  still after the text, and the old chat has neither. Press ↑ first to recall a question: ⌘N carries
+  what you had typed before it, not the question.
+- Paste a megabyte into the composer: it grows to its cap and scrolls, and typing keeps up at either
+  end. Delete it all: the field shrinks to one line and the placeholder returns. ⇧↩ grows the field
+  a line at a time, `@server` shows its chip, `/` an ACP agent's commands, and `hi @note ` the picker.
 - Ask for the quadratic formula in LaTeX: while the reply streams, its display equation is a centred
   `…` that turns into the equation in place; selecting across it and copying pastes its `$$…$$`
   source. A reply that mentions "$5 and $10" keeps both prices as prose, and in a narrow Quick AI a

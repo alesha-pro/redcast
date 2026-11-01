@@ -3,6 +3,8 @@
 # Usage: Scripts/fork/chat-memory.sh [report.tsv] [source tree] [cycles]
 #   CHAT_MEMORY_ONSCREEN=1 shows the window (otherwise it is moved off every screen);
 #   CHAT_MEMORY_SCROLL=1 times steady scrolls through two long chats instead of the memory steps;
+#   CHAT_MEMORY_TYPING=1 times keystrokes in the composer over drafts up to 1 MB instead;
+#   CHAT_MEMORY_CHECK=1 drives the window with real events and checks attachments and the composer;
 #   CHAT_MEMORY_CENSUS=1 adds a heap count of the watched classes after every step of the last cycle;
 #   CHAT_MEMORY_GRAPH=<step,…> saves a memory graph at those steps of the last cycle;
 #   CHAT_MEMORY_DETAIL=1 dumps footprint and heap per step of the first cycle;
@@ -114,6 +116,10 @@ if [ -n "${CHAT_MEMORY_PANES:-}" ]; then
     run panes "$REPORT" "$CYCLES"
 elif [ -n "${CHAT_MEMORY_SCROLL:-}" ]; then
     run scroll "$REPORT" "$CYCLES"
+elif [ -n "${CHAT_MEMORY_CHECK:-}" ]; then
+    run check "$REPORT"
+elif [ -n "${CHAT_MEMORY_TYPING:-}" ]; then
+    run typing "$REPORT" "$CYCLES"
 else
     run measure "$REPORT" "$CYCLES"
 fi

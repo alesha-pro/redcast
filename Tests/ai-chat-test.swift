@@ -61,6 +61,8 @@ struct AIChatTests {
         await aConversationIsLiveOnOneSurfaceAtATime()
         aQuickActionResultOpensAsItsOwnChat()
         await theWindowFollowsTheOpenPolicy()
+        aDraftsFactsCostTheSameAtAnyLength()
+        await aNewChatTakesTheComposer()
         await everyStateReportsAFinishedReply()
         await reasoningFoldsIntoTheReplyAndIsNeverResent()
         reasoningShowsWithoutItsClosingBlankLines()
@@ -1408,6 +1410,89 @@ extension AIChatTests {
         chats.quickAI.send("Fails", using: ScriptedProvider(rounds: [[.text("Half")]]))
         await settle(chats.quickAI)
         expect(finished.count == 3, "a reply that failed is not one to name a chat by")
+    }
+
+    static func aDraftsFactsCostTheSameAtAnyLength() {
+        let empty = ChatDraftFacts("")
+        expect(empty.isEmpty && empty.isBlank && empty.head.isEmpty, "an empty draft has nothing to send")
+        let blank = ChatDraftFacts(" \n\t ")
+        expect(!blank.isEmpty && blank.isBlank, "whitespace shows no placeholder and still sends nothing")
+        let typed = ChatDraftFacts("  привет")
+        expect(!typed.isBlank && typed.head.isEmpty, "plain typing has no head, so it moves nothing")
+        expect(ChatDraftFacts("  @docs").head == "  @docs", "an address after spaces does")
+        expect(ChatDraftFacts("/compact").head == "/compact", "and so does a command")
+        let long = String(repeating: "мягких булок ", count: 100_000)
+        expect(!ChatDraftFacts(long).isBlank && ChatDraftFacts(long).head.isEmpty, "a long plain draft has none")
+        let addressed = ChatDraftFacts("@" + long)
+        expect(addressed.head.utf16.count <= ChatDraftFacts.headLength, "an addressed one's is capped")
+        expect(("@" + long).hasPrefix(addressed.head), "and is its start")
+        expect(ChatDraftFacts("@docs " + long).head.hasPrefix("@docs "), "it holds the server the draft addresses")
+        let emoji = "@" + String(repeating: "😀", count: 1_000)
+        expect(
+            emoji.hasPrefix(ChatDraftFacts(emoji).head), "a surrogate pair is never cut in half")
+
+        let short = ChatDraftFacts.measuredPart(of: "two\nlines", lines: 15, width: 600, narrowestGlyph: 2.6)
+        expect(short == "two\nlines", "a draft under the cap is measured whole")
+        let part = ChatDraftFacts.measuredPart(of: long, lines: 15, width: 600, narrowestGlyph: 2.6)
+        expect(part.utf16.count == 15 * 231 && long.hasPrefix(part), "a longer one only as far as can show")
+        let unbounded = ChatDraftFacts.measuredPart(of: long, lines: 15, width: .infinity, narrowestGlyph: 2.6)
+        expect(long.hasPrefix(unbounded), "an infinite proposed width is measured, not a trap")
+        let log = String(repeating: "line\n", count: 1_000)
+        let lines = ChatDraftFacts.measuredPart(of: log, lines: 15, width: 600, narrowestGlyph: 2.6)
+        expect(lines == String(repeating: "line\n", count: 15) + "line", "short lines stop where the field fills")
+    }
+
+    static func aNewChatTakesTheComposer() async {
+        let (store, directory) = temporaryStore("new-chat-composer")
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let chats = AIChatSurfacesState(history: store)
+        let capture = ChatAttachment(
+            payload: .document(AIDocument(data: Data("window".utf8), mimeType: "text/plain", name: "Screen.md")),
+            name: "Screen.md", preview: nil)
+
+        let empty = chats.window
+        empty.draft = "typed in an empty chat"
+        empty.attach(capture)
+        chats.newWindowChat()
+        expect(chats.window === empty, "an empty chat is already new")
+        expect(empty.draft == "typed in an empty chat" && empty.pendingAttachments == [capture], "and keeps both")
+
+        empty.draft = ""
+        empty.clearAttachments()
+        empty.send("Hi", using: ScriptedProvider(rounds: [[.text("Yo"), .finished]]))
+        await settle(empty)
+        empty.typeDraft("what is on my screen?")
+        empty.attach(capture)
+        let revision = empty.draftRevision
+        chats.newWindowChat()
+        let next = chats.window
+        expect(next !== empty, "a chat with a transcript gives way to a new one")
+        expect(next.session.messages.isEmpty, "which starts with no messages")
+        expect(next.draft == "what is on my screen?", "the unsent text goes with it")
+        expect(!next.draftIsEmpty && !next.draftIsBlank, "its facts with it")
+        expect(next.draftRevision != 0, "and the new chat's text view is told")
+        expect(next.pendingAttachments == [capture], "and the staged capture too")
+        expect(empty.draft.isEmpty && empty.pendingAttachments.isEmpty, "nothing stays behind")
+        expect(empty.draftRevision != revision, "and the old chat knows its draft moved")
+
+        let stalled = StalledProvider()
+        next.draft = ""
+        next.clearAttachments()
+        next.send("Long one", using: stalled)
+        next.typeDraft("a follow-up, for elsewhere")
+        chats.newWindowChat()
+        expect(chats.window.draft == "a follow-up, for elsewhere", "a draft leaves a chat still answering")
+        expect(next.isStreaming && next.draft.isEmpty, "whose reply goes on without it")
+        stalled.finishAll()
+        await settle(next)
+
+        chats.window.typeDraft("short")
+        expect(chats.window.draft == "short", "the composer's keystroke is the draft")
+        let typedRevision = chats.window.draftRevision
+        chats.window.typeDraft("short a")
+        expect(chats.window.draftRevision == typedRevision, "and is never pushed back into its text view")
+        chats.window.draft = "written from outside"
+        expect(chats.window.draftRevision != typedRevision, "an outside write is")
     }
 
     static func theWindowFollowsTheOpenPolicy() async {

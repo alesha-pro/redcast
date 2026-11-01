@@ -72,11 +72,13 @@ final class AIChatSurfacesState {
         show(seeded)
     }
 
-    /// An empty chat is already new; replacing it would only drop what is staged in it.
+    /// An empty chat is already new; any other hands its unsent text and staged files to the next.
     func newWindowChat() {
         releasedWindowID = nil  // Fork
         guard !window.session.messages.isEmpty else { return }
-        show(makeState())
+        let next = makeState()
+        next.takeComposer(from: window)
+        show(next)
     }
 
     func applyWindowOpenPolicy(opensTo: AIOpensTo, newAfter: AINewChatAfter, now: Date = Date()) {

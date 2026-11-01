@@ -57,7 +57,7 @@ struct AIChatDetailView: View {
                 // Fork: an ACP agent's slash commands, offered while the draft is typing one.
                 .acpCommands(chat: chat, chats: coordinator, editor: editor)
             VStack(alignment: .leading, spacing: Theme.Spacing.md) {
-                if !suggestions.isEmpty, chat.draft.isEmpty {
+                if !suggestions.isEmpty, chat.draftIsEmpty {
                     ChatSuggestionChips(choices: suggestions) { coordinator.send($0, in: chat) }
                         .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
@@ -71,7 +71,7 @@ struct AIChatDetailView: View {
             .padding(.bottom, Theme.Spacing.xxl)
             .padding(.top, Theme.Spacing.sm)
             .animation(.snappy, value: suggestions)
-            .animation(.snappy, value: chat.draft.isEmpty)
+            .animation(.snappy, value: chat.draftIsEmpty)
         }
     }
 
@@ -133,14 +133,13 @@ private struct AIChatComposer: View {
     let editor: ComposerTextViewHandle
     @Binding var showsContext: Bool
     @Binding var isDropTargeted: Bool
+    @State private var textHeightChange = 0
 
     private var canSend: Bool {
-        !chat.draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-            || !chat.pendingAttachments.isEmpty
+        !chat.draftIsBlank || !chat.pendingAttachments.isEmpty
     }
 
     var body: some View {
-        @Bindable var chat = chat
         VStack(alignment: .leading, spacing: Theme.Spacing.md) {
             if !chat.session.messages.isEmpty, let notice = chat.notice {
                 Label(notice, systemImage: "exclamationmark.triangle")
@@ -152,15 +151,16 @@ private struct AIChatComposer: View {
             ChatQueueStrip(chat: chat)  // Fork: what waits for the running reply
             chips
             ZStack(alignment: .topLeading) {
-                if chat.draft.isEmpty {
+                if chat.draftIsEmpty {
                     Text("Ask anything…")
                         .foregroundStyle(.tertiary)
                         .allowsHitTesting(false)
                 }
                 ChatComposerTextView(
-                    text: $chat.draft, focusKey: chat.session.id,
-                    maximumTextHeight: maximumTextHeight, handle: editor,
+                    text: chat.draft, revision: chat.draftRevision, focusKey: chat.session.id,
+                    maximumTextHeight: maximumTextHeight, heightChange: $textHeightChange, handle: editor,
                     isFileDragTargeted: $isDropTargeted,
+                    onType: { coordinator.typed($0, in: chat) },
                     onDropFiles: { coordinator.attach(files: $0, to: chat) },
                     onInvalidate: { coordinator.dictation.cancel(in: $0) }, onSubmit: submit)
             }
@@ -184,7 +184,7 @@ private struct AIChatComposer: View {
     }
 
     @ViewBuilder private var chips: some View {
-        let addressed = coordinator.addressedServer(in: chat.draft)
+        let addressed = coordinator.addressedServer(in: chat.draftHead)
         if !chat.pendingAttachments.isEmpty || addressed != nil {
             ScrollView(.horizontal) {
                 HStack(spacing: Theme.Spacing.sm) {

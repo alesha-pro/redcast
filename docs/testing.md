@@ -377,6 +377,14 @@ the frame intervals (p50, p95, max, frames over 16.7 ms, refreshes missed), the 
 time per frame up to its idle and its own CPU time, frames with the pointer over the window,
 backward moves, the worst drift from the asked offset, and changes of the document's height. The
 window is placed in the screen's corner farthest from the pointer, since a hover redraws rows.
+`CHAT_MEMORY_TYPING=1` instead types into the real composer, in a new chat and a long one, over
+drafts of 0 to 1,000,000 bytes (`CHAT_MEMORY_TYPING_BYTES`) in English and Russian lines and one
+unbroken paragraph (`CHAT_MEMORY_TYPING_TEXT`), at the end and at the start
+(`CHAT_MEMORY_TYPING_CARET`), and reports each keystroke's time until the main thread went idle and
+its CPU time there.
+`CHAT_MEMORY_CHECK=1` instead drives the window with real queued clicks and text, and fails on what
+it finds: sent attachments and a Files chip clicked, before and after reopening (with `NSWorkspace`
+recording, so nothing opens), the field's height and outside writes, `@note `, and ⌘N's path.
 `CHAT_MEMORY_SHOTS=<dir>` saves the window after each switch and, in the scroll mode, at four
 depths of each chat; the fixture's times are fixed per day and its files share one path, so two
 trees' shots compare pixel for pixel. `CHAT_MEMORY_DETAIL=1` adds `footprint` and `heap -s` per step of the
@@ -469,6 +477,7 @@ Measured at the end of the 2026 refactor, on `main`. Useful as orders of magnitu
 | `ClipboardStore.pinnedItems` | 27–127 µs per uncached search, 1,000-row window — no cache earns its invalidation yet |
 | Rendered Notes editor, 100,000 characters | 30 ms install and full restyle; 7.5, 5.9 and 3.3 ms per character typed at the end, middle and start (5.2, 3.1 and 0.6 ms with rendering off); 0.6 ms per caret move |
 | `count items of trash` | 5,000 ms against a cold Finder on an *empty* Trash, 110 ms warm — why AppleScript is detached |
+| AI Chat composer, main-thread CPU per keystroke (`CHAT_MEMORY_TYPING=1`, `-O`) | 1.5–2.5 ms on an empty draft; 2–6 ms at the end or start of 1 KB to 1 MB of lines, against 590 ms before at 1 MB; in one unbroken paragraph 8 ms at 100 KB and 9–13 ms at 1 MB at its end, 25–42 and 139 ms at its start, where TextKit must reflow what follows |
 | Agent Sessions, 1,000 sessions | 1.6 ms to fold the keys, 3.2–4.1 ms per typed keystroke (budget 5 ms); 500 head and tail decodes in 97–123 ms (budget 400 ms), `-O` on Apple silicon |
 
 Launch time, allocation counts and RSS have never been captured as numbers. The signposts are in place,

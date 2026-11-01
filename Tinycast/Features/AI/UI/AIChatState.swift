@@ -10,8 +10,21 @@ final class AIChatState {
     private(set) var notice: String?
     /// Files staged for the next message; they go out with whatever is typed next.
     private(set) var pendingAttachments: [ChatAttachment] = []
-    /// The window's unsent text; Quick AI's lives in the palette query instead.
-    var draft = ""
+    /// Unobserved; a view reads the facts below. Quick AI's text lives in the palette query instead.
+    var draft: String {
+        get { storedDraft }
+        set {
+            storedDraft = newValue
+            draftRevision &+= 1
+            refreshDraftFacts()
+        }
+    }
+    private(set) var draftIsEmpty = true
+    private(set) var draftIsBlank = true
+    private(set) var draftHead = ""
+    /// Moves on every write but the composer's own, so only an outside write reaches its text view.
+    private(set) var draftRevision = 0
+    @ObservationIgnored private var storedDraft = ""
     /// This chat's tools menu; a new chat starts with every connected server on.
     var toolScope = ChatToolScope()
 
@@ -35,6 +48,27 @@ final class AIChatState {
 
     init(history: ChatHistoryStore) {
         self.history = history
+    }
+
+    /// The composer's own keystroke: its text view already holds this, so nothing is pushed back.
+    func typeDraft(_ text: String) {
+        storedDraft = text
+        refreshDraftFacts()
+    }
+
+    private func refreshDraftFacts() {
+        let facts = ChatDraftFacts(storedDraft)
+        if facts.isEmpty != draftIsEmpty { draftIsEmpty = facts.isEmpty }
+        if facts.isBlank != draftIsBlank { draftIsBlank = facts.isBlank }
+        if facts.head != draftHead { draftHead = facts.head }
+    }
+
+    /// A new chat takes over what another's composer holds, and leaves nothing to arrive there late.
+    func takeComposer(from other: AIChatState) {
+        draft = other.draft
+        pendingAttachments = other.pendingAttachments
+        other.draft = ""
+        other.clearStaging()
     }
 
     @discardableResult
@@ -185,11 +219,11 @@ final class AIChatState {
         finishLast(state: .failed, fallback: String(localized: "Cancelled"))
     }
 
-    func startNewChat() {
+    func startNewChat(keepingStaging: Bool = false) {
         cancel()
         session = ChatSession()
         notice = nil
-        clearStaging()
+        if !keepingStaging { clearStaging() }
     }
 
     /// Staged images belong to the conversation they were picked in; leaving it drops them.

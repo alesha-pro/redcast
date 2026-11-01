@@ -15,7 +15,7 @@ struct ChatFilesTests {
         }
     }
 
-    static func main() throws {
+    static func main() async throws {
         let fixture = try Fixture()
         defer { fixture.remove() }
         mentionsAreFound()
@@ -29,8 +29,58 @@ struct ChatFilesTests {
         runnableThingsAreOnlyRevealed(fixture)
         theStripIsDedupedAndCapped(fixture)
         eachPathIsLookedUpOnce(fixture)
+        attachmentsAreNamedSafely()
+        await attachmentsAreCopiedOutOnce(fixture)
         print("\(passes) passed, \(failures) failed")
         if failures > 0 { exit(1) }
+    }
+
+    // MARK: - Sent attachments
+
+    static func attachmentsAreNamedSafely() {
+        let bytes = Data([1])
+        func image(_ mime: String) -> String {
+            ChatAttachmentFile(image: bytes, mimeType: mime, name: "Image").name
+        }
+        func document(_ name: String, pdf: Bool = false) -> String {
+            ChatAttachmentFile(document: bytes, isPDF: pdf, name: name).name
+        }
+        expect(image("image/png") == "Image.png", "a picture takes its type's extension")
+        expect(image("image/jpeg") == "Image.jpg", "and so does a JPEG")
+        expect(image("application/x-unknown") == "Image.png", "an unknown type reads as what staging writes")
+        expect(document("report.pdf", pdf: true) == "report.pdf", "a PDF keeps its name")
+        expect(document("report", pdf: true) == "report.pdf", "a PDF always reads as one")
+        expect(document("notes.md") == "notes.md", "a text file keeps its extension")
+        expect(document("Screen — Safari.md") == "Screen — Safari.md", "a capture keeps its name")
+        expect(document("LICENSE") == "LICENSE.txt", "text with no extension reads as text")
+        expect(document("../../etc/passwd") == "etcpasswd.txt", "a stored name never climbs out")
+        expect(document("a/b:c\\d\n.md") == "abcd.md", "nor holds a separator or a line break")
+        expect(document("..") == "Attachment.txt", "a name that cleans away still names a file")
+        expect(document("") == "Attachment.txt", "and so does none at all")
+        let long = document(String(repeating: "я", count: 300) + ".md")
+        expect(long.utf8.count <= 255 && long.hasSuffix(".md"), "a long name is cut, not its extension")
+    }
+
+    static func attachmentsAreCopiedOutOnce(_ fixture: Fixture) async {
+        let root = URL(fileURLWithPath: fixture.root).appending(path: "copies", directoryHint: .isDirectory)
+        let png = ChatAttachmentFile(image: Data("picture".utf8), mimeType: "image/png", name: "Image")
+        let other = ChatAttachmentFile(image: Data("other".utf8), mimeType: "image/png", name: "Image")
+        let first = await ChatAttachmentFiles.write(png, under: root)
+        let again = await ChatAttachmentFiles.write(png, under: root)
+        let different = await ChatAttachmentFiles.write(other, under: root)
+        expect(first != nil, "an attachment is written out")
+        expect(first == again, "the same bytes are the same file, so a second click toggles its preview")
+        expect(first != different, "pictures that share a name stay apart")
+        expect(first?.lastPathComponent == "Image.png", "the copy wears the attachment's name")
+        expect(
+            first.flatMap { try? Data(contentsOf: $0) } == png.data, "the copy holds the message's bytes")
+        ChatAttachmentFiles.removeAll(under: root)
+        expect(
+            !FileManager.default.fileExists(atPath: root.path), "quitting leaves no copy behind")
+        let blocked = URL(fileURLWithPath: fixture.root).appending(path: "copies-blocked")
+        FileManager.default.createFile(atPath: blocked.path, contents: Data())
+        let refused = await ChatAttachmentFiles.write(png, under: blocked)
+        expect(refused == nil, "a folder that cannot be made answers nil, not a path")
     }
 
     // MARK: - Fixture

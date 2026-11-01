@@ -25,6 +25,8 @@ enum ChatMemoryHarness {
             case "fixtures": ChatMemoryFixture.build(files: target)
             case "panes": await ChatMemoryRun(report: target, cycles: cycles).runPanes()
             case "scroll": await ChatMemoryRun(report: target, cycles: cycles).runScroll()
+            case "typing": await ChatMemoryRun(report: target, cycles: cycles).runTyping()
+            case "check": await ChatWindowCheck().run()
             default: await ChatMemoryRun(report: target, cycles: cycles).run()
             }
             exit(0)
@@ -406,6 +408,54 @@ struct ChatMemoryRun {
         try? lines.joined(separator: "\n").write(to: report, atomically: true, encoding: .utf8)
     }
 
+    /// A big paste into the real composer, then characters typed into it at each end of the draft.
+    func runTyping() async {
+        let core = AppCore.shared
+        core.aiChatCoordinator.applyEnabled()
+        await settle(2)
+        let byTitle = ChatMemoryFixture.idsByTitle(in: core.chatHistory)
+        var lines = [ChatTypingProbe.header]
+        core.aiChatCoordinator.showWindow()
+        ChatMemoryWindow.park()
+        await settle(3)
+        for (label, id) in [("new", nil), ("replies", byTitle[ChatMemoryFixture.repliesTitle])] {
+            if let id {
+                core.aiChatCoordinator.openChat(id: id)
+            } else {
+                core.aiChatCoordinator.newChat()
+            }
+            await settle(3)
+            guard let composer = ChatMemoryWindow.composer() else {
+                print("no composer in the window")
+                exit(1)
+            }
+            for (name, sample) in ChatTypingProbe.samples {
+                for bytes in ChatTypingProbe.sizes {
+                    composer.string = ""
+                    composer.didChangeText()
+                    await settle(1)
+                    let probe = ChatTypingProbe(composer: composer)
+                    let paste = await probe.paste(ChatTypingProbe.text(sample, bytes: bytes))
+                    for caret in ChatTypingProbe.carets {
+                        let at = caret == "end" ? (composer.string as NSString).length : 0
+                        composer.setSelectedRange(NSRange(location: at, length: 0))
+                        await settle(0.5)
+                        let result = await probe.type(cycles * ChatTypingProbe.keystrokes)
+                        let line = result.line(
+                            chat: label, text: name, bytes: bytes, caret: caret, paste: paste)
+                        print(line)
+                        lines.append(line)
+                    }
+                }
+            }
+            composer.string = ""
+            composer.didChangeText()
+            await settle(0.5)
+        }
+        ChatMemoryWindow.close()
+        try? lines.joined(separator: "\n").write(to: report, atomically: true, encoding: .utf8)
+    }
+
     private func settle(_ seconds: Double) async {
         try? await Task.sleep(for: .seconds(seconds))
     }
@@ -438,6 +488,17 @@ enum ChatMemoryWindow {
             NSPoint(
                 x: mouse.x < visible.midX ? visible.maxX - size.width : visible.minX,
                 y: mouse.y < visible.midY ? visible.maxY - size.height : visible.minY))
+    }
+
+    static func composer() -> ComposerTextView? {
+        func find(in view: NSView) -> ComposerTextView? {
+            if let composer = view as? ComposerTextView { return composer }
+            for subview in view.subviews {
+                if let composer = find(in: subview) { return composer }
+            }
+            return nil
+        }
+        return window?.contentView.flatMap(find)
     }
 
     static var holdsPointer: Bool { window?.frame.contains(NSEvent.mouseLocation) == true }
@@ -547,6 +608,342 @@ enum ChatMemoryWindow {
 
     static func close() {
         window?.close()
+    }
+}
+
+// MARK: - Checking the window
+
+extension NSWorkspace {
+    @objc fileprivate dynamic func recordingOpen(_ url: URL) -> Bool {
+        MainActor.assumeIsolated { ChatWindowCheck.opened.append(url) }
+        return true
+    }
+
+    @objc fileprivate dynamic func recordingReveal(_ urls: [URL]) {
+        MainActor.assumeIsolated { ChatWindowCheck.opened += urls }
+    }
+}
+
+/// Real events through the real window, for what a harness of the model cannot see; nothing opens.
+@MainActor
+final class ChatWindowCheck {
+    static var opened: [URL] = []
+    private var failures = 0
+    private var passes = 0
+    private let core = AppCore.shared
+    private let scratch = FileManager.default.temporaryDirectory
+        .appending(path: "chat-window-check-\(UUID().uuidString)")
+    private var coordinator: AIChatCoordinator { core.aiChatCoordinator }
+    private var chat: AIChatState { coordinator.chats.window }
+
+    private func expect(_ condition: Bool, _ message: String) {
+        print("\(condition ? "ok  " : "FAIL") \(message)")
+        if condition { passes += 1 } else { failures += 1 }
+    }
+
+    private func settle(_ seconds: Double = 0.5) async {
+        try? await Task.sleep(for: .seconds(seconds))
+    }
+
+    func run() async {
+        for (original, replacement) in [
+            (#selector(NSWorkspace.open(_:) as (NSWorkspace) -> (URL) -> Bool), #selector(NSWorkspace.recordingOpen(_:))),
+            (#selector(NSWorkspace.activateFileViewerSelecting(_:)), #selector(NSWorkspace.recordingReveal(_:)))
+        ] {
+            guard let one = class_getInstanceMethod(NSWorkspace.self, original),
+                let other = class_getInstanceMethod(NSWorkspace.self, replacement)
+            else { fatalError("no method to record") }
+            method_exchangeImplementations(one, other)
+        }
+        NSApp.setActivationPolicy(.regular)
+        NSApp.activate(ignoringOtherApps: true)
+        coordinator.applyEnabled()
+        await settle(2)
+        coordinator.showWindow()
+        ChatMemoryWindow.park()
+        await settle(2)
+        let files = seededChat()
+        coordinator.openChat(id: files)
+        await settle(2)
+        ChatMemoryWindow.shoot("attachments")
+        await attachmentsOpen(chatID: files)
+        await theFieldFollowsItsText()
+        await aNewChatTakesTheComposer(from: files)
+        quickAIKeepsTheComposer()
+        ChatAttachmentFiles.removeAll()
+        try? FileManager.default.removeItem(at: scratch)
+        print("\(passes) passed, \(failures) failed")
+        ChatMemoryWindow.close()
+        if failures > 0 { exit(1) }
+    }
+
+    /// Saved and reopened, as a chat from the sidebar: every byte comes back from the history.
+    private func seededChat() -> UUID {
+        try? FileManager.default.createDirectory(at: scratch, withIntermediateDirectories: true)
+        let written = scratch.appending(path: "result.csv")
+        try? Data("a,b\n".utf8).write(to: written)
+        var session = ChatSession()
+        session.append(
+            ChatMessage(
+                role: .user, text: "Look at these", images: [
+                    AIImage(data: ChatMemoryFixture.png(width: 800, height: 500, seed: 7), mimeType: "image/png")
+                ],
+                documents: [
+                    AIDocument(data: Data("%PDF-1.4\n".utf8), mimeType: "application/pdf", name: "report.pdf"),
+                    AIDocument(data: Data("# Note\n".utf8), mimeType: "text/plain", name: "notes.md"),
+                    AIDocument(data: Data("#!/bin/sh\n".utf8), mimeType: "text/plain", name: "run.sh")
+                ]))
+        session.append(ChatMessage(role: .assistant, text: "Wrote `\(written.path)`."))
+        core.chatHistory.save(session)
+        return session.id
+    }
+
+    private var panels: [ChatQuickLookPanel] {
+        NSApp.windows.compactMap { $0 as? ChatQuickLookPanel }.filter(\.isVisible)
+    }
+
+    /// Where the seeded chat draws each at the window's opening size, from its top-left corner.
+    private static let spots: [String: NSPoint] = [
+        "Image.png": NSPoint(x: 880, y: 120), "report.pdf": NSPoint(x: 722, y: 184),
+        "notes.md": NSPoint(x: 814, y: 184), "run.sh": NSPoint(x: 896, y: 184),
+        "result.csv": NSPoint(x: 318, y: 347)
+    ]
+
+    /// Queued like a real click, so it takes the whole path: hit test, selection layer, gesture.
+    private func click(_ name: String) async {
+        guard let window = ChatMemoryWindow.window, let spot = Self.spots[name] else { return }
+        let point = NSPoint(x: spot.x, y: window.frame.height - spot.y)
+        for type in [NSEvent.EventType.leftMouseDown, .leftMouseUp] {
+            guard
+                let event = NSEvent.mouseEvent(
+                    with: type, location: point, modifierFlags: [], timestamp: ProcessInfo.processInfo.systemUptime,
+                    windowNumber: window.windowNumber, context: nil, eventNumber: 0, clickCount: 1, pressure: 1)
+            else { return }
+            NSApp.postEvent(event, atStart: false)
+            await settle(0.08)
+        }
+        await settle(0.7)
+    }
+
+    private func attachmentsOpen(chatID: UUID) async {
+        for title in ["Image.png", "report.pdf", "notes.md", "run.sh"] {
+            await click(title)
+            expect(panels.first?.title == title, "a click shows \(title) in Quick Look, shown: \(panels.map(\.title))")
+        }
+        expect(Self.opened.isEmpty, "none of those ran or opened anything, got \(Self.opened)")
+        await click("run.sh")
+        expect(panels.isEmpty, "the same one again closes it")
+
+        let sent = ChatAttachmentFile(document: Data("#!/bin/sh\n".utf8), isPDF: false, name: "run.sh")
+        let copy = await ChatAttachmentFiles.write(sent)
+        let menu = copy.flatMap { ChatFileActions.menu(for: $0.path, from: nil) }?.items.map(\.title) ?? []
+        expect(!menu.contains(String(localized: "Open")) && menu.contains(String(localized: "Quick Look")), "a script's menu has no Open: \(menu)")
+
+        await click("result.csv")
+        expect(Self.opened.last?.lastPathComponent == "result.csv", "a click on it opens or reveals its file, got \(Self.opened)")
+
+        ChatMemoryWindow.close()
+        await settle(1)
+        coordinator.showWindow()
+        ChatMemoryWindow.park()
+        await settle(1)
+        coordinator.openChat(id: chatID)
+        await settle(2)
+        await click("Image.png")
+        expect(panels.first?.title == "Image.png", "after closing and reopening, it still opens")
+        panels.first?.close()
+    }
+
+    private func height(of composer: ComposerTextView) -> CGFloat {
+        composer.enclosingScrollView?.frame.height ?? 0
+    }
+
+    private func theFieldFollowsItsText() async {
+        guard let composer = ChatMemoryWindow.composer() else { return expect(false, "the composer is there") }
+        composer.window?.makeFirstResponder(composer)
+        let one = height(of: composer)
+        composer.insertText("a\nb\nc", replacementRange: composer.selectedRange())
+        await settle()
+        expect(height(of: composer) >= one * 3 - 1, "three lines grow the field, \(one) to \(height(of: composer))")
+        expect(chat.draft == "a\nb\nc", "the draft follows the keystrokes")
+        expect(!chat.draftIsEmpty && !chat.draftIsBlank, "and so do its facts")
+        composer.insertText(String(repeating: "мягких булок\n", count: 45_000), replacementRange: composer.selectedRange())
+        await settle(1.5)
+        let full = height(of: composer)
+        expect(full > one * 3 && full <= one * Theme.Size.aiChatComposerMaxLines, "a megabyte fills it to its cap, \(full)")
+        ChatMemoryWindow.shoot("full-composer")
+        composer.selectAll(nil)
+        composer.delete(nil)
+        await settle(1)
+        expect(height(of: composer) == one, "emptied, it is one line again, \(height(of: composer))")
+        expect(chat.draft.isEmpty && chat.draftIsEmpty, "and the placeholder is back")
+        chat.draft = "written from outside"
+        await settle()
+        expect(composer.string == "written from outside", "an outside write reaches the text view")
+        composer.setSelectedRange(NSRange(location: 7, length: 0))
+        composer.insertText("X", replacementRange: composer.selectedRange())
+        await settle()
+        expect(chat.draft == "writtenX from outside", "typing in the middle lands in the draft")
+        expect(composer.selectedRange().location == 8, "with the caret where it was left")
+        chat.draft = ""
+        await settle()
+        expect(composer.string.isEmpty, "clearing the draft, as a send does, clears the field")
+        core.settings.notesEnabled = true
+        composer.insertText("hi @note", replacementRange: composer.selectedRange())
+        composer.insertText(" ", replacementRange: composer.selectedRange())
+        await settle()
+        expect(core.notesAI.pickerChatID == chat.session.id, "`@note ` opens the picker")
+        expect(composer.string == "hi ", "and leaves the token out of the field, got \(composer.string)")
+        core.notesAI.dismissPicker()
+        chat.draft = ""
+        await settle()
+    }
+
+    private func aNewChatTakesTheComposer(from chatID: UUID) async {
+        guard let composer = ChatMemoryWindow.composer() else { return expect(false, "the composer is there") }
+        let old = chat
+        let capture = ChatAttachmentReader.Staged(
+            payload: .document(AIDocument(data: Data("window".utf8), mimeType: "text/plain", name: "Screen.md")),
+            name: "Screen.md", preview: nil)
+        coordinator.stage([capture], into: chat)
+        composer.insertText("what is this?", replacementRange: composer.selectedRange())
+        await settle()
+        coordinator.newChat()
+        await settle(1)
+        expect(chat !== old && chat.session.messages.isEmpty, "⌘N's path starts a new chat")
+        expect(chat.draft == "what is this?" && composer.string == "what is this?", "with the question")
+        expect(composer.selectedRange().location == 13, "and the caret still after it")
+        expect(chat.pendingAttachments.map(\.name) == ["Screen.md"], "and the capture")
+        ChatMemoryWindow.shoot("new-chat-carried")
+        expect(old.draft.isEmpty && old.pendingAttachments.isEmpty, "and the old chat keeps neither")
+        coordinator.openChat(id: chatID)
+        await settle(2)
+        expect(composer.string.isEmpty, "opening a saved chat shows that chat's own empty field")
+        chat.draft = "mine"
+        core.chatWorkspace.beginEditing(in: chat)
+        await settle()
+        expect(composer.string == "Look at these", "↑ recalls the question")
+        coordinator.newChat()
+        await settle(1)
+        expect(composer.string == "mine", "⌘N carries the draft from before it, got \(composer.string)")
+        chat.draft = ""
+        chat.clearAttachments()
+        await settle()
+    }
+
+    private func quickAIKeepsTheComposer() {
+        let quick = core.quickAICoordinator
+        let held = coordinator.chats.quickAI
+        coordinator.stage(
+            [
+                ChatAttachmentReader.Staged(
+                    payload: .document(AIDocument(data: Data("w".utf8), mimeType: "text/plain", name: "Screen.md")),
+                    name: "Screen.md", preview: nil)
+            ], into: held)
+        core.palette.query = "what is this?"
+        quick.startNewChat()
+        expect(core.palette.query == "what is this?", "Quick AI's New Chat keeps its typed line")
+        expect(held.pendingAttachments.count == 1, "and its staged capture")
+    }
+}
+
+// MARK: - Typing
+
+/// One keystroke at a time into the real text view, each timed until the main thread goes idle.
+@MainActor
+final class ChatTypingProbe {
+    static let header = "chat\ttext\tbytes\tcaret\tpaste_ms\tkeys\twall_p50\twall_p95\twall_max\tcpu_p50\tcpu_p95"
+    static var sizes: [Int] {
+        let only = ProcessInfo.processInfo.environment["CHAT_MEMORY_TYPING_BYTES"].flatMap(Int.init)
+        return only.map { [$0] } ?? [0, 1_000, 10_000, 100_000, 1_000_000]
+    }
+    static var carets: [String] {
+        ProcessInfo.processInfo.environment["CHAT_MEMORY_TYPING_CARET"].map { [$0] } ?? ["end", "start"]
+    }
+    static let keystrokes = 30
+    /// A brisk typist: the next character comes this long after the last one's work has ended.
+    private static let pause: Duration = .milliseconds(100)
+    static var samples: [(String, String)] {
+        let all = [
+            ("english", "The quick brown fox jumps over the lazy dog, and then it does so again at length.\n"),
+            ("russian", "Съешь же ещё этих мягких французских булок, да выпей чаю, а потом повтори всё снова.\n"),
+            ("paragraph", "Съешь же ещё этих мягких французских булок, да выпей чаю, а потом повтори всё снова. ")
+        ]
+        let only = ProcessInfo.processInfo.environment["CHAT_MEMORY_TYPING_TEXT"]
+        return all.filter { only == nil || $0.0 == only }
+    }
+
+    static func text(_ line: String, bytes: Int) -> String {
+        guard bytes > 0 else { return "" }
+        return String(repeating: line, count: bytes / line.utf8.count + 1)
+    }
+
+    struct Result {
+        var wall: [Double] = []
+        var cpu: [Double] = []
+
+        func line(chat: String, text: String, bytes: Int, caret: String, paste: Double) -> String {
+            func percentile(_ values: [Double], _ fraction: Double) -> String {
+                let sorted = values.sorted()
+                let index = min(Int(Double(sorted.count) * fraction), sorted.count - 1)
+                return String(format: "%.2f", sorted[index])
+            }
+            return [
+                chat, text, String(bytes), caret, String(format: "%.1f", paste), String(wall.count),
+                percentile(wall, 0.5), percentile(wall, 0.95), percentile(wall, 1), percentile(cpu, 0.5),
+                percentile(cpu, 0.95)
+            ].joined(separator: "\t")
+        }
+    }
+
+    private let composer: ComposerTextView
+    /// When the main thread last went idle having done real work, not merely woken for a timer.
+    private var lastWork = 0.0
+    private var cpuAtLastIdle = 0.0
+    private static let workCPU = 0.3
+    private var observer: CFRunLoopObserver?
+
+    init(composer: ComposerTextView) {
+        self.composer = composer
+        let observer = CFRunLoopObserverCreateWithHandler(
+            nil, CFRunLoopActivity.beforeWaiting.rawValue, true, CFIndex.max
+        ) { [weak self] _, _ in
+            MainActor.assumeIsolated { self?.idle() }
+        }
+        self.observer = observer
+        CFRunLoopAddObserver(CFRunLoopGetMain(), observer, .commonModes)
+    }
+
+    private func idle() {
+        let cpu = ChatScrollProbe.threadCPU()
+        if cpu - cpuAtLastIdle >= Self.workCPU { lastWork = CACurrentMediaTime() }
+        cpuAtLastIdle = cpu
+    }
+
+    isolated deinit {
+        if let observer { CFRunLoopRemoveObserver(CFRunLoopGetMain(), observer, .commonModes) }
+    }
+
+    func paste(_ text: String) async -> Double {
+        let started = CACurrentMediaTime()
+        composer.insertText(text, replacementRange: composer.selectedRange())
+        try? await Task.sleep(for: .seconds(1.5))
+        return (lastWork - started) * 1000
+    }
+
+    func type(_ count: Int) async -> Result {
+        var result = Result()
+        for _ in 0..<count {
+            let started = CACurrentMediaTime()
+            let cpu = ChatScrollProbe.threadCPU()
+            cpuAtLastIdle = cpu
+            lastWork = started
+            composer.insertText("a", replacementRange: composer.selectedRange())
+            try? await Task.sleep(for: Self.pause)
+            result.wall.append((lastWork - started) * 1000)
+            result.cpu.append(ChatScrollProbe.threadCPU() - cpu)
+        }
+        return result
     }
 }
 
@@ -679,7 +1076,7 @@ final class ChatScrollProbe: NSObject {
     }
 
     /// Milliseconds of CPU the calling thread has used, user and system.
-    private static func threadCPU() -> Double {
+    static func threadCPU() -> Double {
         var info = thread_basic_info()
         var count = mach_msg_type_number_t(MemoryLayout<thread_basic_info>.size / MemoryLayout<integer_t>.size)
         let port = mach_thread_self()

@@ -40,6 +40,14 @@ one bullet in the native agent's How to work (`AgentSkill`).
 - **`Features/ChatFiles/Model/` is Foundation-only and filesystem-free.** Scanning, resolution and
   the open policy take `stat`, the home folder and the chat's folder as parameters;
   `Tests/chat-files-test.swift` runs them against a temp folder.
+- **A sent attachment is previewed, never run, and is copied out only when asked for.** A picture or
+  file on a message is bytes in that message, in memory while its chat is open and in
+  `ai-chats.sqlite3` otherwise, so a chat reopened from history behaves the same. Nothing is written
+  or decoded until the click: `ChatAttachmentFiles.write` copies the bytes off the main actor to
+  `<temporary folder>/<bundle id>.chat-attachments/<digest>/<name>`, and that folder goes on quit.
+  The tile keeps its small decode ([Memory](chat-workspace.md#memory)); Quick Look reads the copy, and
+  releases it when its panel closes. `ChatAttachmentFile` makes one path component of whatever name
+  the history holds.
 
 ## How a mention is found
 
@@ -94,6 +102,13 @@ its close button, or its chat closing closes it, and the preview closes with it.
 never takes the keyboard, since the palette hides when it loses it; there, and in the window, it is
 ordered out with its parent. One panel shows at a time.
 
+A **sent attachment** (`ChatAttachmentButton`, a picture's tile or a document's chip on a message) has
+no home on disk, so a click or Space shows Quick Look rather than opening a temporary copy in an
+editor, as if it were the original; this also means a sent `run.sh` is read, not revealed in a
+temporary folder. Right click offers the same menu as a chip, over the copy, Open With and Show in
+Finder included. The panel's rules above hold: the same attachment again closes it. A picture has no
+name of its own, so it shows as `Image.png`.
+
 A link's icon is an attachment that copies as nothing (it carries `ChatMarkdownRenderer.mathSource`
 `""`), so a copied path reads as the reply wrote it. A chip's picture comes from
 `FilePreviewThumbnail` for an image and `IconCache` for anything else, loaded when the chip appears.
@@ -112,10 +127,13 @@ their calls' titles and diffs alone.
 | `Model/ChatFileMentions.swift` | finding links, code spans and bare paths in a reply; a call row's paths |
 | `Model/ChatFileResolver.swift` | `ChatFileRequest`, `ChatFileLinks`, resolution and the strip's cap |
 | `Model/ChatFileOpenPolicy.swift` | `ChatFileItem`, its kind, and what a click may open |
+| `Model/ChatAttachmentFile.swift` | a sent attachment's bytes and the safe file name to show it by |
 | `Service/ChatFileSystem.swift` | the real `stat` and the off-main resolve |
+| `Service/ChatAttachmentFiles.swift` | the copy a preview reads, one folder per content, gone on quit |
 | `UI/ChatFileLinker.swift` | the renderer's file links and their icons |
 | `UI/ChatFileActions.swift` | open, reveal, Quick Look, copy, and the menu |
 | `UI/ChatQuickLookPanel.swift` | the preview panel |
+| `UI/ChatAttachmentButton.swift` | a sent picture's or file's click, Space and right click |
 | `UI/ChatFilesStrip.swift` | `chatFiles(for:)`, the environment keys and the Files strip |
 
 ## Manual sweep
@@ -142,3 +160,8 @@ their calls' titles and diffs alone.
 - While a reply streams nothing is linked; the links and strip appear once it finishes, and a
   reopened chat shows them again.
 - Agent Sessions: a Claude Code session's preview links paths relative to its project folder.
+- Send a picture and a PDF, and an attached `.md` and `.sh`. A click on each tile and chip opens Quick
+  Look over the chat, a second click closes it, and the next one replaces it; the `.sh` shows as text.
+  Right click offers the menu, with Open missing for the `.sh`. Relaunch, open the chat from the
+  sidebar and do it again. Selecting text in the same message still works. Quit: the
+  `<bundle id>.chat-attachments` folder under `$TMPDIR` is gone.

@@ -3,17 +3,24 @@ import SwiftUI
 
 /// The window's composer field: Return sends, ⇧↩ and ⌥↩ break the line, and it grows to a cap.
 struct ChatComposerTextView: NSViewRepresentable {
-    @Binding var text: String
+    /// Read only where `revision` moved: comparing a long draft per keystroke cost its whole length.
+    let text: String
+    let revision: Int
     /// A new value pulls focus into the field: a switched chat is one you are about to type into.
     let focusKey: UUID
     let maximumTextHeight: CGFloat
+    /// Moved only when a keystroke changes the field's height, the one layout typing ever needs.
+    @Binding var heightChange: Int
     let handle: ComposerTextViewHandle
     @Binding var isFileDragTargeted: Bool
+    let onType: (String) -> Void
     let onDropFiles: ([URL]) -> Void
     let onInvalidate: (ComposerTextView) -> Void
     let onSubmit: () -> Void
 
     private static var font: NSFont { .preferredFont(forTextStyle: .body) }
+    /// SF's narrowest glyphs, as a share of the point size; what bounds a line's character count.
+    private static let narrowestGlyph: CGFloat = 0.2
 
     static var lineHeight: CGFloat {
         (font.ascender - font.descender + font.leading).rounded(.up)
@@ -24,8 +31,12 @@ struct ChatComposerTextView: NSViewRepresentable {
         return max(1, min(Theme.Size.aiChatComposerMaxLines, lines)) * lineHeight
     }
 
+    /// Only what can fit under the cap is laid out, so a megabyte costs what a full field does.
     static func textHeight(_ text: String, width: CGFloat, maximumHeight: CGFloat) -> CGFloat {
-        let measured = (text.hasSuffix("\n") ? text + " " : text) as NSString
+        let visible = ChatDraftFacts.measuredPart(
+            of: text, lines: maximumHeight / lineHeight, width: width,
+            narrowestGlyph: font.pointSize * narrowestGlyph)
+        let measured = (visible.hasSuffix("\n") ? visible + " " : visible) as NSString
         let height = measured.boundingRect(
             with: CGSize(width: width, height: .greatestFiniteMagnitude),
             options: [.usesLineFragmentOrigin, .usesFontLeading], attributes: [.font: font]
@@ -34,7 +45,9 @@ struct ChatComposerTextView: NSViewRepresentable {
     }
 
     func makeCoordinator() -> Coordinator {
-        Coordinator(text: $text, onInvalidate: onInvalidate, onSubmit: onSubmit)
+        Coordinator(
+            heightChange: $heightChange, maximumHeight: maximumTextHeight, onType: onType,
+            onInvalidate: onInvalidate, onSubmit: onSubmit)
     }
 
     func makeNSView(context: Context) -> NSScrollView {
@@ -46,6 +59,8 @@ struct ChatComposerTextView: NSViewRepresentable {
         guard let textView = scroll.documentView as? ComposerTextView else { return scroll }
         handle.textView = textView
         textView.delegate = context.coordinator
+        // TextKit 2 sets a paragraph whole per edit; this lays out only near the caret and viewport.
+        textView.layoutManager?.allowsNonContiguousLayout = true
         textView.drawsBackground = false
         textView.isRichText = false
         textView.importsGraphics = false
@@ -57,6 +72,7 @@ struct ChatComposerTextView: NSViewRepresentable {
         textView.isAutomaticQuoteSubstitutionEnabled = false
         textView.isAutomaticDashSubstitutionEnabled = false
         textView.string = text
+        context.coordinator.applied = Coordinator.Applied(key: focusKey, revision: revision)
         textView.setAccessibilityLabel(String(localized: "Message"))
         ChatComposerInk.apply(to: textView)  // Fork: the accent's caret and selection
         return scroll
@@ -65,13 +81,19 @@ struct ChatComposerTextView: NSViewRepresentable {
     func updateNSView(_ scroll: NSScrollView, context: Context) {
         guard let textView = scroll.documentView as? ComposerTextView else { return }
         if context.coordinator.focusedKey != focusKey { onInvalidate(textView) }
-        context.coordinator.text = $text
+        context.coordinator.heightChange = $heightChange
+        context.coordinator.maximumHeight = maximumTextHeight
+        context.coordinator.onType = onType
         context.coordinator.onInvalidate = onInvalidate
         context.coordinator.onSubmit = onSubmit
         textView.onDropFiles = onDropFiles
         textView.onFileDragTargeted = { [$isFileDragTargeted] in $isFileDragTargeted.wrappedValue = $0 }
         // Only an outside write lands here; echoing the view's own text back would reset the caret.
-        if textView.string != text { textView.string = text }
+        let write = Coordinator.Applied(key: focusKey, revision: revision)
+        if context.coordinator.applied != write {
+            context.coordinator.applied = write
+            if textView.string != text { textView.string = text }
+        }
         guard context.coordinator.focusedKey != focusKey else { return }
         context.coordinator.focusedKey = focusKey
         // Next turn: on first mount the view has no window to become first responder of yet.
@@ -95,30 +117,51 @@ struct ChatComposerTextView: NSViewRepresentable {
         _ proposal: ProposedViewSize, nsView: NSScrollView, context: Context
     ) -> CGSize? {
         guard let width = proposal.width, width > 0 else { return nil }
-        return CGSize(
-            width: width,
-            height: Self.textHeight(text, width: width, maximumHeight: maximumTextHeight))
+        // The view's own text: typing moves on without a new `text`, and a resize lands in between.
+        let current = (nsView.documentView as? NSTextView)?.string ?? text
+        let height = Self.textHeight(current, width: width, maximumHeight: maximumTextHeight)
+        context.coordinator.fitted = (width, height)
+        return CGSize(width: width, height: height)
     }
 
     @MainActor
     final class Coordinator: NSObject, NSTextViewDelegate {
-        var text: Binding<String>
+        struct Applied: Equatable {
+            let key: UUID
+            let revision: Int
+        }
+
+        var heightChange: Binding<Int>
+        var maximumHeight: CGFloat
+        var onType: (String) -> Void
         var onInvalidate: (ComposerTextView) -> Void
         var onSubmit: () -> Void
         var focusedKey: UUID?
+        /// The chat and revision the text view last took, so only an outside write is compared.
+        var applied: Applied?
+        /// The width and height the last layout asked for and got.
+        var fitted: (width: CGFloat, height: CGFloat)?
 
         init(
-            text: Binding<String>, onInvalidate: @escaping (ComposerTextView) -> Void,
-            onSubmit: @escaping () -> Void
+            heightChange: Binding<Int>, maximumHeight: CGFloat, onType: @escaping (String) -> Void,
+            onInvalidate: @escaping (ComposerTextView) -> Void, onSubmit: @escaping () -> Void
         ) {
-            self.text = text
+            self.heightChange = heightChange
+            self.maximumHeight = maximumHeight
+            self.onType = onType
             self.onInvalidate = onInvalidate
             self.onSubmit = onSubmit
         }
 
         func textDidChange(_ notification: Notification) {
             guard let textView = notification.object as? NSTextView else { return }
-            text.wrappedValue = textView.string
+            let string = textView.string
+            onType(string)
+            guard let fitted,
+                ChatComposerTextView.textHeight(string, width: fitted.width, maximumHeight: maximumHeight)
+                    != fitted.height
+            else { return }
+            heightChange.wrappedValue &+= 1
         }
 
         /// Never called mid-composition, so Return confirming an input method's text stays its own.
