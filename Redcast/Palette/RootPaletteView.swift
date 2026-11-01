@@ -515,6 +515,8 @@ struct RootPaletteView: View {
             .onKeyPress(keys: [.downArrow], phases: [.down, .repeat]) { press in
                 if let reorder = movePinnedOrFavorite(1, modifiers: press.modifiers) { return reorder }
                 if vm.isControlListOpen { return .ignored }
+                // Marked text owns these keys: an IME drives its candidate window with them.
+                if vm.isComposing, !menuOpen { return .ignored }
                 if isCollapsed {
                     // The compact bar shows no selection, so Down reveals the list's first row.
                     vm.selection = 0
@@ -535,17 +537,20 @@ struct RootPaletteView: View {
                     moveMenu(-1)
                     return .handled
                 }
+                if vm.isComposing { return .ignored }
                 return moveVertically(-1)
             }
             // Horizontal arrows step the grid; elsewhere they stay with the caret.
             .onKeyPress(.leftArrow) {
                 if vm.isControlListOpen { return .ignored }
                 if menuOpen { return .handled }
+                if vm.isComposing { return .ignored }
                 return moveHorizontally(-1) ? .handled : .ignored
             }
             .onKeyPress(.rightArrow) {
                 if vm.isControlListOpen { return .ignored }
                 if menuOpen { return .handled }
+                if vm.isComposing { return .ignored }
                 return moveHorizontally(1) ? .handled : .ignored
             }
             // Plain ↵ runs an open menu's row or non-form selection; ⌘↵ submits forms.
@@ -582,6 +587,7 @@ struct RootPaletteView: View {
             .onKeyPress(.escape) {
                 // An open control list owns Escape before the palette beneath it.
                 if vm.isControlListOpen { return .ignored }
+                if vm.isComposing, !menuOpen { return .ignored }
                 // Fork: Escape on an empty query leaves the store's list before the store itself.
                 if vm.mode == .extensionStore, !menuOpen, vm.query.isEmpty,
                     core.extensionStoreCoordinator.leaveBrowse()
@@ -614,8 +620,9 @@ struct RootPaletteView: View {
             }
             .onKeyPress(keys: [.tab], phases: .down) { press in
                 // ⇥ inside an open list belongs to the list, not to the form's field order.
-                if vm.isControlListOpen { return .handled }
-                if !menuOpen { advanceTabFocus(backwards: press.modifiers.contains(.shift)) }
+                if vm.isControlListOpen || menuOpen { return .handled }
+                if vm.isComposing { return .ignored }
+                advanceTabFocus(backwards: press.modifiers.contains(.shift))
                 return .handled
             }
             .onKeyPress(keys: [.space], phases: .down) { aliasSpacePress($0) }
