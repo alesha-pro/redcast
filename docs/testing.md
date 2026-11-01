@@ -183,6 +183,7 @@ If a change touches anything in the right column, the harness on the left is man
 | `ext-test` | the extension runtime and native menu-bar lifecycle — boots shipped sources in JavaScriptCore; menu tests cover restoration, refresh serialization, actions and teardown; fetch tests cover HTTP connection cleanup, cancellation and request isolation; the host bridge's AI seam covers owners, session ends and the origin it stamps on AI calls and launches, and a menu-bar command that may ask only from an item's action |
 | `ext-ai-test` | `ExtensionAI/Model/`, `ExtensionAIGate`, `ExtensionAIBridge` and `ExtensionAISettingsStore` — gate order, prompt bounds, the request, creativity as temperature and the one retry without it, a named model's vendor and closest model, the rate limit, the shared consent question and what it keeps, gates rechecked after consent and on reads, coalescing, cancellation and owners against a scripted provider |
 | `ext-icon-test` | `Extensions/Service/ExtensionIconCache.swift` — artwork sizing and its fallback |
+| `ext-sign-in-test` | `Extensions/Service/ExtensionSignInSession.swift` — browser start failures, completion, cancellation without a callback, and late callbacks after teardown |
 | `icon-cache-test` | `Platform/Images/IconCache.swift` — row sizing at 1×/2×, warm reuse, stamp and style invalidation, bitmap release, fitted geometry across all 256 alpha values, and that a row icon draws identically to the 96px one |
 | `entry-icon-test` | `EntryIcon` — that each case draws, caches and prints apart from the others, and that a moved `FileIconStamp` retires the bitmap decoded before it |
 | `text-diff-test` | `QuickActions/Model/TextDiffEngine.swift` — exact chunks, coalescing, Unicode, ties, token-cap boundaries and fast paths |
@@ -913,6 +914,9 @@ caches, TCC grants and login item, so this cannot disturb an installed copy.
 
 ### Extensions
 
+- Start GitHub sign-in, summon the waiting command and press Escape with an empty search field:
+  the browser session closes and root search works again. Repeat the sign-in, cancel in the browser,
+  then leave the command; closing and reopening the palette must respect Pop to Root Search again.
 - Open `raycast://extensions/linear/linear?source=webstore` from a browser: Settings → Extensions
   offers the exact Store listing with Install (or Reinstall). Close it without installing, then open
   a different Store link and verify its listing replaces the first. Repeat with extensions disabled:
