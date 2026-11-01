@@ -253,15 +253,16 @@ extension AIChatCoordinator: ChatSettingsSource {
     private func usageFacts(for chat: AIChatState) -> ChatUsageFacts {
         let report = contextReport(for: chat, detailed: false)
         let replies = chat.session.messages.compactMap(\.usage)
-        let costs = replies.compactMap(\.costUSD)
         let tokens = replies.compactMap(\.totalTokens)
         return ChatUsageFacts(
-            fill: report.fill, contextTokens: report.usage?.contextTokens,
-            contextWindow: report.usage?.contextWindow, inputTokens: report.usage?.inputTokens,
+            fill: report.fill, fillsWindow: report.fillsWindow,
+            contextTokens: report.usage?.contextTokens,
+            contextWindow: report.window, inputTokens: report.usage?.inputTokens,
             cachedTokens: report.usage?.cachedInputTokens.flatMap { $0 > 0 ? $0 : nil },
             outputTokens: report.usage?.outputTokens,
             reasoningTokens: report.usage?.reasoningTokens.flatMap { $0 > 0 ? $0 : nil },
-            lastCost: report.usage?.costUSD, chatCost: costs.isEmpty ? nil : costs.reduce(0, +),
+            cost: ChatCostLine.line(
+                facts: routeFacts(for: chat), runsOwnRuntime: agents.runsOwnRuntime(chat), replies: replies),
             chatTokens: tokens.isEmpty ? nil : tokens.reduce(0, +),
             sentMessages: report.sentMessages, totalMessages: report.totalMessages,
             historyBytes: report.historyBytes, budget: report.budget)

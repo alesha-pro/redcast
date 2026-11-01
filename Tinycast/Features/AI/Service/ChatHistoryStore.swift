@@ -93,7 +93,8 @@ final class ChatHistoryStore {
           cached_tokens INTEGER,
           reasoning_tokens INTEGER,
           context_window INTEGER,
-          cost_usd REAL
+          cost_usd REAL,
+          held_tokens INTEGER
         );
         CREATE TABLE IF NOT EXISTS message_thinking(
           message_id TEXT NOT NULL REFERENCES messages(id) ON DELETE CASCADE,
@@ -429,6 +430,8 @@ final class ChatHistoryStore {
             isAvailable = false
             return false
         }
+        // A database from before the column gains it; every later open fails on the duplicate, unheard.
+        sqlite3_exec(database, "ALTER TABLE message_details ADD COLUMN held_tokens INTEGER", nil, nil, nil)
         isAvailable = true
         return true
     }
@@ -740,8 +743,8 @@ final class ChatHistoryStore {
         guard message.toolScope != nil || message.usage != nil else { return true }
         let sql = """
             INSERT INTO message_details(message_id, tool_scope, input_tokens, output_tokens,
-              cached_tokens, reasoning_tokens, context_window, cost_usd)
-            VALUES(?, ?, ?, ?, ?, ?, ?, ?);
+              cached_tokens, reasoning_tokens, context_window, cost_usd, held_tokens)
+            VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?);
             """
         guard let statement = prepare(sql, in: database) else { return false }
         defer { sqlite3_finalize(statement) }
@@ -756,6 +759,7 @@ final class ChatHistoryStore {
                 if let count { sqlite3_bind_int64(statement, Int32(offset + 3), Int64(count)) }
             }
             if let cost = usage.costUSD { sqlite3_bind_double(statement, 8, cost) }
+            if let held = usage.heldTokens { sqlite3_bind_int64(statement, 9, Int64(held)) }
         }
         return sqlite3_step(statement) == SQLITE_DONE
     }
@@ -766,7 +770,7 @@ final class ChatHistoryStore {
     ) -> [UUID: (toolScope: String?, usage: AIUsage?)] {
         let sql = """
             SELECT x.message_id, x.tool_scope, x.input_tokens, x.output_tokens, x.cached_tokens,
-              x.reasoning_tokens, x.context_window, x.cost_usd
+              x.reasoning_tokens, x.context_window, x.cost_usd, x.held_tokens
             FROM message_details x JOIN messages m ON m.id = x.message_id
             WHERE m.conversation_id = ?;
             """
@@ -784,7 +788,8 @@ final class ChatHistoryStore {
                 inputTokens: count(2), outputTokens: count(3), cachedInputTokens: count(4),
                 reasoningTokens: count(5), contextWindow: count(6),
                 costUSD: sqlite3_column_type(statement, 7) == SQLITE_NULL
-                    ? nil : sqlite3_column_double(statement, 7))
+                    ? nil : sqlite3_column_double(statement, 7),
+                heldTokens: count(8))
             meta[messageID] = (optionalText(statement, 1), usage == AIUsage() ? nil : usage)
         }
         return meta

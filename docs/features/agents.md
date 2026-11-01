@@ -489,8 +489,9 @@ They run on the user's own logins and subscriptions; Redcast never sees a key.
 - **Updates map onto the transcript.** Message chunks are text, thought chunks reasoning, a plan a
   reasoning block when it changes, tool calls rows that close exactly once — a call still open when
   the turn ends is closed as failed — and one usage at the end from the prompt's result, with the
-  window and cost from the last `usage_update` (ACP's cost is the session's running total, stored as
-  it came). Attachments go as image blocks and embedded resources when the agent declared it takes
+  window, what it holds and cost from the last `usage_update` (the result adds up the turn's rounds;
+  ACP's cost is the session's running total, stored as it came, and Chat Settings does not show it
+  because ACP does not say who pays). Attachments go as image blocks and embedded resources when the agent declared it takes
   them, else inlined. A `refusal` stop reason is an error.
 - **A tool row unfolds what the call showed.** A report that carries `content` replaces the row's,
   as ACP's updates do, through one `AIStreamEvent.toolOutput` that only `AIChatState` reads; the

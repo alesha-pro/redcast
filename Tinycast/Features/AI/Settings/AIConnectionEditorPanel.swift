@@ -109,6 +109,7 @@ struct AIConnectionEditorPanel: View {
                 headersSection
                 // Fork: whether a reply's reasoning goes back to the model that wrote it.
                 reasoningSection
+                billingSection
 
                 Section {
                     modelDiscoveryContent
@@ -330,6 +331,29 @@ struct AIConnectionEditorPanel: View {
                 Thinking models need their own reasoning back between tool calls. Automatic sends it \
                 only to the model that wrote it, as its provider documents. Always sends earlier \
                 turns' reasoning too and asks the provider to keep it; Never sends none.
+                """
+            )
+            .font(.caption)
+            .foregroundStyle(.secondary)
+        }
+    }
+
+    /// Fork: only for an address a plan shares with its API, or a catalog that has it wrong.
+    private var billingSection: some View {
+        Section {
+            editorField("Billing") {
+                Picker("Billing", selection: $connection.billing) {
+                    Text("Automatic").tag(AIConnection.Billing?.none)
+                    Text("Pay per token").tag(AIConnection.Billing?.some(.perToken))
+                    Text("Subscription").tag(AIConnection.Billing?.some(.plan))
+                }
+                .labelsHidden()
+            }
+        } footer: {
+            Text(
+                """
+                Whether AI Chat shows what a chat costs. Automatic recognises the API from its \
+                address and shows an estimate from its published prices. A subscription shows no cost.
                 """
             )
             .font(.caption)

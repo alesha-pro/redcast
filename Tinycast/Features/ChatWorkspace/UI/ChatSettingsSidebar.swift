@@ -368,7 +368,7 @@ struct ChatUsageCard: View {
                 }
                 .frame(width: 26, height: 26)
                 VStack(alignment: .leading, spacing: Theme.Spacing.xxs) {
-                    Text("Context")
+                    Text(usage.fillsWindow ? "Context" : "History")
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(Theme.Colors.textSecondary)
                     Text(usage.fill.formatted(.percent.precision(.fractionLength(0))))
@@ -376,12 +376,12 @@ struct ChatUsageCard: View {
                         .foregroundStyle(tint)
                 }
                 Spacer(minLength: 0)
-                if let cost = usage.chatCost {
+                if case .spent(let cost, let estimated, _, _) = usage.cost {
                     VStack(alignment: .trailing, spacing: Theme.Spacing.xxs) {
                         Text("Chat cost")
                             .font(.subheadline.weight(.semibold))
                             .foregroundStyle(Theme.Colors.textSecondary)
-                        Text(cost.formatted(.currency(code: "USD").precision(.significantDigits(2))))
+                        Text(verbatim: amount(cost, estimated: estimated))
                             .font(.title3.weight(.semibold).monospacedDigit())
                             .foregroundStyle(RaycastHue.green.color)
                     }
@@ -408,6 +408,16 @@ struct ChatUsageCard: View {
                 if usage.contextTokens == nil, usage.inputTokens == nil {
                     row("Last reply", String(localized: "Not reported yet"))
                 }
+                switch usage.cost {
+                case .noTariff:
+                    row("Chat cost", String(localized: "Tariff unknown"))
+                case .notYetPriced:
+                    row("Chat cost", String(localized: "Not reported yet"))
+                case .spent(_, _, let priced, let replies) where priced < replies:
+                    row("Priced replies", String(localized: "\(priced) of \(replies)"))
+                case .spent, .hidden:
+                    EmptyView()
+                }
                 row("Messages", String(localized: "\(usage.sentMessages) of \(usage.totalMessages)"))
                 row("History", String(localized: "\(bytes(usage.historyBytes)) of \(bytes(usage.budget))"))
             }
@@ -431,6 +441,11 @@ struct ChatUsageCard: View {
     }
 
     private func bytes(_ count: Int) -> String { count.formatted(.byteCount(style: .file)) }
+
+    private func amount(_ cost: Double, estimated: Bool) -> String {
+        let value = cost.formatted(.currency(code: "USD").precision(.significantDigits(2)))
+        return estimated ? "≈ \(value)" : value
+    }
 
     private func tokens(_ count: Int, of window: Int?) -> String {
         guard let window else { return count.formatted() }

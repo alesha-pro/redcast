@@ -172,9 +172,18 @@ minimum width, and comes back as the window widens. Its cards:
   with MCP Settings….
 - **Context**: the ring and its percentage (green, orange from 80%, red at 100%), what is in
   context of the model's window, the last turn's input with its cached share and output with its
-  thinking share, the chat's tokens and its cost added up over every reply that reported one, and
-  messages and history against the budget. It replaces the grey token count that ended the
-  transcript; Quick AI keeps that line.
+  thinking share, the chat's tokens and cost, and messages and history against the budget. It
+  replaces the grey token count that ended the transcript; Quick AI keeps that line.
+  - **The percentage is of the model's window**: the one the route reported (Claude's CLI, ACP's
+    `usage_update`), else the plan's own catalog's, else [`AIModelCatalog`](ai.md)'s. With none of
+    them, or no tokens reported yet, the card is titled **History** instead and the ring is the
+    bytes sent against the flat `ChatSession.defaultTextBudget`, which says nothing about the model.
+    With a window, History's budget is `ChatSession.textBudget(forWindow:)`, half of it at 3 bytes a token.
+  - **The cost follows `ChatCostLine`.** A route billed per token shows the sum of its priced
+    replies, with `≈` where that is an estimate, not what the route billed, and "Priced replies 2 of
+    4" while part of the chat predates the tariff. Tariff unknown says that a route billed per token,
+    or one nobody can classify, has no price in the catalog. A subscription, a server on this Mac and
+    an ACP agent show none: ACP does not say who pays, and Claude Code reports a price on a plan too.
 
 The composer keeps what is typed and the essentials: + (Attach Files…, Attach Note…), one chip
 with the agent's tile, the model's mark and name that opens the settings, the mic while Dictation is
@@ -459,4 +468,6 @@ of ids and the trees are rebuilt with the layout, so neither holds anything betw
 - ⌥⌘T keeps the window above another app's; relaunch and it still does. With Notify on, ask a
   question and switch to another app: a banner names the chat and a click opens it.
 - Turn a server off under Tools: the next turn cannot call it. With a reply that reported usage,
-  Context shows its tokens, the chat's total and, where the route reports it, its cost.
+  Context shows its tokens, the chat's total and, on a route billed per token, its cost. A chat on
+  Z.AI's `api/coding/paas/v4` shows 1% of 1M and no cost; on DeepSeek's API, `≈` and a sum; on an
+  address the catalog lacks, History instead of Context and Tariff unknown.

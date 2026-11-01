@@ -1323,6 +1323,21 @@ extension AIChatTests {
                     == budgeted.requestMessages(textBudget: budget).count,
                 "the gauge's count agrees with the request at a \(budget)-byte budget")
         }
+        expect(ChatSession.textBudget(forWindow: nil) == 100_000, "an unknown window keeps the flat budget")
+        expect(ChatSession.textBudget(forWindow: 0) == 100_000, "and so does a window of nothing")
+        expect(ChatSession.textBudget(forWindow: 1_000_000) == 1_500_000, "a million tokens hold 1.5 MB")
+        expect(ChatSession.textBudget(forWindow: 8_000) == 12_000, "a small window holds less than the flat budget")
+        let longChat = ChatSession(messages: [
+            ChatMessage(role: .user, text: String(repeating: "a", count: 200_000)),
+            ChatMessage(role: .assistant, text: String(repeating: "b", count: 200_000)),
+            ChatMessage(role: .user, text: "Now?")
+        ])
+        expect(
+            longChat.requestMessages(textBudget: ChatSession.textBudget(forWindow: nil)).count == 1,
+            "the flat budget leaves a long chat's old turns out")
+        let roomy = ChatSession.textBudget(forWindow: 1_000_000)
+        expect(longChat.requestMessages(textBudget: roomy).count == 3, "a large window sends them")
+        expect(longChat.sentMessageCount(textBudget: roomy) == 3, "and the card counts them as sent")
         expect(session.dropTrailingReply(), "a trailing reply can be dropped")
         expect(
             session.messages.map(\.role) == [.user], "dropping the reply leaves the question it answered")

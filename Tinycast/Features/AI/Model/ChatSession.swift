@@ -51,6 +51,12 @@ struct ChatSession: Equatable, Sendable {
 
     static let defaultTextBudget = 100_000
 
+    /// Half the window at 3 bytes a token, dense text's worst: the rest is instructions, tools, reply.
+    static func textBudget(forWindow window: Int?) -> Int {
+        guard let window, window > 0 else { return defaultTextBudget }
+        return window * 3 / 2
+    }
+
     /// The turns a request may carry as history: a failed or unfinished reply never goes out.
     var historyMessages: [ChatMessage] {
         messages.filter { $0.role == .user || $0.state == .complete }

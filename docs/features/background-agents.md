@@ -87,8 +87,9 @@ row and chord, `AppIndex`, `LauncherList`, `LauncherCoordinator`, `AppActionsMen
   on its own is not started once the local day's finished scheduled runs cost the cap or more: it
   gets a failed row saying so instead of a chat, and its occurrence is spent. A capped run whose
   reported cost, with the day's total and the other capped runs in flight, passes the cap is stopped
-  and its row says why. Costs are only what routes report (`AgentSpendMeter` over a native turn,
-  `AgentACPHost.onCost` for each ACP `usage_update`); a route that reports none counts nothing.
+  and its row says why. Costs are what routes report or [`AIModelCatalog`](ai.md)'s tariff estimates
+  (`AgentSpendMeter` over a native turn, `AgentACPHost.onCost` for each ACP `usage_update`); a route
+  with neither counts nothing.
   Run Now and `@handle` runs are a person's gesture: never held, never counted. A cap file that will
   not read counts as $0, so nothing scheduled starts until the cap is set again.
 - **A capped run's reported cost counts however the run ends.** Finished, stopped, cut off by AI

@@ -38,15 +38,15 @@ struct ChatSettingsMenu: Identifiable {
 /// Fork: what a chat has spent and holds, the context ring's numbers and the chat's running cost.
 struct ChatUsageFacts: Equatable {
     var fill: Double = 0
+    /// False when the ring shows the history budget, because the model's window is unknown.
+    var fillsWindow = true
     var contextTokens: Int?
     var contextWindow: Int?
     var inputTokens: Int?
     var cachedTokens: Int?
     var outputTokens: Int?
     var reasoningTokens: Int?
-    var lastCost: Double?
-    /// Every reply's reported cost added up, nil when no reply reported one.
-    var chatCost: Double?
+    var cost = ChatCostLine.hidden
     var chatTokens: Int?
     var sentMessages = 0
     var totalMessages = 0

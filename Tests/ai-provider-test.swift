@@ -267,6 +267,7 @@ struct AIProviderTests {
         expect(
             written?.inputTokens == 80 && written?.cachedInputTokens == nil,
             "a first request that only writes the cache reports no hit")
+        expect(written?.cacheWrittenTokens == 30, "and says how much of its input the write was")
     }
 
     private static func json(_ text: String) -> JSONValue { JSONValue(data: Data(text.utf8)) ?? .null }

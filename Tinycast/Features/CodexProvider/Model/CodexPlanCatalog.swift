@@ -10,6 +10,7 @@ enum CodexPlanCatalog {
         let name: String
         let efforts: [String]
         let defaultEffort: String?
+        var contextWindow: Int?
     }
 
     static func parse(_ data: Data) -> [Model]? {
@@ -24,7 +25,8 @@ enum CodexPlanCatalog {
                 }
                 let model = Model(
                     id: slug, name: raw["display_name"]?.stringValue ?? slug, efforts: efforts,
-                    defaultEffort: raw["default_reasoning_level"]?.stringValue)
+                    defaultEffort: raw["default_reasoning_level"]?.stringValue,
+                    contextWindow: raw["context_window"]?.intValue)
                 return (model, raw["priority"]?.intValue ?? Int.max)
             }
             .enumerated().sorted { ($0.element.1, $0.offset) < ($1.element.1, $1.offset) }
@@ -46,5 +48,7 @@ enum CodexPlanCatalog {
                 efforts: model.efforts, defaultEffort: model.defaultEffort)
         }
         connection.reasoningOptions = options.isEmpty ? nil : options
+        let windows = models.reduce(into: [String: Int]()) { $0[$1.id] = $1.contextWindow }
+        connection.contextWindows = windows.isEmpty ? nil : windows
     }
 }

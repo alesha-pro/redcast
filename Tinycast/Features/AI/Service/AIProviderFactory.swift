@@ -95,7 +95,9 @@ enum AIProviderFactory {
                     disablesThinking: effort == AIConnection.ReasoningOptions.noEffort
                         && connection.takesThinkingField,
                     // Fork: the connection's say on sending a reply's reasoning back.
-                    headers: headers, reasoningReplay: connection.reasoningReplay),
+                    headers: headers, reasoningReplay: connection.reasoningReplay,
+                    // Fork: a price only where tokens are billed and the route says none itself.
+                    rates: AIModelCatalog.facts(for: selection, connection: connection).rates),
                 apiKey: key)
         }
     }

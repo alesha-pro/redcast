@@ -792,7 +792,7 @@ private struct ContextCard: View {
         let shape = RoundedRectangle(cornerRadius: Theme.Radius.menuPanel, style: .continuous)
         VStack(alignment: .leading, spacing: Theme.Spacing.md) {
             HStack {
-                Text("Context").font(.headline)
+                Text(report.fillsWindow ? "Context" : "History").font(.headline)
                 Spacer(minLength: Theme.Spacing.xxl)
                 Text(report.fill.formatted(.percent.precision(.fractionLength(0))))
                     .font(.headline)
@@ -812,10 +812,10 @@ private struct ContextCard: View {
             ) {
                 section("Tokens")
                 if let usage = report.usage, let context = usage.contextTokens {
-                    row("In context", tokens(context, of: usage.contextWindow))
+                    row("In context", tokens(context, of: report.window))
                     row("Input", input(usage))
                     row("Output", output(usage))
-                    if let cost = usage.costUSD {
+                    if report.costApplies, let cost = usage.costUSD {
                         row(
                             "Cost",
                             cost.formatted(

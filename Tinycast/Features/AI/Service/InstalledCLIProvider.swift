@@ -59,6 +59,8 @@ private final class InstalledCLITurnRunner {
     private var outputBuffer = Data()
     private var errorBuffer = Data()
     private var turnSessionID: String?
+    private var runsOnPlan = false
+    private var heldTokens: Int?
     /// Every file is the turn's own and private: its prompt, its MCP secrets, its pictures.
     private var privateFiles: [URL] = []
     private var activeExecutable: URL?
@@ -468,8 +470,18 @@ private final class InstalledCLITurnRunner {
         }
     }
 
+    /// Fork: the result frame's usage, told what the window holds and who pays.
+    private func settled(_ event: AIStreamEvent) -> AIStreamEvent {
+        guard case .usage(var usage) = event else { return event }
+        usage.heldTokens = heldTokens
+        if runsOnPlan { usage.costUSD = nil }
+        return .usage(usage)
+    }
+
     private func apply(_ frame: InstalledAIStreamFrame, token: TurnToken) {
         if let sessionID = frame.sessionID { turnSessionID = sessionID }
+        if let runsOnPlan = frame.runsOnPlan { self.runsOnPlan = runsOnPlan }
+        if let heldTokens = frame.heldTokens { self.heldTokens = heldTokens }
         if let request = frame.controlRequest {
             answer(request, token: token)
             return
@@ -481,7 +493,7 @@ private final class InstalledCLITurnRunner {
             }
             return
         }
-        for event in frame.events { continuation?.yield(event) }
+        for event in frame.events { continuation?.yield(settled(event)) }
         if frame.stoppedAtRoundCap {
             fail(
                 roundCap.map { String(localized: "Stopped after \($0) rounds of tool calls.") }

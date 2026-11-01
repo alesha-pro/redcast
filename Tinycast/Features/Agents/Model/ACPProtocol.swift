@@ -481,7 +481,9 @@ struct ACPEventMapper: Sendable {
                         outputTokens: counts["outputTokens"]?.intValue,
                         cachedInputTokens: cached > 0 ? cached : nil,
                         reasoningTokens: counts["thoughtTokens"]?.intValue, contextWindow: window,
-                        costUSD: lastUsage?.costUSD)))
+                        costUSD: lastUsage?.costUSD,
+                        // The result adds up the turn's rounds; only the update says what is held.
+                        heldTokens: lastUsage.flatMap { $0.used > 0 ? $0.used : nil })))
         } else if let lastUsage, lastUsage.used > 0 {
             events.append(
                 .usage(

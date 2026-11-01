@@ -148,18 +148,32 @@ bottom with the model picker. ⌘J hands a Quick AI conversation to the window.
 - **Token usage belongs to the reply that reported it.** `AIUsage` carries input, output, cached
   prompt and thinking tokens, and the model's window and cost where a route says them — Claude's CLI
   reports all of it, the Anthropic API its cache, OpenAI-shaped routes their reasoning tokens and
-  OpenRouter its cost. `ChatMessage.usage` holds it and `message_details` keeps it, so a reopened chat
+  OpenRouter its cost. `heldTokens` is what the window holds where a route's counts add up a turn's
+  rounds instead (ACP's prompt result, Claude's result frame): a long turn read 774% without it.
+  `ChatMessage.usage` holds it and `message_details` keeps it, so a reopened chat
   still knows its last turn. A tool-loop reply's cost is its whole turn's — `AIToolLoopProvider` and
   `AgentLoopProvider` add each round's to the ones before — while its tokens stay the last round's.
   Requests to OpenAI's own endpoint (`api.openai.com`) ask for usage with
   `stream_options.include_usage`; no other server is sent the field, an OpenAI preset on a gateway
   included. A title request, which no message keeps, has its usage appended to the fork's usage log
   instead (see [usage-dashboard.md](usage-dashboard.md)).
+- **`AIModelCatalog` knows who pays, the window and the tariff; it never guesses.** Its data is
+  `AIModelCatalogData.generated.swift`, models.dev's catalog as of the last
+  `node Scripts/gen-model-catalog.js`, read lazily and with no network. A connection is matched by its
+  base URL, whatever its preset: `api.z.ai/api/coding/paas/v4` is Z.AI's coding plan even behind the
+  OpenAI preset, and a path no API lists falls back to the others on that host. A host shared by a
+  plan and an API, or an address nobody lists, is `.undetermined` and has no price; the connection's
+  **Billing** (Automatic, Pay per token, Subscription) settles it. A model the API's list lacks has no
+  tariff or window. `HTTPAIProvider` prices each round from `AIHTTPConfiguration.rates` as it is
+  written, never at display, since a chat can change model between replies; a figure the route
+  reported always wins. So replies from before a tariff was known stay unpriced, and prices are as
+  fresh as the generated file: every estimate shows `≈`. Claude's CLI reports `total_cost_usd` on a
+  subscription too, so `InstalledCLIProvider` drops it when its first frame says `apiKeySource: none`.
 - **The on-device route is configured by having a Mac.** `.appleIntelligence` takes no key, opens no
   socket and names no endpoint, so the Keychain, HTTPS and ephemeral-session rules below have nothing
   to bind to — the Settings pane must never grow a credential field for it. It is text-only and
   offers no web search, no instructions ride ahead of its turns, and history is bounded to
-  `AppleIntelligence.contextBudget` rather than the cloud routes' ~100 KB because the on-device window
+  `AppleIntelligence.contextBudget` rather than a cloud route's budget because the on-device window
   holds a prompt and its reply together. Availability is asked for each time, never cached at launch:
   the model finishes downloading mid-session, and reading it inside a view body leaves SwiftUI
   observing the framework's own state.
@@ -320,8 +334,11 @@ bottom with the model picker. ⌘J hands a Quick AI conversation to the window.
   whole — truncating what someone just typed is worse than the provider's own error — keeps images
   and documents only on that turn and only up to `AIAttachmentBudget`, inlining an attached text
   file into that turn alone, and walks older text newest-first into a
-  budget the *route* names: ~100 KB for a cloud endpoint, `AppleIntelligence.contextBudget` for the
-  on-device model. Every transport funnels through `requestMessages(textBudget:)`, so no route can
+  budget the *route* names: `ChatSession.textBudget(forWindow:)` for a cloud endpoint, half the model's
+  window at 3 bytes a token (1.5 MB for a million tokens, 12 KB for 8,000) or a flat 100 KB when the
+  window is unknown, and `AppleIntelligence.contextBudget` for the on-device model. So a long chat on
+  a large window costs more per turn, up to that budget, and the card shows it. Quick AI and AI Chat
+  go through it; a surface that names no budget stays at 100 KB. Every transport funnels through `requestMessages(textBudget:)`, so no route can
   resend every image each turn or let history grow the payload as a chat goes on. The composer refuses a picture
   past the budget and says so, rather than letting send time drop it silently.
 
@@ -577,8 +594,8 @@ and the Actions menu's own chords, and dies with the window.
   Send/Stop. Every control is `aiChatComposerControl` tall with one `aiChatComposerGlyph` slot and
   bare until hovered; Search gives up its word before the model's name truncates. One Attach Files…
   takes every kind; its help names what this chat's model can read. The gauge is the
-  last reply's `contextTokens` against the model's window when the route reported one, and
-  `ChatSession.historyBytes` against Redcast's history budget otherwise — orange from 80%, red at
+  last reply's `contextTokens` against the model's window, reported by the route or known to
+  `AIModelCatalog`, and `ChatSession.historyBytes` against Redcast's history budget otherwise — orange from 80%, red at
   100%. Hovering it raises Redcast's own card (never a popover), drawn inside the transcript's
   frame at its bottom edge — just above the composer and inside the window whatever its size — and
   solid under its glass so the transcript cannot show through. `ChatContextReport`

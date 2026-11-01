@@ -476,8 +476,10 @@ final class SnapshotSettingsSource: ChatSettingsSource {
                 fill: Double(last?.contextTokens ?? 0) / 200_000, contextTokens: last?.contextTokens,
                 contextWindow: last?.contextWindow, inputTokens: last?.inputTokens,
                 cachedTokens: last?.cachedInputTokens, outputTokens: last?.outputTokens,
-                reasoningTokens: last?.reasoningTokens, lastCost: last?.costUSD,
-                chatCost: usage.compactMap(\.costUSD).reduce(0, +),
+                reasoningTokens: last?.reasoningTokens,
+                cost: .spent(
+                    usage.compactMap(\.costUSD).reduce(0, +), estimated: true,
+                    pricedReplies: usage.count, replies: usage.count + 1),
                 chatTokens: usage.compactMap(\.totalTokens).reduce(0, +),
                 sentMessages: chat.session.messages.count, totalMessages: chat.session.messages.count,
                 historyBytes: chat.session.historyBytes, budget: ChatSession.defaultTextBudget))

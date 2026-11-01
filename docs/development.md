@@ -199,6 +199,7 @@ run them online, then commit the result:
 node Scripts/gen-emoji.js            # -> Tinycast/Features/Emoji/Model/EmojiData.generated.swift
                                      #    + Tinycast/Resources/EmojiKeywords/<language>.txt
 node Scripts/gen-currencies.js       # -> Tinycast/Features/Calculator/Model/CurrencyData.generated.swift
+node Scripts/gen-model-catalog.js    # -> Tinycast/Features/AI/Model/AIModelCatalogData.generated.swift
 node Scripts/gen-countries.js        # -> Tinycast/Features/Calculator/Model/CountryZoneData.generated.swift
 ```
 

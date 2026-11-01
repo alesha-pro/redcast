@@ -10,6 +10,10 @@ struct InstalledAIStreamFrame: Equatable, Sendable {
     var unsupportedRequestID: String?
     /// The round cap ended the turn. Only the runner knows the number to say it with.
     var stoppedAtRoundCap = false
+    /// Fork: set by Claude's first frame. Its CLI reports a price on a plan too, where none is paid.
+    var runsOnPlan: Bool?
+    /// Fork: what one model call held; the result's own counts add up every call of the turn.
+    var heldTokens: Int?
 }
 
 enum InstalledAIStreamDecoder {
@@ -76,6 +80,13 @@ enum InstalledAIStreamDecoder {
         _ object: [String: Any], type: String, servers: [AIToolServer]
     ) -> InstalledAIStreamFrame {
         var frame = InstalledAIStreamFrame()
+        if type == "system", object["subtype"] as? String == "init" {
+            frame.runsOnPlan = (object["apiKeySource"] as? String).map { $0 == "none" }
+            return frame
+        }
+        if type == "assistant", object["parent_tool_use_id"] as? String == nil {
+            frame.heldTokens = heldTokens(in: object)
+        }
         if !servers.isEmpty, type == "control_request" {
             frame.controlRequest = ClaudeControlProtocol.request(object)
             frame.unsupportedRequestID = ClaudeControlProtocol.unsupportedRequestID(object)
@@ -126,6 +137,15 @@ enum InstalledAIStreamDecoder {
         }
         frame.completed = true
         return frame
+    }
+
+    private static func heldTokens(in object: [String: Any]) -> Int? {
+        guard let usage = (object["message"] as? [String: Any])?["usage"] as? [String: Any] else {
+            return nil
+        }
+        let counts = ["input_tokens", "cache_read_input_tokens", "cache_creation_input_tokens", "output_tokens"]
+            .compactMap { integer(usage[$0]) }
+        return counts.isEmpty ? nil : counts.reduce(0, +)
     }
 
     /// `tool_use` and `tool_result` blocks, as the two events a transcript row is built from.

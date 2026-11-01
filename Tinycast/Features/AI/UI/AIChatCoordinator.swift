@@ -503,8 +503,18 @@ final class AIChatCoordinator {
 
     /// How much history the chat's route can hold; the on-device window is far smaller.
     func contextBudget(for chat: AIChatState) -> Int {
-        model(for: chat)?.isOnDevice == true
-            ? AppleIntelligence.contextBudget : ChatSession.defaultTextBudget
+        if model(for: chat)?.isOnDevice == true { return AppleIntelligence.contextBudget }
+        let known = core.agentCoordinator.runsOwnRuntime(chat) ? nil : routeFacts(for: chat).window
+        return ChatSession.textBudget(forWindow: known ?? chat.usage?.contextWindow)
+    }
+
+    /// Fork: who pays for this chat's tokens, its model's window and its tariff.
+    func routeFacts(for chat: AIChatState) -> AIRouteFacts {
+        let selection = model(for: chat)
+        guard case .api(let connection, _, _)? = selection else {
+            return AIModelCatalog.facts(for: selection, connection: nil)
+        }
+        return AIModelCatalog.facts(for: selection, connection: core.aiSettings.connection(id: connection))
     }
 
     /// The context card's facts; the gauge redraws per flush, so it skips the card's model title.
@@ -513,6 +523,8 @@ final class AIChatCoordinator {
         let budget = contextBudget(for: chat)
         let can = capabilities(for: chat)
         let scope = chat.toolScope
+        let ownRuntime = core.agentCoordinator.runsOwnRuntime(chat)
+        let facts = routeFacts(for: chat)
         return ChatContextReport(
             modelTitle: detailed ? selectedModelTitle(for: chat) : "",
             historyBytes: session.historyBytes, budget: budget,
@@ -521,6 +533,8 @@ final class AIChatCoordinator {
             stagedFiles: chat.pendingAttachments.count,
             stagedBytes: chat.pendingAttachments.reduce(0) { $0 + $1.payload.byteCount },
             usage: chat.usage,
+            knownWindow: ownRuntime ? nil : facts.window,
+            costApplies: !ownRuntime && facts.billing != .unbilled,
             systemPrompt: core.aiSettings.systemPromptEnabled,
             webSearch: core.aiSettings.webSearchEnabled && can.webSearch || agentSearches(chat),
             toolServers: can.tools && scope.isEnabled
@@ -828,33 +842,5 @@ final class AIChatCoordinator {
         } catch {
             return error.localizedDescription
         }
-    }
-}
-
-/// What the context card lays out; history is counted in bytes, the unit the budget is kept in.
-struct ChatContextReport: Equatable {
-    let modelTitle: String
-    let historyBytes: Int
-    let budget: Int
-    let sentMessages: Int
-    let totalMessages: Int
-    let stagedFiles: Int
-    let stagedBytes: Int
-    let usage: AIUsage?
-    let systemPrompt: Bool
-    let webSearch: Bool
-    let toolServers: Int
-
-    /// The model's own window when the route reported one; otherwise Tinycast's history budget.
-    var fill: Double {
-        if let tokens = usage?.contextTokens, let window = usage?.contextWindow, window > 0 {
-            return Double(tokens) / Double(window)
-        }
-        return Double(historyBytes) / Double(max(budget, 1))
-    }
-
-    var accessibilitySummary: String {
-        let percent = fill.formatted(.percent.precision(.fractionLength(0)))
-        return String(localized: "Context \(percent), \(sentMessages) of \(totalMessages) messages sent")
     }
 }

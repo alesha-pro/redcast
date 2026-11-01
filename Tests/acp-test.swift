@@ -252,8 +252,8 @@ struct ACPTests {
         expect(
             closing == [.usage(AIUsage(
                 inputTokens: 3, outputTokens: 4, cachedInputTokens: 5, reasoningTokens: 1,
-                contextWindow: 1_000))],
-            "the turn's usage comes from its result, with the window from the last update")
+                contextWindow: 1_000, heldTokens: 10))],
+            "the turn's usage comes from its result, with the window and what it holds from the last update")
         let plan = [ACPPlanEntry(.object(["content": .string("Look"), "status": .string("completed")]))!]
         expect(mapper.events(for: .plan(plan)).count == 1, "a plan shows")
         expect(mapper.events(for: .plan(plan)).isEmpty, "and the same plan again does not")

@@ -75,11 +75,20 @@ struct AIConnection: Codable, Equatable, Identifiable, Sendable {
     var reasoningOptions: [String: ReasoningOptions]?
     // Fork: nil sends a reply's reasoning back as the route's documented rules say.
     var reasoningReplay: ReasoningReplay?
+    // Fork: nil reads who pays from the catalog; a plan and its API can share one address.
+    var billing: Billing?
+    // Fork: the windows a plan's own catalog names, which can be narrower than its API's.
+    var contextWindows: [String: Int]?
 
     // Fork: for a gateway that needs reasoning back on every turn, or refuses the field.
     enum ReasoningReplay: String, Codable, CaseIterable, Sendable {
         case always
         case never
+    }
+
+    enum Billing: String, Codable, CaseIterable, Sendable {
+        case perToken
+        case plan
     }
 
     init(
@@ -364,6 +373,38 @@ enum AIModelSelection: Codable, Equatable, Hashable, Sendable {
     }
 }
 
+/// Fork: a model's published tariff in US dollars per million tokens.
+struct AIModelRates: Equatable, Sendable {
+    struct Prices: Equatable, Sendable {
+        var input: Double
+        var output: Double
+        var cacheRead: Double?
+        var cacheWrite: Double?
+        var reasoning: Double?
+    }
+
+    /// Dearer prices that apply to a whole request once its prompt passes `above` tokens.
+    struct Tier: Equatable, Sendable {
+        var above: Int
+        var prices: Prices
+    }
+
+    var base: Prices
+    var tiers: [Tier] = []
+
+    /// `written` sits inside `input` and `reasoning` inside `output`, as `AIUsage` counts them.
+    func cost(input: Int, cached: Int, written: Int, output: Int, reasoning: Int) -> Double {
+        let prompt = input + cached
+        let prices = tiers.last { prompt > $0.above }?.prices ?? base
+        let plainInput = Double(max(input - written, 0)) * prices.input
+        let writes = Double(written) * (prices.cacheWrite ?? prices.input)
+        let reads = Double(cached) * (prices.cacheRead ?? prices.input)
+        let answer = Double(max(output - reasoning, 0)) * prices.output
+        let thinking = Double(reasoning) * (prices.reasoning ?? prices.output)
+        return (plainInput + writes + reads + answer + thinking) / 1_000_000
+    }
+}
+
 struct AIHTTPConfiguration: Equatable, Sendable {
     enum APIShape: String, Sendable {
         case openAICompatible
@@ -378,11 +419,13 @@ struct AIHTTPConfiguration: Equatable, Sendable {
     let headers: [String: String]
     // Fork: the connection's say on sending reasoning back; nil follows the route's rules.
     let reasoningReplay: AIConnection.ReasoningReplay?
+    // Fork: prices a reply the route did not; nil leaves it unpriced.
+    let rates: AIModelRates?
 
     init(
         provider: AIProviderKind, baseURL: URL, model: String, effort: String? = nil,
         disablesThinking: Bool = false, headers: [String: String] = [:],
-        reasoningReplay: AIConnection.ReasoningReplay? = nil
+        reasoningReplay: AIConnection.ReasoningReplay? = nil, rates: AIModelRates? = nil
     ) {
         self.provider = provider
         self.baseURL = baseURL
@@ -391,6 +434,7 @@ struct AIHTTPConfiguration: Equatable, Sendable {
         self.disablesThinking = disablesThinking
         self.headers = headers
         self.reasoningReplay = reasoningReplay
+        self.rates = rates
     }
 
     var shape: APIShape { provider.apiShape }

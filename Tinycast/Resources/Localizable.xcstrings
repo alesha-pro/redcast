@@ -1,9 +1,7 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
-    "" : {
-
-    },
+    "" : {},
     "%@ %@ is available" : {
       "localizations" : {
         "de" : {
@@ -1934,6 +1932,58 @@
         }
       }
     },
+    "%@ history could not be read" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verlauf von %@ konnte nicht gelesen werden"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pudo leer el historial de %@"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossible de lire l’historique de %@"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@の履歴を読み込めませんでした"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 기록을 읽을 수 없습니다"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Não foi possível ler o histórico do %@"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не удалось прочитать историю %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法读取 %@ 的历史记录"
+          }
+        }
+      }
+    },
     "%@ in · %@ out" : {
       "localizations" : {
         "de" : {
@@ -1988,58 +2038,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "输入 %1$@ · 输出 %2$@"
-          }
-        }
-      }
-    },
-    "%@ history could not be read" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Verlauf von %@ konnte nicht gelesen werden"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No se pudo leer el historial de %@"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Impossible de lire l’historique de %@"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@の履歴を読み込めませんでした"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ 기록을 읽을 수 없습니다"
-          }
-        },
-        "pt" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Não foi possível ler o histórico do %@"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Не удалось прочитать историю %@"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "无法读取 %@ 的历史记录"
           }
         }
       }
@@ -3702,64 +3700,6 @@
         }
       }
     },
-    "%@ today · %@ this week · %@ this month (UTC)" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%1$@ heute · %2$@ diese Woche · %3$@ diesen Monat (UTC)"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%1$@ today · %2$@ this week · %3$@ this month (UTC)"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%1$@ hoy · %2$@ esta semana · %3$@ este mes (UTC)"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%1$@ aujourd’hui · %2$@ cette semaine · %3$@ ce mois-ci (UTC)"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "今日 %1$@ · 今週 %2$@ · 今月 %3$@（UTC）"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "오늘 %1$@ · 이번 주 %2$@ · 이번 달 %3$@ (UTC)"
-          }
-        },
-        "pt" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%1$@ hoje · %2$@ esta semana · %3$@ este mês (UTC)"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Сегодня %1$@ · за неделю %2$@ · за месяц %3$@ (UTC)"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "今天 %1$@ · 本周 %2$@ · 本月 %3$@（UTC）"
-          }
-        }
-      }
-    },
     "%@ spent today." : {
       "localizations" : {
         "de" : {
@@ -3918,6 +3858,64 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%1$@ 在 %2$@ 中因错误而停止"
+          }
+        }
+      }
+    },
+    "%@ today · %@ this week · %@ this month (UTC)" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ heute · %2$@ diese Woche · %3$@ diesen Monat (UTC)"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ today · %2$@ this week · %3$@ this month (UTC)"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ hoy · %2$@ esta semana · %3$@ este mes (UTC)"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ aujourd’hui · %2$@ cette semaine · %3$@ ce mois-ci (UTC)"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "今日 %1$@ · 今週 %2$@ · 今月 %3$@（UTC）"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "오늘 %1$@ · 이번 주 %2$@ · 이번 달 %3$@ (UTC)"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ hoje · %2$@ esta semana · %3$@ este mês (UTC)"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сегодня %1$@ · за неделю %2$@ · за месяц %3$@ (UTC)"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "今天 %1$@ · 本周 %2$@ · 本月 %3$@（UTC）"
           }
         }
       }
@@ -15558,7 +15556,7 @@
         }
       }
     },
-    "%lld results in %@ s" : {
+    "%lld replies" : {
       "localizations" : {
         "de" : {
           "variations" : {
@@ -15566,13 +15564,13 @@
               "one" : {
                 "stringUnit" : {
                   "state" : "translated",
-                  "value" : "%1$lld Ergebnis in %2$@ s"
+                  "value" : "%lld Antwort"
                 }
               },
               "other" : {
                 "stringUnit" : {
                   "state" : "translated",
-                  "value" : "%1$lld Ergebnisse in %2$@ s"
+                  "value" : "%lld Antworten"
                 }
               }
             }
@@ -15584,13 +15582,13 @@
               "one" : {
                 "stringUnit" : {
                   "state" : "translated",
-                  "value" : "%1$lld result in %2$@ s"
+                  "value" : "%lld reply"
                 }
               },
               "other" : {
                 "stringUnit" : {
                   "state" : "translated",
-                  "value" : "%1$lld results in %2$@ s"
+                  "value" : "%lld replies"
                 }
               }
             }
@@ -15602,19 +15600,19 @@
               "many" : {
                 "stringUnit" : {
                   "state" : "translated",
-                  "value" : "%1$lld resultados en %2$@ s"
+                  "value" : "%lld respuestas"
                 }
               },
               "one" : {
                 "stringUnit" : {
                   "state" : "translated",
-                  "value" : "%1$lld resultado en %2$@ s"
+                  "value" : "%lld respuesta"
                 }
               },
               "other" : {
                 "stringUnit" : {
                   "state" : "translated",
-                  "value" : "%1$lld resultados en %2$@ s"
+                  "value" : "%lld respuestas"
                 }
               }
             }
@@ -15626,19 +15624,19 @@
               "many" : {
                 "stringUnit" : {
                   "state" : "translated",
-                  "value" : "%1$lld de résultats en %2$@ s"
+                  "value" : "%lld de réponses"
                 }
               },
               "one" : {
                 "stringUnit" : {
                   "state" : "translated",
-                  "value" : "%1$lld résultat en %2$@ s"
+                  "value" : "%lld réponse"
                 }
               },
               "other" : {
                 "stringUnit" : {
                   "state" : "translated",
-                  "value" : "%1$lld résultats en %2$@ s"
+                  "value" : "%lld réponses"
                 }
               }
             }
@@ -15650,7 +15648,7 @@
               "other" : {
                 "stringUnit" : {
                   "state" : "translated",
-                  "value" : "%2$@秒で%1$lld件の結果"
+                  "value" : "返信%lld件"
                 }
               }
             }
@@ -15662,7 +15660,7 @@
               "other" : {
                 "stringUnit" : {
                   "state" : "translated",
-                  "value" : "%2$@초 만에 결과 %1$lld개"
+                  "value" : "응답 %lld개"
                 }
               }
             }
@@ -15674,19 +15672,19 @@
               "many" : {
                 "stringUnit" : {
                   "state" : "translated",
-                  "value" : "%1$lld de resultados em %2$@ s"
+                  "value" : "%lld de respostas"
                 }
               },
               "one" : {
                 "stringUnit" : {
                   "state" : "translated",
-                  "value" : "%1$lld resultado em %2$@ s"
+                  "value" : "%lld resposta"
                 }
               },
               "other" : {
                 "stringUnit" : {
                   "state" : "translated",
-                  "value" : "%1$lld resultados em %2$@ s"
+                  "value" : "%lld respostas"
                 }
               }
             }
@@ -15698,25 +15696,25 @@
               "few" : {
                 "stringUnit" : {
                   "state" : "translated",
-                  "value" : "%1$lld результата за %2$@ с"
+                  "value" : "%lld ответа"
                 }
               },
               "many" : {
                 "stringUnit" : {
                   "state" : "translated",
-                  "value" : "%1$lld результатов за %2$@ с"
+                  "value" : "%lld ответов"
                 }
               },
               "one" : {
                 "stringUnit" : {
                   "state" : "translated",
-                  "value" : "%1$lld результат за %2$@ с"
+                  "value" : "%lld ответ"
                 }
               },
               "other" : {
                 "stringUnit" : {
                   "state" : "translated",
-                  "value" : "%1$lld результата за %2$@ с"
+                  "value" : "%lld ответа"
                 }
               }
             }
@@ -15728,7 +15726,7 @@
               "other" : {
                 "stringUnit" : {
                   "state" : "translated",
-                  "value" : "%2$@ 秒内返回 %1$lld 条结果"
+                  "value" : "%lld 条回复"
                 }
               }
             }
@@ -15914,7 +15912,7 @@
         }
       }
     },
-    "%lld replies" : {
+    "%lld results in %@ s" : {
       "localizations" : {
         "de" : {
           "variations" : {
@@ -15922,13 +15920,13 @@
               "one" : {
                 "stringUnit" : {
                   "state" : "translated",
-                  "value" : "%lld Antwort"
+                  "value" : "%1$lld Ergebnis in %2$@ s"
                 }
               },
               "other" : {
                 "stringUnit" : {
                   "state" : "translated",
-                  "value" : "%lld Antworten"
+                  "value" : "%1$lld Ergebnisse in %2$@ s"
                 }
               }
             }
@@ -15940,13 +15938,13 @@
               "one" : {
                 "stringUnit" : {
                   "state" : "translated",
-                  "value" : "%lld reply"
+                  "value" : "%1$lld result in %2$@ s"
                 }
               },
               "other" : {
                 "stringUnit" : {
                   "state" : "translated",
-                  "value" : "%lld replies"
+                  "value" : "%1$lld results in %2$@ s"
                 }
               }
             }
@@ -15958,19 +15956,19 @@
               "many" : {
                 "stringUnit" : {
                   "state" : "translated",
-                  "value" : "%lld respuestas"
+                  "value" : "%1$lld resultados en %2$@ s"
                 }
               },
               "one" : {
                 "stringUnit" : {
                   "state" : "translated",
-                  "value" : "%lld respuesta"
+                  "value" : "%1$lld resultado en %2$@ s"
                 }
               },
               "other" : {
                 "stringUnit" : {
                   "state" : "translated",
-                  "value" : "%lld respuestas"
+                  "value" : "%1$lld resultados en %2$@ s"
                 }
               }
             }
@@ -15982,19 +15980,19 @@
               "many" : {
                 "stringUnit" : {
                   "state" : "translated",
-                  "value" : "%lld de réponses"
+                  "value" : "%1$lld de résultats en %2$@ s"
                 }
               },
               "one" : {
                 "stringUnit" : {
                   "state" : "translated",
-                  "value" : "%lld réponse"
+                  "value" : "%1$lld résultat en %2$@ s"
                 }
               },
               "other" : {
                 "stringUnit" : {
                   "state" : "translated",
-                  "value" : "%lld réponses"
+                  "value" : "%1$lld résultats en %2$@ s"
                 }
               }
             }
@@ -16006,7 +16004,7 @@
               "other" : {
                 "stringUnit" : {
                   "state" : "translated",
-                  "value" : "返信%lld件"
+                  "value" : "%2$@秒で%1$lld件の結果"
                 }
               }
             }
@@ -16018,7 +16016,7 @@
               "other" : {
                 "stringUnit" : {
                   "state" : "translated",
-                  "value" : "응답 %lld개"
+                  "value" : "%2$@초 만에 결과 %1$lld개"
                 }
               }
             }
@@ -16030,19 +16028,19 @@
               "many" : {
                 "stringUnit" : {
                   "state" : "translated",
-                  "value" : "%lld de respostas"
+                  "value" : "%1$lld de resultados em %2$@ s"
                 }
               },
               "one" : {
                 "stringUnit" : {
                   "state" : "translated",
-                  "value" : "%lld resposta"
+                  "value" : "%1$lld resultado em %2$@ s"
                 }
               },
               "other" : {
                 "stringUnit" : {
                   "state" : "translated",
-                  "value" : "%lld respostas"
+                  "value" : "%1$lld resultados em %2$@ s"
                 }
               }
             }
@@ -16054,25 +16052,25 @@
               "few" : {
                 "stringUnit" : {
                   "state" : "translated",
-                  "value" : "%lld ответа"
+                  "value" : "%1$lld результата за %2$@ с"
                 }
               },
               "many" : {
                 "stringUnit" : {
                   "state" : "translated",
-                  "value" : "%lld ответов"
+                  "value" : "%1$lld результатов за %2$@ с"
                 }
               },
               "one" : {
                 "stringUnit" : {
                   "state" : "translated",
-                  "value" : "%lld ответ"
+                  "value" : "%1$lld результат за %2$@ с"
                 }
               },
               "other" : {
                 "stringUnit" : {
                   "state" : "translated",
-                  "value" : "%lld ответа"
+                  "value" : "%1$lld результата за %2$@ с"
                 }
               }
             }
@@ -16084,7 +16082,7 @@
               "other" : {
                 "stringUnit" : {
                   "state" : "translated",
-                  "value" : "%lld 条回复"
+                  "value" : "%2$@ 秒内返回 %1$lld 条结果"
                 }
               }
             }
@@ -20854,58 +20852,6 @@
         }
       }
     },
-    "A reply stops after this many; Unlimited runs until Stop. API connections, Codex and Claude." : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Eine Antwort endet nach dieser Anzahl; „Unbegrenzt“ läuft bis „Stopp“. API-Verbindungen, Codex und Claude."
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Una respuesta se detiene al alcanzar este número; Sin límite continúa hasta que pulses Detener. Conexiones de API, Codex y Claude."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Maximum de cycles d’outils par réponse. « Illimité » supprime cette limite. Connexions API, Codex et Claude."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "返信はこの数に達すると停止します。「無制限」では停止するまで実行されます。API接続、Codex、Claudeが対象です。"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "응답은 이 횟수 이후에 중단되며, ‘제한 없음’은 중단할 때까지 계속됩니다. API 연결, Codex 및 Claude에 적용됩니다."
-          }
-        },
-        "pt" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Uma resposta para após esta quantidade; Ilimitado continua até você parar. Conexões de API, Codex e Claude."
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ответ останавливается после этого числа; «Без ограничений» работает до нажатия «Остановить». API-подключения, Codex и Claude."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "回复在达到此数量后停止；“无限制”会一直运行，直到你点按“停止”。适用于 API 连接、Codex 和 Claude。"
-          }
-        }
-      }
-    },
     "A reply stops after this many; Unlimited runs until Stop. API connections, Codex and Claude; an agent follows its own Effort." : {
       "localizations" : {
         "de" : {
@@ -21068,58 +21014,6 @@
         }
       }
     },
-    "A tiny, native macOS launcher." : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ein winziger, nativer macOS-Launcher."
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Un lanzador de macOS diminuto y nativo."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Un lanceur léger conçu pour macOS."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "小さくてネイティブなmacOSランチャー。"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "작고 네이티브한 macOS 런처."
-          }
-        },
-        "pt" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Um iniciador minúsculo e nativo para macOS."
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Крошечный нативный лаунчер для macOS."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "小巧的原生 macOS 启动器。"
-          }
-        }
-      }
-    },
     "A window layout with this name already exists." : {
       "localizations" : {
         "de" : {
@@ -21168,58 +21062,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "已存在同名的窗口布局。"
-          }
-        }
-      }
-    },
-    "Add Header" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Header hinzufügen"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Añadir encabezado"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ajouter un en-tête"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ヘッダを追加"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "헤더 추가"
-          }
-        },
-        "pt" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Adicionar cabeçalho"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Добавить заголовок"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "添加标头"
           }
         }
       }
@@ -21329,58 +21171,6 @@
         }
       }
     },
-    "AI Chat Window" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "AI-Chat-Fenster"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ventana de AI Chat"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Fenêtre AI Chat"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "AI Chat ウインドウ"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "AI Chat 윈도우"
-          }
-        },
-        "pt" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Janela do AI Chat"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Окно AI Chat"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "AI Chat 窗口"
-          }
-        }
-      }
-    },
     "AI Chat History" : {
       "localizations" : {
         "de" : {
@@ -21429,6 +21219,58 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "AI 聊天记录"
+          }
+        }
+      }
+    },
+    "AI Chat Window" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AI-Chat-Fenster"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ventana de AI Chat"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fenêtre AI Chat"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AI Chat ウインドウ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AI Chat 윈도우"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Janela do AI Chat"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Окно AI Chat"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AI Chat 窗口"
           }
         }
       }
@@ -21689,214 +21531,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "AI 命令"
-          }
-        }
-      }
-    },
-    "Allows dictating text." : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ermöglicht die Texteingabe per Diktat."
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Permite dictar texto."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Permet de dicter du texte."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "音声でのテキスト入力を許可します。"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "텍스트를 받아쓸 수 있습니다."
-          }
-        },
-        "pt" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Permite ditar texto."
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Позволяет вводить текст под диктовку."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "允许听写文本。"
-          }
-        }
-      }
-    },
-    "Allow “%@” to use AI?" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "„%@“ die Nutzung von KI erlauben?"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "¿Permitir que “%@” use la IA?"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Autoriser « %@ » à utiliser l’IA ?"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "「%@」にAIの使用を許可しますか?"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "“%@”에서 AI를 사용하도록 허용하시겠습니까?"
-          }
-        },
-        "pt" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Permitir que “%@” use a IA?"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Разрешить «%@» использовать ИИ?"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "要允许“%@”使用 AI 吗？"
-          }
-        }
-      }
-    },
-    "Allows File Search and finding protected app leftovers." : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ermöglicht die Dateisuche und das Finden geschützter App-Reste."
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Permite buscar archivos y encontrar archivos residuales protegidos de las apps."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Permet la recherche de fichiers et la détection des fichiers résiduels protégés des apps."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ファイル検索と、保護されたアプリの残存ファイルの検出を許可します。"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "파일 검색과 보호된 앱 잔여 파일 찾기를 허용합니다."
-          }
-        },
-        "pt" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Permite pesquisar arquivos e encontrar arquivos residuais protegidos de apps."
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Позволяет искать файлы и находить защищённые остаточные файлы приложений."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "允许文件搜索和查找受保护的应用残留文件。"
-          }
-        }
-      }
-    },
-    "Allows joining your next meeting." : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ermöglicht den Beitritt zu deinem nächsten Meeting."
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Permite unirte a tu próxima reunión."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Permet de rejoindre votre prochaine réunion."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "次のミーティングへの参加を許可します。"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "다음 미팅에 참가할 수 있습니다."
-          }
-        },
-        "pt" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Permite entrar na sua próxima reunião."
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Позволяет присоединиться к следующей встрече."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "允许加入你的下一场会议。"
           }
         }
       }
@@ -24042,6 +23676,58 @@
         }
       }
     },
+    "Add Header" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Header hinzufügen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Añadir encabezado"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ajouter un en-tête"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ヘッダを追加"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "헤더 추가"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Adicionar cabeçalho"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Добавить заголовок"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "添加标头"
+          }
+        }
+      }
+    },
     "Add MCP Server" : {
       "localizations" : {
         "de" : {
@@ -26117,6 +25803,58 @@
         }
       }
     },
+    "Agent Sessions" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Agentensitzungen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sesiones de agentes"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sessions d’agents"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "エージェントセッション"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "에이전트 세션"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sessões de agentes"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сеансы агентов"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "智能体会话"
+          }
+        }
+      }
+    },
     "Agent Settings…" : {
       "localizations" : {
         "de" : {
@@ -26269,58 +26007,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "智能体计划"
-          }
-        }
-      }
-    },
-    "Agent Sessions" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Agentensitzungen"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sesiones de agentes"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sessions d’agents"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "エージェントセッション"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "에이전트 세션"
-          }
-        },
-        "pt" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sessões de agentes"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Сеансы агентов"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "智能体会话"
           }
         }
       }
@@ -27877,54 +27563,210 @@
         }
       }
     },
-    "Allows pasting clipboard items and expanded snippets into active apps." : {
+    "Allow “%@” to use AI?" : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Erlaubt das Einsetzen von Objekten aus der Zwischenablage und erweiterten Textbausteinen in aktive Apps."
+            "value" : "„%@“ die Nutzung von KI erlauben?"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Permite pegar elementos del portapapeles y fragmentos expandidos en las apps activas."
+            "value" : "¿Permitir que “%@” use la IA?"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Permet de coller les éléments du presse-papiers et d’insérer des extraits dans l’app active."
+            "value" : "Autoriser « %@ » à utiliser l’IA ?"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "クリップボードの項目や展開したスニペットを、使用中のAppにペーストできるようにします。"
+            "value" : "「%@」にAIの使用を許可しますか?"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "클립보드 항목과 확장된 스니펫을 활성 앱에 붙여넣을 수 있습니다."
+            "value" : "“%@”에서 AI를 사용하도록 허용하시겠습니까?"
           }
         },
         "pt" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Permite colar itens da área de transferência e trechos expandidos em apps ativos."
+            "value" : "Permitir que “%@” use a IA?"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Позволяет вставлять объекты из буфера обмена и раскрытые сниппеты в активные приложения."
+            "value" : "Разрешить «%@» использовать ИИ?"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "允许将剪贴板项目和展开的文本片段粘贴到活跃的 App 中。"
+            "value" : "要允许“%@”使用 AI 吗？"
+          }
+        }
+      }
+    },
+    "Allows File Search and finding protected app leftovers." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ermöglicht die Dateisuche und das Finden geschützter App-Reste."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Permite buscar archivos y encontrar archivos residuales protegidos de las apps."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Permet la recherche de fichiers et la détection des fichiers résiduels protégés des apps."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ファイル検索と、保護されたアプリの残存ファイルの検出を許可します。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "파일 검색과 보호된 앱 잔여 파일 찾기를 허용합니다."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Permite pesquisar arquivos e encontrar arquivos residuais protegidos de apps."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Позволяет искать файлы и находить защищённые остаточные файлы приложений."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "允许文件搜索和查找受保护的应用残留文件。"
+          }
+        }
+      }
+    },
+    "Allows dictating text." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ermöglicht die Texteingabe per Diktat."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Permite dictar texto."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Permet de dicter du texte."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "音声でのテキスト入力を許可します。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "텍스트를 받아쓸 수 있습니다."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Permite ditar texto."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Позволяет вводить текст под диктовку."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "允许听写文本。"
+          }
+        }
+      }
+    },
+    "Allows joining your next meeting." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ermöglicht den Beitritt zu deinem nächsten Meeting."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Permite unirte a tu próxima reunión."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Permet de rejoindre votre prochaine réunion."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "次のミーティングへの参加を許可します。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "다음 미팅에 참가할 수 있습니다."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Permite entrar na sua próxima reunião."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Позволяет присоединиться к следующей встрече."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "允许加入你的下一场会议。"
           }
         }
       }
@@ -27977,6 +27819,58 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "允许粘贴内容和管理窗口。"
+          }
+        }
+      }
+    },
+    "Allows pasting clipboard items and expanded snippets into active apps." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Erlaubt das Einsetzen von Objekten aus der Zwischenablage und erweiterten Textbausteinen in aktive Apps."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Permite pegar elementos del portapapeles y fragmentos expandidos en las apps activas."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Permet de coller les éléments du presse-papiers et d’insérer des extraits dans l’app active."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "クリップボードの項目や展開したスニペットを、使用中のAppにペーストできるようにします。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "클립보드 항목과 확장된 스니펫을 활성 앱에 붙여넣을 수 있습니다."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Permite colar itens da área de transferência e trechos expandidos em apps ativos."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Позволяет вставлять объекты из буфера обмена и раскрытые сниппеты в активные приложения."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "允许将剪贴板项目和展开的文本片段粘贴到活跃的 App 中。"
           }
         }
       }
@@ -32277,6 +32171,58 @@
         }
       }
     },
+    "Ask by Voice" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Per Sprache fragen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Preguntar por voz"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Demander à voix haute"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "音声で質問"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "음성으로 묻기"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Perguntar por Voz"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Спросить голосом"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "语音提问"
+          }
+        }
+      }
+    },
     "Ask me" : {
       "localizations" : {
         "de" : {
@@ -32377,58 +32323,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "“询问我”仅在你使用 Mac 时显示对话框，且按 Return 键为“不允许”。否则请求会被拒绝，并告知智能体。"
-          }
-        }
-      }
-    },
-    "Ask by Voice" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Per Sprache fragen"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Preguntar por voz"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Demander à voix haute"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "音声で質問"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "음성으로 묻기"
-          }
-        },
-        "pt" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Perguntar por Voz"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Спросить голосом"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "语音提问"
           }
         }
       }
@@ -35034,6 +34928,58 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "平铺窗口与屏幕边缘之间。"
+          }
+        }
+      }
+    },
+    "Billing" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abrechnung"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Facturación"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Facturation"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "課金"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "요금 청구"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cobrança"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Оплата"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "计费方式"
           }
         }
       }
@@ -40750,58 +40696,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "检查更新"
-          }
-        }
-      }
-    },
-    "Check for Updates…" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Nach Updates suchen …"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Buscar actualizaciones…"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Rechercher les mises à jour…"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "アップデートを確認…"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "업데이트 확인…"
-          }
-        },
-        "pt" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Buscar atualizações…"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Проверить обновления…"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "检查更新…"
           }
         }
       }
@@ -52825,58 +52719,6 @@
         }
       }
     },
-    "Couldn’t save the clipboard entry" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Der Eintrag im Zwischenablageverlauf konnte nicht gespeichert werden"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No se pudo guardar la entrada del portapapeles"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Impossible d’enregistrer l’entrée du presse-papiers"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "クリップボードの項目を保存できませんでした"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "클립보드 항목을 저장할 수 없습니다"
-          }
-        },
-        "pt" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Não foi possível salvar a entrada da área de transferência"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Не удалось сохранить запись буфера обмена"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "无法保存剪贴板条目"
-          }
-        }
-      }
-    },
     "Couldn't read the chat history." : {
       "localizations" : {
         "de" : {
@@ -54173,6 +54015,58 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "无法读取文本"
+          }
+        }
+      }
+    },
+    "Couldn’t save the clipboard entry" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der Eintrag im Zwischenablageverlauf konnte nicht gespeichert werden"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pudo guardar la entrada del portapapeles"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossible d’enregistrer l’entrée du presse-papiers"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "クリップボードの項目を保存できませんでした"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "클립보드 항목을 저장할 수 없습니다"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Não foi possível salvar a entrada da área de transferência"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не удалось сохранить запись буфера обмена"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法保存剪贴板条目"
           }
         }
       }
@@ -62371,58 +62265,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "电流"
-          }
-        }
-      }
-    },
-    "Email" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "E-Mail"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Correo electrónico"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "E-mail"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "メール"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "이메일"
-          }
-        },
-        "pt" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "E-mail"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Электронная почта"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "电子邮件"
           }
         }
       }
@@ -70821,110 +70663,6 @@
         }
       }
     },
-    "Finished" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Fertig"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Terminado"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Terminé"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "完了"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "완료"
-          }
-        },
-        "pt" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Concluído"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Готово"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "已完成"
-          }
-        }
-      }
-    },
-    "Finished %@" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Fertig um %@"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Terminado a las %@"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Terminé à %@"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@に完了"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@에 완료"
-          }
-        },
-        "pt" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Concluído às %@"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Готово в %@"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ 完成"
-          }
-        }
-      }
-    },
     "Finish signing in on the page that opened." : {
       "localizations" : {
         "de" : {
@@ -71025,6 +70763,110 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "请先完成当前的听写。"
+          }
+        }
+      }
+    },
+    "Finished" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fertig"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Terminado"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Terminé"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "完了"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "완료"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Concluído"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Готово"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已完成"
+          }
+        }
+      }
+    },
+    "Finished %@" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fertig um %@"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Terminado a las %@"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Terminé à %@"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@に完了"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@에 완료"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Concluído às %@"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Готово в %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 完成"
           }
         }
       }
@@ -72802,58 +72644,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "四等分"
-          }
-        }
-      }
-    },
-    "Free and open source, funded out of pocket." : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Kostenlos und Open Source, aus eigener Tasche finanziert."
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Gratis y de código abierto, financiado de nuestro bolsillo."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Gratuit et open source, financé par son développeur."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "無料のオープンソースで、自費で運営しています。"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "무료 오픈 소스이며, 개인 비용으로 운영됩니다."
-          }
-        },
-        "pt" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Gratuito e de código aberto, financiado do próprio bolso."
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Бесплатно, с открытым исходным кодом, разработка ведётся за личный счёт."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "免费且开源，由个人出资维持。"
           }
         }
       }
@@ -75310,6 +75100,58 @@
         }
       }
     },
+    "Hidden" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ausgeblendet"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Oculto"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Masqué"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "非表示"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "가려짐"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Oculto"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Скрыто"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已隐藏"
+          }
+        }
+      }
+    },
     "Hidden Files Hidden" : {
       "localizations" : {
         "de" : {
@@ -75514,58 +75356,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "已隐藏。快捷键仍然有效。"
-          }
-        }
-      }
-    },
-    "Hidden" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ausgeblendet"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Oculto"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Masqué"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "非表示"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "가려짐"
-          }
-        },
-        "pt" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Oculto"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Скрыто"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "已隐藏"
           }
         }
       }
@@ -76659,6 +76449,274 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "历史记录"
+          }
+        }
+      }
+    },
+    "History %@, %lld of %lld messages sent" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verlauf %1$@, %2$lld von %3$#@n@ gesendet"
+          },
+          "substitutions" : {
+            "n" : {
+              "argNum" : 3,
+              "formatSpecifier" : "lld",
+              "variations" : {
+                "plural" : {
+                  "one" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%lld Nachricht"
+                    }
+                  },
+                  "other" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%lld Nachrichten"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "History %1$@, %2$lld of %3$#@n@ sent"
+          },
+          "substitutions" : {
+            "n" : {
+              "argNum" : 3,
+              "formatSpecifier" : "lld",
+              "variations" : {
+                "plural" : {
+                  "one" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%lld message"
+                    }
+                  },
+                  "other" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%lld messages"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Historial %1$@, %2$lld de %3$#@n@ enviados"
+          },
+          "substitutions" : {
+            "n" : {
+              "argNum" : 3,
+              "formatSpecifier" : "lld",
+              "variations" : {
+                "plural" : {
+                  "many" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%lld de mensajes"
+                    }
+                  },
+                  "one" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%lld mensaje"
+                    }
+                  },
+                  "other" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%lld mensajes"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Historique %1$@, %2$lld sur %3$#@n@"
+          },
+          "substitutions" : {
+            "n" : {
+              "argNum" : 3,
+              "formatSpecifier" : "lld",
+              "variations" : {
+                "plural" : {
+                  "many" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%lld de messages envoyés"
+                    }
+                  },
+                  "one" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%lld message envoyé"
+                    }
+                  },
+                  "other" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%lld messages envoyés"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "履歴 %1$@、%3$#@n@中 %2$lld 件を送信"
+          },
+          "substitutions" : {
+            "n" : {
+              "argNum" : 3,
+              "formatSpecifier" : "lld",
+              "variations" : {
+                "plural" : {
+                  "other" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%lld 件のメッセージ"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "기록 %1$@, 메시지 %3$#@n@ 중 %2$lld개 전송됨"
+          },
+          "substitutions" : {
+            "n" : {
+              "argNum" : 3,
+              "formatSpecifier" : "lld",
+              "variations" : {
+                "plural" : {
+                  "other" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%lld개"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Histórico %1$@, %2$lld de %3$#@n@ enviadas"
+          },
+          "substitutions" : {
+            "n" : {
+              "argNum" : 3,
+              "formatSpecifier" : "lld",
+              "variations" : {
+                "plural" : {
+                  "many" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%lld de mensagens"
+                    }
+                  },
+                  "one" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%lld mensagem"
+                    }
+                  },
+                  "other" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%lld mensagens"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "История %1$@, отправлено %2$lld из %3$#@n@"
+          },
+          "substitutions" : {
+            "n" : {
+              "argNum" : 3,
+              "formatSpecifier" : "lld",
+              "variations" : {
+                "plural" : {
+                  "few" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%lld сообщений"
+                    }
+                  },
+                  "many" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%lld сообщений"
+                    }
+                  },
+                  "one" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%lld сообщения"
+                    }
+                  },
+                  "other" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%lld сообщения"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "历史记录 %1$@，已发送 %3$#@n@中的 %2$lld 条"
+          },
+          "substitutions" : {
+            "n" : {
+              "argNum" : 3,
+              "formatSpecifier" : "lld",
+              "variations" : {
+                "plural" : {
+                  "other" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%lld 条消息"
+                    }
+                  }
+                }
+              }
+            }
           }
         }
       }
@@ -84127,58 +84185,6 @@
         }
       }
     },
-    "Join the Tinycast community" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Der Tinycast-Community beitreten"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Únete a la comunidad de Tinycast"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Rejoindre la communauté Tinycast"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Tinycastコミュニティに参加"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Tinycast 커뮤니티 참여"
-          }
-        },
-        "pt" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Participe da comunidade do Tinycast"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Присоединяйтесь к сообществу Tinycast"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "加入 Tinycast 社区"
-          }
-        }
-      }
-    },
     "Joining" : {
       "localizations" : {
         "de" : {
@@ -84491,58 +84497,6 @@
         }
       }
     },
-    "Keep Window on Top" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Fenster im Vordergrund halten"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Mantener la ventana delante"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Garder la fenêtre au premier plan"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ウインドウを最前面に表示"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "윈도우를 항상 위에"
-          }
-        },
-        "pt" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Manter a janela na frente"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Поверх всех окон"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "窗口保持在最前"
-          }
-        }
-      }
-    },
     "Keep" : {
       "localizations" : {
         "de" : {
@@ -84591,6 +84545,58 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "保留"
+          }
+        }
+      }
+    },
+    "Keep Window on Top" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fenster im Vordergrund halten"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mantener la ventana delante"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Garder la fenêtre au premier plan"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ウインドウを最前面に表示"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "윈도우를 항상 위에"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Manter a janela na frente"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Поверх всех окон"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "窗口保持在最前"
           }
         }
       }
@@ -109506,58 +109512,6 @@
         }
       }
     },
-    "Open in AI Chat" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Im KI-Chat öffnen"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Abrir en Chat de IA"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ouvrir dans Conversation IA"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "AIチャットで開く"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "AI 채팅에서 열기"
-          }
-        },
-        "pt" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Abrir no Chat de IA"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Открыть в ИИ-чате"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "在 AI 聊天中打开"
-          }
-        }
-      }
-    },
     "Open in Browser" : {
       "localizations" : {
         "de" : {
@@ -113209,6 +113163,58 @@
         }
       }
     },
+    "Pay per token" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pro Token bezahlen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pago por token"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Paiement au jeton"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "トークンごとに支払い"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "토큰당 결제"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pagamento por token"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Оплата за токены"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "按 Token 付费"
+          }
+        }
+      }
+    },
     "People" : {
       "localizations" : {
         "de" : {
@@ -114302,58 +114308,6 @@
         }
       }
     },
-    "Polish" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Glätten"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Pulir"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Peaufiner"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "整える"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "다듬기"
-          }
-        },
-        "pt" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Polir"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Отшлифовать"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "润色"
-          }
-        }
-      }
-    },
     "Play a sound when recording starts and stops." : {
       "localizations" : {
         "de" : {
@@ -114454,6 +114408,58 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "播放提示音"
+          }
+        }
+      }
+    },
+    "Polish" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Glätten"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pulir"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Peaufiner"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "整える"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "다듬기"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Polir"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Отшлифовать"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "润色"
           }
         }
       }
@@ -115900,6 +115906,58 @@
         }
       }
     },
+    "Priced replies" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bepreiste Antworten"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Respuestas con precio"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Réponses chiffrées"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "料金算出済みの応答"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "가격이 계산된 응답"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Respostas com preço"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ответов с ценой"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已计价的回复"
+          }
+        }
+      }
+    },
     "Primary window" : {
       "localizations" : {
         "de" : {
@@ -116212,58 +116270,6 @@
         }
       }
     },
-    "Prompts go to a search engine: Codex's own, or the engines below on API models, where the model may also read a page you linked or a search found." : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Prompts werden an eine Suchmaschine gesendet: die von Codex oder, bei API-Modellen, die unten gewählten; dort kann das Modell auch eine Seite lesen, die du verlinkt hast oder die eine Suche gefunden hat."
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Las instrucciones se envían a un motor de búsqueda: el propio de Codex o, en los modelos de API, los de abajo, donde el modelo también puede leer una página que enlazaste o que encontró una búsqueda."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Les requêtes sont envoyées à un moteur de recherche : celui de Codex, ou ceux ci-dessous pour les modèles API, où le modèle peut aussi lire une page dont vous avez donné le lien ou qu’une recherche a trouvée."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "プロンプトは検索エンジンに送信されます。CodexではCodex自身の検索、APIモデルでは下のエンジンを使い、モデルはリンクしたページや検索で見つかったページを読むこともあります。"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "프롬프트가 검색 엔진으로 전송됩니다. Codex는 자체 검색을, API 모델은 아래 엔진을 사용하며, 이때 모델은 링크한 페이지나 검색으로 찾은 페이지를 읽을 수도 있습니다."
-          }
-        },
-        "pt" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Os prompts vão para um mecanismo de busca: o do próprio Codex ou, nos modelos de API, os mecanismos abaixo, e aí o modelo também pode ler uma página que você vinculou ou que uma busca encontrou."
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Запросы отправляются в поисковую систему: собственную у Codex или указанные ниже — у моделей API, и тогда модель может прочитать страницу, на которую вы дали ссылку или которую нашёл поиск."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "提示词会发送给搜索引擎：Codex 使用自己的搜索，API 模型使用下方的引擎，此时模型还可能读取你提供链接的页面或搜索找到的页面。"
-          }
-        }
-      }
-    },
     "Prompt" : {
       "localizations" : {
         "de" : {
@@ -116312,6 +116318,58 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "提示词"
+          }
+        }
+      }
+    },
+    "Prompts go to a search engine: Codex's own, or the engines below on API models, where the model may also read a page you linked or a search found." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prompts werden an eine Suchmaschine gesendet: die von Codex oder, bei API-Modellen, die unten gewählten; dort kann das Modell auch eine Seite lesen, die du verlinkt hast oder die eine Suche gefunden hat."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Las instrucciones se envían a un motor de búsqueda: el propio de Codex o, en los modelos de API, los de abajo, donde el modelo también puede leer una página que enlazaste o que encontró una búsqueda."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Les requêtes sont envoyées à un moteur de recherche : celui de Codex, ou ceux ci-dessous pour les modèles API, où le modèle peut aussi lire une page dont vous avez donné le lien ou qu’une recherche a trouvée."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "プロンプトは検索エンジンに送信されます。CodexではCodex自身の検索、APIモデルでは下のエンジンを使い、モデルはリンクしたページや検索で見つかったページを読むこともあります。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "프롬프트가 검색 엔진으로 전송됩니다. Codex는 자체 검색을, API 모델은 아래 엔진을 사용하며, 이때 모델은 링크한 페이지나 검색으로 찾은 페이지를 읽을 수도 있습니다."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Os prompts vão para um mecanismo de busca: o do próprio Codex ou, nos modelos de API, os mecanismos abaixo, e aí o modelo também pode ler uma página que você vinculou ou que uma busca encontrou."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Запросы отправляются в поисковую систему: собственную у Codex или указанные ниже — у моделей API, и тогда модель может прочитать страницу, на которую вы дали ссылку или которую нашёл поиск."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "提示词会发送给搜索引擎：Codex 使用自己的搜索，API 模型使用下方的引擎，此时模型还可能读取你提供链接的页面或搜索找到的页面。"
           }
         }
       }
@@ -143968,6 +144026,58 @@
         }
       }
     },
+    "Subscription" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abonnement"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Suscripción"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abonnement"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "サブスクリプション"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "구독"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Assinatura"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Подписка"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "订阅"
+          }
+        }
+      }
+    },
     "Suggested" : {
       "localizations" : {
         "de" : {
@@ -144333,58 +144443,6 @@
         }
       }
     },
-    "Support" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Unterstützung"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Apoyo"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Soutenir le développement"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "サポート"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "지원"
-          }
-        },
-        "pt" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Apoiar"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Поддержать"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "支持"
-          }
-        }
-      }
-    },
     "Support %@" : {
       "localizations" : {
         "de" : {
@@ -144437,58 +144495,6 @@
         }
       }
     },
-    "Support %@…" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ unterstützen…"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Apoyar a %@…"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Soutenir %@…"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@をサポート…"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ 지원…"
-          }
-        },
-        "pt" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Apoiar %@…"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Поддержать %@…"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "支持 %@…"
-          }
-        }
-      }
-    },
     "Support Tinycast" : {
       "localizations" : {
         "de" : {
@@ -144537,58 +144543,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "支持 Tinycast"
-          }
-        }
-      }
-    },
-    "Support…" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Unterstützen…"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Apoyar…"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Soutenir…"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "サポート…"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "지원…"
-          }
-        },
-        "pt" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Apoiar…"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Поддержать…"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "支持…"
           }
         }
       }
@@ -146157,6 +146111,58 @@
         }
       }
     },
+    "Tariff unknown" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tarif unbekannt"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tarifa desconocida"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tarif inconnu"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "料金不明"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "요금 알 수 없음"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tarifa desconhecida"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Тариф неизвестен"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "资费未知"
+          }
+        }
+      }
+    },
     "Task List" : {
       "localizations" : {
         "de" : {
@@ -146475,58 +146481,6 @@
         }
       }
     },
-    "Test" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Testen"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Probar"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Tester"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "テスト"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "테스트"
-          }
-        },
-        "pt" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Testar"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Проверить"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "测试"
-          }
-        }
-      }
-    },
     "Terminal session" : {
       "localizations" : {
         "de" : {
@@ -146575,6 +146529,58 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "终端会话"
+          }
+        }
+      }
+    },
+    "Test" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Testen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Probar"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tester"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "テスト"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "테스트"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Testar"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Проверить"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "测试"
           }
         }
       }
@@ -148123,162 +148129,6 @@
         }
       }
     },
-    "The agent's (%@)" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Wie beim Agenten (%@)"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "La del agente (%@)"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Celui de l’agent (%@)"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "エージェントの設定（%@）"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "에이전트 설정(%@)"
-          }
-        },
-        "pt" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "O do agente (%@)"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Как у агента (%@)"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "跟随智能体（%@）"
-          }
-        }
-      }
-    },
-    "The folder's AGENTS.md" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "AGENTS.md des Ordners"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "El AGENTS.md de la carpeta"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Le AGENTS.md du dossier"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "フォルダのAGENTS.md"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "폴더의 AGENTS.md"
-          }
-        },
-        "pt" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "O AGENTS.md da pasta"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "AGENTS.md папки"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "文件夹中的 AGENTS.md"
-          }
-        }
-      }
-    },
-    "The header “%@” is listed more than once." : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Der Header „%@“ ist mehrfach aufgeführt."
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "El encabezado “%@” aparece más de una vez."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "L’en-tête « %@ » figure plusieurs fois."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ヘッダ“%@”が複数回指定されています。"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "헤더 “%@”이(가) 두 번 이상 지정되었습니다."
-          }
-        },
-        "pt" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "O cabeçalho “%@” aparece mais de uma vez."
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Заголовок «%@» указан несколько раз."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "标头“%@”出现了多次。"
-          }
-        }
-      }
-    },
     "The Hyper Key can't work while Secure Input is on" : {
       "localizations" : {
         "de" : {
@@ -148487,58 +148337,6 @@
         }
       }
     },
-    "The agent couldn't start." : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Der Agent konnte nicht starten."
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "El agente no pudo empezar."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "L’agent n’a pas pu démarrer."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "エージェントを開始できませんでした。"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "에이전트를 시작하지 못했습니다."
-          }
-        },
-        "pt" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "O agente não conseguiu começar."
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Агенту не удалось начать."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "智能体无法启动。"
-          }
-        }
-      }
-    },
     "The account balance needs an OpenRouter management key." : {
       "localizations" : {
         "de" : {
@@ -148587,6 +148385,58 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "查看账户余额需要 OpenRouter 管理密钥。"
+          }
+        }
+      }
+    },
+    "The agent couldn't start." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der Agent konnte nicht starten."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El agente no pudo empezar."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L’agent n’a pas pu démarrer."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "エージェントを開始できませんでした。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "에이전트를 시작하지 못했습니다."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O agente não conseguiu começar."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Агенту не удалось начать."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "智能体无法启动。"
           }
         }
       }
@@ -148899,6 +148749,58 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "智能体已停止。"
+          }
+        }
+      }
+    },
+    "The agent's (%@)" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wie beim Agenten (%@)"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La del agente (%@)"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Celui de l’agent (%@)"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "エージェントの設定（%@）"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "에이전트 설정(%@)"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O do agente (%@)"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Как у агента (%@)"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "跟随智能体（%@）"
           }
         }
       }
@@ -150477,6 +150379,110 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "文件夹“%@”已不存在。"
+          }
+        }
+      }
+    },
+    "The folder's AGENTS.md" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AGENTS.md des Ordners"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El AGENTS.md de la carpeta"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le AGENTS.md du dossier"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "フォルダのAGENTS.md"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "폴더의 AGENTS.md"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O AGENTS.md da pasta"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AGENTS.md папки"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "文件夹中的 AGENTS.md"
+          }
+        }
+      }
+    },
+    "The header “%@” is listed more than once." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der Header „%@“ ist mehrfach aufgeführt."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El encabezado “%@” aparece más de una vez."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L’en-tête « %@ » figure plusieurs fois."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ヘッダ“%@”が複数回指定されています。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "헤더 “%@”이(가) 두 번 이상 지정되었습니다."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O cabeçalho “%@” aparece mais de uma vez."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Заголовок «%@» указан несколько раз."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "标头“%@”出现了多次。"
           }
         }
       }
@@ -159723,64 +159729,6 @@
         }
       }
     },
-    "Tinycast couldn't save the key to the Keychain." : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Redcast konnte den Schlüssel nicht im Schlüsselbund speichern."
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Redcast couldn't save the key to the Keychain."
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Redcast no pudo guardar la clave en el llavero."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Redcast n’a pas pu enregistrer la clé dans le trousseau."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Redcastはキーをキーチェーンに保存できませんでした。"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Redcast가 키체인에 키를 저장할 수 없습니다."
-          }
-        },
-        "pt" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "O Redcast não conseguiu salvar a chave no Acesso às Chaves."
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Redcast не смог сохранить ключ в связке ключей."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Redcast 无法将密钥存储到钥匙串。"
-          }
-        }
-      }
-    },
     "Tinycast couldn't save its schedules." : {
       "localizations" : {
         "de" : {
@@ -159835,6 +159783,64 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Redcast 无法保存其计划。"
+          }
+        }
+      }
+    },
+    "Tinycast couldn't save the key to the Keychain." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Redcast konnte den Schlüssel nicht im Schlüsselbund speichern."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Redcast couldn't save the key to the Keychain."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Redcast no pudo guardar la clave en el llavero."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Redcast n’a pas pu enregistrer la clé dans le trousseau."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Redcastはキーをキーチェーンに保存できませんでした。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Redcast가 키체인에 키를 저장할 수 없습니다."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O Redcast não conseguiu salvar a chave no Acesso às Chaves."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Redcast не смог сохранить ключ в связке ключей."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Redcast 无法将密钥存储到钥匙串。"
           }
         }
       }
@@ -167774,58 +167780,6 @@
         }
       }
     },
-    "Usage" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Nutzung"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Uso"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Utilisation"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "使用量"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "사용량"
-          }
-        },
-        "pt" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Uso"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Использование"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "用量"
-          }
-        }
-      }
-    },
     "Update…" : {
       "localizations" : {
         "de" : {
@@ -167874,6 +167828,58 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "更新…"
+          }
+        }
+      }
+    },
+    "Usage" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nutzung"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uso"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Utilisation"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "使用量"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "사용량"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uso"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Использование"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "用量"
           }
         }
       }
@@ -169971,58 +169977,6 @@
         }
       }
     },
-    "Waiting for a snippet to finish expanding." : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Warten auf den Abschluss einer Textbausteinerweiterung."
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Esperando a que termine de expandirse un fragmento."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "En attente de la fin de l’insertion d’un extrait."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "スニペットの展開が完了するのを待っています。"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "스니펫 확장이 끝나기를 기다리는 중입니다."
-          }
-        },
-        "pt" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Aguardando um trecho terminar de expandir."
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ожидание завершения развертывания сниппета."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "正在等待文本片段展开完成。"
-          }
-        }
-      }
-    },
     "Waiting for a shortcut…" : {
       "localizations" : {
         "de" : {
@@ -170071,6 +170025,58 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "正在聆听…"
+          }
+        }
+      }
+    },
+    "Waiting for a snippet to finish expanding." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Warten auf den Abschluss einer Textbausteinerweiterung."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esperando a que termine de expandirse un fragmento."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "En attente de la fin de l’insertion d’un extrait."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "スニペットの展開が完了するのを待っています。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "스니펫 확장이 끝나기를 기다리는 중입니다."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aguardando um trecho terminar de expandir."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ожидание завершения развертывания сниппета."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在等待文本片段展开完成。"
           }
         }
       }
@@ -170699,54 +170705,54 @@
         }
       }
     },
-    "Website" : {
+    "Week" : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Website"
+            "value" : "Woche"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Sitio web"
+            "value" : "Semana"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Site web"
+            "value" : "Semaine"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Webサイト"
+            "value" : "週"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "웹사이트"
+            "value" : "주"
           }
         },
         "pt" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Site"
+            "value" : "Semana"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Веб-сайт"
+            "value" : "Неделя"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "网站"
+            "value" : "周"
           }
         }
       }
@@ -170851,58 +170857,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "工作日 %@"
-          }
-        }
-      }
-    },
-    "Week" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Woche"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Semana"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Semaine"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "週"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "주"
-          }
-        },
-        "pt" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Semana"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Неделя"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "周"
           }
         }
       }
@@ -171696,6 +171650,58 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "App 支持时。"
+          }
+        }
+      }
+    },
+    "Whether AI Chat shows what a chat costs. Automatic recognises the API from its address and shows an estimate from its published prices. A subscription shows no cost." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Legt fest, ob AI Chat die Kosten eines Chats anzeigt. „Automatisch“ erkennt die API an ihrer Adresse und zeigt eine Schätzung anhand der veröffentlichten Preise. Bei einem Abonnement werden keine Kosten angezeigt."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Indica si AI Chat muestra lo que cuesta un chat. Automático reconoce la API por su dirección y muestra una estimación según sus precios publicados. Una suscripción no muestra ningún coste."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Indique si AI Chat affiche le coût d’une conversation. Automatique reconnaît l’API à son adresse et affiche une estimation d’après ses tarifs publiés. Un abonnement n’affiche aucun coût."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AI チャットにチャットの費用を表示するかどうかを指定します。「自動」はアドレスから API を判別し、公開価格に基づく概算を表示します。サブスクリプションでは費用を表示しません。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AI 채팅에 채팅 비용을 표시할지 정합니다. 자동은 주소로 API를 인식해 공개된 가격에 따른 추정치를 표시합니다. 구독은 비용을 표시하지 않습니다."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Define se o AI Chat mostra o custo de uma conversa. Automático reconhece a API pelo endereço e mostra uma estimativa com base nos preços publicados. Uma assinatura não mostra custo."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Показывать ли в AI Chat стоимость чата. «Автоматически» распознаёт API по адресу и показывает оценку по опубликованным ценам. Для подписки стоимость не показывается."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "决定 AI Chat 是否显示聊天费用。“自动”会根据地址识别 API，并按其公开价格显示估算费用。订阅不显示费用。"
           }
         }
       }
@@ -179309,58 +179315,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "~/dev/projects/my-project"
-          }
-        }
-      }
-    },
-    "© 2026 Abue Ammar · Released under AGPL-3.0" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "© 2026 Abue Ammar · Veröffentlicht unter AGPL-3.0"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "© 2026 Abue Ammar · Publicado bajo AGPL-3.0"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "© 2026 Abue Ammar · Publié sous licence AGPL-3.0"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "© 2026 Abue Ammar · AGPL-3.0で公開"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "© 2026 Abue Ammar · AGPL-3.0 라이선스로 배포"
-          }
-        },
-        "pt" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "© 2026 Abue Ammar · Lançado sob AGPL-3.0"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "© 2026 Abue Ammar · Выпущено под лицензией AGPL-3.0"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "© 2026 Abue Ammar · 基于 AGPL-3.0 发布"
           }
         }
       }

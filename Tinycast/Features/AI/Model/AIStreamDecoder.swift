@@ -240,6 +240,7 @@ struct AIStreamDecoder: Sendable {
             // Fork: a cache write is new input billed above it, so only a read counts as cached.
             let written = reported?.cacheCreationInputTokens ?? 0
             usage.inputTokens = reported?.inputTokens.map { $0 + written } ?? usage.inputTokens
+            if written > 0 { usage.cacheWrittenTokens = written }
             if let read = reported?.cacheReadInputTokens, read > 0 { usage.cachedInputTokens = read }
             return [.usage(usage)]
         case "message_delta":

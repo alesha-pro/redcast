@@ -268,9 +268,13 @@ struct AIUsage: Equatable, Sendable {
     var cachedInputTokens: Int?
     /// The part of `outputTokens` the model spent thinking.
     var reasoningTokens: Int?
-    /// The model's whole window, where a route reports it; only Claude's CLI does.
+    /// The model's whole window, where a route reports it: Claude's CLI and ACP's `usage_update`.
     var contextWindow: Int?
     var costUSD: Double?
+    /// Fork: what the window holds, where a route's counts add up a turn's rounds instead.
+    var heldTokens: Int?
+    /// Fork: the part of `inputTokens` that wrote the cache, priced above input; never stored.
+    var cacheWrittenTokens: Int?
 
     var totalTokens: Int? {
         guard let inputTokens, let outputTokens else { return nil }
@@ -279,7 +283,7 @@ struct AIUsage: Equatable, Sendable {
 
     /// What the conversation now occupies in the window: every prompt token plus the reply.
     var contextTokens: Int? {
-        totalTokens.map { $0 + (cachedInputTokens ?? 0) }
+        heldTokens ?? totalTokens.map { $0 + (cachedInputTokens ?? 0) }
     }
 }
 

@@ -48,16 +48,16 @@ struct HTTPAIProvider: AIProvider {
                         try Task.checkCancellation()
                         chunk.append(byte)
                         if byte == 0x0A {
-                            for event in try decoder.feed(chunk) { continuation.yield(event) }
+                            for event in try decoder.feed(chunk) { continuation.yield(priced(event)) }
                             chunk.removeAll(keepingCapacity: true)
                             if decoder.isTerminal { break }
                         }
                     }
                     if !chunk.isEmpty, !decoder.isTerminal {
-                        for event in try decoder.feed(chunk) { continuation.yield(event) }
+                        for event in try decoder.feed(chunk) { continuation.yield(priced(event)) }
                     }
                     if !decoder.isTerminal {
-                        for event in try decoder.finish() { continuation.yield(event) }
+                        for event in try decoder.finish() { continuation.yield(priced(event)) }
                     }
                     guard decoder.isTerminal else {
                         // Fork: a dropped stream may pass on a retry.
@@ -81,6 +81,12 @@ struct HTTPAIProvider: AIProvider {
             }
             continuation.onTermination = { _ in task.cancel() }
         }
+    }
+
+    /// Fork: per round, so a tool loop's sum of them is the turn's.
+    private func priced(_ event: AIStreamEvent) -> AIStreamEvent {
+        guard case .usage(let usage) = event else { return event }
+        return .usage(usage.priced(by: configuration.rates))
     }
 
     private func makeURLRequest(_ input: AIRequest) throws -> URLRequest {

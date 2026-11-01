@@ -28,10 +28,12 @@ below, and the `Fork:`-marked lines listed under [Upstream touches](#upstream-to
   model picker held. Otherwise `conversation_details.model` is decoded as `AIModelSelection` and keyed
   by source and model id, so neither effort nor JSON key order (Swift does not sort keys) splits one
   model into two lines. A missing or unreadable model is **Unknown model**.
-- **Costs are what each route reported, never estimates.** A line's cost is the sum of what its
-  replies cost. No price table exists: OpenRouter's figure is what it billed, Claude Code's and
-  OpenCode's are their own estimates. A reply with no cost stays unpriced and is told apart from one
-  that cost 0; the summary says "Cost reported for 12 of 30 replies" when only some were priced.
+- **Costs are what each reply stored, and most are estimates.** A line's cost is the sum of what its
+  replies cost. OpenRouter's figure is what it billed, Claude Code's (only with a key; on a
+  subscription it is dropped) and OpenCode's are their own estimates, and any other API billed per
+  token is priced from [`AIModelCatalog`](ai.md)'s published tariff as the reply is written. A reply
+  with no cost stays unpriced and is told apart from one that cost 0; a subscription's replies have
+  none, and the summary says "Cost reported for 12 of 30 replies" when only some were priced.
 - **An ACP reply costs what its session's total rose.** ACP reports cost as the session's running
   total (`usage_update.cost`), and each ACP reply stores it as it came. So in a chat bound to an ACP
   agent a reply counts its `cost_usd` minus the last priced reply's before it in that chat — taken

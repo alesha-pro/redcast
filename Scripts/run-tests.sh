@@ -841,6 +841,10 @@ run ai-provider-test       Tinycast/Features/Settings/AppSettingsKey.swift \
                            Tinycast/Features/ReasoningReplay/Model/*.swift \
                            Tinycast/Features/Agents/Model/ChatToolContent.swift \
                            Tinycast/Features/AI/Settings/AISettingsStore.swift
+run ai-model-catalog-test  Tinycast/Features/Settings/AppSettingsKey.swift \
+                           Tinycast/Features/AI/Model/*.swift \
+                           Tinycast/Features/ReasoningReplay/Model/*.swift \
+                           Tinycast/Features/Agents/Model/ChatToolContent.swift
 run ai-chat-test           Tinycast/Features/AI/Model/AIRequest.swift \
                            Tinycast/Features/Agents/Model/ChatToolContent.swift \
                            Tinycast/Features/AI/Model/AIConnection.swift \
@@ -910,6 +914,8 @@ run chat-workspace-test    $CW/Model/*.swift $CW/Service/*.swift $CW/Settings/Ch
                            Tinycast/Features/Agents/Model/ChatToolContent.swift \
                            Tinycast/Features/Agents/Model/ChatAccess.swift \
                            Tinycast/Features/AI/Model/AIConnection.swift \
+                           Tinycast/Features/AI/Model/AIModelCatalog.swift \
+                           Tinycast/Features/AI/Model/AIModelCatalogData.generated.swift \
                            Tinycast/Features/AI/Model/AIConversationOpenPolicy.swift \
                            Tinycast/Features/AI/Model/AppleIntelligence.swift \
                            Tinycast/Features/AI/Model/AIAttachmentPolicy.swift \
