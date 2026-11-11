@@ -17,6 +17,7 @@ struct QuicklinkCoordinatorTests {
         try await hotKeySelectedText()
         try await hotKeySelectedTextTargets()
         try await hotKeyCopiesOnce()
+        try hotKeyToggles()
         try await plainLink()
         try copying()
         try editing()
@@ -140,6 +141,7 @@ struct QuicklinkCoordinatorTests {
         try await Task.sleep(for: .milliseconds(1))
         expect(QuicklinkLauncher.opened.isEmpty, "only a shortcut passes the selected text")
 
+        fixture.palette.hidePalette()
         fixture.coordinator.openQuicklinkFromHotKey(id: fixture.link.id)
         await waitForOpen()
         expect(
@@ -198,6 +200,30 @@ struct QuicklinkCoordinatorTests {
         expect(
             both.injector.copies == 1 && both.core.messages == ["Couldn’t get the selected text"],
             "one shortcut press sends at most one ⌘C")
+    }
+
+    static func hotKeyToggles() throws {
+        let fixture = try Fixture(link: "https://example.com/?q={argument}")
+        defer { fixture.cleanUp() }
+        let otherRow = fixture.store.enabled.firstIndex { $0.id != fixture.link.id } ?? 0
+        fixture.coordinator.openQuicklinkFromHotKey(id: fixture.link.id)
+        expect(fixture.window.isVisible, "a shortcut owing values opens the prompt")
+        fixture.coordinator.openQuicklinkFromHotKey(id: fixture.link.id)
+        expect(
+            !fixture.window.isVisible && fixture.palette.shows == 1,
+            "the same shortcut again hides its own prompt")
+
+        fixture.coordinator.openQuicklinkFromHotKey(id: fixture.link.id)
+        fixture.core.palette.selection = otherRow
+        fixture.coordinator.openQuicklinkFromHotKey(id: fixture.link.id)
+        expect(
+            fixture.window.isVisible && fixture.palette.shows == 3,
+            "another row selected lands back on the shortcut's own row")
+
+        fixture.core.palette.query = "wiki"
+        fixture.core.palette.selection = 0
+        fixture.coordinator.openQuicklinkFromHotKey(id: fixture.link.id)
+        expect(!fixture.window.isVisible, "the selected row is read through the query's filter")
     }
 
     static func plainLink() async throws {
@@ -446,6 +472,7 @@ enum PaletteMode { case launcher, quicklinks, quicklinkEditor }
 @MainActor
 final class PaletteState {
     var mode = PaletteMode.launcher
+    var query = ""
     var selection = 0
     var commandArguments: [String: String] = [:]
     var pendingArgumentEntryID: String?
@@ -469,6 +496,7 @@ final class PaletteCoordinator {
         state.pendingArgumentEntryID = nil
     }
     var isVisible: Bool { window.isVisible }
+    func isShowing(_ mode: PaletteMode) -> Bool { window.isVisible && state.mode == mode }
     func hidePalette(restoreFocus: Bool = true) { window.isVisible = false }
 }
 

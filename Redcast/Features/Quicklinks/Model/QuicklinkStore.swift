@@ -70,6 +70,13 @@ final class QuicklinkStore {
     /// A disabled quicklink is offered nowhere, so every surface lists this, not `quicklinks`.
     var enabled: [Quicklink] { quicklinks.filter(\.isEnabled) }
 
+    func enabled(matching query: String, tag: String?) -> [Quicklink] {
+        let enabled = TagList.filter(enabled, by: tag, tags: \.tags)  // Fork: ⌘P tag filter
+        let query = query.trimmingCharacters(in: .whitespaces)
+        guard !query.isEmpty else { return enabled }
+        return enabled.filter { TagList.row(matching: query, texts: [$0.name], tags: $0.tags) }  // Fork: Tags
+    }
+
     func quicklink(id: UUID) -> Quicklink? {
         quicklinks.first { $0.id == id }
     }
