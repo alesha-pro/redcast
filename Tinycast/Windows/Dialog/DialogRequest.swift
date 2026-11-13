@@ -32,6 +32,9 @@ struct DialogRequest {
     var cancelIndex: Int
     /// The caller reads the result back out of the state object it passed in.
     var accessory: DialogAccessory?
+
+    /// Tab and Space walk the buttons only where no control of the accessory keeps focus itself.
+    var panelWalksActions: Bool { accessory?.holdsKeyFocus != true }
 }
 
 /// A dialog carries at most one control, so the cases are exclusive by construction.
@@ -44,6 +47,14 @@ enum DialogAccessory {
     var claimsArrowKeys: Bool {
         if case .volume = self { return true }
         return false
+    }
+
+    /// Whether its fields and chips sit in the key-view loop, so Tab stays the system's.
+    var holdsKeyFocus: Bool {
+        switch self {
+        case .snippetArguments, .clipboardText: true
+        case .volume: false
+        }
     }
 
     /// Whether ↵ belongs to a multi-line field, which leaves ⌘↵ to confirm the dialog.

@@ -117,9 +117,10 @@ final class DialogController: NSObject, NSWindowDelegate {
                 case nil, .volume: metrics.size.dialogCompactWidth
                 case .snippetArguments, .clipboardText: metrics.size.dialogWidth
                 }
+            let focus = DialogFocusState()
             let content = hostingView(
                 DialogView(
-                    request: request, width: width,
+                    request: request, width: width, focus: focus,
                     onChoose: { [weak self] index in
                         self?.finish(index)
                     }),
@@ -127,6 +128,7 @@ final class DialogController: NSObject, NSWindowDelegate {
             let panel = DialogPanel(content: content, cornerRadius: metrics.radius.panel)
             panel.handlesArrowKeys = request.accessory?.claimsArrowKeys ?? false
             panel.acceptsLineBreaks = request.accessory?.acceptsLineBreaks ?? false
+            panel.walksActions = request.panelWalksActions
             panel.delegate = self
             panel.onKey = { [weak self] key in
                 guard let self else { return }
@@ -139,6 +141,12 @@ final class DialogController: NSObject, NSWindowDelegate {
                     // Keying the slider lands on the same values Volume Up/Down produce.
                     guard case .volume(let volume) = request.accessory else { return }
                     volume.level = VolumeLevel.stepped(volume.level, up: key == .increment)
+                case .focusNext, .focusPrevious:
+                    focus.move(
+                        forward: key == .focusNext, through: DialogView.visualOrder(of: request.actions))
+                    self.panel?.focusesAction = focus.index != nil
+                case .press:
+                    if let index = focus.index { finish(index) }
                 }
             }
             self.panel = panel

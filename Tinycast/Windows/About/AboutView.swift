@@ -21,8 +21,6 @@ struct AboutView: View {
         return NSApp.applicationIconImage
     }()
 
-    private static let iconSize: CGFloat = 88
-
     var body: some View {
         VStack(spacing: 0) {
             Form {
@@ -49,8 +47,8 @@ struct AboutView: View {
             Image(nsImage: Self.appIcon)
                 .resizable()
                 .interpolation(.high)
-                .frame(width: Self.iconSize, height: Self.iconSize)
-                .shadow(color: .black.opacity(0.35), radius: 12, y: 6)
+                .frame(width: Theme.Size.aboutIcon, height: Theme.Size.aboutIcon)
+                .shadow(Theme.Shadow.appIcon)
 
             VStack(spacing: Theme.Spacing.sm) {
                 Text(Bundle.main.appDisplayName)
@@ -65,7 +63,7 @@ struct AboutView: View {
                         Capsule().fill(Theme.Colors.cardFill)
                     )
                     .overlay(
-                        Capsule().strokeBorder(Theme.Colors.cardStroke, lineWidth: 1)
+                        Capsule().strokeBorder(Theme.Colors.cardStroke, lineWidth: Theme.Size.hairline)
                     )
                 // Fork: no Check for Updates; the fork's builds never update themselves.
             }
@@ -165,14 +163,14 @@ private struct AboutLinkRow: View {
         switch link.glyph {
         case .symbol(let name):
             Image(systemName: name)
-                .font(.system(size: 13, weight: .medium))
+                .font(Theme.Typography.aboutLinkSymbol)
         case .brand(let name):
             // Brand marks paint edge to edge, so they sit under the symbol box to match.
             Image(name)
                 .renderingMode(.template)
                 .resizable()
                 .scaledToFit()
-                .frame(width: 14, height: 14)
+                .frame(width: Theme.Size.aboutLinkGlyph, height: Theme.Size.aboutLinkGlyph)
         }
     }
 }

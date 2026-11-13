@@ -13,6 +13,7 @@ final class HUDPresenter {
     private let dwell: TimeInterval
     private let screen: () -> NSScreen?
     private var panel: HUDPanel?
+    private var host: NSHostingView<AnyView>?
     private var dismissal: Task<Void, Never>?
 
     init(anchor: Anchor, dwell: TimeInterval, screen: @escaping () -> NSScreen?) {
@@ -25,12 +26,21 @@ final class HUDPresenter {
     func show(_ view: some View, size: CGSize? = nil, dwells: Bool = true, interactive: Bool = false) {
         let panel = panel ?? make(acceptsMouseEvents: interactive)
         panel.ignoresMouseEvents = !interactive
-        let host = NSHostingView(rootView: view.motionScope())
+        let root = AnyView(view.motionScope())
+        // On screen, the same tree takes the new content so it can cross-fade in place.
+        let host: NSHostingView<AnyView>
+        if panel.isVisible, let current = self.host {
+            current.rootView = root
+            host = current
+        } else {
+            host = NSHostingView(rootView: root)
+        }
+        self.host = host
         // Never size from `host.frame` after attaching: AppKit resets it to the content rect.
         let content = size ?? host.fittingSize
         host.setFrameSize(content)
         panel.setContentSize(content)
-        panel.contentView = host
+        if panel.contentView !== host { panel.contentView = host }
         place(panel)
         // A panel on screen may be mid-fade, so bring it back rather than start another.
         if panel.isVisible {

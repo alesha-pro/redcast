@@ -11,6 +11,9 @@ struct OnboardingView: View {
     @Environment(HotKeyManager.self) private var hotKeys
 
     @State private var accessibilityTrusted = Permissions.isAccessibilityTrusted()
+    /// The step the window was last fitted to; nil until the first measure, which never animates.
+    @State private var fittedStep: Int?
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     private let refreshTimer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
 
     private static let lastStep = 3
@@ -20,8 +23,15 @@ struct OnboardingView: View {
 
     var body: some View {
         VStack(spacing: Theme.Spacing.lg) {
-            hero
-            stepContent
+            // A lingering outgoing step overlaps this one here, never adding its height to it.
+            ZStack(alignment: .top) {
+                VStack(spacing: Theme.Spacing.lg) {
+                    hero
+                    stepContent
+                }
+                .id(step)
+                .transition(.asymmetric(insertion: .opacity, removal: .identity))
+            }
             footer
         }
         // Less on top: the title bar adds 32pt, and the lights must be cleared.
@@ -32,9 +42,14 @@ struct OnboardingView: View {
         .fixedSize(horizontal: false, vertical: true)
         .onGeometryChange(for: CGFloat.self) {
             $0.size.height
-        } action: {
-            core.onboardingCoordinator.fit(height: $0)
+        } action: { height in
+            let animates = fittedStep != nil && fittedStep != step && !reduceMotion
+            fittedStep = step
+            core.onboardingCoordinator.fit(
+                height: height, animation: animates ? Theme.Duration.onboardingStep : nil)
         }
+        // Pinned to the top while the window eases to its new height beneath it.
+        .frame(maxHeight: .infinity, alignment: .top)
         // Only the gradient reaches under the titlebar; the content stays in the safe area.
         .background(
             LinearGradient(
@@ -45,7 +60,7 @@ struct OnboardingView: View {
         )
         // Onboarding's shortcut step has a recorder too, and it isn't inside a `SettingsPane`.
         .shortcutRecorderPopoverHost()
-        .animation(.easeInOut(duration: 0.2), value: step)
+        .animation(reduceMotion ? nil : Theme.Motion.windowResize, value: step)
         .onAppear { accessibilityTrusted = Permissions.isAccessibilityTrusted() }
         .onReceive(refreshTimer) { _ in
             let trusted = Permissions.isAccessibilityTrusted()
@@ -60,7 +75,7 @@ struct OnboardingView: View {
             heroMark
             VStack(spacing: Theme.Spacing.xs) {
                 Text(title)
-                    .font(.title2.weight(.bold))
+                    .font(Theme.Typography.onboardingTitle)
                 subtitle
                     .font(.callout)
                     .foregroundStyle(.secondary)
@@ -75,13 +90,10 @@ struct OnboardingView: View {
         if step == 0 {
             Image(nsImage: Self.appIcon)
                 .resizable()
-                .frame(width: 60, height: 60)
+                .frame(width: Theme.Size.onboardingHeroMark, height: Theme.Size.onboardingHeroMark)
         } else {
-            Image(systemName: heroSymbol)
-                .font(.system(size: 30, weight: .semibold))
-                .foregroundStyle(heroTint)
-                .frame(width: 60, height: 60)
-                .background(Circle().fill(heroTint.opacity(0.14)))
+            GlyphTile(symbol: heroSymbol, hue: heroHue, size: Theme.Size.onboardingHeroTile)
+                .frame(width: Theme.Size.onboardingHeroMark, height: Theme.Size.onboardingHeroMark)
         }
     }
 
@@ -111,7 +123,7 @@ struct OnboardingView: View {
         }
     }
 
-    private var heroTint: Color {
+    private var heroHue: RaycastHue {
         switch step {
         case 1: .blue
         case 2: .orange
@@ -145,7 +157,7 @@ struct OnboardingView: View {
                 OnboardingRow(
                     title: String(localized: "onboarding-open-launcher", defaultValue: "App Launcher"),
                     subtitle: String(localized: "Press this shortcut to open Tinycast."),
-                    systemImage: "magnifyingglass", tint: .blue
+                    systemImage: "magnifyingglass", hue: .blue
                 ) {
                     ShortcutRecorder(action: .togglePalette)
                 }
@@ -153,7 +165,7 @@ struct OnboardingView: View {
                 OnboardingRow(
                     title: String(localized: "Launch at login"),
                     subtitle: String(localized: "Start Tinycast automatically when you log in."),
-                    systemImage: "power", tint: .green
+                    systemImage: "power", hue: .green
                 ) {
                     Toggle("", isOn: $settings.launchAtLogin)
                         .labelsHidden().toggleStyle(.switch).controlSize(.small)
@@ -170,7 +182,7 @@ struct OnboardingView: View {
                     title: String(localized: "Accessibility"),
                     subtitle: String(
                         localized: "Allows pasting clipboard items and expanded snippets into active apps."),
-                    systemImage: "accessibility", tint: .blue
+                    systemImage: "accessibility", hue: .blue
                 ) {
                     statusBadge
                 }
@@ -185,7 +197,7 @@ struct OnboardingView: View {
                 OnboardingRow(
                     title: String(localized: "Raycast Export"),
                     subtitle: model.fileSubtitle,
-                    systemImage: "doc.badge.gearshape", tint: .orange
+                    systemImage: "doc.badge.gearshape", hue: .orange
                 ) {
                     Button("Choose…") { model.chooseFile() }.controlSize(.small)
                 }
@@ -193,11 +205,11 @@ struct OnboardingView: View {
                 OnboardingRow(
                     title: String(localized: "Passphrase"),
                     subtitle: String(localized: "The password you set when exporting from Raycast."),
-                    systemImage: "key", tint: .gray
+                    systemImage: "key", hue: .gray
                 ) {
                     RevealableSecureField(title: String(localized: "Passphrase"), text: $model.passphrase)
                         .textFieldStyle(.roundedBorder)
-                        .frame(width: 150)
+                        .frame(width: Theme.Size.onboardingField)
                         .onSubmit { model.run(core: core) }
                 }
             }
@@ -223,25 +235,23 @@ struct OnboardingView: View {
             HStack(spacing: Theme.Spacing.sm) {
                 ForEach(0...Self.lastStep, id: \.self) { index in
                     Circle()
-                        .fill(index == step ? Color.primary : Color.primary.opacity(0.2))
-                        .frame(width: 7, height: 7)
+                        .fill(Color.primary.opacity(index == step ? 1 : Theme.Opacity.stepDotIdle))
+                        .frame(width: Theme.Size.onboardingStepDot, height: Theme.Size.onboardingStepDot)
                 }
             }
-            HStack {
+            HStack(spacing: Theme.Spacing.md) {
                 if step > 0 {
                     Button {
                         step -= 1
                     } label: {
                         Label("Back", systemImage: "chevron.left")
                     }
-                    .buttonStyle(.plain)
-                    .foregroundStyle(.secondary)
+                    .buttonStyle(.modalAction(.cancel, fillsWidth: false))
                 }
                 Spacer()
                 if showsSkip {
                     Button("Skip") { advance() }
-                        .buttonStyle(.plain)
-                        .foregroundStyle(.secondary)
+                        .buttonStyle(.modalAction(.cancel, fillsWidth: false))
                 }
                 if step == 2 && model.importing {
                     Button {
@@ -251,13 +261,11 @@ struct OnboardingView: View {
                             Text("Importing…")
                         }
                     }
-                    .buttonStyle(.borderedProminent)
-                    .controlSize(.large)
+                    .buttonStyle(.modalAction(.primary, fillsWidth: false))
                     .disabled(true)
                 } else {
                     Button(primaryTitle, action: primaryAction)
-                        .buttonStyle(.borderedProminent)
-                        .controlSize(.large)
+                        .buttonStyle(.modalAction(.primary, fillsWidth: false))
                         .disabled(primaryDisabled)
                         .keyboardShortcut(.defaultAction)
                 }
@@ -319,9 +327,9 @@ struct OnboardingView: View {
     private func importStatus(_ status: OnboardingModel.ImportStatus) -> some View {
         switch status {
         case .success(let message):
-            statusLine(message, systemImage: "checkmark.circle.fill", tint: .green)
+            statusLine(message, systemImage: "checkmark.circle.fill", tint: Theme.Colors.success)
         case .failure(let message):
-            statusLine(message, systemImage: "exclamationmark.triangle.fill", tint: .orange)
+            statusLine(message, systemImage: "exclamationmark.triangle.fill", tint: Theme.Colors.warning)
         }
     }
 
@@ -335,18 +343,10 @@ struct OnboardingView: View {
     }
 
     private var statusBadge: some View {
-        HStack(spacing: Theme.Spacing.xs + 1) {
-            Image(
-                systemName: accessibilityTrusted
-                    ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
-            Text(accessibilityTrusted ? "Granted" : "Not granted")
-        }
-        .font(.caption.weight(.semibold))
-        .foregroundStyle(accessibilityTrusted ? Color.green : Color.orange)
-        .padding(.horizontal, Theme.Spacing.md)
-        .padding(.vertical, Theme.Spacing.xs)
-        .background(
-            Capsule().fill((accessibilityTrusted ? Color.green : Color.orange).opacity(0.14)))
+        SettingsStatusBadge(
+            title: accessibilityTrusted ? String(localized: "Granted") : String(localized: "Not granted"),
+            symbol: accessibilityTrusted ? "checkmark.circle.fill" : "exclamationmark.triangle.fill",
+            tone: accessibilityTrusted ? .success : .warning)
     }
 
     // Read the bundle directly: the app icon is generic until LaunchServices registers.

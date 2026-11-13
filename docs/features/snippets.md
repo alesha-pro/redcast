@@ -324,8 +324,8 @@ The feature switch — which carries keyword-monitoring consent — is likewise 
 (defaulting to `.success`), the same tone vocabulary `DialogController`'s dialogs use, so a
 custom command confirms a run through the same panel and the same tint rules; system actions'
 success/info feedback uses it too (see [launcher.md](launcher.md#system-actions)). Its leading
-trailing glyph, after the message, carries the tint. Its capsule takes the `hud` glass role, the same AppKit glass under
-`panelScrim` as the volume box (see [ui.md](../ui.md#liquid-glass)).
+trailing glyph, after the message, carries the tint. Its capsule takes the `hud` glass role, the same AppKit glass tinted
+`hudGlassTint` under `hudScrim` as the volume box (see [ui.md](../ui.md#liquid-glass)).
 
 After either launcher or keyword delivery is confirmed, Redcast may show a brief non-activating,
 click-through overlay with the snippet name. The AppCore-owned controller replaces and restarts a

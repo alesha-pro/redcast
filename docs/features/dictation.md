@@ -49,7 +49,8 @@ compilation of its 2-bit weights; Ultra's encoder and both variants' decoder/joi
   Logarithmic bands span 32–5000 Hz so speech sits nearer the middle. Smoothed levels taper and
   fade only toward the edges, without a center peak or mirroring.
   Transcription replaces them with a smaller wave whose white center fades to gray, moving left to
-  right at up to 30 frames per second.
+  right at up to 30 frames per second. The two cross-fade on `Theme.Motion.swap`, and only listening
+  tints the glass, with `liveGlassTint`: the accent marks an open microphone, never the app's own work.
   Reduce Motion pauses the processing timeline; closing the panel releases its hosting view so no
   animation continues while hidden.
 - Dictation fades the default output's software volume down by about 90% from shortcut press, then restores

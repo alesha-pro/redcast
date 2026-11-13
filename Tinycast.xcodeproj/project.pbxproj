@@ -51,6 +51,7 @@
 		0964D6642A8FB99D9D498A70 /* HyperKeyDiagnostics.swift in Sources */ = {isa = PBXBuildFile; fileRef = 30712AF270CDA8D67F6C5E83 /* HyperKeyDiagnostics.swift */; };
 		0976BBB954D48DE55C6B4263 /* MenuSearchScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD8A186797267935E09816C9 /* MenuSearchScreen.swift */; };
 		09974CF17FDE94EFB10146FB /* ACPConnection.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5B73C2F128A9E05390624E7 /* ACPConnection.swift */; };
+		09BE1AC069DFC89AF27B5A4B /* VolumeHUDGeometry.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3A6B4FDAC9AE9808507FE8E /* VolumeHUDGeometry.swift */; };
 		09C2F66D963E4E07A5A4F346 /* RaycastClipboardImport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B154C9F1BC46B39E2283527 /* RaycastClipboardImport.swift */; };
 		0A086C5452FD9FCE68AF4E46 /* InputSourceSwitcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2FCD070CDE64691E5F6ED28D /* InputSourceSwitcher.swift */; };
 		0A238E823704B904EFFB4F22 /* BundleLocalization.swift in Sources */ = {isa = PBXBuildFile; fileRef = B3085C57A94FFF35FF74EC86 /* BundleLocalization.swift */; };
@@ -2358,6 +2359,7 @@
 		F21146D375BC1840BE499982 /* OpenRouterAccountClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenRouterAccountClient.swift; sourceTree = "<group>"; };
 		F2960A04D852678D8E23895C /* AIModelOption.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIModelOption.swift; sourceTree = "<group>"; };
 		F31FB61E6F6969851D3874FA /* CodexMCPLaunch.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CodexMCPLaunch.swift; sourceTree = "<group>"; };
+		F3A6B4FDAC9AE9808507FE8E /* VolumeHUDGeometry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VolumeHUDGeometry.swift; sourceTree = "<group>"; };
 		F3CE1A1626264322E8A1192E /* SettingsWindowChrome.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsWindowChrome.swift; sourceTree = "<group>"; };
 		F3F97240A718D95DFD9343DB /* UpcomingWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpcomingWindow.swift; sourceTree = "<group>"; };
 		F418E1072D9C033C33CD8936 /* FullBackupContents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FullBackupContents.swift; sourceTree = "<group>"; };
@@ -5242,6 +5244,7 @@
 				2B2CB71671625A1F446316A1 /* MessageHUDController.swift */,
 				976A1F05AD82DB8A04B3C3F9 /* MessageHUDView.swift */,
 				09633E6F9C37F89267341D1D /* VolumeHUDController.swift */,
+				F3A6B4FDAC9AE9808507FE8E /* VolumeHUDGeometry.swift */,
 				A90559D7DB9F6F3874CAFCDE /* VolumeHUDView.swift */,
 			);
 			path = HUD;
@@ -6789,6 +6792,7 @@
 				66D9A1901415F10683FB5CF9 /* VoiceRoutePolicy.swift in Sources */,
 				F5DC2CE0E87C700A2C719A1A /* VoiceSelectionAccess.swift in Sources */,
 				24F4BF3EA74E8E65B2B92D6D /* VolumeHUDController.swift in Sources */,
+				09BE1AC069DFC89AF27B5A4B /* VolumeHUDGeometry.swift in Sources */,
 				ACE645630E536C93CA102050 /* VolumeHUDView.swift in Sources */,
 				106AF34CEAEB08CBCC924118 /* VolumeLevel.swift in Sources */,
 				15292937738B7CD3AE23EF73 /* VolumeSlider.swift in Sources */,

@@ -4,8 +4,6 @@ import SwiftUI
 /// The dictation mode, named in a chip above the capsule; built when shown, released when closed.
 @MainActor
 final class VoiceModeCaption {
-    private static let gap: CGFloat = 8
-
     private var panel: NSPanel?
     private var hosting: NSHostingView<VoiceModeChip>?
 
@@ -18,15 +16,19 @@ final class VoiceModeCaption {
         self.panel = panel
         panel.setFrame(
             NSRect(
-                x: capsule.midX - size.width / 2, y: capsule.maxY + Self.gap,
+                x: capsule.midX - size.width / 2, y: capsule.maxY + Theme.Spacing.md,
                 width: size.width, height: size.height),
             display: true)
         // Never key: Tab, Return and Escape stay the capsule's.
-        panel.orderFrontRegardless()
+        if !panel.isVisible {
+            panel.fadeIn(duration: Theme.Duration.enter) { panel.orderFrontRegardless() }
+        }
     }
 
     func close() {
-        panel?.orderOut(nil)
+        // The handler holds the panel until it is off screen, since nothing else does once dropped.
+        let closing = panel
+        closing?.fadeOut(duration: Theme.Duration.exit) { _ = closing }
         panel = nil
         hosting = nil
     }
@@ -55,10 +57,12 @@ private struct VoiceModeChip: View {
         HStack(spacing: Theme.Spacing.sm) {
             Text(verbatim: name)
                 .lineLimit(1)
+                .contentTransition(.opacity)
             Text(verbatim: "⇥")
                 .foregroundStyle(.secondary)
         }
-        .font(.callout.weight(.medium))
+        .animation(Theme.Motion.swap, value: name)
+        .font(Theme.Typography.bar)
         .padding(.horizontal, Theme.Spacing.lg)
         .padding(.vertical, Theme.Spacing.sm)
         .fixedSize()

@@ -1,43 +1,45 @@
 import SwiftUI
 
-/// The volume box: glyph, bar, number, on the palette's surface recipe rather than glass.
+/// The volume box: glyph, bar, number, on the HUD's tinted glass.
 struct VolumeHUDView: View {
     let state: VolumeState
+    @Environment(\.metrics) private var metrics
 
     var body: some View {
-        VStack(spacing: Theme.Spacing.lg) {
+        let geometry = VolumeHUDGeometry(metrics: metrics)
+        VStack(spacing: geometry.rowSpacing) {
             SymbolImage(
                 name: VolumeLevel.symbol(level: state.level, muted: state.muted),
-                size: Theme.Size.dialogIcon
+                size: geometry.glyph
             )
             .foregroundStyle(Color.primary)
-            HStack(spacing: Theme.Spacing.md) {
-                GeometryReader { geometry in
-                    ZStack(alignment: .leading) {
-                        Capsule()
-                            .fill(Theme.Colors.controlSurface)
-                        Capsule()
-                            .fill(Theme.Colors.textPrimary.opacity(state.muted ? 0.35 : 0.85))
-                            .frame(width: geometry.size.width * fill)
-                    }
+            HStack(spacing: geometry.readoutSpacing) {
+                ZStack(alignment: .leading) {
+                    Capsule()
+                        .fill(Theme.Colors.controlSurface)
+                    Capsule()
+                        .fill(Theme.Colors.textPrimary.opacity(state.muted ? 0.35 : 0.85))
+                        .frame(width: geometry.trackWidth * fill)
                 }
-                .frame(height: Theme.Size.volumeTrackHeight)
+                .frame(width: geometry.trackWidth, height: geometry.trackHeight)
                 // Muted prints the word: the bar is empty, and a number would contradict it.
                 Text(
                     state.muted
                         ? String(localized: "Muted") : VolumeLevel.percentage(state.level, locale: .current)
                 )
-                .font(Theme.Typography.rowTrailing)
+                .font(metrics.typography.rowTrailing)
                 .foregroundStyle(Theme.Colors.textSecondary)
                 .monospacedDigit()
-                .frame(width: Theme.Size.volumeReadout, alignment: .trailing)
+                .contentTransition(.numericText(value: state.level))
+                .frame(width: geometry.readoutWidth, alignment: .trailing)
             }
         }
-        // Asymmetric: side padding costs far more on a 200pt box than a 420pt dialog.
-        .padding(.vertical, Theme.Spacing.xxl)
-        .padding(.horizontal, Theme.Spacing.xl)
-        .frame(width: Theme.Size.hudWidth, height: Theme.Size.hudHeight)
-        .glassSurface(.hud, in: RoundedRectangle(cornerRadius: Theme.Radius.dialog, style: .continuous))
+        .padding(.vertical, geometry.verticalInset)
+        .padding(.horizontal, geometry.horizontalInset)
+        .frame(width: geometry.size.width, height: geometry.size.height)
+        .glassSurface(
+            .hud, in: RoundedRectangle(cornerRadius: geometry.cornerRadius, style: .continuous)
+        )
         .panelEntrance()
         // A repeat command slides the bar to its new value instead of cutting to it.
         .animation(.easeOut(duration: Theme.Duration.exit), value: state.level)

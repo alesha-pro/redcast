@@ -71,7 +71,7 @@ These are the things that quietly break the look if changed. Preserve them unles
 - **A transient readout is a HUD, not a dialog.** `VolumeHUDController`'s box is volume and mute only, since that one needs an actual level and number; every other success or info confirmation goes through `MessageHUDController`'s pill, whose leading glyph *is* its `DialogTone`. A pill has no subject to name, so the icon rule above does not apply to it — and that mapping stays file-scoped so nothing can reach for it when building a `DialogRequest`. A new HUD means a new presenter, not a second shape bolted onto an existing controller.
 - **Every glass surface states a `GlassRole`, and nothing else is glass.** `glassSurface(_:in:)` owns each role's recipe (see "Liquid Glass"); no view outside `Features/Extensions/` calls `glassEffect` or builds a `GlassEffectView` itself, bar the AI Chat sites listed there. Content on a surface — rows, cards, fields, dialog buttons — stays a matte ramp fill, so no row is glass and glass is not stacked on glass beyond the floating controls the palette already had.
 - **System glass draws its own edge.** No hand rim, sheen or shadow goes on top of real glass. The message pill's tone rim is the one inherited exception, and the Reduce Transparency fallback is the only place `glassSurface` draws a rim. The two never stack: under Reduce Transparency the pill drops its own rim and the fallback's is the only one.
-- **`panelScrim` is shared; retune a role, not the token.** Notes, the camera panels, Quick Actions, both HUDs, dialogs and the Settings editors all sit under it. A surface that wants a different veil gets its own token and role, as the palette has `paletteScrim`.
+- **`panelScrim` is shared; retune a role, not the token.** Dialogs, the Settings editors and an extension's settings editor sit under it. A surface that wants a different veil gets its own token and role, as the palette has `paletteScrim`, a read panel `readingScrim` and a HUD `hudScrim`.
 
 ---
 
@@ -242,9 +242,13 @@ shipped. Light is the same stop with the ink inverted, and is the only column op
 
 | Token             | Dark           | Light          | Use                                              |
 | ----------------- | -------------- | -------------- | ------------------------------------------------ |
-| `panelScrim`      | black **0.40** | white **0.55** | the scrim over every glass panel but the palette |
+| `panelScrim`      | black **0.40** | white **0.55** | the `modal` veil: dialogs and editor panels      |
 | `paletteScrim`    | black 0.20     | white 0.30     | the palette's own, thinner scrim                 |
 | `paletteGlassTint`| black 0.30     | white 0.40     | the tint inside the palette's glass              |
+| `readingScrim`    | black 0.26     | white 0.38     | a read panel's veil, heavier than the palette's  |
+| `readingGlassTint`| black 0.30     | white 0.40     | the tint inside a read panel's glass             |
+| `hudScrim`        | black 0.14     | white 0.24     | a HUD's veil, the thinnest                       |
+| `hudGlassTint`    | black 0.36     | white 0.48     | the tint inside a HUD's glass, the heaviest      |
 | `opaqueSurface`   | gray 0.12      | gray 0.95      | what replaces glass under Reduce Transparency    |
 | `tooltipSurface`  | gray 0.208     | gray 0.99      | the hover label's tile                           |
 | `selection`       | white 0.10     | black 0.09     | selected row fill (keyboard/active selection)    |
@@ -267,20 +271,24 @@ shipped. Light is the same stop with the ink inverted, and is the only column op
 | `recorderKeyCapFill` | white 0.08  | black 0.08     | a key cap inside the shortcut recorder           |
 
 `panelScrim` is the ramp's inverse — it darkens the dark surface and lightens the light one — so it
-is an `adaptive` pair, not a `ramp`; `paletteScrim` and `paletteGlassTint` are too. So is
+is an `adaptive` pair, not a `ramp`; so are the palette's, a read panel's and a HUD's scrim and tint. So is
 `composerSendInk`, black 0.85 on the dark disc and white on the light one.
 
 **The palette's veil is tuned by eye, and nothing measures it.** The ramp was tuned against
 `panelScrim`, and the palette now sits under a thinner scrim with the rest of the weight in the glass
 tint. That tint passes through the system's glass, not over it as a plain alpha layer, so no
 arithmetic on the two tokens says how much desktop gets through, and a harness cannot render real
-glass to sample. `appearance-test` pins only the ink and that `paletteScrim` stays the thinner of the
-two. A retune is checked on screen over a white, a busy and a dark desktop, in both appearances, with
+glass to sample. `appearance-test` pins only the ink and the order of the veils: `readingScrim`
+heavier than `paletteScrim`, `hudScrim` thinner, all three under `panelScrim`, and `hudGlassTint`
+heavier than `paletteGlassTint`. A paragraph is read on Notes and a Quick Action's result, so their
+veil is the heavier one; a HUD holds one line read at a glance, so its scrim is the thinnest and its
+tint carries the weight, keeping the volume readout's secondary text legible on a bright desk. A retune is checked on screen over a white, a busy and a dark desktop, in both appearances, with
 the tertiary and quaternary text, `rowHover` and the selection wash as the things to watch; the Debug
 `classic` preset is the reference to compare against. Increase Contrast turns Reduce Transparency on
 with it, so there the palette is `opaqueSurface` and the wallpaper is out of the picture.
 
-`focusRing` is `accent` at 0.55, the 2pt edge of a focused field in `FormFieldChrome`. A focus edge
+`focusRing` is `accent` at 0.55, the 2pt (`Size.focusRingWidth`) edge of a focused field in
+`FormFieldChrome`, and the ring Tab draws around a dialog button. A focus edge
 drawn at 1pt stays the full accent instead — an inline argument field, the Window Layout inspector's
 `layoutFieldChrome` — since at that width 0.55 is too faint to find, and too close to an argument
 field's owed edge, `warning` at 0.55.
@@ -318,6 +326,7 @@ and all of them still pass through `motionScope()`, so no site checks the animat
 | `settle` | smooth 0.30       | a layout coming to rest after it changed size or order        |
 | `enter`  | snappy 0.22       | content arriving inside a surface                             |
 | `exit`   | easeIn 0.12       | content leaving                                               |
+| `windowResize` | easeInOut 0.25 | a window easing to a new height with its content (Onboarding) |
 
 **`hover` is for the pointer only.** Keyboard selection is instant: easing it leaves a fading ghost
 behind a held arrow key. A row gets this from `armedHover(_:animation:)`, which wraps only the two
@@ -333,12 +342,14 @@ and `RoomMotion` stay where upstream put them.
 `BarButton`, a `PopoverMenuRow` that cannot be chosen, `ChatSwitchStyle` and a Settings row whose
 item is hidden or off. A `settingsControl` never dims itself: most sit under a `settingsEnabled`
 that already has, and a second dim would multiply. `badgeFill 0.15` is the wash under a
-`SettingsStatusBadge`.
+`SettingsStatusBadge`. `toneTile 0.18` (`toneTileNeutral 0.12`), `toneTileLift 0.10` and
+`toneTileEdge 0.16` build a dialog's glyph tile; `stepDotIdle 0.2` is an Onboarding step still ahead,
+and `minimized 0.5` a minimized window's icon in the window switcher.
 
 ### Shadow (`Theme.Shadow`)
 
-`card` (black 0.18, radius 12, y 4) · `floating` (black 0.25, radius 24, y 8), applied with
-`.shadow(Theme.Shadow.card)`.
+`card` (black 0.18, radius 12, y 4) · `floating` (black 0.25, radius 24, y 8) · `appIcon` (black
+0.35, radius 12, y 6, under About's icon on its opaque page), applied with `.shadow(Theme.Shadow.card)`.
 
 **For an opaque overlay inside a window, never for glass.** Glass carries its own elevation and a
 borderless panel takes the window server's shadow. The `Tooltip` tile is the surface `card` was made
@@ -468,8 +479,8 @@ Source: `Features/Notes/UI/`.
 Notes is a sibling surface, not a palette mode. `NotesPanel` is a **titled**, resizable,
 non-activating panel — AppKit draws the traffic lights, the drag and the resize — but it keeps the
 palette's transparent recipe and deliberately does not dismiss on resign-key. `NotesView`'s root
-applies `glassSurface(.panel, in:)` with one continuous **`panel`** corner — `panelScrim` over an
-untinted `GlassEffectView`, then the clip — so
+applies `glassSurface(.panel, in:)` with one continuous **`panel`** corner — `readingScrim` over a
+`GlassEffectView` tinted `readingGlassTint` that rounds itself to that corner, then the clip — so
 Notes and the palette round identically. The clip is larger than the theme frame's own corner, so it
 is what shows; `invalidateShadow()` on every show recuts the shadow to match.
 
@@ -622,7 +633,7 @@ All lists share one row grammar so launcher and clipboard look identical:
 - `HStack(spacing: lg)`: leading 26pt icon/thumbnail, title (`.body`, `lineLimit(1)`), optional trailing keycaps/kind label, `Spacer`. Insets: `.horizontal md`, `.vertical sm`.
 - **The palette result slot is always `Theme.Size.resultRowIcon`, whatever fills it.** A glyph smaller than an app icon — the uninstall list's 16pt checkbox — is centred _inside_ that 26pt slot rather than sizing the slot to itself. Every list then starts its title at the same x, so switching palette modes doesn't jog the column sideways. The slot doubles as the hit target. Settings and compact favorites keep the existing 24pt `rowIcon`.
 - Clipboard thumbnails use `IconCache.appIconExtent` within that slot; synthetic row symbols use the same app-icon-shaped tile as the launcher.
-- Background is a `RoundedRectangle(row, .continuous)` filled **selection → hover → clear**, in that precedence. **`.paletteRow(selected:)` (`Palette/PaletteRow.swift`) owns that fill, the shape, the armed hover and its ease**; it goes after the row's own padding. The launcher's `AppRow` and `FileSearchRow` use it. The other lists still restate the `fill` computed property and `armedHover` by hand, copy-identical, until each adopts the modifier: keep them in sync, and expect their hover to snap where the launcher's eases. The launcher's lead cards build on the same modifier: `.leadCard(selected:)` (`Features/Launcher/UI/LeadCard.swift`) lays `cardFill` and a `cardStroke` hairline over `paletteRow(selected:cornerRadius:)`, so a card can't answer a selection differently from its siblings and still reads as a card over the palette's thinner scrim. A row or a card takes no pressed fill: its click is a tap gesture or an AppKit press catcher that also starts a drag, not a button a style could ask.
+- Background is a `RoundedRectangle(row, .continuous)` filled **selection → hover → clear**, in that precedence. **`.paletteRow(selected:)` (`Palette/PaletteRow.swift`) owns that fill, the shape, the armed hover and its ease**; it goes after the row's own padding. The launcher's `AppRow`, `FileSearchRow` and the window switcher's row use it. The other lists still restate the `fill` computed property and `armedHover` by hand, copy-identical, until each adopts the modifier: keep them in sync, and expect their hover to snap where the launcher's eases. The launcher's lead cards build on the same modifier: `.leadCard(selected:)` (`Features/Launcher/UI/LeadCard.swift`) lays `cardFill` and a `cardStroke` hairline over `paletteRow(selected:cornerRadius:)`, so a card can't answer a selection differently from its siblings and still reads as a card over the palette's thinner scrim. A row or a card takes no pressed fill: its click is a tap gesture or an AppKit press catcher that also starts a drag, not a button a style could ask.
 - **Hover state lives on the row**, not the list, so a mouse sweep repaints only the rows entering/leaving (a list-level hover rebuilds every row per move — don't do that).
 - **Hover is armed by pointer movement, not by the pointer's position** (`armedHover`, `Palette/HoverArming.swift`). A palette shown under a resting pointer lights nothing, and keys or a scroll drop the highlight until the pointer moves clear of the slop radius around where it stood — a row must never light up because it *slid under* a still pointer. Two measured facts the rule rests on: SwiftUI fires hover phases for rows arriving under a stationary pointer, but **not** for a lit row that merely shifts, so `PaletteState.hoverDisarmToken` clears what is already lit; and a wheel gesture ends with a mouse-moved event carrying no displacement, so *event type is not evidence the pointer moved*. `Tests/palette-navigation-test.swift` pins both halves.
 - **Scroll moves only on keyboard nav/reset**, driven by a `ScrollIntent` (`DesignSystem/Scrolling/ScrollIntent.swift`) — mouse selection targets a visible row and never yanks scroll. `.top` scrolls to the origin anchor that `scrollOriginAnchor()` installs — a zero-height overlay applied to the scrolled content _after_ its padding, so it marks offset 0 without joining the layout and the restored origin is exact (targeting the first row instead leaves the top padding hidden under the header); it is restated when the header's inset settles after mount, which moves the resting offset. A `.follow` that lands on flat index 0 restores the origin instead, so that row's section header comes back into view. A reset lands on the screen's `landingSelection` through `RootPaletteView.land()`: row 0 takes `.top`; a later row takes `.center`, which brings a row the lazy stack has not built in by id, centres it once its frame is measured and then lets go — restated, like `.top`, when the inset settles. One intent state serves every mode — they never coexist.
@@ -684,16 +695,19 @@ Retune a role there, never at a call site.
 | Role      | Surfaces                                                         | Glass                                     | Scrim          |
 | --------- | ---------------------------------------------------------------- | ----------------------------------------- | -------------- |
 | `palette` | the launcher's root                                              | AppKit, `paletteGlassTint`, own corner    | `paletteScrim` |
-| `panel`   | Notes, the camera panels, a Quick Action's result                | AppKit, untinted, square under the clip   | `panelScrim`   |
-| `hud`     | the volume box, the message pill                                 | as `panel`                                | `panelScrim`   |
+| `panel`   | Notes, the camera panels, a Quick Action's result                | AppKit, `readingGlassTint`, own corner    | `readingScrim` |
+| `hud`     | the volume box, the message pill                                 | AppKit, `hudGlassTint`, own corner        | `hudScrim`     |
 | `modal`   | dialogs, Settings editor and picker panels                       | SwiftUI `.regular`                        | `panelScrim`   |
 | `menu`    | `PopoverMenu`, the note switcher and heading menu, the recorder callout | SwiftUI `.regular`                 | none           |
-| `chip`    | the dictation capsule, the voice-mode caption                    | SwiftUI `.regular`                        | none           |
+| `chip`    | the dictation capsule, the voice-mode caption                    | SwiftUI `.regular`; `liveGlassTint` while dictation listens | none |
 | `control` | the action capsule, the menu circle, Notes' capsules, chat chips | SwiftUI `.regular.interactive()`          | none           |
 
-- **Seven roles share five recipes, on purpose.** `panel` and `hud` draw alike today, and so do
-  `menu` and `chip`: the role is what lets one be retuned later without the call sites of the other
-  being found by hand.
+- **Seven roles share six recipes, on purpose.** `menu` and `chip` draw alike today: the role is what
+  lets one be retuned later without the call sites of the other being found by hand. The three
+  backdrops differ only in their veil, ordered by how much is read on them: `panel` heaviest, then
+  `palette`, then `hud`. A backdrop's glass rounds itself to a `RoundedRectangle`, and to a
+  `Capsule`, as the pill is, at half its laid-out height; any other shape leaves the corner to the clip. `glassSurface(_:in:scrim:tint:)` lets one state
+  replace the role's scrim or tint — the cancellable pill's hover, the listening dictation capsule.
 - **A backdrop role is AppKit's glass** (`GlassEffectView`, an `NSGlassEffectView`) laid behind the
   content under a hand scrim, then clipped to the shape. It is for a surface that is its whole
   window. `GlassEffectView` takes a `cornerRadius`, a `tint` and a `style`; it re-resolves the tint
@@ -777,9 +791,11 @@ sole owner rule) and is the only presenter, so every confirmation in the app loo
   actions that hide the launcher first do no dimming work. Its fade follows `dialogEnter` / `dialogExit`.
   Matte button fills come from `controlSurface` / `selection`, while a destructive action uses the
   destructive tint. The **volume HUD** and **message pill** take the `hud` role instead: AppKit glass
-  under `panelScrim`, since SwiftUI glass with nothing to lens falls back to an opaque backing. The
-  pill passes `controlHover` as its scrim while a cancellable pill is hovered.
-- **Layout.** Subject glyph in a low-opacity rounded tile, then title (`panelTitle`) + wrapped
+  tinted `hudGlassTint` under `hudScrim`, since SwiftUI glass with nothing to lens falls back to an
+  opaque backing. The pill passes `controlHover` as its scrim while a cancellable pill is hovered.
+- **Layout.** Subject glyph in a rounded tile of its tone — a wash (`Opacity.toneTile`, or
+  `toneTileNeutral` for `.neutral`) a step stronger at the top (`toneTileLift`) and a hairline edge in
+  the same hue (`toneTileEdge`), matte content on the glass rather than glass of its own — then title (`panelTitle`) + wrapped
   secondary message, optional accessory and full-width actions. Content uses a 22-point inset while
   the actions keep the tighter `dialogInset 18`. One action spans the row; two sit side by side with
   **Cancel rendered leading** only while both labels fit on one line, then `ViewThatFits` stacks them.
@@ -790,7 +806,14 @@ sole owner rule) and is the only presenter, so every confirmation in the app loo
   callout face; semantic roles change colour, never weight. `dialogButtonHeight 34` is shared by the
   actions and dialog text fields. The fields use the non-pill `row 10` radius.
 - **Keys.** `DialogPanel.sendEvent` intercepts Esc and ↵ directly instead of relying on SwiftUI
-  `onKeyPress`, so the keys work without anything inside the dialog holding focus. Buttons don't
+  `onKeyPress`, so the keys work without anything inside the dialog holding focus. **Tab and ⇧Tab
+  walk the buttons** in the order they are drawn, wrapping, and Space presses the one reached;
+  `DialogFocusState` holds it, nil until the first Tab, so a dialog opens with no ring. The ring is a
+  `focusRing` capsule stood off the button, since on the solid accent an inset one would vanish. The
+  buttons are `focusable(false)` there, so Keyboard navigation adds no second, system ring. That walk
+  is only for a dialog whose accessory holds no focus of its own (`DialogRequest.panelWalksActions`):
+  where fields or chips sit in the key-view loop — snippet arguments, the clipboard editor — Tab and
+  Space stay the system's and the buttons stay in that loop, so there is one focus owner. Buttons don't
   print a key cap; after `tooltipDelay` of deliberate hover, `.tooltip(keyCaps:)` fades in the shared
   `Tooltip` tile holding one outlined `KeyCapChip` per key the panel actually handles (`↵`, `esc`,
   or `⌘` `↵`). Only those keys are ever advertised, so a shown cap cannot drift from dialog behavior.
@@ -823,9 +846,12 @@ sole owner rule) and is the only presenter, so every confirmation in the app loo
   as the number runs 0% → 100% — the same trick `VolumeSlider` uses, since the two now read as one
   control in two places. That slot is measured, not guessed: 38 is the widest string it ever holds
   ("Muted", 36pt in `rowTrailing`) plus a hair, because every point of slack is subtracted straight off
-  the track. Fixed `hudWidth 200 × hudHeight 100`, with **asymmetric padding** — `xxl` 20 vertical,
+  the track. `hudWidth 200 × hudHeight 100` at the default Interface Size, with **asymmetric padding** — `xxl` 20 vertical,
   `xl` 12 horizontal — since 20pt of side padding costs a fifth of a 200pt box where the same token on
-  a 420pt dialog costs a twentieth, and the bar is the content here.
+  a 420pt dialog costs a twentieth, and the bar is the content here. Every length comes from
+  `VolumeHUDGeometry`, which the controller sizes the window from and the view lays out by, both
+  through `InterfaceMetrics`, so box and window agree at every Interface Size; `interface-size-test`
+  pins it. The readout rolls its digits (`numericText`) as the bar slides.
   Muted prints `Muted`, not `0%`: the bar is already empty, so a
   number would either contradict it or hide the level the user comes back to. Auto-dismisses after
   `Duration.volumeHUD` (1.6s); a repeat command updates the shared `VolumeState` and calls
@@ -838,14 +864,19 @@ sole owner rule) and is the only presenter, so every confirmation in the app loo
   message: `checkmark` green for `.success`, `exclamationmark` red for `.danger`,
   `info` secondary for `.neutral`. The glyph's tone also lights the glass — a faint radial glow from
   behind it and a hairline rim that fades across the message, the same treatment an extension toast
-  restates in its own feature. **Here the glyph is the tone** — the
+  restates in its own feature. That tone accent is the pill's only rim: the glass rounds to the
+  capsule and draws its own edge, and hover lights the scrim, not the rim. **Here the glyph is the tone** — the
   one place that's true, because a pill has no subject to name the way a dialog does; the message
   already says what happened ("Trash Emptied"), so the icon only has to say how it went. The mapping is
   `fileprivate` in `MessageHUDView.swift` precisely so nobody can reach for it when building a
   `DialogRequest`, where the icon rule is the opposite. It leads, as an extension toast's does, so the
   outcome lands at a glance before the sentence is read. Auto-dismisses after
   `Duration.messageHUD` (2.4s) — longer than the volume box, since a sentence needs reading time and a
-  level only needs a glance — and a repeat call replaces rather than stacks.
+  level only needs a glance — and a repeat call replaces rather than stacks. It arrives on the same
+  `panelEntrance()` scale the volume box takes and leaves on the window's fade; a message replaced
+  while the pill is up cross-fades in place on `Motion.swap`, glyph and text, rather than cutting.
+  It is always one `Button`, so a cancellable spinner becoming its result keeps one tree to fade in;
+  only a cancellable pill lights on hover, and VoiceOver hears a button only when it is one.
 - **The same pill reports work still running**, through `showProgress(message:onCancel:)`: a Quick Action set to
   replace has no panel to watch the answer arrive in, so the pill says `Fixing Grammar…` in its place
   and the result message replaces it when the model is done. Its leading mark is a spinner rather
@@ -865,7 +896,9 @@ sole owner rule) and is the only presenter, so every confirmation in the app loo
   three arguments. **It sizes its window from a local, never from `host.frame` after attaching the
   content view**: assigning a content view resizes it to the window's current content rect, which is
   zero on a fresh panel, and a zero-width window "centers" with its leading edge on the screen's
-  midline — visible only on the session's first HUD, which is what makes it easy to miss. Add a
+  midline — visible only on the session's first HUD, which is what makes it easy to miss. While its
+  panel is on screen it keeps one `NSHostingView` and swaps its `rootView`, which is what lets the
+  pill cross-fade; a panel shown afresh gets a new one, so the entrance plays again. Add a
   third HUD by constructing another presenter, not by teaching an existing controller a second shape.
 
 ## Scrollbars
@@ -1059,8 +1092,12 @@ system-drawn and a pane reads exactly as macOS System Settings does.
   **`FeatureSwitchSection`** (a feature's master switch plus its launcher-visibility companion),
   **`SettingsFilterField`** (the filter row above a long list), **`launcherVisibilityHelp()`**, and the
   Settings editor header, fields and surface. `ModalActionButtonStyle.swift` keeps every borderless surface's actions on one
-  implementation — dialogs, Settings editors, the camera footers and the Quick Action panel. `Onboarding/OnboardingCard.swift` keeps the older hand-drawn card,
-  which that window still uses.
+  implementation — dialogs, Settings editors, the camera footers, the Quick Action panel and
+  Onboarding's footer. `Onboarding/OnboardingCard.swift` keeps the older hand-drawn card, which that
+  window still uses, with `GlyphTile` row icons in the Raycast hues. A step's content fades in while
+  the window eases to its height (`AppWindowController.fitContent(…animation:)`, `Motion.windowResize`
+  on the SwiftUI side, the same 0.25s): the outgoing step leaves at once, so the two never stack
+  into a taller window, and the first measure never animates. Reduce Motion makes both instant.
 - **A Settings editor borrows the dialog language, not its job.** `SettingsEditorPresenter` hosts the
   existing form in an activating, transparent child `NSPanel`, with the same `panel 26` Liquid Glass
   surface, native `.documentWindow` entrance and matte action buttons. AppKit gives this activating

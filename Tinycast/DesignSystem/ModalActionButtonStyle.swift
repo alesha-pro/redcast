@@ -28,6 +28,7 @@ struct ModalActionButtonStyle: ButtonStyle {
                 .contentShape(Capsule())
                 .background(Capsule().fill(fill))
                 .animation(Theme.Motion.hover, value: hovered)
+                .animation(Theme.Motion.press, value: configuration.isPressed)
                 .opacity(isEnabled ? 1 : Theme.Opacity.disabled)
                 .onHover { hovered = $0 }
         }

@@ -4,9 +4,9 @@ import SwiftUI
 enum GlassRole {
     /// The launcher's root: tinted glass with its own corner under a thin scrim.
     case palette
-    /// A panel that is read: Notes, the camera, a Quick Action's result.
+    /// A panel that is read, under a heavier veil: Notes, the camera, a Quick Action's result.
     case panel
-    /// A transient readout: the volume box and the message pill.
+    /// A transient readout, under the thinnest veil: the volume box and the message pill.
     case hud
     /// A dialog or an editor panel, which holds the user until it is answered.
     case modal
@@ -20,7 +20,8 @@ enum GlassRole {
     fileprivate var recipe: GlassRecipe {
         switch self {
         case .palette: .backdrop(.palette)
-        case .panel, .hud: .backdrop(.panel)
+        case .panel: .backdrop(.reading)
+        case .hud: .backdrop(.hud)
         case .modal: .system(.regular, scrim: Theme.Colors.panelScrim)
         case .menu, .chip: .system(.regular, scrim: nil)
         case .control: .system(.regular.interactive(), scrim: nil)
@@ -42,13 +43,16 @@ private struct GlassBackdrop: Sendable {
     /// Whether the glass rounds itself to the surface, so its edge light follows the corner.
     var ownsCorner = false
 
-    static let panel = GlassBackdrop(scrim: Theme.Colors.panelScrim)
     static let balanced = GlassBackdrop(
         scrim: Theme.Colors.paletteScrim, tint: Theme.Colors.paletteGlassTint, ownsCorner: true)
+    static let reading = GlassBackdrop(
+        scrim: Theme.Colors.readingScrim, tint: Theme.Colors.readingGlassTint, ownsCorner: true)
+    static let hud = GlassBackdrop(
+        scrim: Theme.Colors.hudScrim, tint: Theme.Colors.hudGlassTint, ownsCorner: true)
 
     #if DEBUG
-        /// What the palette shipped before its glass was tinted, kept to compare against.
-        static let classic = panel
+        /// What every backdrop shipped before its glass was tinted, kept to compare against.
+        static let classic = GlassBackdrop(scrim: Theme.Colors.panelScrim)
         static let clear = GlassBackdrop(
             scrim: Theme.Colors.paletteScrim, tint: Theme.Colors.paletteGlassTint, style: .clear,
             ownsCorner: true)
@@ -72,6 +76,7 @@ private struct GlassSurface<S: Shape>: ViewModifier {
     let role: GlassRole
     let shape: S
     let scrim: Color?
+    let tint: Color?
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
 
     func body(content: Content) -> some View {
@@ -82,15 +87,19 @@ private struct GlassSurface<S: Shape>: ViewModifier {
                 .background {
                     if reduceTransparency {
                         Theme.Colors.opaqueSurface
+                    } else if backdrop.ownsCorner, shape is Capsule {
+                        // A capsule's corner is half its short side, known only once laid out.
+                        GeometryReader { proxy in
+                            glass(backdrop, cornerRadius: min(proxy.size.width, proxy.size.height) / 2)
+                        }
                     } else {
-                        GlassEffectView(
-                            cornerRadius: backdrop.ownsCorner ? cornerRadius : 0,
-                            tint: backdrop.tint, style: backdrop.style)
+                        glass(backdrop, cornerRadius: backdrop.ownsCorner ? cornerRadius : 0)
                     }
                 }
                 .overlay { if reduceTransparency { rim } }
                 .clipShape(shape)
-        case .system(let glass, let roleScrim):
+        case .system(let base, let roleScrim):
+            let glass = tint.map(base.tint) ?? base
             if let veil = scrim ?? roleScrim {
                 // One chain: branching around `content` would rebuild it, and drop a field's focus.
                 content
@@ -102,6 +111,10 @@ private struct GlassSurface<S: Shape>: ViewModifier {
                 content.glassEffect(glass, in: shape)
             }
         }
+    }
+
+    private func glass(_ backdrop: GlassBackdrop, cornerRadius: CGFloat) -> GlassEffectView {
+        GlassEffectView(cornerRadius: cornerRadius, tint: tint ?? backdrop.tint, style: backdrop.style)
     }
 
     /// AppKit's glass only rounds evenly, so any other shape leaves the corner to the clip.
@@ -118,8 +131,10 @@ private struct GlassSurface<S: Shape>: ViewModifier {
 }
 
 extension View {
-    /// `scrim` replaces the role's own for a state that needs to, as the message pill's hover does.
-    func glassSurface(_ role: GlassRole, in shape: some Shape, scrim: Color? = nil) -> some View {
-        modifier(GlassSurface(role: role, shape: shape, scrim: scrim))
+    /// `scrim` and `tint` replace the role's for one state: the pill's hover, a live microphone.
+    func glassSurface(
+        _ role: GlassRole, in shape: some Shape, scrim: Color? = nil, tint: Color? = nil
+    ) -> some View {
+        modifier(GlassSurface(role: role, shape: shape, scrim: scrim, tint: tint))
     }
 }

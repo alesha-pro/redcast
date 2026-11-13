@@ -14,8 +14,8 @@ final class OnboardingCoordinator {
     }
 
     /// The window takes the height the current step measured, so no step is clipped or padded out.
-    func fit(height: CGFloat) {
-        window.fitContent(width: OnboardingView.width, height: height)
+    func fit(height: CGFloat, animation duration: TimeInterval?) {
+        window.fitContent(width: OnboardingView.width, height: height, animation: duration)
     }
 
     func showOnboarding() {

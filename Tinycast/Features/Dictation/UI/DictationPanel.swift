@@ -54,7 +54,8 @@ private struct DictationPanelView: View {
     let state: DictationDisplayState
 
     var body: some View {
-        Group {
+        // One container, so both phases cross-fade inside one capsule rather than each in its own.
+        ZStack {
             if state.phase == .listening {
                 DictationWaveform(
                     levels: state.levels.enumerated().map { index, level in
@@ -64,14 +65,20 @@ private struct DictationPanelView: View {
                     }, processing: false
                 )
                 .accessibilityLabel("Dictation listening")
+                .transition(.opacity)
             } else {
                 DictationProcessingWave()
                     .accessibilityLabel("Transcribing dictation")
+                    .transition(.opacity)
             }
         }
         .frame(width: Theme.Size.dictationPanel.width, height: Theme.Size.dictationPanel.height)
-        .glassSurface(.chip, in: .capsule)
+        .glassSurface(.chip, in: .capsule, tint: live ? Theme.Colors.liveGlassTint : nil)
+        .animation(Theme.Motion.swap, value: state.phase)
     }
+
+    /// Only an open microphone tints the glass; transcribing is the app's work, not the user's.
+    private var live: Bool { state.phase == .listening }
 }
 
 private final class DictationPanel: NSPanel, AnimatedPanel {
@@ -127,6 +134,9 @@ final class DictationPanelController {
     func show() {
         let screen = NSScreen.main ?? NSScreen.screens.first
         guard let frame = screen?.visibleFrame else { return }
+        // Before the view is built, so a new capsule opens listening rather than fading into it.
+        state.phase = .listening
+        state.levels = [Float](repeating: 0, count: DictationSpectrum.barCount)
         let panel =
             panel
             ?? DictationPanel(
@@ -141,8 +151,6 @@ final class DictationPanelController {
             NSPoint(
                 x: frame.midX - size.width / 2,
                 y: frame.minY + frame.height * 0.1 - size.height / 2))
-        state.phase = .listening
-        state.levels = [Float](repeating: 0, count: DictationSpectrum.barCount)
         panel.makeKeyAndOrderFront(nil)
         // Fork: the mode chip takes its place above the capsule.
         onPlacement?(panel.frame)

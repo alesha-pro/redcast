@@ -214,7 +214,8 @@ Tab cycle. Settings → Dictation shows them while Cloud transcription is on.
 
 When the capsule shows, `VoiceCloudTranscriber` reads the app in front and takes its entry in
 **Modes by app**, else the **Default mode**, else none. The chip above the capsule
-(`VoiceModeCaption`, a nonactivating, mouse-transparent panel) names it and shows ⇥. Tab and ⇧Tab
+(`VoiceModeCaption`, a nonactivating, mouse-transparent panel) names it and shows ⇥; it fades in
+and out with the capsule, and a new name cross-fades in place. Tab and ⇧Tab
 cycle none → each mode not left out → none while listening, and the choice is that app's from then
 on (an entry equal to the default is dropped, so the app follows the default again). An app without
 a bundle id keeps the choice for that recording only; the Default mode changes only in Settings. Tab

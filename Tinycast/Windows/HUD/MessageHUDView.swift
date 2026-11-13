@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct MessageHUDView: View {
-    enum Accessory {
+    enum Accessory: Equatable {
         case tone(DialogTone)
         case progress
     }
@@ -18,25 +18,29 @@ struct MessageHUDView: View {
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
 
     var body: some View {
-        Group {
-            if let onCancel {
-                Button(action: onCancel) {
-                    content
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel("Cancel \(message)")
-            } else {
-                content
-            }
+        // Always a button, so a spinner replaced by its result keeps one tree to cross-fade in.
+        Button {
+            onCancel?()
+        } label: {
+            content
         }
+        .buttonStyle(.plain)
+        .accessibilityRemoveTraits(onCancel == nil ? .isButton : [])
+        .accessibilityLabel(onCancel == nil ? Text(message) : Text("Cancel \(message)"))
         .onHover { isHovered in
-            if onCancel != nil {
-                withAnimation(Theme.Motion.hover) {
-                    hovered = isHovered
-                }
+            withAnimation(Theme.Motion.hover) {
+                hovered = isHovered
             }
         }
+        // A pill that stops taking the mouse never hears it leave, so it forgets the hover itself.
+        .onChange(of: onCancel == nil) { _, passive in
+            if passive { hovered = false }
+        }
+        .panelEntrance()
     }
+
+    /// Hover only lights a pill that can be cancelled; the pill it becomes may not be.
+    private var lit: Bool { hovered && onCancel != nil }
 
     private var tint: Color {
         switch accessory {
@@ -52,14 +56,17 @@ struct MessageHUDView: View {
                 .font(metrics.typography.bar)
                 .foregroundStyle(Color.primary)
                 .lineLimit(1)
+                .contentTransition(.opacity)
         }
+        .animation(Theme.Motion.swap, value: message)
+        .animation(Theme.Motion.swap, value: accessory)
         .padding(.horizontal, metrics.spacing.xl)
         .padding(.vertical, metrics.spacing.lg)
         .frame(maxWidth: metrics.size.hudMaxWidth, alignment: .leading)
         .fixedSize()
         .background { glow }
         // Not SwiftUI glass: with nothing to lens it falls back to an opaque backing and shows.
-        .glassSurface(.hud, in: Capsule(), scrim: hovered ? Theme.Colors.controlHover : nil)
+        .glassSurface(.hud, in: Capsule(), scrim: lit ? Theme.Colors.controlHover : nil)
         .overlay { if !reduceTransparency { rim } }
     }
 
@@ -75,46 +82,46 @@ struct MessageHUDView: View {
         }
     }
 
+    /// The tone's accent only: the glass draws the pill's edge itself.
     private var rim: some View {
         Capsule().strokeBorder(
-            hovered
-                ? AnyShapeStyle(Theme.Colors.border)
-                : AnyShapeStyle(
-                    LinearGradient(
-                        colors: [tint.opacity(Self.rimOpacity), tint.opacity(0.06), .clear],
-                        startPoint: .leading, endPoint: .trailing)),
+            LinearGradient(
+                colors: [tint.opacity(Self.rimOpacity), tint.opacity(0.06), .clear],
+                startPoint: .leading, endPoint: .trailing),
             lineWidth: Theme.Size.hairline)
     }
 
     /// One box for both marks, so swapping a spinner for its outcome cannot resize the pill.
     private var mark: some View {
-        Group {
-            if hovered, onCancel != nil {
+        ZStack {
+            if lit {
                 Image(systemName: "xmark")
                     .font(metrics.typography.menuIcon.weight(.semibold))
                     .foregroundStyle(Theme.Colors.textSecondary)
-                    .frame(width: metrics.size.menuIcon, height: metrics.size.menuIcon)
                     .transition(.opacity)
             } else {
                 symbol
                     .font(metrics.typography.menuIcon)
-                    .frame(width: metrics.size.menuIcon, height: metrics.size.menuIcon)
                     .transition(.opacity)
             }
         }
+        .frame(width: metrics.size.menuIcon, height: metrics.size.menuIcon)
     }
 
-    @ViewBuilder
     private var symbol: some View {
-        switch accessory {
-        case .tone(let tone):
-            Image(systemName: tone.hudSymbol)
-                .foregroundStyle(tone.tint)
-        case .progress:
-            // A `ProgressView` spinner is drawn by AppKit and ignores every tint it is given.
-            Image(systemName: "progress.indicator")
-                .foregroundStyle(Theme.Colors.progress)
-                .symbolEffect(.variableColor.iterative.dimInactiveLayers.nonReversing)
+        ZStack {
+            switch accessory {
+            case .tone(let tone):
+                Image(systemName: tone.hudSymbol)
+                    .foregroundStyle(tone.tint)
+                    .transition(.opacity)
+            case .progress:
+                // A `ProgressView` spinner is drawn by AppKit and ignores every tint it is given.
+                Image(systemName: "progress.indicator")
+                    .foregroundStyle(Theme.Colors.progress)
+                    .symbolEffect(.variableColor.iterative.dimInactiveLayers.nonReversing)
+                    .transition(.opacity)
+            }
         }
     }
 }

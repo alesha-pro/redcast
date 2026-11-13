@@ -13,7 +13,7 @@ struct OnboardingCard<Content: View>: View {
             )
             .overlay(
                 RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous)
-                    .strokeBorder(Theme.Colors.cardStroke, lineWidth: 1)
+                    .strokeBorder(Theme.Colors.cardStroke, lineWidth: Theme.Size.hairline)
             )
     }
 }
@@ -23,7 +23,7 @@ struct OnboardingDivider: View {
     var body: some View {
         Rectangle()
             .fill(Theme.Colors.cardStroke)
-            .frame(height: 1)
+            .frame(height: Theme.Size.hairline)
             .padding(.leading, Theme.Spacing.xl + Theme.Size.settingsRowIcon + Theme.Spacing.lg)
     }
 }
@@ -33,16 +33,13 @@ struct OnboardingRow<Trailing: View>: View {
     let title: String
     var subtitle: String?
     var systemImage: String?
-    var tint: Color = .secondary
+    var hue: RaycastHue = .gray
     @ViewBuilder var trailing: Trailing
 
     var body: some View {
         HStack(spacing: Theme.Spacing.lg) {
             if let systemImage {
-                Image(systemName: systemImage)
-                    .font(.system(size: 13, weight: .medium))
-                    .foregroundStyle(tint)
-                    .frame(width: Theme.Size.settingsRowIcon)
+                GlyphTile(symbol: systemImage, hue: hue)
             }
             VStack(alignment: .leading, spacing: Theme.Spacing.xs / 2) {
                 Text(title)

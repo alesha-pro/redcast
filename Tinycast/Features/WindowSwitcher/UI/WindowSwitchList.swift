@@ -41,13 +41,6 @@ private struct WindowSwitchRow: View {
     @Environment(\.metrics) private var metrics
     let entry: WindowSwitchEntry
     let selected: Bool
-    @State private var hovered = false
-
-    private var fill: Color {
-        if selected { return Theme.Colors.selection }
-        if hovered { return Theme.Colors.rowHover }
-        return .clear
-    }
 
     private var trailing: String {
         entry.isMinimized ? String(localized: "\(entry.appName) · Minimized") : entry.appName
@@ -63,7 +56,7 @@ private struct WindowSwitchRow: View {
                 }
             }
             .frame(width: metrics.size.resultRowIcon, height: metrics.size.resultRowIcon)
-            .opacity(entry.isMinimized ? 0.5 : 1)
+            .opacity(entry.isMinimized ? Theme.Opacity.minimized : 1)
             Text(entry.displayTitle)
                 .font(metrics.typography.rowTitle)
                 .foregroundStyle(entry.isMinimized ? AnyShapeStyle(.secondary) : AnyShapeStyle(.primary))
@@ -77,11 +70,7 @@ private struct WindowSwitchRow: View {
         }
         .padding(.horizontal, metrics.spacing.md)
         .padding(.vertical, metrics.spacing.sm)
-        .background(
-            RoundedRectangle(cornerRadius: metrics.radius.row, style: .continuous)
-                .fill(fill)
-        )
-        .armedHover($hovered)
+        .paletteRow(selected: selected)
         .accessibilityElement(children: .combine)
         .accessibilityLabel(entry.displayTitle)
         .accessibilityValue(trailing)

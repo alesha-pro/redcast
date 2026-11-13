@@ -295,6 +295,16 @@ enum Theme {
         static let hudWidth: CGFloat = 200
         static let hudHeight: CGFloat = 100
         static let dictationPanel = CGSize(width: 144, height: 44)
+        /// Fork: Onboarding's hero slot, the app icon's size, and the family tile that follows it.
+        static let onboardingHeroMark: CGFloat = 60
+        static let onboardingHeroTile: CGFloat = 40
+        static let onboardingStepDot: CGFloat = 7
+        static let onboardingField: CGFloat = 150
+        /// Fork: About's app icon, and the glyph of a link row beneath it.
+        static let aboutIcon: CGFloat = 88
+        static let aboutLinkGlyph: CGFloat = 14
+        /// Fork: a keyboard-focus ring's stroke, which never scales with Interface Size.
+        static let focusRingWidth: CGFloat = 2
         static let dictationWaveBar: CGFloat = 2
         /// Read-only volume bar geometry used by the HUD.
         static let volumeTrackHeight: CGFloat = 6
@@ -337,6 +347,8 @@ enum Theme {
         static let roomCardEnter: TimeInterval = 0.2
         static let roomCardExit: TimeInterval = 0.18
         static let roomSettle: TimeInterval = 0.25
+        /// Fork: one Onboarding step giving way to the next, shared by the view and its window.
+        static let onboardingStep: TimeInterval = 0.25
     }
 
     enum RoomMotion {
@@ -361,6 +373,8 @@ enum Theme {
         /// Content arriving inside a surface; a window's own fade stays on `Duration.enter`.
         static let enter = Animation.snappy(duration: 0.22)
         static let exit = Animation.easeIn(duration: Theme.Duration.exit)
+        /// Fork: a window resizing with its content; an ease, since AppKit's half cannot spring.
+        static let windowResize = Animation.easeInOut(duration: Theme.Duration.onboardingStep)
     }
 
     enum Opacity {
@@ -368,6 +382,15 @@ enum Theme {
         static let disabled: Double = 0.45
         /// Fork: a status badge's wash of its own hue, faint enough that the ink carries it.
         static let badgeFill: Double = 0.15
+        /// Fork: a dialog's glyph tile: its tone as a wash, lit from the top, edged in its hue.
+        static let toneTile: Double = 0.18
+        static let toneTileNeutral: Double = 0.12
+        static let toneTileLift: Double = 0.10
+        static let toneTileEdge: Double = 0.16
+        /// Fork: a step still ahead in Onboarding's row of dots.
+        static let stepDotIdle: Double = 0.2
+        /// Fork: a minimized window's icon in the window switcher, faded as the Dock fades it.
+        static let minimized: Double = 0.5
     }
 
     /// Fork: for an opaque overlay inside a window; glass and borderless panels carry their own.
@@ -384,6 +407,10 @@ enum Theme {
         static let floating = Style(
             color: Colors.adaptive(dark: .srgbInk(0, alpha: 0.25), light: .srgbInk(0, alpha: 0.25)),
             radius: 24, y: 8)
+        /// Fork: under the app's own icon on an opaque page, the literal About always drew.
+        static let appIcon = Style(
+            color: Colors.adaptive(dark: .srgbInk(0, alpha: 0.35), light: .srgbInk(0, alpha: 0.35)),
+            radius: 12, y: 6)
     }
 
     enum Typography {
@@ -427,6 +454,10 @@ enum Theme {
         static let menuSymbolSize: CGFloat = 14
         static let menuSymbolWeight = Font.Weight.medium
         static let noteTitle = Font.headline
+        /// Fork: what a first-run step is called, the largest type the app sets.
+        static let onboardingTitle = Font.title2.weight(.bold)
+        /// Fork: a symbol in an About link row, matched to the brand marks beside it.
+        static let aboutLinkSymbol = Font.system(size: 13, weight: .medium)
         static let composerSymbol = Font.system(size: 13, weight: .medium)
         static let composerSend = Font.system(size: 13, weight: .bold)
         static let composerStop = Font.system(size: 10, weight: .bold)
@@ -448,6 +479,15 @@ enum Theme {
         /// Fork: the palette's veil, thinner than `panelScrim`; the glass tint carries the rest.
         static let paletteScrim = adaptive(dark: .srgbInk(0, alpha: 0.20), light: .srgbInk(1, alpha: 0.30))
         static let paletteGlassTint = adaptive(
+            dark: .srgbInk(0, alpha: 0.30), light: .srgbInk(1, alpha: 0.40))
+        /// Fork: a HUD's veil, the thinnest; its glass tint, the heaviest, carries the weight.
+        static let hudScrim = adaptive(dark: .srgbInk(0, alpha: 0.14), light: .srgbInk(1, alpha: 0.24))
+        static let hudGlassTint = adaptive(
+            dark: .srgbInk(0, alpha: 0.36), light: .srgbInk(1, alpha: 0.48))
+        /// Fork: a read panel's veil, heavier than the palette's so a paragraph holds on any desk.
+        static let readingScrim = adaptive(
+            dark: .srgbInk(0, alpha: 0.26), light: .srgbInk(1, alpha: 0.38))
+        static let readingGlassTint = adaptive(
             dark: .srgbInk(0, alpha: 0.30), light: .srgbInk(1, alpha: 0.40))
         /// Fork: Reduce Transparency's stand-in for glass, and the only opaque surface there is.
         static let opaqueSurface = adaptive(
@@ -532,6 +572,8 @@ enum Theme {
         static let accent = catalog("AccentColor") ?? Color.red
         /// Fork: a focused field's 2pt edge; a focus edge drawn at 1pt stays the full accent.
         static let focusRing = accent.opacity(0.55)
+        /// Fork: the dictation capsule's glass while the microphone is live, and at no other time.
+        static let liveGlassTint = accent.opacity(0.30)
         /// Fork: that red as text and links, deepened on light to read at 4.5:1.
         static let accentInk = NSColor(named: "AccentInk") ?? .linkColor
         /// Fork: a colour set the fork's asset catalog adds; a harness, which has none, gets nil.

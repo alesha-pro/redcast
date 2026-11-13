@@ -9,12 +9,21 @@ final class DialogPanel: NSPanel, AnimatedPanel {
         case confirm
         case increment
         case decrement
+        /// Tab and ⇧Tab walk the buttons; with Keyboard navigation off nothing else would.
+        case focusNext
+        case focusPrevious
+        /// Space on the button Tab walked to.
+        case press
     }
 
     var onKey: ((Key) -> Void)?
     /// Arrows are a control's keys, not the panel's; a text field needs them for its caret.
     var handlesArrowKeys = false
     var acceptsLineBreaks = false
+    /// Off when a field or chip holds focus, so Tab and Space stay the key-view loop's.
+    var walksActions = false
+    /// Set once Tab has walked to a button; until then Space is left to whatever holds focus.
+    var focusesAction = false
 
     init(content: NSView, cornerRadius: CGFloat) {
         super.init(
@@ -59,6 +68,10 @@ final class DialogPanel: NSPanel, AnimatedPanel {
         case kVK_RightArrow where handlesArrowKeys,
             kVK_UpArrow where handlesArrowKeys:
             onKey(.increment)
+        case kVK_Tab where walksActions:
+            onKey(event.modifierFlags.contains(.shift) ? .focusPrevious : .focusNext)
+        case kVK_Space where walksActions && focusesAction:
+            onKey(.press)
         default:
             super.sendEvent(event)
         }

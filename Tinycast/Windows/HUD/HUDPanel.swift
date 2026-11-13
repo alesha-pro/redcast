@@ -10,7 +10,7 @@ final class HUDPanel: NSPanel {
             defer: false)
         isOpaque = false
         backgroundColor = .clear
-        // Both HUDs take the palette's surface recipe, so neither carries elevation.
+        // The window server's shadow is a HUD's elevation; its glass draws no shadow of its own.
         hasShadow = true
         level = .palette
         ignoresMouseEvents = !acceptsMouseEvents

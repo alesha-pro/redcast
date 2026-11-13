@@ -25,7 +25,7 @@ final class VolumeHUDController {
             let metrics = settings.interfaceSize.metrics
             presenter.show(
                 VolumeHUDView(state: state).environment(\.metrics, metrics),
-                size: CGSize(width: metrics.size.hudWidth, height: metrics.size.hudHeight))
+                size: VolumeHUDGeometry(metrics: metrics).size)
         }
     }
 

@@ -93,6 +93,20 @@ struct AppearanceTests {
             check("\(label) palette ink", tint[0] == ink && scrim[0] == ink)
             check("\(label) palette scrim is thinner", scrim[3] < components(c.panelScrim, name)[3])
         }
+        print("# a read panel's veil is heavier than the palette's, a HUD's is the thinnest")
+        for (label, name, ink) in [("dark", NSAppearance.Name.darkAqua, 0), ("light", .aqua, 255)] {
+            let palette = components(c.paletteScrim, name)[3]
+            let reading = components(c.readingScrim, name)
+            let hud = components(c.hudScrim, name)
+            let tints = [components(c.readingGlassTint, name)[0], components(c.hudGlassTint, name)[0]]
+            check("\(label) role ink", reading[0] == ink && hud[0] == ink && tints == [ink, ink])
+            check("\(label) reading scrim is heavier than the palette's", reading[3] > palette)
+            check("\(label) reading scrim is thinner", reading[3] < components(c.panelScrim, name)[3])
+            check("\(label) hud scrim is the thinnest", hud[3] < palette)
+            check(
+                "\(label) hud tint carries the weight",
+                components(c.hudGlassTint, name)[3] > components(c.paletteGlassTint, name)[3])
+        }
         check("the opaque surface is opaque", components(c.opaqueSurface, .darkAqua)[3] == 255)
         adapts("opaqueSurface", c.opaqueSurface)
 

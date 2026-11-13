@@ -27,6 +27,7 @@ struct InterfaceSizeTests {
         everySizeRounds()
         sizesGrow()
         derivationsHold()
+        theVolumeBoxFollowsItsWindow()
         theEnumIsWellFormed()
 
         print("\(passes) passed, \(failures) failed")
@@ -272,6 +273,40 @@ struct InterfaceSizeTests {
                     .rounded(),
                 "a form popover still caps on a whole row at \(size.rawValue)")
         }
+    }
+
+    /// The box once drew `Theme`'s lengths inside a window sized from the scaled ones.
+    static func theVolumeBoxFollowsItsWindow() {
+        let standard = VolumeHUDGeometry(metrics: .standard)
+        expect(standard.size.width, Theme.Size.hudWidth, "the volume box is Theme's width by default")
+        expect(standard.size.height, Theme.Size.hudHeight, "the volume box is Theme's height by default")
+        expect(standard.glyph, Theme.Size.dialogIcon, "the volume glyph is Theme's by default")
+        expect(standard.verticalInset, Theme.Spacing.xxl, "the volume box keeps its vertical inset")
+        expect(standard.horizontalInset, Theme.Spacing.xl, "the volume box keeps its side inset")
+        expect(standard.trackWidth, 130, "the default bar is the 130 points it always was")
+
+        for size in InterfaceSize.allCases {
+            let m = size.metrics
+            let box = VolumeHUDGeometry(metrics: m)
+            expect(box.size.width, m.size.hudWidth, "the volume box is its window's width at \(size.rawValue)")
+            expect(
+                box.size.height, m.size.hudHeight, "the volume box is its window's height at \(size.rawValue)")
+            expect(box.cornerRadius, m.radius.dialog, "the volume box rounds as a dialog at \(size.rawValue)")
+            // The bar's row is as tall as the readout's line, which outgrows the bar itself.
+            let readout = m.typography.textNSFont(.callout)
+            let row = max(box.trackHeight, ceil(readout.ascender - readout.descender + readout.leading))
+            expect(
+                box.verticalInset * 2 + box.glyph + box.rowSpacing + row <= box.size.height,
+                "the volume box holds its glyph, bar and readout at \(size.rawValue)")
+            expect(
+                box.trackWidth > box.readoutWidth, "the bar stays the box's content at \(size.rawValue)")
+        }
+
+        let larger = VolumeHUDGeometry(metrics: InterfaceSize.larger.metrics)
+        expect(larger.glyph > standard.glyph, "the volume glyph grows with the interface")
+        expect(larger.verticalInset > standard.verticalInset, "the volume box's inset grows")
+        expect(larger.trackHeight > standard.trackHeight, "the volume bar thickens")
+        expect(larger.trackWidth > standard.trackWidth, "the volume bar lengthens")
     }
 
     static func theEnumIsWellFormed() {

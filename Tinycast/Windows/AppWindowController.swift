@@ -78,18 +78,28 @@ final class AppWindowController: NSObject, NSWindowDelegate {
         window?.close()
     }
 
-    /// The title bar sits inside the frame but outside the layout area, so it is added back.
-    func fitContent(width: CGFloat, height: CGFloat) {
+    /// The title bar is added back to the layout height; a `duration` eases the bottom edge there.
+    func fitContent(width: CGFloat, height: CGFloat, animation duration: TimeInterval? = nil) {
         guard let window else { return }
         let titlebar = window.frame.height - window.contentLayoutRect.height
         let size = CGSize(width: width, height: height + titlebar)
         guard window.contentMinSize != size else { return }
         let top = window.frame.maxY
         window.contentMinSize = size
-        window.setContentSize(size)
-        var frame = window.frame
+        guard let duration else {
+            window.setContentSize(size)
+            var frame = window.frame
+            frame.origin.y = top - frame.height
+            window.setFrame(frame, display: true, animate: false)
+            return
+        }
+        var frame = window.frameRect(forContentRect: NSRect(origin: window.frame.origin, size: size))
         frame.origin.y = top - frame.height
-        window.setFrame(frame, display: true, animate: false)
+        NSAnimationContext.runAnimationGroup { context in
+            context.duration = Motion.duration(duration)
+            context.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+            window.animator().setFrame(frame, display: true)
+        }
     }
 
     // MARK: - NSWindowDelegate
