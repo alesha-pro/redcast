@@ -15,6 +15,7 @@ struct MessageHUDView: View {
     var onCancel: (() -> Void)? = nil
     @State private var hovered = false
     @Environment(\.metrics) private var metrics
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
 
     var body: some View {
         Group {
@@ -30,7 +31,7 @@ struct MessageHUDView: View {
         }
         .onHover { isHovered in
             if onCancel != nil {
-                withAnimation(.easeOut(duration: Theme.Duration.hover)) {
+                withAnimation(Theme.Motion.hover) {
                     hovered = isHovered
                 }
             }
@@ -57,11 +58,9 @@ struct MessageHUDView: View {
         .frame(maxWidth: metrics.size.hudMaxWidth, alignment: .leading)
         .fixedSize()
         .background { glow }
-        // Not glass: with nothing to lens it falls back to an opaque backing and shows.
-        .background(hovered ? Theme.Colors.controlHover : Theme.Colors.panelScrim)
-        .background(GlassEffectView())
-        .clipShape(Capsule())
-        .overlay { rim }
+        // Not SwiftUI glass: with nothing to lens it falls back to an opaque backing and shows.
+        .glassSurface(.hud, in: Capsule(), scrim: hovered ? Theme.Colors.controlHover : nil)
+        .overlay { if !reduceTransparency { rim } }
     }
 
     private var glow: some View {

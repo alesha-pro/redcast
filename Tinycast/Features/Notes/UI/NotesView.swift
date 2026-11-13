@@ -9,9 +9,8 @@ struct NotesView: View {
             content
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Theme.Colors.panelScrim)
-        .background(GlassEffectView())
-        .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.panel, style: .continuous))
+        .glassSurface(
+            .panel, in: RoundedRectangle(cornerRadius: Theme.Radius.panel, style: .continuous))
         // The band above is the title bar; AppKit must not inset the content a second time.
         .ignoresSafeArea()
         .onChange(of: notes.showsFormattingBar && notes.hasActiveNote) { _, shown in
@@ -96,7 +95,7 @@ struct NotesView: View {
                 .font(Theme.Typography.bar)
                 .padding(.horizontal, Theme.Spacing.xl)
                 .frame(height: Theme.Size.barButtonHeight)
-                .frosted(in: Capsule())
+                .glassSurface(.control, in: Capsule())
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
@@ -158,7 +157,7 @@ private struct NoteTitlebarActions: View {
                 String(localized: "Open Notes Folder  ⌘O"), notes.openNotesFolder)
         }
         .padding(Theme.Spacing.xs)
-        .frosted(in: Capsule())
+        .glassSurface(.control, in: Capsule())
         .padding(.trailing, Theme.Spacing.md)
     }
 

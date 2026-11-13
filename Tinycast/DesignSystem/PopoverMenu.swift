@@ -132,7 +132,7 @@ struct PopoverMenu: View {
             attachedRadius: metrics.size.menuButton / 2)
         surfaceContent
             .frame(width: width ?? metrics.size.actionMenuWidth)
-            .glassEffect(.regular, in: shape)
+            .glassSurface(.menu, in: shape)
     }
 
     private var surfaceContent: some View {
@@ -425,7 +425,7 @@ private struct PopoverMenuRow: View {
                 RoundedRectangle(cornerRadius: metrics.radius.menuRow, style: .continuous)
                     .fill(selected ? Theme.Colors.menuHover : Color.clear)
             )
-            .opacity(item.isEnabled ? 1 : 0.45)
+            .opacity(item.isEnabled ? 1 : Theme.Opacity.disabled)
         }
         .buttonStyle(.plain)
         .disabled(!item.isSelectable)

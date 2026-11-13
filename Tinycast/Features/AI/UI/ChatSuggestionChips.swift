@@ -52,7 +52,7 @@ private struct ChatChipSurface: ViewModifier {
             .padding(.leading, leadsWithBadge ? metrics.spacing.sm : metrics.spacing.xl)
             .padding(.trailing, metrics.spacing.xl)
             .padding(.vertical, metrics.spacing.sm)
-            .background { Capsule().fill(Color.clear).frosted(in: Capsule()) }
+            .background { Capsule().fill(Color.clear).glassSurface(.control, in: Capsule()) }
             .contentShape(Capsule())
     }
 }

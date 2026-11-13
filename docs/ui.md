@@ -10,26 +10,26 @@ Read this before touching any view body, `Theme` value, or the panel chrome.
 
 ## The look, in one paragraph
 
-Redcast is a **command palette**: a borderless floating panel whose surface is just the
-OS behind-window blur under a 40% black scrim — there is no gray chrome. Everything on that surface is
+Redcast is a **command palette**: a borderless floating panel whose surface is tinted Liquid
+Glass under a thin black scrim — there is no gray chrome. Everything on that surface is
 white at a fixed alpha ramp. The header and bottom bar **float over the list as fully transparent
 overlays**; there are no hard-edged bars, strips, or dividers. Rows don't clip under the bars, they
 **dissolve**: a scroll-driven gradient mask ghosts them as they pass beneath. Floating controls (the
 action pill, the menu circle, popover menus) are **Liquid Glass**.
 
 That paragraph describes **Dark**, which is the design. Light is the same design with the ink
-inverted: a white scrim over the same blur, and a black-alpha ramp at matched stops. Nothing about
+inverted: a white tint and scrim on the same glass, and a black-alpha ramp at matched stops. Nothing about
 geometry, type, motion or state changes between them.
 
 Fork: Raycast's colour layer sits on top; see [Colour: the Raycast palette](#colour-the-raycast-palette-fork).
 
 Five load-bearing ideas, in priority order:
 
-1. **Surface = scrim over behind-window blur.** No solid backgrounds. Depth comes from the desktop showing through.
+1. **Surface = a thin scrim over tinted glass.** No solid backgrounds. Depth comes from the desktop showing through.
 2. **One alpha ramp, never grays.** Ink at fixed stops — white over the dark surface, black over the light one.
 3. **Floating bars, not chrome.** Header/footer are transparent overlays; the list fills the whole panel.
 4. **Edges dissolve, they don't clip.** Scroll-driven mask, no separators between list and bars.
-5. **Glass only on floating controls.** The main surface is never glass; pills/menus/circles are.
+5. **Glass is the backdrop and the floating layer; content stays flat.** Rows, cards and fields are ramp fills, never glass, and every glass surface states a `GlassRole`.
 
 ---
 
@@ -39,11 +39,11 @@ These are the things that quietly break the look if changed. Preserve them unles
 
 - **Dark is the baseline and its values are frozen.** Every `Theme.Colors` token resolves per appearance, and its **dark branch is the literal the forced-dark build shipped** — restated, never recomputed. Retune a light branch freely; touch a dark one only when the task is to change Dark. `AppCore.applyAppearance()` is the only place an appearance is assigned, from `AppSettings.appearance`; `.system` assigns `nil` so AppKit follows macOS.
 - **New colors go through `Theme.Colors.ramp(dark:light:)`** (an alpha that inverts) or `adaptive(dark:light:)` (two explicit `NSColor`s, for anything that isn't a plain inversion — `panelScrim`, `layoutPreviewGround`). Never a bare `Color.white.opacity(…)` in a view: it disappears in Light.
-- **No grays, no opaque fills on the surface.** Reach for `Theme.Colors.*` instead of `.gray`, `NSColor.windowBackground`, etc.
+- **No grays, no opaque fills on the surface.** Reach for `Theme.Colors.*` instead of `.gray`, `NSColor.windowBackground`, etc. The one opaque fill is `opaqueSurface`, which `glassSurface` swaps in for the glass under Reduce Transparency.
 - **Three things stay fixed in both appearances, on purpose.** The `EdgeDissolve`/`OverflowFade` gradients are **mask luminance, not color** — inverting them breaks the dissolve everywhere. `ExtensionTintColors` and a tinted `IconCache` tile keep white ink, because a saturated tile carries its own contrast. And `IconCache` cannot use a dynamic `NSColor` at all: it rasterizes off-main, so the surface is carried explicitly and is part of the cache key.
 - **An icon is drawn for a surface *and* a system icon style, and both move under you.** macOS restyles the icons `NSWorkspace` hands out when System Settings → Appearance → **Icon & widget style** changes, so `IconStyleMonitor` and Redcast's own appearance both call `IconCache.invalidateStyled()`. **The monitor may not invalidate on the notification itself.** AppKit posts `NSWorkspaceIconAppearanceConfigurationDidChange` before IconServices has swapped what `NSWorkspace` vends — measured at 25–120ms behind, jittering run to run — and the images it hands back are live objects macOS restyles in place, so flattening one on the signal freezes the *outgoing* style into a bitmap nothing ever invalidates again. `IconStyleMonitor` therefore polls `IconCache.styleFingerprint()` until the pixels actually move, and only then invalidates. Waiting also sidesteps the cost: re-flattening every icon the instant a restyle begins forces a cold IconServices regeneration, measured at 160× the settled draw cost. That drops the cached bitmaps, bumps every cache key so an in-flight decode cannot repopulate a stale one, and moves `IconCache.style.generation`. **Any view that draws an icon must key its fetch on that generation** — wrap the view's own key in `IconRequest`, or call `IconCache.observeStyle()` where the icon is resolved synchronously in a `body`. It is reached through `IconCache` rather than injected precisely because icons are drawn in menus, popovers and every list, where a missed injection would be a silent staleness bug.
 - **No hard dividers between the list and the bars.** The header and bottom bar are `safeAreaInset` overlays with no background; separation comes from `edgeDissolve()`, nothing else. (One deliberate exception: the vertical hairline between a list and its preview pane, as the clipboard and file search screens draw.)
-- **The panel corner is clipped once, at the root.** `RootPaletteView.body` ends with `.background(panelScrim) → .background(GlassEffectView()) → .clipShape(RoundedRectangle(26, .continuous))`. Keep that order; the scrim goes _over_ the glass, and the clip is last.
+- **The panel corner is clipped once, at the root.** `RootPaletteView.body` ends with `.glassSurface(.palette, in: RoundedRectangle(26, .continuous))`, which lays `paletteScrim` over a tinted `GlassEffectView` and clips last. The scrim goes _over_ the glass, and the dialog-dimming overlay sits before the call so the same clip cuts it. The glass also rounds itself to that radius, so its edge light follows the corner — but **the clip stays**: the scrim, the dimming and the list are sibling layers the glass's own corner cannot cut. `glassSurface` reads the radius off the shape it clips with, so the two cannot disagree; AppKit's glass corner is continuous, as the clip is.
 - **Don't use the native scroll edge effect.** Inside a transparent panel it renders a hard-bounded rectangle. Use `edgeDissolve()`, or a gradient `mask` where a surface owns its own fade — `scrollEdgeEffectStyle` draws a *material* where a scroll view meets a safe area, so over a panel that already has `panelScrim` + `GlassEffectView` it composites to nothing. Tried and rejected on `QuickActionResultView`, with and without `safeAreaBar`. This is a rule about the borderless panels; the Settings window is a titled `NSWindow` whose system titlebar draws the band itself (see "Settings").
 - **Test over a light desktop.** Transparency and corner masking bugs only show over bright wallpaper. Dark wallpaper hides them.
 - **No `NSAlert` or system popovers.** Every confirmation, failure report, value prompt and transient readout is Redcast's own SwiftUI surface (see "Dialogs & HUD"). An Aqua alert on an alpha-over-vibrancy app reads as a different product, and its `runModal` run loop keeps Carbon hotkeys firing underneath.
@@ -68,7 +68,9 @@ These are the things that quietly break the look if changed. Preserve them unles
   its refusal: the one sanctioned exception to ↵ running the primary action, since its reader may
   have been typing somewhere else. See [background-agents.md](features/background-agents.md).
 - **A transient readout is a HUD, not a dialog.** `VolumeHUDController`'s box is volume and mute only, since that one needs an actual level and number; every other success or info confirmation goes through `MessageHUDController`'s pill, whose leading glyph *is* its `DialogTone`. A pill has no subject to name, so the icon rule above does not apply to it — and that mapping stays file-scoped so nothing can reach for it when building a `DialogRequest`. A new HUD means a new presenter, not a second shape bolted onto an existing controller.
-- **Glass is for floating controls, with dialogs as the deliberate modal exception.** The action capsule, menu circle and `PopoverMenu` use it inside the palette; dialogs apply one system `.glassEffect(.regular)` to their root surface. Dialog buttons stay matte so their roles remain legible. Both HUDs keep the lighter `panelScrim` → `GlassEffectView()` → `clipShape` recipe.
+- **Every glass surface states a `GlassRole`, and nothing else is glass.** `glassSurface(_:in:)` owns each role's recipe (see "Liquid Glass"); no view outside `Features/Extensions/` calls `glassEffect` or builds a `GlassEffectView` itself, bar the AI Chat sites listed there. Content on a surface — rows, cards, fields, dialog buttons — stays a matte ramp fill, so no row is glass and glass is not stacked on glass beyond the floating controls the palette already had.
+- **System glass draws its own edge.** No hand rim, sheen or shadow goes on top of real glass. The message pill's tone rim is the one inherited exception, and the Reduce Transparency fallback is the only place `glassSurface` draws a rim. The two never stack: under Reduce Transparency the pill drops its own rim and the fallback's is the only one.
+- **`panelScrim` is shared; retune a role, not the token.** Notes, the camera panels, Quick Actions, both HUDs, dialogs and the Settings editors all sit under it. A surface that wants a different veil gets its own token and role, as the palette has `paletteScrim`.
 
 ---
 
@@ -121,7 +123,7 @@ groups. See "Section headers" below.
 `formField` dresses the native Snippet, Quicklink, Event and Custom Command editor fields; it does not change settings controls
 or extension forms.
 
-Native editor fields keep the same border ink at focus, thickened to 2pt. Single-line text is centred
+Native editor fields thicken their border to 2pt at focus and tint it `focusRing`. Single-line text is centred
 by the font's cap height and AppKit's rounded baseline; multiline editors keep their standard top inset.
 The Custom Command script textarea uses a monospaced font at the same body size.
 Their input menus have a 200pt minimum width and expand to the triggering control's width. Capped
@@ -229,7 +231,10 @@ shipped. Light is the same stop with the ink inverted, and is the only column op
 
 | Token             | Dark           | Light          | Use                                              |
 | ----------------- | -------------- | -------------- | ------------------------------------------------ |
-| `panelScrim`      | black **0.40** | white **0.55** | the panel scrim over the glass                   |
+| `panelScrim`      | black **0.40** | white **0.55** | the scrim over every glass panel but the palette |
+| `paletteScrim`    | black 0.20     | white 0.30     | the palette's own, thinner scrim                 |
+| `paletteGlassTint`| black 0.30     | white 0.40     | the tint inside the palette's glass              |
+| `opaqueSurface`   | gray 0.12      | gray 0.95      | what replaces glass under Reduce Transparency    |
 | `selection`       | white 0.10     | black 0.09     | selected row fill (keyboard/active selection)    |
 | `rowHover`        | white 0.05     | black 0.045    | mouse-hover fill (always fainter than selection) |
 | `menuHover`       | white 0.10     | black 0.09     | popover-menu row hover                           |
@@ -249,8 +254,23 @@ shipped. Light is the same stop with the ink inverted, and is the only column op
 | `composerSend`    | white 0.92     | black 0.92     | AI Chat's Send disc                              |
 
 `panelScrim` is the ramp's inverse — it darkens the dark surface and lightens the light one — so it
-is an `adaptive` pair, not a `ramp`. So is `composerSendInk`, black 0.85 on the dark disc and white
-on the light one.
+is an `adaptive` pair, not a `ramp`; `paletteScrim` and `paletteGlassTint` are too. So is
+`composerSendInk`, black 0.85 on the dark disc and white on the light one.
+
+**The palette's veil is tuned by eye, and nothing measures it.** The ramp was tuned against
+`panelScrim`, and the palette now sits under a thinner scrim with the rest of the weight in the glass
+tint. That tint passes through the system's glass, not over it as a plain alpha layer, so no
+arithmetic on the two tokens says how much desktop gets through, and a harness cannot render real
+glass to sample. `appearance-test` pins only the ink and that `paletteScrim` stays the thinner of the
+two. A retune is checked on screen over a white, a busy and a dark desktop, in both appearances, with
+the tertiary and quaternary text, `rowHover` and the selection wash as the things to watch; the Debug
+`classic` preset is the reference to compare against. Increase Contrast turns Reduce Transparency on
+with it, so there the palette is `opaqueSurface` and the wallpaper is out of the picture.
+
+`focusRing` is `accent` at 0.55, the 2pt edge of a focused field in `FormFieldChrome`. A focus edge
+drawn at 1pt stays the full accent instead — an inline argument field, the Window Layout inspector's
+`layoutFieldChrome` — since at that width 0.55 is too faint to find, and too close to an argument
+field's owed edge, `warning` at 0.55.
 `brand`, `primaryAction`, `destructive`, `success` and `dropGuideArmed` are fixed hues and adapt on
 their own.
 Fork: `selection`, `primaryAction`, `composerSend` and `composerSendInk` take Raycast red instead; see [below](#colour-the-raycast-palette-fork).
@@ -265,6 +285,41 @@ the environment's appearance). **Selection always beats hover** when a row is bo
 An extension's own surfaces live in `ExtensionColors` (`Features/Extensions/UI/`), not here — the
 `ramp` mechanism is shared, the values are the feature's. See the Extensions non-negotiable in
 [`AGENTS.md`](../AGENTS.md).
+
+### Motion (`Theme.Motion`)
+
+The curves, where `Theme.Duration` holds bare times for AppKit and for dwell. Each is an `Animation`,
+and all of them still pass through `motionScope()`, so no site checks the animations setting.
+
+| Token    | Curve             | Use                                                           |
+| -------- | ----------------- | ------------------------------------------------------------- |
+| `hover`  | easeOut 0.12      | a pointer-driven fill or tint                                 |
+| `press`  | easeOut 0.08      | a non-glass control answering mouse-down                      |
+| `swap`   | snappy 0.20       | content replacing content in place                            |
+| `settle` | smooth 0.30       | a layout coming to rest after it changed size or order        |
+| `enter`  | snappy 0.22       | content arriving inside a surface                             |
+| `exit`   | easeIn 0.12       | content leaving                                               |
+
+**`hover` is for the pointer only.** Keyboard selection is instant: easing it leaves a fading ghost
+behind a held arrow key. A state the keyboard drives, such as the chat's Send disc enabling as text is
+typed, spells its own curve rather than borrowing the token. A window's own fade keeps `Duration.enter` / `Duration.exit` through
+`PanelTransition`; `MenuMotion` and `RoomMotion` stay where upstream put them.
+
+### Opacity (`Theme.Opacity`)
+
+`disabled 0.45` dims every disabled control: `settingsEnabled`, `ModalActionButtonStyle`, a disabled
+`PopoverMenuRow` and `ChatSwitchStyle`.
+
+### Shadow (`Theme.Shadow`)
+
+`card` (black 0.18, radius 12, y 4) · `floating` (black 0.25, radius 24, y 8), applied with
+`.shadow(Theme.Shadow.card)`.
+
+**For an opaque overlay inside a window, never for glass.** Glass carries its own elevation and a
+borderless panel takes the window server's shadow. The only three sites that use `card` today break
+that rule, and are the inherited exception, not a precedent: the chat's context card, the note picker
+and the agent command picker are `glassEffect(.regular)` over a solid `windowSurface`, and carried
+this same shadow before it had a name. They keep it until the AI Chat phase settles their material.
 
 ---
 
@@ -385,7 +440,8 @@ Source: `Features/Notes/UI/`.
 Notes is a sibling surface, not a palette mode. `NotesPanel` is a **titled**, resizable,
 non-activating panel — AppKit draws the traffic lights, the drag and the resize — but it keeps the
 palette's transparent recipe and deliberately does not dismiss on resign-key. `NotesView`'s root
-applies `panelScrim` → `GlassEffectView()` → one continuous **`panel`** corner clip, so
+applies `glassSurface(.panel, in:)` with one continuous **`panel`** corner — `panelScrim` over an
+untinted `GlassEffectView`, then the clip — so
 Notes and the palette round identically. The clip is larger than the theme frame's own corner, so it
 is what shows; `invalidateShadow()` on every show recuts the shadow to match.
 
@@ -395,7 +451,7 @@ drops `NSThemeFrame` off its centred-title layout, so the native title would sit
 lights. The drawn title is not hit-testable, so clicks fall through to the real title bar and drag
 the window. The three actions cannot do that, so they live in an `NSTitlebarAccessoryViewController`
 at `.trailing` — `NoteTitlebarActions`, the launcher's footer capsule (`BarButton` in a
-`frosted(in: Capsule())`) with glyphs in place of pills. Its 44-point height is what sizes the band.
+`glassSurface(.control, in: Capsule())`) with glyphs in place of pills. Its 44-point height is what sizes the band.
 
 `NotesWindowController` fits the height to the editor on every edit and AppKit autosaves the frame
 under `"Notes Window"`; only a title-bar double-click computes a top-right target. The window shows exactly
@@ -433,7 +489,7 @@ Under the editor, the formatting bar takes a `bottomBarHeight` band while Render
 Formatting Bar are on, in place of the 28-point count footer. It is one row, not a capsule hugging the
 window: the count is plain text at the leading edge and the buttons sit in glass at the trailing edge,
 the same split as the palette's own bottom bar. The capsule is the title bar's recipe (`BarButton`s in
-`frosted(in: Capsule())`), inset `md` from the trailing edge as the title capsule is, with `xxs`
+`glassSurface(.control, in: Capsule())`), inset `md` from the trailing edge as the title capsule is, with `xxs`
 between buttons and `sm` between groups. Each button is a compact 28-point square
 around a `noteGlyph` frame, so the capsule is 36 points wide collapsed and 397 expanded, and the count
 gives way from 524 points down. Collapsing and expanding grows the buttons out of the round button on
@@ -563,14 +619,54 @@ leading gap. Headers are non-selectable display rows, so selection (keyed by id)
 
 ## Liquid Glass
 
-Source: `Theme.frosted(in:)`, `DesignSystem/PopoverMenu.swift`.
+Source: `DesignSystem/GlassSurface.swift`, `DesignSystem/GlassEffectView.swift`,
+`DesignSystem/PopoverMenu.swift`.
 
-Glass is normally for floating controls. The dialog root is the one modal-surface exception.
+Glass is the backdrop and the floating layer. A view says **what it is** with
+`glassSurface(_ role:, in: shape)`, and `GlassSurface.swift` is the only place that says what that
+role looks like: which glass, what tint, which scrim, and what replaces it under Reduce Transparency.
+Retune a role there, never at a call site.
 
-- `View.frosted(in:)` = `glassEffect(.regular.interactive(), in:)` — regular, interactive glass, so it follows the system Liquid Glass (clear ↔ tinted) setting; `.clear` ignores that setting. Used on the action-group capsule and the menu circle. Dialogs intentionally use untinted, non-interactive `.glassEffect(.regular)` on their root instead; HUDs retain the panel recipe (see "Dialogs & HUD"). Retune it in `frosted(in:)`, not per call site.
+| Role      | Surfaces                                                         | Glass                                     | Scrim          |
+| --------- | ---------------------------------------------------------------- | ----------------------------------------- | -------------- |
+| `palette` | the launcher's root                                              | AppKit, `paletteGlassTint`, own corner    | `paletteScrim` |
+| `panel`   | Notes, the camera panels, a Quick Action's result                | AppKit, untinted, square under the clip   | `panelScrim`   |
+| `hud`     | the volume box, the message pill                                 | as `panel`                                | `panelScrim`   |
+| `modal`   | dialogs, Settings editor panels                                  | SwiftUI `.regular`                        | `panelScrim`   |
+| `menu`    | `PopoverMenu`, the note switcher and heading menu, the recorder callout | SwiftUI `.regular`                 | none           |
+| `chip`    | the dictation capsule, the voice-mode caption                    | SwiftUI `.regular`                        | none           |
+| `control` | the action capsule, the menu circle, Notes' capsules, chat chips | SwiftUI `.regular.interactive()`          | none           |
+
+- **Seven roles share five recipes, on purpose.** `panel` and `hud` draw alike today, and so do
+  `menu` and `chip`: the role is what lets one be retuned later without the call sites of the other
+  being found by hand.
+- **A backdrop role is AppKit's glass** (`GlassEffectView`, an `NSGlassEffectView`) laid behind the
+  content under a hand scrim, then clipped to the shape. It is for a surface that is its whole
+  window. `GlassEffectView` takes a `cornerRadius`, a `tint` and a `style`; it re-resolves the tint
+  when the appearance flips and assigns nothing that has not changed, so a keystroke never
+  invalidates it. It stays non-interactive: `effectIsInteractive` is macOS 27 only.
+- **A system role is SwiftUI's `glassEffect` on the content itself.** It draws its own edge and
+  elevation, so it takes no rim and no shadow. It follows the system Liquid Glass (clear ↔ tinted)
+  setting, which compounds with the palette's own tint: check both when retuning.
+- **`control` already answers a press.** Its glass is interactive, so a control on it takes no
+  pressed fill and no scale of its own. A matte control (`BarButton`, a dialog button) does.
+- **The palette's look is `GlassBackdrop.balanced`**: `paletteGlassTint` inside the glass,
+  `paletteScrim` over it, and the glass rounded to the panel's own corner. A Debug build can swap in
+  `classic` (the untinted glass under `panelScrim` that shipped before) or `clear` (the same veil on
+  `.clear` glass) to compare on screen; see
+  [development.md](development.md#the-palettes-glass-presets). Release has no switch.
+- **Reduce Transparency.** A role with a hand scrim — `palette`, `panel`, `hud`, `modal` — swaps
+  its glass for the opaque `opaqueSurface` and draws a hairline `border` rim inside the shape, the
+  only rim `glassSurface` ever draws. The scrim stays on top, so each surface keeps its own
+  density. `menu`, `chip` and `control` are bare system glass and keep the system's own treatment.
+- **Not migrated.** `Features/Extensions/` owns its looks and still calls `Theme.frosted(in:)` and
+  `glassEffect` directly; `frosted` is kept for it alone. AI Chat's composer, find bar and three
+  overlay cards (`AIChatDetailView`, `NotePickerCard`, `ACPCommandPicker`) and the transcript's
+  `.ultraThinMaterial` Jump to Latest button also keep their own calls: no role describes glass over
+  an opaque page honestly yet.
 - **Menus are in-window overlays, not system popovers.** `.contextMenu`/`NSMenu` stall clicks for seconds inside a `LazyVStack` and spill outside the panel. Use `PopoverMenu` anchored to a corner via `.overlay`, inset `menuInset` (8pt) so its own corner isn't clipped by the panel's. A menu hung off a control instead of a corner — the clipboard type filter, `.topTrailing` — insets by that control's own metrics so their edges line up.
 - **A menu's `width` is fixed, never intrinsic**, so it can't jitter as its rows change. Every header menu states its own at its `RootPaletteView.menuContent` case — `menuWidth 276`, or a token of its own where that reads too wide (`clipboardFilterMenuWidth`, `fileSearchFilterMenuWidth`, `emojiCategoryMenuWidth`) — so retuning one never moves another. Native footer menus add 30pt without changing those header widths; extension Actions owns its nearby 310pt width inside the feature.
-- **`PopoverMenu`** uses `glassEffect(.regular)` with `menuPanel 16` corners and **no hand-tuned shadow** — Tahoe glass carries its own elevation; adding a drop shadow reads heavy and non-native. A footer menu raises only its attached bottom corner to the controls' 18-point radius, so the two silhouettes meet exactly.
+- **`PopoverMenu`** takes the `menu` role with `menuPanel 16` corners and **no hand-tuned shadow** — Tahoe glass carries its own elevation; adding a drop shadow reads heavy and non-native. A footer menu raises only its attached bottom corner to the controls' 18-point radius, so the two silhouettes meet exactly.
 - Its native search field is a row-height sibling of the scroller, above header menus or below footer menus. It uses an 18pt horizontal inset to align with the visible row glyphs. The top field stays vertically symmetric; the bottom field keeps its 1pt optical lift. Menus omit the adjacent edge dissolve and centre **No Results** in one row when their filtered rows are empty. The 8pt resting list inset belongs to the scroll content, so rows can reach the surface edges without shifting their initial position; hover fills keep the dedicated `menuRow 10` corner.
 - `PopoverMenuRow`: leading glyph, label, trailing shortcut glyph and `menuHover` fill on hover. Menus open and close with AppKit's native `.documentWindow` animation, through `AnimatedPanel`.
 - The glyph is a `PopoverMenuIcon`: `.symbol` (SF Symbol, `monochrome`, `menuSymbol` — or **red** when `isDestructive`) `.file` (a real app icon via `IconCache`, used by the paste rows to show the paste target) or `.thumbnail` (a picture's own preview, cropped to the slot, used by the chat's staged-file rows). `PopoverMenuItem` keeps a `systemImage:` convenience init, so symbol rows read exactly as before.
@@ -615,7 +711,7 @@ sole owner rule) and is the only presenter, so every confirmation in the app loo
   red-glyph security warning can carry a plain white button — "Import executable commands?" does,
   since importing a file destroys nothing — and running a shell command the user wrote themselves is
   `.neutral` + `.standard` rather than a red alarm.
-- **Surface.** A dialog applies one system `.glassEffect(.regular)` to a
+- **Surface.** A dialog applies `glassSurface(.modal, in:)`, one system `.glassEffect(.regular)`, to a
   `RoundedRectangle(panel 26)`. Confirmations and notices use `dialogCompactWidth 290`, including the
   volume slider; form dialogs use `dialogWidth 420`. `panelScrim` sits beneath the glass so the dialog
   keeps the launcher's darker density without losing the system material. `DialogPanel` clips its
@@ -624,7 +720,9 @@ sole owner rule) and is the only presenter, so every confirmation in the app loo
   The launcher's root gains a `dialogDimming` overlay only when it remains visible behind the panel;
   actions that hide the launcher first do no dimming work. Its fade follows `dialogEnter` / `dialogExit`.
   Matte button fills come from `controlSurface` / `selection`, while a destructive action uses the
-  destructive tint. The **volume HUD** and **message pill** keep the non-glass panel recipe.
+  destructive tint. The **volume HUD** and **message pill** take the `hud` role instead: AppKit glass
+  under `panelScrim`, since SwiftUI glass with nothing to lens falls back to an opaque backing. The
+  pill passes `controlHover` as its scrim while a cancellable pill is hovered.
 - **Layout.** Subject glyph in a low-opacity rounded tile, then title (`panelTitle`) + wrapped
   secondary message, optional accessory and full-width actions. Content uses a 22-point inset while
   the actions keep the tighter `dialogInset 18`. One action spans the row; two sit side by side with
@@ -756,7 +854,7 @@ leaves, and `fadeIn`/`fadeOut` for the panels; Reduce Motion, or **Show animatio
 ## The camera preview panel
 
 `CameraPreviewPanel` is the third borderless surface, beside the dialog and the notes panel. It takes
-the same recipe — `panelScrim`, then `GlassEffectView`, then the clip — and the same optical lift a
+the same `glassSurface(.panel, in:)` recipe as Notes and the same optical lift a
 dialog takes, but sits at `.floating` rather than `.dialog` so a failure report still lands on
 top of it.
 
@@ -994,8 +1092,8 @@ shortcut"), live held keys with their reported side, a pending second modifier t
 - **`shortcutPopover.width` is load-bearing.** The callout centres on the recorder only while it
   fits either side of it; wider than that and the clamp kicks in and skews the caret.
   `Tests/callout-test.swift` pins this.
-- **One glass shape.** `CalloutShape` (`HotKeys/UI/`) draws body and caret as a single path so `glassEffect`
-  lenses them together. The caret is two straight edges meeting at an arc — a rounded-tip triangle,
+- **One glass shape.** `CalloutShape` (`HotKeys/UI/`) draws body and caret as a single path so the `menu`
+  role's glass lenses them together. The caret is two straight edges meeting at an arc — a rounded-tip triangle,
   not a dome. Stock `.regular` glass, no hand-tuned shadow, as in `PopoverMenu`.
 - **Placement is pure.** `CalloutPlacement` (`HotKeys/UI/`) picks above-vs-below, clamps, and walks the caret;
   the harness compiles it against the real `Theme` so a retuned token can't outdate the assertions.

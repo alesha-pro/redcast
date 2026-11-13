@@ -236,7 +236,7 @@ private struct ChatSearchField: View {
         }
         .padding(.horizontal, Theme.Spacing.lg)
         .frame(height: Theme.Size.aiChatSearchField)
-        .background { Color.clear.frosted(in: Capsule()) }
+        .background { Color.clear.glassSurface(.control, in: Capsule()) }
         .contentShape(.rect)
         .onTapGesture { focused = true }
         .accessibilityLabel("Search chats")

@@ -75,6 +75,21 @@ Consequences worth knowing:
   enable Hyper in one build at a time so their keyboard owners do not compete. An identical mapping
   already installed by another build is left unowned.
 
+### The palette's glass presets
+
+The palette ships one glass look, `GlassBackdrop.balanced`. A **Debug** build can swap it for two
+others to compare on screen; a Release build compiles the switch out.
+
+```sh
+defaults write com.tinycast.app.dev paletteGlassPreset -string classic   # or balanced, clear
+defaults delete com.tinycast.app.dev paletteGlassPreset                  # back to the default
+```
+
+`classic` is the untinted glass under `panelScrim` the palette had before, `balanced` the tinted
+glass under the thinner `paletteScrim`, and `clear` that same veil on `.clear` glass. The key is read
+once, when the palette's surface is first built, so relaunch the dev build after changing it. Any
+other value, or none, is `balanced`. See [ui.md](ui.md#liquid-glass).
+
 ## Editor
 
 Xcode works out of the box and needs nothing here. Everything below is optional, and which editor you

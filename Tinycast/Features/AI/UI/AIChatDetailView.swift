@@ -325,7 +325,7 @@ private struct ComposerControlChrome: ViewModifier {
             .background(shape.fill(hovered ? Theme.Colors.controlSurface : Color.clear))
             .contentShape(shape)
             .onHover { hovered = $0 }
-            .animation(.easeOut(duration: Theme.Duration.hover), value: hovered)
+            .animation(Theme.Motion.hover, value: hovered)
     }
 }
 
@@ -855,7 +855,7 @@ private struct ContextCard: View {
         .glassEffect(.regular, in: shape)
         // Solid under the glass: the card rises over the transcript, whose text must not show through.
         .background { shape.fill(Theme.Colors.windowSurface) }
-        .shadow(color: Theme.Colors.tooltipShadow, radius: Theme.Spacing.xl, y: Theme.Spacing.xs)
+        .shadow(Theme.Shadow.card)
     }
 
     private func section(_ title: LocalizedStringResource) -> some View {

@@ -10,7 +10,7 @@ struct FormFieldChrome: ViewModifier {
             .background(Theme.Colors.cardFill, in: shape)
             .overlay {
                 shape.strokeBorder(
-                    Theme.Colors.border,
+                    focused ? Theme.Colors.focusRing : Theme.Colors.border,
                     lineWidth: focused ? metrics.size.formFieldFocusStroke : Theme.Size.hairline
                 )
                 .allowsHitTesting(false)

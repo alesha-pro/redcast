@@ -339,6 +339,40 @@ enum Theme {
             0.16, 1, 0.3, 1, duration: Theme.Duration.menuChevron)
     }
 
+    /// Fork: curves named by intent; every one still runs through `motionScope()`.
+    enum Motion {
+        static let hover = Animation.easeOut(duration: Theme.Duration.hover)
+        static let press = Animation.easeOut(duration: 0.08)
+        /// One piece of content replacing another in place: a label, a glyph, a selection pill.
+        static let swap = Animation.snappy(duration: 0.20)
+        /// A layout coming to rest after it changed size or order.
+        static let settle = Animation.smooth(duration: 0.30)
+        /// Content arriving inside a surface; a window's own fade stays on `Duration.enter`.
+        static let enter = Animation.snappy(duration: 0.22)
+        static let exit = Animation.easeIn(duration: Theme.Duration.exit)
+    }
+
+    enum Opacity {
+        /// Fork: one dim for every disabled control, so unavailable reads the same everywhere.
+        static let disabled: Double = 0.45
+    }
+
+    /// Fork: for an opaque overlay inside a window; glass and borderless panels carry their own.
+    enum Shadow {
+        struct Style: Sendable {
+            let color: Color
+            let radius: CGFloat
+            let y: CGFloat
+        }
+
+        static let card = Style(
+            color: Colors.adaptive(dark: .srgbInk(0, alpha: 0.18), light: .srgbInk(0, alpha: 0.18)),
+            radius: 12, y: 4)
+        static let floating = Style(
+            color: Colors.adaptive(dark: .srgbInk(0, alpha: 0.25), light: .srgbInk(0, alpha: 0.25)),
+            radius: 24, y: 8)
+    }
+
     enum Typography {
         /// One size, two frameworks: `TextTrailingDragHandle` measures what the field renders.
         static let searchFieldSize: CGFloat = 20
@@ -392,6 +426,13 @@ enum Theme {
 
         /// The ramp's inverse: the scrim darkens the dark surface and lightens the light one.
         static let panelScrim = adaptive(dark: .srgbInk(0, alpha: 0.40), light: .srgbInk(1, alpha: 0.55))
+        /// Fork: the palette's veil, thinner than `panelScrim`; the glass tint carries the rest.
+        static let paletteScrim = adaptive(dark: .srgbInk(0, alpha: 0.20), light: .srgbInk(1, alpha: 0.30))
+        static let paletteGlassTint = adaptive(
+            dark: .srgbInk(0, alpha: 0.30), light: .srgbInk(1, alpha: 0.40))
+        /// Fork: Reduce Transparency's stand-in for glass, and the only opaque surface there is.
+        static let opaqueSurface = adaptive(
+            dark: .srgbInk(0.12, alpha: 1), light: .srgbInk(0.95, alpha: 1))
         static let dialogDimming = adaptive(
             dark: .srgbInk(0, alpha: 0.34), light: .srgbInk(0, alpha: 0.34))
         /// Find's marks, the Mac's own yellow: every match faint, the current one solid.
@@ -465,6 +506,8 @@ enum Theme {
         static let dropGuideArmed = Color.blue
         /// Fork: Raycast red, the app's AccentColor, so a fixed system accent can't turn it blue.
         static let accent = catalog("AccentColor") ?? Color.red
+        /// Fork: a focused field's 2pt edge; a focus edge drawn at 1pt stays the full accent.
+        static let focusRing = accent.opacity(0.55)
         /// Fork: that red as text and links, deepened on light to read at 4.5:1.
         static let accentInk = NSColor(named: "AccentInk") ?? .linkColor
         /// Fork: a colour set the fork's asset catalog adds; a harness, which has none, gets nil.
@@ -512,7 +555,12 @@ enum Theme {
 }
 
 extension View {
+    /// Fork: kept for `Features/Extensions`, which owns its looks; the rest takes a `GlassRole`.
     func frosted(in shape: some Shape) -> some View {
         glassEffect(.regular.interactive(), in: shape)
+    }
+
+    func shadow(_ style: Theme.Shadow.Style) -> some View {
+        shadow(color: style.color, radius: style.radius, y: style.y)
     }
 }

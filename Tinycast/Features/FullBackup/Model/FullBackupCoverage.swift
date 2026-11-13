@@ -138,6 +138,7 @@ enum FullBackupCoverage {
         "fullBackupAutoExportKeep": .excluded("Names a folder on this Mac and when it last exported."),
         "fullBackupAutoExportFolder": .excluded("Names a folder on this Mac and when it last exported."),
         "fullBackupLastExport": .excluded("Names a folder on this Mac and when it last exported."),
+        "paletteGlassPreset": .excluded("A Debug build's glass comparison switch; Release never reads it."),
         "AppleShowScrollBars": .notState("AppKit's own preference, set at every launch."),
         "NSFileViewer": .notState("Read from the system: the user's file viewer."),
         "com.apple.swipescrolldirection": .notState("Read from the system."),

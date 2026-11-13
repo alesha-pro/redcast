@@ -725,6 +725,7 @@
 		99DE042F9012822660B94FB0 /* NoteBlockLayoutFragment.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2F10908DDD321EF695BA31B /* NoteBlockLayoutFragment.swift */; };
 		9A0964A7D0E14D77F4997BBE /* CustomWindowSizeEditorPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0805655B4808B5B407C7BE7A /* CustomWindowSizeEditorPanel.swift */; };
 		9A0E88BB62E627538EC4367D /* CodexPlanRequestBody.swift in Sources */ = {isa = PBXBuildFile; fileRef = 930A9F83E2793E7F133F48FA /* CodexPlanRequestBody.swift */; };
+		9A4908A0BE0ACA81F204F681 /* GlassSurface.swift in Sources */ = {isa = PBXBuildFile; fileRef = F7B21A3DA4F17593740E0374 /* GlassSurface.swift */; };
 		9A4C05944E6C4471DA873CA7 /* RoomPlan.swift in Sources */ = {isa = PBXBuildFile; fileRef = ACC56DF5D3B82C81597649D6 /* RoomPlan.swift */; };
 		9A4EB820961540DB2B412E3B /* ChatCreativityProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1135606D71C122C4F48A42B0 /* ChatCreativityProvider.swift */; };
 		9A7BBA93D54AB1638F1EBE6F /* SpaceGesture.swift in Sources */ = {isa = PBXBuildFile; fileRef = B9B724FD9A867189A6118DF7 /* SpaceGesture.swift */; };
@@ -2368,6 +2369,7 @@
 		F6A08614CEE43F7143AD1952 /* ChatQuickLookPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatQuickLookPanel.swift; sourceTree = "<group>"; };
 		F6C8B2F6592B65CB6576D247 /* ExtensionAppearancePicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExtensionAppearancePicker.swift; sourceTree = "<group>"; };
 		F7420F642776452B469182D0 /* FileSearchResult.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileSearchResult.swift; sourceTree = "<group>"; };
+		F7B21A3DA4F17593740E0374 /* GlassSurface.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlassSurface.swift; sourceTree = "<group>"; };
 		F7C56F5458983CFBD85B7846 /* WebSearchConfiguration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebSearchConfiguration.swift; sourceTree = "<group>"; };
 		F7EFE2C8A212D6979C43E9F7 /* RightClick.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RightClick.swift; sourceTree = "<group>"; };
 		F81A385A824D02C1466F8BF8 /* CustomWindowSizesSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomWindowSizesSection.swift; sourceTree = "<group>"; };
@@ -2762,6 +2764,7 @@
 				84D93A74803104966F150620 /* FormTextArea.swift */,
 				39EF327E9EFB308B858B58B8 /* FormTextInput.swift */,
 				7E6EA47F0085375A3A621F5E /* GlassEffectView.swift */,
+				F7B21A3DA4F17593740E0374 /* GlassSurface.swift */,
 				1823986F37C8D3F44B17C79E /* GlyphTile.swift */,
 				23A119A569C07DE20F315212 /* InlineArgumentFields.swift */,
 				EFF8EEC4B5B30644A7EAA117 /* InterfaceMetrics.swift */,
@@ -6297,6 +6300,7 @@
 				EA83FFAAF71EB8C2A6FFB121 /* GeminiChatDecoder.swift in Sources */,
 				C5F60D8681235B95DAA3314F /* GeneralSettingsView.swift in Sources */,
 				BA81211D8B660F2DD03A20EA /* GlassEffectView.swift in Sources */,
+				9A4908A0BE0ACA81F204F681 /* GlassSurface.swift in Sources */,
 				C29F9A675AA4C7F650B200E8 /* GlyphCategory.swift in Sources */,
 				B3181FCAF6C866ABBD2FEBF7 /* GlyphTile.swift in Sources */,
 				35D8AA4E6FE6FD020A56BD8A /* HIDEventSystem.swift in Sources */,

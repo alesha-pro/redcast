@@ -68,8 +68,8 @@ struct ShortcutRecorderPopover: View {
                     Theme.Spacing.sm
                         + (placement.caretEdge == .top ? Theme.Size.calloutCaretHeight : 0))
         }
-        .glassEffect(
-            .regular, in: CalloutShape(caretEdge: placement.caretEdge, caretX: placement.caretX))
+        .glassSurface(
+            .menu, in: CalloutShape(caretEdge: placement.caretEdge, caretX: placement.caretX))
     }
 
     private var state: State {
@@ -171,7 +171,7 @@ private struct ShortcutRecorderPopoverLayer: View {
     }
 
     private var exitAnimation: Animation? {
-        reduceMotion ? nil : .easeIn(duration: Theme.Duration.exit)
+        reduceMotion ? nil : Theme.Motion.exit
     }
 
     private func present(at placement: CalloutPlacement) {

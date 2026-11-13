@@ -336,7 +336,7 @@ private struct EmojiCell: View {
             }
         }
         .frame(width: size, height: size)
-        .animation(.easeOut(duration: Theme.Duration.hover), value: hovered)
+        .animation(Theme.Motion.hover, value: hovered)
     }
 
     /// Oversized before blur so its multi-colour wash reaches every corner of the selected tile.

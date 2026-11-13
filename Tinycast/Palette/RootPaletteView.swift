@@ -354,8 +354,6 @@ struct RootPaletteView: View {
                 )
                 // The window's frame is the size source, so the glass and clip stay matched.
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-                .background(Theme.Colors.panelScrim)
-                .background(GlassEffectView())
                 .overlay {
                     Theme.Colors.dialogDimming
                         .opacity(core.isDimmingPaletteForDialog ? 1 : 0)
@@ -367,7 +365,9 @@ struct RootPaletteView: View {
                             ? Theme.Duration.dialogEnter : Theme.Duration.dialogExit),
                     value: core.isDimmingPaletteForDialog
                 )
-                .clipShape(RoundedRectangle(cornerRadius: metrics.radius.panel, style: .continuous))),
+                .glassSurface(
+                    .palette,
+                    in: RoundedRectangle(cornerRadius: metrics.radius.panel, style: .continuous))),
             selection: sel)
     }
 
@@ -991,7 +991,7 @@ struct RootPaletteView: View {
             }
         }
         .padding(metrics.spacing.xs)
-        .frosted(in: Capsule())
+        .glassSurface(.control, in: Capsule())
     }
 
     /// The one path opening the Actions menu, sampling the state its rows depend on.
@@ -1652,7 +1652,7 @@ private struct MenuCircleButton: View {
         }
         .buttonStyle(.plain)
         .onHover { hovered = $0 }
-        .frosted(in: Circle())
+        .glassSurface(.control, in: Circle())
     }
 }
 
@@ -1674,7 +1674,7 @@ private struct HeaderBackButton: View {
         }
         .buttonStyle(.plain)
         .onHover { hovered = $0 }
-        .animation(.easeOut(duration: Theme.Duration.hover), value: hovered)
+        .animation(Theme.Motion.hover, value: hovered)
         .help(help)
     }
 }

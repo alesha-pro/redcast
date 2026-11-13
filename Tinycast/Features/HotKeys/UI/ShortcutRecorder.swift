@@ -46,7 +46,7 @@ struct ShortcutRecorder: View {
             .onChange(of: action) { old, _ in
                 if hotKeys.recordingAction == old { hotKeys.recordingAction = nil }
             }
-            .animation(.easeOut(duration: 0.12), value: hovered)
+            .animation(Theme.Motion.hover, value: hovered)
     }
 
     @ViewBuilder

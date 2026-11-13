@@ -75,7 +75,7 @@ private struct ChatSwitch: View {
                         .shadow(color: Theme.Colors.tooltipShadow, radius: 1, y: 0.5)
                         .padding(2)
                 }
-                .opacity(isEnabled ? 1 : 0.45)
+                .opacity(isEnabled ? 1 : Theme.Opacity.disabled)
                 .animation(.snappy(duration: Theme.Duration.hover), value: configuration.isOn)
                 .contentShape(Capsule())
                 .onTapGesture { if isEnabled { configuration.isOn.toggle() } }

@@ -45,7 +45,7 @@ struct ChatModelChipLabel: View {
         }
         .buttonStyle(.plain)
         .onHover { hovered = $0 }
-        .animation(.easeOut(duration: Theme.Duration.hover), value: hovered)
+        .animation(Theme.Motion.hover, value: hovered)
         .help("Chat Settings  ⇧⌘I")
         .accessibilityLabel(Text(verbatim: summary.model))
         .accessibilityHint("Shows or hides the chat's settings")

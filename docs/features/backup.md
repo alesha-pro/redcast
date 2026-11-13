@@ -420,6 +420,7 @@ Every store the app persists and its decision, as `FullBackupCoverage` states it
 | `fullBackupAutoExportKeep` | UserDefaults | Excluded: Names a folder on this Mac and when it last exported. |
 | `fullBackupAutoExportFolder` | UserDefaults | Excluded: Names a folder on this Mac and when it last exported. |
 | `fullBackupLastExport` | UserDefaults | Excluded: Names a folder on this Mac and when it last exported. |
+| `paletteGlassPreset` | UserDefaults | Excluded: A Debug build's glass comparison switch; Release never reads it. |
 | `AppleShowScrollBars` | UserDefaults | Not app state: AppKit's own preference, set at every launch. |
 | `NSFileViewer` | UserDefaults | Not app state: Read from the system: the user's file viewer. |
 | `com.apple.swipescrolldirection` | UserDefaults | Not app state: Read from the system. |

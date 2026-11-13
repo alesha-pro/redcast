@@ -142,7 +142,7 @@ private struct NotePickerCard: View {
         .glassEffect(.regular, in: shape)
         // Solid under the glass, so the transcript's text never shows through the card.
         .background { shape.fill(Theme.Colors.windowSurface) }
-        .shadow(color: Theme.Colors.tooltipShadow, radius: Theme.Spacing.xl, y: Theme.Spacing.xs)
+        .shadow(Theme.Shadow.card)
         .onKeyPress(.downArrow) {
             model.move(by: 1)
             return .handled

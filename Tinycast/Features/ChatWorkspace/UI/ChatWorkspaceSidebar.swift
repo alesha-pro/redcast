@@ -838,7 +838,7 @@ private struct ChatSelectionBar: View {
             .padding(.leading, Theme.Spacing.lg)
             .padding(.trailing, Theme.Spacing.xs)
             .frame(height: Theme.Size.aiChatSearchField)
-            .background { Color.clear.frosted(in: Capsule()) }
+            .background { Color.clear.glassSurface(.control, in: Capsule()) }
             .padding(.horizontal, Theme.Spacing.lg)
             .padding(.vertical, Theme.Spacing.md)
         }
@@ -944,7 +944,7 @@ private struct ChatSidebarSearchField: View {
         }
         .padding(.horizontal, Theme.Spacing.lg)
         .frame(height: Theme.Size.aiChatSearchField)
-        .background { Color.clear.frosted(in: Capsule()) }
+        .background { Color.clear.glassSurface(.control, in: Capsule()) }
         .contentShape(.rect)
         .onTapGesture { focused = true }
         .help("Search titles and messages")

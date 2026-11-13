@@ -159,7 +159,7 @@ extension View {
 
     /// Dims as well as disables; `.disabled` alone leaves the title at full strength.
     func settingsEnabled(_ isEnabled: Bool) -> some View {
-        disabled(!isEnabled).opacity(isEnabled ? 1 : 0.45)
+        disabled(!isEnabled).opacity(isEnabled ? 1 : Theme.Opacity.disabled)
     }
 
     func settingsEditorTextField() -> some View {
@@ -260,13 +260,9 @@ private struct SettingsEditorPanelSurface: ViewModifier {
         // In front of the glass: a glass fill is hit-testable and would hide a handle behind it.
         let draggable = content.background(WindowDragBackground())
         if controlsOnGlass {
-            draggable
-                .background(Theme.Colors.panelScrim, in: shape)
-                .glassEffect(.regular, in: shape)
+            draggable.glassSurface(.modal, in: shape)
         } else {
-            draggable.background {
-                shape.fill(Theme.Colors.panelScrim).glassEffect(.regular, in: shape)
-            }
+            draggable.background { Color.clear.glassSurface(.modal, in: shape) }
         }
     }
 }

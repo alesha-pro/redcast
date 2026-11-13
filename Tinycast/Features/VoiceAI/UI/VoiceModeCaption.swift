@@ -62,7 +62,7 @@ private struct VoiceModeChip: View {
         .padding(.horizontal, Theme.Spacing.lg)
         .padding(.vertical, Theme.Spacing.sm)
         .fixedSize()
-        .glassEffect(.regular, in: .capsule)
+        .glassSurface(.chip, in: .capsule)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(Text("Dictation mode: \(name)"))
         .motionScope()

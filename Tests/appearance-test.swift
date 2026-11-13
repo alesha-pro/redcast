@@ -86,6 +86,16 @@ struct AppearanceTests {
         check("light scrim is white", components(c.panelScrim, .aqua)[0] == 255)
         check("dark scrim is black", components(c.panelScrim, .darkAqua)[0] == 0)
 
+        print("# the palette's scrim and tint keep the panel's ink, and its scrim is the thinner one")
+        for (label, name, ink) in [("dark", NSAppearance.Name.darkAqua, 0), ("light", .aqua, 255)] {
+            let tint = components(c.paletteGlassTint, name)
+            let scrim = components(c.paletteScrim, name)
+            check("\(label) palette ink", tint[0] == ink && scrim[0] == ink)
+            check("\(label) palette scrim is thinner", scrim[3] < components(c.panelScrim, name)[3])
+        }
+        check("the opaque surface is opaque", components(c.opaqueSurface, .darkAqua)[3] == 255)
+        adapts("opaqueSurface", c.opaqueSurface)
+
         print("# .system hands the choice back to AppKit")
         check("system is nil", AppAppearance.system.nsAppearance == nil)
         check("light is aqua", AppAppearance.light.nsAppearance?.isDark == false)
