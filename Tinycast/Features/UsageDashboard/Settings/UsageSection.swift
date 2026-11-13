@@ -334,13 +334,23 @@ private struct UsageTrendStrip: View {
     let interval: DateInterval
     let now: Date
     let calendar: Calendar
-    @State private var hovered: Date?
+    @State private var pickedStart: Date?
 
     private var unit: Calendar.Component { period == .day ? .hour : .day }
 
+    /// Snapped to a bar's start, so the chart rebuilds when the pointer changes bars, not per move.
+    private var selection: Binding<Date?> {
+        Binding(
+            get: { pickedStart },
+            set: { date in
+                let start = date.flatMap { date in slices.last { $0.start <= date }?.start }
+                if start != pickedStart { pickedStart = start }
+            })
+    }
+
     var body: some View {
         let current = period.isCurrent(interval, now: now) ? slices.last { $0.start <= now }?.id : nil
-        let picked = hovered.flatMap { date in slices.last { $0.start <= date } }
+        let picked = pickedStart.flatMap { start in slices.first { $0.start == start } }
         VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
             Chart {
                 // An empty slice draws no bar, so the baseline is what a quiet hour reads as.
@@ -361,7 +371,7 @@ private struct UsageTrendStrip: View {
                     AxisValueLabel().foregroundStyle(Theme.Colors.textTertiary)
                 }
             }
-            .chartXSelection(value: $hovered)
+            .chartXSelection(value: selection)
             .frame(height: Theme.Size.usageTrendHeight)
             // Held open while nothing is picked, so naming a bar never moves the rows below.
             Text(verbatim: picked.map(label) ?? " ")

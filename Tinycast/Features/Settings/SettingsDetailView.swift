@@ -45,7 +45,8 @@ struct SettingsDetailView: View {
             case .shortcuts: ShortcutsSettingsView()  // Fork: Shortcuts overview
             }
         }
-        .transition(.opacity)
+        // The old pane leaves at once, so it can never catch the first click or scroll in the new.
+        .transition(.asymmetric(insertion: .opacity, removal: .identity))
     }
 
     private func present(_ tab: SettingsTab) async {

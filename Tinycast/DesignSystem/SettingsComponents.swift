@@ -557,7 +557,11 @@ private struct AliasTextField: NSViewRepresentable {
     func makeCoordinator() -> Coordinator { Coordinator(self) }
 
     func makeNSView(context: Context) -> NSTextView {
-        let editor = NSTextView()
+        let editor = FocusReportingTextView()
+        editor.onFocusChange = { [weak coordinator = context.coordinator] focused in
+            guard let coordinator, coordinator.field.focused != focused else { return }
+            coordinator.field.focused = focused
+        }
         editor.delegate = context.coordinator
         editor.isRichText = false
         editor.importsGraphics = false
@@ -611,14 +615,6 @@ private struct AliasTextField: NSViewRepresentable {
             return false
         }
 
-        func textDidBeginEditing(_ notification: Notification) {
-            field.focused = true
-        }
-
-        func textDidEndEditing(_ notification: Notification) {
-            field.focused = false
-        }
-
         func textView(_ textView: NSTextView, doCommandBy commandSelector: Selector) -> Bool {
             switch commandSelector {
             case #selector(NSResponder.insertNewline(_:)):
@@ -643,6 +639,38 @@ private struct AliasTextField: NSViewRepresentable {
     }
 }
 
+/// Focus follows first responder, not the first edit, so a re-render after a click never resigns it.
+private final class FocusReportingTextView: NSTextView {
+    var onFocusChange: ((Bool) -> Void)?
+
+    override func becomeFirstResponder() -> Bool {
+        let became = super.becomeFirstResponder()
+        if became { onFocusChange?(true) }
+        return became
+    }
+
+    override func resignFirstResponder() -> Bool {
+        let resigned = super.resignFirstResponder()
+        if resigned { onFocusChange?(false) }
+        return resigned
+    }
+}
+
+/// The alias field's edge owns its hover, so a pointer crossing never re-renders the text view.
+private struct AliasFieldChrome: ViewModifier {
+    let shape: RoundedRectangle
+    let isActive: Bool
+    @State private var hovered = false
+
+    func body(content: Content) -> some View {
+        content
+            .background(shape.fill(Theme.Colors.cardFill))
+            .inlineControlEdge(shape, isActive: isActive, isHovered: hovered)
+            .clipShape(shape)
+            .onHover { hovered = $0 }
+    }
+}
+
 /// Dressed like `ShortcutRecorder`; the persistent AppKit field preserves focus across updates.
 struct AliasField: View {
     /// The owner's `preferenceKey`, taken raw so a row without an `AppEntry` can carry one too.
@@ -651,7 +679,6 @@ struct AliasField: View {
     @Environment(AliasStore.self) private var aliases
     @State private var draft = ""
     @State private var focused = false
-    @State private var hovered = false
 
     var body: some View {
         let shape = RoundedRectangle(cornerRadius: Theme.Radius.menu, style: .continuous)
@@ -695,10 +722,7 @@ struct AliasField: View {
         }
         .padding(.horizontal, Theme.Spacing.sm + 1)
         .frame(width: Theme.Size.shortcutRecorder, height: Theme.Size.settingsInlineControl)
-        .background(shape.fill(Theme.Colors.cardFill))
-        .inlineControlEdge(shape, isActive: focused, isHovered: hovered)
-        .clipShape(shape)
-        .onHover { hovered = $0 }
+        .modifier(AliasFieldChrome(shape: shape, isActive: focused))
         .accessibilityLabel("Alias for \(name)")
     }
 
