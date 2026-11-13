@@ -65,11 +65,11 @@ struct ScreenAwarenessSettingsSection: View {
     ) -> some View {
         HStack(alignment: .center, spacing: Theme.Spacing.lg) {
             Image(systemName: "exclamationmark.triangle.fill")
-                .foregroundStyle(.orange)
+                .foregroundStyle(Theme.Colors.warning)
                 .frame(width: Theme.Size.settingsRowIcon)
             VStack(alignment: .leading, spacing: Theme.Spacing.xxs) {
                 Text(title)
-                    .foregroundStyle(.orange)
+                    .foregroundStyle(Theme.Colors.warningInk)
                 Text(detail)
                     .font(.caption)
                     .foregroundStyle(.secondary)

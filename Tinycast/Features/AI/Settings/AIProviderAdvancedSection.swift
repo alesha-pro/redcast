@@ -98,7 +98,7 @@ struct AIProviderAdvancedSection: View {
                     Image(systemName: "minus.circle")
                         .foregroundStyle(.secondary)
                 }
-                .buttonStyle(.plain)
+                .settingsControl(.rowIcon)
                 .help("Remove")
                 .accessibilityLabel("Remove \(draft.name)")
             }

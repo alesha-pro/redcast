@@ -25,7 +25,7 @@ struct SettingsSidebarView: View {
     // Fork: an AppKit table with a neutral sliding selection; see `SettingsSidebarTable`.
     private var browse: some View {
         SettingsSidebarTable(rows: browseRows, selection: AnyHashable(navigation.tab)) { id in
-            if let tab = id.base as? SettingsTab { navigation.select(tab) }
+            if let tab = id.base as? SettingsTab { navigation.select(tab, byKey: pickedByKey) }
         }
         // Reaches under the field: the system's soft edge needs the rows to scroll beneath it.
         .ignoresSafeArea()
@@ -38,9 +38,12 @@ struct SettingsSidebarView: View {
                     AnyView(SettingsSidebarRow(tab: tab, title: tab.title))
                 }
             }
+            // The first group is the pane it opens on; a "General" over "General" would only echo.
             guard index > 0 else { return rows }
-            return [SettingsSidebarTable.Row(
-                id: nil, title: section.title, height: Theme.Size.settingsSidebarGroupGap)] + rows
+            let header = SettingsSidebarTable.Row(
+                id: nil, title: section.title, height: Theme.Size.settingsSidebarGroupHeader
+            ) { AnyView(SettingsSidebarGroupHeader(title: section.title)) }
+            return [header] + rows
         }
     }
 
@@ -63,11 +66,14 @@ struct SettingsSidebarView: View {
             ) { id in
                 guard let entry = results.first(where: { AnyHashable($0.id) == id }) else { return }
                 highlighted = entry.id
-                navigation.select(entry.tab, revealing: entry.target)
+                navigation.select(entry.tab, revealing: entry.target, byKey: pickedByKey)
             }
             .ignoresSafeArea()
         }
     }
+
+    /// Fork: the table reports a pick inside the event that made it, so that event says how.
+    private var pickedByKey: Bool { NSApp.currentEvent?.type == .keyDown }
 
     /// ⌘F with no menu item to hang it on; zero-sized so it only ever contributes the shortcut.
     private var focusShortcut: some View {
@@ -77,6 +83,23 @@ struct SettingsSidebarView: View {
             .frame(width: 0, height: 0)
             .opacity(0)
             .accessibilityHidden(true)
+    }
+}
+
+/// A group's name, low in its row so the space above it is what parts the groups.
+private struct SettingsSidebarGroupHeader: View {
+    let title: String
+    @Environment(\.appearsActive) private var appearsActive
+
+    var body: some View {
+        Text(title)
+            .font(Theme.Typography.sectionHeader)
+            .foregroundStyle(appearsActive ? .secondary : .tertiary)
+            .lineLimit(1)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomLeading)
+            .padding(.leading, Theme.Size.settingsSidebarRowInset + Theme.Size.settingsSidebarTileInset)
+            .padding(.bottom, Theme.Spacing.sm)
+            .accessibilityAddTraits(.isHeader)
     }
 }
 

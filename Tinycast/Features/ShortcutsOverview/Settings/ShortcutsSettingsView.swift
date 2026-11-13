@@ -7,10 +7,7 @@ struct ShortcutsSettingsView: View {
     @State private var filter = ShortcutFilter.all
     @State private var query = ""
     @State private var system: [SystemShortcut] = []
-    /// A `Form` realizes every row it is handed, so the list grows a page at a time.
-    @State private var shown = Self.page
-
-    private static let page = 60
+    @State private var recorderFrame: CGRect?
 
     var body: some View {
         let rows = ShortcutsInventory.rows(core: core)
@@ -18,6 +15,8 @@ struct ShortcutsSettingsView: View {
         let visible = Set(filter.apply(rows.map(\.entry), query: query, issues: issues).map(\.id))
         let listed = rows.filter { visible.contains($0.id) }
         return Form {
+            SettingsPaneHeader(tab: .shortcuts, subtitle: "Every hotkey and alias, edited in one place.")
+
             Section {
                 SteadySegmentedPicker(
                     title: String(localized: "Show"),
@@ -34,13 +33,14 @@ struct ShortcutsSettingsView: View {
                     Text(query.isEmpty ? "Nothing here yet." : "No matches for “\(query)”.")
                         .foregroundStyle(.secondary)
                         .frame(maxWidth: .infinity, alignment: .center)
-                }
-                ForEach(listed.prefix(shown)) { row in
-                    ShortcutOverviewRow(row: row, issues: issues[row.id] ?? [])
-                }
-                if listed.count > shown {
-                    Button("Show More (\(listed.count - shown))") { shown += Self.page }
-                        .buttonStyle(.link)
+                } else {
+                    ShortcutsColumnHeader()
+                    // One row holding the table: a `Form` realizes every row it is handed.
+                    ShortcutsOverviewTable(
+                        rows: listed, issues: issues, aliases: core.aliases, hotKeys: core.hotKeys,
+                        recorderFrame: $recorderFrame
+                    )
+                    .overlay(alignment: .topLeading) { recorderStandIn }
                 }
             } header: {
                 SettingsSectionHeader(.shortcutsList)
@@ -63,8 +63,18 @@ struct ShortcutsSettingsView: View {
         .onAppear { system = ShortcutsInventory.systemShortcuts() }
         // Apple Shortcuts are discovered on demand, so the pane asks for them as it opens.
         .task { if settings.appleShortcutsEnabled { core.appleShortcutCoordinator.refresh() } }
-        .onChange(of: filter) { shown = Self.page }
-        .onChange(of: query) { shown = Self.page }
+    }
+
+    /// The open recorder's anchor can't leave its hosted row, so this republishes its bounds here.
+    @ViewBuilder
+    private var recorderStandIn: some View {
+        if let recorderFrame {
+            Color.clear
+                .frame(width: recorderFrame.width, height: recorderFrame.height)
+                .anchorPreference(key: ShortcutRecorderAnchorKey.self, value: .bounds) { $0 }
+                .position(x: recorderFrame.midX, y: recorderFrame.midY)
+                .allowsHitTesting(false)
+        }
     }
 
     private func summary(_ rows: [ShortcutsInventory.Row], issues: [String: [ShortcutIssue]]) -> some View {
@@ -73,65 +83,13 @@ struct ShortcutsSettingsView: View {
         return LabeledContent {
             if !issues.isEmpty {
                 Label("Conflicts: \(issues.count)", systemImage: "exclamationmark.triangle.fill")
-                    .foregroundStyle(.orange)
+                    .foregroundStyle(Theme.Colors.warningInk)
+                    .monospacedDigit()
             }
         } label: {
             Text("With a hotkey: \(hotkeys) · With an alias: \(aliases)")
+                .monospacedDigit()
             Text("Conflicts are shortcuts used twice, shared aliases, and chords macOS keeps for itself.")
-        }
-    }
-}
-
-/// Icon, name, kind, alias and hotkey; the field and recorder are the ones every pane uses.
-private struct ShortcutOverviewRow: View {
-    let row: ShortcutsInventory.Row
-    let issues: [ShortcutIssue]
-
-    private var subtitle: String? {
-        if !issues.isEmpty { return issues.map(\.text).joined(separator: " · ") }
-        return row.entry.keyword.map { String(localized: "Keyword: \($0)") }
-    }
-
-    var body: some View {
-        SettingsRow(
-            title: row.entry.name, subtitle: subtitle, labelOpacity: row.entry.isDisabled ? 0.45 : 1
-        ) {
-            icon
-        } trailing: {
-            if !issues.isEmpty {
-                Image(systemName: "exclamationmark.triangle.fill")
-                    .foregroundStyle(.orange)
-                    .help(subtitle ?? "")
-                    .accessibilityLabel(subtitle ?? "")
-            }
-            Text(row.entry.kindLabel)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .lineLimit(1)
-                .frame(width: 96, alignment: .trailing)
-            if let key = row.entry.aliasKey {
-                AliasField(key: key, name: row.entry.name)
-            } else {
-                Color.clear.frame(width: Theme.Size.shortcutRecorder, height: 24)
-            }
-            if let action = row.action {
-                ShortcutRecorder(action: action)
-            } else {
-                Color.clear.frame(width: Theme.Size.shortcutRecorder, height: 24)
-            }
-        }
-    }
-
-    @ViewBuilder
-    private var icon: some View {
-        if let app = row.app {
-            AppIconView(app: app)
-                .frame(width: SettingsListMetrics.iconSize, height: SettingsListMetrics.iconSize)
-                .id(app.iconKey)
-        } else {
-            Image(systemName: row.symbol ?? "command")
-                .foregroundStyle(.secondary)
-                .frame(width: SettingsListMetrics.iconSize, height: SettingsListMetrics.iconSize)
         }
     }
 }

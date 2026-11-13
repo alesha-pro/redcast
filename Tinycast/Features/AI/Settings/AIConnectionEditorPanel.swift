@@ -99,10 +99,10 @@ struct AIConnectionEditorPanel: View {
                             systemImage: "exclamationmark.triangle"
                         )
                         .font(.caption)
-                        .foregroundStyle(.orange)
+                        .foregroundStyle(Theme.Colors.warningInk)
                     }
                     if let error {
-                        Text(error).foregroundStyle(.orange)
+                        Text(error).foregroundStyle(Theme.Colors.warningInk)
                     }
                 }
 
@@ -119,7 +119,7 @@ struct AIConnectionEditorPanel: View {
                         Spacer()
                         if !connection.models.isEmpty {
                             Text("\(connection.models.count) selected")
-                                .font(.caption)
+                                .font(.caption.monospacedDigit())
                                 .foregroundStyle(.secondary)
                                 .textCase(nil)
                         }
@@ -200,7 +200,7 @@ struct AIConnectionEditorPanel: View {
                         Image(systemName: "minus.circle")
                             .foregroundStyle(.secondary)
                     }
-                    .buttonStyle(.plain)
+                    .settingsControl(.rowIcon)
                     .help("Remove")
                     .accessibilityLabel("Remove \(header.name)")
                 }
@@ -248,7 +248,7 @@ struct AIConnectionEditorPanel: View {
                 Button("Try Again") { discoveryRevision += 1 }
             } label: {
                 Label(message, systemImage: "exclamationmark.triangle")
-                    .foregroundStyle(.orange)
+                    .foregroundStyle(Theme.Colors.warningInk)
             }
             ForEach(connection.models, id: \.self) { model in
                 selectedModelRow(model)
@@ -374,9 +374,9 @@ struct AIConnectionEditorPanel: View {
                 Button {
                     removeModel(model)
                 } label: {
-                    Image(systemName: "minus.circle").foregroundStyle(.red)
+                    Image(systemName: "minus.circle").foregroundStyle(Theme.Colors.destructive)
                 }
-                .buttonStyle(.plain)
+                .settingsControl(.rowIcon)
                 .accessibilityLabel("Remove \(model)")
             }
         }

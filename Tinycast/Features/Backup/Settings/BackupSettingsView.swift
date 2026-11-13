@@ -49,6 +49,9 @@ struct BackupSettingsView: View {
 
     var body: some View {
         Form {
+            SettingsPaneHeader(
+                tab: .backup, subtitle: "Export your setup, restore it, or bring it over from Raycast.")
+
             Section {
                 LabeledContent {
                     if exporting {
@@ -168,7 +171,7 @@ struct BackupSettingsView: View {
                     "Raycast is running — quit it to avoid hotkey conflicts.",
                     systemImage: "exclamationmark.triangle.fill"
                 )
-                .foregroundStyle(.orange)
+                .foregroundStyle(Theme.Colors.warningInk)
             }
         } else {
             Label(
@@ -184,10 +187,10 @@ struct BackupSettingsView: View {
         switch status {
         case .success(let message):
             Label(message, systemImage: "checkmark.circle.fill")
-                .foregroundStyle(.green)
+                .foregroundStyle(Theme.Colors.successInk)
         case .failure(let message):
             Label(message, systemImage: "exclamationmark.triangle.fill")
-                .foregroundStyle(.orange)
+                .foregroundStyle(Theme.Colors.warningInk)
         }
     }
 

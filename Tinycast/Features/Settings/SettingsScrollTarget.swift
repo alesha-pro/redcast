@@ -58,9 +58,16 @@ extension SettingsSectionHeader where Label == Text {
 struct SettingsRowTitle: View {
     let anchor: SettingsAnchor
     let title: String
+    /// Fork: what a pane's hero reads instead; a result still lands on, and lights, `title`.
+    private var shown: String?
 
     init(_ anchor: SettingsAnchor, _ title: LocalizedStringResource) {
         self.init(anchor, verbatim: title.resolved())
+    }
+
+    init(_ anchor: SettingsAnchor, _ title: LocalizedStringResource, shown: String) {
+        self.init(anchor, verbatim: title.resolved())
+        self.shown = shown
     }
 
     init(_ anchor: SettingsAnchor, verbatim title: String) {
@@ -69,7 +76,7 @@ struct SettingsRowTitle: View {
     }
 
     var body: some View {
-        Text(title).modifier(SearchPill(target: .row(anchor, title)))
+        Text(shown ?? title).modifier(SearchPill(target: .row(anchor, title)))
     }
 }
 

@@ -4,11 +4,11 @@ import SwiftUI
 /// Fork: a table, as `List` can't draw a neutral selection; `docs/ui.md` has the reasoning.
 struct SettingsSidebarTable: NSViewRepresentable {
     struct Row {
-        /// Nil for the gap between two groups: never selectable, and its title is only VoiceOver's.
+        /// Nil for a group's header: never selectable, and left out of type-select.
         let id: AnyHashable?
         let title: String
         var height = Theme.Size.settingsSidebarRow
-        var content: (() -> AnyView)?
+        let content: () -> AnyView
     }
 
     let rows: [Row]
@@ -29,7 +29,7 @@ struct SettingsSidebarTable: NSViewRepresentable {
         table.backgroundColor = .clear
         table.focusRingType = .none
         table.allowsEmptySelection = true
-        // A floating gap row would pin itself under the field and turn the soft edge into a line.
+        // A floating header would pin itself under the field and turn the soft edge into a line.
         table.floatsGroupRows = false
         table.addTableColumn(NSTableColumn(identifier: .init("row")))
         table.dataSource = context.coordinator
@@ -122,15 +122,7 @@ struct SettingsSidebarTable: NSViewRepresentable {
         func tableView(
             _ tableView: NSTableView, viewFor tableColumn: NSTableColumn?, row: Int
         ) -> NSView? {
-            let model = rows[row]
-            guard let content = model.content else {
-                let gap = NSView()
-                gap.setAccessibilityElement(true)
-                gap.setAccessibilityRole(.staticText)
-                gap.setAccessibilityLabel(model.title)
-                return gap
-            }
-            let host = NSHostingView(rootView: content())
+            let host = NSHostingView(rootView: rows[row].content())
             host.sizingOptions = []
             return host
         }

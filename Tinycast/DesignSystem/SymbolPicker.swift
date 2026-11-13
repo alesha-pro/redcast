@@ -26,9 +26,10 @@ struct SymbolPicker: View {
                     Text("Automatic")
                     Spacer(minLength: 0)
                 }
-                .contentShape(Rectangle())
+                .padding(.horizontal, Theme.Spacing.md)
+                .frame(height: Theme.Size.settingsControlHeight)
             }
-            .buttonStyle(.plain)
+            .settingsControl(.pickerRow(isSelected: selection == nil))
             Divider()
             LazyVGrid(columns: columns, spacing: Theme.Spacing.sm) {
                 ForEach(symbols, id: \.self) { symbol in
@@ -38,19 +39,15 @@ struct SymbolPicker: View {
                     } label: {
                         SymbolImage(name: symbol, size: 15)
                             .frame(width: Self.cell, height: Self.cellHeight)
-                            .background(
-                                RoundedRectangle(cornerRadius: Theme.Radius.menu, style: .continuous)
-                                    .fill(selection == symbol ? Theme.Colors.selection : Color.clear)
-                            )
-                            .contentShape(Rectangle())
                     }
-                    .buttonStyle(.plain)
+                    .settingsControl(.pickerRow(isSelected: selection == symbol, isCell: true))
                 }
             }
         }
-        .padding(Theme.Spacing.md)
+        .padding(Theme.Spacing.xl)
         .frame(width: Self.width)
+        .settingsEditorPanelSurface()
     }
 
-    private static let width: CGFloat = 244
+    private static let width: CGFloat = 252
 }

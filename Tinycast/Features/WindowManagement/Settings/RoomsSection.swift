@@ -60,7 +60,7 @@ private struct RoomSettingsRow: View {
             } label: {
                 Image(systemName: "play")
             }
-            .buttonStyle(.plain)
+            .settingsControl(.rowIcon)
             .help("Enter this room")
             .accessibilityLabel("Enter \(room.name)")
 
@@ -69,7 +69,7 @@ private struct RoomSettingsRow: View {
             } label: {
                 Image(systemName: "macwindow.badge.plus")
             }
-            .buttonStyle(.plain)
+            .settingsControl(.rowIcon)
             .help("Choose its windows")
             .accessibilityLabel("Choose windows for \(room.name)")
 
@@ -79,7 +79,7 @@ private struct RoomSettingsRow: View {
                 Image(systemName: "trash")
                     .foregroundStyle(Theme.Colors.destructive)
             }
-            .buttonStyle(.plain)
+            .settingsControl(.rowIcon)
             .help("Delete")
             .accessibilityLabel("Delete \(room.name)")
 

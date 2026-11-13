@@ -191,7 +191,7 @@ struct MCPServerEditor: View {
                         probeLabel
                     }
                     if let error {
-                        Text(error).foregroundStyle(.orange)
+                        Text(error).foregroundStyle(Theme.Colors.warningInk)
                     }
                 } footer: {
                     Text(
@@ -327,7 +327,7 @@ struct MCPServerEditor: View {
         case .failed(let message):
             Label(message, systemImage: "exclamationmark.triangle")
                 .font(.caption)
-                .foregroundStyle(.orange)
+                .foregroundStyle(Theme.Colors.warningInk)
         }
     }
 

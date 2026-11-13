@@ -68,7 +68,7 @@ struct WindowLayoutInspector: View {
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel("Choose an icon")
-                .popover(isPresented: $showingIconPicker, arrowEdge: .bottom) {
+                .settingsPickerPanel(isPresented: $showingIconPicker) {
                     SymbolPicker(
                         selection: $draft.iconSymbol, fallback: WindowLayout.sfSymbol,
                         symbols: Self.iconSymbols

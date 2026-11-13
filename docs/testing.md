@@ -934,7 +934,11 @@ caches, TCC grants and login item, so this cannot disturb an installed copy.
   checks resume. Settings search for "updates" reveals the toggle; settings.json edits and a backup
   round trip preserve the choice.
 - Every pane renders and the sidebar switches without flicker; the pill slides while a heavy pane builds
-- Sidebar keys: arrows work at open and skip the group gaps; typing jumps to a row; ⌘F, then Esc clears and a second Esc returns the arrows to the rows; ↓ in the field enters the results; opening About scrolls its row into view
+- One pane fades into the next on a sidebar click and on Back/Forward; arrowing through the sidebar, tapped or held, swaps each pane at once with no fade left behind; typing in the sidebar's field animates nothing; with Show animations off the swap is instant
+- Closing a picker opened from an editor (an icon in the Agent or Window Layout editor) leaves the editor's focus where it was, with no field's text selected
+- A row's edit, run and delete buttons light one square tile each under the pointer, and a row in a switched-off feature dims its icons no further than its title
+- Every picker (Add Application…, an icon, a voice model, a Window Layout entry, an extension's icon) opens as a glass panel over a dimmed window and closes on Escape and on a click outside it, leaving any editor under it open; every destructive question (Reset ranking, Clear history, removing a server, a connection or a layout) raises Redcast's own dialog
+- Sidebar keys: arrows work at open and skip the group headers; typing jumps to a row; ⌘F, then Esc clears and a second Esc returns the arrows to the rows; ↓ in the field enters the results; opening About scrolls its row into view
 - A feature switch takes effect in the launcher immediately; every setting survives relaunch
 - Export produces a `.redcast` (fork; upstream writes `.tinycast`, which still imports); import applies it and reports a per-category summary
 - Untick a category on export, and the import picker greys that row out rather than offering it

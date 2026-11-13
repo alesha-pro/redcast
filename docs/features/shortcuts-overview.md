@@ -33,8 +33,11 @@ Settings gets the tab, its anchors and search entries in `Fork:` lines.
 Filters: **All**, **With Hotkey**, **With Alias** (a snippet keyword counts), **Conflicts** and
 **Disabled**, on a `SteadySegmentedPicker`. Search matches every word against the name, the kind,
 the alias, the keyword and the keycaps, ignoring case and accents, so "⌥⌘" finds what uses it. The
-list grows 60 rows at a time, since a `Form` realizes every row it holds. A Hyper Key row says which
-physical key is the ✦ in the keycaps; it is changed in General.
+list is `ShortcutsOverviewTable`, an `NSTableView` in one `Form` row under a `ShortcutsColumnHeader`
+naming the four columns: every row is listed, and only a screenful of hosted rows is built, since a
+`Form` realizes every row it holds. It reuses the launcher lists' `HostedRowsTableView` and
+`OverhangingTableView`, and republishes an open recorder's bounds the way `LauncherItemsList` does.
+A Hyper Key row says which physical key is the ✦ in the keycaps; it is changed in General.
 
 A row is **disabled** when its feature or the item itself is off (a command whose feature hides it,
 a disabled custom command or quicklink, snippets, agents while AI is off, extensions while they are

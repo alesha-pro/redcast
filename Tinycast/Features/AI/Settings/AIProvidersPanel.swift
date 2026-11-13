@@ -54,7 +54,6 @@ struct AIProvidersPanel: View {
     @State private var connectionsWithHeaders: Set<UUID> = []
     @State private var keyError = false
     @State private var editor: AIConnectionEditorTarget?
-    @State private var pendingRemoval: AIConnection?
     @State private var modelQuery = ""
     /// Kept across providers, as Mail keeps its tab across accounts; one without it shows Overview.
     @State private var tab = AIProviderTab.overview
@@ -100,19 +99,6 @@ struct AIProvidersPanel: View {
                 target: target,
                 onSave: saveConnection,
                 onCancel: { editor = nil })
-        }
-        .confirmationDialog(
-            pendingRemoval.map { String(localized: "Remove “\($0.title)”?") }
-                ?? String(localized: "Remove connection?"),
-            isPresented: removalPresented,
-            titleVisibility: .visible
-        ) {
-            Button("Remove Connection", role: .destructive) {
-                if let pendingRemoval { removeConnection(pendingRemoval) }
-            }
-            Button("Cancel", role: .cancel) { pendingRemoval = nil }
-        } message: {
-            Text("Its saved API key will also be deleted from Keychain.")
         }
         .onAppear {
             selection = selection ?? initialSelection
@@ -191,7 +177,7 @@ struct AIProvidersPanel: View {
             .help("Add API Connection")
             .accessibilityLabel("Add API Connection")
             Button {
-                pendingRemoval = selectedConnection
+                if let selectedConnection { Task { await confirmRemoval(of: selectedConnection) } }
             } label: {
                 Image(systemName: "minus")
             }
@@ -502,7 +488,7 @@ struct AIProvidersPanel: View {
             Button("Try Again", action: retry)
         } label: {
             Label("Check failed", systemImage: "exclamationmark.triangle")
-                .foregroundStyle(.orange)
+                .foregroundStyle(Theme.Colors.warningInk)
             Text(message)
         }
     }
@@ -584,7 +570,7 @@ struct AIProvidersPanel: View {
             }
             if keyError {
                 Label("The login Keychain could not be accessed.", systemImage: "exclamationmark.triangle")
-                    .foregroundStyle(.orange)
+                    .foregroundStyle(Theme.Colors.warningInk)
             }
         } header: {
             Text("Connection")
@@ -618,7 +604,7 @@ struct AIProvidersPanel: View {
                     }
                     .fixedSize()
                 } label: {
-                    Text("\(shownCount) of \(models.count) models in the model picker")
+                    Text("\(shownCount) of \(models.count) models in the model picker").monospacedDigit()
                 }
                 if models.count > Self.filterThreshold {
                     SettingsFilterField(prompt: "Filter models", query: $modelQuery)
@@ -788,12 +774,6 @@ struct AIProvidersPanel: View {
         .toggleStyle(.switch)
     }
 
-    private var removalPresented: Binding<Bool> {
-        Binding(
-            get: { pendingRemoval != nil },
-            set: { if !$0 { pendingRemoval = nil } })
-    }
-
     private func keyIsMissing(_ connection: AIConnection) -> Bool {
         keyStatuses[connection.id] != true && !AIEndpointPolicy.isLoopback(connection.baseURL)
             && !connectionsWithHeaders.contains(connection.id)
@@ -849,6 +829,16 @@ struct AIProvidersPanel: View {
         }
     }
 
+    private func confirmRemoval(of connection: AIConnection) async {
+        guard
+            await core.confirm(
+                title: String(localized: "Remove “\(connection.title)”?"),
+                message: String(localized: "Its saved API key will also be deleted from Keychain."),
+                symbol: "key", confirmTitle: String(localized: "Remove Connection"))
+        else { return }
+        removeConnection(connection)
+    }
+
     private func removeConnection(_ connection: AIConnection) {
         do {
             try keyStore.removeSecret(for: connection.id)
@@ -857,7 +847,6 @@ struct AIProvidersPanel: View {
             try KeychainSecretStore.openRouterManagementKeys.removeSecret(for: connection.id)
             if connection.provider == .codexPlan { codexPlan.forget(connection.id) }  // Fork: its sign-in
             settings.removeConnection(id: connection.id)
-            pendingRemoval = nil
             loadKeyStatuses()
         } catch {
             keyError = true

@@ -26,11 +26,11 @@ struct QuickActionsSettingsView: View {
                     // Every shortcut fails without it; better said here than found one press later.
                     HStack(alignment: .center, spacing: Theme.Spacing.lg) {
                         Image(systemName: "exclamationmark.triangle.fill")
-                            .foregroundStyle(.orange)
+                            .foregroundStyle(Theme.Colors.warning)
                             .frame(width: Theme.Size.settingsRowIcon)
                         VStack(alignment: .leading, spacing: Theme.Spacing.xxs) {
                             Text("Accessibility permission required")
-                                .foregroundStyle(.orange)
+                                .foregroundStyle(Theme.Colors.warningInk)
                             Text("Needed to read your selection.")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
@@ -140,7 +140,7 @@ struct QuickActionsSettingsView: View {
         Button(action: action) {
             SymbolImage(name: "pencil", size: Theme.Size.quickActionHeaderIcon)
         }
-        .buttonStyle(.plain)
+        .settingsControl(.rowIcon)
         .help("Edit \(title)")
         .accessibilityLabel("Edit \(title)")
     }

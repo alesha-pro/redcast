@@ -7,6 +7,15 @@ struct SettingsDetailView: View {
     @State private var lastSelection = ContinuousClock.Instant.now - .seconds(1)
 
     var body: some View {
+        // Fork: a `ZStack`, so the two panes overlap while one fades into the other.
+        ZStack { pane }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            // One host for every pane, above their scroll views so a callout is never clipped.
+            .shortcutRecorderPopoverHost()
+            .task(id: navigation.tab) { await present(navigation.tab) }
+    }
+
+    private var pane: some View {
         // Not a `TabView`: `NSTabView` re-hosts on selection and breaks the recorder.
         Group {
             switch presented ?? navigation.tab {
@@ -36,10 +45,7 @@ struct SettingsDetailView: View {
             case .shortcuts: ShortcutsSettingsView()  // Fork: Shortcuts overview
             }
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        // One host for every pane, above their scroll views so a callout is never clipped.
-        .shortcutRecorderPopoverHost()
-        .task(id: navigation.tab) { await present(navigation.tab) }
+        .transition(.opacity)
     }
 
     private func present(_ tab: SettingsTab) async {
@@ -48,7 +54,8 @@ struct SettingsDetailView: View {
             try? await Task.sleep(for: paneDefer())
             guard !Task.isCancelled else { return }
         }
-        presented = tab
+        // Fork: a pointer's pick fades in; a key's swaps at once, so held arrows leave no ghosts.
+        withAnimation(navigation.selectedByKey ? nil : Theme.Motion.swap) { presented = tab }
     }
 
     /// One frame, or past the next repeat while selections come that fast; a held arrow builds once.

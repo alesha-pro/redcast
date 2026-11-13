@@ -31,7 +31,8 @@ struct ExtensionsSettingsView: View {
                     get: { settings.extensionsEnabled },
                     set: { core.extensionCoordinator.setExtensionsEnabled($0) }),
                 showsInLauncher: $settings.extensionsShowInLauncher,
-                showsIcon: true)
+                showsIcon: true,
+                showsHeader: false)
 
             Group {
                 install
@@ -717,14 +718,8 @@ private struct ExtensionIconRow: View {
             HStack(spacing: Theme.Spacing.md) {
                 preview
                 Button("Change…") { picking = true }
-                    .popover(isPresented: $picking, arrowEdge: .bottom) {
-                        ExtensionAppearancePicker(
-                            current: appearance ?? .fallback,
-                            isCustom: appearance != nil,
-                            onPick: { core.extensions.setAppearance($0, for: installed.manifest.name) },
-                            onReset: {
-                                core.extensions.setAppearance(nil, for: installed.manifest.name)
-                            })
+                    .settingsPickerPanel(isPresented: $picking) {
+                        ExtensionIconPickerPanel(name: installed.manifest.name)
                     }
             }
         }
@@ -739,6 +734,22 @@ private struct ExtensionIconRow: View {
                 resolved: installed.iconPath.map { ExtensionImage.Resolved(source: .file($0)) },
                 size: Theme.Size.rowIcon)
         }
+    }
+}
+
+/// Reads the store itself: a panel's content is built once, so a handed-in value would go stale.
+private struct ExtensionIconPickerPanel: View {
+    let name: String
+    @Environment(AppCore.self) private var core
+
+    var body: some View {
+        let appearance = core.extensions.appearances.appearance(for: name)
+        ExtensionAppearancePicker(
+            current: appearance ?? .fallback, isCustom: appearance != nil,
+            onPick: { core.extensions.setAppearance($0, for: name) },
+            onReset: { core.extensions.setAppearance(nil, for: name) }
+        )
+        .extensionSettingsEditorPanelSurface()
     }
 }
 

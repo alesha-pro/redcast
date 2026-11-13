@@ -113,7 +113,7 @@ struct CustomQuickActionEditorPanel: View {
                 }
                 .frame(width: 120)
             }
-            .popover(isPresented: $showingIconPicker, arrowEdge: .bottom) {
+            .settingsPickerPanel(isPresented: $showingIconPicker) {
                 SymbolPicker(
                     selection: $iconSymbol, fallback: CustomQuickAction.sfSymbol,
                     symbols: Self.iconSymbols

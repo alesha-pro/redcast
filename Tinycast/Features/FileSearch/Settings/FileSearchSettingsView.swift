@@ -310,9 +310,8 @@ private struct PatternRow: View {
         LabeledContent {
             Button(action: onRemove) {
                 Image(systemName: "xmark.circle.fill")
-                    .foregroundStyle(.tertiary)
             }
-            .buttonStyle(.plain)
+            .settingsControl(.glyph)
             .accessibilityLabel("Remove \(pattern)")
         } label: {
             Text(pattern)

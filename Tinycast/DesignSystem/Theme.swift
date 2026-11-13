@@ -192,6 +192,17 @@ enum Theme {
         /// The narrowest the pane column may get before a grouped row's control starts colliding.
         static let settingsDetailMinimum: CGFloat = 420
         static let settingsRowIcon: CGFloat = 20
+        /// Fork: the tile a pane opens on, so every pane starts with the same mark.
+        static let settingsPaneHeroTile: CGFloat = 36
+        /// Fork: an alias field, a recorder and the Shortcuts table's columns share one height.
+        static let settingsInlineControl: CGFloat = 24
+        /// Fork: the square a row's icon button lights, one size under every glyph.
+        static let settingsRowIconTile: CGFloat = 24
+        /// Fork: the Shortcuts table's kind column, wide enough for the longest kind in any language.
+        static let shortcutsKindColumn: CGFloat = 96
+        /// Fork: a picker hung off a Settings control, sized for a search field over eight rows.
+        static let settingsAppPicker = CGSize(width: 300, height: 340)
+        static let settingsModelPicker = CGSize(width: 340, height: 360)
         /// Inside its tinted tile, whose inset brings it to the row icon's size.
         static let settingsSidebarGlyph: CGFloat = 14
         /// AI Chat's opening size; the user owns it from there, autosaved.
@@ -355,6 +366,8 @@ enum Theme {
     enum Opacity {
         /// Fork: one dim for every disabled control, so unavailable reads the same everywhere.
         static let disabled: Double = 0.45
+        /// Fork: a status badge's wash of its own hue, faint enough that the ink carries it.
+        static let badgeFill: Double = 0.15
     }
 
     /// Fork: for an opaque overlay inside a window; glass and borderless panels carry their own.
@@ -386,6 +399,10 @@ enum Theme {
         static let sectionHeader = Font.subheadline.weight(.medium)
         /// A borderless panel's own title, which names the surface rather than a section inside it.
         static let panelTitle = Font.headline
+        /// Fork: the name a Settings pane opens on, one step above the rows it heads.
+        static let paneHeroTitle = Font.title3.weight(.semibold)
+        /// Fork: the clear glyph inside an alias field or a recorder, the 11pt it always was.
+        static let inlineClear = Font.subheadline
         static let calcResult = Font.title
         static let keyCap = Font.caption
         /// Fork: the system tooltip's own size, one step above a key cap so a sentence reads.
@@ -460,6 +477,8 @@ enum Theme {
         static let emojiCell = ramp(dark: 0.045, light: 0.04)
         static let emojiHoverBorder = ramp(dark: 0.42, light: 0.34)
         static let emojiSelectionBorder = ramp(dark: 0.92, light: 0.72)
+        /// Fork: the ring on the chosen Window Mode; neutral, so a red ring only ever means focus.
+        static let optionSelectionBorder = emojiSelectionBorder
         static let emojiInnerBorder = adaptive(
             dark: .srgbInk(0, alpha: 0.72), light: .srgbInk(1, alpha: 0.72))
         static let menuHover = ramp(dark: 0.10, light: 0.09)
@@ -522,6 +541,13 @@ enum Theme {
         static let destructive = Color.red
         static let success = Color.green
         static let warning = Color.orange
+        /// Fork: a hue as text; the system hue on dark, deepened on light, where that is too pale.
+        static let successInk = adaptive(
+            dark: .systemGreen, light: NSColor(srgbRed: 0.09, green: 0.47, blue: 0.20, alpha: 1))
+        static let warningInk = adaptive(
+            dark: .systemOrange, light: NSColor(srgbRed: 0.68, green: 0.34, blue: 0, alpha: 1))
+        /// Fork: a key cap inside the shortcut recorder, the literal it always drew.
+        static let recorderKeyCapFill = ramp(dark: 0.08, light: 0.08)
         static let composerSend = accent  // Fork: the accent disc with a white arrow, as Raycast's
         static let composerSendInk = Color.white  // Fork: on the red disc in both appearances
         /// The window's own page, for a card that must hide the transcript it floats over.

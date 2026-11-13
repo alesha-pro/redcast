@@ -133,7 +133,7 @@ struct AgentEditorPanel: View {
                     .frame(width: 40)
             }
             .accessibilityLabel("Icon")
-            .popover(isPresented: $showingIconPicker, arrowEdge: .bottom) {
+            .settingsPickerPanel(isPresented: $showingIconPicker) {
                 SymbolPicker(
                     selection: $draft.iconSymbol, fallback: AgentProfile.sfSymbol,
                     symbols: Self.iconSymbols
@@ -413,7 +413,7 @@ struct AgentEditorPanel: View {
             // Tinycast's loop takes its time from Effort; an agent on its own CLI keeps its own limit.
             if draft.runtime != nil {
                 Stepper(value: background.minutes, in: AgentBackgroundPolicy.minuteRange, step: 5) {
-                    Text("Stop a run after \(draft.backgroundPolicy.minutes) minutes")
+                    Text("Stop a run after \(draft.backgroundPolicy.minutes) minutes").monospacedDigit()
                 }
             }
         }

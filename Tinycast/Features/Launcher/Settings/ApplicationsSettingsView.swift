@@ -5,7 +5,8 @@ struct ApplicationsSettingsView: View {
         Form {
             LauncherCategorySwitchSection(
                 kind: .application, anchor: .applicationsApplications,
-                title: "Enable Applications")
+                title: "Enable Applications",
+                subtitle: "Open the apps on your Mac. Turning this off also disables their shortcuts.")
 
             SearchScopesSection()
 

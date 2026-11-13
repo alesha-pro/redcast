@@ -128,7 +128,7 @@ struct LauncherItemsTable: NSViewRepresentable {
 }
 
 /// Hangs the table into the `Form` row's padding: negative padding doesn't move an AppKit view.
-private final class OverhangingTableView: NSView {
+final class OverhangingTableView: NSView {  // Fork: shared with the Shortcuts table
     private let table: NSTableView
     private let topOverhang: CGFloat
     private let bottomOverhang: CGFloat
@@ -155,7 +155,7 @@ private final class OverhangingTableView: NSView {
 }
 
 /// Hands every click to the hosted row; a table otherwise claims clicks that miss an `NSControl`.
-private final class HostedRowsTableView: NSTableView {
+final class HostedRowsTableView: NSTableView {  // Fork: shared with the Shortcuts table
     override func validateProposedFirstResponder(_ responder: NSResponder, for event: NSEvent?) -> Bool {
         true
     }

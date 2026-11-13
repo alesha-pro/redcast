@@ -84,7 +84,7 @@ struct WindowLayoutEditorPanel: View {
             if let errorMessage {
                 Text(errorMessage)
                     .font(.caption)
-                    .foregroundStyle(.orange)
+                    .foregroundStyle(Theme.Colors.warningInk)
                     .lineLimit(2)
             }
             Spacer(minLength: 0)

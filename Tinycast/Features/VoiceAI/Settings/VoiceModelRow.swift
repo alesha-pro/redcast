@@ -28,7 +28,7 @@ struct VoiceModelRow: View {
             Text("Connection")
             if current == nil, !offered.isEmpty {
                 Text("The chosen connection was removed or turned off. Nothing is sent until you choose one.")
-                    .foregroundStyle(.orange)
+                    .foregroundStyle(Theme.Colors.warningInk)
             }
         }
         LabeledContent {
@@ -39,12 +39,12 @@ struct VoiceModelRow: View {
                 if isLoading { ProgressView().controlSize(.small) }
                 Button("Choose…", action: loadCatalog)
                     .disabled(current == nil || isLoading)
-                    .popover(isPresented: $isChoosing, arrowEdge: .bottom) { catalogList }
+                    .settingsPickerPanel(isPresented: $isChoosing) { catalogList }
             }
         } label: {
             Text("Model")
             if let failure {
-                Text(failure).foregroundStyle(.orange)
+                Text(failure).foregroundStyle(Theme.Colors.warningInk)
             }
         }
         .onAppear { draft = current?.model ?? "" }
@@ -87,7 +87,7 @@ struct VoiceModelRow: View {
     private var catalogList: some View {
         let models = VoiceRoutePolicy.audioModels(catalog)
         return ScrollView {
-            LazyVStack(alignment: .leading, spacing: 0) {
+            LazyVStack(alignment: .leading, spacing: Theme.Spacing.xxs) {
                 if models.isEmpty {
                     Text("No model on this connection takes audio.")
                         .foregroundStyle(.secondary)
@@ -102,15 +102,18 @@ struct VoiceModelRow: View {
                                 .foregroundStyle(.secondary)
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        .contentShape(Rectangle())
+                        .padding(.horizontal, Theme.Spacing.lg)
+                        .padding(.vertical, Theme.Spacing.sm)
                     }
-                    .buttonStyle(.plain)
-                    .padding(.horizontal, Theme.Spacing.lg)
-                    .padding(.vertical, Theme.Spacing.sm)
+                    .settingsControl(.pickerRow(isSelected: model.id == resolved?.model))
                 }
             }
+            .padding(Theme.Spacing.md)
         }
-        .frame(width: 340, height: 360)
+        .frame(
+            width: Theme.Size.settingsModelPicker.width, height: Theme.Size.settingsModelPicker.height
+        )
+        .settingsEditorPanelSurface()
     }
 
     private func choose(_ model: AIModelDiscovery.Model) {

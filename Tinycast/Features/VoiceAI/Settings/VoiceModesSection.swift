@@ -49,7 +49,7 @@ struct VoiceModesSection: View {
                 } label: {
                     SettingsRowTitle(.dictationModesByApp, "Add Application…")
                 }
-                .popover(isPresented: $pickingApp, arrowEdge: .bottom) {
+                .settingsPickerPanel(isPresented: $pickingApp) {
                     AppPickerPopover(excluded: Set(modes.apps.keys)) { bundleID in
                         core.voiceSettings.modes.apps[bundleID] = VoiceModeSettings.plain
                         pickingApp = false
@@ -71,7 +71,7 @@ struct VoiceModesSection: View {
             } label: {
                 SymbolImage(name: "pencil", size: Theme.Size.quickActionHeaderIcon)
             }
-            .buttonStyle(.plain)
+            .settingsControl(.rowIcon)
             .help("Edit \(mode.name)")
             .accessibilityLabel("Edit \(mode.name)")
             Toggle("", isOn: cycleBinding(mode.id, inCycle: inCycle))
@@ -99,9 +99,8 @@ struct VoiceModesSection: View {
                     core.voiceSettings.modes.apps[bundleID] = nil
                 } label: {
                     Image(systemName: "xmark.circle.fill")
-                        .foregroundStyle(.tertiary)
                 }
-                .buttonStyle(.plain)
+                .settingsControl(.glyph)
                 .accessibilityLabel("Remove \(name)")
             }
         } label: {

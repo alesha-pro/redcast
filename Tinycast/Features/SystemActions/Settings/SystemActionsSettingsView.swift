@@ -5,7 +5,8 @@ struct SystemActionsSettingsView: View {
         Form {
             LauncherCategorySwitchSection(
                 kind: .systemAction, anchor: .systemActionsSystemActions,
-                title: "Enable System Actions")
+                title: "Enable System Actions",
+                subtitle: "Sleep, lock, restart and more. Turning this off also disables their shortcuts.")
 
             LauncherItemsSection(
                 kind: .systemAction,

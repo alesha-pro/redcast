@@ -15,7 +15,7 @@ struct DisabledApplicationsList: View {
         }
 
         Button("Add Application…") { picking = true }
-            .popover(isPresented: $picking, arrowEdge: .bottom) {
+            .settingsPickerPanel(isPresented: $picking) {
                 AppPickerPopover(excluded: Set(bundleIDs)) { bundleID in
                     bundleIDs.append(bundleID)
                     picking = false
@@ -54,9 +54,8 @@ private struct DisabledAppRow: View {
         LabeledContent {
             Button(action: onRemove) {
                 Image(systemName: "xmark.circle.fill")
-                    .foregroundStyle(.tertiary)
             }
-            .buttonStyle(.plain)
+            .settingsControl(.glyph)
             .accessibilityLabel("Stop excluding \(name)")
         } label: {
             Label {

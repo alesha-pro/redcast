@@ -64,7 +64,7 @@ struct CodexPlanConnectionSections: View {
                 signInButton(id)
             } label: {
                 Label("Sign in required", systemImage: "exclamationmark.triangle")
-                    .foregroundStyle(.orange)
+                    .foregroundStyle(Theme.Colors.warningInk)
                 Text("Your ChatGPT sign-in has expired.")
             }
         case .failed(let message):
@@ -73,7 +73,7 @@ struct CodexPlanConnectionSections: View {
                     .disabled(accounts.isSigningIn)
             } label: {
                 Label("Sign-in failed", systemImage: "exclamationmark.triangle")
-                    .foregroundStyle(.orange)
+                    .foregroundStyle(Theme.Colors.warningInk)
                 Text(message)
             }
         case .signedIn:
@@ -101,7 +101,7 @@ struct CodexPlanConnectionSections: View {
         } label: {
             if account?.usesPlan == false {
                 Label("Plan usage not allowed", systemImage: "exclamationmark.triangle")
-                    .foregroundStyle(.orange)
+                    .foregroundStyle(Theme.Colors.warningInk)
                 Text("This sign-in did not allow ChatGPT plan usage. Sign out and sign in again.")
             } else {
                 Text("Using ChatGPT plan")

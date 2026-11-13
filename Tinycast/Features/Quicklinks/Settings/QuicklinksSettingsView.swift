@@ -39,7 +39,7 @@ struct QuicklinksSettingsView: View {
                 "Changes can't be saved: the database couldn't be opened. Its file is untouched.",
                 systemImage: "exclamationmark.triangle.fill"
             )
-            .foregroundStyle(.orange)
+            .foregroundStyle(Theme.Colors.warningInk)
         }
     }
 
@@ -166,15 +166,15 @@ private struct QuicklinkSettingsRow: View {
             Button(action: onEdit) {
                 Image(systemName: "pencil")
             }
-            .buttonStyle(.plain)
+            .settingsControl(.rowIcon)
             .help("Edit Quicklink")
             .accessibilityLabel("Edit \(quicklink.name)")
 
             Button(action: onDelete) {
                 Image(systemName: "trash")
-                    .foregroundStyle(.red)
+                    .foregroundStyle(Theme.Colors.destructive)
             }
-            .buttonStyle(.plain)
+            .settingsControl(.rowIcon)
             .help("Delete Quicklink")
             .accessibilityLabel("Delete \(quicklink.name)")
 

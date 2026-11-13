@@ -41,7 +41,8 @@ extension Theme.Size {
     /// Settings' sidebar: Raycast's roomy rows; the pill's inset leaves the tile a soft margin.
     static let settingsSidebarRow: CGFloat = 32
     static let settingsSidebarResultRow: CGFloat = 42
-    static let settingsSidebarGroupGap: CGFloat = 12
+    /// A group's name sits low in its row, so the space above it parts the groups.
+    static let settingsSidebarGroupHeader: CGFloat = 30
     static let settingsSidebarTile: CGFloat = 24
     static let settingsSidebarTileGap: CGFloat = 8
     static let settingsSidebarTileInset: CGFloat = 4

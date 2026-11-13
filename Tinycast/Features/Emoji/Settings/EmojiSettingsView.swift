@@ -6,6 +6,8 @@ struct EmojiSettingsView: View {
     var body: some View {
         @Bindable var settings = settings
         return Form {
+            SettingsPaneHeader(tab: .emoji, subtitle: "How the picker lays out its grid and tints emoji.")
+
             FeatureCommandsSection(owner: .emoji, anchor: .emojiCommands)
 
             Section {
@@ -19,9 +21,8 @@ struct EmojiSettingsView: View {
                             } label: {
                                 Text(tone.sample)
                                     .font(.system(size: Theme.Size.emojiSkinToneGlyph))
-                                    .settingsOptionSegment(isSelected: selected)
                             }
-                            .buttonStyle(.plain)
+                            .settingsControl(.segment(isSelected: selected))
                             .accessibilityLabel(tone.title)
                             .accessibilityAddTraits(selected ? [.isSelected] : [])
                             .help(tone.title)

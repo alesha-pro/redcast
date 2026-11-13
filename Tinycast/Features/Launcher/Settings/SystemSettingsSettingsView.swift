@@ -5,7 +5,8 @@ struct SystemSettingsSettingsView: View {
         Form {
             LauncherCategorySwitchSection(
                 kind: .systemSettings, anchor: .systemSettingsSystemSettings,
-                title: "Enable System Settings")
+                title: "Enable System Settings",
+                subtitle: "Open any pane of System Settings. Turning this off also disables their shortcuts.")
 
             LauncherItemsSection(
                 kind: .systemSettings,

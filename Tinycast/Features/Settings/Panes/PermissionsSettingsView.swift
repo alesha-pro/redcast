@@ -13,144 +13,43 @@ struct PermissionsSettingsView: View {
 
     var body: some View {
         Form {
-            Section {
-                LabeledContent {
-                    HStack(spacing: Theme.Spacing.lg) {
-                        HStack(spacing: Theme.Spacing.xs) {
-                            Image(systemName: accessibilityStatus.symbol)
-                                .accessibilityHidden(true)
-                            Text(accessibilityStatus.title)
-                        }
-                        .foregroundStyle(accessibilityStatus.tint)
-                        Button(accessibilityTrusted ? "Open…" : "Grant Access…") {
-                            Permissions.openAccessibilitySettings()
-                        }
-                        .help("Opens Privacy & Security › Accessibility.")
-                    }
-                } label: {
-                    HStack(spacing: Theme.Spacing.lg) {
-                        PermissionSettingsIcon(
-                            path:
-                                "/System/Library/ExtensionKit/Extensions/AccessibilitySettingsExtension.appex"
-                        )
-                        VStack(alignment: .leading, spacing: Theme.Spacing.xxs) {
-                            SettingsRowTitle(.permissionsAccessibility, "Accessibility")
-                            Text("Allows pasting and window management.")
-                                .foregroundStyle(.secondary)
-                        }
-                    }
-                }
-            } header: {
-                SettingsSectionHeader(.permissionsAccessibility)
-            }
+            SettingsPaneHeader(
+                tab: .permissions, subtitle: "What macOS allows, and what each permission unlocks.")
 
+            // Fork: one table, so the four read against each other; each row keeps its anchor.
             Section {
-                LabeledContent {
-                    HStack(spacing: Theme.Spacing.lg) {
-                        HStack(spacing: Theme.Spacing.xs) {
-                            Image(systemName: fullDiskAccessStatus.symbol)
-                                .accessibilityHidden(true)
-                            Text(fullDiskAccessStatus.title)
-                        }
-                        .foregroundStyle(fullDiskAccessStatus.tint)
-                        Button(fullDiskAccess ? "Open…" : "Grant Access…") {
-                            Permissions.openFullDiskAccessSettings()
-                        }
-                        .help("Opens Privacy & Security › Full Disk Access.")
-                    }
-                } label: {
-                    HStack(spacing: Theme.Spacing.lg) {
-                        Image(systemName: "internaldrive.fill")
-                            .font(.system(size: SettingsListMetrics.iconSize - Theme.Spacing.xs))
-                            .frame(width: SettingsListMetrics.iconSize)
-                            .accessibilityHidden(true)
-                        VStack(alignment: .leading, spacing: Theme.Spacing.xxs) {
-                            SettingsRowTitle(.permissionsFullDiskAccess, "Full Disk Access")
-                            Text("Allows File Search and finding protected app leftovers.")
-                                .foregroundStyle(.secondary)
-                        }
-                    }
-                }
-            } header: {
-                SettingsSectionHeader(.permissionsFullDiskAccess)
-            }
-
-            Section {
-                LabeledContent {
-                    HStack(spacing: Theme.Spacing.lg) {
-                        HStack(spacing: Theme.Spacing.xs) {
-                            Image(systemName: calendarStatus.symbol)
-                                .accessibilityHidden(true)
-                            Text(calendarStatus.title)
-                        }
-                        .foregroundStyle(calendarStatus.tint)
-                        Button(calendarNeedsPrompt ? "Grant Access…" : "Open…") {
-                            // Settings lists no app TCC was never asked about, so asking is the way in.
-                            if calendarNeedsPrompt {
-                                core.calendarCoordinator.setCalendarEnabled(true)
-                            } else {
-                                Permissions.openCalendarSettings()
-                            }
-                        }
-                        .help(
-                            calendarNeedsPrompt
-                                ? "Turns the calendar on, then asks macOS for access."
-                                : "Opens Privacy & Security › Calendars.")
-                    }
-                } label: {
-                    HStack(spacing: Theme.Spacing.lg) {
-                        PermissionSettingsIcon(
-                            path: "/System/Applications/Calendar.app")
-                        VStack(alignment: .leading, spacing: Theme.Spacing.xxs) {
-                            SettingsRowTitle(.permissionsCalendars, "Calendars")
-                            Text("Allows joining your next meeting.")
-                                .foregroundStyle(.secondary)
-                        }
-                    }
-                }
-            } header: {
-                SettingsSectionHeader(.permissionsCalendars)
-            }
-
-            Section {
-                LabeledContent {
-                    HStack(spacing: Theme.Spacing.lg) {
-                        HStack(spacing: Theme.Spacing.xs) {
-                            Image(systemName: microphoneStatus.symbol)
-                                .accessibilityHidden(true)
-                            Text(microphoneStatus.title)
-                        }
-                        .foregroundStyle(microphoneStatus.tint)
-                        Button(microphoneAccess == .notDetermined ? "Grant Access…" : "Open…") {
-                            if microphoneAccess == .notDetermined {
-                                Task {
-                                    _ = await Permissions.requestMicrophoneAccess()
-                                    apply(PermissionStatus.read())
-                                }
-                            } else {
-                                Permissions.openMicrophoneSettings()
-                            }
-                        }
-                        .help(
-                            microphoneAccess == .notDetermined
-                                ? "Asks macOS for microphone access."
-                                : "Opens Privacy & Security › Microphone.")
-                    }
-                } label: {
-                    HStack(spacing: Theme.Spacing.lg) {
-                        Image(systemName: "mic.fill")
-                            .font(.system(size: SettingsListMetrics.iconSize - Theme.Spacing.xs))
-                            .frame(width: SettingsListMetrics.iconSize)
-                            .accessibilityHidden(true)
-                        VStack(alignment: .leading, spacing: Theme.Spacing.xxs) {
-                            SettingsRowTitle(.permissionsMicrophone, "Microphone")
-                            Text("Allows dictating text.")
-                                .foregroundStyle(.secondary)
-                        }
-                    }
-                }
-            } header: {
-                SettingsSectionHeader(.permissionsMicrophone)
+                PermissionRow(
+                    anchor: .permissionsAccessibility, title: "Accessibility",
+                    detail: "Allows pasting and window management.",
+                    symbol: "accessibility", hue: GlyphCategory.windows.hue,
+                    grant: accessibilityTrusted ? .granted : .missing,
+                    help: "Opens Privacy & Security › Accessibility.",
+                    action: Permissions.openAccessibilitySettings)
+                PermissionRow(
+                    anchor: .permissionsFullDiskAccess, title: "Full Disk Access",
+                    detail: "Allows File Search and finding protected app leftovers.",
+                    symbol: "internaldrive", hue: GlyphCategory.files.hue,
+                    grant: fullDiskAccess ? .granted : .missing,
+                    help: "Opens Privacy & Security › Full Disk Access.",
+                    action: Permissions.openFullDiskAccessSettings)
+                PermissionRow(
+                    anchor: .permissionsCalendars, title: "Calendars",
+                    detail: "Allows joining your next meeting.",
+                    symbol: "calendar", hue: GlyphCategory.calendar.hue,
+                    grant: calendarGrant,
+                    help: calendarAccess == .notDetermined
+                        ? "Turns the calendar on, then asks macOS for access."
+                        : "Opens Privacy & Security › Calendars.",
+                    action: grantCalendar)
+                PermissionRow(
+                    anchor: .permissionsMicrophone, title: "Microphone",
+                    detail: "Allows dictating text.",
+                    symbol: "mic", hue: GlyphCategory.voice.hue,
+                    grant: microphoneGrant,
+                    help: microphoneAccess == .notDetermined
+                        ? "Asks macOS for microphone access."
+                        : "Opens Privacy & Security › Microphone.",
+                    action: grantMicrophone)
             }
         }
         .formStyle(.grouped)
@@ -158,37 +57,36 @@ struct PermissionsSettingsView: View {
         .pollingPermissions(read: PermissionStatus.read, apply: apply)
     }
 
-    private var calendarNeedsPrompt: Bool { calendarAccess == .notDetermined }
-
-    private var accessibilityStatus: (title: String, symbol: String, tint: Color) {
-        grantStatus(accessibilityTrusted)
-    }
-
-    private var fullDiskAccessStatus: (title: String, symbol: String, tint: Color) {
-        grantStatus(fullDiskAccess)
-    }
-
-    private func grantStatus(_ granted: Bool) -> (title: String, symbol: String, tint: Color) {
-        granted
-            ? (String(localized: "Granted"), "checkmark.circle.fill", .green)
-            : (String(localized: "Not granted"), "exclamationmark.triangle.fill", .orange)
-    }
-
-    private var calendarStatus: (title: String, symbol: String, tint: Color) {
+    private var calendarGrant: PermissionGrant {
         switch calendarAccess {
-        case .granted: return (String(localized: "Granted"), "checkmark.circle.fill", .green)
-        case .notDetermined:
-            return (String(localized: "Not asked yet"), "questionmark.circle.fill", .secondary)
-        case .denied: return (String(localized: "Not granted"), "exclamationmark.triangle.fill", .orange)
+        case .granted: .granted
+        case .notDetermined: .notAsked
+        case .denied: .missing
         }
     }
 
-    private var microphoneStatus: (title: String, symbol: String, tint: Color) {
+    private var microphoneGrant: PermissionGrant {
         switch microphoneAccess {
-        case .authorized: return (String(localized: "Granted"), "checkmark.circle.fill", .green)
-        case .notDetermined:
-            return (String(localized: "Not asked yet"), "questionmark.circle.fill", .secondary)
-        default: return (String(localized: "Not granted"), "exclamationmark.triangle.fill", .orange)
+        case .authorized: .granted
+        case .notDetermined: .notAsked
+        default: .missing
+        }
+    }
+
+    /// Settings lists no app TCC was never asked about, so asking is the way in.
+    private func grantCalendar() {
+        if calendarAccess == .notDetermined {
+            core.calendarCoordinator.setCalendarEnabled(true)
+        } else {
+            Permissions.openCalendarSettings()
+        }
+    }
+
+    private func grantMicrophone() {
+        guard microphoneAccess == .notDetermined else { return Permissions.openMicrophoneSettings() }
+        Task {
+            _ = await Permissions.requestMicrophoneAccess()
+            apply(PermissionStatus.read())
         }
     }
 
@@ -216,19 +114,73 @@ private struct PermissionStatus: Equatable, Sendable {
     }
 }
 
-private struct PermissionSettingsIcon: View {
-    let path: String
+private enum PermissionGrant {
+    case granted, missing, notAsked
+
+    var title: String {
+        switch self {
+        case .granted: String(localized: "Granted")
+        case .missing: String(localized: "Not granted")
+        case .notAsked: String(localized: "Not asked yet")
+        }
+    }
+
+    var symbol: String {
+        switch self {
+        case .granted: "checkmark.circle.fill"
+        case .missing: "exclamationmark.triangle.fill"
+        case .notAsked: "questionmark.circle.fill"
+        }
+    }
+
+    var tone: SettingsStatusBadge.Tone {
+        switch self {
+        case .granted: .success
+        case .missing: .warning
+        case .notAsked: .neutral
+        }
+    }
+}
+
+/// One permission: what it is, how it stands, and the one thing to do about it.
+private struct PermissionRow: View {
+    let anchor: SettingsAnchor
+    let title: LocalizedStringResource
+    let detail: LocalizedStringResource
+    let symbol: String
+    let hue: RaycastHue
+    let grant: PermissionGrant
+    let help: LocalizedStringResource
+    let action: @MainActor () -> Void
 
     var body: some View {
-        Image(nsImage: IconCache.icon(forFile: path))
-            .resizable()
-            .renderingMode(.original)
-            .interpolation(.high)
-            .id(IconCache.style.generation)
-            .frame(
-                width: SettingsListMetrics.iconSize,
-                height: SettingsListMetrics.iconSize
-            )
-            .accessibilityHidden(true)
+        LabeledContent {
+            HStack(spacing: Theme.Spacing.lg) {
+                SettingsStatusBadge(title: grant.title, symbol: grant.symbol, tone: grant.tone)
+                if grant == .granted {
+                    Button(action: action) { actionLabel("Open…") }
+                        .help(Text(help))
+                } else {
+                    Button(action: action) { actionLabel("Grant Access…") }
+                        .buttonStyle(.borderedProminent)
+                        .help(Text(help))
+                }
+            }
+        } label: {
+            HStack(spacing: Theme.Spacing.lg) {
+                GlyphTile(symbol: symbol, hue: hue, size: SettingsListMetrics.iconSize)
+                VStack(alignment: .leading, spacing: Theme.Spacing.xxs) {
+                    SettingsRowTitle(anchor, title)
+                    Text(detail)
+                        .foregroundStyle(.secondary)
+                }
+            }
+        }
+        .settingsAnchor(anchor)
+    }
+
+    /// Sized to the longer title, so the buttons and the badges before them hold one column.
+    private func actionLabel(_ title: LocalizedStringKey) -> some View {
+        Text("Grant Access…").hidden().overlay { Text(title) }
     }
 }

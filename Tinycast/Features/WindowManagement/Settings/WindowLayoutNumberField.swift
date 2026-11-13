@@ -80,11 +80,25 @@ struct WindowLayoutNumberField: View {
 extension View {
     /// The inspector's one control surface, so a field, a dropdown and the add button match.
     func layoutFieldChrome(isFocused: Bool = false) -> some View {
+        modifier(LayoutFieldChrome(isFocused: isFocused))
+    }
+}
+
+/// Fork: a view of its own for the hover it holds; the edge lifts under the pointer.
+private struct LayoutFieldChrome: ViewModifier {
+    let isFocused: Bool
+    @State private var hovered = false
+
+    func body(content: Content) -> some View {
         let shape = RoundedRectangle(cornerRadius: Theme.Radius.barControl, style: .continuous)
-        return padding(.horizontal, Theme.Spacing.md)
+        let edge = isFocused ? Color.accentColor : hovered ? Theme.Colors.border : Theme.Colors.cardStroke
+        content
+            .padding(.horizontal, Theme.Spacing.md)
             .frame(height: Theme.Size.layoutControlHeight)
             .background(shape.fill(Theme.Colors.cardFill))
-            .overlay(shape.stroke(isFocused ? Color.accentColor : Theme.Colors.cardStroke))
+            .overlay(shape.stroke(edge))
             .contentShape(shape)
+            .onHover { hovered = $0 }
+            .animation(Theme.Motion.hover, value: hovered)
     }
 }

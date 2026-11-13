@@ -19,6 +19,7 @@ final class SettingsEditorPresenter: NSObject {
     fileprivate struct BooleanPanelModifier<PanelContent: View>: ViewModifier {
         @Environment(\.settingsEditorPresenter) private var presenter
         @Binding var isPresented: Bool
+        var isPicker = false
         let panelContent: () -> PanelContent
         @State private var presentationID = UUID()
 
@@ -29,7 +30,7 @@ final class SettingsEditorPresenter: NSObject {
                     if presented {
                         let binding = $isPresented
                         presenter.present(
-                            id: presentationID,
+                            id: presentationID, isPicker: isPicker,
                             onDismiss: {
                                 binding.wrappedValue = false
                             }
@@ -78,22 +79,26 @@ final class SettingsEditorPresenter: NSObject {
 
     private struct Pending {
         let id: UUID
+        /// A picker goes on a click outside it or Escape, as a menu would; an editor stays.
+        let isPicker: Bool
         let content: AnyView
         let onDismiss: () -> Void
     }
 
     private final class Presentation {
         let id: UUID
+        let isPicker: Bool
         weak var parent: NSWindow?
         let panel: Panel
         let blocker: BlockingPanel
         let onDismiss: () -> Void
 
         init(
-            id: UUID, parent: NSWindow, panel: Panel,
+            id: UUID, isPicker: Bool, parent: NSWindow, panel: Panel,
             blocker: BlockingPanel, onDismiss: @escaping () -> Void
         ) {
             self.id = id
+            self.isPicker = isPicker
             self.parent = parent
             self.panel = panel
             self.blocker = blocker
@@ -147,9 +152,12 @@ final class SettingsEditorPresenter: NSObject {
 
     private final class BlockingPanel: NSPanel {
         private weak var target: NSWindow?
+        /// True when the press was spent closing a picker, so it neither raises nor drags.
+        private let onPress: () -> Bool
 
-        init(target: NSWindow, cornerRadius: CGFloat) {
+        init(target: NSWindow, cornerRadius: CGFloat, onPress: @escaping () -> Bool) {
             self.target = target
+            self.onPress = onPress
             super.init(
                 contentRect: .zero, styleMask: [.borderless], backing: .buffered, defer: false)
             isOpaque = false
@@ -173,6 +181,7 @@ final class SettingsEditorPresenter: NSObject {
                 super.sendEvent(event)
                 return
             }
+            guard !onPress() else { return }
             target?.makeKeyAndOrderFront(nil)
             // The dim covers the parent's titlebar, so it has to carry the parent's drag.
             if event.type == .leftMouseDown { parent?.performDrag(with: event) }
@@ -212,10 +221,12 @@ final class SettingsEditorPresenter: NSObject {
     }
 
     func present<Content: View>(
-        id: UUID, onDismiss: @escaping () -> Void, @ViewBuilder content: () -> Content
+        id: UUID, isPicker: Bool = false, onDismiss: @escaping () -> Void,
+        @ViewBuilder content: () -> Content
     ) {
         guard !contains(id) else { return }
-        pending.append(Pending(id: id, content: AnyView(content()), onDismiss: onDismiss))
+        pending.append(
+            Pending(id: id, isPicker: isPicker, content: AnyView(content()), onDismiss: onDismiss))
         flushPending()
     }
 
@@ -253,9 +264,13 @@ final class SettingsEditorPresenter: NSObject {
         let dismiss = DismissAction { [weak self] in
             self?.dismiss(id: request.id)
         }
+        let radius = request.isPicker ? Theme.Radius.menuPanel : Theme.Radius.panel
         let root = request.content
+            // A focused field keeps Escape from the panel, so a picker takes it here as well.
+            .onExitCommand(perform: request.isPicker ? { dismiss() } : nil)
             .settingsEnvironment(core: core, navigation: navigation, editorPresenter: self)
             .environment(\.settingsEditorDismiss, dismiss)
+            .environment(\.settingsPanelRadius, radius)
         let hosting = NSHostingView(rootView: AnyView(root))
         hosting.setFrameSize(NSSize(width: 1, height: 1))
         hosting.layoutSubtreeIfNeeded()
@@ -263,13 +278,14 @@ final class SettingsEditorPresenter: NSObject {
         hosting.setFrameSize(
             NSSize(width: max(1, fitting.width), height: max(1, fitting.height)))
 
-        let panel = Panel(content: hosting, cornerRadius: Theme.Radius.panel)
+        let panel = Panel(content: hosting, cornerRadius: radius)
         panel.cancelHandler = { [weak self] in self?.dismiss(id: request.id) }
         let blocker = BlockingPanel(
-            target: panel, cornerRadius: blockerCornerRadius(for: parent))
+            target: panel, cornerRadius: blockerCornerRadius(for: parent),
+            onPress: { [weak self] in self?.dismissTopPicker() ?? false })
         let presentation = Presentation(
-            id: request.id, parent: parent, panel: panel, blocker: blocker,
-            onDismiss: request.onDismiss)
+            id: request.id, isPicker: request.isPicker, parent: parent, panel: panel,
+            blocker: blocker, onDismiss: request.onDismiss)
         presentations.append(presentation)
         // Its own resize too: the content sizes the panel, so a growing form must re-centre it.
         observeResize(of: panel)
@@ -279,6 +295,13 @@ final class SettingsEditorPresenter: NSObject {
         blocker.fadeIn(duration: Theme.Duration.dialogEnter) { blocker.orderFront(nil) }
         panel.makeKeyAndOrderFront(nil)
         focusAfterLayout(panel: panel)
+    }
+
+    /// Whichever dim took the press: a picker over a nested editor is covered by more than one.
+    private func dismissTopPicker() -> Bool {
+        guard let top = presentations.last, top.isPicker else { return false }
+        dismiss(id: top.id)
+        return true
     }
 
     private func focusAfterLayout(panel: Panel) {
@@ -333,7 +356,8 @@ final class SettingsEditorPresenter: NSObject {
         if notifying { presentation.onDismiss() }
         if let panel = presentations.last?.panel {
             panel.makeKeyAndOrderFront(nil)
-            panel.focusFirstControl()
+            // A picker hands its editor back as it was; moving focus would select a field's text.
+            if !presentation.isPicker { panel.focusFirstControl() }
         } else {
             parentWindow?.makeKeyAndOrderFront(nil)
         }
@@ -353,6 +377,15 @@ extension View {
         modifier(
             SettingsEditorPresenter.BooleanPanelModifier(
                 isPresented: isPresented, panelContent: content))
+    }
+
+    /// A choice hung off a control, in place of a system popover: the same panel, lightly held.
+    func settingsPickerPanel<PanelContent: View>(
+        isPresented: Binding<Bool>, @ViewBuilder content: @escaping () -> PanelContent
+    ) -> some View {
+        modifier(
+            SettingsEditorPresenter.BooleanPanelModifier(
+                isPresented: isPresented, isPicker: true, panelContent: content))
     }
 
     /// The item-driven form used by editors whose initial state is captured when the panel opens.

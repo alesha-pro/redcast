@@ -62,7 +62,7 @@ struct FullBackupExportOptions: View {
             } label: {
                 Text("Passphrase")
                 if let problem = draft.exportProblem {
-                    Text(problem).foregroundStyle(.orange)
+                    Text(problem).foregroundStyle(Theme.Colors.warningInk)
                 }
             }
         }

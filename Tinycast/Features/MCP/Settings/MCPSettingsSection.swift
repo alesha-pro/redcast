@@ -4,8 +4,8 @@ struct MCPSettingsSection: View {
     @Environment(MCPCoordinator.self) private var coordinator
     @Environment(AppSettings.self) private var appSettings
     @Environment(MCPSettingsStore.self) private var store
+    @Environment(AppCore.self) private var core
     @State private var editor: MCPServerEditorTarget?
-    @State private var pendingRemoval: MCPServer?
     @State private var removalError: String?
 
     var body: some View {
@@ -23,7 +23,7 @@ struct MCPSettingsSection: View {
                         MCPServerRow(
                             server: server, status: coordinator.status(of: server.id),
                             onEdit: { editor = MCPServerEditorTarget(server: server, isNew: false) },
-                            onRemove: { pendingRemoval = server })
+                            onRemove: { Task { await confirmRemoval(of: server) } })
                     }
                 }
                 Button {
@@ -40,7 +40,7 @@ struct MCPSettingsSection: View {
             .settingsEnabled(appSettings.mcpEnabled)
             if let removalError {
                 Label(removalError, systemImage: "exclamationmark.triangle")
-                    .foregroundStyle(.orange)
+                    .foregroundStyle(Theme.Colors.warningInk)
             }
         } header: {
             SettingsSectionHeader(.aiMCPServers)
@@ -52,19 +52,17 @@ struct MCPSettingsSection: View {
         .settingsEditorPanel(item: $editor) { target in
             MCPServerEditor(target: target, onSave: save, onCancel: { editor = nil })
         }
-        .confirmationDialog(
-            pendingRemoval.map { String(localized: "Remove \($0.title)?") }
-                ?? String(localized: "Remove this server?"),
-            isPresented: removalBinding, presenting: pendingRemoval
-        ) { server in
-            Button("Remove", role: .destructive) { remove(server) }
-        } message: { _ in
-            Text("Its tools stop being offered, and its stored credentials are deleted.")
-        }
     }
 
-    private var removalBinding: Binding<Bool> {
-        Binding(get: { pendingRemoval != nil }, set: { if !$0 { pendingRemoval = nil } })
+    private func confirmRemoval(of server: MCPServer) async {
+        guard
+            await core.confirm(
+                title: String(localized: "Remove \(server.title)?"),
+                message: String(
+                    localized: "Its tools stop being offered, and its stored credentials are deleted."),
+                symbol: "wrench.and.screwdriver", confirmTitle: String(localized: "Remove"))
+        else { return }
+        remove(server)
     }
 
     /// A returned message is shown in the panel; nil closes it.
@@ -79,7 +77,6 @@ struct MCPSettingsSection: View {
     }
 
     private func remove(_ server: MCPServer) {
-        pendingRemoval = nil
         do {
             try coordinator.remove(server.id)
             removalError = nil
@@ -105,13 +102,13 @@ private struct MCPServerRow: View {
                 .foregroundStyle(.primary)
         } trailing: {
             Button(action: onEdit) { Image(systemName: "pencil") }
-                .buttonStyle(.plain)
+                .settingsControl(.rowIcon)
                 .help("Edit \(server.title)")
                 .accessibilityLabel("Edit \(server.title)")
             Button(action: onRemove) {
-                Image(systemName: "trash").foregroundStyle(.red)
+                Image(systemName: "trash").foregroundStyle(Theme.Colors.destructive)
             }
-            .buttonStyle(.plain)
+            .settingsControl(.rowIcon)
             .help("Remove \(server.title)")
             .accessibilityLabel("Remove \(server.title)")
         }

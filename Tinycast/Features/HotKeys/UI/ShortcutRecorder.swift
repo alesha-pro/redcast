@@ -26,12 +26,12 @@ struct ShortcutRecorder: View {
         let showsFill = !isQuiet || isRecording || hovered || hotKeys.binding(for: action) != nil
         content
             .padding(.horizontal, Theme.Spacing.sm + 1)
-            .frame(width: Theme.Size.shortcutRecorder, height: 24)
+            .frame(width: Theme.Size.shortcutRecorder, height: Theme.Size.settingsInlineControl)
             .background(shape.fill(Theme.Colors.cardFill).opacity(showsFill ? 1 : 0))
             .background {
                 if isRecording { ShortcutRecorderHitRegion(capture: hotKeys.capture) }
             }
-            .overlay(shape.strokeBorder(Theme.Colors.cardStroke, lineWidth: 1))
+            .inlineControlEdge(shape, isActive: isRecording, isHovered: hovered)
             // An over-long binding truncates rather than resizing the field.
             .clipShape(shape)
             .contentShape(shape)
@@ -69,7 +69,7 @@ struct ShortcutRecorder: View {
                     Permissions.openAccessibilitySettings()
                 } label: {
                     Image(systemName: "exclamationmark.triangle.fill")
-                        .foregroundStyle(.orange)
+                        .foregroundStyle(Theme.Colors.warning)
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel("Open Accessibility settings")
@@ -88,7 +88,7 @@ struct ShortcutRecorder: View {
                             RoundedRectangle(
                                 cornerRadius: Theme.Radius.recorderKeyCap, style: .continuous
                             )
-                            .fill(Color.primary.opacity(0.08))
+                            .fill(Theme.Colors.recorderKeyCapFill)
                         )
                 }
             }
@@ -102,10 +102,9 @@ struct ShortcutRecorder: View {
                 hotKeys.setBinding(nil, for: action)
             } label: {
                 Image(systemName: "xmark.circle.fill")
-                    .font(.system(size: 11))
-                    .foregroundStyle(.tertiary)
+                    .font(Theme.Typography.inlineClear)
             }
-            .buttonStyle(.plain)
+            .settingsControl(.glyph)
             .opacity(hovered ? 1 : 0)
             .allowsHitTesting(hovered)
         }

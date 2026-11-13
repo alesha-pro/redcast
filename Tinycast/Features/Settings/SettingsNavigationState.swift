@@ -19,9 +19,12 @@ final class SettingsNavigationState {
     private(set) var scrollRequest: SettingsScrollRequest?
     /// The section lit right now. One source for the whole window, so a pane swap can't lose it.
     private(set) var flashing: SettingsTarget?
+    /// Fork: set when a key chose the pane, which then swaps at once; a fade is the pointer's.
+    @ObservationIgnored private(set) var selectedByKey = false
 
     /// A search result navigates and asks the pane to reveal one section; a sidebar row just navigates.
-    func select(_ tab: SettingsTab, revealing target: SettingsTarget? = nil) {
+    func select(_ tab: SettingsTab, revealing target: SettingsTarget? = nil, byKey: Bool = false) {
+        selectedByKey = byKey
         history.select(tab)
         // Any navigation puts the previous pulse out, so a stale light can't outlive its pane.
         flashing = nil
@@ -47,6 +50,13 @@ final class SettingsNavigationState {
         scrollRequest = nil
     }
 
-    func goBack() { history.goBack() }
-    func goForward() { history.goForward() }
+    func goBack() {
+        selectedByKey = false
+        history.goBack()
+    }
+
+    func goForward() {
+        selectedByKey = false
+        history.goForward()
+    }
 }

@@ -20,11 +20,11 @@ struct DictationSettingsView: View {
                 if microphoneAccess != .authorized {
                     HStack(alignment: .center, spacing: Theme.Spacing.lg) {
                         Image(systemName: "exclamationmark.triangle.fill")
-                            .foregroundStyle(.orange)
+                            .foregroundStyle(Theme.Colors.warning)
                             .frame(width: SettingsListMetrics.iconSize)
                         VStack(alignment: .leading, spacing: Theme.Spacing.xxs) {
                             Text("Microphone access required")
-                                .foregroundStyle(.orange)
+                                .foregroundStyle(Theme.Colors.warningInk)
                             Text("Needed to record your dictation.")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)

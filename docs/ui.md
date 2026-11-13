@@ -185,7 +185,7 @@ panel, the shortcut-recorder callout and the Notes switcher, and `menuRow` is de
 `menuWidth 276` · `clipboardFilterMenuWidth 200` · `fileSearchFilterMenuWidth 200` ·
 `emojiCategoryMenuWidth 220` · `menuIcon 20` ·
 `emojiGridInset 16` ·
-`settingsSidebar 215` · `settingsRowIcon 20` · `dialogCompactWidth 290` ·
+`settingsSidebar 218` · `settingsRowIcon 20` · `dialogCompactWidth 290` ·
 `dialogWidth 420` · `dialogButtonHeight 34` · `dialogSymbol 28` · `dialogSymbolContainer 52` ·
 `dialogIcon 32` · `hudWidth 200` ·
 `hudHeight 100` · `volumeTrackHeight 6` · `volumeReadout 38`
@@ -212,13 +212,22 @@ segment's label once a segmented control has settled.
 
 `keyCap` sizes the palette's keycap chips; `recorderKeyCap` (both size and radius) is the intentionally-smaller Settings shortcut-recorder chip.
 
+Settings adds `settingsPaneHeroTile 36` (the tile every pane opens on), `settingsInlineControl 24`
+(an alias field, a recorder and an empty cell of the Shortcuts table share it),
+`settingsRowIconTile 24` (the square a row's icon button lights),
+`settingsControlHeight 28` (a square option segment), `shortcutsKindColumn 96`,
+`settingsAppPicker 300×340` and `settingsModelPicker 340×360` for the two picker panels with a list,
+and, in `RaycastPalette.swift`, the sidebar's `settingsSidebarRow 32` and
+`settingsSidebarGroupHeader 30`. None of them scales with Interface Size: Settings never does.
+
 ### Typography (`Theme.Typography`)
 
 System text styles only — **no fixed point sizes in views**. Two named exceptions are explicit:
 `searchField` (20pt Regular) and the optical SF Symbol treatment `menuSymbol` (14pt Medium). Use
 `rowTitle` (`.body`), `sectionHeader` (`.subheadline.medium`),
 `rowTrailing`/`bar`/`menuRow`/`keyCap` etc. as named. `tooltip` is `.subheadline`, the size AppKit's own
-tooltips use.
+tooltips use. `paneHeroTitle` (`.title3` semibold) names a Settings pane in its hero, and `inlineClear`
+(`.subheadline`) is the clear glyph inside an alias field or a recorder.
 
 `InterfaceMetrics.Typography` scales a style by rebuilding its `NSFont` **from that font's own
 descriptor** at the scaled point size. Never reconstruct one as `.system(size:weight:)` from a
@@ -255,6 +264,7 @@ shipped. Light is the same stop with the ink inverted, and is the only column op
 | `noteText`        | white 0.90     | black 0.85     | Notes body text                                  |
 | `dropGuide`       | white 0.35     | black 0.35     | the palette's drop guides while dragging         |
 | `composerSend`    | white 0.92     | black 0.92     | AI Chat's Send disc                              |
+| `recorderKeyCapFill` | white 0.08  | black 0.08     | a key cap inside the shortcut recorder           |
 
 `panelScrim` is the ramp's inverse — it darkens the dark surface and lightens the light one — so it
 is an `adaptive` pair, not a `ramp`; `paletteScrim` and `paletteGlassTint` are too. So is
@@ -276,6 +286,12 @@ drawn at 1pt stays the full accent instead — an inline argument field, the Win
 field's owed edge, `warning` at 0.55.
 `brand`, `primaryAction`, `destructive`, `success` and `dropGuideArmed` are fixed hues and adapt on
 their own.
+`successInk` and `warningInk` are a hue as *text* in Settings, a `SettingsStatusBadge`'s word or a
+warning sentence: the system hue in Dark, and a deepened one in Light, where the system green and
+orange are too pale to read on a white card or on a wash of themselves. They are `adaptive` pairs
+for that reason. A glyph, a dot and a fill keep `success` and `warning`; the badge's wash is the
+plain hue at `Opacity.badgeFill`. `optionSelectionBorder` is the neutral 2pt ring on the chosen
+Window Mode, the emoji grid's own selection stop, so a red ring in Settings only ever means focus.
 Fork: `selection`, `primaryAction`, `composerSend` and `composerSendInk` take Raycast red instead; see [below](#colour-the-raycast-palette-fork).
 `Theme.Colors.Syntax` holds the code-colouring palette AI Chat paints into a fenced block — `keyword`,
 `string`, `number`, `comment`, `type`, `function`, `constant`, `attribute`, `property`, `inserted`
@@ -314,7 +330,10 @@ and `RoomMotion` stay where upstream put them.
 ### Opacity (`Theme.Opacity`)
 
 `disabled 0.45` dims every disabled control: `settingsEnabled`, `ModalActionButtonStyle`, a matte
-`BarButton`, a `PopoverMenuRow` that cannot be chosen and `ChatSwitchStyle`.
+`BarButton`, a `PopoverMenuRow` that cannot be chosen, `ChatSwitchStyle` and a Settings row whose
+item is hidden or off. A `settingsControl` never dims itself: most sit under a `settingsEnabled`
+that already has, and a second dim would multiply. `badgeFill 0.15` is the wash under a
+`SettingsStatusBadge`.
 
 ### Shadow (`Theme.Shadow`)
 
@@ -667,7 +686,7 @@ Retune a role there, never at a call site.
 | `palette` | the launcher's root                                              | AppKit, `paletteGlassTint`, own corner    | `paletteScrim` |
 | `panel`   | Notes, the camera panels, a Quick Action's result                | AppKit, untinted, square under the clip   | `panelScrim`   |
 | `hud`     | the volume box, the message pill                                 | as `panel`                                | `panelScrim`   |
-| `modal`   | dialogs, Settings editor panels                                  | SwiftUI `.regular`                        | `panelScrim`   |
+| `modal`   | dialogs, Settings editor and picker panels                       | SwiftUI `.regular`                        | `panelScrim`   |
 | `menu`    | `PopoverMenu`, the note switcher and heading menu, the recorder callout | SwiftUI `.regular`                 | none           |
 | `chip`    | the dictation capsule, the voice-mode caption                    | SwiftUI `.regular`                        | none           |
 | `control` | the action capsule, the menu circle, Notes' capsules, chat chips | SwiftUI `.regular.interactive()`          | none           |
@@ -925,6 +944,58 @@ apps) with real traffic lights and a lifecycle wholly its own. It does not share
 `Form` with `.formStyle(.grouped)`**, so the cards, headers, row insets and hairlines are all
 system-drawn and a pane reads exactly as macOS System Settings does.
 
+- **The window's ground stays opaque, and that is a recorded decision, not an oversight.** A
+  behind-window material under the whole window was the redesign's first ask for Settings, and it
+  is gated on three things nobody has yet seen render: whether the titlebar's scroll edge effect
+  still softens a pane scrolling under it (over the palette's transparent surface the same effect
+  draws a hard rectangle, or nothing; see the invariants above), whether the system's glass sidebar
+  has anything to lens once the ground under it is a hole to the desktop, and whether the grouped
+  `Form`'s own translucent card fills stay legible over a bright wallpaper in both appearances.
+  None can be answered from code or headers, and each has already failed in its borderless-panel
+  form in this app. The supported route is closed too: SwiftUI's own material window is
+  `containerBackground(_:for: .window)`, a scene facility, and `NSHostingSceneBridgingOptions`
+  bridges only `.title` and `.toolbars` into an AppKit-built window; the `.navigationSplitView`
+  placement that would restyle the columns is unavailable on macOS. Until it is prototyped on
+  screen, the glass in Settings is the system's sidebar and toolbar, the editor and picker panels,
+  and nothing hand-laid under the panes. A prototype takes one `NSVisualEffectView`
+  (`.behindWindow`, `.underWindowBackground`) under the hosting view, a Settings-only scrim token
+  over it, and `accessibilityReduceTransparency` falling back to what ships today.
+- **A pane opens on a hero** (`SettingsPaneHero`): the pane's `SettingsTabTile` at
+  `settingsPaneHeroTile`, the pane's name in `paneHeroTitle` and one line saying what the pane is
+  for. A feature pane's hero *is* its master switch, through `SettingsFeatureToggleLabel`: it
+  reads the pane's name like every other hero, while the switch's own sentence ("Enable File
+  Search") stays its search entry, the target a result lands on and lights, and its accessibility
+  label. A launcher category's line also says that its shortcuts go off with it. A pane with no
+  switch (General, Shortcuts, Permissions, Fallbacks, Emoji, Backup) starts its `Form` with
+  `SettingsPaneHeader`, the same row. About keeps its app-icon hero.
+- **A state is a `SettingsStatusBadge`**, never bare coloured text: a word and its glyph in
+  `successInk` or `warningInk` (or `textSecondary` for a state that is neither good nor bad) on a
+  capsule washed with the same hue at `Opacity.badgeFill`. Permissions is its first user; it is
+  shared so the next pane with a state to show draws the same one.
+- **Permissions is one table.** Four `PermissionRow`s in one `Section`: a tile in the hue of the
+  feature the permission unlocks, name and consequence, the badge, and exactly one button. The
+  button is the accent `Grant Access…` while access is missing or was never asked for, and a plain
+  `Open…` once it is granted; both labels are laid out at the longer one's width, so the badges
+  before them hold one column in every language. Each row keeps its own `SettingsAnchor`, so the
+  four search results land where they did.
+- **A custom control answers hover, press and keyboard focus through `settingsControl(_:)`**,
+  applied to the `Button` rather than to its label. `.segment` is the square option (Interface
+  Size, Emoji Skin Tone), `.rowIcon` a glyph at a row's trailing edge (edit, delete, run),
+  `.glyph` a circle glyph that clears or removes (`xmark.circle.fill` in a filter field, an alias
+  field, a recorder, a scope or pattern row), `.pickerRow` a row in a picker panel. Each steps on
+  `Motion.hover` and `Motion.press`, never by a change of size. `.rowIcon` lights one
+  `settingsRowIconTile` square centred on its glyph, whatever the glyph's own width, and draws it
+  past the glyph's bounds, so a row keeps its height and the hit target grows with the tile; a
+  glyph narrower than the tile less a row's `lg` gap is widened to it, so two tiles side by side
+  never overlap. `.glyph` has no tile, which would double the circle's shape: its ink goes from
+  tertiary to secondary under the pointer and to primary while held. The style draws `focusRing`
+  itself and switches the system's ring off, or a keyboard user would see two. It does not dim a
+  disabled control: that is `settingsEnabled`'s, on the control or above it. An alias field and a
+  `ShortcutRecorder` share `inlineControlEdge`: a `cardStroke` hairline that lifts to `border`
+  under the pointer and becomes a 2pt `focusRing` while the field is being edited or the recorder
+  is recording. Window Mode marks its choice with a neutral `optionSelectionBorder` ring as well
+  as with colour, and washes under the pointer on a corner concentric with its thumbnail.
+
 - **A row is a stock control.** `LabeledContent`, `Toggle` or `Picker`, each with a two-view label —
   the first view is the title, the rest become the secondary subtitle. Never a hand-built `HStack`
   with its own padding.
@@ -952,8 +1023,8 @@ system-drawn and a pane reads exactly as macOS System Settings does.
   the way `SystemPromptEditor` does; dimming an editor that still accepts input is the bug, not the fix.
 - **A group is a `Section`**, with `header:` for its name and `footer:` for the caption that used to
   ride under the last row.
-- **Interface size and Emoji Skin Tone use `settingsOptionSegment`** for the same square selection
-  shape, while keeping their own content sizes.
+- **Interface size and Emoji Skin Tone use `settingsControl(.segment(isSelected:))`** for the same
+  square selection shape, while keeping their own content sizes.
 - **A pane scans as section → setting → control, so its words are rationed.** A subtitle is a short
   phrase, and only where the title leaves out a consequence or a limit ("Shortcuts still work when
   hidden."); a footer carries a caveat, such as privacy or cost, never a restatement of its header. A
@@ -965,8 +1036,9 @@ system-drawn and a pane reads exactly as macOS System Settings does.
   with a hairline, which no `scrollEdgeEffectStyle` or accessory style could soften.
   `.toolbar(removing: .sidebarToggle)` goes *before* `navigationSplitViewColumnWidth`, or the column
   shrinks to AppKit's default thickness.
-- **The pane's own title is not in the pane.** `.navigationTitle` puts it in the titlebar beside the
-  Back/Forward chevrons. `SettingsWindowChrome` installs *before* the content mounts: the bridged toolbar
+- **The pane's title lives in the titlebar.** `.navigationTitle` puts it beside the Back/Forward
+  chevrons, and it is the one that stays in view; a hero repeats it only on a pane with no master
+  switch to name instead, as System Settings does. `SettingsWindowChrome` installs *before* the content mounts: the bridged toolbar
   restores the title flags it mounted over, so a later `titleVisibility = .visible` is undone on the
   first navigation.
 - **Settings and AI Chat are the windows that keep the system titlebar.** `AppWindowController` builds
@@ -982,6 +1054,8 @@ system-drawn and a pane reads exactly as macOS System Settings does.
 - `SettingsComponents.swift` holds only what more than one pane or editor needs: **`SettingsRow`**,
   **`SettingsTabTile`** (the sidebar tile reused by feature switches),
   **`SettingsFeatureToggleLabel`** (the icon, title and subtitle of a feature's master switch),
+  **`SettingsPaneHero`** and **`SettingsPaneHeader`** (what a pane opens on),
+  **`SettingsStatusBadge`**, **`settingsControl(_:)`** and **`inlineControlEdge`** (the states above),
   **`FeatureSwitchSection`** (a feature's master switch plus its launcher-visibility companion),
   **`SettingsFilterField`** (the filter row above a long list), **`launcherVisibilityHelp()`**, and the
   Settings editor header, fields and surface. `ModalActionButtonStyle.swift` keeps every borderless surface's actions on one
@@ -1000,17 +1074,45 @@ system-drawn and a pane reads exactly as macOS System Settings does.
   scrolls at a stated row count instead — Custom Commands caps its arguments at `visibleArgumentRows` —
   so a panel's height stays a property of the editor, not of what has been typed into it. Extension
   editor visuals stay inside `Features/Extensions/`; the shared presenter treats them as opaque content.
+- **A choice hung off a control is a picker panel, never a system popover.**
+  `settingsPickerPanel(isPresented:)` presents through the same `SettingsEditorPresenter`, so it is
+  the same glass panel in the same stack, centred on the window it belongs to; what makes it a
+  picker is that a click on the dimmed window or Escape dismisses it, as either would a menu, that
+  it takes the menu's corner (`Radius.menuPanel`, handed to `settingsEditorPanelSurface` through
+  `settingsPanelRadius`) so its rows sit near concentric at a menu's inset, and that closing it
+  leaves the editor under it focused where it was, where closing an editor moves focus on. The
+  app picker, `SymbolPicker`, a voice route's model list, the Window Layout entry list and an
+  extension's icon picker are the five; the last draws its own surface, as every extension editor
+  does, and so keeps the panel's corner. The app picker's field and rows share one `md` inset, a
+  row's icon starts where the field's text does, and its list fades under the field through
+  `overflowFade(includingTop:)`. **A panel's content is built once**, when it is presented,
+  so a picker that stays open across a choice reads its state from an observable store rather than
+  from values handed in: `ExtensionIconPickerPanel` exists for that reason. A question, by
+  contrast, goes to `AppCore.confirm` and is the dialog every other surface raises: Settings holds
+  no `.alert`, `.confirmationDialog` or `.popover`.
 - **The sidebar is an `NSTableView`, `SettingsSidebarTable`.** `List` can't draw a neutral selection,
   and a table keeps first responder at open, arrow keys, type-select and the soft edge. One pill sits
   behind the rows and slides as a Core Animation spring, so the pane built next can't freeze it; no
-  row's `body` runs on a selection. Groups are parted by a non-floating gap row, since a floating one
-  pins itself under the field and hardens the edge. A local key monitor gives the field's ↓ and Esc
+  row's `body` runs on a selection. Every group but the first is headed by a non-floating group row
+  naming it (`settingsSidebarGroupHeader`, in `Typography.sectionHeader`); the name sits low in its
+  row so the space above it parts the groups, and a floating one would pin itself under the field
+  and harden the edge. The first group has no header, since "General" over the General row would
+  only echo. A local key monitor gives the field's ↓ and Esc
   to the table, because the field lives in its own hosting view; it checks the field is in the sidebar,
   as a pane's filter field shares the window's field editor.
 - **The pane lags the selection by a frame** (`SettingsDetailView.presented`, `.task(id:)`). A build
   blocks the main thread for up to 190 ms, so the selection commits first, and while an arrow is held
   the wait outlasts the key repeat, so only the last pane is built. Permission status calls are
   blocking XPC, so a pane polls them through `pollingPermissions`, off main.
+- **One pane fades into the next** on `Motion.swap`, **when a pointer chose it**: a sidebar
+  click, a clicked search result, Back and Forward. `SettingsDetailView.present` wraps the one
+  assignment that swaps them in `withAnimation`, and the panes sit in a `ZStack` so the two
+  overlap while they cross. A pane chosen by a key swaps at once: the arrows, type-select and
+  arrowing through search results would otherwise stack a fresh fade on every press, and leave
+  two or three translucent panes crossing. The sidebar tells `SettingsNavigationState.select`
+  which it was (`byKey:`), read from the event the table reports the pick inside. Nothing else in
+  the window is inside that transaction: typing in the sidebar's field changes no pane and
+  animates nothing. It runs under `motionScope()`, so Show animations off swaps at once.
 - **The sidebar searches every pane *and* its rows.** `.searchable(placement: .sidebar)` sits above the table and
   swaps it for a flat, ranked result list; each result carries the pane's tile, the row's
   title and a `Pane › Section` breadcrumb, and arrowing through them moves the pane, as System
@@ -1077,6 +1179,8 @@ system-drawn and a pane reads exactly as macOS System Settings does.
   adding space after the last row.
   `SettingsListMetrics` keeps row icons at one size, and `SettingsScopeRow` renders folder and
   application scope icons consistently across pages.
+  Settings › Shortcuts is the same shape, `ShortcutsOverviewTable`: every row is listed, with no
+  paging, under a `ShortcutsColumnHeader` row laid out on the row's own column widths.
   A long list whose rows hold no AppKit control can stay a `LazyVStack`.
 
 ### The window-layout editor
@@ -1089,12 +1193,13 @@ panel would jump out from under the pointer mid-click. The inspector scrolls if 
 
 Every inspector control — text field, dropdown, add button — is one `layoutFieldChrome`: a
 `Radius.barControl` rounded rect at `layoutControlHeight`, `cardFill` on `cardStroke`, accent-stroked
-while focused. A numeric field fills its half of the row rather than sizing to a stated width, so a
+while focused, its edge lifting to `border` under the pointer. A numeric field fills its half of the row rather than sizing to a stated width, so a
 value can never be cropped, and `layoutFieldUnit` keeps "%" and "pt" on one x.
 
-**The entry dropdown is a button and a popover, not a `Menu`**: a menu label stretches an `NSImage`
-out of aspect, which is what made the app icon smear. The rest of the app already picks apps this
-way (`AppPickerPopover`).
+**The entry dropdown is a button and a picker panel, not a `Menu`**: a menu label stretches an
+`NSImage` out of aspect, which is what made the app icon smear. The rest of Settings picks apps
+the same way (`AppPickerPopover`, which keeps upstream's name and is hosted by
+`settingsPickerPanel`).
 
 In the position grid the **glyph floats in a wider cell** carrying the `contentShape`, so a click
 anywhere in the cell lands — a bare stroke is hittable only on the line itself. Each anchor's block
@@ -1119,7 +1224,8 @@ the modifier identity macOS reports after remapping. Ordinary combos have no sid
 narrated by `ShortcutRecorderPopover`, a small **176 × 96** callout above it: caps, up to two centred label lines, an
 `esc` cap in the top-left corner. Its fixed frame shows the prompt (`⌥ A` at half opacity, "Type a
 shortcut"), live held keys with their reported side, a pending second modifier tap, or a conflict
-(rejected caps + owner, orange).
+(rejected caps + owner, orange). The field itself wears `inlineControlEdge`: a 2pt `focusRing`
+for as long as it records, which is its focused state, since it is deliberately not focusable.
 
 - **An ancestor draws it.** The open recorder publishes its bounds via `ShortcutRecorderAnchorKey`;
   `.shortcutRecorderPopoverHost()` sits on `SettingsDetailView` — one host above every pane's

@@ -9,6 +9,8 @@ struct FallbacksSettingsView: View {
 
     var body: some View {
         Form {
+            SettingsPaneHeader(tab: .fallbacks, subtitle: "Where a search goes when nothing matches.")
+
             Section {
                 let fallbacks = fallbacks
                 if fallbacks.isEmpty {

@@ -26481,6 +26481,59 @@
         }
       }
     },
+    "Alias" : {
+      "comment" : "Column header in Settings › Shortcuts (noun)",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alias"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alias"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alias"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "エイリアス"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "별칭"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apelido"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Псевдоним"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "别名"
+          }
+        }
+      }
+    },
     "Alias for %@" : {
       "localizations" : {
         "de" : {
@@ -66910,6 +66963,58 @@
         }
       }
     },
+    "Every hotkey and alias, edited in one place." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alle Kurzbefehle und Aliasse an einem Ort bearbeiten."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Todos los atajos y alias, editados en un solo lugar."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tous les raccourcis et alias, modifiables au même endroit."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "すべてのホットキーとエイリアスを1か所で編集します。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "모든 단축키와 별칭을 한곳에서 편집합니다."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Todos os atalhos e apelidos, editados em um só lugar."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Все сочетания клавиш и псевдонимы в одном месте."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在一处编辑所有快捷键和别名。"
+          }
+        }
+      }
+    },
     "Every past calculation goes. This can't be undone." : {
       "localizations" : {
         "de" : {
@@ -68267,6 +68372,58 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "退出 Redcast 时导出"
+          }
+        }
+      }
+    },
+    "Export your setup, restore it, or bring it over from Raycast." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Exportiere deine Einrichtung, stelle sie wieder her oder übernimm sie aus Raycast."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Exporta tu configuración, restáurala o tráela desde Raycast."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Exportez votre configuration, restaurez-la ou reprenez celle de Raycast."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "設定を書き出すか、復元するか、Raycastから引き継ぎます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "설정을 내보내거나 복원하거나 Raycast에서 가져옵니다."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Exporte sua configuração, restaure-a ou traga-a do Raycast."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Экспортируйте настройки, восстановите их или перенесите из Raycast."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "导出你的设置、恢复设置，或从 Raycast 迁移。"
           }
         }
       }
@@ -77399,6 +77556,59 @@
         }
       }
     },
+    "Hotkey" : {
+      "comment" : "Column header in Settings › Shortcuts (noun)",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kurzbefehl"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Atajo"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Raccourci"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ホットキー"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "단축키"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Atalho"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сочетание клавиш"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "快捷键"
+          }
+        }
+      }
+    },
     "How freely the model words its answers" : {
       "localizations" : {
         "de" : {
@@ -77447,6 +77657,110 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "模型措辞回答的自由程度"
+          }
+        }
+      }
+    },
+    "How the launcher starts, looks and searches." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wie der Launcher startet, aussieht und sucht."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cómo se inicia, se ve y busca el lanzador."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Démarrage, apparence et recherche du lanceur."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ランチャーの起動、外観、検索を設定します。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "런처의 시작, 모양 및 검색 방식을 설정합니다."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Como o iniciador inicia, aparece e busca."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Запуск, внешний вид и поиск лаунчера."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "启动器的启动、外观和搜索方式。"
+          }
+        }
+      }
+    },
+    "How the picker lays out its grid and tints emoji." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Raster und Hautfarbe der Emoji-Auswahl."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La cuadrícula del selector y el tono de piel de los emoji."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Grille du sélecteur et teinte de peau des emoji."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ピッカーのグリッドと絵文字の肌の色を設定します。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "선택기의 격자와 이모티콘 피부색을 설정합니다."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A grade do seletor e o tom de pele dos emojis."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сетка панели выбора и оттенок кожи эмодзи."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "选择器的网格布局和表情符号肤色。"
           }
         }
       }
@@ -85802,6 +86116,59 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "关键词:%@"
+          }
+        }
+      }
+    },
+    "Kind" : {
+      "comment" : "Column header in Settings › Shortcuts: what sort of item a row is",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Art"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tipo"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Type"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "種類"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "종류"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tipo"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Тип"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "种类"
           }
         }
       }
@@ -109774,6 +110141,58 @@
         }
       }
     },
+    "Open any pane of System Settings. Turning this off also disables their shortcuts." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Öffne einen beliebigen Bereich der Systemeinstellungen. Beim Ausschalten werden auch ihre Kurzbefehle deaktiviert."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abre cualquier panel de Ajustes del Sistema. Al desactivarlo también se desactivan sus atajos."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ouvrir n’importe quelle section de Réglages Système. Désactiver cette option désactive aussi leurs raccourcis."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "システム設定の各パネルを開きます。オフにすると、そのショートカットも無効になります。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "시스템 설정의 원하는 패널을 엽니다. 끄면 해당 단축키도 비활성화됩니다."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abra qualquer painel dos Ajustes do Sistema. Ao desativar, os atalhos deles também são desativados."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Открывайте любой раздел Системных настроек. При выключении их сочетания клавиш тоже отключаются."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "打开“系统设置”的任意面板。关闭后，其快捷键也会停用。"
+          }
+        }
+      }
+    },
     "Open captures in" : {
       "localizations" : {
         "de" : {
@@ -110290,6 +110709,58 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "从启动器打开已存储的链接和搜索。"
+          }
+        }
+      }
+    },
+    "Open the apps on your Mac. Turning this off also disables their shortcuts." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Öffne die Apps auf deinem Mac. Beim Ausschalten werden auch ihre Kurzbefehle deaktiviert."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abre las apps de tu Mac. Al desactivarlo también se desactivan sus atajos."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ouvrir les apps de votre Mac. Désactiver cette option désactive aussi leurs raccourcis."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このMac上のアプリケーションを開きます。オフにすると、そのショートカットも無効になります。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mac의 응용 프로그램을 엽니다. 끄면 해당 단축키도 비활성화됩니다."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abra os aplicativos do seu Mac. Ao desativar, os atalhos deles também são desativados."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Открывайте приложения на вашем Mac. При выключении их сочетания клавиш тоже отключаются."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "打开 Mac 上的 App。关闭后，其快捷键也会停用。"
           }
         }
       }
@@ -137749,58 +138220,6 @@
         }
       }
     },
-    "Show More (%lld)" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Mehr anzeigen (%lld)"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Mostrar más (%lld)"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Afficher plus (%lld)"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "さらに表示(%lld)"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "더 보기(%lld)"
-          }
-        },
-        "pt" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Mostrar mais (%lld)"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Показать ещё (%lld)"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "显示更多(%lld)"
-          }
-        }
-      }
-    },
     "Show Notes" : {
       "localizations" : {
         "de" : {
@@ -141024,6 +141443,58 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "让显示器进入睡眠"
+          }
+        }
+      }
+    },
+    "Sleep, lock, restart and more. Turning this off also disables their shortcuts." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ruhezustand, Sperren, Neustart und mehr. Beim Ausschalten werden auch ihre Kurzbefehle deaktiviert."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reposo, bloqueo, reinicio y más. Al desactivarlo también se desactivan sus atajos."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Suspendre l’activité, verrouiller, redémarrer et plus encore. Désactiver cette option désactive aussi leurs raccourcis."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "スリープ、ロック、再起動など。オフにすると、そのショートカットも無効になります。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "잠자기, 잠금, 재시동 등. 끄면 해당 단축키도 비활성화됩니다."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Repouso, bloqueio, reinício e mais. Ao desativar, os atalhos deles também são desativados."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Режим сна, блокировка, перезагрузка и другое. При выключении их сочетания клавиш тоже отключаются."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "睡眠、锁定、重新启动等。关闭后，其快捷键也会停用。"
           }
         }
       }
@@ -151369,6 +151840,58 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "上次构建失败"
+          }
+        }
+      }
+    },
+    "The launcher's built-in commands. Turning this off also disables their shortcuts." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die integrierten Befehle des Launchers. Beim Ausschalten werden auch ihre Kurzbefehle deaktiviert."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Los comandos integrados del lanzador. Al desactivarlo también se desactivan sus atajos."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Les commandes intégrées du lanceur. Désactiver cette option désactive aussi leurs raccourcis."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ランチャーの内蔵コマンドです。オフにすると、そのショートカットも無効になります。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "런처의 기본 제공 명령입니다. 끄면 해당 단축키도 비활성화됩니다."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Os comandos integrados do iniciador. Ao desativar, os atalhos deles também são desativados."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Встроенные команды лаунчера. При выключении их сочетания клавиш тоже отключаются."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "启动器的内置命令。关闭后，其快捷键也会停用。"
           }
         }
       }
@@ -171649,6 +172172,58 @@
         }
       }
     },
+    "What macOS allows, and what each permission unlocks." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Was macOS erlaubt und was jede Berechtigung freischaltet."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lo que macOS permite y lo que desbloquea cada permiso."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ce que macOS autorise, et ce que chaque autorisation débloque."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "macOSが許可している内容と、各許可で使える機能です。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "macOS가 허용하는 항목과 각 권한으로 사용할 수 있는 기능입니다."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O que o macOS permite e o que cada permissão libera."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Что разрешает macOS и что даёт каждое разрешение."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "macOS 允许的内容，以及每项权限所启用的功能。"
+          }
+        }
+      }
+    },
     "What works" : {
       "localizations" : {
         "de" : {
@@ -172120,6 +172695,58 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "如果你设置了 %1$@，填写它指向的位置。留空则读取 %2$@。"
+          }
+        }
+      }
+    },
+    "Where a search goes when nothing matches." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wohin eine Suche geht, wenn nichts passt."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Adónde va una búsqueda cuando nada coincide."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Où envoyer une recherche quand rien ne correspond."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "一致する項目がないときの検索先を設定します。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "일치하는 항목이 없을 때 검색을 보낼 곳을 설정합니다."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Para onde vai uma busca quando nada corresponde."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Куда отправить запрос, если ничего не найдено."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "没有匹配项时，搜索的去向。"
           }
         }
       }

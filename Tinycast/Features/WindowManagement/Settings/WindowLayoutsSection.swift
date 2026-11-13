@@ -88,14 +88,14 @@ private struct WindowLayoutSettingsRow: View {
             } label: {
                 Image(systemName: "play")
             }
-            .buttonStyle(.plain)
+            .settingsControl(.rowIcon)
             .help("Run this layout")
             .accessibilityLabel("Run \(layout.name)")
 
             Button(action: onEdit) {
                 Image(systemName: "pencil")
             }
-            .buttonStyle(.plain)
+            .settingsControl(.rowIcon)
             .help("Edit")
             .accessibilityLabel("Edit \(layout.name)")
 
@@ -104,7 +104,7 @@ private struct WindowLayoutSettingsRow: View {
             } label: {
                 Image(systemName: "plus.square.on.square")
             }
-            .buttonStyle(.plain)
+            .settingsControl(.rowIcon)
             .help("Duplicate")
             .accessibilityLabel("Duplicate \(layout.name)")
 
@@ -112,7 +112,7 @@ private struct WindowLayoutSettingsRow: View {
                 Image(systemName: "trash")
                     .foregroundStyle(Theme.Colors.destructive)
             }
-            .buttonStyle(.plain)
+            .settingsControl(.rowIcon)
             .help("Delete")
             .accessibilityLabel("Delete \(layout.name)")
 

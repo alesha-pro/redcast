@@ -9,7 +9,8 @@ struct CommandsSettingsView: View {
         @Bindable var settings = settings
         return Form {
             LauncherCategorySwitchSection(
-                kind: .command, anchor: .commandsCommands, title: "Enable Commands")
+                kind: .command, anchor: .commandsCommands, title: "Enable Commands",
+                subtitle: "The launcher's built-in commands. Turning this off also disables their shortcuts.")
 
             LauncherItemsSection(
                 kind: .command,
@@ -106,15 +107,15 @@ private struct CustomCommandSettingsRow: View {
             Button(action: onEdit) {
                 Image(systemName: "pencil")
             }
-            .buttonStyle(.plain)
+            .settingsControl(.rowIcon)
             .help("Edit Custom Command")
             .accessibilityLabel("Edit \(command.name)")
 
             Button(action: onDelete) {
                 Image(systemName: "trash")
-                    .foregroundStyle(.red)
+                    .foregroundStyle(Theme.Colors.destructive)
             }
-            .buttonStyle(.plain)
+            .settingsControl(.rowIcon)
             .help("Delete Custom Command")
             .accessibilityLabel("Delete \(command.name)")
 

@@ -931,6 +931,7 @@
 		C7654233F06F99DEF8D9C00F /* AgentResumeCommand.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0370B186A71EC41F989BDA65 /* AgentResumeCommand.swift */; };
 		C785431D09E6A27D49C310C3 /* DictationInsertionContext.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77BF823C2A041D9F5F03A854 /* DictationInsertionContext.swift */; };
 		C7AD32FF23A66CA3B74D279A /* CodexStateReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18260697F38C2D4A9487D70C /* CodexStateReader.swift */; };
+		C80E9D5D99F7BD771225E1C9 /* ShortcutsOverviewTable.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB4272A1AFC6CB64250794DC /* ShortcutsOverviewTable.swift */; };
 		C81F984BA10CCA48D7EB6251 /* ScreenAwarenessSettingsSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6ABE7B2473FC3771BCC6321E /* ScreenAwarenessSettingsSection.swift */; };
 		C890F517AA487C4C6CD25298 /* MathNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = B9E140AF0EE4548DDC4814D7 /* MathNode.swift */; };
 		C8D4DDD0DDA678429552E062 /* MCPOAuth.swift in Sources */ = {isa = PBXBuildFile; fileRef = 222F9EE432F608B5C907E7C2 /* MCPOAuth.swift */; };
@@ -2102,6 +2103,7 @@
 		BA9F3FA9925873D25EAF7D03 /* PalettePanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PalettePanel.swift; sourceTree = "<group>"; };
 		BAF6EED02D9219779FD7E379 /* NoteMention.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoteMention.swift; sourceTree = "<group>"; };
 		BB24A018F4AE313029082D0C /* QuickAIAgents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuickAIAgents.swift; sourceTree = "<group>"; };
+		BB4272A1AFC6CB64250794DC /* ShortcutsOverviewTable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShortcutsOverviewTable.swift; sourceTree = "<group>"; };
 		BB68DFBD782D32B5633EC4A7 /* SettingsFileIssue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsFileIssue.swift; sourceTree = "<group>"; };
 		BBAF199AB4F38BA88BD41A69 /* RaycastHue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RaycastHue.swift; sourceTree = "<group>"; };
 		BBE8149D018E44AD3E13F642 /* SteadySegmentedPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SteadySegmentedPicker.swift; sourceTree = "<group>"; };
@@ -5467,6 +5469,7 @@
 		FA479C54111CC76C86A87211 /* Settings */ = {
 			isa = PBXGroup;
 			children = (
+				BB4272A1AFC6CB64250794DC /* ShortcutsOverviewTable.swift */,
 				5B942F9F9B93A7F3D1108B15 /* ShortcutsSettingsView.swift */,
 			);
 			path = Settings;
@@ -6672,6 +6675,7 @@
 				5FED92BC16B1463EBDE38D77 /* ShortcutRecorder.swift in Sources */,
 				54FC1A629F03AE0F234A01B2 /* ShortcutRecorderPopover.swift in Sources */,
 				C2CE59CED9FF42C7B06228F3 /* ShortcutsInventory.swift in Sources */,
+				C80E9D5D99F7BD771225E1C9 /* ShortcutsOverviewTable.swift in Sources */,
 				AC69CDAA84CF0D188245452E /* ShortcutsSettingsView.swift in Sources */,
 				939F3944AE8D36A8C337D46F /* Signposts.swift in Sources */,
 				B073D5A79D50982E89C30F20 /* Snippet.swift in Sources */,

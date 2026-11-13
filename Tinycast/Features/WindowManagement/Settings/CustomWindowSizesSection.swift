@@ -53,7 +53,7 @@ private struct CustomWindowSizeRow: View {
             Button(action: onEdit) {
                 Image(systemName: "pencil")
             }
-            .buttonStyle(.plain)
+            .settingsControl(.rowIcon)
             .help("Edit")
             .accessibilityLabel("Edit \(size.name)")
 
@@ -61,7 +61,7 @@ private struct CustomWindowSizeRow: View {
                 Image(systemName: "trash")
                     .foregroundStyle(Theme.Colors.destructive)
             }
-            .buttonStyle(.plain)
+            .settingsControl(.rowIcon)
             .help("Delete")
             .accessibilityLabel("Delete \(size.name)")
 

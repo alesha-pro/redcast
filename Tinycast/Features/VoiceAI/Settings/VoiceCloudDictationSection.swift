@@ -48,7 +48,7 @@ struct VoiceCloudDictationSection: View {
                     Text("Sent with each recording to help spell names and terms, and never saved.")
                     if voice.appContext == .screenshot, !ScreenRecordingAccess.isGranted {
                         Text("No screenshot: allow Screen Recording for Tinycast in System Settings.")
-                            .foregroundStyle(.orange)
+                            .foregroundStyle(Theme.Colors.warningInk)
                     }
                 }
                 .onChange(of: voice.appContext) { _, level in

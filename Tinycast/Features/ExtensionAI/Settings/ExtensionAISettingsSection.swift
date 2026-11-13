@@ -15,7 +15,7 @@ struct ExtensionAISettingsSection: View {
             if store.isEnabled {
                 if !core.settings.aiEnabled {
                     Label("Turn on AI in Settings → AI first.", systemImage: "exclamationmark.triangle")
-                        .foregroundStyle(.orange)
+                        .foregroundStyle(Theme.Colors.warningInk)
                 }
                 AIModelSelectionRows(
                     selection: store.model, inheritedTitle: String(localized: "Same as AI Chat"),

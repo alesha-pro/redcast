@@ -27,7 +27,7 @@ struct WindowLayoutEntryPicker: View {
         }
         .buttonStyle(.plain)
         .accessibilityLabel("Add an app to this layout")
-        .popover(isPresented: $showingAppPicker, arrowEdge: .bottom) {
+        .settingsPickerPanel(isPresented: $showingAppPicker) {
             AppPickerPopover { bundleID in
                 showingAppPicker = false
                 guard let display = targetDisplay else { return }
@@ -36,7 +36,7 @@ struct WindowLayoutEntryPicker: View {
         }
     }
 
-    /// A button and a popover, not a `Menu`: a menu label stretches an `NSImage` out of aspect.
+    /// A button and a picker panel, not a `Menu`: a menu label stretches an `NSImage` out of aspect.
     private var entryButton: some View {
         Button {
             showingEntries = true
@@ -61,7 +61,7 @@ struct WindowLayoutEntryPicker: View {
         .buttonStyle(.plain)
         .disabled(draft.entries.isEmpty)
         .accessibilityLabel("Entry being edited")
-        .popover(isPresented: $showingEntries, arrowEdge: .bottom) { entryList }
+        .settingsPickerPanel(isPresented: $showingEntries) { entryList }
     }
 
     private var entryList: some View {
@@ -80,18 +80,22 @@ struct WindowLayoutEntryPicker: View {
             }
             if draft.selectedEntry != nil {
                 Divider()
-                Button("Remove This Entry", role: .destructive) {
+                Button(role: .destructive) {
                     showingEntries = false
                     draft.removeSelectedEntry()
+                } label: {
+                    Text("Remove This Entry")
+                        .foregroundStyle(Theme.Colors.destructive)
+                        .padding(.horizontal, Theme.Spacing.md)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .frame(height: Theme.Size.layoutControlHeight)
                 }
-                .buttonStyle(.plain)
-                .foregroundStyle(.red)
-                .padding(.horizontal, Theme.Spacing.md)
-                .frame(height: Theme.Size.layoutControlHeight, alignment: .leading)
+                .settingsControl(.pickerRow(isSelected: false))
             }
         }
-        .padding(Theme.Spacing.sm)
+        .padding(Theme.Spacing.xl)
         .frame(width: Theme.Size.layoutEntryPopover)
+        .settingsEditorPanelSurface()
     }
 
     private func row(_ entry: WindowLayoutEntry) -> some View {
@@ -114,12 +118,8 @@ struct WindowLayoutEntryPicker: View {
             .padding(.horizontal, Theme.Spacing.md)
             .frame(maxWidth: .infinity, alignment: .leading)
             .frame(height: Theme.Size.layoutControlHeight)
-            .contentShape(Rectangle())
-            .background(
-                RoundedRectangle(cornerRadius: Theme.Radius.menu, style: .continuous)
-                    .fill(isSelected ? Theme.Colors.selection : Color.clear))
         }
-        .buttonStyle(.plain)
+        .settingsControl(.pickerRow(isSelected: isSelected))
     }
 
     private var targetDisplay: WindowLayoutDisplay? {

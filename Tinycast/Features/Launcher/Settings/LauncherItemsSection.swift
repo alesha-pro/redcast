@@ -6,6 +6,8 @@ struct LauncherCategorySwitchSection: View {
     let anchor: SettingsAnchor
     /// Spelled out by the caller, so it is the very string its search entry carries.
     let title: LocalizedStringResource
+    /// Fork: what the pane lists, and that its shortcuts go with it; the hero's one line.
+    let subtitle: LocalizedStringResource
 
     @Environment(VisibilityStore.self) private var visibility
 
@@ -17,9 +19,7 @@ struct LauncherCategorySwitchSection: View {
                     set: { visibility.setKindEnabled($0, for: kind) }
                 )
             ) {
-                SettingsFeatureToggleLabel(
-                    anchor: anchor, title: title,
-                    subtitle: "Disables the feature and its associated shortcuts.")
+                SettingsFeatureToggleLabel(anchor: anchor, title: title, subtitle: subtitle)
             }
         }
     }
@@ -107,7 +107,7 @@ struct LauncherItemRow: View {
     var body: some View {
         SettingsRow(
             title: entry.name,
-            labelOpacity: visibility.isItemVisible(entry) ? 1 : 0.45
+            labelOpacity: visibility.isItemVisible(entry) ? 1 : Theme.Opacity.disabled
         ) {
             // Keyed so a reused cell seeds the new entry's icon on its first frame.
             AppIconView(app: entry)

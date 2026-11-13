@@ -4,7 +4,6 @@ struct WindowManagementSettingsView: View {
     @Environment(AppSettings.self) private var settings
     @Environment(AppCore.self) private var core
     @State private var editor: WindowLayoutEditRequest?
-    @State private var pendingDeletion: WindowLayout?
     @State private var customSizeEdit: CustomWindowSizeEditRequest?
     @State private var chosenPreset: WindowShortcutPreset?
 
@@ -24,7 +23,7 @@ struct WindowManagementSettingsView: View {
                 options
                 WindowLayoutsSection(
                     onEdit: { editor = WindowLayoutEditRequest(layout: $0) },
-                    onDelete: { pendingDeletion = $0 })
+                    onDelete: { layout in Task { await confirmDeletion(of: layout) } })
                 RoomsSection()
                 FeatureCommandsSection(
                     owner: .windowManagement, anchor: .windowManagementLayoutCommands)
@@ -48,15 +47,16 @@ struct WindowManagementSettingsView: View {
         .settingsEditorPanel(item: $customSizeEdit) { request in
             CustomWindowSizeEditorPanel(request: request)
         }
-        .alert(item: $pendingDeletion) { layout in
-            Alert(
-                title: Text("Delete \u{201C}\(layout.name)\u{201D}?"),
-                message: Text("Its global shortcut and launcher references go with it."),
-                primaryButton: .destructive(Text("Delete")) {
-                    core.windowLayoutCoordinator.deleteWindowLayout(id: layout.id)
-                },
-                secondaryButton: .cancel())
-        }
+    }
+
+    private func confirmDeletion(of layout: WindowLayout) async {
+        guard
+            await core.confirm(
+                title: String(localized: "Delete \u{201C}\(layout.name)\u{201D}?"),
+                message: String(localized: "Its global shortcut and launcher references go with it."),
+                symbol: layout.symbol, confirmTitle: String(localized: "Delete"))
+        else { return }
+        core.windowLayoutCoordinator.deleteWindowLayout(id: layout.id)
     }
 
     private var options: some View {

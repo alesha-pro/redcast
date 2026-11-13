@@ -4,12 +4,13 @@ struct GeneralSettingsView: View {
     @Environment(AppCore.self) private var core
     @Environment(AppSettings.self) private var settings
     private var launcherRanking: LauncherRankingStore { core.launcherRanking }
-    @State private var confirmingRankingReset = false
     @State private var inputSources: [InputSourceSwitcher.Option] = []
 
     var body: some View {
         @Bindable var settings = settings
         return Form {
+            SettingsPaneHeader(tab: .general, subtitle: "How the launcher starts, looks and searches.")
+
             Section {
                 SettingsRow(title: "Show Launcher", anchor: .generalGlobalShortcuts) {
                     ShortcutRecorder(action: .togglePalette)
@@ -134,7 +135,7 @@ struct GeneralSettingsView: View {
                 }
                 LabeledContent {
                     Button("Reset…", role: .destructive) {
-                        confirmingRankingReset = true
+                        Task { await resetRanking() }
                     }
                     .disabled(launcherRanking.isEmpty)
                 } label: {
@@ -147,18 +148,6 @@ struct GeneralSettingsView: View {
         }
         .formStyle(.grouped)
         .settingsScrollTarget(.general)
-        .confirmationDialog(
-            "Reset learned launcher ranking?",
-            isPresented: $confirmingRankingReset,
-            titleVisibility: .visible
-        ) {
-            Button("Reset Ranking", role: .destructive) {
-                launcherRanking.resetAll()
-            }
-            Button("Cancel", role: .cancel) {}
-        } message: {
-            Text("Tinycast will relearn your preferred results as you use the launcher.")
-        }
         .onAppear(perform: refreshInputSources)
         .onReceive(
             DistributedNotificationCenter.default().publisher(
@@ -166,6 +155,18 @@ struct GeneralSettingsView: View {
         ) { _ in
             refreshInputSources()
         }
+    }
+
+    private func resetRanking() async {
+        guard
+            await core.confirm(
+                title: String(localized: "Reset learned launcher ranking?"),
+                message: String(
+                    localized: "Tinycast will relearn your preferred results as you use the launcher."),
+                symbol: "arrow.counterclockwise",
+                confirmTitle: String(localized: "Reset Ranking"))
+        else { return }
+        launcherRanking.resetAll()
     }
 
     private func refreshInputSources() {
@@ -205,6 +206,12 @@ private struct WindowModeRow: View {
                         RoundedRectangle(cornerRadius: Theme.Radius.barControl, style: .continuous)
                     )
                     .saturation(selected ? 1 : 0)
+                    // Fork: a ring as well, so the choice never rests on colour alone.
+                    .overlay {
+                        RoundedRectangle(cornerRadius: Theme.Radius.barControl, style: .continuous)
+                            .strokeBorder(
+                                selected ? Theme.Colors.optionSelectionBorder : .clear, lineWidth: 2)
+                    }
                 Text(title)
                     .font(.caption)
                     .fontWeight(selected ? .semibold : .regular)
@@ -226,10 +233,20 @@ private struct WindowModeButtonStyle: ButtonStyle {
     private struct PressedLabel: View {
         let configuration: ButtonStyle.Configuration
         @State private var showsPressed = false
+        @State private var hovered = false
 
         var body: some View {
             configuration.label
                 .opacity(showsPressed ? 0.7 : 1)
+                .background {
+                    RoundedRectangle(
+                        cornerRadius: Theme.Radius.barControl + Theme.Spacing.sm, style: .continuous
+                    )
+                    .fill(hovered ? Theme.Colors.rowHover : .clear)
+                    .padding(-Theme.Spacing.sm)
+                }
+                .onHover { hovered = $0 }
+                .animation(Theme.Motion.hover, value: hovered)
                 .task(id: configuration.isPressed) {
                     if configuration.isPressed {
                         try? await Task.sleep(for: .milliseconds(20))
@@ -273,9 +290,8 @@ private struct InterfaceSizeRow: View {
             Text(verbatim: "Aa")
                 .font(.system(size: Self.glyph[size] ?? 13, weight: .medium))
                 .foregroundStyle(selected ? Color.primary : Color.secondary)
-                .settingsOptionSegment(isSelected: selected)
         }
-        .buttonStyle(.plain)
+        .settingsControl(.segment(isSelected: selected))
         .accessibilityLabel(size.title)
         .accessibilityAddTraits(selected ? [.isSelected] : [])
         .help(size.title)

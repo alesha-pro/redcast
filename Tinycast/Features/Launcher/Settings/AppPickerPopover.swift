@@ -1,6 +1,7 @@
 import AppKit
 import SwiftUI
 
+/// Fork: hosted by `settingsPickerPanel`, which dismisses it; the name is upstream's.
 struct AppPickerPopover: View {
     /// Bundle IDs to leave out — the ones already chosen.
     var excluded: Set<String> = []
@@ -18,37 +19,38 @@ struct AppPickerPopover: View {
     var body: some View {
         VStack(spacing: 0) {
             TextField("Search apps…", text: $query)
-                .textFieldStyle(.roundedBorder)
+                .settingsEditorTextField()
                 .padding(Theme.Spacing.md)
-            Divider()
             ScrollView {
-                LazyVStack(spacing: 1) {
+                LazyVStack(spacing: Theme.Spacing.xxs) {
                     ForEach(candidates) { app in
                         row(title: app.name, icon: app.icon) {
                             if let id = app.bundleID { onSelect(id) }
                         }
                     }
                 }
-                .padding(Theme.Spacing.sm)
+                .padding(.horizontal, Theme.Spacing.md)
+                .padding(.bottom, Theme.Spacing.md)
             }
+            .overflowFade(includingTop: true)
         }
-        .frame(width: 220, height: 240)
+        .frame(width: Theme.Size.settingsAppPicker.width, height: Theme.Size.settingsAppPicker.height)
+        .settingsEditorPanelSurface()
     }
 
     private func row(title: String, icon: NSImage, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             HStack(spacing: Theme.Spacing.lg) {
                 Image(nsImage: icon).resizable()
-                    .frame(width: 20, height: 20)
+                    .frame(width: Theme.Size.settingsRowIcon, height: Theme.Size.settingsRowIcon)
                 Text(title)
                     .lineLimit(1)
                 Spacer(minLength: 0)
             }
-            .padding(.horizontal, Theme.Spacing.md)
+            .padding(.horizontal, Theme.Spacing.lg)
             .padding(.vertical, Theme.Spacing.sm)
-            .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
+        .settingsControl(.pickerRow(isSelected: false))
     }
 }
 

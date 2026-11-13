@@ -27,7 +27,7 @@ struct FeatureCommandRow: View {
     var body: some View {
         SettingsRow(
             title: entry.name,
-            labelOpacity: visibility.isItemVisible(entry) ? 1 : 0.45
+            labelOpacity: visibility.isItemVisible(entry) ? 1 : Theme.Opacity.disabled
         ) {
             AppIconView(app: entry)
                 .frame(width: SettingsListMetrics.iconSize, height: SettingsListMetrics.iconSize)

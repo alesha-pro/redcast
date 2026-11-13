@@ -28,11 +28,11 @@ struct SnippetsSettingsView: View {
                     } label: {
                         HStack(alignment: .center, spacing: Theme.Spacing.lg) {
                             Image(systemName: "exclamationmark.triangle.fill")
-                                .foregroundStyle(.orange)
+                                .foregroundStyle(Theme.Colors.warning)
                                 .frame(width: SettingsListMetrics.iconSize)
                             VStack(alignment: .leading, spacing: Theme.Spacing.xxs) {
                                 Text("Keyword expansion needs Accessibility access")
-                                    .foregroundStyle(.orange)
+                                    .foregroundStyle(Theme.Colors.warningInk)
                                 Text("Launcher search still works.")
                                     .foregroundStyle(.secondary)
                             }
@@ -168,15 +168,15 @@ private struct SnippetSettingsRow: View {
             Button(action: onEdit) {
                 Image(systemName: "pencil")
             }
-            .buttonStyle(.plain)
+            .settingsControl(.rowIcon)
             .help("Edit Snippet")
             .accessibilityLabel("Edit \(record.snippet.name)")
 
             Button(action: onDelete) {
                 Image(systemName: "trash")
-                    .foregroundStyle(.red)
+                    .foregroundStyle(Theme.Colors.destructive)
             }
-            .buttonStyle(.plain)
+            .settingsControl(.rowIcon)
             .help("Delete Snippet")
             .accessibilityLabel("Delete \(record.snippet.name)")
         }

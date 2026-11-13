@@ -9,17 +9,88 @@ struct SettingsFeatureToggleLabel: View {
     let subtitle: LocalizedStringResource
 
     var body: some View {
-        HStack(spacing: Theme.Spacing.lg) {
-            // Fork: the pane's coloured tile while Colourful Icons is on.
-            SettingsTabTile(tab: anchor.tab, size: Theme.Size.settingsRowIcon * 1.5)
+        SettingsPaneHero(tab: anchor.tab, subtitle: subtitle) {
+            // Fork: the pane's name, as on every hero; the switch keeps its sentence for VoiceOver.
+            SettingsRowTitle(anchor, title, shown: anchor.tab.title)
+                .accessibilityLabel(Text(title))
+        }
+    }
+}
+
+/// Fork: what every pane opens on: its tile, a name and one line saying what the pane is for.
+struct SettingsPaneHero<Title: View>: View {
+    let tab: SettingsTab
+    let subtitle: LocalizedStringResource
+    @ViewBuilder var title: Title
+
+    var body: some View {
+        HStack(spacing: Theme.Spacing.xl) {
+            SettingsTabTile(tab: tab, size: Theme.Size.settingsPaneHeroTile)
             VStack(alignment: .leading, spacing: Theme.Spacing.xxs) {
-                SettingsRowTitle(anchor, title)
-                    .fontWeight(.semibold)
+                title.font(Theme.Typography.paneHeroTitle)
                 Text(subtitle)
-                    .font(.subheadline)
+                    .font(.callout)
                     .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
+        .padding(.vertical, Theme.Spacing.xxs)
+    }
+}
+
+/// Fork: the hero of a pane with no master switch, as the first section of its `Form`.
+struct SettingsPaneHeader: View {
+    let tab: SettingsTab
+    let subtitle: LocalizedStringResource
+
+    var body: some View {
+        Section {
+            SettingsPaneHero(tab: tab, subtitle: subtitle) { Text(tab.title) }
+                .accessibilityElement(children: .combine)
+                .accessibilityAddTraits(.isHeader)
+        }
+    }
+}
+
+/// Fork: a state in a word, on a wash of its own hue; the glyph repeats it for a glance.
+struct SettingsStatusBadge: View {
+    enum Tone {
+        case success, warning, neutral
+
+        fileprivate var ink: Color {
+            switch self {
+            case .success: Theme.Colors.successInk
+            case .warning: Theme.Colors.warningInk
+            case .neutral: Theme.Colors.textSecondary
+            }
+        }
+
+        fileprivate var wash: Color {
+            switch self {
+            case .success: Theme.Colors.success.opacity(Theme.Opacity.badgeFill)
+            case .warning: Theme.Colors.warning.opacity(Theme.Opacity.badgeFill)
+            case .neutral: Theme.Colors.controlSurface
+            }
+        }
+    }
+
+    let title: String
+    var symbol: String?
+    let tone: Tone
+
+    var body: some View {
+        HStack(spacing: Theme.Spacing.xs) {
+            if let symbol {
+                Image(systemName: symbol).accessibilityHidden(true)
+            }
+            Text(title).lineLimit(1)
+        }
+        .font(.caption.weight(.medium))
+        .foregroundStyle(tone.ink)
+        .padding(.horizontal, Theme.Spacing.md)
+        .padding(.vertical, Theme.Spacing.xs - 1)
+        .background(tone.wash, in: Capsule())
+        .fixedSize()
     }
 }
 
@@ -106,14 +177,13 @@ struct SettingsScopeRow: View {
             HStack(spacing: Theme.Spacing.sm) {
                 if isMissing {
                     Image(systemName: "exclamationmark.triangle.fill")
-                        .foregroundStyle(.orange)
+                        .foregroundStyle(Theme.Colors.warning)
                         .help("This location no longer exists.")
                 }
                 Button(action: onRemove) {
                     Image(systemName: "xmark.circle.fill")
-                        .foregroundStyle(.tertiary)
                 }
-                .buttonStyle(.plain)
+                .settingsControl(.glyph)
                 .accessibilityLabel("Remove \(scope)")
             }
         } label: {
@@ -142,19 +212,140 @@ struct SettingsScopeRow: View {
     }
 }
 
-extension View {
-    func settingsOptionSegment(isSelected: Bool) -> some View {
-        let shape = RoundedRectangle(cornerRadius: Theme.Radius.barControl, style: .continuous)
-        return
-            self
-            .frame(
-                width: Theme.Size.settingsControlHeight,
-                height: Theme.Size.settingsControlHeight
-            )
-            .contentShape(shape)
-            .background {
-                shape.fill(isSelected ? Theme.Colors.controlSurface : Color.clear)
+/// Fork: the custom Settings controls that answer hover, press and keyboard focus alike.
+enum SettingsControlKind {
+    /// One square option in a row of them: Interface Size, Emoji Skin Tone.
+    case segment(isSelected: Bool)
+    /// A glyph at a row's trailing edge, on one square tile whatever the glyph's own shape.
+    case rowIcon
+    /// A circle glyph that clears or removes: its ink steps up, as a tile would double its shape.
+    case glyph
+    /// A row in a picker panel, or with `isCell` one tile of a picker's grid.
+    case pickerRow(isSelected: Bool, isCell: Bool = false)
+}
+
+private struct SettingsControlStyle: ButtonStyle {
+    let kind: SettingsControlKind
+    let isFocused: Bool
+
+    func makeBody(configuration: Configuration) -> some View {
+        ControlBody(kind: kind, isFocused: isFocused, configuration: configuration)
+    }
+
+    private struct ControlBody: View {
+        let kind: SettingsControlKind
+        let isFocused: Bool
+        let configuration: ButtonStyleConfiguration
+        @State private var hovered = false
+
+        var body: some View {
+            let shape = RoundedRectangle(cornerRadius: radius, style: .continuous)
+            label
+                .frame(width: side, height: side)
+                .frame(minWidth: minimumWidth)
+                .background { shape.fill(fill).frame(minWidth: tile, minHeight: tile) }
+                .overlay {
+                    if isFocused {
+                        shape.strokeBorder(Theme.Colors.focusRing, lineWidth: 2)
+                            .frame(minWidth: tile, minHeight: tile)
+                            .padding(-ringOutset)
+                    }
+                }
+                .contentShape(SettingsControlArea(tile: tile ?? 0))
+                .onHover { hovered = $0 }
+                .animation(Theme.Motion.hover, value: hovered)
+                .animation(Theme.Motion.press, value: configuration.isPressed)
+        }
+
+        @ViewBuilder private var label: some View {
+            if case .glyph = kind {
+                configuration.label.foregroundStyle(glyphInk)
+            } else {
+                configuration.label
             }
+        }
+
+        private var side: CGFloat? {
+            if case .segment = kind { Theme.Size.settingsControlHeight } else { nil }
+        }
+
+        /// A row icon's square, centred on its glyph and drawn past it so the row keeps its height.
+        private var tile: CGFloat? {
+            if case .rowIcon = kind { Theme.Size.settingsRowIconTile } else { nil }
+        }
+
+        /// Wide enough that two tiles across a row's `lg` gap never overlap.
+        private var minimumWidth: CGFloat? {
+            tile.map { $0 - Theme.Spacing.lg }
+        }
+
+        /// A bare glyph's ring stands off it; drawn on its bounds it would repaint the glyph's rim.
+        private var ringOutset: CGFloat {
+            if case .glyph = kind { Theme.Spacing.xxs } else { 0 }
+        }
+
+        private var radius: CGFloat {
+            switch kind {
+            case .segment: Theme.Radius.barControl
+            case .rowIcon: Theme.Radius.menu
+            case .glyph: Theme.Size.settingsRowIconTile / 2
+            case .pickerRow(_, let isCell): isCell ? Theme.Radius.menu : Theme.Radius.menuRow
+            }
+        }
+
+        private var glyphInk: HierarchicalShapeStyle {
+            if configuration.isPressed { return .primary }
+            return hovered ? .secondary : .tertiary
+        }
+
+        private var fill: Color {
+            switch kind {
+            case .segment(let isSelected):
+                if configuration.isPressed { return Theme.Colors.controlHover }
+                if isSelected { return Theme.Colors.controlSurface }
+                return hovered ? Theme.Colors.rowHover : .clear
+            case .rowIcon:
+                if configuration.isPressed { return Theme.Colors.controlPressed }
+                return hovered ? Theme.Colors.controlSurface : .clear
+            case .glyph:
+                return .clear
+            case .pickerRow(let isSelected, _):
+                if configuration.isPressed { return Theme.Colors.controlHover }
+                if isSelected { return Theme.Colors.selection }
+                return hovered ? Theme.Colors.menuHover : .clear
+            }
+        }
+    }
+}
+
+/// A control's own bounds, grown to the tile a row icon draws around its glyph.
+private struct SettingsControlArea: Shape {
+    let tile: CGFloat
+
+    func path(in rect: CGRect) -> Path {
+        Path(
+            rect.insetBy(
+                dx: min(0, (rect.width - tile) / 2), dy: min(0, (rect.height - tile) / 2)))
+    }
+}
+
+/// Holds the focus the style paints: the ring is Tinycast's, so the system's is switched off.
+private struct SettingsControl: ViewModifier {
+    let kind: SettingsControlKind
+    @FocusState private var isFocused: Bool
+
+    func body(content: Content) -> some View {
+        content
+            .buttonStyle(SettingsControlStyle(kind: kind, isFocused: isFocused))
+            .focused($isFocused)
+            .focusEffectDisabled()
+    }
+}
+
+extension View {
+    /// On the `Button`, not its label, so the style can answer its press and its focus.
+    func settingsControl(_ kind: SettingsControlKind) -> some View {
+        modifier(SettingsControl(kind: kind))
     }
 
     /// Dims as well as disables; `.disabled` alone leaves the title at full strength.
@@ -173,6 +364,21 @@ extension View {
     /// `controlsOnGlass: false` draws the glass behind, so a control keeps its accent colour.
     func settingsEditorPanelSurface(controlsOnGlass: Bool = true) -> some View {
         modifier(SettingsEditorPanelSurface(controlsOnGlass: controlsOnGlass))
+    }
+
+    /// An alias field's and a recorder's edge: lifted under the pointer, a focus ring while live.
+    func inlineControlEdge(
+        _ shape: RoundedRectangle, isActive: Bool, isHovered: Bool
+    ) -> some View {
+        overlay {
+            shape.strokeBorder(
+                isActive
+                    ? Theme.Colors.focusRing : isHovered ? Theme.Colors.border : Theme.Colors.cardStroke,
+                lineWidth: isActive ? 2 : Theme.Size.hairline
+            )
+            .allowsHitTesting(false)
+            .animation(Theme.Motion.hover, value: isHovered)
+        }
     }
 
     /// The one place that says hiding a row from the launcher never unbinds its shortcut.
@@ -251,12 +457,18 @@ private struct SettingsEditorTextArea: ViewModifier {
     }
 }
 
+extension EnvironmentValues {
+    /// Fork: set by the presenter: a picker takes the menu's corner, an editor the panel's.
+    @Entry var settingsPanelRadius = Theme.Radius.panel
+}
+
 private struct SettingsEditorPanelSurface: ViewModifier {
     let controlsOnGlass: Bool
+    @Environment(\.settingsPanelRadius) private var radius
 
     @ViewBuilder
     func body(content: Content) -> some View {
-        let shape = RoundedRectangle(cornerRadius: Theme.Radius.panel, style: .continuous)
+        let shape = RoundedRectangle(cornerRadius: radius, style: .continuous)
         // In front of the glass: a glass fill is hit-testable and would hide a handle behind it.
         let draggable = content.background(WindowDragBackground())
         if controlsOnGlass {
@@ -326,9 +538,8 @@ struct SettingsFilterField: View {
                     query = ""
                 } label: {
                     Image(systemName: "xmark.circle.fill")
-                        .foregroundStyle(.tertiary)
                 }
-                .buttonStyle(.plain)
+                .settingsControl(.glyph)
                 .accessibilityLabel("Clear search")
             }
         }
@@ -440,6 +651,7 @@ struct AliasField: View {
     @Environment(AliasStore.self) private var aliases
     @State private var draft = ""
     @State private var focused = false
+    @State private var hovered = false
 
     var body: some View {
         let shape = RoundedRectangle(cornerRadius: Theme.Radius.menu, style: .continuous)
@@ -462,10 +674,9 @@ struct AliasField: View {
             if !draft.isEmpty {
                 Button(action: clear) {
                     Image(systemName: "xmark.circle.fill")
-                        .font(.system(size: 11))
-                        .foregroundStyle(.tertiary)
+                        .font(Theme.Typography.inlineClear)
                 }
-                .buttonStyle(.plain)
+                .settingsControl(.glyph)
                 .accessibilityLabel("Clear alias for \(name)")
             }
         }
@@ -483,10 +694,11 @@ struct AliasField: View {
             draft = aliases.alias(for: new) ?? ""
         }
         .padding(.horizontal, Theme.Spacing.sm + 1)
-        .frame(width: Theme.Size.shortcutRecorder, height: 24)
+        .frame(width: Theme.Size.shortcutRecorder, height: Theme.Size.settingsInlineControl)
         .background(shape.fill(Theme.Colors.cardFill))
-        .overlay(shape.strokeBorder(Theme.Colors.cardStroke, lineWidth: 1))
+        .inlineControlEdge(shape, isActive: focused, isHovered: hovered)
         .clipShape(shape)
+        .onHover { hovered = $0 }
         .accessibilityLabel("Alias for \(name)")
     }
 

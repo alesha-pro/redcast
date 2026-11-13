@@ -35,7 +35,7 @@ struct VoiceAskSettingsSection: View {
             if voice.askEnabled, let issue = coordinator.holdShortcutIssue {
                 Text(issue)
                     .font(.caption)
-                    .foregroundStyle(.orange)
+                    .foregroundStyle(Theme.Colors.warningInk)
             }
             if voice.askEnabled {
                 VoiceModelRow(use: .ask, selection: voice.askModel, choose: coordinator.choose)

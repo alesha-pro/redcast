@@ -170,9 +170,11 @@ moment an app is picked, and a panel sized to its content would resize under the
   The row shows a tab for every connected display *plus* any display an entry names, so a layout
   authored at a desk is still editable on the laptop. The entry picker is deliberately **not** scoped
   by the tab, for the same reason.
-- **The entry dropdown is a button and a popover, not a `Menu`.** A menu label stretches an
-  `NSImage` out of aspect, so the app icon beside it smeared; `AppPickerPopover` is the pattern the
-  rest of the app already uses to name an app.
+- **The entry dropdown is a button and a picker panel, not a `Menu`.** A menu label stretches an
+  `NSImage` out of aspect, so the app icon beside it smeared; `AppPickerPopover` in a
+  `settingsPickerPanel` is how the rest of Settings names an app. The entry list, the app picker
+  and the icon picker are each such a panel over the editor: Escape or a click outside closes the
+  picker and leaves the editor up.
 - **A position cell is wider than its glyph, and carries the `contentShape`.** The glyph is a stroke,
   and a stroke is hittable only on the line. Each anchor's block spans half a pinned axis and all of
   a spanned one, so the nine cells read as nine distinct silhouettes.
