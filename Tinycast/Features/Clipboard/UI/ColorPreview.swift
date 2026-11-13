@@ -11,10 +11,10 @@ struct ColorPreview: View {
 
     var body: some View {
         VStack(spacing: metrics.spacing.lg) {
-            ColorSwatch(color: color, cornerRadius: metrics.radius.card)
+            ColorSwatch(color: color, cornerRadius: metrics.radius.previewStage)
                 .frame(width: Self.swatchSize.width, height: Self.swatchSize.height)
             Text(text)
-                .font(.system(.subheadline, design: .monospaced))
+                .font(metrics.typography.code)
                 .textSelection(.enabled)
                 .lineLimit(1)
                 .truncationMode(.middle)

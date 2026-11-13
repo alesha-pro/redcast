@@ -31,10 +31,6 @@ private struct FileSearchPreviewStage: View {
     @Environment(PaletteState.self) private var palette
     let result: FileSearchResult
 
-    private var card: RoundedRectangle {
-        RoundedRectangle(cornerRadius: metrics.radius.card, style: .continuous)
-    }
-
     var body: some View {
         stage
             .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -50,8 +46,7 @@ private struct FileSearchPreviewStage: View {
                 .foregroundStyle(.tertiary)
         } else if palette.isVisible {
             FileSearchSurface(url: result.url)
-                .clipShape(card)
-                .overlay(card.strokeBorder(Theme.Colors.cardStroke, lineWidth: 1))
+                .previewStage()
         } else {
             Color.clear
         }
@@ -72,12 +67,6 @@ private struct FileSearchInfoSection: View {
         var modified: Date?
     }
 
-    private struct InfoRow: Identifiable {
-        let label: String
-        let value: String
-        var id: String { label }
-    }
-
     /// Relative day plus the time; shared, `DateFormatter` being expensive to build.
     @MainActor private static let stampFormatter: DateFormatter = {
         let formatter = DateFormatter()
@@ -88,54 +77,31 @@ private struct FileSearchInfoSection: View {
     }()
 
     var body: some View {
-        VStack(alignment: .leading, spacing: metrics.spacing.sm) {
-            Text("Information")
-                .font(metrics.typography.sectionHeader)
-                .foregroundStyle(.secondary)
-            VStack(spacing: 0) {
-                let rows = self.rows
-                ForEach(rows) { row in
-                    if row.id != rows.first?.id { Divider() }
-                    HStack(spacing: metrics.spacing.sm) {
-                        Text(row.label).foregroundStyle(.secondary)
-                        Spacer(minLength: metrics.spacing.lg)
-                        Text(row.value).lineLimit(1).truncationMode(.middle)
-                    }
-                    .font(metrics.typography.keyCap)
-                    .padding(.vertical, metrics.spacing.xs)
-                }
-            }
-        }
-        .padding(.vertical, metrics.spacing.md)
-        .task(id: result.id) { await loadDetails() }
+        PreviewInfoSection(rows: rows)
+            .padding(.vertical, metrics.spacing.md)
+            .task(id: result.id) { await loadDetails() }
     }
 
-    private var rows: [InfoRow] {
+    private var rows: [PreviewInfoRow] {
         var rows = [
-            InfoRow(label: String(localized: "Name"), value: result.name),
-            InfoRow(label: String(localized: "Where"), value: result.parentPath),
-            InfoRow(
-                label: String(localized: "Type"),
-                value: details.typeName
+            PreviewInfoRow(String(localized: "Name"), result.name),
+            PreviewInfoRow(String(localized: "Where"), result.parentPath),
+            PreviewInfoRow(
+                String(localized: "Type"),
+                details.typeName
                     ?? (result.isDirectory ? String(localized: "Folder") : String(localized: "File")))
         ]
         if let bytes = details.bytes {
             rows.append(
-                InfoRow(
-                    label: String(localized: "Size"),
-                    value: Int64(bytes).formatted(.byteCount(style: .file))))
+                PreviewInfoRow(String(localized: "Size"), Int64(bytes).formatted(.byteCount(style: .file))))
         }
         if let created = details.created {
             rows.append(
-                InfoRow(
-                    label: String(localized: "Created"),
-                    value: Self.stampFormatter.string(from: created)))
+                PreviewInfoRow(String(localized: "Created"), Self.stampFormatter.string(from: created)))
         }
         if let modified = details.modified {
             rows.append(
-                InfoRow(
-                    label: String(localized: "Modified"),
-                    value: Self.stampFormatter.string(from: modified)))
+                PreviewInfoRow(String(localized: "Modified"), Self.stampFormatter.string(from: modified)))
         }
         return rows
     }

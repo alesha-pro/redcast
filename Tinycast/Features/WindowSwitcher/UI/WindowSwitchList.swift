@@ -74,6 +74,6 @@ private struct WindowSwitchRow: View {
         .accessibilityElement(children: .combine)
         .accessibilityLabel(entry.displayTitle)
         .accessibilityValue(trailing)
-        .accessibilityAddTraits(selected ? .isSelected : [])
+        .accessibilityAddTraits(selected ? [.isButton, .isSelected] : .isButton)
     }
 }

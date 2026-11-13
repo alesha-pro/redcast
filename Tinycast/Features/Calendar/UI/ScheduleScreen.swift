@@ -57,7 +57,7 @@ struct ScheduleScreen: PaletteScreen {
     private func content(selection: Int, scroll: ScrollIntent) -> some View {
         let rows = rows
         if rows.isEmpty {
-            EmptyResults(text: emptyMessage)
+            EmptyResults(text: emptyMessage, systemImage: emptySymbol)
         } else {
             ScheduleList(
                 results: rows,
@@ -80,5 +80,11 @@ struct ScheduleScreen: PaletteScreen {
             return String(localized: "No matching meetings")
         }
         return store.span.nothingScheduledMessage
+    }
+
+    private var emptySymbol: String {
+        if store.access != .granted { return "calendar.badge.exclamationmark" }
+        return vm.query.trimmingCharacters(in: .whitespaces).isEmpty
+            ? CommandID.mySchedule.sfSymbol : "magnifyingglass"
     }
 }

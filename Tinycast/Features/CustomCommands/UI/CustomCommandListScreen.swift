@@ -104,12 +104,14 @@ struct CustomCommandListScreen: PaletteScreen {
     @ViewBuilder
     private func content(selection: Int, scroll: ScrollIntent) -> some View {
         if rows.isEmpty {
+            let hasLibrary = store.commands.contains(where: \.isEnabled)
             EmptyResults(
-                text: store.commands.contains(where: \.isEnabled)
-                    ? String(localized: "No matching commands") : String(localized: "No custom commands yet"))
+                text: hasLibrary
+                    ? String(localized: "No matching commands") : String(localized: "No custom commands yet"),
+                systemImage: hasLibrary ? "magnifyingglass" : "terminal")
         } else {
             let selected = command(at: selection)
-            HStack(spacing: 0) {
+            PaletteSplitView {
                 CustomCommandList(
                     results: rows, selectedID: selected?.id, scroll: scroll,
                     onSelect: { command in
@@ -121,8 +123,7 @@ struct CustomCommandListScreen: PaletteScreen {
                         openActions()
                     }
                 )
-                .frame(width: metrics.size.clipboardListWidth)
-                Rectangle().fill(Theme.Colors.separator).frame(width: Theme.Size.hairline)
+            } preview: {
                 CustomCommandPreview(command: selected)
             }
         }

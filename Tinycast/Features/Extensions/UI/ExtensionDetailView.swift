@@ -16,7 +16,7 @@ struct ExtensionDetailBody: View {
         HStack(spacing: 0) {
             markdownPane(trailing: stacksMetadata ? metadata : nil)
             if !stacksMetadata, let metadata {
-                Rectangle().fill(Theme.Colors.separator).frame(width: 1)
+                Rectangle().fill(Theme.Colors.separator).frame(width: Theme.Size.hairline)
                 metadataPane(metadata)
             }
         }
@@ -74,6 +74,7 @@ struct ExtensionMetadataView: View {
     var inline = false
 
     private static let inlineRowHeight: CGFloat = 28
+    private static let labelIcon: CGFloat = 14
 
     /// Stripes must count only real rows, so separators are dropped here.
     private var visibleChildren: [RenderNode] {
@@ -93,7 +94,7 @@ struct ExtensionMetadataView: View {
                                 ExtensionIconView(
                                     resolved: ExtensionImage.resolve(
                                         icon, assetsPath: assetsPath, isDark: isDark),
-                                    size: 14)
+                                    size: metrics.scaled(Self.labelIcon))
                             }
                             Text(labelText(child))
                                 .font(metrics.typography.rowTitle)
@@ -114,7 +115,7 @@ struct ExtensionMetadataView: View {
                         ExtensionTagListView(tags: child.children, assetsPath: assetsPath)
                     }
                 case "Detail.Metadata.Separator":
-                    Rectangle().fill(Theme.Colors.separator).frame(height: 1)
+                    Rectangle().fill(Theme.Colors.separator).frame(height: Theme.Size.hairline)
                 default:
                     EmptyView()
                 }
@@ -137,13 +138,14 @@ struct ExtensionMetadataView: View {
             HStack(alignment: .firstTextBaseline, spacing: metrics.spacing.xl) {
                 Text(title ?? "")
                     .font(metrics.typography.rowTitle)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Theme.Colors.textSecondary)
                     .lineLimit(1)
                 Spacer(minLength: 0)
                 content()
                     .lineLimit(1)
                     .truncationMode(.middle)
             }
+            .monospacedDigit()
             .padding(.horizontal, metrics.spacing.md)
             .padding(.vertical, metrics.spacing.xs)
             .frame(minHeight: metrics.scaled(Self.inlineRowHeight))
@@ -155,7 +157,7 @@ struct ExtensionMetadataView: View {
                 if let title, !title.isEmpty {
                     Text(title)
                         .font(metrics.typography.sectionHeader)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Theme.Colors.textSecondary)
                 }
                 content()
             }
@@ -303,7 +305,7 @@ struct ExtensionMarkdownView: View {
                     )
                     .hideNativeScrollers()
                 case .rule:
-                    Rectangle().fill(Theme.Colors.separator).frame(height: 1)
+                    Rectangle().fill(Theme.Colors.separator).frame(height: Theme.Size.hairline)
                 case .image(let url):
                     ExtensionMarkdownImage(url: url)
                 case .table(let rows):

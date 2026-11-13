@@ -67,13 +67,6 @@ private struct UninstallRow: View {
     let selected: Bool
     let checked: Bool
     let onToggle: () -> Void
-    @State private var hovered = false
-
-    private var fill: Color {
-        if selected { return Theme.Colors.selection }
-        if hovered { return Theme.Colors.rowHover }
-        return .clear
-    }
 
     private var glyph: String {
         if candidate.isLocked { return "lock.fill" }
@@ -115,11 +108,7 @@ private struct UninstallRow: View {
         .opacity(candidate.isLocked ? 0.55 : 1)
         .padding(.horizontal, metrics.spacing.md)
         .padding(.vertical, metrics.spacing.sm)
-        .background(
-            RoundedRectangle(cornerRadius: metrics.radius.row, style: .continuous)
-                .fill(fill)
-        )
-        .armedHover($hovered)
+        .paletteRow(selected: selected)
     }
 }
 

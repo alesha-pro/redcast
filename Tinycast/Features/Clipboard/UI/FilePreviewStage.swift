@@ -63,7 +63,6 @@ private struct MissingFileStage: View {
 
 /// A still, framed exactly as the image preview is, so every preview kind is one shape.
 private struct FileThumbnailStage: View {
-    @Environment(\.metrics) private var metrics
     let url: URL
     let maxPixel: CGFloat
     let glyph: String
@@ -76,11 +75,7 @@ private struct FileThumbnailStage: View {
                 Image(nsImage: image)
                     .resizable()
                     .scaledToFit()
-                    .clipShape(RoundedRectangle(cornerRadius: metrics.radius.card, style: .continuous))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: metrics.radius.card, style: .continuous)
-                            .strokeBorder(Theme.Colors.cardStroke, lineWidth: 1)
-                    )
+                    .previewStage()
             } else {
                 Image(systemName: glyph)
                     .font(.system(.largeTitle))
@@ -121,7 +116,7 @@ private struct MediaPreviewPlayer: View {
             .background { if isAudio { AudioPoster(url: url) } }
             // A cap, not a height: a fixed one outgrows the pane and pushes the panel taller.
             .frame(maxHeight: metrics.size.clipboardMediaHeight)
-            .clipShape(RoundedRectangle(cornerRadius: metrics.radius.card, style: .continuous))
+            .previewStage()
             .task(id: PlaybackKey(url: url, isVisible: palette.isVisible)) {
                 stop()
                 guard palette.isVisible else { return }

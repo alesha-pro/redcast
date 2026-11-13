@@ -19,7 +19,6 @@ struct AgentSessionsScreen: PaletteScreen {
     let chatHistory: ChatHistoryStore
     let chat: AIChatState
     let vm: PaletteState
-    let metrics: InterfaceMetrics
     let openActions: () -> Void
     let rows: [Row]
     /// The Show section stays reachable when a filter hides every row.
@@ -27,14 +26,13 @@ struct AgentSessionsScreen: PaletteScreen {
 
     init(
         coordinator: AgentSessionsCoordinator, index: AgentSessionIndex, chatHistory: ChatHistoryStore,
-        chat: AIChatState, vm: PaletteState, metrics: InterfaceMetrics, openActions: @escaping () -> Void
+        chat: AIChatState, vm: PaletteState, openActions: @escaping () -> Void
     ) {
         self.coordinator = coordinator
         self.index = index
         self.chatHistory = chatHistory
         self.chat = chat
         self.vm = vm
-        self.metrics = metrics
         self.openActions = openActions
         rows = Self.rows(index: index, query: vm.query)
     }
@@ -132,7 +130,7 @@ struct AgentSessionsScreen: PaletteScreen {
         AnyView(
             AgentSessionsView(
                 rows: rows, selection: selection, scroll: scroll, coordinator: coordinator, index: index,
-                chatHistory: chatHistory, chat: chat, vm: vm, metrics: metrics, openActions: openActions,
+                chatHistory: chatHistory, chat: chat, vm: vm, openActions: openActions,
                 activate: activate(at:)))
     }
 }
@@ -147,7 +145,6 @@ private struct AgentSessionsView: View {
     let chatHistory: ChatHistoryStore
     let chat: AIChatState
     let vm: PaletteState
-    let metrics: InterfaceMetrics
     let openActions: () -> Void
     let activate: (Int) -> Void
 
@@ -170,9 +167,10 @@ private struct AgentSessionsView: View {
             EmptyResults(
                 text: index.sessions.isEmpty
                     ? String(localized: "No agent sessions yet") : String(localized: "No matching sessions"),
-                detail: unreadableLine)
+                detail: unreadableLine,
+                systemImage: index.sessions.isEmpty ? CommandID.searchAgentSessions.sfSymbol : "magnifyingglass")
         } else {
-            HStack(spacing: 0) {
+            PaletteSplitView {
                 AgentSessionsList(
                     rows: rows, selectedID: selected?.id, scroll: scroll, index: index,
                     query: vm.query,
@@ -186,8 +184,7 @@ private struct AgentSessionsView: View {
                         openActions()
                     }
                 )
-                .frame(width: metrics.size.clipboardListWidth)
-                Rectangle().fill(Theme.Colors.separator).frame(width: Theme.Size.hairline)
+            } preview: {
                 preview
             }
         }

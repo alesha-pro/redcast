@@ -1,4 +1,4 @@
-import Foundation
+import SwiftUI
 
 /// Publishes the current minute, and only while something is watching.
 @MainActor
@@ -16,7 +16,8 @@ final class MeetingClock {
     /// Idempotent: `applyClock` calls this per watcher, and a restart would lose alignment.
     func start() {
         guard tick == nil else { return }
-        now = Date()
+        // A catch-up on show lands at once: only a minute boundary may roll the countdown.
+        withTransaction(\.disablesAnimations, true) { now = Date() }
         tick = Task { [weak self] in
             while !Task.isCancelled {
                 // Recomputed every pass, so a sleeping Mac re-aligns on wake instead of drifting.

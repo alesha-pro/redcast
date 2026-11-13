@@ -45,13 +45,6 @@ private struct RoomRowView: View {
     let isCurrent: Bool
     /// Nil for the rows that make or edit a room rather than enter one.
     let layout: RoomLayoutKind?
-    @State private var hovered = false
-
-    private var fill: Color {
-        if selected { return Theme.Colors.selection }
-        if hovered { return Theme.Colors.rowHover }
-        return .clear
-    }
 
     private var title: String {
         switch row {
@@ -110,16 +103,13 @@ private struct RoomRowView: View {
         }
         .padding(.horizontal, metrics.spacing.md)
         .padding(.vertical, metrics.spacing.sm)
-        .background(
-            RoundedRectangle(cornerRadius: metrics.radius.row, style: .continuous).fill(fill)
-        )
-        .armedHover($hovered)
+        .paletteRow(selected: selected)
         .accessibilityElement(children: .combine)
         .accessibilityLabel(title)
         .accessibilityValue(
             layout.map { String(localized: "\(subtitle), \($0.title) layout") } ?? subtitle
         )
-        .accessibilityAddTraits(selected ? .isSelected : [])
+        .accessibilityAddTraits(selected ? [.isButton, .isSelected] : .isButton)
     }
 }
 

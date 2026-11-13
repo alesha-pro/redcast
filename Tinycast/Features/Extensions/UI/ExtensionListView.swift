@@ -23,7 +23,7 @@ struct ExtensionListView: View {
                 HStack(spacing: 0) {
                     rowList
                         .frame(width: metrics.scaled(Self.detailListWidth))
-                    Rectangle().fill(Theme.Colors.separator).frame(width: 1)
+                    Rectangle().fill(Theme.Colors.separator).frame(width: Theme.Size.hairline)
                     detailPane
                 }
             } else if case .grid(let layout) = screen.kind {
@@ -37,24 +37,12 @@ struct ExtensionListView: View {
     @ViewBuilder
     private var emptyState: some View {
         if screen.isLoading {
-            ExtensionEmptyState(text: String(localized: "Loading…"))
+            ExtensionEmptyState(text: String(localized: "Loading…"), isLoading: true)
         } else if let empty = screen.emptyView {
-            VStack(spacing: metrics.spacing.md) {
-                ExtensionIconView(
-                    resolved: ExtensionImage.resolve(
-                        empty.props["icon"], assetsPath: assetsPath, isDark: isDark),
-                    size: 42)
-                Text(empty.string("title") ?? String(localized: "Nothing here"))
-                    .font(metrics.typography.rowTitle)
-                if let description = empty.string("description") {
-                    Text(description)
-                        .font(metrics.typography.rowTrailing)
-                        .foregroundStyle(.secondary)
-                        .multilineTextAlignment(.center)
-                }
-            }
-            .padding(.horizontal, metrics.spacing.xl)
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            ExtensionEmptyState(
+                text: empty.string("title") ?? String(localized: "Nothing here"),
+                description: empty.string("description"),
+                icon: ExtensionImage.resolve(empty.props["icon"], assetsPath: assetsPath, isDark: isDark))
         } else {
             ExtensionEmptyState(text: String(localized: "No results"))
         }
@@ -210,7 +198,9 @@ private struct ExtensionItemRow: View {
         .background(
             RoundedRectangle(cornerRadius: metrics.radius.row, style: .continuous).fill(fill)
         )
-        .armedHover($hovered)
+        .armedHover($hovered, animation: Theme.Motion.hover)
+        .accessibilityElement(children: .combine)
+        .accessibilityAddTraits(selected ? [.isButton, .isSelected] : .isButton)
     }
 }
 
@@ -344,7 +334,9 @@ private struct ExtensionGridCell: View {
             }
         }
         .frame(width: width)
-        .armedHover($hovered)
+        .armedHover($hovered, animation: Theme.Motion.hover)
+        .accessibilityElement(children: .combine)
+        .accessibilityAddTraits(selected ? [.isButton, .isSelected] : .isButton)
     }
 
     private var tile: some View {

@@ -125,7 +125,7 @@ struct ExtensionStoreScreen: PaletteScreen {
         AnyView(
             ExtensionStoreView(
                 rows: rows, selection: selection, scroll: scroll, coordinator: coordinator, index: index,
-                installed: installed, vm: vm, metrics: metrics, openActions: openActions,
+                installed: installed, vm: vm, openActions: openActions,
                 activate: activate(at:)))
     }
 }
@@ -173,7 +173,6 @@ private struct ExtensionStoreView: View {
     let index: ExtensionStoreIndex
     let installed: ExtensionStoreInstallState.Installed
     let vm: PaletteState
-    let metrics: InterfaceMetrics
     let openActions: () -> Void
     let activate: (Int) -> Void
 
@@ -199,7 +198,7 @@ private struct ExtensionStoreView: View {
         if rows.isEmpty {
             emptyState
         } else {
-            HStack(spacing: 0) {
+            PaletteSplitView {
                 ExtensionStoreList(
                     rows: rows, selectedID: selected?.id, installed: installed,
                     installing: index.installing, scroll: scroll,
@@ -213,8 +212,7 @@ private struct ExtensionStoreView: View {
                         openActions()
                     }
                 )
-                .frame(width: metrics.size.clipboardListWidth)
-                Rectangle().fill(Theme.Colors.separator).frame(width: Theme.Size.hairline)
+            } preview: {
                 ExtensionStorePreview(
                     row: selected, leadingTitles: index.leadingTitles(of:), installed: installed,
                     installing: selected?.entry.flatMap { index.installing[$0.name] },

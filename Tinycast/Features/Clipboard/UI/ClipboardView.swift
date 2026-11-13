@@ -134,14 +134,6 @@ private struct ClipboardRow: View {
     /// This row's ⌘-digit, or nil when it is not among the first ten visible pins.
     let slot: Character?
     @Environment(PaletteState.self) private var palette
-    @State private var hovered = false
-
-    /// Selection wins over hover when a row is both; otherwise hover shows its fainter layer.
-    private var fill: Color {
-        if selected { return Theme.Colors.selection }
-        if hovered { return Theme.Colors.rowHover }
-        return .clear
-    }
 
     var body: some View {
         IconCache.observeStyle()
@@ -162,11 +154,9 @@ private struct ClipboardRow: View {
         }
         .padding(.horizontal, metrics.spacing.md)
         .padding(.vertical, metrics.spacing.sm)
-        .background(
-            RoundedRectangle(cornerRadius: metrics.radius.row, style: .continuous)
-                .fill(fill)
-        )
-        .armedHover($hovered)
+        .paletteRow(selected: selected)
+        .accessibilityElement(children: .combine)
+        .accessibilityAddTraits(selected ? [.isButton, .isSelected] : .isButton)
     }
 
     private var previewText: String {
@@ -298,10 +288,11 @@ struct ClipboardPreview: View {
         if let item {
             VStack(alignment: .leading, spacing: 0) {
                 content(for: item)
+                    .padding(.top, metrics.spacing.xl)
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
                 ClipboardInfoSection(item: item, imageURL: store.imageURL(for: item))
             }
-            .padding(.horizontal, 12)
+            .padding(.horizontal, metrics.spacing.xl)
         } else {
             Color.clear
         }
@@ -316,10 +307,12 @@ struct ClipboardPreview: View {
             } else {
                 ScrollView {
                     Text(item.text ?? "")
-                        .font(.system(.subheadline, design: .monospaced))
+                        .font(metrics.typography.code)
                         .textSelection(.enabled)
                         .frame(maxWidth: .infinity, alignment: .topLeading)
+                        .padding(metrics.spacing.lg)
                 }
+                .previewStage(filled: true)
             }
         case .image:
             AsyncThumbnail(
@@ -329,13 +322,7 @@ struct ClipboardPreview: View {
                 image
                     .resizable()
                     .scaledToFit()
-                    .clipShape(
-                        RoundedRectangle(cornerRadius: metrics.radius.card, style: .continuous)
-                    )
-                    .overlay(
-                        RoundedRectangle(cornerRadius: metrics.radius.card, style: .continuous)
-                            .strokeBorder(Theme.Colors.cardStroke, lineWidth: 1)
-                    )
+                    .previewStage()
             } placeholder: {
                 Image(systemName: "photo").font(.system(.largeTitle))
                     .symbolRenderingMode(.hierarchical).foregroundStyle(.tertiary)
@@ -362,13 +349,6 @@ private struct ClipboardInfoSection: View {
         var typeName: String?
     }
 
-    private struct InfoRow: Identifiable {
-        let label: String
-        let value: String
-        var icon: NSImage?
-        var id: String { label }
-    }
-
     /// Relative day plus exact time; shared, `DateFormatter` being expensive to build.
     @MainActor private static let copiedFormatter: DateFormatter = {
         let formatter = DateFormatter()
@@ -379,90 +359,60 @@ private struct ClipboardInfoSection: View {
     }()
 
     var body: some View {
-        VStack(alignment: .leading, spacing: metrics.spacing.sm) {
-            Text("Information")
-                .font(metrics.typography.sectionHeader)
-                .foregroundStyle(.secondary)
-            VStack(spacing: 0) {
-                let rows = self.rows
-                ForEach(rows) { row in
-                    if row.id != rows.first?.id { Divider() }
-                    HStack(spacing: metrics.spacing.sm) {
-                        Text(row.label).foregroundStyle(.secondary)
-                        Spacer(minLength: metrics.spacing.lg)
-                        if let icon = row.icon {
-                            Image(nsImage: icon)
-                                .resizable()
-                                .frame(width: 20, height: 20)
-                        }
-                        Text(row.value).lineLimit(1).truncationMode(.middle)
-                    }
-                    .font(.callout)
-                    .padding(.vertical, metrics.spacing.sm)
-                }
-            }
-        }
-        .padding(.top, metrics.spacing.xl)
-        .task(id: item.id) { await loadDetails() }
+        PreviewInfoSection(rows: rows)
+            .padding(.top, metrics.spacing.xl)
+            .task(id: item.id) { await loadDetails() }
     }
 
-    private var rows: [InfoRow] {
-        var rows: [InfoRow] = []
+    private var rows: [PreviewInfoRow] {
+        var rows: [PreviewInfoRow] = []
         if let source {
-            rows.append(InfoRow(label: String(localized: "Source"), value: source.name, icon: source.icon))
+            rows.append(PreviewInfoRow(String(localized: "Source"), source.name, icon: source.icon))
         }
         switch item.kind {
         case .text:
             let isColor = item.colorValue != nil
             rows.append(
-                InfoRow(
-                    label: String(localized: "Type"),
-                    value: isColor ? String(localized: "Color") : String(localized: "Text")))
+                PreviewInfoRow(
+                    String(localized: "Type"),
+                    isColor ? String(localized: "Color") : String(localized: "Text")))
             // A colour's own notations are the pane above; its length is not what you came for.
             if !isColor {
                 if let characters = details.characters {
-                    rows.append(
-                        InfoRow(label: String(localized: "Characters"), value: characters.formatted()))
+                    rows.append(PreviewInfoRow(String(localized: "Characters"), characters.formatted()))
                 }
                 if let words = details.words {
-                    rows.append(InfoRow(label: String(localized: "Words"), value: words.formatted()))
+                    rows.append(PreviewInfoRow(String(localized: "Words"), words.formatted()))
                 }
             }
         case .image:
-            rows.append(InfoRow(label: String(localized: "Type"), value: String(localized: "Image")))
+            rows.append(PreviewInfoRow(String(localized: "Type"), String(localized: "Image")))
             if let size = details.pixelSize {
                 rows.append(
-                    InfoRow(
-                        label: String(localized: "Dimensions"),
-                        value: "\(Int(size.width))×\(Int(size.height))"))
+                    PreviewInfoRow(
+                        String(localized: "Dimensions"), "\(Int(size.width))×\(Int(size.height))"))
             }
             if let bytes = details.fileBytes {
                 rows.append(
-                    InfoRow(
-                        label: String(localized: "Size"),
-                        value: Int64(bytes).formatted(.byteCount(style: .file))))
+                    PreviewInfoRow(
+                        String(localized: "Size"), Int64(bytes).formatted(.byteCount(style: .file))))
             }
         case .file:
             let path = item.filePath ?? ""
             rows.append(
-                InfoRow(
-                    label: String(localized: "Type"),
-                    value: details.typeName ?? ClipboardFileKind.of(path: path).title))
+                PreviewInfoRow(
+                    String(localized: "Type"), details.typeName ?? ClipboardFileKind.of(path: path).title))
             rows.append(
-                InfoRow(
-                    label: String(localized: "Path"),
-                    value: (path as NSString).abbreviatingWithTildeInPath))
+                PreviewInfoRow(String(localized: "Path"), (path as NSString).abbreviatingWithTildeInPath))
             if let bytes = details.fileBytes {
                 rows.append(
-                    InfoRow(
-                        label: String(localized: "Size"),
-                        value: Int64(bytes).formatted(.byteCount(style: .file))))
+                    PreviewInfoRow(
+                        String(localized: "Size"), Int64(bytes).formatted(.byteCount(style: .file))))
             }
         }
         rows.append(
-            InfoRow(
-                label: String(localized: "Copied"),
-                value: Self.copiedFormatter.string(from: item.createdAt)))
+            PreviewInfoRow(
+                String(localized: "Copied"), Self.copiedFormatter.string(from: item.createdAt)))
         return rows
     }
 

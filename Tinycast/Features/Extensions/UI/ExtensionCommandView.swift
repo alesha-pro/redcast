@@ -20,11 +20,11 @@ struct ExtensionCommandView: View {
     private var content: some View {
         switch state {
         case .launching where screen.root == nil:
-            ExtensionEmptyState(text: String(localized: "Starting…"))
+            ExtensionEmptyState(text: String(localized: "Starting…"), isLoading: true)
         case .failed(let message):
             ExtensionFailureView(message: message)
         case .finished:
-            ExtensionEmptyState(text: String(localized: "Done"))
+            ExtensionEmptyState(text: String(localized: "Done"), systemImage: "checkmark")
         default:
             switch screen.kind {
             case .list, .grid:
@@ -161,11 +161,11 @@ struct ExtensionToastPill: View {
                     startPoint: .leading, endPoint: .trailing),
                 lineWidth: Theme.Size.hairline)
         }
-        .frosted(in: Capsule())
+        .glassEffect(.regular.interactive(), in: Capsule())
         .contentShape(Capsule())
         .onTapGesture(perform: onDismiss)
         .onHover { isHovered in
-            withAnimation(.easeOut(duration: Theme.Duration.hover)) { hovered = isHovered }
+            withAnimation(Theme.Motion.hover) { hovered = isHovered }
         }
         .accessibilityAction(named: "Dismiss", onDismiss)
         .task(id: copiedAt) {

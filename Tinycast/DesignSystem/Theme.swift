@@ -47,6 +47,8 @@ enum Theme {
         /// A pill holding a square thumbnail; a full capsule fights the thumbnail's own corners.
         static let attachmentChip: CGFloat = 8
         static let card: CGFloat = 10
+        /// Fork: the picture, page or text a split screen's preview pane frames, rounder than a row.
+        static let previewStage: CGFloat = 14
         static let codeBlock: CGFloat = 14
         /// Fork: the reader's own message, rounder than a row so a one-line question reads as a pill.
         static let chatBubble: CGFloat = 16
@@ -434,6 +436,8 @@ enum Theme {
         static let panelTitle = Font.headline
         /// Fork: the name a Settings pane opens on, one step above the rows it heads.
         static let paneHeroTitle = Font.title3.weight(.semibold)
+        /// Fork: what a split screen's preview pane is about, one step above its rows.
+        static let previewTitle = Font.title3.weight(.semibold)
         /// Fork: the clear glyph inside an alias field or a recorder, the 11pt it always was.
         static let inlineClear = Font.subheadline
         static let calcResult = Font.title
@@ -637,11 +641,6 @@ enum Theme {
 }
 
 extension View {
-    /// Fork: kept for `Features/Extensions`, which owns its looks; the rest takes a `GlassRole`.
-    func frosted(in shape: some Shape) -> some View {
-        glassEffect(.regular.interactive(), in: shape)
-    }
-
     func shadow(_ style: Theme.Shadow.Style) -> some View {
         shadow(color: style.color, radius: style.radius, y: style.y)
     }

@@ -4,8 +4,6 @@ struct SnippetsScreen: PaletteScreen {
     let store: SnippetsStore
     let core: AppCore
     let vm: PaletteState
-
-    private var metrics: InterfaceMetrics { core.settings.interfaceSize.metrics }
     let openActions: () -> Void
 
     /// A disabled snippet is off everywhere, so the browser lists exactly what the launcher does.
@@ -67,11 +65,17 @@ struct SnippetsScreen: PaletteScreen {
     @ViewBuilder
     private func content(selection: Int, scroll: ScrollIntent) -> some View {
         let rows = rows
-        if rows.isEmpty {
-            EmptyResults(text: emptyMessage)
+        if rows.isEmpty, case .failed(let message) = store.state {
+            EmptyResults(
+                text: String(localized: "Couldn’t load the snippet library"), detail: message,
+                systemImage: "exclamationmark.triangle")
+        } else if rows.isEmpty {
+            EmptyResults(
+                text: emptyMessage, systemImage: hasLibrary ? "magnifyingglass" : "curlybraces",
+                isLoading: store.state == .loading)
         } else {
             let selected = record(at: selection)
-            HStack(spacing: 0) {
+            PaletteSplitView {
                 SnippetsList(
                     results: rows, selectedID: selected?.id, scroll: scroll,
                     onSelect: { record in
@@ -83,8 +87,7 @@ struct SnippetsScreen: PaletteScreen {
                         openActions()
                     }
                 )
-                .frame(width: metrics.size.clipboardListWidth)
-                Rectangle().fill(Theme.Colors.separator).frame(width: Theme.Size.hairline)
+            } preview: {
                 SnippetPreview(record: selected)
             }
         }
@@ -93,9 +96,10 @@ struct SnippetsScreen: PaletteScreen {
     /// An empty library and an over-narrow filter are different problems with different answers.
     private var emptyMessage: String {
         if store.state == .loading { return String(localized: "Loading snippets…") }
-        return store.snippets.contains(where: { $0.snippet.isEnabled })
-            ? String(localized: "No matching snippets") : String(localized: "No snippets yet")
+        return hasLibrary ? String(localized: "No matching snippets") : String(localized: "No snippets yet")
     }
+
+    private var hasLibrary: Bool { store.snippets.contains(where: { $0.snippet.isEnabled }) }
 }
 
 @MainActor

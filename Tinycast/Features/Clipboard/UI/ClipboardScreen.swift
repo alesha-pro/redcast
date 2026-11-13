@@ -4,8 +4,6 @@ struct ClipboardScreen: PaletteScreen {
     let store: ClipboardStore
     let core: AppCore
     let vm: PaletteState
-
-    private var metrics: InterfaceMetrics { core.settings.interfaceSize.metrics }
     let openActions: () -> Void
     let scrollToFollow: () -> Void
 
@@ -136,10 +134,14 @@ struct ClipboardScreen: PaletteScreen {
         // Empty history: centre one message across the panel, not in the list column.
         if rows.isEmpty {
             // Names the filter, so one hiding every entry doesn't read as an empty history.
-            EmptyResults(text: vm.clipboardFilter.emptyMessage)
+            let isEmptyHistory =
+                vm.clipboardFilter == .all && vm.query.trimmingCharacters(in: .whitespaces).isEmpty
+            EmptyResults(
+                text: vm.clipboardFilter.emptyMessage,
+                systemImage: isEmptyHistory ? CommandID.clipboardHistory.sfSymbol : "magnifyingglass")
         } else {
             let selected = item(at: selection)
-            HStack(spacing: 0) {
+            PaletteSplitView {
                 ClipboardList(
                     results: rows,
                     selectedID: selected?.id,
@@ -153,10 +155,7 @@ struct ClipboardScreen: PaletteScreen {
                     onDragPayload: { core.clipboardCoordinator.dragPayload(for: $0) },
                     onDropped: { core.paletteCoordinator.dragLanded() }
                 )
-                .frame(width: metrics.size.clipboardListWidth)
-                Rectangle()
-                    .fill(Theme.Colors.separator)
-                    .frame(width: 1)
+            } preview: {
                 ClipboardPreview(item: selected)
             }
         }

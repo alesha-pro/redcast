@@ -29,6 +29,8 @@ struct MeetingTiming: View {
                 Text(UpcomingWindow.dayLabel(now + 24 * 60 * 60, calendar: .current)).hidden()
                 Text(pill?.text ?? "")
                     .foregroundStyle(pill?.isImminent == true ? .primary : .secondary)
+                    .contentTransition(.numericText(countsDown: true))
+                    .animation(Theme.Motion.swap, value: pill?.text)
             }
             .font(metrics.typography.rowTrailing.weight(.medium))
             .padding(.horizontal, metrics.spacing.sm)

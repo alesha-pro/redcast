@@ -223,7 +223,7 @@ measured against the real machinery inside a panel shaped like the palette's —
 non-activating — a swap paints in about 8 ms, and the first load in a process in about 130 ms. Nothing
 about that is worth debouncing, and the debounce that was there only made a click feel slow. The surface
 is torn down by not being mounted: when the palette is ordered out, or on
-a folder, whose preview is its icon. Information rows are the compact variant; their disk reads happen once per selection
+a folder, whose preview is its icon. Information rows are the shared `PreviewInfoSection`; their disk reads happen once per selection
 in a detached task, never in `body`, and a folder shows no Size — its own record is a few bytes, which is
 never what the row means.
 

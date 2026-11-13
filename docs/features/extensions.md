@@ -406,8 +406,9 @@ screens hold (see [palette.md](palette.md)).
   row-height search field below it filters titles through the launcher's fuzzy matcher, preserves
   section boundaries and centres **No Results** in one row when empty; the scrolling edge beside that
   field has no dissolve. The 8pt resting inset scrolls with the actions, so rows can reach the panel
-  edge without shifting their initial position; hover keeps the shared 10pt menu-row corner. The
-  panel opens and closes from its bottom-right attachment with extension-owned opacity and scale
+  edge without shifting their initial position; hover keeps the shared 10pt menu-row corner, and a
+  held row steps to `controlHover` on `Motion.press` through the panel's own `ButtonStyle`, a copy of
+  the ⌘K menu's that leaves the row's stated height alone. The panel opens and closes from its bottom-right attachment with extension-owned opacity and scale
   timing, briefly reaching 1.003; its attached corner matches the footer button. The first action is
   the primary ↵ action; an action's own `shortcut` is matched against modified keystrokes, with the
   panel open or closed. `ExtensionCommandScreen.menuContent` hands the whole panel to the palette as a

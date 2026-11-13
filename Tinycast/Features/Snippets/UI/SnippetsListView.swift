@@ -52,13 +52,6 @@ private struct SnippetRow: View {
     @Environment(HotKeyManager.self) private var hotKeys
     let record: StoredSnippet
     let selected: Bool
-    @State private var hovered = false
-
-    private var fill: Color {
-        if selected { return Theme.Colors.selection }
-        if hovered { return Theme.Colors.rowHover }
-        return .clear
-    }
 
     var body: some View {
         IconCache.observeStyle()
@@ -88,14 +81,14 @@ private struct SnippetRow: View {
         }
         .padding(.horizontal, metrics.spacing.md)
         .padding(.vertical, metrics.spacing.sm)
-        .background(
-            RoundedRectangle(cornerRadius: metrics.radius.row, style: .continuous).fill(fill)
-        )
-        .armedHover($hovered)
+        .paletteRow(selected: selected)
+        .accessibilityElement(children: .combine)
+        .accessibilityAddTraits(selected ? [.isButton, .isSelected] : .isButton)
     }
 }
 
 struct SnippetPreview: View {
+    @Environment(\.metrics) private var metrics
     let record: StoredSnippet?
 
     var body: some View {
@@ -104,14 +97,17 @@ struct SnippetPreview: View {
                 // The raw template: expanding here would read the clipboard on every arrow key.
                 ScrollView {
                     Text(record.snippet.text)
-                        .font(.system(.subheadline, design: .monospaced))
+                        .font(metrics.typography.code)
                         .textSelection(.enabled)
                         .frame(maxWidth: .infinity, alignment: .topLeading)
+                        .padding(metrics.spacing.lg)
                 }
+                .previewStage(filled: true)
+                .padding(.top, metrics.spacing.xl)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
                 SnippetInfoSection(record: record)
             }
-            .padding(.horizontal, 12)
+            .padding(.horizontal, metrics.spacing.xl)
         } else {
             Color.clear
         }
@@ -124,58 +120,22 @@ private struct SnippetInfoSection: View {
     @Environment(HotKeyManager.self) private var hotKeys
     let record: StoredSnippet
 
-    private struct InfoRow: Identifiable {
-        let label: String
-        let value: Text
-        var id: String { label }
-
-        init(label: String, value: String) {
-            self.label = label
-            self.value = Text(value)
-        }
-
-        init(label: String, keycaps: [String]) {
-            self.label = label
-            value = KeyCapChip.inlineText(keycaps)
-        }
-    }
-
-    private var rows: [InfoRow] {
-        var rows = [InfoRow(label: String(localized: "Name"), value: record.snippet.name)]
+    private var rows: [PreviewInfoRow] {
+        var rows = [PreviewInfoRow(String(localized: "Name"), record.snippet.name)]
         if let keyword = record.snippet.keyword, !keyword.isEmpty {
-            rows.append(InfoRow(label: String(localized: "Keyword"), value: keyword))
+            rows.append(PreviewInfoRow(String(localized: "Keyword"), keyword))
         }
         if let keycaps = hotKeys.binding(for: .snippet(id: record.id))?.keycaps {
-            rows.append(InfoRow(label: String(localized: "Shortcut"), keycaps: keycaps))
+            rows.append(PreviewInfoRow(String(localized: "Shortcut"), keycaps: keycaps))
         }
+        rows.append(PreviewInfoRow(String(localized: "File"), record.fileURL.lastPathComponent))
         rows.append(
-            InfoRow(label: String(localized: "File"), value: record.fileURL.lastPathComponent))
-        rows.append(
-            InfoRow(
-                label: String(localized: "Characters"),
-                value: record.snippet.text.count.formatted()))
+            PreviewInfoRow(String(localized: "Characters"), record.snippet.text.count.formatted()))
         return rows
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: metrics.spacing.sm) {
-            Text("Information")
-                .font(metrics.typography.sectionHeader)
-                .foregroundStyle(.secondary)
-            VStack(spacing: 0) {
-                let rows = self.rows
-                ForEach(rows) { row in
-                    if row.id != rows.first?.id { Divider() }
-                    HStack(spacing: metrics.spacing.sm) {
-                        Text(row.label).foregroundStyle(.secondary)
-                        Spacer(minLength: metrics.spacing.lg)
-                        row.value.lineLimit(1).truncationMode(.middle)
-                    }
-                    .font(metrics.typography.keyCap)
-                    .padding(.vertical, metrics.spacing.xs)
-                }
-            }
-        }
-        .padding(.vertical, metrics.spacing.md)
+        PreviewInfoSection(rows: rows)
+            .padding(.vertical, metrics.spacing.md)
     }
 }

@@ -46,7 +46,11 @@ struct DictionaryScreen: PaletteScreen {
     }
 
     func body(selection: Int, scroll: ScrollIntent) -> AnyView {
-        if term.isEmpty { return AnyView(EmptyResults(text: String(localized: "Type a word to define"))) }
+        if term.isEmpty {
+            return AnyView(
+                EmptyResults(
+                    text: String(localized: "Type a word to define"), systemImage: CommandID.define.sfSymbol))
+        }
         if let entry { return AnyView(DictionaryEntryView(entry: entry)) }
         if session.lookup?.term == term {
             return AnyView(EmptyResults(text: String(localized: "No definition found")))

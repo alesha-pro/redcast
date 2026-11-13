@@ -56,7 +56,7 @@ struct UninstallScreen: PaletteScreen {
             // Blank, not copy: discovery is milliseconds, so anything here would only flash.
             Color.clear
         case .failed(let message):
-            EmptyResults(text: message)
+            EmptyResults(text: message, systemImage: "exclamationmark.triangle")
         case .ready:
             let rows = rows
             if rows.isEmpty {

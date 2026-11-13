@@ -42,7 +42,7 @@ These are the things that quietly break the look if changed. Preserve them unles
 - **No grays, no opaque fills on the surface.** Reach for `Theme.Colors.*` instead of `.gray`, `NSColor.windowBackground`, etc. There are three opaque fills. `opaqueSurface` is what `glassSurface` swaps in for the glass under Reduce Transparency, `tooltipSurface` is the `Tooltip` tile, since a hover label has to hide the row it overlaps, and `elevatedSurface` is AI Chat's card over its opaque page (see "AI Chat window").
 - **Three things stay fixed in both appearances, on purpose.** The `EdgeDissolve`/`OverflowFade` gradients are **mask luminance, not color** — inverting them breaks the dissolve everywhere. `ExtensionTintColors` and a tinted `IconCache` tile keep white ink, because a saturated tile carries its own contrast. And `IconCache` cannot use a dynamic `NSColor` at all: it rasterizes off-main, so the surface is carried explicitly and is part of the cache key.
 - **An icon is drawn for a surface *and* a system icon style, and both move under you.** macOS restyles the icons `NSWorkspace` hands out when System Settings → Appearance → **Icon & widget style** changes, so `IconStyleMonitor` and Redcast's own appearance both call `IconCache.invalidateStyled()`. **The monitor may not invalidate on the notification itself.** AppKit posts `NSWorkspaceIconAppearanceConfigurationDidChange` before IconServices has swapped what `NSWorkspace` vends — measured at 25–120ms behind, jittering run to run — and the images it hands back are live objects macOS restyles in place, so flattening one on the signal freezes the *outgoing* style into a bitmap nothing ever invalidates again. `IconStyleMonitor` therefore polls `IconCache.styleFingerprint()` until the pixels actually move, and only then invalidates. Waiting also sidesteps the cost: re-flattening every icon the instant a restyle begins forces a cold IconServices regeneration, measured at 160× the settled draw cost. That drops the cached bitmaps, bumps every cache key so an in-flight decode cannot repopulate a stale one, and moves `IconCache.style.generation`. **Any view that draws an icon must key its fetch on that generation** — wrap the view's own key in `IconRequest`, or call `IconCache.observeStyle()` where the icon is resolved synchronously in a `body`. It is reached through `IconCache` rather than injected precisely because icons are drawn in menus, popovers and every list, where a missed injection would be a silent staleness bug.
-- **No hard dividers between the list and the bars.** The header and bottom bar are `safeAreaInset` overlays with no background; separation comes from `edgeDissolve()`, nothing else. (One deliberate exception: the vertical hairline between a list and its preview pane, as the clipboard and file search screens draw.)
+- **No hard dividers between the list and the bars.** The header and bottom bar are `safeAreaInset` overlays with no background; separation comes from `edgeDissolve()`, nothing else. (One deliberate exception: the vertical hairline between a list and its preview pane, which `PaletteSplitView` draws.)
 - **The panel corner is clipped once, at the root.** `RootPaletteView.body` ends with `.glassSurface(.palette, in: RoundedRectangle(26, .continuous))`, which lays `paletteScrim` over a tinted `GlassEffectView` and clips last. The scrim goes _over_ the glass, and the dialog-dimming overlay sits before the call so the same clip cuts it. The glass also rounds itself to that radius, so its edge light follows the corner — but **the clip stays**: the scrim, the dimming and the list are sibling layers the glass's own corner cannot cut. `glassSurface` reads the radius off the shape it clips with, so the two cannot disagree; AppKit's glass corner is continuous, as the clip is.
 - **Don't use the native scroll edge effect.** Inside a transparent panel it renders a hard-bounded rectangle. Use `edgeDissolve()`, or a gradient `mask` where a surface owns its own fade — `scrollEdgeEffectStyle` draws a *material* where a scroll view meets a safe area, so over a panel that already has `panelScrim` + `GlassEffectView` it composites to nothing. Tried and rejected on `QuickActionResultView`, with and without `safeAreaBar`. This is a rule about the borderless panels; the Settings window is a titled `NSWindow` whose system titlebar draws the band itself (see "Settings").
 - **Test over a light desktop.** Transparency and corner masking bugs only show over bright wallpaper. Dark wallpaper hides them.
@@ -119,7 +119,7 @@ groups. See "Section headers" below.
 
 ### Radius (`Theme.Radius`)
 
-`panel 26` · `row 10` · `formField 12` · `card 10` · `codeBlock 14` · `chatBubble 16` · `dialog 20` · `dialogSymbol 16` · `menuPanel 16` · `menu 6` · `menuRow 10` · `barControl 8` · `thumbnail 6` · `keyCap 6` · `recorderKeyCap 4`
+`panel 26` · `row 10` · `formField 12` · `card 10` · `previewStage 14` · `codeBlock 14` · `chatBubble 16` · `dialog 20` · `dialogSymbol 16` · `menuPanel 16` · `menu 6` · `menuRow 10` · `barControl 8` · `thumbnail 6` · `keyCap 6` · `recorderKeyCap 4`
 
 `formField` dresses the native Snippet, Quicklink, Event and Custom Command editor fields; it does not change settings controls
 or extension forms.
@@ -226,8 +226,9 @@ System text styles only — **no fixed point sizes in views**. Two named excepti
 `searchField` (20pt Regular) and the optical SF Symbol treatment `menuSymbol` (14pt Medium). Use
 `rowTitle` (`.body`), `sectionHeader` (`.subheadline.medium`),
 `rowTrailing`/`bar`/`menuRow`/`keyCap` etc. as named. `tooltip` is `.subheadline`, the size AppKit's own
-tooltips use. `paneHeroTitle` (`.title3` semibold) names a Settings pane in its hero, and `inlineClear`
-(`.subheadline`) is the clear glyph inside an alias field or a recorder.
+tooltips use. `paneHeroTitle` (`.title3` semibold) names a Settings pane in its hero, `previewTitle`
+(the same face) names what a split screen's preview is about, and `inlineClear` (`.subheadline`) is
+the clear glyph inside an alias field or a recorder.
 
 `InterfaceMetrics.Typography` scales a style by rebuilding its `NSFont` **from that font's own
 descriptor** at the scaled point size. Never reconstruct one as `.system(size:weight:)` from a
@@ -672,7 +673,8 @@ All lists share one row grammar so launcher and clipboard look identical:
 - `HStack(spacing: lg)`: leading 26pt icon/thumbnail, title (`.body`, `lineLimit(1)`), optional trailing keycaps/kind label, `Spacer`. Insets: `.horizontal md`, `.vertical sm`.
 - **The palette result slot is always `Theme.Size.resultRowIcon`, whatever fills it.** A glyph smaller than an app icon — the uninstall list's 16pt checkbox — is centred _inside_ that 26pt slot rather than sizing the slot to itself. Every list then starts its title at the same x, so switching palette modes doesn't jog the column sideways. The slot doubles as the hit target. Settings and compact favorites keep the existing 24pt `rowIcon`.
 - Clipboard thumbnails use `IconCache.appIconExtent` within that slot; synthetic row symbols use the same app-icon-shaped tile as the launcher.
-- Background is a `RoundedRectangle(row, .continuous)` filled **selection → hover → clear**, in that precedence. **`.paletteRow(selected:)` (`Palette/PaletteRow.swift`) owns that fill, the shape, the armed hover and its ease**; it goes after the row's own padding. The launcher's `AppRow`, `FileSearchRow` and the window switcher's row use it. The other lists still restate the `fill` computed property and `armedHover` by hand, copy-identical, until each adopts the modifier: keep them in sync, and expect their hover to snap where the launcher's eases. The launcher's lead cards build on the same modifier: `.leadCard(selected:)` (`Features/Launcher/UI/LeadCard.swift`) lays `cardFill` and a `cardStroke` hairline over `paletteRow(selected:cornerRadius:)`, so a card can't answer a selection differently from its siblings and still reads as a card over the palette's thinner scrim. A row or a card takes no pressed fill: its click is a tap gesture or an AppKit press catcher that also starts a drag, not a button a style could ask.
+- Background is a `RoundedRectangle(row, .continuous)` filled **selection → hover → clear**, in that precedence. **`.paletteRow(selected:)` (`Palette/PaletteRow.swift`) owns that fill, the shape, the armed hover and its ease**; it goes after the row's own padding. Every palette list row uses it, so no list restates a `fill` property or its own `armedHover`. The exceptions are deliberate: the emoji grid keeps its own cell halo, and `Features/Extensions/` keeps its own copy of the fill, eased through the same `armedHover(_:animation:)`, so a launcher restyle cannot reach an extension. The launcher's lead cards build on the same modifier: `.leadCard(selected:)` (`Features/Launcher/UI/LeadCard.swift`) lays `cardFill` and a `cardStroke` hairline over `paletteRow(selected:cornerRadius:)`, so a card can't answer a selection differently from its siblings and still reads as a card over the palette's thinner scrim. A row or a card takes no pressed fill: its click is a tap gesture or an AppKit press catcher that also starts a drag, not a button a style could ask.
+- **A row says what it is to VoiceOver.** It combines its children into one element and carries `.isButton`, plus `.isSelected` while selected; an extension's rows and grid cells restate the same in `Features/Extensions/`. The uninstall row is the exception: its checkbox is a control of its own, so it is not merged.
 - **Hover state lives on the row**, not the list, so a mouse sweep repaints only the rows entering/leaving (a list-level hover rebuilds every row per move — don't do that).
 - **Hover is armed by pointer movement, not by the pointer's position** (`armedHover`, `Palette/HoverArming.swift`). A palette shown under a resting pointer lights nothing, and keys or a scroll drop the highlight until the pointer moves clear of the slop radius around where it stood — a row must never light up because it *slid under* a still pointer. Two measured facts the rule rests on: SwiftUI fires hover phases for rows arriving under a stationary pointer, but **not** for a lit row that merely shifts, so `PaletteState.hoverDisarmToken` clears what is already lit; and a wheel gesture ends with a mouse-moved event carrying no displacement, so *event type is not evidence the pointer moved*. `Tests/palette-navigation-test.swift` pins both halves.
 - **Scroll moves only on keyboard nav/reset**, driven by a `ScrollIntent` (`DesignSystem/Scrolling/ScrollIntent.swift`) — mouse selection targets a visible row and never yanks scroll. `.top` scrolls to the origin anchor that `scrollOriginAnchor()` installs — a zero-height overlay applied to the scrolled content _after_ its padding, so it marks offset 0 without joining the layout and the restored origin is exact (targeting the first row instead leaves the top padding hidden under the header); it is restated when the header's inset settles after mount, which moves the resting offset. A `.follow` that lands on flat index 0 restores the origin instead, so that row's section header comes back into view. A reset lands on the screen's `landingSelection` through `RootPaletteView.land()`: row 0 takes `.top`; a later row takes `.center`, which brings a row the lazy stack has not built in by id, centres it once its frame is measured and then lets go — restated, like `.top`, when the inset settles. One intent state serves every mode — they never coexist.
@@ -695,6 +697,26 @@ Spacing lives in `Theme.Spacing`: `sectionHeaderBottom` (header → first row) a
 padding). Each list passes `isFirst: row.id == <rows>.first?.id` so only the very first row skips the
 leading gap. Headers are non-selectable display rows, so selection (keyed by id) is unaffected.
 
+### List beside a preview
+
+Source: `Palette/PaletteSplitView.swift`, `Palette/PreviewInfoSection.swift`.
+
+- **One split.** Clipboard, File Search, Snippets, Quicklinks, Extension Store, Custom Commands,
+  Dictation History and Agent Sessions put their list beside the selected row's preview through
+  `PaletteSplitView`: the list at `clipboardListWidth`, one `separator` hairline, the preview in the
+  rest. It reads `metrics`, so a screen passes no width. AI Chat History keeps upstream's hand-written
+  copy, and an extension's detail split stays inside `Features/Extensions/`.
+- **A stage, not a background.** A preview keeps an `xl` gutter, and its picture, page or text sits in
+  `previewStage(filled:)`: `Radius.previewStage` (14) under a `cardStroke` hairline, plus `cardFill` for
+  text, so monospaced text reads on a page rather than straight on the scrim. `Radius.card` stays 10
+  for every other card. The stage is a flat fill: glass there would stack on the palette's.
+- **One Information block.** Every preview states its facts through `PreviewInfoSection`: the header
+  in `sectionHeader` and `textSecondary`, then `rowTrailing` lines with the label in `textSecondary`,
+  digits monospaced, and `separator` hairlines between them rather than the system `Divider`. A line
+  can carry an app icon at `menuIcon`, key caps through `KeyCapChip.inlineText`, or a `destination`
+  that makes its value a link.
+- **No crossfade on a new selection.** A held arrow would queue one fade per step and leave ghosts.
+
 ### Empty, loading and failed
 
 Source: `Palette/EmptyResults.swift`.
@@ -714,9 +736,14 @@ so a running count does not shiver. It reads `metrics`, so it scales with Interf
   prints its own. The caps are the caller's promise: pass only a chord the screen handles. The
   Extension Store's unreachable state is the reference.
 - It appears on the keystroke path, so it takes no entrance animation.
+- **An empty library names the feature, a miss names the search.** A screen that can tell "nothing
+  saved yet" from "nothing matches" passes the feature's own glyph for the first (Snippets'
+  `curlybraces`, Quicklinks' `link`, Calculator History's command glyph) and keeps the magnifying glass
+  for the second. A prompt to type (Dictionary) takes the feature's glyph too.
 - **`Features/Extensions/` does not use it.** An extension's "Starting…", "Loading…", "Done" and
-  empty states go through its own `ExtensionEmptyState`, a copy of the look this view had before, so
-  restyling `EmptyResults` cannot move an extension's surface. For the same reason
+  empty states, its own `List.EmptyView` among them, go through `ExtensionEmptyState`, a copy of this
+  view's tile, spinner and title tiers written inside the feature; an `EmptyView`'s icon takes the
+  tile's place. Restyling `EmptyResults` therefore cannot move an extension's surface. For the same reason
   `ExtensionSearchAccessoryButton` draws its own hover chrome rather than a `.rounded` `BarButton`.
 
 ---
@@ -768,8 +795,10 @@ Retune a role there, never at a call site.
   its glass for the opaque `opaqueSurface` and draws a hairline `border` rim inside the shape, the
   only rim `glassSurface` ever draws. The scrim stays on top, so each surface keeps its own
   density. `menu`, `chip` and `control` are bare system glass and keep the system's own treatment.
-- **Not migrated.** `Features/Extensions/` owns its looks and still calls `Theme.frosted(in:)` and
-  `glassEffect` directly; `frosted` is kept for it alone.
+- **Not migrated.** `Features/Extensions/` owns its looks and calls `glassEffect` directly: its toast
+  takes interactive glass, its ⌘K panel and pickers the regular glass `menu` would, and its Settings
+  editor restates the `modal` recipe with its own Reduce Transparency fallback. Nothing outside the
+  feature calls these copies.
 - **Over an opaque page, no glass.** AI Chat's composer, find counter, Jump to Latest and its
   overlay cards were glass over a solid page with nothing to lens, so they are now
   `elevatedSurface(in:shadow:)` cards (see "AI Chat window"), not a role: a role is glass.

@@ -46,12 +46,6 @@ struct CustomCommandList: View {
         @Environment(HotKeyManager.self) private var hotKeys
         let command: CustomCommand
         let selected: Bool
-        @State private var hovered = false
-
-        private var fill: Color {
-            if selected { return Theme.Colors.selection }
-            return hovered ? Theme.Colors.rowHover : .clear
-        }
 
         var body: some View {
             IconCache.observeStyle()
@@ -78,8 +72,9 @@ struct CustomCommandList: View {
             }
             .padding(.horizontal, metrics.spacing.md)
             .padding(.vertical, metrics.spacing.sm)
-            .background(RoundedRectangle(cornerRadius: metrics.radius.row, style: .continuous).fill(fill))
-            .armedHover($hovered)
+            .paletteRow(selected: selected)
+            .accessibilityElement(children: .combine)
+            .accessibilityAddTraits(selected ? [.isButton, .isSelected] : .isButton)
         }
     }
 }

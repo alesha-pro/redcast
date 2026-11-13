@@ -88,14 +88,6 @@ private struct QuicklinkRow: View {
     let quicklink: Quicklink
     let selected: Bool
     @Environment(HotKeyManager.self) private var hotKeys
-    @State private var hovered = false
-
-    /// Selection wins over hover when a row is both; otherwise hover shows its fainter layer.
-    private var fill: Color {
-        if selected { return Theme.Colors.selection }
-        if hovered { return Theme.Colors.rowHover }
-        return .clear
-    }
 
     var body: some View {
         IconCache.observeStyle()
@@ -132,11 +124,9 @@ private struct QuicklinkRow: View {
         }
         .padding(.horizontal, metrics.spacing.md)
         .padding(.vertical, metrics.spacing.sm)
-        .background(
-            RoundedRectangle(cornerRadius: metrics.radius.row, style: .continuous)
-                .fill(fill)
-        )
-        .armedHover($hovered)
+        .paletteRow(selected: selected)
+        .accessibilityElement(children: .combine)
+        .accessibilityAddTraits(selected ? [.isButton, .isSelected] : .isButton)
     }
 }
 
@@ -155,7 +145,7 @@ struct QuicklinkPreview: View {
                 QuicklinkInfoSection(quicklink: quicklink)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .padding(.horizontal, 12)
+            .padding(.horizontal, metrics.spacing.xl)
         } else {
             Color.clear
         }
@@ -172,22 +162,6 @@ private struct QuicklinkInfoSection: View {
     @Environment(HotKeyManager.self) private var hotKeys
     @Environment(AppIndex.self) private var appIndex
 
-    private struct InfoRow: Identifiable {
-        let label: String
-        let value: Text
-        var id: String { label }
-
-        init(label: String, value: String) {
-            self.label = label
-            self.value = Text(value)
-        }
-
-        init(label: String, keycaps: [String]) {
-            self.label = label
-            value = KeyCapChip.inlineText(keycaps)
-        }
-    }
-
     /// Relative day plus exact time; shared, `DateFormatter` being expensive to build.
     @MainActor private static let createdFormatter: DateFormatter = {
         let formatter = DateFormatter()
@@ -197,46 +171,28 @@ private struct QuicklinkInfoSection: View {
         return formatter
     }()
 
-    private var rows: [InfoRow] {
+    private var rows: [PreviewInfoRow] {
         var rows = [
-            InfoRow(label: String(localized: "Name"), value: quicklink.name),
-            InfoRow(label: String(localized: "Link"), value: quicklink.link)
+            PreviewInfoRow(String(localized: "Name"), quicklink.name),
+            PreviewInfoRow(String(localized: "Link"), quicklink.link)
         ]
         if let bundleID = quicklink.openWithBundleID {
             rows.append(
-                InfoRow(
-                    label: String(localized: "Open With"),
-                    value: AppPresentation.resolve(bundleID: bundleID, in: appIndex).name))
+                PreviewInfoRow(
+                    String(localized: "Open With"),
+                    AppPresentation.resolve(bundleID: bundleID, in: appIndex).name))
         }
         if let keycaps = hotKeys.binding(for: .quicklink(id: quicklink.id))?.keycaps {
-            rows.append(InfoRow(label: String(localized: "Shortcut"), keycaps: keycaps))
+            rows.append(PreviewInfoRow(String(localized: "Shortcut"), keycaps: keycaps))
         }
         rows.append(
-            InfoRow(
-                label: String(localized: "Created"),
-                value: Self.createdFormatter.string(from: quicklink.createdAt)))
+            PreviewInfoRow(
+                String(localized: "Created"), Self.createdFormatter.string(from: quicklink.createdAt)))
         return rows
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: metrics.spacing.sm) {
-            Text("Information")
-                .font(metrics.typography.sectionHeader)
-                .foregroundStyle(.secondary)
-            VStack(spacing: 0) {
-                let rows = self.rows
-                ForEach(rows) { row in
-                    if row.id != rows.first?.id { Divider() }
-                    HStack(spacing: metrics.spacing.sm) {
-                        Text(row.label).foregroundStyle(.secondary)
-                        Spacer(minLength: metrics.spacing.lg)
-                        row.value.lineLimit(1).truncationMode(.middle)
-                    }
-                    .font(metrics.typography.keyCap)
-                    .padding(.vertical, metrics.spacing.xs)
-                }
-            }
-        }
-        .padding(.vertical, metrics.spacing.md)
+        PreviewInfoSection(rows: rows)
+            .padding(.vertical, metrics.spacing.md)
     }
 }

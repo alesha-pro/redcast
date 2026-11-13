@@ -31,7 +31,7 @@ struct ExtensionStorePreview: View {
             }
             if let refreshFailure {
                 Label(refreshFailure, systemImage: "exclamationmark.triangle")
-                    .font(.caption)
+                    .font(metrics.typography.keyCap)
                     .foregroundStyle(Theme.Colors.warning)
                     .padding(.bottom, metrics.spacing.md)
             }
@@ -45,11 +45,11 @@ struct ExtensionStorePreview: View {
                 ExtensionStoreIcon(entry: entry, side: Self.iconSide)
                 VStack(alignment: .leading, spacing: metrics.spacing.xxs) {
                     Text(verbatim: entry.title)
-                        .font(.title3.weight(.semibold))
+                        .font(metrics.typography.previewTitle)
                         .lineLimit(2)
                     if !entry.author.isEmpty {
                         Text(verbatim: entry.author)
-                            .font(.callout)
+                            .font(metrics.typography.rowTrailing)
                             .foregroundStyle(.secondary)
                             .lineLimit(1)
                     }
@@ -77,11 +77,11 @@ struct ExtensionStorePreview: View {
                 ProgressView().controlSize(.small)
                 Text(verbatim: installing)
             }
-            .font(.callout)
+            .font(metrics.typography.rowTrailing)
             .foregroundStyle(.secondary)
         } else if let failure {
             Label(failure, systemImage: "exclamationmark.triangle")
-                .font(.callout)
+                .font(metrics.typography.rowTrailing)
                 .foregroundStyle(Theme.Colors.warning)
                 .lineLimit(4)
                 .fixedSize(horizontal: false, vertical: true)
@@ -93,9 +93,10 @@ struct ExtensionStorePreview: View {
         let top = leadingTitles(browse)
         return VStack(alignment: .leading, spacing: metrics.spacing.md) {
             Text(verbatim: browse.title)
-                .font(.title3.weight(.semibold))
+                .font(metrics.typography.previewTitle)
             Text("\(count) extensions")
-                .font(.callout)
+                .font(metrics.typography.rowTrailing)
+                .monospacedDigit()
                 .foregroundStyle(.secondary)
             if !top.isEmpty {
                 Text(verbatim: top.joined(separator: " · "))
@@ -104,7 +105,7 @@ struct ExtensionStorePreview: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
             Text("Press ↵ to list them all; Escape comes back here.")
-                .font(.callout)
+                .font(metrics.typography.rowTrailing)
                 .foregroundStyle(.tertiary)
             Spacer(minLength: 0)
         }
@@ -121,14 +122,14 @@ private struct ExtensionStoreCommands: View {
         VStack(alignment: .leading, spacing: metrics.spacing.sm) {
             Text("Commands")
                 .font(metrics.typography.sectionHeader)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Theme.Colors.textSecondary)
             ForEach(Array(commands.enumerated()), id: \.offset) { _, command in
                 VStack(alignment: .leading, spacing: metrics.spacing.xxs) {
                     Text(verbatim: command.title)
-                        .font(.callout.weight(.medium))
+                        .font(metrics.typography.rowTrailing.weight(.medium))
                     if !command.summary.isEmpty {
                         Text(verbatim: command.summary)
-                            .font(.caption)
+                            .font(metrics.typography.keyCap)
                             .foregroundStyle(.secondary)
                             .fixedSize(horizontal: false, vertical: true)
                     }
@@ -144,72 +145,38 @@ private struct ExtensionStoreInformation: View {
     @Environment(\.metrics) private var metrics
     let entry: ExtensionStoreEntry
 
-    private struct InfoRow: Identifiable {
-        let label: String
-        let value: String
-        var id: String { label }
-    }
-
     var body: some View {
-        VStack(alignment: .leading, spacing: metrics.spacing.sm) {
-            Text("Information")
-                .font(metrics.typography.sectionHeader)
-                .foregroundStyle(.secondary)
-            VStack(spacing: 0) {
-                let rows = self.rows
-                ForEach(rows) { row in
-                    if row.id != rows.first?.id { Divider() }
-                    HStack(spacing: metrics.spacing.sm) {
-                        Text(row.label).foregroundStyle(.secondary)
-                        Spacer(minLength: metrics.spacing.lg)
-                        Text(verbatim: row.value).lineLimit(1).truncationMode(.middle)
-                    }
-                    .font(.callout)
-                    .padding(.vertical, metrics.spacing.sm)
-                }
-                if let url = entry.storeURL {
-                    Divider()
-                    HStack(spacing: metrics.spacing.sm) {
-                        Text("Store page").foregroundStyle(.secondary)
-                        Spacer(minLength: metrics.spacing.lg)
-                        Link(destination: url) {
-                            Text(verbatim: url.host().map { $0 + url.path() } ?? url.absoluteString)
-                                .lineLimit(1)
-                                .truncationMode(.middle)
-                        }
-                    }
-                    .font(.callout)
-                    .padding(.vertical, metrics.spacing.sm)
-                }
-            }
-        }
-        .padding(.top, metrics.spacing.md)
+        PreviewInfoSection(rows: rows)
+            .padding(.top, metrics.spacing.md)
     }
 
-    private var rows: [InfoRow] {
-        var rows: [InfoRow] = []
+    private var rows: [PreviewInfoRow] {
+        var rows: [PreviewInfoRow] = []
         if !entry.author.isEmpty {
-            rows.append(InfoRow(label: String(localized: "Author"), value: entry.author))
+            rows.append(PreviewInfoRow(String(localized: "Author"), entry.author))
         }
-        rows.append(InfoRow(label: String(localized: "Downloads"), value: entry.downloads.formatted()))
+        rows.append(PreviewInfoRow(String(localized: "Downloads"), entry.downloads.formatted()))
         if !entry.categories.isEmpty {
             rows.append(
-                InfoRow(
-                    label: String(localized: "Categories"), value: entry.categories.joined(separator: ", ")))
+                PreviewInfoRow(String(localized: "Categories"), entry.categories.joined(separator: ", ")))
         }
         if let created = entry.createdAt {
             rows.append(
-                InfoRow(
-                    label: String(
-                        localized: "Published", comment: "When an extension first reached the store"),
-                    value: created.formatted(date: .abbreviated, time: .omitted)))
+                PreviewInfoRow(
+                    String(localized: "Published", comment: "When an extension first reached the store"),
+                    created.formatted(date: .abbreviated, time: .omitted)))
         }
         if let updated = entry.updatedAt {
             rows.append(
-                InfoRow(
-                    label: String(
-                        localized: "Updated", comment: "When an extension last changed in the store"),
-                    value: updated.formatted(date: .abbreviated, time: .omitted)))
+                PreviewInfoRow(
+                    String(localized: "Updated", comment: "When an extension last changed in the store"),
+                    updated.formatted(date: .abbreviated, time: .omitted)))
+        }
+        if let url = entry.storeURL {
+            rows.append(
+                PreviewInfoRow(
+                    String(localized: "Store page"), url.host().map { $0 + url.path() } ?? url.absoluteString,
+                    destination: url))
         }
         return rows
     }

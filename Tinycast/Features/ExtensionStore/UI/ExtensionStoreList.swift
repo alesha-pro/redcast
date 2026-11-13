@@ -92,14 +92,6 @@ private struct ExtensionStoreRowView: View {
     let selected: Bool
     let installed: ExtensionStoreInstallState.Installed
     let progress: String?
-    @State private var hovered = false
-
-    /// Selection wins over hover when a row is both; otherwise hover shows its fainter layer.
-    private var fill: Color {
-        if selected { return Theme.Colors.selection }
-        if hovered { return Theme.Colors.rowHover }
-        return .clear
-    }
 
     var body: some View {
         HStack(spacing: metrics.spacing.lg) {
@@ -121,8 +113,7 @@ private struct ExtensionStoreRowView: View {
         }
         .padding(.horizontal, metrics.spacing.md)
         .padding(.vertical, metrics.spacing.sm)
-        .background(RoundedRectangle(cornerRadius: metrics.radius.row, style: .continuous).fill(fill))
-        .armedHover($hovered)
+        .paletteRow(selected: selected)
         .accessibilityElement(children: .combine)
         .accessibilityAddTraits(selected ? [.isButton, .isSelected] : .isButton)
     }

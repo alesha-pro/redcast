@@ -359,6 +359,7 @@
 		4DA03A170E95F0D08E3569F9 /* ExtensionColors.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0266BAF4643A4B5C41B600DE /* ExtensionColors.swift */; };
 		4DA8F1EC8F78B6CF2DFD5673 /* AgentBackgroundCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58C114B66B59206D00D2C7EB /* AgentBackgroundCoordinator.swift */; };
 		4DB9D7776C17CF9239CDCA68 /* ChatFileSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D84BC00C6544B95DF759B68 /* ChatFileSystem.swift */; };
+		4DFFBFE633041355F5E5EF0A /* PreviewInfoSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = C5A5EA95BB7E77FAB0F1C5C3 /* PreviewInfoSection.swift */; };
 		4E1BFE20BD4308D1EF05A5F2 /* ClipDrag.swift in Sources */ = {isa = PBXBuildFile; fileRef = DB74C73EB33F368E0890E839 /* ClipDrag.swift */; };
 		4E33AFB57AF9D0255941D579 /* ScreenAgentTools.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A2040349184CB98DB3173B8 /* ScreenAgentTools.swift */; };
 		4E5F73461C417BE2B3472E6E /* WindowChrome.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D61199EE7B60E91ACBDE2E2 /* WindowChrome.swift */; };
@@ -1004,6 +1005,7 @@
 		D851B0F21AE0158346F14770 /* ExtensionAIGate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1FE67EB39674A9FC6D683CC2 /* ExtensionAIGate.swift */; };
 		D9113113F828FD6983715D6B /* UninstallView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 62F2B0F5FDD503E6BB739A47 /* UninstallView.swift */; };
 		D929CEAC227F3C88BBC134BF /* AIModelMenu.swift in Sources */ = {isa = PBXBuildFile; fileRef = 539938F5D4D2AFEE587113D3 /* AIModelMenu.swift */; };
+		D996420C21D9B03C080650C9 /* PaletteSplitView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70A6AFF693764F94248853D9 /* PaletteSplitView.swift */; };
 		D99DAF62B746E6009E1BFB1F /* QuickAction.swift in Sources */ = {isa = PBXBuildFile; fileRef = E8A4DEF28F120FE354EB5599 /* QuickAction.swift */; };
 		D9EAFD1A738092F7580AB213 /* AgentSessionsList.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50D0A05B579C63502E534FBC /* AgentSessionsList.swift */; };
 		D9F0CDA62E194B40128A969B /* CodexPlanHTTP.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3FA60D65520A3BC1B3927970 /* CodexPlanHTTP.swift */; };
@@ -1760,6 +1762,7 @@
 		6FF6DBC407666868DCE27C22 /* RoomRunner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoomRunner.swift; sourceTree = "<group>"; };
 		706D5E26C2F2E3FE5F740391 /* JSONLineSplitter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JSONLineSplitter.swift; sourceTree = "<group>"; };
 		709C3F8952A500267E1D8242 /* ModifierTapMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModifierTapMonitor.swift; sourceTree = "<group>"; };
+		70A6AFF693764F94248853D9 /* PaletteSplitView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaletteSplitView.swift; sourceTree = "<group>"; };
 		70B259035B4A409B8A64BFCA /* QuickAIAgentHeader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuickAIAgentHeader.swift; sourceTree = "<group>"; };
 		70F987A185161E857B7A030B /* PaletteShortcut.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaletteShortcut.swift; sourceTree = "<group>"; };
 		714A754D249F88A63B97BD78 /* WebSearchEnginesRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebSearchEnginesRow.swift; sourceTree = "<group>"; };
@@ -2160,6 +2163,7 @@
 		C4DB2A5435AD37E95789304B /* AIProviderAdvancedSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIProviderAdvancedSection.swift; sourceTree = "<group>"; };
 		C54C4540AD6F188A2455473F /* ExtensionRuntime.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExtensionRuntime.swift; sourceTree = "<group>"; };
 		C5941CE8F08FD5986FED12E9 /* QuickActionsSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuickActionsSettingsView.swift; sourceTree = "<group>"; };
+		C5A5EA95BB7E77FAB0F1C5C3 /* PreviewInfoSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreviewInfoSection.swift; sourceTree = "<group>"; };
 		C5BA06E4CC7E8D40E3285F16 /* KeyCapChip.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyCapChip.swift; sourceTree = "<group>"; };
 		C6F4A7524EF777C4DD427F55 /* FullBackupComposer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FullBackupComposer.swift; sourceTree = "<group>"; };
 		C708D9723F8471AB65EEF339 /* AgentTurnBudget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentTurnBudget.swift; sourceTree = "<group>"; };
@@ -4824,9 +4828,11 @@
 				1DA4FA3A0DEA3DC15811E7D4 /* PaletteRow.swift */,
 				445B0374FD5D74DBE23243CD /* PaletteScreen.swift */,
 				70F987A185161E857B7A030B /* PaletteShortcut.swift */,
+				70A6AFF693764F94248853D9 /* PaletteSplitView.swift */,
 				188A6D3C5B6BC67716F15F83 /* PaletteState.swift */,
 				9B107F5E532C8DE74430723B /* PaletteTabAction.swift */,
 				209D951FDD587A040F1F76F3 /* PaletteWindowController.swift */,
+				C5A5EA95BB7E77FAB0F1C5C3 /* PreviewInfoSection.swift */,
 				D23A98172AA46F5C0C89C4AB /* RootPaletteView.swift */,
 				88C2657E7B3481A27821B4A5 /* WindowReader.swift */,
 			);
@@ -6519,6 +6525,7 @@
 				9F8806D46EBAF7058FC2EAEC /* PaletteRowIndex.swift in Sources */,
 				DB6B294B3D15B0AABCE5427E /* PaletteScreen.swift in Sources */,
 				5DB92B34C31D500F69ADF3E8 /* PaletteShortcut.swift in Sources */,
+				D996420C21D9B03C080650C9 /* PaletteSplitView.swift in Sources */,
 				1BC16048EE05A1FD25739CB4 /* PaletteState.swift in Sources */,
 				3C2812B921530D45B802B44C /* PaletteTabAction.swift in Sources */,
 				52C4F57BB26F420CCD22C1D7 /* PaletteWindowController.swift in Sources */,
@@ -6532,6 +6539,7 @@
 				170C8ABCDB7848A9DA0A0524 /* PinnedEmojiStore.swift in Sources */,
 				18F2636E6E075309FEDDC48B /* PlainTextSurface.swift in Sources */,
 				6C052B83FAE453D1011E3FB4 /* PopoverMenu.swift in Sources */,
+				4DFFBFE633041355F5E5EF0A /* PreviewInfoSection.swift in Sources */,
 				5CB834F0059FC98C26E7A515 /* ProcessExit.swift in Sources */,
 				7B7008EE187C5DF64CAEA3C3 /* ProcessTree.swift in Sources */,
 				4D462D0F116A5C04E4DEFCCF /* PseudoTerminal.swift in Sources */,

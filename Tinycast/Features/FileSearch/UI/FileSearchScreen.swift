@@ -6,8 +6,6 @@ struct FileSearchScreen: PaletteScreen {
     let vm: PaletteState
     let openActions: () -> Void
 
-    private var metrics: InterfaceMetrics { core.settings.interfaceSize.metrics }
-
     var rows: [FileSearchResult] { session.results }
 
     private var isShowingRecents: Bool {
@@ -68,7 +66,7 @@ struct FileSearchScreen: PaletteScreen {
             emptyState
         } else {
             let selected = result(at: selection)
-            HStack(spacing: 0) {
+            PaletteSplitView {
                 FileSearchList(
                     title: isShowingRecents ? String(localized: "Recent") : String(localized: "Results"),
                     results: rows,
@@ -82,10 +80,7 @@ struct FileSearchScreen: PaletteScreen {
                     },
                     onDropped: { core.paletteCoordinator.dragLanded() }
                 )
-                .frame(width: metrics.size.clipboardListWidth)
-                Rectangle()
-                    .fill(Theme.Colors.separator)
-                    .frame(width: Theme.Size.hairline)
+            } preview: {
                 FileSearchPreview(result: selected)
             }
         }
@@ -117,7 +112,9 @@ struct FileSearchScreen: PaletteScreen {
         } else if session.state != .ready {
             Color.clear
         } else if isShowingRecents {
-            EmptyResults(text: String(localized: "Type to search files and folders"))
+            EmptyResults(
+                text: String(localized: "Type to search files and folders"),
+                systemImage: CommandID.searchFiles.sfSymbol)
         } else {
             EmptyResults(text: vm.fileSearchFilter.emptyMessage)
         }

@@ -122,14 +122,12 @@ enum CustomCommandArgumentsAccessory {
     ) -> PaletteHeaderAccessory? { nil }
 }
 
-struct InterfaceMetrics {
-    struct Size { let clipboardListWidth: CGFloat = 200 }
-    let size = Size()
-}
+struct InterfaceMetrics {}
 
-enum Theme {
-    enum Colors { static let separator = Color.gray }
-    enum Size { static let hairline: CGFloat = 1 }
+struct PaletteSplitView<ListContent: View, PreviewContent: View>: View {
+    @ViewBuilder let list: ListContent
+    @ViewBuilder let preview: PreviewContent
+    var body: some View { HStack { list; preview } }
 }
 
 struct PopoverMenuContent {
@@ -151,7 +149,7 @@ struct PopoverMenuItem {
 
 struct EmptyResults: View {
     static var lastText = ""
-    init(text: String) { Self.lastText = text }
+    init(text: String, systemImage: String) { Self.lastText = text }
     var body: some View { EmptyView() }
 }
 

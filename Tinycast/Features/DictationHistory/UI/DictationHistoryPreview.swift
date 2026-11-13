@@ -67,7 +67,7 @@ struct DictationHistoryPreview: View {
                     Text("The recording is no longer kept, so it can't be retried.")
                 }
             }
-            .font(.callout)
+            .font(metrics.typography.rowTrailing)
             .foregroundStyle(.secondary)
         }
         .frame(maxWidth: .infinity, alignment: .topLeading)
@@ -86,13 +86,6 @@ private struct DictationHistoryInformation: View {
     @Environment(\.metrics) private var metrics
     let entry: DictationHistoryEntry
 
-    private struct InfoRow: Identifiable {
-        let label: String
-        let value: String
-        var icon: NSImage?
-        var id: String { label }
-    }
-
     /// Relative day plus exact time; shared, `DateFormatter` being expensive to build.
     @MainActor private static let recordedFormatter: DateFormatter = {
         let formatter = DateFormatter()
@@ -103,57 +96,35 @@ private struct DictationHistoryInformation: View {
     }()
 
     var body: some View {
-        VStack(alignment: .leading, spacing: metrics.spacing.sm) {
-            Text("Information")
-                .font(metrics.typography.sectionHeader)
-                .foregroundStyle(.secondary)
-            VStack(spacing: 0) {
-                let rows = self.rows
-                ForEach(rows) { row in
-                    if row.id != rows.first?.id { Divider() }
-                    HStack(spacing: metrics.spacing.sm) {
-                        Text(row.label).foregroundStyle(.secondary)
-                        Spacer(minLength: metrics.spacing.lg)
-                        if let icon = row.icon {
-                            Image(nsImage: icon)
-                                .resizable()
-                                .frame(width: metrics.size.menuIcon, height: metrics.size.menuIcon)
-                        }
-                        Text(verbatim: row.value).lineLimit(1).truncationMode(.middle)
-                    }
-                    .font(.callout)
-                    .padding(.vertical, metrics.spacing.sm)
-                }
-            }
-        }
-        .padding(.top, metrics.spacing.xl)
-        .padding(.bottom, metrics.spacing.md)
+        PreviewInfoSection(rows: rows)
+            .padding(.top, metrics.spacing.xl)
+            .padding(.bottom, metrics.spacing.md)
     }
 
-    private var rows: [InfoRow] {
+    private var rows: [PreviewInfoRow] {
         let type = DictationHistoryList.kindName(entry.kind)
-        var rows = [InfoRow(label: String(localized: "Type"), value: type)]
-        if let mode = entry.mode { rows.append(InfoRow(label: String(localized: "Mode"), value: mode)) }
+        var rows = [PreviewInfoRow(String(localized: "Type"), type)]
+        if let mode = entry.mode { rows.append(PreviewInfoRow(String(localized: "Mode"), mode)) }
         if let name = entry.appName {
-            rows.append(InfoRow(label: String(localized: "Application"), value: name, icon: appIcon))
+            rows.append(PreviewInfoRow(String(localized: "Application"), name, icon: appIcon))
         }
         if let engine = entry.engine {
             let value =
                 engine == .cloud
                 ? String(localized: "Cloud", comment: "Where a dictation was transcribed, beside On this Mac")
                 : String(localized: "On this Mac", comment: "Where a dictation was transcribed, beside Cloud")
-            rows.append(InfoRow(label: String(localized: "Engine"), value: value))
+            rows.append(PreviewInfoRow(String(localized: "Engine"), value))
         }
-        if let model = entry.model { rows.append(InfoRow(label: String(localized: "Model"), value: model)) }
+        if let model = entry.model { rows.append(PreviewInfoRow(String(localized: "Model"), model)) }
         if let duration = entry.duration {
             let value = Duration.seconds(duration).formatted(
                 .units(allowed: [.hours, .minutes, .seconds], width: .abbreviated))
-            rows.append(InfoRow(label: String(localized: "Duration"), value: value))
+            rows.append(PreviewInfoRow(String(localized: "Duration"), value))
         }
         rows.append(
-            InfoRow(
-                label: String(localized: "Recorded", comment: "Labels when a dictation was recorded"),
-                value: Self.recordedFormatter.string(from: entry.date)))
+            PreviewInfoRow(
+                String(localized: "Recorded", comment: "Labels when a dictation was recorded"),
+                Self.recordedFormatter.string(from: entry.date)))
         return rows
     }
 

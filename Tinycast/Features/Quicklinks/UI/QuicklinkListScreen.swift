@@ -4,8 +4,6 @@ struct QuicklinkListScreen: PaletteScreen {
     let store: QuicklinkStore
     let core: AppCore
     let vm: PaletteState
-
-    private var metrics: InterfaceMetrics { core.settings.interfaceSize.metrics }
     let openActions: () -> Void
     let openArgumentOptions: (String) -> Void
 
@@ -92,10 +90,11 @@ struct QuicklinkListScreen: PaletteScreen {
         if rows.isEmpty {
             EmptyResults(
                 text: store.enabled.isEmpty
-                    ? String(localized: "No quicklinks yet") : String(localized: "No matching quicklinks"))
+                    ? String(localized: "No quicklinks yet") : String(localized: "No matching quicklinks"),
+                systemImage: store.enabled.isEmpty ? Quicklink.sfSymbol : "magnifyingglass")
         } else {
             let selected = quicklink(at: selection)
-            HStack(spacing: 0) {
+            PaletteSplitView {
                 QuicklinkList(
                     results: rows, selectedID: selected?.id, scroll: scroll,
                     onSelect: { link in
@@ -107,8 +106,7 @@ struct QuicklinkListScreen: PaletteScreen {
                         openActions()
                     }
                 )
-                .frame(width: metrics.size.clipboardListWidth)
-                Rectangle().fill(Theme.Colors.separator).frame(width: Theme.Size.hairline)
+            } preview: {
                 QuicklinkPreview(quicklink: selected)
             }
         }

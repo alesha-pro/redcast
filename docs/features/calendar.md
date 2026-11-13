@@ -118,7 +118,9 @@ structural — one optional card, one selected flag, one activate closure, which
 
 The countdown re-renders from `MeetingClock.now`, not from a keystroke, so `in 4 min` becomes
 `in 3 min` on the boundary. A partial minute rounds **up** (`in 1 min` at 20 seconds out), and the
-first minute past the start reads `now` rather than `0 min ago`.
+first minute past the start reads `now` rather than `0 min ago`. A row's pill rolls its digits on that
+boundary only: the catch-up `MeetingClock.start()` makes as the palette shows is assigned with
+animations disabled, so a summon after a gap lands on the current value at once.
 
 Like the calculator card, a card appearing while the palette is already open shifts the highlight down
 by one row. That is the existing behaviour of the row above it and is left alone.

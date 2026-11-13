@@ -205,7 +205,7 @@ private struct ExtensionActionRow: View {
                     resolved: item.icon, size: metrics.size.menuIcon, usesMenuSymbolStyle: true)
                 Text(item.title)
                     .font(metrics.typography.menuRow)
-                    .foregroundStyle(item.isDestructive ? Color.red : Color.primary)
+                    .foregroundStyle(item.isDestructive ? Theme.Colors.destructive : Color.primary)
                     .lineLimit(1)
                 Spacer(minLength: metrics.spacing.sm)
                 HStack(spacing: metrics.spacing.xxs) {
@@ -221,11 +221,27 @@ private struct ExtensionActionRow: View {
                 alignment: .leading
             )
             .contentShape(Rectangle())
-            .background(
-                RoundedRectangle(cornerRadius: metrics.radius.menuRow, style: .continuous)
-                    .fill(selected ? Theme.Colors.menuHover : Color.clear)
-            )
         }
-        .buttonStyle(.plain)
+        .buttonStyle(ExtensionActionRowStyle(selected: selected, cornerRadius: metrics.radius.menuRow))
+    }
+}
+
+/// The ⌘K menu's press, restated: only a style is told the row is held, and its height holds.
+private struct ExtensionActionRowStyle: ButtonStyle {
+    let selected: Bool
+    let cornerRadius: CGFloat
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .background(
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .fill(fill(pressed: configuration.isPressed))
+                    .animation(Theme.Motion.press, value: configuration.isPressed)
+            )
+    }
+
+    private func fill(pressed: Bool) -> Color {
+        if pressed { return Theme.Colors.controlHover }
+        return selected ? Theme.Colors.menuHover : Color.clear
     }
 }

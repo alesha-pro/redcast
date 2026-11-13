@@ -51,6 +51,7 @@ struct InterfaceMetrics: Equatable, Sendable {
         var glyph: CGFloat { scaledPoints(Theme.Radius.glyph, scale) }
         var attachmentChip: CGFloat { scaledPoints(Theme.Radius.attachmentChip, scale) }
         var card: CGFloat { scaledPoints(Theme.Radius.card, scale) }
+        var previewStage: CGFloat { scaledPoints(Theme.Radius.previewStage, scale) }
         var codeBlock: CGFloat { scaledPoints(Theme.Radius.codeBlock, scale) }
         var chatBubble: CGFloat { scaledPoints(Theme.Radius.chatBubble, scale) }
         var keyCap: CGFloat { scaledPoints(Theme.Radius.keyCap, scale) }
@@ -168,6 +169,7 @@ struct InterfaceMetrics: Equatable, Sendable {
         var sectionHeader: Font { font(Theme.Typography.sectionHeader, .subheadline, .medium) }
         var panelTitle: Font { font(Theme.Typography.panelTitle, .headline) }
         var calcResult: Font { font(Theme.Typography.calcResult, .title1) }
+        var previewTitle: Font { font(Theme.Typography.previewTitle, .title3, .semibold) }
         var keyCap: Font { font(Theme.Typography.keyCap, .caption1) }
         var tooltip: Font { font(Theme.Typography.tooltip, .subheadline) }
         var compactKeyCap: Font { font(Theme.Typography.compactKeyCap, .caption2) }

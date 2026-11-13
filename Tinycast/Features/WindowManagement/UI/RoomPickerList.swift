@@ -43,13 +43,6 @@ private struct RoomPickerRowView: View {
     /// Its place in the room, 1 being the main window; nil when it is not in the room.
     let place: Int?
     let selected: Bool
-    @State private var hovered = false
-
-    private var fill: Color {
-        if selected { return Theme.Colors.selection }
-        if hovered { return Theme.Colors.rowHover }
-        return .clear
-    }
 
     private var title: String {
         switch row {
@@ -102,16 +95,13 @@ private struct RoomPickerRowView: View {
         }
         .padding(.horizontal, metrics.spacing.md)
         .padding(.vertical, metrics.spacing.sm)
-        .background(
-            RoundedRectangle(cornerRadius: metrics.radius.row, style: .continuous).fill(fill)
-        )
-        .armedHover($hovered)
+        .paletteRow(selected: selected)
         .accessibilityElement(children: .combine)
         .accessibilityLabel(title)
         .accessibilityValue(
             place.map { String(localized: "\(trailing), number \($0) in the room") } ?? trailing
         )
-        .accessibilityAddTraits(selected ? .isSelected : [])
+        .accessibilityAddTraits(selected ? [.isButton, .isSelected] : .isButton)
     }
 
     private var badge: some View {

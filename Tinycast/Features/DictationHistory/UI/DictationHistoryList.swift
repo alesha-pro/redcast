@@ -102,14 +102,6 @@ private struct DictationHistoryRow: View {
     let entry: DictationHistoryEntry
     let selected: Bool
     let retrying: Bool
-    @State private var hovered = false
-
-    /// Selection wins over hover when a row is both; otherwise hover shows its fainter layer.
-    private var fill: Color {
-        if selected { return Theme.Colors.selection }
-        if hovered { return Theme.Colors.rowHover }
-        return .clear
-    }
 
     var body: some View {
         IconCache.observeStyle()
@@ -138,8 +130,7 @@ private struct DictationHistoryRow: View {
         }
         .padding(.horizontal, metrics.spacing.md)
         .padding(.vertical, metrics.spacing.sm)
-        .background(RoundedRectangle(cornerRadius: metrics.radius.row, style: .continuous).fill(fill))
-        .armedHover($hovered)
+        .paletteRow(selected: selected)
         .accessibilityElement(children: .combine)
         .accessibilityAddTraits(selected ? [.isButton, .isSelected] : .isButton)
     }

@@ -114,7 +114,7 @@ struct FileSearchRow: View {
         .accessibilityElement(children: .combine)
         .accessibilityLabel(result.name)
         .accessibilityValue(result.parentPath)
-        .accessibilityAddTraits(selected ? .isSelected : [])
+        .accessibilityAddTraits(selected ? [.isButton, .isSelected] : .isButton)
         .task(id: IconRequest(result.id)) {
             if let warm = IconCache.cachedFitted(forFile: result.id) {
                 image = warm

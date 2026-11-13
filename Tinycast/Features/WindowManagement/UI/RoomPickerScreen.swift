@@ -75,7 +75,9 @@ struct RoomPickerScreen: PaletteScreen {
         return AnyView(
             Group {
                 if rows.isEmpty {
-                    EmptyResults(text: emptyText)
+                    EmptyResults(
+                        text: emptyText, systemImage: vm.query.isEmpty ? Room.sfSymbol : "magnifyingglass",
+                        isLoading: !session.isLoaded)
                 } else {
                     RoomPickerList(
                         rows: rows, picked: session.picked, selectedID: selectedID,

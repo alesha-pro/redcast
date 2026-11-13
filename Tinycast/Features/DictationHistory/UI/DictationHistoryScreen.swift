@@ -5,18 +5,16 @@ struct DictationHistoryScreen: PaletteScreen {
     let coordinator: DictationHistoryCoordinator
     let index: DictationHistoryIndex
     let vm: PaletteState
-    let metrics: InterfaceMetrics
     let openActions: () -> Void
     let rows: [DictationHistoryEntry]
 
     init(
         coordinator: DictationHistoryCoordinator, index: DictationHistoryIndex, vm: PaletteState,
-        metrics: InterfaceMetrics, openActions: @escaping () -> Void
+        openActions: @escaping () -> Void
     ) {
         self.coordinator = coordinator
         self.index = index
         self.vm = vm
-        self.metrics = metrics
         self.openActions = openActions
         rows = index.rows(for: vm.query)
     }
@@ -80,7 +78,7 @@ struct DictationHistoryScreen: PaletteScreen {
         AnyView(
             DictationHistoryView(
                 rows: rows, selection: selection, scroll: scroll, coordinator: coordinator, index: index,
-                vm: vm, metrics: metrics, openActions: openActions, activate: activate(at:)))
+                vm: vm, openActions: openActions, activate: activate(at:)))
     }
 }
 
@@ -92,7 +90,6 @@ private struct DictationHistoryView: View {
     let coordinator: DictationHistoryCoordinator
     let index: DictationHistoryIndex
     let vm: PaletteState
-    let metrics: InterfaceMetrics
     let openActions: () -> Void
     let activate: (Int) -> Void
 
@@ -118,7 +115,7 @@ private struct DictationHistoryView: View {
                     systemImage: isEmpty ? "waveform" : "magnifyingglass")
             }
         } else {
-            HStack(spacing: 0) {
+            PaletteSplitView {
                 DictationHistoryList(
                     rows: rows, selectedID: selected?.id, retries: index.retries, scroll: scroll,
                     onSelect: { entry in vm.selection = rows.firstIndex(of: entry) ?? 0 },
@@ -131,8 +128,7 @@ private struct DictationHistoryView: View {
                         openActions()
                     }
                 )
-                .frame(width: metrics.size.clipboardListWidth)
-                Rectangle().fill(Theme.Colors.separator).frame(width: Theme.Size.hairline)
+            } preview: {
                 DictationHistoryPreview(
                     entry: selected, recorded: selected.map { index.recordings.contains($0.id) } ?? false,
                     retrying: selected.map { index.retries.isRetrying($0.id) } ?? false)

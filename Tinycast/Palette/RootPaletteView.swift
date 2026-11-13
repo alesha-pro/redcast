@@ -124,11 +124,11 @@ struct RootPaletteView: View {
         case .agentSessions:
             return AgentSessionsScreen(
                 coordinator: core.agentSessionsCoordinator, index: core.agentSessionsCoordinator.index,
-                chatHistory: core.chatHistory, chat: quickAI, vm: vm, metrics: metrics, openActions: openActions)
+                chatHistory: core.chatHistory, chat: quickAI, vm: vm, openActions: openActions)
         case .dictationHistory:  // Fork: Dictation History
             return DictationHistoryScreen(
                 coordinator: core.dictationHistoryCoordinator, index: core.dictationHistoryCoordinator.index,
-                vm: vm, metrics: metrics, openActions: openActions)
+                vm: vm, openActions: openActions)
         case .extensionStore:  // Fork: the Extension Store
             return ExtensionStoreScreen(
                 coordinator: core.extensionStoreCoordinator, index: core.extensionStoreCoordinator.index,
