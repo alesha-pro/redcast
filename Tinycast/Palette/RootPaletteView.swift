@@ -694,17 +694,7 @@ struct RootPaletteView: View {
         HStack(alignment: .center, spacing: 0) {
             // Matches the list rows and section headers' own indent below.
             headerGutter(width: metrics.spacing.md * 2)
-            // Every sub-screen leaves the same way, so the slot reads the same on all of them.
-            if vm.mode != .launcher {
-                HeaderBackButton(help: backHelp, action: goBack)
-            } else {
-                Image(systemName: vm.mode.systemImage)
-                    .font(metrics.typography.headerIcon)
-                    .symbolRenderingMode(.hierarchical)
-                    .foregroundStyle(.secondary)
-                    .frame(width: metrics.size.headerIconSlot)
-                    .windowDraggable(settings.paletteDraggable, onBegan: beginDrag, onEnded: endDrag)
-            }
+            headerLead
             // slot + xl equals a row's icon + lg, so the query starts where the row titles do.
             headerGutter(width: metrics.spacing.xl)
             // One structural position: a field inside a branch loses first responder when it flips.
@@ -797,6 +787,28 @@ struct RootPaletteView: View {
         .onChange(of: quickAI.pendingAttachments.map(\.id)) { refreshAttachmentsMenu() }
     }
 
+    /// One slot, so the glyph and the chevron can trade places in it on a step in or out.
+    private var headerLead: some View {
+        ZStack {
+            // Every sub-screen leaves the same way, so the slot reads the same on all of them.
+            if vm.mode != .launcher {
+                HeaderBackButton(help: backHelp, action: goBack)
+                    .transition(.opacity)
+            } else {
+                Image(systemName: vm.mode.systemImage)
+                    .font(metrics.typography.headerIcon)
+                    .symbolRenderingMode(.hierarchical)
+                    .foregroundStyle(.secondary)
+                    .frame(width: metrics.size.headerIconSlot)
+                    .windowDraggable(settings.paletteDraggable, onBegan: beginDrag, onEnded: endDrag)
+                    .transition(.opacity)
+            }
+        }
+        .modifier(NavigationSwap())
+        // The chip overhangs its slot, and the next gutter's drag handle would take that edge.
+        .zIndex(1)
+    }
+
     /// Mode-gated ahead of the cast, which would otherwise cost every other mode a list build.
     private var extensionCommandScreen: ExtensionCommandScreen? {
         guard vm.mode == .extensionCommand else { return nil }
@@ -821,7 +833,8 @@ struct RootPaletteView: View {
                     .accessibilityHidden(true)
             }
         }
-        .help("Press Tab to ask Quick AI")
+        .tooltip(String(localized: "Press Tab to ask Quick AI"), alignment: .trailing, edge: .bottom)
+        .accessibilityHint("Press Tab to ask Quick AI")
     }
 
     /// Resolved through `PaletteTabAction`, so the hint cannot promise the wrong destination.
@@ -965,6 +978,7 @@ struct RootPaletteView: View {
                     Text(pillLabel)
                         .font(metrics.typography.bar)
                         .foregroundStyle(pillTint)
+                        .contentTransition(.opacity)
                     if formPrimaryShortcut {
                         HStack(spacing: metrics.spacing.xxs) {
                             KeyCapChip(text: "⌘", style: .outline)
@@ -992,6 +1006,8 @@ struct RootPaletteView: View {
         }
         .padding(metrics.spacing.xs)
         .glassSurface(.control, in: Capsule())
+        // On the whole capsule: a verb of a new width must not slide under key caps that jumped.
+        .modifier(NavigationSwap())
     }
 
     /// The one path opening the Actions menu, sampling the state its rows depend on.
@@ -1633,6 +1649,16 @@ private struct SearchFieldHiding: ViewModifier {
     }
 }
 
+/// Eases a step in or out, never a summon or an arrow; visibility is read here, not in the body.
+private struct NavigationSwap: ViewModifier {
+    @Environment(PaletteState.self) private var palette
+
+    func body(content: Content) -> some View {
+        content.animation(
+            palette.isVisible ? Theme.Motion.swap : nil, value: palette.backStack.count)
+    }
+}
+
 /// The footer's menu circle; hover lives here, so a sweep never re-renders the body.
 private struct MenuCircleButton: View {
     let action: () -> Void
@@ -1652,6 +1678,7 @@ private struct MenuCircleButton: View {
         }
         .buttonStyle(.plain)
         .onHover { hovered = $0 }
+        .animation(Theme.Motion.hover, value: hovered)
         .glassSurface(.control, in: Circle())
     }
 }
@@ -1664,17 +1691,19 @@ private struct HeaderBackButton: View {
     @Environment(\.metrics) private var metrics
 
     var body: some View {
-        Button(action: action) {
+        BarButton(chrome: .rounded, isCompact: true, action: action) {
             Image(systemName: "chevron.left")
                 .font(metrics.typography.headerIcon)
                 .symbolRenderingMode(.hierarchical)
                 .foregroundStyle(hovered ? Theme.Colors.textPrimary : Theme.Colors.textSecondary)
-                .frame(width: metrics.size.headerIconSlot)
-                .contentShape(Rectangle())
+                // Square by construction: the chip is as wide as the bar control is tall.
+                .frame(width: metrics.size.barButtonHeight - metrics.spacing.sm * 2)
         }
-        .buttonStyle(.plain)
         .onHover { hovered = $0 }
         .animation(Theme.Motion.hover, value: hovered)
-        .help(help)
+        // The chip overhangs its slot evenly, so the query keeps the x the glyph gives it.
+        .frame(width: metrics.size.headerIconSlot)
+        .tooltip(help, alignment: .leading, edge: .bottom)
+        .accessibilityHint(Text(verbatim: help))
     }
 }

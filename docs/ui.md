@@ -39,7 +39,7 @@ These are the things that quietly break the look if changed. Preserve them unles
 
 - **Dark is the baseline and its values are frozen.** Every `Theme.Colors` token resolves per appearance, and its **dark branch is the literal the forced-dark build shipped** — restated, never recomputed. Retune a light branch freely; touch a dark one only when the task is to change Dark. `AppCore.applyAppearance()` is the only place an appearance is assigned, from `AppSettings.appearance`; `.system` assigns `nil` so AppKit follows macOS.
 - **New colors go through `Theme.Colors.ramp(dark:light:)`** (an alpha that inverts) or `adaptive(dark:light:)` (two explicit `NSColor`s, for anything that isn't a plain inversion — `panelScrim`, `layoutPreviewGround`). Never a bare `Color.white.opacity(…)` in a view: it disappears in Light.
-- **No grays, no opaque fills on the surface.** Reach for `Theme.Colors.*` instead of `.gray`, `NSColor.windowBackground`, etc. The one opaque fill is `opaqueSurface`, which `glassSurface` swaps in for the glass under Reduce Transparency.
+- **No grays, no opaque fills on the surface.** Reach for `Theme.Colors.*` instead of `.gray`, `NSColor.windowBackground`, etc. There are two opaque fills. `opaqueSurface` is what `glassSurface` swaps in for the glass under Reduce Transparency, and `tooltipSurface` is the `Tooltip` tile, since a hover label has to hide the row it overlaps.
 - **Three things stay fixed in both appearances, on purpose.** The `EdgeDissolve`/`OverflowFade` gradients are **mask luminance, not color** — inverting them breaks the dissolve everywhere. `ExtensionTintColors` and a tinted `IconCache` tile keep white ink, because a saturated tile carries its own contrast. And `IconCache` cannot use a dynamic `NSColor` at all: it rasterizes off-main, so the surface is carried explicitly and is part of the cache key.
 - **An icon is drawn for a surface *and* a system icon style, and both move under you.** macOS restyles the icons `NSWorkspace` hands out when System Settings → Appearance → **Icon & widget style** changes, so `IconStyleMonitor` and Redcast's own appearance both call `IconCache.invalidateStyled()`. **The monitor may not invalidate on the notification itself.** AppKit posts `NSWorkspaceIconAppearanceConfigurationDidChange` before IconServices has swapped what `NSWorkspace` vends — measured at 25–120ms behind, jittering run to run — and the images it hands back are live objects macOS restyles in place, so flattening one on the signal freezes the *outgoing* style into a bitmap nothing ever invalidates again. `IconStyleMonitor` therefore polls `IconCache.styleFingerprint()` until the pixels actually move, and only then invalidates. Waiting also sidesteps the cost: re-flattening every icon the instant a restyle begins forces a cold IconServices regeneration, measured at 160× the settled draw cost. That drops the cached bitmaps, bumps every cache key so an in-flight decode cannot repopulate a stale one, and moves `IconCache.style.generation`. **Any view that draws an icon must key its fetch on that generation** — wrap the view's own key in `IconRequest`, or call `IconCache.observeStyle()` where the icon is resolved synchronously in a `body`. It is reached through `IconCache` rather than injected precisely because icons are drawn in menus, popovers and every list, where a missed injection would be a silent staleness bug.
 - **No hard dividers between the list and the bars.** The header and bottom bar are `safeAreaInset` overlays with no background; separation comes from `edgeDissolve()`, nothing else. (One deliberate exception: the vertical hairline between a list and its preview pane, as the clipboard and file search screens draw.)
@@ -62,6 +62,7 @@ These are the things that quietly break the look if changed. Preserve them unles
 - **↵ runs the primary action, Escape cancels, and Cancel always renders leading** (the left button), matching macOS convention. A button never prints its key cap; a deliberate hover reveals its outlined `KeyCapChip` in a `Tooltip`.
   Native launcher forms save with **⌘↵**; a textarea keeps Return for line breaks.
 - **In the palette, a hover label is Redcast's `tooltip`, never `.help()`**: an AppKit tooltip never appears while the app sits inactive behind the non-activating panel. A Settings window activates the app, so `.help()` shows there and stays the label to use. The tooltip hangs above its control by default; a control in the palette header passes `edge: .bottom`, since above it is off the window, and a label may run to several lines — the chat's attachment pill lists every staged name.
+  The tile is **matte, never glass**: it floats over the palette's glass, and glass does not stack. It is `tooltipSurface` under a `cardStroke` hairline and `Shadow.card`, with its text in `Typography.tooltip`, the system tooltip's size. The fill is one token of its own because the lift does not invert: Dark lightens the tile, while a dark wash over Light's near-white palette would sink it into a grey well, so Light is near-white. It is an in-window overlay, so three things swallow it: a glass *wrapper* around its control (glass clips its content, so the glass goes in a `background`), a later sibling drawn over it (the Notes title bar takes `zIndex(1)` over the editor), and a window with no room. The compact bar is 64 points tall and the Notes switcher is sized to its rows, so `CompactFavoritesRow` and the switcher's row buttons keep their `.help()`, which never shows. So do the views Quick AI shares with the AI Chat window, where `.help()` does show: `ChatTranscriptView`'s Jump to Latest, Regenerate Response and source-URL labels and `ChatSuggestionChips`' reply label are dead in the palette until the AI Chat phase moves them. A migrated site restates what `.help()` told VoiceOver with `accessibilityHint`. **A label hides while its control is in use**: a pop-up passes `nil` while its menu is open, and an inline argument field passes `nil` while it holds focus, so the tile never sits over the rows being typed against. In a list, the tile hangs toward the rows: `SectionHeader`'s gear flips to `edge: .bottom` when its header leads, since above it is the list's clipped top, and that header row takes `zIndex(1)` over the row below.
   Native form controls opt into `dismissOnPress` to hide the label until the next hover.
 - **An agent's opt-in Notification Center banner is the only system notification**, and it says that
   a run ended, never what it found. A dialog raised for an agent running in the background puts ↵ on
@@ -216,7 +217,8 @@ segment's label once a segmented control has settled.
 System text styles only — **no fixed point sizes in views**. Two named exceptions are explicit:
 `searchField` (20pt Regular) and the optical SF Symbol treatment `menuSymbol` (14pt Medium). Use
 `rowTitle` (`.body`), `sectionHeader` (`.subheadline.medium`),
-`rowTrailing`/`bar`/`menuRow`/`keyCap` etc. as named.
+`rowTrailing`/`bar`/`menuRow`/`keyCap` etc. as named. `tooltip` is `.subheadline`, the size AppKit's own
+tooltips use.
 
 `InterfaceMetrics.Typography` scales a style by rebuilding its `NSFont` **from that font's own
 descriptor** at the scaled point size. Never reconstruct one as `.system(size:weight:)` from a
@@ -235,6 +237,7 @@ shipped. Light is the same stop with the ink inverted, and is the only column op
 | `paletteScrim`    | black 0.20     | white 0.30     | the palette's own, thinner scrim                 |
 | `paletteGlassTint`| black 0.30     | white 0.40     | the tint inside the palette's glass              |
 | `opaqueSurface`   | gray 0.12      | gray 0.95      | what replaces glass under Reduce Transparency    |
+| `tooltipSurface`  | gray 0.208     | gray 0.99      | the hover label's tile                           |
 | `selection`       | white 0.10     | black 0.09     | selected row fill (keyboard/active selection)    |
 | `rowHover`        | white 0.05     | black 0.045    | mouse-hover fill (always fainter than selection) |
 | `menuHover`       | white 0.10     | black 0.09     | popover-menu row hover                           |
@@ -248,7 +251,7 @@ shipped. Light is the same stop with the ink inverted, and is the only column op
 | `iconPlaceholder` | white 0.06     | black 0.06     | the empty tile a row paints while an icon decodes |
 | `sheen`           | white 0.04     | black 0.04     | the wash behind the Onboarding header            |
 | `cardFill`        | white 0.05     | black 0.04     | settings/calc card fill                          |
-| `cardStroke`      | white 0.10     | black 0.10     | settings/calc card border + inset dividers       |
+| `cardStroke`      | white 0.10     | black 0.10     | card border (settings, lead cards, tooltip tile) |
 | `noteText`        | white 0.90     | black 0.85     | Notes body text                                  |
 | `dropGuide`       | white 0.35     | black 0.35     | the palette's drop guides while dragging         |
 | `composerSend`    | white 0.92     | black 0.92     | AI Chat's Send disc                              |
@@ -301,14 +304,17 @@ and all of them still pass through `motionScope()`, so no site checks the animat
 | `exit`   | easeIn 0.12       | content leaving                                               |
 
 **`hover` is for the pointer only.** Keyboard selection is instant: easing it leaves a fading ghost
-behind a held arrow key. A state the keyboard drives, such as the chat's Send disc enabling as text is
-typed, spells its own curve rather than borrowing the token. A window's own fade keeps `Duration.enter` / `Duration.exit` through
-`PanelTransition`; `MenuMotion` and `RoomMotion` stay where upstream put them.
+behind a held arrow key. A row gets this from `armedHover(_:animation:)`, which wraps only the two
+hover phases in the curve and leaves the key-driven disarm bare; a plain `.animation(_:value:)` on
+the row's hover state would ease that disarm too. A state the keyboard drives, such as the chat's
+Send disc enabling as text is typed, spells its own curve rather than borrowing the token. A
+window's own fade keeps `Duration.enter` / `Duration.exit` through `PanelTransition`; `MenuMotion`
+and `RoomMotion` stay where upstream put them.
 
 ### Opacity (`Theme.Opacity`)
 
-`disabled 0.45` dims every disabled control: `settingsEnabled`, `ModalActionButtonStyle`, a disabled
-`PopoverMenuRow` and `ChatSwitchStyle`.
+`disabled 0.45` dims every disabled control: `settingsEnabled`, `ModalActionButtonStyle`, a matte
+`BarButton`, a `PopoverMenuRow` that cannot be chosen and `ChatSwitchStyle`.
 
 ### Shadow (`Theme.Shadow`)
 
@@ -316,10 +322,11 @@ typed, spells its own curve rather than borrowing the token. A window's own fade
 `.shadow(Theme.Shadow.card)`.
 
 **For an opaque overlay inside a window, never for glass.** Glass carries its own elevation and a
-borderless panel takes the window server's shadow. The only three sites that use `card` today break
-that rule, and are the inherited exception, not a precedent: the chat's context card, the note picker
-and the agent command picker are `glassEffect(.regular)` over a solid `windowSurface`, and carried
-this same shadow before it had a name. They keep it until the AI Chat phase settles their material.
+borderless panel takes the window server's shadow. The `Tooltip` tile is the surface `card` was made
+for. Three other sites that use it break that rule, and are the inherited exception, not a
+precedent: the chat's context card, the note picker and the agent command picker are
+`glassEffect(.regular)` over a solid `windowSurface`, and carried this same shadow before it had a
+name. They keep it until the AI Chat phase settles their material.
 
 ---
 
@@ -426,10 +433,12 @@ Source: `Palette/PalettePanel.swift`, `Palette/RootPaletteView.swift`.
 
 - **`PalettePanel`** is a borderless `NSPanel`: `isOpaque = false`, `backgroundColor = .clear`, `.palette` level (one above `.modalPanel`, so other apps' open panels never cover it), `hasShadow`, and an `AnimatedPanel`, so it opens with `.documentWindow`. It hosts SwiftUI via `NSHostingView`. `PaletteWindowController` centers it slightly above screen center (`+8%`) and dismisses it on `windowDidResignKey`.
 - **The results layer fills the whole panel.** The header and bottom bar attach via `.safeAreaInset(edge: .top/.bottom)` as transparent overlays that float _over_ the list. The list underlaps them and dissolves at the edges.
-- **Header** (`headerHeight 44`): a back-chevron _or_ mode glyph, then the plain `TextField` (no border/background). Sub-screens (Clipboard, Calculator History) show the back chevron; the launcher shows a magnifying glass. The search icon aligns horizontally with row content, and the query with the row titles.
+- **Header** (`headerHeight 44`): a back-chevron _or_ mode glyph, then the plain `TextField` (no border/background). Sub-screens (Clipboard, Calculator History) show the back chevron; the launcher shows a magnifying glass. The search icon aligns horizontally with row content, and the query with the row titles. The chevron is a compact `.rounded` `BarButton`, a 28-point square that overhangs the 22-point `headerIconSlot` evenly, so it hovers and presses like the pop-ups at the header's other end without moving the query. The lead slot takes `zIndex(1)`, or the next gutter's drag handle, a later sibling, would take the chip's overhanging edge.
+- **What moves on a step in or out, and only then.** The glyph and the chevron cross-fade, and the action group's capsule takes its new verb and width, on `Motion.swap` keyed to `PaletteState.backStack.count` (`NavigationSwap`). The modifier sits on the whole capsule, not on the label: a verb of a new width animates its frame, and key caps outside that scope would jump while it slid under them. A push, a pop and Tab's ring change that depth; a keystroke and an arrow do not, so the pill's verb, which changes with every selected row, never animates under a held arrow. The curve is nil while the palette is hidden: a reset made then is flushed by `show()`'s off-screen layout before `noteVisible(true)`, so the palette still opens on a finished frame. `NavigationSwap` reads `isVisible` in its own body for the reason `PaletteHideObserver` does. The header's half is opacity only; the capsule's change of width is motion, which `motionScope()` drops under Reduce Motion with the rest.
 - **Compact keyboard entry:** pressing `↓` in the collapsed launcher expands the results and selects the first row without replacing or defocusing the shared search field.
 - **Bottom bar** (`bottomBarHeight 52`): a menu circle on the left, the action group on the right — both floating glass, no bar background. The action group is one glass `Capsule` holding the primary-action pill (label + `↵`) and the Actions toggle (`⌘K`).
-- **`BarButton`** is the shared bar control: bare label at rest, a `rowHover` capsule on hover, `barButtonHeight 28`. Set `isSelected` and it fills with `selection` instead, which beats hover; the Notes formatting bar lights its buttons this way. Set `isCompact` for `sm` padding instead of `md`: around a 16-point glyph frame that makes a 28-point square. It carries the footer's two buttons and the clipboard header's type filter, so those hover identically. Hover state lives inside it, so sweeping one never re-renders the palette body.
+- **`BarButton`** is the shared bar control: bare label at rest, a `rowHover` capsule on hover, `barButtonHeight 28`. Set `isSelected` and it fills with `selection` instead, which beats hover; the Notes formatting bar lights its buttons this way. Set `isCompact` for `sm` padding instead of `md`: around a 16-point glyph frame that makes a 28-point square. It carries the footer's two buttons and the clipboard header's type filter, so those hover identically. Hover state lives inside it, so sweeping one never re-renders the palette body; the fill eases on `Motion.hover`, which is safe because only the pointer drives it. **The chrome also says whether the button answers a press.** A `.rounded` one is matte and sits in the header, so a `ButtonStyle` of its own fills it with `controlSurface` on mouse-down, one stop above its hover, on `Motion.press`, with no change of size, and dims it to `Opacity.disabled` when disabled. A selected one keeps its `selection` fill and takes the same `controlSurface` over it while held, so the Extension Store's browse chip, which is always selected, still answers the mouse. A `.capsule` one sits in a `control` glass capsule (the footer's action group, Notes' two bars), whose interactive glass answers the press itself, so it takes no fill and stays on `.plain`.
+- **The footer's two glass controls are not in a `GlassEffectContainer`.** A container is for glass shapes close enough to blend or morph; these sit at opposite ends of the bar. The slot between them is where an extension's toast draws its own glass, which a container would fuse with the menu circle.
 
 ---
 
@@ -445,13 +454,15 @@ untinted `GlassEffectView`, then the clip — so
 Notes and the palette round identically. The clip is larger than the theme frame's own corner, so it
 is what shows; `invalidateShadow()` on every show recuts the shadow to match.
 
-The title bar is a 44-point band, and both halves of it are deliberate. `titleVisibility` is
-`.hidden` and `NotesView` draws the title itself, centred on the **window**: a titlebar accessory
-drops `NSThemeFrame` off its centred-title layout, so the native title would sit beside the traffic
-lights. The drawn title is not hit-testable, so clicks fall through to the real title bar and drag
-the window. The three actions cannot do that, so they live in an `NSTitlebarAccessoryViewController`
-at `.trailing` — `NoteTitlebarActions`, the launcher's footer capsule (`BarButton` in a
-`glassSurface(.control, in: Capsule())`) with glyphs in place of pills. Its 44-point height is what sizes the band.
+The title bar is a 52-point band (`Size.noteTitlebar`) that `NotesView` draws itself, above the
+editor: `titleVisibility` is `.hidden`, the bar is transparent, and the content ignores the safe area,
+so AppKit keeps only the traffic lights. The title is an overlay centred on the **window** and is not
+hit-testable, so clicks reach the `NoteTitlebarDragRegion` under it, which drags the window and takes
+the double-click. The three actions are `NoteTitlebarActions`, trailing in that same SwiftUI band:
+the launcher's footer capsule (`BarButton` over a `glassSurface(.control, in: Capsule())` background)
+with glyphs in place of pills. Each hangs its `tooltip` below itself, aligned trailing, which is why
+the glass is a background and the band takes `zIndex(1)` over the editor. The band's height is what
+holds the 36-point capsule with the margin the launcher's own bar gives it.
 
 `NotesWindowController` fits the height to the editor on every edit and AppKit autosaves the frame
 under `"Notes Window"`; only a title-bar double-click computes a top-right target. The window shows exactly
@@ -592,7 +603,7 @@ All lists share one row grammar so launcher and clipboard look identical:
 - `HStack(spacing: lg)`: leading 26pt icon/thumbnail, title (`.body`, `lineLimit(1)`), optional trailing keycaps/kind label, `Spacer`. Insets: `.horizontal md`, `.vertical sm`.
 - **The palette result slot is always `Theme.Size.resultRowIcon`, whatever fills it.** A glyph smaller than an app icon — the uninstall list's 16pt checkbox — is centred _inside_ that 26pt slot rather than sizing the slot to itself. Every list then starts its title at the same x, so switching palette modes doesn't jog the column sideways. The slot doubles as the hit target. Settings and compact favorites keep the existing 24pt `rowIcon`.
 - Clipboard thumbnails use `IconCache.appIconExtent` within that slot; synthetic row symbols use the same app-icon-shaped tile as the launcher.
-- Background is a `RoundedRectangle(row, .continuous)` filled by `fill`: **selection → hover → clear**, in that precedence. This `fill` computed property is copy-identical across `AppRow`, `ClipboardRow` and `UninstallRow` — keep them in sync. The launcher's lead cards don't restate it: `.leadCard(selected:)` (`Features/Launcher/UI/LeadCard.swift`) owns their fill and hover, so a card can't answer a selection differently from its siblings.
+- Background is a `RoundedRectangle(row, .continuous)` filled **selection → hover → clear**, in that precedence. **`.paletteRow(selected:)` (`Palette/PaletteRow.swift`) owns that fill, the shape, the armed hover and its ease**; it goes after the row's own padding. The launcher's `AppRow` and `FileSearchRow` use it. The other lists still restate the `fill` computed property and `armedHover` by hand, copy-identical, until each adopts the modifier: keep them in sync, and expect their hover to snap where the launcher's eases. The launcher's lead cards build on the same modifier: `.leadCard(selected:)` (`Features/Launcher/UI/LeadCard.swift`) lays `cardFill` and a `cardStroke` hairline over `paletteRow(selected:cornerRadius:)`, so a card can't answer a selection differently from its siblings and still reads as a card over the palette's thinner scrim. A row or a card takes no pressed fill: its click is a tap gesture or an AppKit press catcher that also starts a drag, not a button a style could ask.
 - **Hover state lives on the row**, not the list, so a mouse sweep repaints only the rows entering/leaving (a list-level hover rebuilds every row per move — don't do that).
 - **Hover is armed by pointer movement, not by the pointer's position** (`armedHover`, `Palette/HoverArming.swift`). A palette shown under a resting pointer lights nothing, and keys or a scroll drop the highlight until the pointer moves clear of the slop radius around where it stood — a row must never light up because it *slid under* a still pointer. Two measured facts the rule rests on: SwiftUI fires hover phases for rows arriving under a stationary pointer, but **not** for a lit row that merely shifts, so `PaletteState.hoverDisarmToken` clears what is already lit; and a wheel gesture ends with a mouse-moved event carrying no displacement, so *event type is not evidence the pointer moved*. `Tests/palette-navigation-test.swift` pins both halves.
 - **Scroll moves only on keyboard nav/reset**, driven by a `ScrollIntent` (`DesignSystem/Scrolling/ScrollIntent.swift`) — mouse selection targets a visible row and never yanks scroll. `.top` scrolls to the origin anchor that `scrollOriginAnchor()` installs — a zero-height overlay applied to the scrolled content _after_ its padding, so it marks offset 0 without joining the layout and the restored origin is exact (targeting the first row instead leaves the top padding hidden under the header); it is restated when the header's inset settles after mount, which moves the resting offset. A `.follow` that lands on flat index 0 restores the origin instead, so that row's section header comes back into view. A reset lands on the screen's `landingSelection` through `RootPaletteView.land()`: row 0 takes `.top`; a later row takes `.center`, which brings a row the lazy stack has not built in by id, centres it once its frame is measured and then lets go — restated, like `.top`, when the inset settles. One intent state serves every mode — they never coexist.
@@ -604,7 +615,7 @@ All lists share one row grammar so launcher and clipboard look identical:
 ### Section headers
 
 All six palette lists (App Launcher, Clipboard, Emoji, File Search, Calculator History, Uninstall) render category labels
-through one shared **`SectionHeader`** (`.subheadline.medium`, secondary — `Features/Launcher/UI/SectionHeader.swift`).
+through one shared **`SectionHeader`** (`.subheadline` semibold in `textSecondary`; see [the fork's colour layer](#colour-the-raycast-palette-fork) — `Features/Launcher/UI/SectionHeader.swift`).
 The launcher shows a single "Results" header over search matches, and per-kind sections
 (Favorites / Applications / System Settings / Commands) for the empty query; clipboard/history use
 date buckets (Today / Yesterday / …), and the clipboard adds a "Pinned" section above them holding
@@ -614,6 +625,30 @@ Spacing lives in `Theme.Spacing`: `sectionHeaderBottom` (header → first row) a
 (gap above every header **except the list's first**, which reads as the previous section's closing
 padding). Each list passes `isFirst: row.id == <rows>.first?.id` so only the very first row skips the
 leading gap. Headers are non-selectable display rows, so selection (keyed by id) is unaffected.
+
+### Empty, loading and failed
+
+Source: `Palette/EmptyResults.swift`.
+
+Every palette screen says "nothing here" through one **`EmptyResults`**: a glyph in the dialog's
+subject tile (`dialogSymbolContainer` on `controlSurface`), a title in `rowTitle` medium and
+`textSecondary`, and an optional `detail` in `rowTrailing` and `textTertiary`, with monospaced digits
+so a running count does not shiver. It reads `metrics`, so it scales with Interface Size.
+
+- **`isLoading: true` is for work still running.** A spinner takes the glyph's place in the same
+  tile, so the composition does not jump when the answer lands. A magnifying glass over "Loading…"
+  says the search already came back empty. The spinner is AppKit's regular one scaled into the
+  glyph's slot (`dialogSymbol`), so it weighs what a glyph does and follows Interface Size.
+- **`action:` is the one thing left to do**, for a failure the caller can retry: an
+  `EmptyResults.Action` with a title, the key caps of the shortcut that does the same, and the
+  closure. It is drawn as a matte `modalAction` capsule with outlined caps, as the footer's pill
+  prints its own. The caps are the caller's promise: pass only a chord the screen handles. The
+  Extension Store's unreachable state is the reference.
+- It appears on the keystroke path, so it takes no entrance animation.
+- **`Features/Extensions/` does not use it.** An extension's "Starting…", "Loading…", "Done" and
+  empty states go through its own `ExtensionEmptyState`, a copy of the look this view had before, so
+  restyling `EmptyResults` cannot move an extension's surface. For the same reason
+  `ExtensionSearchAccessoryButton` draws its own hover chrome rather than a `.rounded` `BarButton`.
 
 ---
 
@@ -649,7 +684,9 @@ Retune a role there, never at a call site.
   elevation, so it takes no rim and no shadow. It follows the system Liquid Glass (clear ↔ tinted)
   setting, which compounds with the palette's own tint: check both when retuning.
 - **`control` already answers a press.** Its glass is interactive, so a control on it takes no
-  pressed fill and no scale of its own. A matte control (`BarButton`, a dialog button) does.
+  pressed fill and no scale of its own: a `.capsule` `BarButton` and the menu circle. A matte control
+  does, as a fill and never a change of size: a `.rounded` `BarButton`, a dialog button, a
+  `PopoverMenuRow`.
 - **The palette's look is `GlassBackdrop.balanced`**: `paletteGlassTint` inside the glass,
   `paletteScrim` over it, and the glass rounded to the panel's own corner. A Debug build can swap in
   `classic` (the untinted glass under `panelScrim` that shipped before) or `clear` (the same veil on
@@ -668,7 +705,7 @@ Retune a role there, never at a call site.
 - **A menu's `width` is fixed, never intrinsic**, so it can't jitter as its rows change. Every header menu states its own at its `RootPaletteView.menuContent` case — `menuWidth 276`, or a token of its own where that reads too wide (`clipboardFilterMenuWidth`, `fileSearchFilterMenuWidth`, `emojiCategoryMenuWidth`) — so retuning one never moves another. Native footer menus add 30pt without changing those header widths; extension Actions owns its nearby 310pt width inside the feature.
 - **`PopoverMenu`** takes the `menu` role with `menuPanel 16` corners and **no hand-tuned shadow** — Tahoe glass carries its own elevation; adding a drop shadow reads heavy and non-native. A footer menu raises only its attached bottom corner to the controls' 18-point radius, so the two silhouettes meet exactly.
 - Its native search field is a row-height sibling of the scroller, above header menus or below footer menus. It uses an 18pt horizontal inset to align with the visible row glyphs. The top field stays vertically symmetric; the bottom field keeps its 1pt optical lift. Menus omit the adjacent edge dissolve and centre **No Results** in one row when their filtered rows are empty. The 8pt resting list inset belongs to the scroll content, so rows can reach the surface edges without shifting their initial position; hover fills keep the dedicated `menuRow 10` corner.
-- `PopoverMenuRow`: leading glyph, label, trailing shortcut glyph and `menuHover` fill on hover. Menus open and close with AppKit's native `.documentWindow` animation, through `AnimatedPanel`.
+- `PopoverMenuRow`: leading glyph, label, trailing shortcut glyph and `menuHover` fill on hover. Held, the fill steps to `controlHover` on `Motion.press`; its `ButtonStyle` draws the highlight, since only a style is told the row is pressed, and the row's stated height does not change. A row that cannot be chosen, disabled or still loading, dims to `Opacity.disabled` once: `.plain` used to halve a disabled label itself, on top of the row's own dim. Menus open and close with AppKit's native `.documentWindow` animation, through `AnimatedPanel`.
 - The glyph is a `PopoverMenuIcon`: `.symbol` (SF Symbol, `monochrome`, `menuSymbol` — or **red** when `isDestructive`) `.file` (a real app icon via `IconCache`, used by the paste rows to show the paste target) or `.thumbnail` (a picture's own preview, cropped to the slot, used by the chat's staged-file rows). `PopoverMenuItem` keeps a `systemImage:` convenience init, so symbol rows read exactly as before.
 - **Every glyph kind shares one square `menuIcon` (20) slot**, which pins one row height. A native SF Symbol uses the dedicated 14pt Medium `menuSymbol` font; file and brand icons keep their own artwork sizing inside the same slot, and a thumbnail fills it.
 - Menu rows use the `md` icon→label gap; the fixed slot adds the remaining optical slack.

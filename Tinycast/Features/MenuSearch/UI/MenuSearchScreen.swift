@@ -32,7 +32,7 @@ struct MenuSearchScreen: PaletteScreen {
         switch session.target {
         case .searchable(let name):
             if session.state == .reading {
-                EmptyResults(text: String(localized: "Reading menu…"))
+                EmptyResults(text: String(localized: "Reading menu…"), isLoading: true)
             } else if rows.isEmpty {
                 EmptyResults(text: String(localized: "No menu items found in \(name)"))
             } else {

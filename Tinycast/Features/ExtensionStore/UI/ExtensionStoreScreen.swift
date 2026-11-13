@@ -141,7 +141,8 @@ private struct ExtensionStoreHeaderAccessory: View {
             if refreshing {
                 ProgressView()
                     .controlSize(.small)
-                    .help("Loading the Raycast Store…")
+                    .accessibilityLabel("Loading the Raycast Store…")
+                    .tooltip(String(localized: "Loading the Raycast Store…"), edge: .bottom)
             }
             if let browse {
                 BarButton(chrome: .rounded, isSelected: true, action: onClear) {
@@ -155,7 +156,8 @@ private struct ExtensionStoreHeaderAccessory: View {
                     }
                 }
                 .fixedSize()
-                .help("Show every list and category  ⎋")
+                .accessibilityHint("Show every list and category  ⎋")
+                .tooltip(String(localized: "Show every list and category  ⎋"), edge: .bottom)
             }
         }
         .padding(.leading, metrics.spacing.md)
@@ -233,37 +235,24 @@ private struct ExtensionStoreView: View {
         } else if asksTheStore, index.remote?.query == query {
             EmptyResults(text: String(localized: "No matching extensions"))
         } else if asksTheStore {
-            progress(Text("Searching…"))
+            EmptyResults(text: String(localized: "Searching…"), isLoading: true)
         } else {
             switch index.phase {
             case .idle:
                 Color.clear
             case .loading:
-                progress(Text("Loading the Raycast Store…"))
+                EmptyResults(text: String(localized: "Loading the Raycast Store…"), isLoading: true)
             case .failed(let failure):
-                VStack(spacing: metrics.spacing.md) {
-                    EmptyResults(
-                        text: String(localized: "Couldn't reach the Raycast Store"), detail: failure,
-                        systemImage: "wifi.exclamationmark"
-                    )
-                    .fixedSize(horizontal: false, vertical: true)
-                    Text("Press ⌘R to try again.")
-                        .font(.callout)
-                        .foregroundStyle(.tertiary)
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                EmptyResults(
+                    text: String(localized: "Couldn't reach the Raycast Store"), detail: failure,
+                    systemImage: "wifi.exclamationmark",
+                    action: EmptyResults.Action(
+                        title: String(localized: "Try Again"), keyCaps: ["⌘", "R"]
+                    ) { coordinator.refresh() })
             case .ready:
                 EmptyResults(text: String(localized: "No matching extensions"))
             }
         }
-    }
-
-    private func progress(_ label: Text) -> some View {
-        VStack(spacing: metrics.spacing.md) {
-            ProgressView()
-            label.foregroundStyle(.secondary)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
 

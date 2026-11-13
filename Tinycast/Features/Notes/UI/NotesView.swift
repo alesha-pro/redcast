@@ -28,6 +28,8 @@ struct NotesView: View {
         }
         .frame(height: Theme.Size.noteTitlebar)
         .overlay { title }
+        // Above the editor, which is where a title-bar tooltip hangs.
+        .zIndex(1)
     }
 
     private var title: some View {
@@ -109,6 +111,7 @@ struct NotesView: View {
     private var characterCount: some View {
         Text(notes.characterCountLabel)
             .font(Theme.Typography.rowTrailing)
+            .monospacedDigit()
             .foregroundStyle(Theme.Colors.textTertiary)
             .lineLimit(1)
             .accessibilityLabel("\(notes.characterCount) characters in this note")
@@ -157,7 +160,8 @@ private struct NoteTitlebarActions: View {
                 String(localized: "Open Notes Folder  ⌘O"), notes.openNotesFolder)
         }
         .padding(Theme.Spacing.xs)
-        .glassSurface(.control, in: Capsule())
+        // Behind the buttons, not around them: glass clips content, tooltips draw outside it.
+        .background { Capsule().fill(Color.clear).glassSurface(.control, in: Capsule()) }
         .padding(.trailing, Theme.Spacing.md)
     }
 
@@ -171,6 +175,8 @@ private struct NoteTitlebarActions: View {
             SymbolImage(name: symbol, size: Theme.Size.noteGlyph)
         }
         .accessibilityLabel(label)
-        .help(help)
+        .accessibilityHint(Text(verbatim: help))
+        // Against the window's trailing edge and under its top, so it hangs down and inward.
+        .tooltip(help, alignment: .trailing, edge: .bottom)
     }
 }

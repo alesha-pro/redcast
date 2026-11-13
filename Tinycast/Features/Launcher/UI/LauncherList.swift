@@ -168,7 +168,10 @@ struct LauncherList: View {
                                     SectionHeader(
                                         title: title, isFirst: row.id == rows.first?.id,
                                         configure: fallbacks?.onConfigure,
-                                        configureHelp: String(localized: "Configure Fallbacks…"))
+                                        configureHelp: String(localized: "Configure Fallbacks…")
+                                    )
+                                    // Over the row below, where the gear's label hangs when leading.
+                                    .zIndex(1)
                                 case .card(let card):
                                     LeadCardView(card: card, selected: cardSelected)
                                         .contentShape(Rectangle())
@@ -266,14 +269,6 @@ private struct AppRow: View {
     @Environment(AliasStore.self) private var aliases
     /// Observed here rather than up in the list, so a ⌘ press re-renders rows and not the palette.
     @Environment(PaletteState.self) private var palette
-    @State private var hovered = false
-
-    /// Selection wins over hover when a row is both; otherwise hover shows its fainter layer.
-    private var fill: Color {
-        if selected { return Theme.Colors.selection }
-        if hovered { return Theme.Colors.rowHover }
-        return .clear
-    }
 
     private var shortcutCaps: [String]? {
         guard let action = app.hotKeyAction else { return nil }
@@ -344,10 +339,6 @@ private struct AppRow: View {
         }
         .padding(.horizontal, metrics.spacing.md)
         .padding(.vertical, metrics.spacing.sm)
-        .background(
-            RoundedRectangle(cornerRadius: metrics.radius.row, style: .continuous)
-                .fill(fill)
-        )
-        .armedHover($hovered)
+        .paletteRow(selected: selected)
     }
 }

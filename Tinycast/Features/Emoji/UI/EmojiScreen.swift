@@ -132,7 +132,7 @@ struct EmojiScreen: PaletteScreen {
     private func content(selection: Int, scroll: ScrollIntent) -> some View {
         let sections = sections
         if !index.isLoaded {
-            EmptyResults(text: String(localized: "Loading emoji…"))
+            EmptyResults(text: String(localized: "Loading emoji…"), isLoading: true)
         } else if sections.isEmpty {
             EmptyResults(text: String(localized: "No emoji found"))
         } else {

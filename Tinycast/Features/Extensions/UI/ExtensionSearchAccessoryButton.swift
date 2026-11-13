@@ -16,9 +16,12 @@ struct ExtensionSearchAccessoryButton: View {
 
     /// Read from the view, so a resolved icon repaints when the surface flips appearance.
     @Environment(\.isDarkAppearance) private var isDark
+    @State private var hovered = false
 
     var body: some View {
-        BarButton(chrome: .rounded, action: action) {
+        let shape = RoundedRectangle(cornerRadius: metrics.radius.barControl, style: .continuous)
+        // Its own chrome, not `BarButton`: a restyle of the header's controls must not reach it.
+        return Button(action: action) {
             HStack(spacing: metrics.spacing.sm) {
                 if let icon {
                     ExtensionIconView(
@@ -32,7 +35,13 @@ struct ExtensionSearchAccessoryButton: View {
                 ExtensionDisclosureChevron(open: isOpen)
             }
             .foregroundStyle(Theme.Colors.textSecondary)
+            .padding(.horizontal, metrics.spacing.md)
+            .frame(height: metrics.size.barButtonHeight)
+            .contentShape(shape)
+            .background(shape.fill(hovered ? Theme.Colors.rowHover : Color.clear))
         }
+        .buttonStyle(.plain)
+        .onHover { hovered = $0 }
         .help(
             Text(
                 verbatim:

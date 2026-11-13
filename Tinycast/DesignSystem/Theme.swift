@@ -388,6 +388,8 @@ enum Theme {
         static let panelTitle = Font.headline
         static let calcResult = Font.title
         static let keyCap = Font.caption
+        /// Fork: the system tooltip's own size, one step above a key cap so a sentence reads.
+        static let tooltip = Font.subheadline
         /// Pair with the matching `Size` for `KeyCapChip.Scale`.
         static let compactKeyCap = Font.caption2
         static let heroKeyCap = Font.body
@@ -433,6 +435,9 @@ enum Theme {
         /// Fork: Reduce Transparency's stand-in for glass, and the only opaque surface there is.
         static let opaqueSurface = adaptive(
             dark: .srgbInk(0.12, alpha: 1), light: .srgbInk(0.95, alpha: 1))
+        /// Fork: a hover label's tile; Dark is `controlSurface` over `opaqueSurface`, flattened.
+        static let tooltipSurface = adaptive(
+            dark: .srgbInk(0.208, alpha: 1), light: .srgbInk(0.99, alpha: 1))
         static let dialogDimming = adaptive(
             dark: .srgbInk(0, alpha: 0.34), light: .srgbInk(0, alpha: 0.34))
         /// Find's marks, the Mac's own yellow: every match faint, the current one solid.

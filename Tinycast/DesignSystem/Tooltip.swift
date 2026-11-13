@@ -44,14 +44,12 @@ private struct TooltipModifier: ViewModifier {
         let shape = RoundedRectangle(cornerRadius: metrics.radius.tooltip, style: .continuous)
         return chip(label)
             .padding(metrics.spacing.xs)
+            // Matte on purpose: it floats over the palette's glass, and glass does not stack.
             .background {
-                shape.fill(Color(nsColor: .windowBackgroundColor))
-                shape.fill(Theme.Colors.controlSurface)
+                shape.fill(Theme.Colors.tooltipSurface)
+                shape.strokeBorder(Theme.Colors.cardStroke, lineWidth: Theme.Size.hairline)
             }
-            .shadow(
-                color: Theme.Colors.tooltipShadow, radius: metrics.spacing.xs,
-                y: metrics.spacing.xxs
-            )
+            .shadow(Theme.Shadow.card)
             .fixedSize()
             // A zero-height frame on the control's edge, so a label of any height hangs off it.
             .frame(height: 0, alignment: edge == .top ? .bottom : .top)
@@ -64,8 +62,8 @@ private struct TooltipModifier: ViewModifier {
         switch label {
         case .text(let text):
             Text(text)
-                .font(metrics.typography.keyCap)
-                .foregroundStyle(Theme.Colors.textSecondary)
+                .font(metrics.typography.tooltip)
+                .foregroundStyle(Color.primary)
                 .padding(.horizontal, metrics.spacing.xs)
                 .frame(minHeight: metrics.size.keyCap)
         case .keyCaps(let caps):

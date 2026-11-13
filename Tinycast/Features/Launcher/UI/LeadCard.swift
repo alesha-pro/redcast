@@ -1,26 +1,22 @@
 import SwiftUI
 
-/// Fill and hover for every lead card, so none can answer a selection differently from another.
+/// The card's surface over the shared row chrome, so no card answers a selection differently.
 private struct LeadCardChrome: ViewModifier {
     @Environment(\.metrics) private var metrics
     let selected: Bool
-    @State private var hovered = false
 
     func body(content: Content) -> some View {
         content
             .background(shape.fill(Theme.Colors.cardFill))
-            .background(shape.fill(fill))
-            .armedHover($hovered)
+            .overlay {
+                shape.strokeBorder(Theme.Colors.cardStroke, lineWidth: Theme.Size.hairline)
+                    .allowsHitTesting(false)
+            }
+            .paletteRow(selected: selected, cornerRadius: metrics.radius.card)
     }
 
     private var shape: RoundedRectangle {
         RoundedRectangle(cornerRadius: metrics.radius.card, style: .continuous)
-    }
-
-    private var fill: Color {
-        if selected { return Theme.Colors.selection }
-        if hovered { return Theme.Colors.rowHover }
-        return .clear
     }
 }
 

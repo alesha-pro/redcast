@@ -168,6 +168,7 @@ struct InterfaceMetrics: Equatable, Sendable {
         var panelTitle: Font { font(Theme.Typography.panelTitle, .headline) }
         var calcResult: Font { font(Theme.Typography.calcResult, .title1) }
         var keyCap: Font { font(Theme.Typography.keyCap, .caption1) }
+        var tooltip: Font { font(Theme.Typography.tooltip, .subheadline) }
         var compactKeyCap: Font { font(Theme.Typography.compactKeyCap, .caption2) }
         var heroKeyCap: Font { font(Theme.Typography.heroKeyCap, .body) }
         var markdownHeading1: Font { font(Theme.Typography.markdownHeading1, .title2, .semibold) }

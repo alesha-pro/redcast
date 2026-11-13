@@ -61,19 +61,12 @@ struct FileSearchRow: View {
     let selected: Bool
     let showsLocation: Bool
     @State private var image: NSImage?
-    @State private var hovered = false
 
     init(result: FileSearchResult, selected: Bool, showsLocation: Bool = false) {
         self.result = result
         self.selected = selected
         self.showsLocation = showsLocation
         _image = State(initialValue: IconCache.cachedFitted(forFile: result.id))
-    }
-
-    private var fill: Color {
-        if selected { return Theme.Colors.selection }
-        if hovered { return Theme.Colors.rowHover }
-        return .clear
     }
 
     /// A folder is named by where it sits: half the hits are some `src` or `Tinycast`.
@@ -117,11 +110,7 @@ struct FileSearchRow: View {
         }
         .padding(.horizontal, metrics.spacing.md)
         .padding(.vertical, metrics.spacing.sm)
-        .background(
-            RoundedRectangle(cornerRadius: metrics.radius.row, style: .continuous)
-                .fill(fill)
-        )
-        .armedHover($hovered)
+        .paletteRow(selected: selected)
         .accessibilityElement(children: .combine)
         .accessibilityLabel(result.name)
         .accessibilityValue(result.parentPath)

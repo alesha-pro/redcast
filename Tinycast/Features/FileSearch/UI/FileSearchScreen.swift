@@ -108,7 +108,7 @@ struct FileSearchScreen: PaletteScreen {
                 text: String(localized: "Indexing your disk…"),
                 detail: String(
                     localized: "\(items.formatted()) items so far. Results appear when it finishes."),
-                systemImage: "externaldrive")
+                isLoading: true)
         } else if !indexer.hasIndex, indexer.status == .failed {
             EmptyResults(
                 text: String(localized: "Couldn’t build the file index"),

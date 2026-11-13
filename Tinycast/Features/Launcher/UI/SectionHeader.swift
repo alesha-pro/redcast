@@ -19,7 +19,9 @@ struct SectionHeader: View {
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
-                .help(configureHelp)
+                .accessibilityLabel(configureHelp)
+                // A leading header has only the list's top above it, where a label is cut off.
+                .tooltip(configureHelp, alignment: .leading, edge: isFirst ? .bottom : .top)
             }
             Spacer(minLength: 0)
         }

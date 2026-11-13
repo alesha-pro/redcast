@@ -34,6 +34,9 @@ enum BarButtonChrome {
                 RoundedRectangle(cornerRadius: metrics.radius.barControl, style: .continuous))
         }
     }
+
+    /// A capsule sits in a `control` glass capsule, whose glass answers the press itself.
+    fileprivate var answersPress: Bool { self == .rounded }
 }
 
 /// A palette bar control, bare until hover; hover lives here so its owner never re-renders.
@@ -44,25 +47,67 @@ struct BarButton<Label: View>: View {
     var isCompact = false
     let action: () -> Void
     @ViewBuilder let label: Label
-    @State private var hovered = false
-    @Environment(\.metrics) private var metrics
 
     var body: some View {
-        let shape = chrome.shape(metrics)
-        return Button(action: action) {
-            label
-                .padding(.horizontal, isCompact ? metrics.spacing.sm : metrics.spacing.md)
-                .frame(height: metrics.size.barButtonHeight)
-                .contentShape(shape)
-                .background(shape.fill(fill))
+        let face = BarButtonFace(chrome: chrome, isSelected: isSelected, isCompact: isCompact)
+        if chrome.answersPress {
+            Button(action: action) { label }
+                .buttonStyle(BarButtonPressStyle(face: face))
+        } else {
+            Button(action: action) { label.modifier(face) }
+                .buttonStyle(.plain)
         }
-        .buttonStyle(.plain)
-        .onHover { hovered = $0 }
+    }
+}
+
+/// The geometry and hover fill every bar button shares.
+private struct BarButtonFace: ViewModifier {
+    let chrome: BarButtonChrome
+    let isSelected: Bool
+    let isCompact: Bool
+    /// Nil under `.plain`, which draws its own held and disabled looks; the matte style sets it.
+    var held: Bool?
+    @State private var hovered = false
+    @Environment(\.metrics) private var metrics
+    @Environment(\.isEnabled) private var isEnabled
+
+    func body(content: Content) -> some View {
+        let shape = chrome.shape(metrics)
+        content
+            .padding(.horizontal, isCompact ? metrics.spacing.sm : metrics.spacing.md)
+            .frame(height: metrics.size.barButtonHeight)
+            .contentShape(shape)
+            .background(
+                shape.fill(fill)
+                    .overlay(shape.fill(selectedPress))
+                    .animation(Theme.Motion.hover, value: hovered)
+                    .animation(Theme.Motion.press, value: held)
+            )
+            .opacity(held != nil && !isEnabled ? Theme.Opacity.disabled : 1)
+            .onHover { hovered = $0 }
     }
 
     private var fill: Color {
         if isSelected { return Theme.Colors.selection }
+        // One stop above `rowHover`, as `controlPressed` sits one above `controlHover`.
+        if held == true { return Theme.Colors.controlSurface }
         return hovered ? Theme.Colors.rowHover : Color.clear
+    }
+
+    /// Laid over the selection rather than replacing it, so a lit matte button still reads held.
+    private var selectedPress: Color {
+        isSelected && held == true ? Theme.Colors.controlSurface : Color.clear
+    }
+}
+
+/// A style, because only a style is told that the button is held.
+private struct BarButtonPressStyle: ButtonStyle {
+    let face: BarButtonFace
+
+    func makeBody(configuration: Configuration) -> some View {
+        var face = face
+        face.held = configuration.isPressed
+        return configuration.label.modifier(face)
     }
 }
 
@@ -128,6 +173,8 @@ struct HeaderMenuButton: View {
             }
             .foregroundStyle(Theme.Colors.textSecondary)
         }
-        .help(help)
+        // Every one of these sits at the header's trailing end, with the window's top above it.
+        .tooltip(isOpen ? nil : help, alignment: .trailing, edge: .bottom)
+        .accessibilityHint(Text(verbatim: help))
     }
 }

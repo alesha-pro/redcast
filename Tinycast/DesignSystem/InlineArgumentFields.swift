@@ -96,7 +96,9 @@ private struct ArgumentFieldChrome: ViewModifier {
                     .strokeBorder(stroke, lineWidth: 1)
             )
             .onHover { hovered = $0 }
-            .help(help)
+            // A focused field is in use, so its label would only cover the rows below.
+            .tooltip(isFocused ? nil : help, edge: .bottom)
+            .accessibilityHint(Text(verbatim: help))
     }
 
     private var help: String {

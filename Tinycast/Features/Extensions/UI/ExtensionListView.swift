@@ -37,7 +37,7 @@ struct ExtensionListView: View {
     @ViewBuilder
     private var emptyState: some View {
         if screen.isLoading {
-            EmptyResults(text: String(localized: "Loading…"))
+            ExtensionEmptyState(text: String(localized: "Loading…"))
         } else if let empty = screen.emptyView {
             VStack(spacing: metrics.spacing.md) {
                 ExtensionIconView(
@@ -56,7 +56,7 @@ struct ExtensionListView: View {
             .padding(.horizontal, metrics.spacing.xl)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         } else {
-            EmptyResults(text: String(localized: "No results"))
+            ExtensionEmptyState(text: String(localized: "No results"))
         }
     }
 

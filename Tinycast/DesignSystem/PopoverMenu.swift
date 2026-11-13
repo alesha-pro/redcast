@@ -372,7 +372,7 @@ private struct PopoverMenuRow: View {
                             // Fork: the glyph's family colour while Colourful Icons is on.
                             .foregroundStyle(
                                 item.isDestructive
-                                    ? Color.red
+                                    ? Theme.Colors.destructive
                                     : ColorfulIcons.glyphColor(
                                         GlyphCategory.menuHue(forSymbol: name),
                                         otherwise: Theme.Colors.menuSymbol)
@@ -382,7 +382,7 @@ private struct PopoverMenuRow: View {
                         Image(name)
                             .resizable()
                             .aspectRatio(contentMode: .fit)
-                            .foregroundStyle(item.isDestructive ? Color.red : Color.secondary)
+                            .foregroundStyle(item.isDestructive ? Theme.Colors.destructive : Color.secondary)
                             .frame(width: metrics.size.menuBrandIcon, height: metrics.size.menuBrandIcon)
                             .frame(width: metrics.size.menuIcon, height: metrics.size.menuIcon)
                     case .file(let path):
@@ -393,7 +393,7 @@ private struct PopoverMenuRow: View {
                 }
                 Text(item.title)
                     .font(metrics.typography.menuRow)
-                    .foregroundStyle(item.isDestructive ? Color.red : Color.primary)
+                    .foregroundStyle(item.isDestructive ? Theme.Colors.destructive : Color.primary)
                     .lineLimit(1)
                 Spacer(minLength: metrics.spacing.sm)
                 if let accessory = item.trailingAccessory { accessory() }
@@ -421,14 +421,31 @@ private struct PopoverMenuRow: View {
                 maxHeight: metrics.size.menuRowHeight, alignment: .leading
             )
             .contentShape(Rectangle())
-            .background(
-                RoundedRectangle(cornerRadius: metrics.radius.menuRow, style: .continuous)
-                    .fill(selected ? Theme.Colors.menuHover : Color.clear)
-            )
-            .opacity(item.isEnabled ? 1 : Theme.Opacity.disabled)
+            .opacity(item.isSelectable ? 1 : Theme.Opacity.disabled)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(PopoverMenuRowStyle(selected: selected, cornerRadius: metrics.radius.menuRow))
         .disabled(!item.isSelectable)
+    }
+}
+
+/// Draws the row's highlight: only a style is told that the row is held.
+private struct PopoverMenuRowStyle: ButtonStyle {
+    let selected: Bool
+    let cornerRadius: CGFloat
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .background(
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .fill(fill(pressed: configuration.isPressed))
+                    .animation(Theme.Motion.press, value: configuration.isPressed)
+            )
+    }
+
+    /// Held, a row steps one stop above `menuHover`; no height changes, so the menu's maths holds.
+    private func fill(pressed: Bool) -> Color {
+        if pressed { return Theme.Colors.controlHover }
+        return selected ? Theme.Colors.menuHover : Color.clear
     }
 }
 

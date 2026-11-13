@@ -176,9 +176,9 @@ install state from recorded commits.
   once, with no spinner and no request (a proxy or Little Snitch shows none).
 - Set the file's `fetchedAt` back two days (or the clock forward), reopen: the old catalog shows at
   once and refreshes behind the spinner. ⌘R refreshes on demand.
-- Turn Wi-Fi off with no cache: "Couldn't reach the Raycast Store" with the error; ⌘R after
-  reconnecting loads it. With a cache, offline, the catalog shows and the preview names the failed
-  refresh.
+- Turn Wi-Fi off with no cache: "Couldn't reach the Raycast Store" with the error and a Try Again
+  button; the button or ⌘R after reconnecting loads it. With a cache, offline, the catalog shows
+  and the preview names the failed refresh.
 - Type "github" while the catalog is still loading: "Searching…", then the search endpoint's
   results; once loaded, results are local and instant.
 - ↵ on Developer Tools: its extensions by downloads under its own header, the chip beside the
