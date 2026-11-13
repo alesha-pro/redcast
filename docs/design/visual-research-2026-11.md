@@ -165,7 +165,7 @@ No existing ramp stop changes value.
 5. **Shortcuts pane.** A real table with column headers and no "Show More" paging.
 6. **Empty, loading and error states.** Keycap hints, a spinner variant and inline retry; today loading shows a magnifying glass.
 7. **Accessibility.** Reduce Transparency and Increase Contrast handling, missing row traits on five lists, and Tab traversal with a focus ring in dialogs.
-8. **Onboarding.** The copy still says "Tinycast", and the window height jumps between steps.
+8. **Onboarding.** The copy seemed to still say the upstream name, and the window height jumps between steps.
 9. **Settings structure.** Visible group headers; Permissions with status badges and one accent "Grant" action; `slider.horizontal.3` currently means four different things.
 10. **Dead code and doc drift.** About 450 unreachable lines in `AIChatDetailView.swift`, a `ContextCard` that never shows, and stale `ui.md` values (sidebar 215 vs 218, note titlebar 44 vs 52, lead-card stroke).
 
@@ -208,7 +208,7 @@ Checked against the code and `docs/ui.md`; nothing was built or rendered. The SD
 11. **`Opacity.inactive` via `appearsActive` may dim the whole palette**, because the app is inactive behind a non-activating panel. Scope it to titled windows; verify first.
 12. **Translucent Settings and AI Chat need their own gate.** Both keep the system titlebar band, and `ui.md` records that scroll-edge materials render as hard rectangles over transparent surfaces. `NavigationSplitView` in an AppKit-built window may keep an opaque detail background. Long transcripts over wallpaper hurt reading; keep AI Chat opaque.
 13. **"Tokens outside `Theme.swift`" conflicts with `ui.md`** ("New tokens go in `Theme`"). Scaled tokens also need `InterfaceMetrics.swift` and `interface-size-test`, which every phase would then touch.
-14. **UX item 8 is half wrong.** The catalog already renders "Welcome to Redcast"; the Tinycast source keys are kept on purpose for upstream merges. Do not rename them.
+14. **UX item 8 is half wrong.** The catalog already renders "Welcome to Redcast"; the upstream source keys are kept on purpose for upstream merges. Do not rename them.
 15. **`Radius.card` 10 → 14 hits every user of `card`.** Add a new token.
 
 ## Phases that are not disjoint
@@ -522,7 +522,7 @@ Paths are relative to `/Users/superalesha/dev/opensource/launchers/tinycast/Tiny
    - Raw `.blue/.orange/.green` instead of the Raycast hues (`:116-118,345-349`).
    - Literals: `.system(size: 30)`, 60, 7, 150, `duration: 0.2` (`:48,78-83,200,227`).
    - A step change is a bare cross-fade while the window height jumps with `animate: false` (`AppWindowController.swift:92`).
-   - Copy still says "Tinycast" (`:90,100,124,147`) while About shows Redcast.
+   - Copy seemed to still say the upstream name (`:90,100,124,147`) while About shows Redcast.
 2. **Tooltip is an opaque grey tile beside glass controls.** Being in-window, it clips at window edges, which is why `NoteFormattingBar.swift:130,175` carry alignment workarounds.
 3. **Volume HUD ignores Interface Size (probable bug).** `VolumeHUDView.swift:8-42` reads `Theme.*`, but its window is sized from scaled metrics (`VolumeHUDController.swift:25-28`), so box and window disagree off the default size.
 4. **HUD motion is uneven.**
