@@ -23,6 +23,8 @@ extension Theme.Colors {
         dark: vermilion.withAlphaComponent(0.85), light: vermilion.withAlphaComponent(0.75))
     /// The settings sidebar's cards, a step off its own surface.
     static let chatSettingsCard = ramp(dark: 0.05, light: 0.035)
+    /// A switch's knob, white on the accent and on the track in both appearances, as AppKit's is.
+    static let chatSwitchKnob = adaptive(dark: .srgbInk(1, alpha: 1), light: .srgbInk(1, alpha: 1))
 }
 
 extension RaycastHue {
@@ -64,6 +66,11 @@ extension Theme.Size {
     static let chatInstructionsHeight: CGFloat = 96
     static let chatShortcutBadge: CGFloat = 18
     static let chatModelChipMaxWidth: CGFloat = 220
+    /// The usage card's context ring, and the weight of its track and fill.
+    static let chatUsageRing: CGFloat = 26
+    static let chatUsageRingStroke: CGFloat = 3
+    /// The settings sidebar's switch, the size of the system's small one.
+    static let chatSwitch = CGSize(width: 32, height: 18)
     /// A branch sits this far in under its parent, its line under the parent's first letter.
     static let chatBranchIndent: CGFloat = 14
     static let chatBranchLine: CGFloat = 4.5

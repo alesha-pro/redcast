@@ -110,7 +110,7 @@ final class SnapshotToolbar: NSObject, NSToolbarDelegate {
         }
         let symbols = [
             Self.sidebar: "sidebar.left", Self.newChat: "square.and.pencil",
-            Self.actions: "slider.horizontal.3", Self.settings: "sidebar.right"
+            Self.actions: "ellipsis.circle", Self.settings: "sidebar.right"
         ]
         let item = NSToolbarItem(itemIdentifier: identifier)
         item.image = symbols[identifier].flatMap { NSImage(systemSymbolName: $0, accessibilityDescription: nil) }
@@ -182,10 +182,8 @@ struct SnapshotDetail: View {
                 }
             }
             .padding(Theme.Spacing.md)
-            .background {
-                Color.clear.glassEffect(
-                    .regular, in: RoundedRectangle(cornerRadius: Theme.Radius.dialog, style: .continuous))
-            }
+            .elevatedSurface(
+                in: RoundedRectangle(cornerRadius: Theme.Radius.dialog, style: .continuous), shadow: Theme.Shadow.composer)
             .frame(maxWidth: Theme.Size.aiChatReadingWidth)
             .padding(.horizontal, Theme.Spacing.xxl)
             .padding(.bottom, Theme.Spacing.xxl)
@@ -525,6 +523,20 @@ extension View {
 
 enum Paster {
     static func copyPlainText(_ text: String) {}
+}
+
+enum SettingsControlKind {
+    case rowIcon
+}
+
+extension View {
+    func settingsControl(_ kind: SettingsControlKind) -> some View { buttonStyle(.plain) }
+    func tooltip(_ text: String?, alignment: HorizontalAlignment = .center) -> some View { self }
+}
+
+@MainActor
+enum ChatModelNSMenu {
+    static func build(_ pickers: [ChatSettingsMenu], workspace: ChatWorkspaceCoordinator) -> NSMenu { NSMenu() }
 }
 
 @MainActor

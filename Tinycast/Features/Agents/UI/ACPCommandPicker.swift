@@ -162,10 +162,8 @@ private struct ACPCommandCard: View {
         }
         .frame(maxWidth: .infinity)
         .clipShape(shape)
-        .glassEffect(.regular, in: shape)
-        // Solid under the glass, so the transcript's text never shows through the card.
-        .background { shape.fill(Theme.Colors.windowSurface) }
-        .shadow(Theme.Shadow.card)
+        // Opaque, so the transcript's text never shows through the card.
+        .elevatedSurface(in: shape, shadow: Theme.Shadow.floating)
         .accessibilityElement(children: .contain)
         .accessibilityLabel("Agent Commands")
     }

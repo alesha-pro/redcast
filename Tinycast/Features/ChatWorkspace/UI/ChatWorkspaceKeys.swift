@@ -190,6 +190,59 @@ enum ChatMoveNSMenu {
     }
 }
 
+/// Fork: the composer chip's menu: the model inline, its other selects beneath, then the sidebar.
+@MainActor
+enum ChatModelNSMenu {
+    static func build(_ pickers: [ChatSettingsMenu], workspace: ChatWorkspaceCoordinator) -> NSMenu {
+        let menu = NSMenu()
+        menu.autoenablesItems = false
+        if let first = pickers.first { add(first, to: menu) }
+        let others = pickers.dropFirst()
+        if !others.isEmpty { menu.addItem(.separator()) }
+        for picker in others {
+            let submenu = NSMenu(title: picker.label)
+            submenu.autoenablesItems = false
+            add(picker, to: submenu)
+            let item = NSMenuItem(title: picker.label, action: nil, keyEquivalent: "")
+            item.image = picker.icon.map(ChatSettingsIconImage.make)
+            item.subtitle = picker.title
+            item.submenu = submenu
+            item.isEnabled = picker.isEnabled
+            menu.addItem(item)
+        }
+        menu.addItem(.separator())
+        menu.addItem(
+            WorkspaceMenuItem(
+                String(localized: "Chat Settings"), symbol: "sidebar.right", key: "i", modifiers: [.command, .shift]
+            ) {
+                workspace.toggleSettingsSidebar?()
+            })
+        return menu
+    }
+
+    private static func add(_ picker: ChatSettingsMenu, to menu: NSMenu) {
+        for (index, group) in picker.groups.enumerated() {
+            if let title = group.title {
+                menu.addItem(.sectionHeader(title: title))
+            } else if index > 0 {
+                menu.addItem(.separator())
+            }
+            for choice in group.choices {
+                let item = WorkspaceMenuItem(choice.title, symbol: nil, choice.select)
+                item.image = choice.icon.map(ChatSettingsIconImage.make)
+                item.subtitle = choice.detail
+                item.state = choice.isOn ? .on : .off
+                item.isEnabled = picker.isEnabled
+                menu.addItem(item)
+            }
+        }
+        if let footer = picker.footer {
+            menu.addItem(.separator())
+            menu.addItem(WorkspaceMenuItem(footer.title, symbol: nil, footer.run))
+        }
+    }
+}
+
 /// An `NSMenuItem` that runs a closure, so a menu built per open needs no selector per row.
 final class WorkspaceMenuItem: NSMenuItem {
     private let run: () -> Void

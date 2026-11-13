@@ -28,6 +28,8 @@ struct ChatTranscriptView: View {
     var find: ChatFindHighlight?
     /// Cleared when the reader scrolls up, so a streaming reply stops dragging them back down.
     @State private var followsTail = true
+    /// Fork: what was already here when the transcript opened, so only a later message arrives.
+    @State private var openedWith: Set<UUID>?
 
     /// Below this a backward move is momentum settling, not the reader asking for the wheel.
     private static let deliberateScroll: CGFloat = 2
@@ -58,12 +60,14 @@ struct ChatTranscriptView: View {
                         )
                         .equatable()
                         .environment(\.chatTextHighlight, highlight(for: message.id))
+                        .chatArrival(arrives(message.id))  // Fork
                         .id(message.id)
                     }
                     // Fork: the window lists usage in the chat's settings sidebar instead.
                     if surface == .palette, let total = usage?.totalTokens {
                         Text("\(total.formatted()) tokens")
                             .font(metrics.typography.rowTrailing)
+                            .monospacedDigit()
                             .foregroundStyle(Theme.Colors.textTertiary)
                             .frame(maxWidth: .infinity, alignment: .trailing)
                     }
@@ -83,6 +87,9 @@ struct ChatTranscriptView: View {
                 .frame(maxWidth: .infinity)
             }
             .modifier(TranscriptScrollChrome(surface: surface))
+            .onAppear { openedWith = Set(messages.map(\.id)) }
+            // A host that swaps conversations without a new identity: the next one opens here.
+            .onChange(of: messages.first?.id) { openedWith = Set(messages.map(\.id)) }
             // Reopened chats start at the latest message; other anchor roles fight the reader.
             .defaultScrollAnchor(.bottom, for: .initialOffset)
             .onScrollGeometryChange(for: ScrollMark.self) { geometry in
@@ -139,6 +146,12 @@ struct ChatTranscriptView: View {
             query: find.query, current: find.current?.messageID == id ? find.current : nil)
     }
 
+    /// Fork: only within the conversation that opened; one swapped in under it never arrives.
+    private func arrives(_ id: UUID) -> Bool {
+        guard let openedWith, let first = messages.first?.id, openedWith.contains(first) else { return false }
+        return !openedWith.contains(id)
+    }
+
     /// A sent message always comes into view; a growing reply only while the reader is at the end.
     private func follow(_ proxy: ScrollViewProxy, always: Bool) {
         guard always || followsTail else { return }
@@ -162,6 +175,7 @@ private struct TranscriptScrollChrome: ViewModifier {
 private struct ResumeFollowingButton: View {
     @Environment(\.metrics) private var metrics
     let action: () -> Void
+    @State private var hovered = false
 
     var body: some View {
         Button(action: action) {
@@ -169,13 +183,30 @@ private struct ResumeFollowingButton: View {
                 .font(metrics.typography.rowTrailing)
                 .foregroundStyle(Theme.Colors.textSecondary)
                 .frame(width: metrics.size.chatJumpToLatest, height: metrics.size.chatJumpToLatest)
-                .background(.ultraThinMaterial, in: Circle())
-                .overlay(Circle().strokeBorder(Theme.Colors.border))
                 .contentShape(Circle())
         }
-        .buttonStyle(.plain)
-        .help("Jump to Latest")
+        .buttonStyle(JumpToLatestStyle(hovered: hovered))
+        .onHover { hovered = $0 }
+        .animation(Theme.Motion.hover, value: hovered)
+        .tooltip(String(localized: "Jump to Latest"))
         .accessibilityLabel("Jump to Latest")
+    }
+}
+
+/// Fork: matte in both hosts, as glass would stack in the palette, so it answers a press itself.
+private struct JumpToLatestStyle: ButtonStyle {
+    let hovered: Bool
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .background { Circle().fill(fill(pressed: configuration.isPressed)) }
+            .elevatedSurface(in: Circle(), shadow: Theme.Shadow.card)
+            .animation(Theme.Motion.press, value: configuration.isPressed)
+    }
+
+    private func fill(pressed: Bool) -> Color {
+        if pressed { return Theme.Colors.controlSurface }
+        return hovered ? Theme.Colors.rowHover : .clear
     }
 }
 
@@ -266,8 +297,8 @@ private struct ChatMessageView: View, @MainActor Equatable {
                 // The user bubble is inset because it carries a fill.
                 .padding(.horizontal, message.role == .user ? metrics.spacing.xl : replyInset)
                 .padding(.vertical, metrics.spacing.md)
-                .chatBubble(isUser: message.role == .user, radius: metrics.radius.row)  // Fork: accent wash
-                .chatEditing(message, actions: workspaceActions, radius: metrics.radius.row)  // Fork: outlined
+                .chatBubble(isUser: message.role == .user, radius: metrics.radius.chatBubble)  // Fork: accent wash
+                .chatEditing(message, actions: workspaceActions, radius: metrics.radius.chatBubble)  // Fork: outlined
         }
     }
 
@@ -328,7 +359,7 @@ private struct ChatMessageView: View, @MainActor Equatable {
                 if let onChoose, !parts.choices.isEmpty {
                     ChatSuggestionChips(choices: parts.choices, onChoose: onChoose)
                 }
-                if !references.isEmpty { ChatSourcesView(references: references) }
+                if !references.isEmpty { ChatSourcesView(references: references, surface: surface) }
             }
             .chatFiles(for: message)  // Fork: file links and the Files strip
             .environment(\.chatCitations, ChatReferences.numbers(for: references))
@@ -351,6 +382,7 @@ extension ChatMessageView {
 private struct ChatSourcesView: View {
     @Environment(\.metrics) private var metrics
     let references: [ChatReference]
+    let surface: ChatSurface
 
     var body: some View {
         VStack(alignment: .leading, spacing: metrics.spacing.sm) {
@@ -359,7 +391,7 @@ private struct ChatSourcesView: View {
                 .foregroundStyle(Theme.Colors.textTertiary)
             ChatFlowLayout(spacing: metrics.spacing.sm) {
                 ForEach(Array(references.enumerated()), id: \.element) { index, reference in
-                    ChatSourceChip(index: index + 1, reference: reference)
+                    ChatSourceChip(index: index + 1, reference: reference, surface: surface)
                 }
             }
         }
@@ -371,9 +403,10 @@ private struct ChatSourceChip: View {
     @Environment(\.metrics) private var metrics
     let index: Int
     let reference: ChatReference
+    let surface: ChatSurface
 
     var body: some View {
-        Button {
+        let chip = Button {
             NSWorkspace.shared.open(reference.url)
         } label: {
             HStack(spacing: metrics.spacing.md) {
@@ -399,8 +432,23 @@ private struct ChatSourceChip: View {
             .chatChip(leadsWithBadge: true)
         }
         .buttonStyle(.plain)
-        .help(reference.url.absoluteString)
+        // Fork: AppKit's tip where it shows, as it costs a chip nothing; the palette needs its own.
+        Group {
+            if surface == .window {
+                chip.chatToolTip(reference.url.absoluteString)
+            } else {
+                chip.tooltip(Self.tip(for: reference.url), alignment: .leading)
+            }
+        }
         .accessibilityLabel("Source \(index): \(reference.title), \(reference.host)")
+        .accessibilityHint(Text(verbatim: reference.url.absoluteString))
+    }
+
+    /// Fork: one line in the palette's column, so a long address gives up its middle.
+    private static func tip(for url: URL) -> String {
+        let address = url.absoluteString
+        guard address.count > 60 else { return address }
+        return String(address.prefix(40)) + "…" + address.suffix(19)
     }
 }
 
@@ -417,7 +465,7 @@ private struct RegenerateButton: View {
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .help("Regenerate Response")
+        .tooltip(String(localized: "Regenerate Response"))
         .accessibilityLabel("Regenerate Response")
     }
 }

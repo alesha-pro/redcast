@@ -237,6 +237,11 @@ final class ChatSelectableTextView: NSTextView {
             context.setStrokeColor(NSColor(Theme.Colors.cardStroke).cgColor)
             context.setLineWidth(line)
             context.strokePath()
+            // Fork: the header strip's rule, as the tool output's card draws under its own header.
+            let rule = box.minY + metrics.spacing.md + ChatCodeHeader.height + metrics.spacing.sm / 2
+            context.setFillColor(NSColor(Theme.Colors.cardStroke).cgColor)
+            context.fill(
+                CGRect(x: box.minX + metrics.spacing.xl, y: rule, width: box.width - metrics.spacing.xl * 2, height: line))
         }
     }
 

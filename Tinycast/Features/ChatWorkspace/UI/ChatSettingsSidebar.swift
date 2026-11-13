@@ -92,9 +92,8 @@ private struct ChatSettingsContent: View {
                     .font(.callout.weight(.semibold))
                     .foregroundStyle(Theme.Colors.textSecondary)
                     .frame(width: Theme.Size.settingsControlHeight, height: Theme.Size.settingsControlHeight)
-                    .contentShape(Rectangle())
             }
-            .buttonStyle(.plain)
+            .settingsControl(.rowIcon)
             .help("Hide Chat Settings  ⇧⌘I")
             .accessibilityLabel("Hide Chat Settings")
         }
@@ -218,14 +217,7 @@ private struct ChatSettingsContent: View {
 
     private func card(@ViewBuilder content: () -> some View) -> some View {
         VStack(alignment: .leading, spacing: Theme.Spacing.lg) { content() }
-            .padding(Theme.Spacing.lg)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(
-                RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous)
-                    .fill(Theme.Colors.chatSettingsCard))
-            .overlay(
-                RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous)
-                    .strokeBorder(Theme.Colors.cardStroke))
+            .chatSettingsCard()
     }
 
     private func field(_ title: LocalizedStringResource, @ViewBuilder content: () -> some View) -> some View {
@@ -336,8 +328,9 @@ private struct ChatToolsSection: View {
                     Text(verbatim: server.name)
                         .font(.callout)
                         .padding(.leading, Theme.Spacing.xxl + Theme.Spacing.xs)
+                        .frame(maxWidth: .infinity, alignment: .leading)
                 }
-                .toggleStyle(.checkbox)
+                .toggleStyle(ChatSwitchStyle())
             }
         }
         Button("MCP Settings…", action: tools.showSettings)
@@ -360,13 +353,13 @@ struct ChatUsageCard: View {
         VStack(alignment: .leading, spacing: Theme.Spacing.lg) {
             HStack(spacing: Theme.Spacing.md) {
                 ZStack {
-                    Circle().stroke(Theme.Colors.border, lineWidth: 3)
+                    Circle().stroke(Theme.Colors.border, lineWidth: Theme.Size.chatUsageRingStroke)
                     Circle()
                         .trim(from: 0, to: min(max(usage.fill, 0), 1))
-                        .stroke(tint, style: StrokeStyle(lineWidth: 3, lineCap: .round))
+                        .stroke(tint, style: StrokeStyle(lineWidth: Theme.Size.chatUsageRingStroke, lineCap: .round))
                         .rotationEffect(.degrees(-90))
                 }
-                .frame(width: 26, height: 26)
+                .frame(width: Theme.Size.chatUsageRing, height: Theme.Size.chatUsageRing)
                 VStack(alignment: .leading, spacing: Theme.Spacing.xxs) {
                     Text(usage.fillsWindow ? "Context" : "History")
                         .font(.subheadline.weight(.semibold))
@@ -423,14 +416,7 @@ struct ChatUsageCard: View {
             }
             .font(.callout)
         }
-        .padding(Theme.Spacing.lg)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous)
-                .fill(Theme.Colors.chatSettingsCard))
-        .overlay(
-            RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous)
-                .strokeBorder(Theme.Colors.cardStroke))
+        .chatSettingsCard()
     }
 
     private func row(_ label: LocalizedStringResource, _ value: String) -> some View {
@@ -451,6 +437,17 @@ struct ChatUsageCard: View {
         guard let window else { return count.formatted() }
         return String(
             localized: "\(count.formatted()) of \(window.formatted(.number.notation(.compactName)))")
+    }
+}
+
+extension View {
+    /// The sidebar's one card: a step off its surface, edged, at the shared card corner.
+    fileprivate func chatSettingsCard() -> some View {
+        let shape = RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous)
+        return padding(Theme.Spacing.lg)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(shape.fill(Theme.Colors.chatSettingsCard))
+            .overlay(shape.strokeBorder(Theme.Colors.cardStroke))
     }
 }
 

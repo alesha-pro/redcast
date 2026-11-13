@@ -37,7 +37,7 @@ private struct ChatSuggestionChip: View {
             .chatChip()
         }
         .buttonStyle(.plain)
-        .help("Reply “\(choice)”")
+        .tooltip(String(localized: "Reply “\(choice)”"))
         .accessibilityLabel("Reply: \(choice)")
     }
 }

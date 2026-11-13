@@ -3,7 +3,7 @@
 Settings → AI → **Usage** sums the tokens and cost each reply reported — per model, or per ACP
 agent, for a day, a week or a month — from the chat history kept on this Mac and from a small log of
 the replies no chat keeps (Quick Actions, Ask by Voice, Edit Selection by Voice and cloud dictation
-with its modes, extension AI, chat titles). A strip of bars shows the period's tokens per hour of a day or per day of a week or month.
+with its modes, extension AI, chat titles). A Swift Charts bar chart shows the period's tokens per hour of a day or per day of a week or month.
 On a press of **Check Balance** it asks OpenRouter what a key has spent, and with an optional
 management key what the account has left. The **AI Usage** command opens the section from the
 launcher. It is the fork's (roadmap item 14 in [FORK.md](../../FORK.md)), kept to
@@ -138,7 +138,7 @@ below, and the `Fork:`-marked lines listed under [Upstream touches](#upstream-to
 | `Service/UsageLedger.swift` | `ai-usage.tsv`: the locked append, the age trim, the read and the clear |
 | `Service/UsageRecordingProvider.swift` | The pass-through provider that logs a reply's usage when its stream ends |
 | `Service/OpenRouterAccountClient.swift` | The Keychain reads and the per-call fetch |
-| `Settings/UsageSection.swift` | The section, the trend strip, a row per model or agent, a balance row per OpenRouter connection and its management-key panel, and the log's Clear row |
+| `Settings/UsageSection.swift` | The section, the trend chart (Swift Charts, a system framework), a row per model or agent, a balance row per OpenRouter connection and its management-key panel, and the log's Clear row |
 
 The aggregate scans `message_details` (replies with usage) first: `CROSS JOIN` pins that order, so
 `messages` is searched by its primary key rather than scanned whole, and the result is one row per
@@ -191,8 +191,10 @@ search keywords in `SettingsSearchCatalog`.
 - Usage log → Clear…: Redcast's own dialog asks; Clear Log removes `ai-usage.tsv`, the Quick Action
   lines leave the section at once while chats keep theirs, and the next Quick Action starts a new
   file.
-- The trend: Day shows a bar per hour, Week seven and Month one per day; the current one is tinted
-  and later ones are a hairline; hovering a bar names it with its tokens and cost. A 25-hour day
+- The trend: Day shows a bar per hour, Week seven and Month one per day, over a few date labels;
+  the current one is accent red and empty ones leave only the hairline baseline; hovering names the
+  bar under the pointer, with its tokens and cost, on the line below the chart, which is held open
+  so nothing under it moves. A 25-hour day
   (the last Sunday of October in Europe) shows 25 bars.
 - Management Key… on an OpenRouter row: Save a management key, then Check Balance: the third line is
   the account's credits left. `nettop` shows the `/credits` call to `openrouter.ai` even when the

@@ -58,24 +58,24 @@ private struct ChatToolDisclosure<Row: View>: View {
     }
 }
 
-/// Soft-wrapped like a code block: a second scroll view would fight the transcript's own.
+/// Soft-wrapped like a code block, and carded like one: a header row over monospaced lines.
 private struct ChatToolContentView: View {
     @Environment(\.metrics) private var metrics
     let content: ChatToolContent
 
     var body: some View {
+        let shape = RoundedRectangle(cornerRadius: metrics.radius.codeBlock, style: .continuous)
         VStack(alignment: .leading, spacing: metrics.spacing.md) {
             ForEach(Array(content.diffs.enumerated()), id: \.offset) { index, diff in
                 // Hunks of one file follow each other, so the path heads only the first.
-                if index == 0 || content.diffs[index - 1].path != diff.path {
-                    Text(verbatim: diff.path)
-                        .font(metrics.typography.keyCap)
-                        .foregroundStyle(Theme.Colors.textTertiary)
-                        .lineLimit(1)
-                        .truncationMode(.middle)
-                }
-                if !diff.lines.isEmpty {
-                    Text(Self.styled(ChatToolContent.lines(of: diff), gutter: "  "))
+                let heads = index == 0 || content.diffs[index - 1].path != diff.path
+                if heads || !diff.lines.isEmpty {
+                    VStack(alignment: .leading, spacing: metrics.spacing.sm / 2) {
+                        if heads { header(diff.path) }
+                        if !diff.lines.isEmpty {
+                            Text(Self.styled(ChatToolContent.lines(of: diff), gutter: "  "))
+                        }
+                    }
                 }
             }
             if content.omittedDiffs > 0 {
@@ -84,11 +84,9 @@ private struct ChatToolContentView: View {
                     .foregroundStyle(Theme.Colors.textTertiary)
             }
             if content.output != nil {
-                HStack(alignment: .top, spacing: metrics.spacing.md) {
+                VStack(alignment: .leading, spacing: metrics.spacing.sm / 2) {
+                    header(String(localized: "Output"), copying: Self.plainText(content.outputLines))
                     Text(Self.styled(content.outputLines, gutter: ""))
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                    ChatCopyButton(
-                        text: Self.plainText(content.outputLines), label: String(localized: "Copy Output"))
                 }
             }
         }
@@ -96,15 +94,30 @@ private struct ChatToolContentView: View {
         .textSelection(.enabled)
         .fixedSize(horizontal: false, vertical: true)
         .frame(maxWidth: .infinity, alignment: .leading)
+        // A code block's own insets, so the header, its rule and the first line sit alike in both.
         .padding(.horizontal, metrics.spacing.xl)
-        .padding(.vertical, metrics.spacing.lg)
-        .background(
-            RoundedRectangle(cornerRadius: metrics.radius.card, style: .continuous)
-                .fill(Theme.Colors.cardFill)
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: metrics.radius.card, style: .continuous)
-                .stroke(Theme.Colors.cardStroke))
+        .padding(.top, metrics.spacing.md)
+        .padding(.bottom, metrics.spacing.lg)
+        .background(shape.fill(Theme.Colors.cardFill))
+        .overlay(shape.strokeBorder(Theme.Colors.cardStroke))
+    }
+
+    /// A code block's own header: what follows on the leading edge, its copy on the trailing one.
+    private func header(_ title: String, copying text: String? = nil) -> some View {
+        HStack(spacing: metrics.spacing.md) {
+            Text(verbatim: title)
+                .font(metrics.typography.keyCap)
+                .foregroundStyle(Theme.Colors.textTertiary)
+                .lineLimit(1)
+                .truncationMode(.middle)
+            Spacer(minLength: metrics.spacing.md)
+            if let text { ChatCopyButton(text: text, label: String(localized: "Copy Output")) }
+        }
+        .frame(minHeight: metrics.size.chatMessageAction)
+        .padding(.bottom, metrics.spacing.sm / 2)
+        .overlay(alignment: .bottom) {
+            Rectangle().fill(Theme.Colors.cardStroke).frame(height: Theme.Size.hairline)
+        }
     }
 
     /// One string per block, so the lines wrap and select as text; a cut sits in a diff's gutter.

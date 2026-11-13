@@ -109,6 +109,19 @@ struct AppearanceTests {
         }
         check("the opaque surface is opaque", components(c.opaqueSurface, .darkAqua)[3] == 255)
         adapts("opaqueSurface", c.opaqueSurface)
+        print("# an elevated card is opaque and never darker than the page it rises from")
+        for name in [NSAppearance.Name.darkAqua, .aqua] {
+            let card = components(c.elevatedSurface, name)
+            let page = components(c.windowSurface, name)
+            check("\(name.rawValue) elevated card is opaque", card[3] == 255)
+            check("\(name.rawValue) elevated card is at least the page", card[0] >= page[0], "\(card) \(page)")
+        }
+        check(
+            "dark elevated card lifts off the page",
+            components(c.elevatedSurface, .darkAqua)[0] > components(c.windowSurface, .darkAqua)[0])
+        check(
+            "light composer, white on white, separates by its shadow",
+            components(Theme.Shadow.composer.color, .aqua)[3] > 0)
 
         print("# .system hands the choice back to AppKit")
         check("system is nil", AppAppearance.system.nsAppearance == nil)

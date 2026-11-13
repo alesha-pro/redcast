@@ -157,8 +157,8 @@ behind a bar in its colour.
 
 ## Chat Settings
 
-The toolbar's last button, over the right sidebar, ⇧⌘I, the composer's model chip and the sidebar's
-✕ show or hide it; the choice is remembered (`ChatWorkspaceSettings.showsInspector`). It is an
+The toolbar's last button, over the right sidebar, ⇧⌘I, the Chat Settings row of the composer's
+model chip and of ⌘K, and the sidebar's ✕ show or hide it; the choice is remembered (`ChatWorkspaceSettings.showsInspector`). It is an
 inspector split item that collapses first when the window narrows, so the transcript keeps its
 minimum width, and comes back as the window widens. Its cards:
 
@@ -169,7 +169,10 @@ minimum width, and comes back as the window widens. Its cards:
 - **Additional Instructions**, a multi-line field saved as it is typed and sent last in the chat's
   system prompt, after the folder's.
 - **Tools**: Web Search (every chat's, as before) and this chat's MCP servers, all, some or none,
-  with MCP Settings….
+  with MCP Settings…. Every on/off in the sidebar is one `ChatSwitchStyle` switch, a server's too,
+  and every card is the one `chatSettingsCard` shape. The switch is a button over its whole row, so
+  a click on the name, Space under Full Keyboard Access and VoiceOver's press all toggle it, as the
+  checkbox it replaced did; its track takes a fill under the pointer and a deeper one while held.
 - **Context**: the ring and its percentage (green, orange from 80%, red at 100%), what is in
   context of the model's window, the last turn's input with its cached share and output with its
   thinking share, the chat's tokens and cost, and messages and history against the budget. It
@@ -186,8 +189,12 @@ minimum width, and comes back as the window widens. Its cards:
     an ACP agent show none: ACP does not say who pays, and Claude Code reports a price on a plan too.
 
 The composer keeps what is typed and the essentials: + (Attach Files…, Attach Note…), one chip
-with the agent's tile, the model's mark and name that opens the settings, the mic while Dictation is
-on, and Send/Stop. The window's title is the chat's, with the model and agent under it as the
+with the agent's tile, the model's mark and name, the mic while Dictation is on, and Send/Stop. A
+click on the chip opens the model menu itself (`ChatModelNSMenu`), an AppKit menu built on the click
+from the same `ChatSettingsSource` pickers the sidebar shows, with the current model over the chip:
+the chat's models inline, its other selects (Reasoning, or an ACP agent's mode and the rest) as
+submenus, then Chat Settings ⇧⌘I. Built on the click, it costs nothing while a reply streams.
+An ACP agent's Mode wears `dial.medium`; `slider.horizontal.3` means settings and nothing else. The window's title is the chat's, with the model and agent under it as the
 subtitle, as Raycast's title bar has.
 
 ## Messages and the window
@@ -237,10 +244,12 @@ Everything here is a token: `Theme.Colors.chat…` and `RaycastHue.ink`/`wash` i
 - The model's mark wears its maker's colour (`ChatBrandHue`, and Agent Sessions' CLI hues where
   they overlap) in the settings sidebar, its menus and the composer's chip; an agent wears its tile.
 - The reader's message sits on a vermilion wash (9% light, 20% dark) edged a step deeper, in both
-  surfaces. A finished tool call's glyph says what it did (`ChatToolKind`): web blue, files purple,
+  surfaces, rounded at `Radius.chatBubble` (16), so a one-line question reads as a pill. A finished tool call's glyph says what it did (`ChatToolKind`): web blue, files purple,
   terminal green, notes yellow, an MCP server's orange; a search's globe is blue and a thinking
   fold's brain magenta. A failed call stays red.
-- A code block's language is a small pill in its language's hue (`CodeLanguageHue`).
+- A code block's language is a small pill in its language's hue (`CodeLanguageHue`), on a header
+  strip ruled off from the code; an ACP call's diff or output unfolds into the same card, at
+  `Radius.codeBlock`, its path or Output and copy on a ruled header row over monospaced lines.
 - The composer's caret and selection are the accent's (`ChatComposerInk`).
 
 ## Memory
@@ -427,8 +436,11 @@ of ids and the trees are rebuilt with the layout, so neither holds anything betw
 - Quit and relaunch: folders, colours, icons, folding and filing are as they were. Delete
   `ai-chat-workspace.json`: every chat is back in Recent and nothing else changed.
 - Turn AI off and on: the folders come back with the history.
-- ⇧⌘I, the toolbar button, the chip and ✕ each show or hide Chat Settings; close and reopen the
+- ⇧⌘I, the toolbar button, the chip's Chat Settings row and ✕ each show or hide Chat Settings; close and reopen the
   window and it is as you left it. Narrow the window: the settings fold away first, then return.
+- Click the composer's chip: the model menu opens with the current model over the chip, Reasoning
+  (or an ACP agent's selects) beneath, then Chat Settings. Pick another model: the chip, the
+  subtitle and Chat Settings follow.
 - In Chat Settings switch the model, effort and agent: the subtitle and the chip follow, and the
   next reply uses them. Rename the chat in Title: the sidebar row follows.
 - Set Creativity to None on an API model and ask twice: answers match closely; Model Default sends

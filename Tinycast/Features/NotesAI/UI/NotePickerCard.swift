@@ -139,10 +139,8 @@ private struct NotePickerCard: View {
         }
         .frame(width: Theme.Size.noteSwitcher.width)
         .clipShape(shape)
-        .glassEffect(.regular, in: shape)
-        // Solid under the glass, so the transcript's text never shows through the card.
-        .background { shape.fill(Theme.Colors.windowSurface) }
-        .shadow(Theme.Shadow.card)
+        // Opaque, so the transcript's text never shows through, nor the palette's glass under it.
+        .elevatedSurface(in: shape, shadow: Theme.Shadow.floating)
         .onKeyPress(.downArrow) {
             model.move(by: 1)
             return .handled

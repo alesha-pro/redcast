@@ -49,6 +49,27 @@ extension View {
             self
         }
     }
+
+    /// Fork: a message arriving while the chat is open rises in; one already there carries nothing.
+    @ViewBuilder func chatArrival(_ isNew: Bool) -> some View {
+        if isNew { modifier(ChatArrival()) } else { self }
+    }
+}
+
+/// Opacity and offset only, so an arrival costs no layout and the tail is measured where it lands.
+private struct ChatArrival: ViewModifier {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var shown = false
+
+    func body(content: Content) -> some View {
+        content
+            .opacity(shown ? 1 : 0)
+            .offset(y: shown || reduceMotion ? 0 : Theme.Spacing.md)
+            .onAppear {
+                guard !shown else { return }
+                withAnimation(Theme.Motion.settle) { shown = true }
+            }
+    }
 }
 
 
@@ -62,27 +83,50 @@ struct ChatSwitchStyle: ToggleStyle {
 private struct ChatSwitch: View {
     @Environment(\.isEnabled) private var isEnabled
     let configuration: ToggleStyleConfiguration
+    @State private var hovered = false
 
     var body: some View {
+        // A button, so the whole row takes the click, Space and VoiceOver's press, as a checkbox did.
+        Button { configuration.isOn.toggle() } label: {
+            configuration.label
+        }
+        .buttonStyle(ChatSwitchButtonStyle(isOn: configuration.isOn, hovered: hovered && isEnabled))
+        .onHover { hovered = $0 }
+        .animation(Theme.Motion.hover, value: hovered)
+        .accessibilityAddTraits(.isToggle)
+        .accessibilityValue(configuration.isOn ? Text("On") : Text("Off"))
+    }
+}
+
+/// Matte, so the track answers the pointer and a press with fills of its own.
+private struct ChatSwitchButtonStyle: ButtonStyle {
+    @Environment(\.isEnabled) private var isEnabled
+    let isOn: Bool
+    let hovered: Bool
+
+    func makeBody(configuration: Configuration) -> some View {
         HStack(spacing: Theme.Spacing.md) {
             configuration.label
             Capsule()
-                .fill(configuration.isOn ? Theme.Colors.accent : Theme.Colors.controlPressed)
-                .frame(width: 32, height: 18)
-                .overlay(alignment: configuration.isOn ? .trailing : .leading) {
+                .fill(isOn ? Theme.Colors.accent : Theme.Colors.controlPressed)
+                .overlay {
+                    if configuration.isPressed {
+                        Capsule().fill(Theme.Colors.controlPressed)
+                    } else if hovered {
+                        Capsule().fill(Theme.Colors.controlSurface)
+                    }
+                }
+                .frame(width: Theme.Size.chatSwitch.width, height: Theme.Size.chatSwitch.height)
+                .overlay(alignment: isOn ? .trailing : .leading) {
                     Circle()
-                        .fill(Color.white)
+                        .fill(Theme.Colors.chatSwitchKnob)
                         .shadow(color: Theme.Colors.tooltipShadow, radius: 1, y: 0.5)
-                        .padding(2)
+                        .padding(Theme.Spacing.xxs)
                 }
                 .opacity(isEnabled ? 1 : Theme.Opacity.disabled)
-                .animation(.snappy(duration: Theme.Duration.hover), value: configuration.isOn)
-                .contentShape(Capsule())
-                .onTapGesture { if isEnabled { configuration.isOn.toggle() } }
-                .accessibilityHidden(true)
+                .animation(.snappy(duration: Theme.Duration.hover), value: isOn)
+                .animation(Theme.Motion.press, value: configuration.isPressed)
         }
-        .accessibilityElement(children: .combine)
-        .accessibilityAddTraits(.isToggle)
-        .accessibilityValue(configuration.isOn ? Text("On") : Text("Off"))
+        .contentShape(.rect)
     }
 }

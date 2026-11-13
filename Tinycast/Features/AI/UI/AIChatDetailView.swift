@@ -82,7 +82,11 @@ struct AIChatDetailView: View {
             AIEmptyState(
                 message: chat.notice ?? unavailability,
                 canConfigure: chat.notice != nil || unavailability != nil,
-                onConfigure: coordinator.showSettings)
+                onConfigure: coordinator.showSettings,
+                onStart: { [editor] starter in  // Fork: a starter lands in the composer to be finished
+                    chat.draft = starter + chat.draft
+                    if let textView = editor.textView { textView.window?.makeFirstResponder(textView) }
+                })
         } else {
             let occurrences = find.occurrences(in: chat.session.messages)
             ChatTranscriptView(
@@ -170,10 +174,9 @@ private struct AIChatComposer: View {
             controls
         }
         .padding(Theme.Spacing.md)
-        .background {
-            Color.clear.glassEffect(
-                .regular, in: RoundedRectangle(cornerRadius: Theme.Radius.dialog, style: .continuous))
-        }
+        // Fork: stacked on an opaque page, glass would have nothing to lens; an edged card reads.
+        .elevatedSurface(
+            in: RoundedRectangle(cornerRadius: Theme.Radius.dialog, style: .continuous), shadow: Theme.Shadow.composer)
         .animation(.snappy, value: settings.webSearchEnabled)
         // Fork: ⌘↵ sends now; SwiftUI keeps a shortcut's action past a switch, so it reads the window's.
         .background {
@@ -456,151 +459,6 @@ private struct WebSearchPill: View {
     }
 }
 
-/// The chat's agent: the folder, context and tools its turns run with. Fork-only.
-private struct AIAgentPicker: View {
-    let chat: AIChatState
-    let agents: AgentCoordinator
-    let coordinator: AIChatCoordinator
-
-    var body: some View {
-        let current = agents.agent(for: chat)
-        Menu {
-            Toggle(
-                isOn: Binding(
-                    get: { current == nil },
-                    set: { if $0 { agents.chooseAgent(nil, for: chat) } })
-            ) {
-                Text("No Agent")
-            }
-            Section("Agents") {
-                ForEach(agents.agents) { agent in
-                    Toggle(
-                        isOn: Binding(
-                            get: { current?.id == agent.id },
-                            set: { if $0 { agents.chooseAgent(agent, for: chat) } })
-                    ) {
-                        // Fork: each agent on its own coloured tile.
-                        Label {
-                            Text(agent.name)
-                        } icon: {
-                            Image(nsImage: GlyphTile.menuImage(symbol: agent.symbol, hue: agent.hue))
-                        }
-                    }
-                }
-            }
-            Divider()
-            Button("Manage Agents…", action: coordinator.showSettings)
-        } label: {
-            ComposerControlLabel(title: current?.name ?? String(localized: "Agent")) {
-                // Fork: the chat's agent as its own coloured tile.
-                if let current {
-                    GlyphTile(symbol: current.symbol, hue: current.hue, size: Theme.Size.aiChatComposerGlyph)
-                } else {
-                    Image(systemName: "person.crop.circle")
-                        .font(Theme.Typography.composerSymbol)
-                        .foregroundStyle(Theme.Colors.textTertiary)
-                }
-            }
-        }
-        .composerMenu()
-        .help("Choose this chat's agent")
-    }
-}
-
-/// An ACP agent's model, reasoning and mode where an API chat's sit, the rest under ⋯. Fork-only.
-private struct AIAgentOptionPickers: View {
-    let chat: AIChatState
-    let options: ACPSessionOptions
-    let agents: AgentCoordinator
-
-    var body: some View {
-        if let model = options.model {
-            menu(model) {
-                ComposerControlLabel(title: title(of: model, or: String(localized: "Model"))) {
-                    MenuIconImage(icon: agents.modelIcon(for: chat), edge: Theme.Size.menuBrandIcon)
-                        .font(Theme.Typography.composerSymbol)
-                }
-            }
-            .layoutPriority(-1)
-            .help("Switch the agent's model")
-            // Shown without levels too, as for an API model, so the row keeps its shape.
-            if let reasoning = options.reasoning {
-                menu(reasoning) { ComposerControlLabel(title: reasoning.currentTitle) }
-                    .help("Change reasoning effort")
-            } else {
-                Menu {} label: { ComposerControlLabel(title: String(localized: "Reasoning")) }
-                    .composerMenu()
-                    .disabled(true)
-                    .help("This model has no reasoning setting")
-            }
-        }
-        if let mode = options.mode {
-            menu(mode) {
-                ComposerControlLabel(title: title(of: mode, or: String(localized: "Mode"))) {
-                    Image(systemName: "slider.horizontal.3")
-                        .font(Theme.Typography.composerSymbol)
-                }
-            }
-            .layoutPriority(-1)
-            .help("Switch the agent's mode")
-        }
-        if !options.others.isEmpty {
-            Menu {
-                ForEach(options.others) { option in
-                    Menu {
-                        choices(of: option)
-                    } label: {
-                        Text(option.name)
-                        Text(option.currentTitle)
-                    }
-                }
-            } label: {
-                ComposerControlLabel(showsChevron: false) { ComposerSymbol(name: "ellipsis") }
-            }
-            .composerMenu()
-            .help("More of the agent's options")
-            .accessibilityLabel("Agent Options")
-        }
-    }
-
-    private func title(of option: ACPConfigOption, or fallback: String) -> String {
-        option.currentTitle.isEmpty ? fallback : option.currentTitle
-    }
-
-    private func menu(_ option: ACPConfigOption, @ViewBuilder label: () -> some View) -> some View {
-        Menu {
-            choices(of: option)
-        } label: {
-            label()
-        }
-        .composerMenu()
-    }
-
-    @ViewBuilder
-    private func choices(of option: ACPConfigOption) -> some View {
-        ForEach(option.groups) { group in
-            if let name = group.name {
-                Section(name) { toggles(group, of: option) }
-            } else {
-                Section { toggles(group, of: option) }
-            }
-        }
-    }
-
-    private func toggles(_ group: ACPConfigOption.Group, of option: ACPConfigOption) -> some View {
-        ForEach(group.choices) { choice in
-            Toggle(
-                isOn: Binding(
-                    get: { option.current == choice.value },
-                    set: { if $0 { agents.setOption(choice.value, of: option, for: chat) } })
-            ) {
-                Text(choice.name)
-                if let description = choice.description { Text(description) }
-            }
-        }
-    }
-}
-
 /// Every configured model, grouped by where it runs; the pick belongs to this chat.
 private struct AIModelPicker: View {
     let chat: AIChatState
@@ -750,7 +608,7 @@ private struct FindCounter: View {
         .buttonStyle(.borderless)
         .padding(.horizontal, Theme.Spacing.lg)
         .padding(.vertical, Theme.Spacing.sm)
-        .glassEffect(.regular, in: Capsule())
+        .elevatedSurface(in: Capsule(), shadow: Theme.Shadow.card)  // Fork: matte over the transcript
     }
 }
 
@@ -852,10 +710,8 @@ private struct ContextCard: View {
         }
         .padding(Theme.Spacing.xl)
         .frame(width: Theme.Size.chatContextCard, alignment: .leading)
-        .glassEffect(.regular, in: shape)
-        // Solid under the glass: the card rises over the transcript, whose text must not show through.
-        .background { shape.fill(Theme.Colors.windowSurface) }
-        .shadow(Theme.Shadow.card)
+        // Fork: opaque, so the transcript's text never shows through the card it rises over.
+        .elevatedSurface(in: shape, shadow: Theme.Shadow.floating)
     }
 
     private func section(_ title: LocalizedStringResource) -> some View {

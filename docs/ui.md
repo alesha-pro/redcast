@@ -39,7 +39,7 @@ These are the things that quietly break the look if changed. Preserve them unles
 
 - **Dark is the baseline and its values are frozen.** Every `Theme.Colors` token resolves per appearance, and its **dark branch is the literal the forced-dark build shipped** — restated, never recomputed. Retune a light branch freely; touch a dark one only when the task is to change Dark. `AppCore.applyAppearance()` is the only place an appearance is assigned, from `AppSettings.appearance`; `.system` assigns `nil` so AppKit follows macOS.
 - **New colors go through `Theme.Colors.ramp(dark:light:)`** (an alpha that inverts) or `adaptive(dark:light:)` (two explicit `NSColor`s, for anything that isn't a plain inversion — `panelScrim`, `layoutPreviewGround`). Never a bare `Color.white.opacity(…)` in a view: it disappears in Light.
-- **No grays, no opaque fills on the surface.** Reach for `Theme.Colors.*` instead of `.gray`, `NSColor.windowBackground`, etc. There are two opaque fills. `opaqueSurface` is what `glassSurface` swaps in for the glass under Reduce Transparency, and `tooltipSurface` is the `Tooltip` tile, since a hover label has to hide the row it overlaps.
+- **No grays, no opaque fills on the surface.** Reach for `Theme.Colors.*` instead of `.gray`, `NSColor.windowBackground`, etc. There are three opaque fills. `opaqueSurface` is what `glassSurface` swaps in for the glass under Reduce Transparency, `tooltipSurface` is the `Tooltip` tile, since a hover label has to hide the row it overlaps, and `elevatedSurface` is AI Chat's card over its opaque page (see "AI Chat window").
 - **Three things stay fixed in both appearances, on purpose.** The `EdgeDissolve`/`OverflowFade` gradients are **mask luminance, not color** — inverting them breaks the dissolve everywhere. `ExtensionTintColors` and a tinted `IconCache` tile keep white ink, because a saturated tile carries its own contrast. And `IconCache` cannot use a dynamic `NSColor` at all: it rasterizes off-main, so the surface is carried explicitly and is part of the cache key.
 - **An icon is drawn for a surface *and* a system icon style, and both move under you.** macOS restyles the icons `NSWorkspace` hands out when System Settings → Appearance → **Icon & widget style** changes, so `IconStyleMonitor` and Redcast's own appearance both call `IconCache.invalidateStyled()`. **The monitor may not invalidate on the notification itself.** AppKit posts `NSWorkspaceIconAppearanceConfigurationDidChange` before IconServices has swapped what `NSWorkspace` vends — measured at 25–120ms behind, jittering run to run — and the images it hands back are live objects macOS restyles in place, so flattening one on the signal freezes the *outgoing* style into a bitmap nothing ever invalidates again. `IconStyleMonitor` therefore polls `IconCache.styleFingerprint()` until the pixels actually move, and only then invalidates. Waiting also sidesteps the cost: re-flattening every icon the instant a restyle begins forces a cold IconServices regeneration, measured at 160× the settled draw cost. That drops the cached bitmaps, bumps every cache key so an in-flight decode cannot repopulate a stale one, and moves `IconCache.style.generation`. **Any view that draws an icon must key its fetch on that generation** — wrap the view's own key in `IconRequest`, or call `IconCache.observeStyle()` where the icon is resolved synchronously in a `body`. It is reached through `IconCache` rather than injected precisely because icons are drawn in menus, popovers and every list, where a missed injection would be a silent staleness bug.
 - **No hard dividers between the list and the bars.** The header and bottom bar are `safeAreaInset` overlays with no background; separation comes from `edgeDissolve()`, nothing else. (One deliberate exception: the vertical hairline between a list and its preview pane, as the clipboard and file search screens draw.)
@@ -62,14 +62,14 @@ These are the things that quietly break the look if changed. Preserve them unles
 - **↵ runs the primary action, Escape cancels, and Cancel always renders leading** (the left button), matching macOS convention. A button never prints its key cap; a deliberate hover reveals its outlined `KeyCapChip` in a `Tooltip`.
   Native launcher forms save with **⌘↵**; a textarea keeps Return for line breaks.
 - **In the palette, a hover label is Redcast's `tooltip`, never `.help()`**: an AppKit tooltip never appears while the app sits inactive behind the non-activating panel. A Settings window activates the app, so `.help()` shows there and stays the label to use. The tooltip hangs above its control by default; a control in the palette header passes `edge: .bottom`, since above it is off the window, and a label may run to several lines — the chat's attachment pill lists every staged name.
-  The tile is **matte, never glass**: it floats over the palette's glass, and glass does not stack. It is `tooltipSurface` under a `cardStroke` hairline and `Shadow.card`, with its text in `Typography.tooltip`, the system tooltip's size. The fill is one token of its own because the lift does not invert: Dark lightens the tile, while a dark wash over Light's near-white palette would sink it into a grey well, so Light is near-white. It is an in-window overlay, so three things swallow it: a glass *wrapper* around its control (glass clips its content, so the glass goes in a `background`), a later sibling drawn over it (the Notes title bar takes `zIndex(1)` over the editor), and a window with no room. The compact bar is 64 points tall and the Notes switcher is sized to its rows, so `CompactFavoritesRow` and the switcher's row buttons keep their `.help()`, which never shows. So do the views Quick AI shares with the AI Chat window, where `.help()` does show: `ChatTranscriptView`'s Jump to Latest, Regenerate Response and source-URL labels and `ChatSuggestionChips`' reply label are dead in the palette until the AI Chat phase moves them. A migrated site restates what `.help()` told VoiceOver with `accessibilityHint`. **A label hides while its control is in use**: a pop-up passes `nil` while its menu is open, and an inline argument field passes `nil` while it holds focus, so the tile never sits over the rows being typed against. In a list, the tile hangs toward the rows: `SectionHeader`'s gear flips to `edge: .bottom` when its header leads, since above it is the list's clipped top, and that header row takes `zIndex(1)` over the row below.
+  The tile is **matte, never glass**: it floats over the palette's glass, and glass does not stack. It is `tooltipSurface` under a `cardStroke` hairline and `Shadow.card`, with its text in `Typography.tooltip`, the system tooltip's size. The fill is one token of its own because the lift does not invert: Dark lightens the tile, while a dark wash over Light's near-white palette would sink it into a grey well, so Light is near-white. It is an in-window overlay, so three things swallow it: a glass *wrapper* around its control (glass clips its content, so the glass goes in a `background`), a later sibling drawn over it (the Notes title bar takes `zIndex(1)` over the editor), and a window with no room. The compact bar is 64 points tall and the Notes switcher is sized to its rows, so `CompactFavoritesRow` and the switcher's row buttons keep their `.help()`, which never shows. The views Quick AI shares with the AI Chat window take `tooltip` in both hosts: `ChatTranscriptView`'s Jump to Latest and Regenerate Response labels and `ChatSuggestionChips`' reply label. A source chip's URL is the exception: a cited reply carries one chip per source, so in the window it takes the AppKit `chatToolTip` (`.help` alone measured about 130 environment nodes a tip, and `tooltip` is heavier still; see [chat-workspace.md](features/chat-workspace.md#memory)) and only the palette builds the `tooltip`, aligned leading so it grows into the transcript, its address cut to 60 characters. A migrated site restates what `.help()` told VoiceOver with `accessibilityHint`. **A label hides while its control is in use**: a pop-up passes `nil` while its menu is open, and an inline argument field passes `nil` while it holds focus, so the tile never sits over the rows being typed against. In a list, the tile hangs toward the rows: `SectionHeader`'s gear flips to `edge: .bottom` when its header leads, since above it is the list's clipped top, and that header row takes `zIndex(1)` over the row below.
   Native form controls opt into `dismissOnPress` to hide the label until the next hover.
 - **An agent's opt-in Notification Center banner is the only system notification**, and it says that
   a run ended, never what it found. A dialog raised for an agent running in the background puts ↵ on
   its refusal: the one sanctioned exception to ↵ running the primary action, since its reader may
   have been typing somewhere else. See [background-agents.md](features/background-agents.md).
 - **A transient readout is a HUD, not a dialog.** `VolumeHUDController`'s box is volume and mute only, since that one needs an actual level and number; every other success or info confirmation goes through `MessageHUDController`'s pill, whose leading glyph *is* its `DialogTone`. A pill has no subject to name, so the icon rule above does not apply to it — and that mapping stays file-scoped so nothing can reach for it when building a `DialogRequest`. A new HUD means a new presenter, not a second shape bolted onto an existing controller.
-- **Every glass surface states a `GlassRole`, and nothing else is glass.** `glassSurface(_:in:)` owns each role's recipe (see "Liquid Glass"); no view outside `Features/Extensions/` calls `glassEffect` or builds a `GlassEffectView` itself, bar the AI Chat sites listed there. Content on a surface — rows, cards, fields, dialog buttons — stays a matte ramp fill, so no row is glass and glass is not stacked on glass beyond the floating controls the palette already had.
+- **Every glass surface states a `GlassRole`, and nothing else is glass.** `glassSurface(_:in:)` owns each role's recipe (see "Liquid Glass"); no view outside `Features/Extensions/` calls `glassEffect` or builds a `GlassEffectView` itself. Content on a surface — rows, cards, fields, dialog buttons — stays a matte ramp fill, so no row is glass and glass is not stacked on glass beyond the floating controls the palette already had.
 - **System glass draws its own edge.** No hand rim, sheen or shadow goes on top of real glass. The message pill's tone rim is the one inherited exception, and the Reduce Transparency fallback is the only place `glassSurface` draws a rim. The two never stack: under Reduce Transparency the pill drops its own rim and the fallback's is the only one.
 - **`panelScrim` is shared; retune a role, not the token.** Dialogs, the Settings editors and an extension's settings editor sit under it. A surface that wants a different veil gets its own token and role, as the palette has `paletteScrim`, a read panel `readingScrim` and a HUD `hudScrim`.
 
@@ -119,7 +119,7 @@ groups. See "Section headers" below.
 
 ### Radius (`Theme.Radius`)
 
-`panel 26` · `row 10` · `formField 12` · `card 10` · `codeBlock 14` · `dialog 20` · `dialogSymbol 16` · `menuPanel 16` · `menu 6` · `menuRow 10` · `barControl 8` · `thumbnail 6` · `keyCap 6` · `recorderKeyCap 4`
+`panel 26` · `row 10` · `formField 12` · `card 10` · `codeBlock 14` · `chatBubble 16` · `dialog 20` · `dialogSymbol 16` · `menuPanel 16` · `menu 6` · `menuRow 10` · `barControl 8` · `thumbnail 6` · `keyCap 6` · `recorderKeyCap 4`
 
 `formField` dresses the native Snippet, Quicklink, Event and Custom Command editor fields; it does not change settings controls
 or extension forms.
@@ -323,7 +323,7 @@ and all of them still pass through `motionScope()`, so no site checks the animat
 | `hover`  | easeOut 0.12      | a pointer-driven fill or tint                                 |
 | `press`  | easeOut 0.08      | a non-glass control answering mouse-down                      |
 | `swap`   | snappy 0.20       | content replacing content in place                            |
-| `settle` | smooth 0.30       | a layout coming to rest after it changed size or order        |
+| `settle` | smooth 0.30       | a layout coming to rest after it changed size or order; a chat message arriving |
 | `enter`  | snappy 0.22       | content arriving inside a surface                             |
 | `exit`   | easeIn 0.12       | content leaving                                               |
 | `windowResize` | easeInOut 0.25 | a window easing to a new height with its content (Onboarding) |
@@ -349,14 +349,18 @@ and `minimized 0.5` a minimized window's icon in the window switcher.
 ### Shadow (`Theme.Shadow`)
 
 `card` (black 0.18, radius 12, y 4) · `floating` (black 0.25, radius 24, y 8) · `appIcon` (black
-0.35, radius 12, y 6, under About's icon on its opaque page), applied with `.shadow(Theme.Shadow.card)`.
+0.35, radius 12, y 6, under About's icon on its opaque page) · `composer` (none in Dark, black 0.07,
+radius 8, y 2 in Light), applied with `.shadow(Theme.Shadow.card)`.
 
 **For an opaque overlay inside a window, never for glass.** Glass carries its own elevation and a
 borderless panel takes the window server's shadow. The `Tooltip` tile is the surface `card` was made
-for. Three other sites that use it break that rule, and are the inherited exception, not a
-precedent: the chat's context card, the note picker and the agent command picker are
-`glassEffect(.regular)` over a solid `windowSurface`, and carried this same shadow before it had a
-name. They keep it until the AI Chat phase settles their material.
+for. AI Chat's overlays are the other users, through `elevatedSurface(in:shadow:)`, which shadows
+the card's fill and never its content: Jump to Latest and the find counter take `card`, and the
+cards that rise over the transcript (the note picker, the agent command picker, upstream's context
+card) take `floating`. The composer sits in the layout rather than over it, so it takes only
+`composer`: Dark's card already lifts off the page by its fill, while Light's is the page's own
+white and needs the faint shadow to separate. Under Increase Contrast every such card's hairline
+firms from `cardStroke` to `border`.
 
 ---
 
@@ -558,25 +562,60 @@ title. Its hover buttons are hidden from accessibility so those actions are anno
 
 ## AI Chat window
 
-Source: `Features/AI/UI/AIChatSplitViewController.swift`, `AIChatDetailView.swift`.
+Source: `Features/ChatWorkspace/UI/ChatWorkspaceSplitViewController.swift` (upstream's
+`AIChatSplitViewController` is kept for merges but never instantiated), `Features/AI/UI/AIChatDetailView.swift`,
+`AIEmptyState.swift`.
 
 AI Chat is a titled window built the way Settings is, not a palette sibling like Notes: a real
 `NSSplitViewController` whose sidebar item takes the system sidebar material, a unified toolbar with
 an inline title, and native `List`, `Menu` and context menus. Nothing about it scales with Interface
-Size. The composer is untinted Liquid Glass at `Radius.dialog`, stacked under the transcript so nothing
-scrolls behind it, with its controls on one row inside the glass, and its glass on a background layer
-rather than the box. The row's controls are stock `Menu`s and buttons wearing one face: bare at rest,
-a `controlSurface` fill at `Radius.barControl` under the pointer. Send is a solid disc in
-`Colors.composerSend` with a `composerSendInk` arrow, the row's one strong mark.
-The title bar keeps the system's own toolbar band, as any document window's does. The context card
-the gauge raises on hover is glass over a solid `windowBackgroundColor`, because it rises over
-transcript text, and sits in the transcript's own frame at its bottom edge, so no window size can
-push it off screen. A reply's choices are frosted capsules, centred, that rise out of the composer's
-top edge. Find marks words in `Colors.findMatch` / `findCurrent`, the system yellow, with
+Size. **The window stays opaque**: a long transcript is read, and wallpaper behind it would cost
+legibility for nothing. So no surface or card on its page is glass, as it would have nothing to lens
+(only `chatChip` controls keep the `control` role); what rises
+off the page is an opaque card, `elevatedSurface(in:shadow:)`: the `elevatedSurface` fill a step
+above the page (the page itself in Light, which is white), a `cardStroke` hairline, and a shadow on
+the fill alone. The composer is that card at `Radius.dialog` with `Shadow.composer`, stacked under the
+transcript so nothing scrolls behind it, with its controls on one row inside it. The row's controls
+are stock `Menu`s and buttons wearing one face: bare at rest, a `controlSurface` fill at
+`Radius.barControl` under the pointer. Send is a solid disc in `Colors.composerSend` with a
+`composerSendInk` arrow, the row's one strong mark. The model chip is a matte capsule with a hover
+and a pressed fill; a click opens the model menu, an AppKit menu built on the click, as ⌘K's is
+(see [chat-workspace.md](features/chat-workspace.md#chat-settings)). `PopoverMenu` stays the
+palette's: it is hosted by the palette's `MenuPanelController` and keyed by `PaletteState`.
+The title bar keeps the system's own toolbar band, as any document window's does. The note picker
+and an ACP agent's command picker rise over transcript text, so they are the same card with
+`Shadow.floating`, in the transcript's own frame at its bottom edge, so no window size can push them
+off screen; upstream's context card is styled alike but the fork never raises it. A reply's choices
+are chips (`chatChip`, the `control` role) that rise out of the composer's top edge.
+An empty chat opens on `AIEmptyState`: the AI hue's `GlyphTile` at `dialogSymbolContainer`, "Ask
+anything" in `panelTitle`, then either why it cannot answer, with a `modalAction` Configure AI, or
+its keys as `KeyCapChip`s. In the window it adds New line ⇧↵ and four starter chips (Explain simply,
+Summarize, Help me write, Brainstorm ideas), each of which puts its words and a colon (one localized
+`"%@: "`, since the colon's spacing differs by language) ahead of anything already typed in the
+composer, to be finished rather than sent. It reads `metrics`, so Quick AI's copy scales.
+A message that arrives while a transcript is open rises in, opacity and a `Spacing.md` offset on
+`Motion.settle` (opacity alone under Reduce Motion): only a message whose id was not there when the
+transcript appeared, so a reopened chat, a switched chat, scrolling back and a streaming reply's
+updates never move. A host that swaps one conversation for another under the same view (Chat
+History's preview, Agent Sessions) is caught by the first message's id: a changed one re-takes the
+baseline, and nothing in the swapped-in list arrives. A row that was there carries no arrival
+modifier at all. The offset costs no layout, so tail-following measures where the message lands.
+The first exchange of a new chat arrives with the transcript itself, so it does not rise.
+Find marks words in `Colors.findMatch` / `findCurrent`, the system yellow, with
 `findCurrentInk` black on the solid one in both appearances. Transcript lines sit
-`spacing.chatLine 4` apart on both surfaces. A source chip is a frosted capsule like a choice, led
+`spacing.chatLine 4` apart on both surfaces. A source chip is a `chatChip` capsule like a choice, led
 by a `chatSourceBadge 18` number disc. Jump to Latest is a `chatJumpToLatest 30` arrow disc at the
-transcript's bottom edge. The transcript itself is the palette's `ChatTranscriptView`
+transcript's bottom edge, an elevated card with `Shadow.card` in both hosts, matte because in the
+palette it floats over the panel's glass; being matte, it answers the pointer with a `rowHover` fill
+and a press with `controlSurface`, on `Motion.hover` and `Motion.press`. The find counter at the top
+trailing corner matches its card; its chevrons are `.borderless` and answer a press themselves.
+A user bubble rounds at `Radius.chatBubble 16`. A code block and an ACP call's diff or output share
+one card: `cardFill` under a `cardStroke` edge at `Radius.codeBlock`, a header row (language or path,
+then copy) ruled off by a hairline, over monospaced text, on the same insets: the header `spacing.md`
+below the top edge, the rule `spacing.sm / 2` under it and the first line as far again. A table stays
+AppKit's `NSTextTable`, a `cardFill` header row over hairline rules: its header cells paint square
+through `backgroundColor`, so carding it means tracking each table's bounds and moving that fill
+into the transcript's draw pass, not done yet. The transcript itself is the palette's `ChatTranscriptView`
 with `surface: .window`, which leaves out `edgeDissolve` and `thinScrollbar` — both are measured
 against the palette's bars — and caps the column at `aiChatReadingWidth`, centred. Its gutter sits
 outside that cap, as the composer's does, so a reply, its code blocks and the composer share both
@@ -730,10 +769,10 @@ Retune a role there, never at a call site.
   only rim `glassSurface` ever draws. The scrim stays on top, so each surface keeps its own
   density. `menu`, `chip` and `control` are bare system glass and keep the system's own treatment.
 - **Not migrated.** `Features/Extensions/` owns its looks and still calls `Theme.frosted(in:)` and
-  `glassEffect` directly; `frosted` is kept for it alone. AI Chat's composer, find bar and three
-  overlay cards (`AIChatDetailView`, `NotePickerCard`, `ACPCommandPicker`) and the transcript's
-  `.ultraThinMaterial` Jump to Latest button also keep their own calls: no role describes glass over
-  an opaque page honestly yet.
+  `glassEffect` directly; `frosted` is kept for it alone.
+- **Over an opaque page, no glass.** AI Chat's composer, find counter, Jump to Latest and its
+  overlay cards were glass over a solid page with nothing to lens, so they are now
+  `elevatedSurface(in:shadow:)` cards (see "AI Chat window"), not a role: a role is glass.
 - **Menus are in-window overlays, not system popovers.** `.contextMenu`/`NSMenu` stall clicks for seconds inside a `LazyVStack` and spill outside the panel. Use `PopoverMenu` anchored to a corner via `.overlay`, inset `menuInset` (8pt) so its own corner isn't clipped by the panel's. A menu hung off a control instead of a corner — the clipboard type filter, `.topTrailing` — insets by that control's own metrics so their edges line up.
 - **A menu's `width` is fixed, never intrinsic**, so it can't jitter as its rows change. Every header menu states its own at its `RootPaletteView.menuContent` case — `menuWidth 276`, or a token of its own where that reads too wide (`clipboardFilterMenuWidth`, `fileSearchFilterMenuWidth`, `emojiCategoryMenuWidth`) — so retuning one never moves another. Native footer menus add 30pt without changing those header widths; extension Actions owns its nearby 310pt width inside the feature.
 - **`PopoverMenu`** takes the `menu` role with `menuPanel 16` corners and **no hand-tuned shadow** — Tahoe glass carries its own elevation; adding a drop shadow reads heavy and non-native. A footer menu raises only its attached bottom corner to the controls' 18-point radius, so the two silhouettes meet exactly.

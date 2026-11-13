@@ -536,7 +536,7 @@ and the Actions menu's own chords, and dies with the window.
   an I-beam there; its `mouseMoved` and `cursorUpdate` set the arrow unless the window's hit test
   lands on the text itself. Thinking folds, search
   and tool rows stay separate views, so a drag spans one segment's text. A fold holding a match
-  opens. A glass counter at the transcript's top edge says "3 of 17" with the same steps as
+  opens. A counter card at the transcript's top edge says "3 of 17" with the same steps as
   Return / ⇧↩ in the field and ⌘G / ⇧⌘G anywhere. The sidebar's own filter is still there, by click.
 - **Math is typeset natively, in that same text.** `\(…\)` and `$…$` are inline math, `\[…\]` and
   `$$…$$` display math. `MarkdownMath` finds them before Foundation's Markdown parse, which would
@@ -595,9 +595,10 @@ and the Actions menu's own chords, and dies with the window.
   drops only a trailing reply and asks again with the question and its attachments, of whichever
   model is selected now.
 - **Composer** (`AIChatDetailView`; fork: its agent, model, reasoning, search, tools and context
-  moved to the right sidebar, see [chat workspace](chat-workspace.md#chat-settings)): one pane of untinted Liquid Glass at `Radius.dialog`, stacked
+  moved to the right sidebar, see [chat workspace](chat-workspace.md#chat-settings)): one card at `Radius.dialog`, stacked
   under the transcript rather than floated over it, holding the staged files, the text and one row of
-  controls, the glass on a background layer.
+  controls. Fork: the card is opaque `elevatedSurface`, not glass, which would have nothing to lens on
+  the opaque page ([UI](../ui.md#ai-chat-window)).
   The title bar keeps the system's own band, as a native document window's does.
   Transcript text runs `spacing.chatLine` apart, both surfaces. `ChatComposerTextView` is an `NSTextView`, not a `TextEditor`: its delegate sees
   `insertNewline:` only outside input-method composition, so Return sends and ⇧↩ or ⌥↩ breaks the
@@ -614,10 +615,10 @@ and the Actions menu's own chords, and dies with the window.
   `AIModelCatalog`, and `ChatSession.historyBytes` against Redcast's history budget otherwise — orange from 80%, red at
   100%. Hovering it raises Redcast's own card (never a popover), drawn inside the transcript's
   frame at its bottom edge — just above the composer and inside the window whatever its size — and
-  solid under its glass so the transcript cannot show through. `ChatContextReport`
+  opaque so the transcript cannot show through. `ChatContextReport`
   lays it out: tokens in context of the window, input with its cached share, output with its
   thinking share and cost; then what the next message sends — model, history of budget, messages
-  sent of total, staged files, and whether the system prompt, web search and tools ride along. The model and reasoning menus are this chat's, as Quick AI's header is Quick AI's. The fork's agent menu sits before them, and a new chat starts on the agent Settings → AI → Agents → Agent for new chats names, bound only once its first message goes ([which chats](agents.md#a-new-chats-agent)). Files arrive by ⌘V, a drop anywhere on the pane, or Attach Files…, and all three take
+  sent of total, staged files, and whether the system prompt, web search and tools ride along. The model and reasoning menus are this chat's, as Quick AI's header is Quick AI's. In the fork the agent sits with them in Chat Settings and the chip's model menu, and a new chat starts on the agent Settings → AI → Agents → Agent for new chats names, bound only once its first message goes ([which chats](agents.md#a-new-chats-agent)). Files arrive by ⌘V, a drop anywhere on the pane, or Attach Files…, and all three take
   the refusals a paste does. The text field takes a file drop itself and hands it to the same
   attach, since an `NSTextView` would otherwise type the file's path. The unsent text lives on `AIChatState.draft`, so it survives closing
   the window.

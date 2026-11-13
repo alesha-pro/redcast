@@ -48,6 +48,8 @@ enum Theme {
         static let attachmentChip: CGFloat = 8
         static let card: CGFloat = 10
         static let codeBlock: CGFloat = 14
+        /// Fork: the reader's own message, rounder than a row so a one-line question reads as a pill.
+        static let chatBubble: CGFloat = 16
         /// A window-to-be in the room preview, rounded like a real window rather than a row.
         static let roomCard: CGFloat = 16
         static let keyCap: CGFloat = 6
@@ -256,8 +258,8 @@ enum Theme {
         static let aiVariableName: CGFloat = 170
         /// A Codex usage window's meter, beside its "72% left" readout.
         static let aiUsageBar: CGFloat = 110
-        /// Fork: the Usage section's trend strip, tall enough for a quiet day's bar to show.
-        static let usageTrendHeight: CGFloat = 28
+        /// Fork: the Usage section's trend chart, bars over a row of its axis labels.
+        static let usageTrendHeight: CGFloat = 72
         /// Fork: the daily spend cap's field, with room for "No cap" in every language.
         static let spendCapField: CGFloat = 112
         /// Settings editor modals (Custom Commands, Snippets): fixed width, intrinsic height.
@@ -407,6 +409,10 @@ enum Theme {
         static let floating = Style(
             color: Colors.adaptive(dark: .srgbInk(0, alpha: 0.25), light: .srgbInk(0, alpha: 0.25)),
             radius: 24, y: 8)
+        /// Fork: AI Chat's composer; Dark's card lifts by its fill, Light's is the white of the page.
+        static let composer = Style(
+            color: Colors.adaptive(dark: .srgbInk(0, alpha: 0), light: .srgbInk(0, alpha: 0.07)),
+            radius: 8, y: 2)
         /// Fork: under the app's own icon on an opaque page, the literal About always drew.
         static let appIcon = Style(
             color: Colors.adaptive(dark: .srgbInk(0, alpha: 0.35), light: .srgbInk(0, alpha: 0.35)),
@@ -594,6 +600,9 @@ enum Theme {
         static let composerSendInk = Color.white  // Fork: on the red disc in both appearances
         /// The window's own page, for a card that must hide the transcript it floats over.
         static let windowSurface = Color(nsColor: .windowBackgroundColor)
+        /// Fork: an opaque card a step above an opaque page, where glass would have nothing to lens.
+        static let elevatedSurface = adaptive(
+            dark: .srgbInk(0.165, alpha: 1), light: .srgbInk(1, alpha: 1))
         static let dropTarget = Color.accentColor
         /// Progress tint: the message pill's spinner while the work behind it is still running.
         static let progress = Color.blue
@@ -635,5 +644,32 @@ extension View {
 
     func shadow(_ style: Theme.Shadow.Style) -> some View {
         shadow(color: style.color, radius: style.radius, y: style.y)
+    }
+
+    /// Fork: the opaque card over an opaque page; the shadow is the fill's, never the content's.
+    func elevatedSurface(in shape: some InsettableShape, shadow style: Theme.Shadow.Style? = nil) -> some View {
+        modifier(ElevatedSurface(shape: shape, style: style))
+    }
+}
+
+/// Increase Contrast firms the edge, as the system glass it replaced would have.
+private struct ElevatedSurface<S: InsettableShape>: ViewModifier {
+    @Environment(\.colorSchemeContrast) private var contrast
+    let shape: S
+    let style: Theme.Shadow.Style?
+
+    func body(content: Content) -> some View {
+        content
+            .background {
+                if let style {
+                    shape.fill(Theme.Colors.elevatedSurface).shadow(style)
+                } else {
+                    shape.fill(Theme.Colors.elevatedSurface)
+                }
+            }
+            .overlay {
+                shape.strokeBorder(contrast == .increased ? Theme.Colors.border : Theme.Colors.cardStroke)
+                    .allowsHitTesting(false)
+            }
     }
 }

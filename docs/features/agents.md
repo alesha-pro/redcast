@@ -612,9 +612,9 @@ off by default per agent, bounded by `AgentPathPolicy` and asked through the age
 Background runs and schedules add their own files, listed in
 [background-agents.md](background-agents.md#layout).
 
-The composer's agent menu is `AIAgentPicker` in `AIChatDetailView.swift`, beside the model picker,
-and an ACP chat's pickers are `AIAgentOptionPickers` there, because the composer's label and menu
-styles are private to that file. The agent editor's Model row for an ACP agent lists the models its
+A window chat's agent, model and an ACP agent's selects live in the Chat Settings sidebar and in
+the composer chip's model menu (`ChatModelNSMenu`), both built from the same `ChatSettingsSource`
+pickers ([chat workspace](chat-workspace.md#chat-settings)). The agent editor's Model row for an ACP agent lists the models its
 last session in this run of Redcast offered (and "The agent's default"), or is a text field until
 one has started.
 

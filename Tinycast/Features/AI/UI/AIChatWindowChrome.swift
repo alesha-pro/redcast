@@ -27,7 +27,7 @@ final class AIChatWindowChrome: NSObject, WindowChrome, NSToolbarDelegate, NSSea
         searchItem = NSSearchToolbarItem(itemIdentifier: Self.search)
         actionsButton = NSButton(
             image: NSImage(
-                systemSymbolName: "slider.horizontal.3",
+                systemSymbolName: "ellipsis.circle",
                 accessibilityDescription: String(localized: "Actions"))
                 ?? NSImage(),
             target: nil, action: nil)

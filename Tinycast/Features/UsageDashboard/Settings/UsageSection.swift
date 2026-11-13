@@ -1,3 +1,4 @@
+import Charts
 import SwiftUI
 
 /// Settings → AI → Usage: what replies on this Mac reported, and an OpenRouter key's spend.
@@ -333,39 +334,52 @@ private struct UsageTrendStrip: View {
     let interval: DateInterval
     let now: Date
     let calendar: Calendar
+    @State private var hovered: Date?
+
+    private var unit: Calendar.Component { period == .day ? .hour : .day }
 
     var body: some View {
-        let peak = slices.map(\.totals.tokens).max() ?? 0
-        let current = period.isCurrent(interval, now: now) ? slices.lastIndex { $0.start <= now } : nil
-        HStack(alignment: .bottom, spacing: Theme.Spacing.xxs) {
-            ForEach(Array(slices.enumerated()), id: \.element.id) { index, slice in
-                bar(slice, peak: peak, isCurrent: index == current)
+        let current = period.isCurrent(interval, now: now) ? slices.last { $0.start <= now }?.id : nil
+        let picked = hovered.flatMap { date in slices.last { $0.start <= date } }
+        VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
+            Chart {
+                // An empty slice draws no bar, so the baseline is what a quiet hour reads as.
+                RuleMark(y: .value("Tokens", 0))
+                    .foregroundStyle(Theme.Colors.separator)
+                    .lineStyle(StrokeStyle(lineWidth: Theme.Size.hairline))
+                ForEach(slices) { slice in
+                    BarMark(x: .value("Time", slice.start, unit: unit), y: .value("Tokens", slice.totals.tokens))
+                        .foregroundStyle(fill(slice, isCurrent: slice.id == current, isPicked: slice.id == picked?.id))
+                        .cornerRadius(Theme.Radius.glyph)
+                        .accessibilityLabel(Text(verbatim: period.sliceTitle(of: slice.start, calendar: calendar)))
+                        .accessibilityValue(Text(verbatim: UsageSection.summary(slice.totals)))
+                }
             }
+            .chartYAxis(.hidden)
+            .chartXAxis {
+                AxisMarks(values: .automatic(desiredCount: 4)) { _ in
+                    AxisValueLabel().foregroundStyle(Theme.Colors.textTertiary)
+                }
+            }
+            .chartXSelection(value: $hovered)
+            .frame(height: Theme.Size.usageTrendHeight)
+            // Held open while nothing is picked, so naming a bar never moves the rows below.
+            Text(verbatim: picked.map(label) ?? " ")
+                .font(.caption)
+                .monospacedDigit()
+                .foregroundStyle(Theme.Colors.textSecondary)
+                .lineLimit(1)
+                .accessibilityHidden(true)
         }
-        .frame(height: Theme.Size.usageTrendHeight)
     }
 
-    private func bar(_ slice: UsageReport.Slice, peak: Int, isCurrent: Bool) -> some View {
-        let tokens = slice.totals.tokens
-        let label = period.sliceTitle(of: slice.start, calendar: calendar) + "\n"
-            + UsageSection.summary(slice.totals)
-        let fill: Color =
-            tokens == 0 ? Theme.Colors.separator : isCurrent ? .accentColor : Theme.Colors.textTertiary
-        let height =
-            tokens == 0
-            ? Theme.Size.hairline
-            : max(Theme.Spacing.xxs, Theme.Size.usageTrendHeight * CGFloat(tokens) / CGFloat(max(peak, 1)))
-        return Color.clear
-            .overlay(alignment: .bottom) {
-                RoundedRectangle(cornerRadius: Theme.Radius.glyph)
-                    .fill(fill)
-                    .frame(height: height)
-            }
-            .frame(maxWidth: .infinity)
-            .contentShape(Rectangle())
-            .help(label)
-            .accessibilityElement()
-            .accessibilityLabel(Text(verbatim: label))
+    private func label(_ slice: UsageReport.Slice) -> String {
+        period.sliceTitle(of: slice.start, calendar: calendar) + " · " + UsageSection.summary(slice.totals)
+    }
+
+    private func fill(_ slice: UsageReport.Slice, isCurrent: Bool, isPicked: Bool) -> Color {
+        if isCurrent { return Theme.Colors.accent }
+        return isPicked ? Theme.Colors.textSecondary : Theme.Colors.textTertiary
     }
 }
 

@@ -210,7 +210,7 @@ extension AIChatCoordinator: ChatSettingsSource {
         let labelled: [(ACPConfigOption?, String, ChatSettingsIcon?)] = [
             (options.model, String(localized: "Model"), Self.settingsIcon(agents.modelIcon(for: chat))),
             (options.reasoning, String(localized: "Reasoning"), .symbol("brain", .magenta)),
-            (options.mode, String(localized: "Mode"), .symbol("slider.horizontal.3", .blue))
+            (options.mode, String(localized: "Mode"), .symbol("dial.medium", .blue))
         ]
         let main = labelled.compactMap { option, label, icon in
             option.map { acpMenu($0, label: label, icon: icon, in: chat) }
