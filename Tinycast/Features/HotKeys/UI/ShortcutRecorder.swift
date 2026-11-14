@@ -98,15 +98,17 @@ struct ShortcutRecorder: View {
         .frame(maxWidth: .infinity)
         // Overlaid, not a row member, so it costs the caps no width.
         .overlay(alignment: .trailing) {
-            Button {
-                hotKeys.setBinding(nil, for: action)
-            } label: {
-                Image(systemName: "xmark.circle.fill")
-                    .font(Theme.Typography.inlineClear)
+            // Built only under the pointer: a hidden one per row still cost a focus slot each.
+            if hovered {
+                Button {
+                    hotKeys.setBinding(nil, for: action)
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(Theme.Typography.inlineClear)
+                }
+                .settingsControl(.glyph)
+                .transition(.opacity)
             }
-            .settingsControl(.glyph)
-            .opacity(hovered ? 1 : 0)
-            .allowsHitTesting(hovered)
         }
     }
 }
