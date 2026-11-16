@@ -228,6 +228,8 @@ struct NoteEditorView: NSViewRepresentable {
         textView.isContinuousSpellCheckingEnabled = false
         textView.smartInsertDeleteEnabled = false
         textView.usesFindBar = true
+        // Its affordance is a child window that drags a closed note back on screen.
+        textView.writingToolsBehavior = .none
         textView.allowsUndo = true
         // Fork: links in the accent, as Raycast's are.
         textView.linkTextAttributes = [
