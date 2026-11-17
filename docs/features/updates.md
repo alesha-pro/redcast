@@ -1,7 +1,8 @@
 # Updates
 
-Fork: off in Redcast. Its builds never update themselves (`Scripts/fork/install.sh` builds the next
-one), so this page describes the updater as upstream ships it.
+Fork: Redcast (`io.redcast.app`) is the stable channel of `alesha-pro/redcast`, whose releases
+`Scripts/fork/release.sh` publishes signed by the team `BundleSignature` pins. A copy `install.sh`
+built between tags carries a `git describe` version that is not a release, so it never checks.
 
 By default, Redcast checks GitHub Releases once a day and offers the newest release for its own
 channel in a native window with its release notes, installs it and relaunches. There is no Sparkle and

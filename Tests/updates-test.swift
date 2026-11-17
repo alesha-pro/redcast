@@ -108,6 +108,7 @@ struct UpdatesTests {
         expect(beta == .beta, "the beta bundle id is the beta channel")
         expect(dev == .development, "the dev bundle id is a local build")
         expect(ReleaseChannel(bundleID: nil) == .development, "a missing bundle id never updates")
+        expect(ReleaseChannel(bundleID: "io.redcast.app") == .stable, "Redcast's releases are stable")
 
         expect(stable.updatesItself && beta.updatesItself, "both shipped channels update")
         expect(!dev.updatesItself, "a local build does not update itself")

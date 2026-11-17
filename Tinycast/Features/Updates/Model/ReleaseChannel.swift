@@ -10,6 +10,7 @@ enum ReleaseChannel: Sendable {
     init(bundleID: String?) {
         switch bundleID {
         case "com.tinycast.app": self = .stable
+        case "io.redcast.app": self = .stable  // Fork: Scripts/fork/release.sh publishes it
         case "com.tinycast.app.beta": self = .beta
         default: self = .development
         }

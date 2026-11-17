@@ -122,7 +122,7 @@ launch ([bundle-migration](docs/features/bundle-migration.md)).
 ## Installing the fork
 
 `Scripts/fork/install.sh` builds the fork in Release for this Mac as `/Applications/Redcast.app`, signs
-it with the keychain's one `Apple Development` identity, quits the installed app gracefully, swaps the
+it with the `Apple Development` identity the installed copy has, quits the installed app gracefully, swaps the
 new bundle in by rename and relaunches it. About shows the `git describe` version and the commit count
 (a fresh clone needs `git fetch upstream --tags` first). Details and the manual sweep are in
 [fork tooling](docs/fork-tooling.md#scriptsforkinstallsh).
@@ -153,6 +153,14 @@ new bundle in by rename and relaunches it. About shows the `git describe` versio
 - The Accessibility grant survives a reinstall. A capture refused while other apps capture fine is that
   one app's process refusing: quit and reopen the app you captured before toggling the grant.
 
+## Releasing
+
+`Scripts/fork/release.sh <version>` builds Redcast, signs it with the Developer ID identity of the team
+`BundleSignature` trusts, notarizes and staples the app and its DMG, tags `HEAD` and creates a draft
+GitHub Release on this repository. Installed copies of a release then update themselves from here:
+`io.redcast.app` is the stable channel, reading `alesha-pro/redcast`'s releases, never upstream's.
+Details in [fork tooling](docs/fork-tooling.md#scriptsforkreleasesh).
+
 ## Roadmap
 
 Sizes are focused working days. Waves are ordered by leverage, not by size. Every item carries the
@@ -162,7 +170,8 @@ Declined items stay listed so the numbers other docs cite keep their meaning.
 
 ### Wave 0 — fork foundation
 
-- **Release script — shipped** as `Scripts/fork/install.sh` (see [Installing the fork](#installing-the-fork)).
+- **Release script — shipped** as `Scripts/fork/install.sh` (see [Installing the fork](#installing-the-fork)),
+  and public releases as `Scripts/fork/release.sh` (see [Releasing](#releasing)).
 - **Upstream sync — shipped** as `Scripts/fork/sync-upstream.sh`. The scheduled Action that keeps one
   rolling PR stays a [proposal](docs/fork-tooling.md#proposed-a-nightly-sync-action-not-active) until
   the script has done three to five syncs by hand.

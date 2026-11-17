@@ -31,9 +31,10 @@ Usage: Scripts/fork/install.sh [--no-launch] [--force-quit] [--accept-new-identi
        Scripts/fork/install.sh --self-check
        Scripts/fork/install.sh --self-test     # stubbed installs into \$TMPDIR, one from a fake app
 
-Builds the fork in Release for this Mac as $APP_NAME.app, signs it with the one Apple Development
-identity, verifies it, quits the installed copy gracefully and swaps the new one into place by
-rename. A fork copy still named Tinycast.app beside it is migrated: it goes to the rollback slot.
+Builds the fork in Release for this Mac as $APP_NAME.app, signs it with the Apple Development
+identity the installed copy has (the only one, on a first install), verifies it, quits the
+installed copy gracefully and swaps the new one into place by rename. A fork copy still named
+Tinycast.app beside it is migrated: it goes to the rollback slot.
 
   --no-launch            do not reopen the app after the swap
   --force-quit           SIGTERM, then SIGKILL, when the app does not quit within 20 s
@@ -165,6 +166,11 @@ stale_registrations() {
     done | sort -u
 }
 
+installed_signer() {
+    [ -n "$INSTALLED" ] || return 0
+    designated "$INSTALLED" | sed -nE 's/.*leaf\[subject\.CN\] = "([^"]*)".*/\1/p'
+}
+
 resolve_identity() {
     if [ -n "${TINYCAST_SIGN_IDENTITY:-}" ]; then
         IDENTITY="$TINYCAST_SIGN_IDENTITY"
@@ -178,6 +184,13 @@ resolve_identity() {
     names="$(sed -E 's/^[^"]*"(.*)"$/\1/' <<<"$lines" | sort -u)"
     shas="$(awk '{ print $2 }' <<<"$lines" | sort -u)"
     if [ "$(wc -l <<<"$names")" -ne 1 ] || [ "$(wc -l <<<"$shas")" -ne 1 ]; then
+        local pinned
+        # Several: the one the installed copy is signed with keeps its grants, if it is unique.
+        pinned="$(installed_signer)"
+        if [ -n "$pinned" ] && [ "$(grep -cF "\"$pinned\"" <<<"$lines")" -eq 1 ]; then
+            IDENTITY="$pinned"
+            return
+        fi
         printf '%s\n' "$lines" >&2
         die 2 "ambiguous signing identity: delete the expired or duplicate certificate in" \
             "Keychain Access, or set TINYCAST_SIGN_IDENTITY to the full name."

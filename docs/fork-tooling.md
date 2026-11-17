@@ -7,6 +7,7 @@ in the background or adds a setting: each one runs when you start it and leaves 
 | Tool | Does |
 | --- | --- |
 | [`install.sh`](#scriptsforkinstallsh) | builds Redcast in Release, swaps it into `/Applications`, migrates a fork `Tinycast.app` |
+| [`release.sh`](#scriptsforkreleasesh) | builds, signs with Developer ID, notarizes and publishes a Redcast release |
 | [`rebrand.mjs`](#scriptsforkrebrandmjs) | says Redcast in both string catalogs and the docs, and checks the rest |
 | `rebrand-text.mjs` | the docs' and Swift literals' rename and checks, with their allowlists |
 | [`sync-upstream.sh`](#scriptsforksync-upstreamsh) | merges upstream into a branch of its own and runs the gates |
@@ -77,7 +78,7 @@ builds keep upstream's icon. The menu-bar item draws `RedcastMenuBarIcon`, the s
 
 | Environment | Default | Meaning |
 | --- | --- | --- |
-| `TINYCAST_SIGN_IDENTITY` | the single `Apple Development: …` identity | full name to sign with |
+| `TINYCAST_SIGN_IDENTITY` | the installed copy's `Apple Development: …` identity, else the only one | full name to sign with |
 | `TINYCAST_FORK_BUNDLE_ID` | `io.redcast.app` | `TINYCAST_BUNDLE_IDENTIFIER` for the build |
 | `TINYCAST_FORK_LEGACY_ID` | `com.tinycast.app.fork` | the fork's earlier id: an install under it is this fork, replaced, and migrated on first launch |
 | `TINYCAST_INSTALL_PATH` | `/Applications/Redcast.app` | where the app is installed; a fork `Tinycast.app` in the same folder is migrated |
@@ -112,7 +113,7 @@ The order of the steps is the design:
 
 | Step | What happens |
 | --- | --- |
-| Identity | Exactly one valid `Apple Development` identity, by name and by SHA-1. Two certificates with one name make `codesign` fail as ambiguous, so the script lists them instead. A foreign installed bundle is refused here too, and so is a second fork copy under the old name; upstream's `Tinycast.app` beside it is named. |
+| Identity | Exactly one valid `Apple Development` identity, by name and by SHA-1; with several, the one the installed copy's requirement names, when exactly one certificate carries that name. Two certificates with one name make `codesign` fail as ambiguous, so the script lists them instead. A foreign installed bundle is refused here too, and so is a second fork copy under the old name; upstream's `Tinycast.app` beside it is named. |
 | Detach | When an ancestor process runs from inside the installed bundle (an agent, `run_command`, a custom command), everything below runs in a new session and logs to `build/fork/install.log`. The caller gets exit 0 at once and reads the outcome in the log. Before a migration the installed bundle is the old `Tinycast.app`. |
 | Version | `MARKETING_VERSION` is `git describe` without the `v` (`0.12.2-beta.125-11-g7575cbad`, `-dirty` on a dirty tree), `CURRENT_PROJECT_VERSION` the commit count. Tags come from upstream: a fresh clone needs `git fetch upstream --tags`. |
 | Build | Release as `Redcast.app` (`PRODUCT_NAME=Redcast`, `DICTATION_EXECUTABLE_NAME="Redcast Dictation"`), this Mac's architecture only, signed with `--timestamp=none` so it needs no network. |
@@ -182,6 +183,36 @@ captured before you touch the grant. The script's last line says the same.
    leaves only `Redcast.app` (Finder, Spotlight, the menu bar item and About say Redcast), Screen
    Awareness and dictation work with no new prompt, and the login item opens Redcast after a toggle.
    `--rollback` brings `Tinycast.app` back, and a second `--rollback` Redcast.
+
+## `Scripts/fork/release.sh`
+
+```sh
+Scripts/fork/release.sh <version> [--universal] [--publish] [--notes FILE]
+Scripts/fork/release.sh <version> --dry-run | --self-check
+```
+
+Ships `MAJOR.MINOR.PATCH` from a clean `HEAD` already on `origin/main`: a Release build for Apple
+silicon (`--universal` adds the `-Universal-` one an Intel Mac's updater needs), signed with the
+keychain's one `Developer ID Application` identity and a secure timestamp, checked by
+`verify-signature.sh`, notarized and stapled, then a zip (what the updater expands) and a signed,
+notarized, stapled DMG. It tags `HEAD` `v<version>` as `Redcast <version>`, pushes the tag and
+creates a **draft** release on the repository `ReleaseFeed.repository` names, with notes listing the
+first-parent commits since the previous `Redcast …` tag; `--publish` skips the draft. Everything lands
+in `build/fork/release/<version>/`, a rejected notarization's log included.
+
+- **The source decides where and whom to trust.** The repository comes from `ReleaseFeed.swift` and
+  the team from `BundleSignature.developerID`; the script refuses an identity of another team, since
+  no installed copy could update to it. Changing teams means committing the new team there first.
+- **Secrets stay in the keychain.** Notarization reads the `redcast-notary` profile
+  (`TINYCAST_NOTARY_PROFILE`), which you store once with
+  `xcrun notarytool store-credentials redcast-notary` and an App Store Connect API key or an
+  app-specific password. The script never takes a secret as an argument.
+- **Builds from `install.sh` and from releases differ in signer.** The updater accepts a release only
+  through the Developer ID requirement, so a copy `install.sh` signed with Apple Development is
+  replaced by hand once, from the DMG; a copy at a dirty or untagged version never checks at all.
+- `--self-check` prints the version, identity, team, repository and output and builds nothing;
+  `--dry-run` builds and packages with any identity (`TINYCAST_RELEASE_IDENTITY`), turning the
+  identity and team checks into warnings, and notarizes, tags and publishes nothing.
 
 ## `Scripts/fork/rebrand.mjs`
 

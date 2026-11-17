@@ -115,6 +115,10 @@ missing its entitlement ships a permission that can never be granted.
 
 ## The Developer ID migration
 
+Fork: `BundleSignature` pins Redcast's own team, `3BLDMY4DX4`, whose Developer ID signs the releases
+[`Scripts/fork/release.sh`](fork-tooling.md#scriptsforkreleasesh) publishes. The rest of this section
+is upstream's plan.
+
 `BundleSignature` already accepts a bundle signed by upstream's team under Apple's Developer ID
 chain, even though releases are still signed with `Tinycast Self-Signed`. That is deliberate and
 staged: the updater compares signatures before it installs, so the code that trusts the new identity
