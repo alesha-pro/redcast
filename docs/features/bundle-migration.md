@@ -48,7 +48,7 @@ reads a setting. It runs once, only for `io.redcast.app`, and records the run in
 
 ## Manual sweep
 
-1. With Redcast installed under the old id, run `Scripts/fork/install.sh`. It reports
+1. With Redcast installed under the old id, run `Scripts/install.sh`. It reports
    `bundle id com.tinycast.app.fork → io.redcast.app` and the re-grant steps.
 2. After the launch, check that chats, notes, the clipboard, agents, hotkeys and settings are all
    there.

@@ -3,7 +3,7 @@ import Foundation
 /// Every store the app persists, and where a full backup puts it; `full-backup-coverage-test` scans.
 enum FullBackupCoverage {
     enum Decision: Sendable, Equatable {
-        /// Carried by upstream's `.redcast` categories.
+        /// Carried by upstream's `.tinycast` categories.
         case upstream
         case section(FullBackupSection)
         /// Recorded in the section, never applied: the import names it for the reader to turn on.

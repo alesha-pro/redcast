@@ -1,7 +1,8 @@
 # Security Policy
 
-Redcast is a personal fork of [Abue Ammar's launcher](https://github.com/abue-ammar/tinycast), built from source on
-its owner's Mac. There are no releases or downloads to patch.
+Redcast is built on [Abue Ammar's launcher](https://github.com/abue-ammar/tinycast) and maintained on
+its own. Releases are published at [alesha-pro/redcast](https://github.com/alesha-pro/redcast/releases),
+and installed copies update themselves.
 
 ## Reporting a vulnerability
 
@@ -9,7 +10,7 @@ Report privately through GitHub: **Security** tab → **Report a vulnerability**
 version, the Redcast commit (Settings → About shows it), reproduction steps and the impact. Please
 don't disclose it publicly until it's fixed.
 
-A vulnerability that also affects upstream belongs there too.
+A vulnerability that also affects Abue Ammar's launcher is worth reporting there too.
 
 ## Scope
 

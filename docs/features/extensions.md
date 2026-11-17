@@ -91,7 +91,7 @@ same arrangement as `EmojiData.generated.swift`: building Redcast never needs No
 
 | File                                             | What it is                                                                                                             |
 | ------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------- |
-| `src/index.js`                                   | the `__tinycast` object Swift calls into (`boot`, `start`, `dispatch`, `popNavigation`, `settle`, `fireTimer`, `stop`) |
+| `src/index.js`                                   | the `__redcast` object Swift calls into (`boot`, `start`, `dispatch`, `popNavigation`, `settle`, `fireTimer`, `stop`) |
 | `src/host.js`                                    | the JS→Swift seam: async `hostCall`, blocking `hostCallSync`, logging                                                  |
 | `src/reconciler.js`                              | `react-reconciler` host config that commits into a JSON tree                                                           |
 | `src/api/components.js`                          | every `@raycast/api` component                                                                                         |
@@ -106,7 +106,7 @@ same arrangement as `EmojiData.generated.swift`: building Redcast never needs No
 Two host-call flavours:
 
 - **Async** (`invoke`) for anything that needs the main actor — clipboard, toasts, window control,
-  `fetch`, `exec`. Swift answers later through `__tinycast.settle`, so the JS thread never blocks on the
+  `fetch`, `exec`. Swift answers later through `__redcast.settle`, so the JS thread never blocks on the
   UI.
 - **Blocking** (`invokeSync`) for the synchronous Node shims only — `fs.readFileSync`,
   `execSync`, `createHash`, `gunzipSync`. Safe because Swift services these entirely on the JS queue;
@@ -610,7 +610,7 @@ or Reinstall action. Nothing installs or runs until asked. When extensions are d
 opens their Settings pane so they can be enabled through the usual consent flow.
 
 `raycast://extensions/<owner>/<extension>/<command>` runs an installed command from outside the app —
-a browser link, another app, a Shortcut — and `tinycast://` mirrors it so our own links never depend
+a browser link, another app, a Shortcut — and `redcast://` mirrors it so our own links never depend
 on Raycast winning the scheme. Fork: `redcast://` mirrors it too, and is the one no upstream install
 can take. Both accept Raycast's query parameters: `arguments` as URL-encoded
 JSON, `fallbackText`, and `launchType=background`, which only a no-view command receives — a view
@@ -866,7 +866,7 @@ node test.mjs ~/.config/raycast/extensions/<uuid> [command]
 
 # 3. the real Swift engine, against JavaScriptCore
 Scripts/run-tests.sh ext-test
-"${TMPDIR:-/tmp}"/tinycast-harness/ext-test ~/Library/Application\ Support/io.redcast.app.dev/extensions/<name> [command]
+"${TMPDIR:-/tmp}"/redcast-harness/ext-test ~/Library/Application\ Support/io.redcast.app.dev/extensions/<name> [command]
 ```
 
 `ext-test` compiles the real engine sources — there is no copy to keep in sync. `EXT_TEST_VERBOSE=1`
@@ -880,7 +880,7 @@ round-trips and the Provider Usage action, with live fetches but a recorded `lau
 status items stay hidden so a test run cannot interfere with the running app's menus:
 
 ```sh
-EXT_TEST_MENU_BAR=1 "${TMPDIR:-/tmp}/tinycast-harness/ext-test" \
+EXT_TEST_MENU_BAR=1 "${TMPDIR:-/tmp}/redcast-harness/ext-test" \
   "$HOME/Library/Application Support/io.redcast.app.dev/extensions/opencodex-usage" usage-menu-bar
 ```
 
@@ -923,7 +923,7 @@ The last four rows are pruned by `ExtensionCoordinator.removeExtensionReferences
 bundle id, so `extension:<name>/<command>` is what those stores are keyed by. `CustomCommandCoordinator`
 and `QuicklinkCoordinator` prune the same stores the same way; extensions are not a special case.
 
-**Builds happen in `$TMPDIR/tinycast-install-<UUID>/`**, named by `ExtensionCleanup.workspace` so the
+**Builds happen in `$TMPDIR/redcast-install-<UUID>/`**, named by `ExtensionCleanup.workspace` so the
 sweep below cannot disagree about what a workspace is called. A `defer` removes it on every exit an
 install can take. A crash mid-build is the one it cannot cover, so `ExtensionManager.start` sweeps
 strays once at launch — deliberately not gated on `extensionsEnabled`, because a stranded

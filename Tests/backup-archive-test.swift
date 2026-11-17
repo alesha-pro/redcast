@@ -62,7 +62,7 @@ struct BackupArchiveTest {
             counts: ["clipboard": 1, "notes": 1])
         try? bundle.writeManifest(manifest)
 
-        let archive = root.appendingPathComponent("out.tinycast")
+        let archive = root.appendingPathComponent("out.redcast")
         let opened = root.appendingPathComponent("open")
         do {
             try BackupArchive.seal(directory: source, into: archive)
@@ -171,7 +171,7 @@ struct BackupArchiveTest {
     }
 
     static func rejectsGarbage(in root: URL) {
-        let file = root.appendingPathComponent("garbage.tinycast")
+        let file = root.appendingPathComponent("garbage.redcast")
         try? Data("not an archive".utf8).write(to: file)
         let into = root.appendingPathComponent("garbage-out")
         do {
@@ -194,7 +194,7 @@ struct BackupArchiveTest {
     /// A hostile archive must not write outside the directory the caller chose.
     static func refusesTraversal(in root: URL) {
         // Header-by-header: `writeDirectoryContents` refuses to emit the `..` path we need here.
-        let archive = root.appendingPathComponent("evil.tinycast")
+        let archive = root.appendingPathComponent("evil.redcast")
         let payload = Data("escaped".utf8)
         guard
             let destination = ArchiveByteStream.fileStream(
@@ -240,7 +240,7 @@ struct BackupArchiveTest {
 
     /// A link entry names no `..` at all, and reading through it would leave the extract.
     static func refusesSymbolicLinks(in root: URL) {
-        let archive = root.appendingPathComponent("linked.tinycast")
+        let archive = root.appendingPathComponent("linked.redcast")
         guard
             let destination = ArchiveByteStream.fileStream(
                 path: FilePath(archive.path), mode: .writeOnly, options: [.create, .truncate],

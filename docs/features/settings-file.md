@@ -1,7 +1,7 @@
 # Settings file
 
 An opt-in mirror of Redcast's preferences, the launcher's items and all of window management in
-`~/.config/tinycast/settings.json`, switched on in **Settings → Backup → Settings File**. `UserDefaults`
+`~/.config/redcast/settings.json`, switched on in **Settings → Backup → Settings File**. `UserDefaults`
 stays the store; the file follows it, and an edit made to the file applies at once. The machinery lives
 in `Features/Settings/` (`Model/`, `Service/`, `SettingsFileSchema.swift`), the launcher's part in
 `Features/Launcher/`, and window management's in `Features/WindowManagement/`.
@@ -54,8 +54,8 @@ in `Features/Settings/` (`Model/`, `Service/`, `SettingsFileSchema.swift`), the 
 
 ## Location
 
-`~/.config/tinycast/settings.json` on stable; another channel suffixes the folder, so Dev uses
-`tinycast-dev` and a fork its bundle ID. `$XDG_CONFIG_HOME` is not read, because an app opened from
+`~/.config/redcast/settings.json` on stable; another channel suffixes the folder, so Dev uses
+`redcast-dev` and a fork its bundle ID. `$XDG_CONFIG_HOME` is not read, because an app opened from
 Finder never sees the shell's environment. A symlink is followed and kept: the write lands in its
 target, so a file linked from a dotfiles repository stays linked.
 
@@ -94,8 +94,7 @@ because the app rewrites the file.
     "automaticallyCheckForUpdates": true,
     "popToRootSeconds": 0,
     "escapeKeyBehavior": "navigateBackOrClose",
-    "autoSwitchInputSource": null,
-    "supportReminders": true
+    "autoSwitchInputSource": null
   },
   "clipboard": {
     "enabled": true,

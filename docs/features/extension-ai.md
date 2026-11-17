@@ -97,7 +97,7 @@ With the model switch on, `ExtensionAIModelRoute` maps a name to a pick:
    and so on through Mistral and Perplexity, or an old family name such as `DeepSeek_R1` or
    `Llama3.1_70B`. That word is Raycast's host, so `Perplexity_Llama3_Sonar_Large` is Perplexity's.
    The hosts serving other vendors' models (`Groq_`/`groq-`, `Vercel_`/`gateway-`, `Baseten_`,
-   `Together_AI_`/`together-`), `tinycast` and anything else without a brand stop here: an
+   `Together_AI_`/`together-`), `redcast` and anything else without a brand stop here: an
    open-weight model on a cheap host never becomes its vendor's own, pricier API.
 2. If the extension model already is that brand — an API pick, Claude's or Codex's CLI, a router's
    model — it answers.
@@ -167,7 +167,7 @@ already redacted by the route.
 | `useAI` | works unchanged on top of `AI.ask` |
 | `AI.experimental_decide` | one prompt at `creativity: 0`, the reply rebuilt into `noul`, `choice` and `score` answers |
 | `environment.canAccess(AI)` | the `aiAccess` launch flag |
-| `AI.Model` | a Proxy: any capitalised name reads back as itself; `Object.entries` lists one `Tinycast` entry |
+| `AI.Model` | a Proxy: any capitalised name reads back as itself; `Object.entries` lists one `Redcast` entry |
 | a `{ id }` model and `AI.refreshModels()` | the extension model; resolves and does nothing: extension model providers are not surfaced |
 | Raycast's per-extension limit | `ExtensionAIRateLimit`, in memory |
 | the "get access" prompt | the per-extension dialog, remembered and editable in Settings |

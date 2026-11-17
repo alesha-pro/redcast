@@ -1,8 +1,8 @@
 # Updates
 
-Fork: Redcast (`io.redcast.app`) is the stable channel of `alesha-pro/redcast`, whose releases
-`Scripts/fork/release.sh` publishes signed by the team `BundleSignature` pins. A copy `install.sh`
-built between tags carries a `git describe` version that is not a release, so it never checks.
+The installed app (`io.redcast.app`) updates from `alesha-pro/redcast`'s releases, which
+`Scripts/release.sh` publishes signed by the team `BundleSignature` pins. A copy `install.sh` built
+between tags carries a `git describe` version that is not a release, so it never checks.
 
 By default, Redcast checks GitHub Releases once a day and offers the newest release for its own
 channel in a native window with its release notes, installs it and relaunches. There is no Sparkle and
@@ -10,11 +10,6 @@ no appcast: the release feed the website already reads is the feed the app reads
 
 ## Invariants
 
-- **Redcast installs its own updates, and Homebrew stays out of the way.** Both casks declare
-  `auto_updates true`, which is Homebrew's own flag for an app that manages its own version. `brew
-  update && brew upgrade` therefore skips Redcast entirely — it is never reported outdated, never
-  re-downloaded, and a self-updated copy is never trashed or rolled back. `brew install`, `brew
-  uninstall` and `brew list` keep working unchanged.
 - **The archive is a zip, never the DMG.** A zip expands with `ditto`; a DMG would have to be mounted,
   which means a volume, a Spotlight handle and a detach that can fail. A release published without a
   zip is not installable and is not offered.
@@ -60,7 +55,7 @@ no appcast: the release feed the website already reads is the feed the app reads
   The preference travels through settings backups and `general.automaticallyCheckForUpdates` in
   settings.json; release metadata and skipped versions stay in the feature's own cache file.
 - **The window shows the changelog and nothing else.** CI writes install instructions below
-  `<!-- tinycast:install -->`, and `ReleaseNotes.summary` — the single reader of that marker, called
+  `<!-- redcast:install -->`, and `ReleaseNotes.summary` — the single reader of that marker, called
   where the feed is parsed so the cache holds the cut text too — drops them. An app that installs its
   own updates has no use for a Homebrew command, and a body published before the marker existed has
   none, so it comes back whole.
@@ -79,8 +74,7 @@ no appcast: the release feed the website already reads is the feed the app reads
 
 | Bundle id | Channel | Takes |
 | --- | --- | --- |
-| `com.tinycast.app` | `.stable` | releases |
-| `com.tinycast.app.beta` | `.beta` | prereleases |
+| `io.redcast.app` | `.stable` | releases |
 | anything else | `.development` | nothing |
 
 `AppVersion` parses `MAJOR.MINOR.PATCH` and `MAJOR.MINOR.PATCH-beta.N` with semver precedence: a
@@ -120,8 +114,7 @@ One route, whatever the install came from:
 
 1. Stream the zip into `~/Library/Caches/<bundle-id>/Updates/`, with real byte progress and a Cancel
    that actually aborts the transfer.
-2. `ditto -x -k` it into a staging folder, and take whatever `.app` lands there — the bundle is named
-   for its channel, so it is `Tinycast Beta.app` on beta.
+2. `ditto -x -k` it into a staging folder, and take whatever `.app` lands there.
 3. Check quarantine natively; clear it if somehow present, and refuse the update if it survives.
 4. Verify the bundle id, the version, and that the code signature is valid and proves the bundle is
    ours — by the pinned Developer ID requirement, or by the running app's own leaf certificate.
@@ -141,23 +134,16 @@ setting, clipboard entry, note or snippet is affected by an update, by `brew upg
 
 ## Releasing into it
 
-`.github/workflows/release.yml` publishes two assets from one build: the DMG people download by hand
-and the cask installs, and `Tinycast-<version>.zip` for the updater. A stable run adds a
-`Tinycast-Universal-<version>` pair from its `universal` job, uploaded second so the thin zip stays
-first in the asset list — builds predating architecture-aware selection take whichever comes first.
-The zip is made with
+`Scripts/release.sh` publishes the DMG people download by hand and `Redcast-<version>.zip` for the
+updater; `--universal` adds a `Redcast-Universal-<version>` pair, uploaded second so the thin zip
+stays first in the asset list. The zip is made with
 
 ```sh
-ditto -c -k --keepParent --sequesterRsrc "$APP" "dist/$ZIP_FILE"
+ditto -c -k --keepParent --sequesterRsrc "$APP" "$DIST/$base.zip"
 ```
 
 which is the only zip that leaves the code signature verifiable — plain `zip` drops symlinks and
 breaks the seal, and the signature check above would then reject every update.
 
-The body it publishes is composed by `Scripts/release-notes.sh`: GitHub's generated changelog first,
-then `<!-- tinycast:install -->`, then the install text. Anything a release wants the update window to
-show has to go above that marker — see [release.md](../release.md#release-notes).
-
-**The casks must declare `auto_updates true`** in `abue-ammar/homebrew-tinycast`. Without it Homebrew
-compares its Caskroom receipt against the cask version, sees a self-updated app as outdated forever,
-and re-installs over it on the next `brew upgrade`.
+The release notes are the commits since the previous `Redcast …` tag, then an install note; the
+update window shows the part above `<!-- redcast:install -->` when a body carries that marker.

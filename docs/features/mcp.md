@@ -108,11 +108,11 @@ nothing about MCP. `AIChatCoordinator.send` is the one place the two meet.
   Codex's launch disables every one of them by name, read first by a short-lived
   `codex mcp list --json` under the same flags the app-server runs with, because that command
   starts nothing and because a name the configuration does not define cannot be disabled — naming
-  one makes the whole config refuse to load. Redcast's own go by `tinycast-<handle>`: `-c` sets
+  one makes the whole config refuse to load. Redcast's own go by `redcast-<handle>`: `-c` sets
   single keys, so a Redcast `github` under the reader's own name would inherit everything of theirs
   it did not set — their `env` table with its literal secrets, `cwd`, a per-tool `approval_mode`
   that skips consent — and a remote one over their stdio one makes Codex refuse the whole config.
-  A reader's server already named `tinycast-<handle>` for an armed handle refuses the launch rather
+  A reader's server already named `redcast-<handle>` for an armed handle refuses the launch rather
   than merge. The boundary fails closed: a listing that exits non-zero or is not a JSON array of
   named servers refuses the launch, since reading it as empty would start every one of them, and
   so does a name with a dot or `=`, which `-c` splits and so cannot switch off. The Providers row
@@ -246,7 +246,7 @@ which both encoders omit, rather than dropped — it needs no credential on the 
 
 `CodexMCPLaunch` turns the list into `-c` overrides: `command`/`args`/`env_vars` for a local
 server, `url` with `bearer_token_env_var` — or `env_http_headers` when the header is not
-`Authorization` — for a remote one, each under `mcp_servers.tinycast-<handle>`, and
+`Authorization` — for a remote one, each under `mcp_servers.redcast-<handle>`, and
 `enabled=false` for each of the user's own. Every override is process-scoped, like the feature flags
 the route always passed, and one of those, `features.plugins=false`, also keeps a plugin's own
 servers out of both the listing and the launch. `CodexMCPLaunch.handle(ofServer:)` is the way
@@ -282,7 +282,7 @@ stand in. Every other server request is declined as it always was. `item/started
 argv is in `ps`: `0600`, and named per turn, like Grok's prompt file, so a second turn never
 overwrites or deletes a live turn's configuration out from under the process reading it. It is
 deleted with the turn; a crash leaves it, and Grok's prompt file, for `InstalledAIManager` to delete
-at the next launch, which removes only `tinycast-mcp-*` and `tinycast-prompt-*` files older than
+at the next launch, which removes only `redcast-mcp-*` and `redcast-prompt-*` files older than
 that launch. The turn then runs `--input-format stream-json` so the consent channel has a
 pipe to answer on, and drops `--disallowedTools "*"` — verified to remove the MCP tools along with
 the built-ins, after which the model narrates a call it never made. The question only reaches

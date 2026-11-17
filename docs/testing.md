@@ -28,7 +28,7 @@ end of this file is the sixth, judged by what you touched.
 `apple-intelligence-test` runs deterministic checks by default. Its real model generation is opt-in:
 
 ```sh
-TINYCAST_TEST_APPLE_INTELLIGENCE=1 ./Scripts/run-tests.sh apple-intelligence-test
+REDCAST_TEST_APPLE_INTELLIGENCE=1 ./Scripts/run-tests.sh apple-intelligence-test
 ```
 
 The opt-in check still skips with a reason if the Mac cannot run the on-device model.
@@ -53,10 +53,10 @@ repeated, stale or wrong is refused, for each redirect method and for custom `{ 
 named model and `creativity` it forwards, `AI.experimental_decide`'s prompt and the answers it rebuilds,
 and `useAI`'s abort-then-ask pattern. The runtime fixture suite runs all three as well.
 
-The suite runs four harnesses at a time by default to reduce CPU usage. `TINYCAST_TEST_JOBS` overrides
-that limit; `TINYCAST_TEST_JOBS=1` runs one at a time. Each result is numbered
+The suite runs four harnesses at a time by default to reduce CPU usage. `REDCAST_TEST_JOBS` overrides
+that limit; `REDCAST_TEST_JOBS=1` runs one at a time. Each result is numbered
 against the total and shows its run and compile time, a quiet stretch names the harnesses still running, and a harness that runs longer
-than `TINYCAST_TEST_TIMEOUT` seconds (default 300) is killed and reported as timed out. Parallelism is safe
+than `REDCAST_TEST_TIMEOUT` seconds (default 300) is killed and reported as timed out. Parallelism is safe
 because each harness already roots its scratch state somewhere of its own — a UUID-suffixed
 `temporaryDirectory`, a `UserDefaults(suiteName:)`, or `NSPasteboard.withUniqueName()` — and a new
 harness must keep doing that rather than reach for a fixed path.
@@ -191,13 +191,11 @@ If a change touches anything in the right column, the harness on the left is man
 | `window-file-test` | `WindowManagement/Model/WindowManagementFileFormat.swift` — command shortcuts, custom sizes, layouts and rooms as settings.json spells them, hand edits and bad records |
 | `launcher-settings-file-test` | Launcher settings application — invalid records, partial edits, deferred bundles, shortcut moves and records outside search scopes; isolated preferences and in-memory scan/Carbon effects |
 | `backup-archive-test` | all of `Backup/Model/`, plus `Backup/Service/BackupStaging.swift` |
-| `full-backup-test` | `FullBackup/Model/`, `FullBackupCipher` and `FullBackupChatArchive` (fork) — every section's payload through a sealed `.tinycast`, the chat database's snapshot and merge, an old upstream-only file, unknown and newer sections, dropped records, every import rule, sealed secrets with the right and a wrong passphrase and an edited header, no secret in the clear, and export on quit ([backup](features/backup.md#testing)) |
-| `rebrand-test` | `ForkBrand` (fork) — Redcast for upstream's name in prompts and other text no catalog holds, ids and paths kept; `Info.plist` registering `redcast://` beside `tinycast://` and `.redcast` beside `.tinycast`, and Import Backup offering both |
+| `full-backup-test` | `FullBackup/Model/`, `FullBackupCipher` and `FullBackupChatArchive` (fork) — every section's payload through a sealed `.redcast`, the chat database's snapshot and merge, an old upstream-only file, unknown and newer sections, dropped records, every import rule, sealed secrets with the right and a wrong passphrase and an edited header, no secret in the clear, and export on quit ([backup](features/backup.md#testing)) |
 | `full-backup-coverage-test` | `FullBackupCoverage` against the sources (fork) — every `UserDefaults` key, Application Support name and Keychain scope a store spells has a decision, every `AppSettingsKey` is decided once, consents are recorded and never applied, and no decision is stale |
 | `shortcuts-overview-test` | `ShortcutsOverview/Model/` (fork) — shared chords, aliases and keywords, chords macOS keeps with the reader's symbolic hotkeys, and every filter with search |
 | `updates-test` | `Updates/Model/` — version precedence, channel filtering, install route, readiness |
 | `update-check-test` | `UpdateCheckStore` — stopping, in-flight cancellation, cached prompt suppression, restart and independent manual checking |
-| `support-test` | `Support/Model/` — when the support reminder comes due, and a clock moved backwards |
 | `ai-model-catalog-test` | `AIModelCatalog` — who pays by address, windows, tariffs and cost lines; the context card's denominator; what a turn holds |
 | `ai-provider-test` | `AI/Model/` and `AISettingsStore` — instruction composition, provider requests and streams, route settings, protocol framing and CLI launch encodings |
 | `usage-dashboard-test` | `UsageDashboard/Model/` and `UsageQuery` against a real chat history — sums, period edges, read-only and absent databases, model merging, ACP attribution and running totals, trend slices, OpenRouter decoding and the management key's request — the usage log's format, append, trim, cut lines, clear and merge, the recording provider, plus the tool loop's turn cost and OpenAI's `stream_options` |
@@ -260,7 +258,7 @@ xcodebuild build -project Redcast.xcodeproj -scheme Redcast -configuration Debug
   CODE_SIGNING_ALLOWED=NO
 xcodebuild build -project Redcast.xcodeproj -scheme Redcast -configuration Release \
   CODE_SIGNING_ALLOWED=NO
-find ~/Library/Developer/Xcode/DerivedData -name "Tinycast*.app" -maxdepth 6 -print -quit
+find ~/Library/Developer/Xcode/DerivedData -name "Redcast*.app" -maxdepth 6 -print -quit
 ```
 
 - Zero **new** warnings. Pre-existing ones are not your problem; new ones are.
@@ -287,7 +285,7 @@ search result that navigates and then sits there.
 
 ## Performance measurement
 
-`Platform/Signposts.swift` emits eight intervals on the `com.tinycast.perf` subsystem: `AppCore.start`,
+`Platform/Signposts.swift` emits eight intervals on the `io.redcast.perf` subsystem: `AppCore.start`,
 `AppIndex.scan`, `AppIndex.rank`, `PaletteWindowController.show`, `UninstallScanner.discover`,
 `UninstallScanner.measure`, `Notes.search` and `FileIndexer.update`. Open the Time Profiler or
 `os_signpost` instrument in Instruments and filter to that subsystem; nothing needs recompiling.
@@ -360,11 +358,11 @@ $D/clipboard-thumbnail-performance /tmp/ctp --original
 $D/clipboard-thumbnail-performance /tmp/ctp --copies
 ```
 
-`Scripts/fork/chat-memory.sh` (fork) measures AI Chat's window. It compiles the app's own sources
+`Scripts/chat-memory.sh` (fork) measures AI Chat's window. It compiles the app's own sources
 around `Tests/chat-memory-harness.swift` with `-O` and builds `AppCore` without `start()`, so no
 hotkey, clipboard or network work runs, and it loads a small interposer that refuses every
 `SecItem` call, so no run reads or writes the Keychain. Its fixture, written to the harness's own
-`com.tinycast.chat-memory` defaults and Application Support, has 107 chats on a stand-in
+`io.redcast.chat-memory` defaults and Application Support, has 107 chats on a stand-in
 OpenRouter connection at `127.0.0.1:9`; both are emptied before and after each run. Each cycle
 drives the real window: open, seven switches, paging up through the screenshot chat, Chat Settings
 open and closed, a sidebar search for a word in the messages, then close. It records phys_footprint and live malloc at each step, with their
@@ -393,9 +391,9 @@ Store. A second argument measures another checkout with the same harness. It is 
 suite:
 
 ```sh
-CHAT_MEMORY_ONSCREEN=1 ./Scripts/fork/chat-memory.sh /tmp/chat-memory.tsv          # this tree
-CHAT_MEMORY_ONSCREEN=1 CHAT_MEMORY_SCROLL=1 ./Scripts/fork/chat-memory.sh /tmp/scroll.tsv . 3
-CHAT_MEMORY_ONSCREEN=1 ./Scripts/fork/chat-memory.sh /tmp/before.tsv ../other-checkout 2
+CHAT_MEMORY_ONSCREEN=1 ./Scripts/chat-memory.sh /tmp/chat-memory.tsv          # this tree
+CHAT_MEMORY_ONSCREEN=1 CHAT_MEMORY_SCROLL=1 ./Scripts/chat-memory.sh /tmp/scroll.tsv . 3
+CHAT_MEMORY_ONSCREEN=1 ./Scripts/chat-memory.sh /tmp/before.tsv ../other-checkout 2
 ```
 
 Without `CHAT_MEMORY_ONSCREEN` the window is moved off every screen, and an occluded window skips
@@ -940,7 +938,7 @@ caches, TCC grants and login item, so this cannot disturb an installed copy.
 - Every picker (Add Application…, an icon, a voice model, a Window Layout entry, an extension's icon) opens as a glass panel over a dimmed window and closes on Escape and on a click outside it, leaving any editor under it open; every destructive question (Reset ranking, Clear history, removing a server, a connection or a layout) raises Redcast's own dialog
 - Sidebar keys: arrows work at open and skip the group headers; typing jumps to a row; ⌘F, then Esc clears and a second Esc returns the arrows to the rows; ↓ in the field enters the results; opening About scrolls its row into view
 - A feature switch takes effect in the launcher immediately; every setting survives relaunch
-- Export produces a `.redcast` (fork; upstream writes `.tinycast`, which still imports); import applies it and reports a per-category summary
+- Export produces a `.redcast` (upstream writes `.tinycast`, which still imports); import applies it and reports a per-category summary
 - Untick a category on export, and the import picker greys that row out rather than offering it
 - Untick a category on **import** and confirm it did not arrive, while the ticked ones did
 - An image clip round-trips and still renders; the archive can then be deleted without breaking it
@@ -1007,7 +1005,7 @@ Wipe the Dev channel and check that path directly:
 ```sh
 rm -rf ~/Library/Caches/io.redcast.app.dev
 rm -rf "$HOME/Library/Application Support/io.redcast.app.dev"
-rm -rf ~/.config/tinycast-dev
+rm -rf ~/.config/redcast-dev
 defaults delete io.redcast.app.dev 2>/dev/null || true
 tccutil reset Accessibility io.redcast.app.dev 2>/dev/null || true
 ```

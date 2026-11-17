@@ -145,7 +145,7 @@ own ways:
 
 - **A retry row says what failed** ("Retrying after a provider error (1 of 4): …", the provider's
   own words or the network's), and every retry and failed round is logged under
-  `com.tinycast` / `AgentLoop`: `/usr/bin/log show --predicate 'subsystem == "com.tinycast"'`.
+  `io.redcast` / `AgentLoop`: `/usr/bin/log show --predicate 'subsystem == "io.redcast"'`.
 
 - **The output cap is 32,768 tokens where a route needs a number** (`AgentTurnBudget.outputTokens`,
   `AgentOutputCap`). Anthropic must be sent `max_tokens`, and upstream's 4,096 leaves Claude 5.5, which
@@ -454,7 +454,7 @@ the user's words. [Agents](agents.md#invariants) has the method's lines.
   "You added: …" row appears once the command ends, and the agent takes it into account in the same
   reply. On a plain chat or an ACP agent, ⌘↵ stops the reply and sends at once.
 - **Retry reason.** With DeepSeek or Wi-Fi misbehaving, the retry row ends with what failed, and
-  `/usr/bin/log show --predicate 'subsystem == "com.tinycast"' --last 10m` shows it too.
+  `/usr/bin/log show --predicate 'subsystem == "io.redcast"' --last 10m` shows it too.
 Run the Debug build with an agent on each connection you have; the sweep costs a few cents a route.
 
 - **Simple.** Balanced, "What is the capital of France?": one reply, no tool row, no plan.

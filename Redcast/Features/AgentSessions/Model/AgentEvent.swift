@@ -1,6 +1,6 @@
 import Foundation
 
-/// `redcast://` or `redcast://agent-sessions/…`: each is claimed, so none reaches the launcher.
+/// `redcast://agent-sessions/…` or the old `tinycast://` form: both are claimed, never the launcher.
 enum AgentDeepLink: Equatable, Sendable {
     case open(query: String?)
     case jump

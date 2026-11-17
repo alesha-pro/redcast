@@ -13,7 +13,7 @@ Window Layouts retain macOS's default running-application substitution. Uninstal
 indexed copies share the bundle ID, because their support files and preferences may be shared.
 
 `./Scripts/run-tests.sh app-installation-test` covers the shipped index and app-wide preferences.
-Set `TINYCAST_TEST_APP_LAUNCH=1` for temporary native-app launch, quit and restart checks; the harness
+Set `REDCAST_TEST_APP_LAUNCH=1` for temporary native-app launch, quit and restart checks; the harness
 reports notification-dependent checks as skipped when the session cannot deliver workspace events.
 
 ## Invariants
@@ -183,7 +183,7 @@ the Zed app: rule 3 only protects an exact title past three characters.
 
 `settings` is the case these were measured against. Apple declares `Settings` in System Settings'
 `CFBundleAlternateNames`, so it is an exact alternate title and wins rule 3; the command is named
-Redcast Settings, its key `Tinycast Settings` like About's, Quit's and Support's, so nothing ties it there.
+Redcast Settings, its key `Redcast Settings` like About's and Quit's, so nothing ties it there.
 
 ## One fold, everywhere
 
@@ -308,7 +308,7 @@ handler through `AppLauncher.open`.
 The shape a query has to have is `QuicklinkDestination.detect` returning `.web`, reused rather than
 re-written so `github.com` and `https://…` mean the same thing here as they do in a quicklink. The
 entry is an ordinary `.command`, so `VisibilityStore` still gates it — Commands off hides the row —
-and its `url` carries the destination instead of the catalog's `tinycast://` placeholder. Nothing
+and its `url` carries the destination instead of the catalog's `redcast://` placeholder. Nothing
 learns from it and nothing pins it: `LauncherCoordinator.launch` records no visit for a contextual
 row, since a pasted URL is not a term any row should rank under; and ⇧⌘F and ⇧⌘H are both refused,
 because a favorite — or a hidden-item key — the empty query can never resolve is dead state a backup

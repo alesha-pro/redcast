@@ -1,6 +1,6 @@
 #!/bin/bash
 # Measures AI Chat's window over a fixture history, footprint and malloc per step; not in run-tests.
-# Usage: Scripts/fork/chat-memory.sh [report.tsv] [source tree] [cycles]
+# Usage: Scripts/chat-memory.sh [report.tsv] [source tree] [cycles]
 #   CHAT_MEMORY_ONSCREEN=1 shows the window (otherwise it is moved off every screen);
 #   CHAT_MEMORY_SCROLL=1 times steady scrolls through two long chats instead of the memory steps;
 #   CHAT_MEMORY_TYPING=1 times keystrokes in the composer over drafts up to 1 MB instead;
@@ -14,7 +14,7 @@
 #   CHAT_MEMORY_REUSE=1 skips the rebuild; CHAT_MEMORY_BUILD_ONLY=1 stops after it.
 # See docs/features/chat-workspace.md#memory and docs/testing.md.
 set -euo pipefail
-ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 HARNESS="$ROOT/Tests/chat-memory-harness.swift"
 REPORT=$(cd "$(dirname "${1:-chat-memory.tsv}")" && pwd)/$(basename "${1:-chat-memory.tsv}")
 SRC=$(cd "${2:-$ROOT}" && pwd)

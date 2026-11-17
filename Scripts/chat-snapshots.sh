@@ -1,8 +1,8 @@
 #!/bin/bash
 # Renders AI Chat's window offscreen from fixtures, in light and dark, without launching the app.
-# Usage: Scripts/fork/chat-snapshots.sh <output-dir> [built Redcast Dev.app] [language…]
+# Usage: Scripts/chat-snapshots.sh <output-dir> [built Redcast Dev.app] [language…]
 set -euo pipefail
-cd "$(dirname "$0")/../.." || exit 1
+cd "$(dirname "$0")/.." || exit 1
 
 OUT=${1:?output directory}
 APP=${2:-build/DerivedData/Build/Products/Debug/Redcast Dev.app}

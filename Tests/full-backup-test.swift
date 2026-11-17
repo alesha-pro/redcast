@@ -179,7 +179,7 @@ struct FullBackupTest {
         try? Data(#"{"chats":{}}"#.utf8).write(to: layout.chatPlacementsURL)
         try? layout.writeContents(contents)
 
-        let file = root.appendingPathComponent("round.tinycast")
+        let file = root.appendingPathComponent("round.redcast")
         let opened = root.appendingPathComponent("opened")
         do {
             try BackupArchive.seal(directory: source, into: file)
@@ -452,7 +452,7 @@ struct FullBackupTest {
         try? layout.prepare()
         try? layout.writeSecrets(sealed.sealed)
         try? layout.writeContents(FullBackupContents(sections: [:], secrets: sealed.header))
-        let file = root.appendingPathComponent("sealed.tinycast")
+        let file = root.appendingPathComponent("sealed.redcast")
         let extracted = root.appendingPathComponent("sealed-opened")
         try? BackupArchive.seal(directory: source, into: file)
         try? BackupArchive.open(file: file, into: extracted)
@@ -515,7 +515,7 @@ struct FullBackupTest {
 
     // MARK: - On quit
 
-    /// Redcast writes `.redcast`; a `.redcast` from upstream or an older build opens the same.
+    /// Redcast writes `.redcast`; a `.tinycast` from upstream or an older build opens the same.
     static func backupOpensUnderEitherExtension(sealed file: URL, in root: URL) {
         let manifest = { (name: String) -> BackupManifest? in
             let copy = root.appendingPathComponent("either.\(name)")

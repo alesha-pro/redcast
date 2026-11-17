@@ -1,13 +1,13 @@
-# Fork tooling
+# Shipping
 
-The developer tools this fork adds under `Scripts/fork/`. None of them ships a byte in the app, runs
-in the background or adds a setting: each one runs when you start it and leaves nothing behind.
-[`FORK.md`](../FORK.md) has the short version.
+The scripts that put Redcast on a Mac: `install.sh` builds this checkout into `/Applications`, and
+`release.sh` publishes a signed, notarized release the installed app updates from. Neither ships a
+byte in the app, runs in the background or adds a setting.
 
 | Tool | Does |
 | --- | --- |
-| [`install.sh`](#scriptsforkinstallsh) | builds Redcast in Release, swaps it into `/Applications`, migrates a fork `Tinycast.app` |
-| [`release.sh`](#scriptsforkreleasesh) | builds, signs with Developer ID, notarizes and publishes a Redcast release |
+| [`install.sh`](#scriptsinstallsh) | builds Redcast in Release, swaps it into `/Applications`, migrates an old `Tinycast.app` copy of Redcast |
+| [`release.sh`](#scriptsreleasesh) | builds, signs with Developer ID, notarizes and publishes a Redcast release |
 
 ## Invariants
 
@@ -23,49 +23,43 @@ in the background or adds a setting: each one runs when you start it and leaves 
   back, so merge `main` into a worktree before you install from it.
 - **There is always an app installed.** The new copy is staged and verified on the destination
   volume, the old one is quit, and the swap is two renames, the first undone if the second fails.
-- **It never touches `project.yml` or adds an `.xcconfig`.** Bundle id, identity, version and the
-  name (`PRODUCT_NAME=Redcast`, `DICTATION_EXECUTABLE_NAME="Redcast Dictation"`) travel on the
-  `xcodebuild` line, as upstream's `release.yml` passes its own `PRODUCT_NAME`, so the fork's install
-  path never conflicts with upstream.
-- **The two names travel together.** A Release build of the fork finds its Dictation helper as
-  "*executable* Dictation" (`DictationWorker`), so a build that passes `PRODUCT_NAME` must pass the
-  matching `DICTATION_EXECUTABLE_NAME`. Upstream's `release.yml` does not (its Beta keeps
-  `Redcast Dictation`), which is one more reason it stays disabled here. `verify-signature.sh` looks
-  for the helper under the same name, so such a build fails verification instead of shipping with
-  dictation broken.
-- **The rename never breaks a lookup.** Redcast writes `.redcast` and answers `redcast://`, and
-  still opens `.tinycast` and answers `tinycast://`; the bundle id moved with a migration. Names the
-  code or macOS look up stay.
+- **It never touches `project.yml` or adds an `.xcconfig`.** Bundle id, identity and version travel
+  on the `xcodebuild` line.
+- **The two names travel together.** A Release build finds its Dictation helper as
+  "*executable* Dictation" (`DictationWorker`), so a build that overrides `PRODUCT_NAME` must override
+  `DICTATION_EXECUTABLE_NAME` to match. `verify-signature.sh` looks for the helper under the same
+  name, so such a build fails verification instead of shipping with dictation broken.
+- **The rename never breaks a lookup.** Redcast writes `.redcast` and `redcast://`, and still opens
+  `.tinycast` and answers `tinycast://`; the fork's old bundle id moves over with a migration.
 - **Started from Redcast, it leaves Redcast's process group before it builds.** An agent's
   `run_command` watchdog (120 s by default, 600 s at most) and Redcast's own quit both signal the
   whole group that started the script, and a Release build outlasts the watchdog. Only the refusals
   that need no build, an ambiguous identity and a foreign installed bundle, answer the caller first.
 
-## `Scripts/fork/install.sh`
+## `Scripts/install.sh`
 
 ```sh
-Scripts/fork/install.sh [--no-launch] [--force-quit] [--accept-new-identity]
-Scripts/fork/install.sh --rollback      # the copy the last install replaced
-Scripts/fork/install.sh --self-check    # resolve and list; build, quit, move and register nothing
-Scripts/fork/install.sh --self-test     # stubbed installs into $TMPDIR, one started from a fake app
+Scripts/install.sh [--no-launch] [--force-quit] [--accept-new-identity]
+Scripts/install.sh --rollback      # the copy the last install replaced
+Scripts/install.sh --self-check    # resolve and list; build, quit, move and register nothing
+Scripts/install.sh --self-test     # stubbed installs into $TMPDIR, one started from a fake app
 ```
 
-The build uses the fork's own app icon, `Redcast/redcast.icon` (an Icon Composer file: a solid
-`#F23D32` fill under the white mark), through `ASSETCATALOG_COMPILER_APPICON_NAME=redcast`; Debug
-builds keep upstream's icon. The menu-bar item draws `RedcastMenuBarIcon`, the same mark as a template.
+Every build uses `Redcast/redcast.icon` (an Icon Composer file: a solid `#F23D32` fill under the white
+mark). The menu-bar item draws `RedcastMenuBarIcon`, the same mark as a template.
 
 | Environment | Default | Meaning |
 | --- | --- | --- |
-| `TINYCAST_SIGN_IDENTITY` | the installed copy's `Apple Development: …` identity, else the only one | full name to sign with |
-| `TINYCAST_FORK_BUNDLE_ID` | `io.redcast.app` | `REDCAST_BUNDLE_IDENTIFIER` for the build |
-| `TINYCAST_FORK_LEGACY_ID` | `com.tinycast.app.fork` | the fork's earlier id: an install under it is this fork, replaced, and migrated on first launch |
-| `TINYCAST_INSTALL_PATH` | `/Applications/Redcast.app` | where the app is installed; a fork `Tinycast.app` in the same folder is migrated |
-| `DEVELOPER_DIR` | `/Applications/Xcode.app/Contents/Developer` | as `build-dmg.sh` |
+| `REDCAST_SIGN_IDENTITY` | the installed copy's `Apple Development: …` identity, else the only one | full name to sign with |
+| `REDCAST_INSTALL_BUNDLE_ID` | `io.redcast.app` | `REDCAST_BUNDLE_IDENTIFIER` for the build |
+| `REDCAST_LEGACY_BUNDLE_ID` | `com.tinycast.app.fork` | the fork's earlier id: an install under it is this fork, replaced, and migrated on first launch |
+| `REDCAST_INSTALL_PATH` | `/Applications/Redcast.app` | where the app is installed; a fork `Tinycast.app` in the same folder is migrated |
+| `DEVELOPER_DIR` | `/Applications/Xcode.app/Contents/Developer` | the Xcode to build with |
 
-`TINYCAST_LSREGISTER` replaces the `lsregister` binary. `--self-test` uses it for a rehearsal that
+`REDCAST_LSREGISTER` replaces the `lsregister` binary. `--self-test` uses it for a rehearsal that
 needs no certificate and touches neither `/Applications` nor LaunchServices. It copies the script into
 a throwaway repository and puts stand-in `xcodebuild`, `osascript` and `open` first on `PATH`. The
-fake build is named by the `PRODUCT_NAME` and `DICTATION_EXECUTABLE_NAME` the script passes, is
+fake build is named `Redcast.app` unless a `PRODUCT_NAME` is passed, is
 signed ad hoc and passes `verify-signature.sh`, and its executables are one tiny launcher compiled with
 `clang`. Starting the script through the installed fake app's launcher makes it count as started from
 the app. The self-test proves eight things. An ad hoc build is refused with both requirements. The
@@ -81,8 +75,8 @@ bundle at the destination is refused before anything detaches.
 
 Exit codes: 0 installed · 1 build or verification failed · 2 refused (a foreign bundle, a second fork
 copy, a changed identity, an ambiguous certificate, a rollback whose place is taken) · 3 the app did
-not quit · 4 the swap failed and was rolled back · 64 usage. Working files live in `build/fork/`
-(`DerivedData.noindex/`, `build.log`, `install.log`, `Tinycast.previous` and `Tinycast.previous.origin`, the
+not quit · 4 the swap failed and was rolled back · 64 usage. Working files live in `build/install/`
+(`DerivedData.noindex/`, `build.log`, `install.log`, `Redcast.previous` and `Redcast.previous.origin`, the
 path that copy was installed at), which `.gitignore` already covers. The slot changes only when a swap
 replaced a copy: a fresh install keeps it, and a replaced copy that cannot be moved there stays beside
 the app as `.Redcast-previous-<pid>`, named in the output, rather than being deleted.
@@ -92,14 +86,14 @@ The order of the steps is the design:
 | Step | What happens |
 | --- | --- |
 | Identity | Exactly one valid `Apple Development` identity, by name and by SHA-1; with several, the one the installed copy's requirement names, when exactly one certificate carries that name. Two certificates with one name make `codesign` fail as ambiguous, so the script lists them instead. A foreign installed bundle is refused here too, and so is a second fork copy under the old name; upstream's `Tinycast.app` beside it is named. |
-| Detach | When an ancestor process runs from inside the installed bundle (an agent, `run_command`, a custom command), everything below runs in a new session and logs to `build/fork/install.log`. The caller gets exit 0 at once and reads the outcome in the log. Before a migration the installed bundle is the old `Tinycast.app`. |
+| Detach | When an ancestor process runs from inside the installed bundle (an agent, `run_command`, a custom command), everything below runs in a new session and logs to `build/install/install.log`. The caller gets exit 0 at once and reads the outcome in the log. Before a migration the installed bundle is the old `Tinycast.app`. |
 | Version | `MARKETING_VERSION` is `git describe` without the `v` (`0.12.2-beta.125-11-g7575cbad`, `-dirty` on a dirty tree), `CURRENT_PROJECT_VERSION` the commit count. Tags come from upstream: a fresh clone needs `git fetch upstream --tags`. |
-| Build | Release as `Redcast.app` (`PRODUCT_NAME=Redcast`, `DICTATION_EXECUTABLE_NAME="Redcast Dictation"`), this Mac's architecture only, signed with `--timestamp=none` so it needs no network. |
+| Build | Release as `Redcast.app` with its `Redcast Dictation` helper, this Mac's architecture only, signed with `--timestamp=none` so it needs no network. |
 | Verify | The bundle id is the fork's, `Scripts/verify-signature.sh` passes (it finds the helper as "*app name* Dictation", as the app does), and the designated requirement equals the installed copy's, the old `Tinycast.app` before a migration (else exit 2 unless `--accept-new-identity`). An ad hoc signature's requirement is its cdhash, which every build changes. |
 | Stage | `ditto` to `/Applications/.Redcast-staged-<pid>`. No `.app` suffix, so LaunchServices ignores it. |
 | Quit | `osascript … to quit`, only while the app runs, so the quit goes through the app's own termination path (dictation stops, notes flush, the Hyper key remap is restored). It waits for the helpers too. `--force-quit` sends SIGTERM, then SIGKILL. |
-| Swap | Installed → aside, staged → `Redcast.app`, the first rename undone on failure. The replaced copy, `Tinycast.app` in a migration, becomes `build/fork/Tinycast.previous` for `--rollback`, and its path `Tinycast.previous.origin`. |
-| LaunchServices | `lsregister -f` on the installed app, `-u` on the copy a migration moved away, then `-u` on every other registered copy of the fork's ids, including the Release products Xcode's `RegisterWithLaunchServices` step registered. `tinycast://`, `raycast://` and `open -b` then reach `/Applications`. |
+| Swap | Installed → aside, staged → `Redcast.app`, the first rename undone on failure. The replaced copy, `Tinycast.app` in a migration, becomes `build/install/Redcast.previous` for `--rollback`, and its path `Redcast.previous.origin`. |
+| LaunchServices | `lsregister -f` on the installed app, `-u` on the copy a migration moved away, then `-u` on every other registered copy of the fork's ids, including the Release products Xcode's `RegisterWithLaunchServices` step registered. `redcast://`, `raycast://` and `open -b` then reach `/Applications`. |
 | Relaunch | `open`, unless `--no-launch`, and a report: version, identity, requirement, path, size, and after a migration the grants and Launch at login. |
 
 macOS App Management can refuse the renames in `/Applications` with `Operation not permitted`. The
@@ -123,7 +117,7 @@ goes to the rollback slot and is unregistered, so Spotlight, `open -b` and the U
   `Tinycast.app` back, moves `Redcast.app` into the slot and unregisters it; a second `--rollback`
   migrates again. A slot from before the rename has no origin and rolls back in place. A rollback
   whose place is taken by something else stops with exit 2.
-- **Upstream's Redcast.app** (`com.tinycast.app`, or Beta or Dev) is never moved or unregistered;
+- **Upstream's Tinycast.app** (`com.tinycast.app`, or Beta or Dev) is never moved or unregistered;
   the script installs `Redcast.app` beside it and says both are installed.
 - **A second fork copy.** Every worktree that has not merged this change still installs
   `/Applications/Tinycast.app`: run from one after the migration, it installs and opens a second copy
@@ -143,30 +137,30 @@ captured before you touch the grant. The script's last line says the same.
 
 ### Manual sweep
 
-1. `Scripts/fork/install.sh --self-test` passes, and `--self-check` prints the identity, the
+1. `Scripts/install.sh --self-test` passes, and `--self-check` prints the identity, the
    `git describe` version, the commit count, the paths, and any stale LaunchServices registration it
    would remove.
 2. Install with the app running: it quits without a crash report, comes back, and About shows the new
    version.
-3. `lsregister -dump | awk '/^path:/ { p = $0 } /^identifier: +com\.tinycast\.app\.fork$/ { print p }'`
+3. `lsregister -dump | awk '/^path:/ { p = $0 } /^identifier: +com\.redcast\.app\.fork$/ { print p }'`
    lists only `/Applications/Redcast.app`.
 4. Screen Awareness works on an app started after the install (Finder, TextEdit, a new Chrome), with
    no toggling of the grant.
 5. Started from an agent's `run_command` with the default timeout, the command returns within seconds,
-   `build/fork/install.log` shows the whole Release build, and the app comes back.
-6. `TINYCAST_INSTALL_PATH` pointing at a copy of upstream's `com.tinycast.app` is refused with exit 2.
-7. `TINYCAST_SIGN_IDENTITY=-` (ad hoc) is refused with both requirements printed and exit 2.
+   `build/install/install.log` shows the whole Release build, and the app comes back.
+6. `REDCAST_INSTALL_PATH` pointing at a copy of upstream's `com.tinycast.app` is refused with exit 2.
+7. `REDCAST_SIGN_IDENTITY=-` (ad hoc) is refused with both requirements printed and exit 2.
 8. `--rollback` restores the previous build; a second `--rollback` undoes it.
 9. The first install over a fork `Tinycast.app`: `--self-check` prints the migration, the install
    leaves only `Redcast.app` (Finder, Spotlight, the menu bar item and About say Redcast), Screen
    Awareness and dictation work with no new prompt, and the login item opens Redcast after a toggle.
-   `--rollback` brings `Tinycast.app` back, and a second `--rollback` Redcast.
+   `--rollback` brings `Tinycast.app` back, and a second `--rollback` redoes the migration.
 
-## `Scripts/fork/release.sh`
+## `Scripts/release.sh`
 
 ```sh
-Scripts/fork/release.sh <version> [--universal] [--publish] [--notes FILE]
-Scripts/fork/release.sh <version> --dry-run | --self-check
+Scripts/release.sh <version> [--universal] [--publish] [--notes FILE]
+Scripts/release.sh <version> --dry-run | --self-check
 ```
 
 Ships `MAJOR.MINOR.PATCH` from a clean `HEAD` already on `origin/main`: a Release build for Apple
@@ -176,18 +170,18 @@ keychain's one `Developer ID Application` identity and a secure timestamp, check
 notarized, stapled DMG. It tags `HEAD` `v<version>` as `Redcast <version>`, pushes the tag and
 creates a **draft** release on the repository `ReleaseFeed.repository` names, with notes listing the
 first-parent commits since the previous `Redcast …` tag; `--publish` skips the draft. Everything lands
-in `build/fork/release/<version>/`, a rejected notarization's log included.
+in `build/release/<version>/`, a rejected notarization's log included.
 
 - **The source decides where and whom to trust.** The repository comes from `ReleaseFeed.swift` and
   the team from `BundleSignature.developerID`; the script refuses an identity of another team, since
   no installed copy could update to it. Changing teams means committing the new team there first.
 - **Secrets stay in the keychain.** Notarization reads the `redcast-notary` profile
-  (`TINYCAST_NOTARY_PROFILE`), which you store once with
+  (`REDCAST_NOTARY_PROFILE`), which you store once with
   `xcrun notarytool store-credentials redcast-notary` and an App Store Connect API key or an
   app-specific password. The script never takes a secret as an argument.
 - **Builds from `install.sh` and from releases differ in signer.** The updater accepts a release only
   through the Developer ID requirement, so a copy `install.sh` signed with Apple Development is
   replaced by hand once, from the DMG; a copy at a dirty or untagged version never checks at all.
 - `--self-check` prints the version, identity, team, repository and output and builds nothing;
-  `--dry-run` builds and packages with any identity (`TINYCAST_RELEASE_IDENTITY`), turning the
+  `--dry-run` builds and packages with any identity (`REDCAST_RELEASE_IDENTITY`), turning the
   identity and team checks into warnings, and notarizes, tags and publishes nothing.

@@ -1,14 +1,14 @@
 #!/bin/bash
-# Build, sign with Developer ID, notarize and publish a Redcast release. See docs/fork-tooling.md.
+# Build, sign with Developer ID, notarize and publish a Redcast release. See docs/shipping.md.
 set -euo pipefail
 
-cd "$(dirname "$0")/../.." || exit 1
+cd "$(dirname "$0")/.." || exit 1
 ROOT="$PWD"
 export DEVELOPER_DIR="${DEVELOPER_DIR:-/Applications/Xcode.app/Contents/Developer}"
 APP_NAME=Redcast
 BUNDLE_ID=io.redcast.app
 PROFILE="${REDCAST_NOTARY_PROFILE:-redcast-notary}"
-WORK="$ROOT/build/fork/release"
+WORK="$ROOT/build/release"
 FEED="Redcast/Features/Updates/Model/ReleaseFeed.swift"
 TRUST="Redcast/Features/Updates/Service/BundleSignature.swift"
 FRAMEWORKS=/System/Library/Frameworks/CoreServices.framework/Frameworks
@@ -16,9 +16,9 @@ LSREGISTER="$FRAMEWORKS/LaunchServices.framework/Support/lsregister"
 
 usage() {
     cat <<EOF
-Usage: Scripts/fork/release.sh <version> [--universal] [--publish] [--notes FILE]
-       Scripts/fork/release.sh <version> --dry-run [--universal]
-       Scripts/fork/release.sh <version> --self-check
+Usage: Scripts/release.sh <version> [--universal] [--publish] [--notes FILE]
+       Scripts/release.sh <version> --dry-run [--universal]
+       Scripts/release.sh <version> --self-check
 
 Builds Redcast <version> (MAJOR.MINOR.PATCH) in Release for Apple silicon, signs it with the
 keychain's one Developer ID Application identity, notarizes and staples the app and its DMG, then
@@ -32,7 +32,7 @@ tags HEAD v<version>, pushes the tag and creates a draft GitHub Release with the
 
 Environment: REDCAST_RELEASE_IDENTITY (full identity name), REDCAST_NOTARY_PROFILE
 ($PROFILE, stored once with 'xcrun notarytool store-credentials $PROFILE').
-Output: build/fork/release/<version>/.
+Output: build/release/<version>/.
 EOF
 }
 
@@ -160,8 +160,7 @@ build() {
     # Secure timestamps are what notarization requires; install.sh skips them to stay offline.
     if ! xcodebuild -project Redcast.xcodeproj -scheme Redcast -configuration Release \
         -derivedDataPath "$derived" ARCHS="$archs" ONLY_ACTIVE_ARCH=NO \
-        PRODUCT_NAME="$APP_NAME" DICTATION_EXECUTABLE_NAME="$APP_NAME Dictation" \
-        ASSETCATALOG_COMPILER_APPICON_NAME=redcast REDCAST_BUNDLE_IDENTIFIER="$BUNDLE_ID" \
+        REDCAST_BUNDLE_IDENTIFIER="$BUNDLE_ID" \
         CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY="$IDENTITY" DEVELOPMENT_TEAM= \
         OTHER_CODE_SIGN_FLAGS=--timestamp \
         MARKETING_VERSION="$VERSION" CURRENT_PROJECT_VERSION="$BUILD" \

@@ -2,20 +2,20 @@
 # Build the fork in Release, sign it, and swap it into /Applications. See FORK.md.
 set -euo pipefail
 
-cd "$(dirname "$0")/../.." || exit 1
+cd "$(dirname "$0")/.." || exit 1
 ROOT="$PWD"
-SELF="$ROOT/Scripts/fork/install.sh"
+SELF="$ROOT/Scripts/install.sh"
 export DEVELOPER_DIR="${DEVELOPER_DIR:-/Applications/Xcode.app/Contents/Developer}"
-BUNDLE_ID="${REDCAST_FORK_BUNDLE_ID:-io.redcast.app}"
+BUNDLE_ID="${REDCAST_INSTALL_BUNDLE_ID:-io.redcast.app}"
 # The fork's id before Redcast had its own: a copy under it is this fork, replaced and migrated.
-LEGACY_ID="${REDCAST_FORK_LEGACY_ID:-com.tinycast.app.fork}"
+LEGACY_ID="${REDCAST_LEGACY_BUNDLE_ID:-com.tinycast.app.fork}"
 APP_NAME=Redcast
 DEST="${REDCAST_INSTALL_PATH:-/Applications/$APP_NAME.app}"
 PARENT="$(dirname "$DEST")"
 NAME="$(basename "$DEST" .app)"
 # Where the fork lived before it was Redcast: a fork copy there is migrated, any other left alone.
 LEGACY="$PARENT/Tinycast.app"
-WORK="$ROOT/build/fork"
+WORK="$ROOT/build/install"
 # No `.app` suffix, so LaunchServices never registers the kept copy.
 PREVIOUS="$WORK/Redcast.previous"
 # The path the kept copy was installed at, so --rollback after a migration restores the old name.
@@ -26,10 +26,10 @@ LSREGISTER="${REDCAST_LSREGISTER:-$FRAMEWORKS/LaunchServices.framework/Support/l
 
 usage() {
     cat <<EOF
-Usage: Scripts/fork/install.sh [--no-launch] [--force-quit] [--accept-new-identity]
-       Scripts/fork/install.sh --rollback [--no-launch] [--force-quit]
-       Scripts/fork/install.sh --self-check
-       Scripts/fork/install.sh --self-test     # stubbed installs into \$TMPDIR, one from a fake app
+Usage: Scripts/install.sh [--no-launch] [--force-quit] [--accept-new-identity]
+       Scripts/install.sh --rollback [--no-launch] [--force-quit]
+       Scripts/install.sh --self-check
+       Scripts/install.sh --self-test     # stubbed installs into \$TMPDIR, one from a fake app
 
 Builds the fork in Release for this Mac as $APP_NAME.app, signs it with the Apple Development
 identity the installed copy has (the only one, on a first install), verifies it, quits the
@@ -39,11 +39,11 @@ Tinycast.app beside it is migrated: it goes to the rollback slot.
   --no-launch            do not reopen the app after the swap
   --force-quit           SIGTERM, then SIGKILL, when the app does not quit within 20 s
   --accept-new-identity  install although the code requirement changes (TCC grants need re-granting)
-  --rollback             put back the copy the last install replaced (build/fork/Redcast.previous)
+  --rollback             put back the copy the last install replaced (build/install/Redcast.previous)
   --self-check           resolve identity, version and paths, and list what an install would do;
                          builds, quits, moves and registers nothing
 
-Environment: REDCAST_SIGN_IDENTITY, REDCAST_FORK_BUNDLE_ID ($BUNDLE_ID),
+Environment: REDCAST_SIGN_IDENTITY, REDCAST_INSTALL_BUNDLE_ID ($BUNDLE_ID),
 REDCAST_INSTALL_PATH ($DEST), DEVELOPER_DIR.
 
 Exit codes: 0 installed · 1 build or verification failed · 2 refused · 3 quit timed out ·
@@ -301,11 +301,8 @@ build() {
     say "Building $BUNDLE_ID $VERSION ($BUILD) for $(uname -m), signed by ${IDENTITY}…"
     # Spotlight skips a .noindex folder, so the build output never shows as a second Redcast.app.
     rm -rf "$WORK/DerivedData"
-    # PRODUCT_NAME as release.yml passes it; project.yml pins the helpers' names against it.
     if ! xcodebuild -project Redcast.xcodeproj -scheme Redcast -configuration Release \
         -derivedDataPath "$WORK/DerivedData.noindex" ARCHS="$(uname -m)" ONLY_ACTIVE_ARCH=YES \
-        PRODUCT_NAME="$APP_NAME" DICTATION_EXECUTABLE_NAME="$APP_NAME Dictation" \
-        ASSETCATALOG_COMPILER_APPICON_NAME=redcast \
         REDCAST_BUNDLE_IDENTIFIER="$BUNDLE_ID" \
         CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY="$IDENTITY" DEVELOPMENT_TEAM= \
         OTHER_CODE_SIGN_FLAGS=--timestamp=none \
@@ -578,7 +575,7 @@ check() {
     else
         FAILURES=$((FAILURES + 1))
         printf 'FAIL: %s\n' "$message"
-        sed 's/^/    /' "$TEST_ROOT/out.log" "$TEST_ROOT/repo/build/fork/install.log" 2>/dev/null ||
+        sed 's/^/    /' "$TEST_ROOT/out.log" "$TEST_ROOT/repo/build/install/install.log" 2>/dev/null ||
             true
     fi
 }
@@ -604,14 +601,14 @@ fake_app() {
 from_app() {
     local status=0
     "$1/Contents/MacOS/$(plist "$1" CFBundleExecutable)" /bin/bash \
-        "$TEST_ROOT/repo/Scripts/fork/install.sh" "${@:2}" >"$TEST_ROOT/out.log" 2>&1 || status=$?
+        "$TEST_ROOT/repo/Scripts/install.sh" "${@:2}" >"$TEST_ROOT/out.log" 2>&1 || status=$?
     printf '%s' "$status"
 }
 
 # Runs the copied script from no app at all, its output where `check` prints it from.
 install_status() {
     local status=0
-    "$TEST_ROOT/repo/Scripts/fork/install.sh" "$@" >"$TEST_ROOT/out.log" 2>&1 || status=$?
+    "$TEST_ROOT/repo/Scripts/install.sh" "$@" >"$TEST_ROOT/out.log" 2>&1 || status=$?
     printf '%s' "$status"
 }
 
@@ -622,7 +619,7 @@ finished() {
     local _
     for _ in $(seq 150); do
         if grep -q '^✓ Installed\|^✗' "$1" 2>/dev/null &&
-            ! pgrep -f "$TEST_ROOT/repo/Scripts/fork/install.sh --detached" >/dev/null; then
+            ! pgrep -f "$TEST_ROOT/repo/Scripts/install.sh --detached" >/dev/null; then
             return 0
         fi
         sleep 0.2
@@ -634,11 +631,11 @@ self_test() {
     TEST_ROOT="${TMPDIR:-/tmp}"
     TEST_ROOT="${TEST_ROOT%/}/redcast-install-selftest-$(uuidgen)"
     local repo="$TEST_ROOT/repo" app="$TEST_ROOT/Applications/$APP_NAME.app" status own
-    local log="$TEST_ROOT/repo/build/fork/install.log" id=com.tinycast.app.fork.selftest
-    local slot="$TEST_ROOT/repo/build/fork/Redcast.previous" old new upstream
-    mkdir -p "$repo/Scripts/fork" "$TEST_ROOT/bin"
+    local log="$TEST_ROOT/repo/build/install/install.log" id=com.tinycast.app.fork.selftest
+    local slot="$TEST_ROOT/repo/build/install/Redcast.previous" old new upstream
+    mkdir -p "$repo/Scripts" "$TEST_ROOT/bin"
     [ -n "${REDCAST_INSTALL_KEEP:-}" ] || trap 'rm -rf "$TEST_ROOT"' EXIT
-    cp "$SELF" "$repo/Scripts/fork/install.sh"
+    cp "$SELF" "$repo/Scripts/install.sh"
     cp "$ROOT/Scripts/verify-signature.sh" "$repo/Scripts/"
     export GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1
     git -C "$repo" init -q && git -C "$repo" add -A
@@ -646,7 +643,7 @@ self_test() {
     git -C "$repo" tag v2.0.0
     stub_tools "$TEST_ROOT/bin"
     export PATH="$TEST_ROOT/bin:$PATH" REDCAST_LSREGISTER="$TEST_ROOT/bin/lsregister" \
-        REDCAST_SIGN_IDENTITY=- REDCAST_FORK_BUNDLE_ID="$id" REDCAST_INSTALL_PATH="$app"
+        REDCAST_SIGN_IDENTITY=- REDCAST_INSTALL_BUNDLE_ID="$id" REDCAST_INSTALL_PATH="$app"
     PASSES=0 FAILURES=0
     own="$(ps -o pgid= -p $$ | tr -d ' ')"
 

@@ -29,14 +29,14 @@ you. The feature lives in `Features/AgentSessions/`, plus the few lines that wir
   whether it is created, changed or removed, and the exact lines; nothing is written before **Turn
   On** or **Turn Off**. Each file is re-read first and a file that changed meanwhile sends the panel
   back to review. The original is backed up (newest five kept) and its permissions restored. Only this
-  channel's handlers are touched, found by the marker `-b <bundle id> "tinycast://agent-sessions/event`
+  channel's handlers are touched, found by the marker `-b <bundle id> "redcast://agent-sessions/event`
   in their command; no custom key is ever added to an agent's JSON.
-- **Events need the token.** `tinycast://agent-sessions/event` carries the per-install token from
+- **Events need the token.** `redcast://agent-sessions/event` carries the per-install token from
   `live-status.json`, compared in constant time; a wrong or missing token, an unknown field value or a
-  malformed one drops the event silently. Every `tinycast://agent-sessions/…` URL is claimed, so none
+  malformed one drops the event silently. Every `redcast://agent-sessions/…` URL is claimed, so none
   falls through to opening the launcher. A HUD's words come from Redcast's own lookup of the session
   and fixed strings, never from the URL. Fork: `redcast://agent-sessions/…` is claimed the same way,
-  but hooks keep writing `tinycast://`: the marker above finds installed hooks by that exact text,
+  but hooks keep writing `redcast://`: the marker above finds installed hooks by that exact text,
   so a new one would orphan every hook already in a user's agent settings.
 - **Hooks never launch Redcast and never slow the agent.** Each hook is `async`, drains stdin after a
   64 KB head, uses absolute tool paths, exits 0, and does nothing unless `lsappinfo` finds this
@@ -60,7 +60,7 @@ you. The feature lives in `Features/AgentSessions/`, plus the few lines that wir
   unsaved edit in a field reverts when it locks.
 - **Redcast's own ACP sessions show once.** A session of any of the four agents whose id is in
   `AgentStore.acpSessions` is a Redcast chat and is listed only as that chat; Codex threads with the
-  `tinycast` originator are dropped for the same reason.
+  `redcast` originator are dropped for the same reason.
 - **Gemini CLI and OpenCode are history only.** They are read when the screen opens like the others,
   and resumed; nothing probes, hooks or watches them, and they never touch live status. On a Mac
   without them an open costs a missing cache file and folder for Gemini and one `stat` for OpenCode,
@@ -72,7 +72,7 @@ you. The feature lives in `Features/AgentSessions/`, plus the few lines that wir
   other app that claims `claude://` receives it. Without a record, ⌘O only brings Claude forward.
 - **Only a person's own sessions are tracked.** An event for an automated run (`claude -p`, an SDK
   run, `codex exec`, a Codex subagent or guardian review) or for Redcast's own session (an
-  `acpSessions` id, the `tinycast` originator, or an agent whose process runs under Redcast) is
+  `acpSessions` id, the `redcast` originator (or `tinycast`, before the rename), or an agent whose process runs under Redcast) is
   dropped, along with any entry it had before it was known. So no HUD, menu-bar row or Jump to Agent
   ever points at one, and a burst of them never evicts a waiting session from the 32 kept.
 
@@ -201,7 +201,7 @@ use their `state`. Hosts and ttys are resolved from each pid off-main.
 p=$(head -c 65536); cat >/dev/null; [ -n "$(lsappinfo find bundleid=BUNDLE)" ] || exit 0;
 s=$(printf '%s' "$p" | sed -n 's/.*"session_id" *: *"\([0-9A-Za-z-]\{1,64\}\)".*/\1/p' | head -n 1);
 n=$(printf '%s' "$p" | sed -n 's/.*"notification_type" *: *"\([a-z_]\{1,40\}\)".*/\1/p' | head -n 1);
-open -g -b BUNDLE "tinycast://agent-sessions/event?v=1&k=TOKEN&agent=AGENT&event=EVENT&session=$s&kind=$n&pid=$PPID"; exit 0
+open -g -b BUNDLE "redcast://agent-sessions/event?v=1&k=TOKEN&agent=AGENT&event=EVENT&session=$s&kind=$n&pid=$PPID"; exit 0
 ```
 
 Claude Code gets `UserPromptSubmit` (working), `Notification` matching `permission_prompt`,
@@ -267,7 +267,7 @@ Run in `Redcast Dev.app` with AI on.
 15. Quit Redcast and run an agent: nothing launches, and the transcript shows no hook error.
 16. **Turn Off…** restores the original bytes (`diff` against the backup). Edit `settings.json` while
     the panel is open: Turn On refuses and shows the new diff.
-17. `open "tinycast://agent-sessions/event?v=1&k=wrong&agent=claude&event=finished&session=x"`:
+17. `open "redcast://agent-sessions/event?v=1&k=wrong&agent=claude&event=finished&session=x"`:
     nothing happens and the launcher does not open.
 18. Set **Claude Code folder** to a folder you use with `CLAUDE_CONFIG_DIR` (and **Codex folder** for
     `CODEX_HOME`): the next open lists its sessions; ⌘↵ copies `… && env CLAUDE_CONFIG_DIR='…' claude

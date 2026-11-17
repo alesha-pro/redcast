@@ -91,7 +91,7 @@ that touches them stays mechanical.
   their own sessions and are not sent these instructions.
 - **The window's transcript is upstream's eager stack, drawn by AppKit as before.** No lazy stack
   and no custom text drawing, so scrolling is exactly upstream's; memory is saved only around it.
-  See [Memory](#memory); `Scripts/fork/chat-memory.sh` measures both memory and scrolling.
+  See [Memory](#memory); `Scripts/chat-memory.sh` measures both memory and scrolling.
 - **A chat is loaded whole when it opens and let go whole when it is left.** Nothing outlives a
   switch: a text view leaving the window drops its text at once, and no action keeps the chat it
   was made for. A closed window keeps only an idle, saved chat's id and reloads it on reopen
@@ -267,7 +267,7 @@ spiked to 240 MB and settled at 370 MB. `96cb7402` reverted all of it. The harne
 both, because its 40 chats were small and alike, its screenshots compressed to a fraction of a
 real one, and it never timed a scroll.
 
-**Measured with** `Scripts/fork/chat-memory.sh` (`-O`, macOS 27, on screen, 120 Hz display; see
+**Measured with** `Scripts/chat-memory.sh` (`-O`, macOS 27, on screen, 120 Hz display; see
 [testing](../testing.md)). The fixture now holds 107 chats: a hundred short ones, the four
 60-message chats (code, tables, math, tool rows, sources, file links, reasoning), and three more
 like the owner's: eight replies of 5,266 lines in all (prose that wraps, lists, code, tables); an

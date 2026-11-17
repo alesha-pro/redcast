@@ -207,7 +207,7 @@ bottom with the model picker. ⌘J hands a Quick AI conversation to the window.
   declined. What changed is the list: the servers the reader configured for their own Codex are
   disabled by name at launch — which they were not before, so they used to start inside Redcast
   threads — and the servers [MCP](mcp.md) supplies take their place when a chat has any, under
-  names of their own (`tinycast-<handle>`) so that no table of the reader's merges into one. A
+  names of their own (`redcast-<handle>`) so that no table of the reader's merges into one. A
   launch that cannot read the reader's list, or cannot address a name on it, does not start. A turn
   that arms none keeps `approvalPolicy: "never"`; a turn that arms some uses `"untrusted"`, where
   a tool call becomes an elicitation Redcast answers from the reader's own trust setting.
@@ -254,7 +254,7 @@ bottom with the model picker. ⌘J hands a Quick AI conversation to the window.
   Grok runs with `--deny *`,
   `dontAsk` permissions and a workspace sandbox, and never `--always-approve`, so a user's always-approve
   config cannot arm tools for this route. OpenCode 2 runs `--standalone`, so its private server
-  takes Redcast's inline configuration, as a `tinycast` agent whose trailing deny-all rule drops
+  takes Redcast's inline configuration, as a `redcast` agent whose trailing deny-all rule drops
   every tool from the request, with sharing and snapshots off and a private working directory. Cursor runs `agent -p --mode ask` with `--trust` against
   Redcast's private workspace and never `--force` / `--yolo` / `--approve-mcps`; ask mode blocks edits.
   Each deletes the session or chat it created once the child exits, and Redcast never reaches into the
@@ -264,7 +264,7 @@ bottom with the model picker. ⌘J hands a Quick AI conversation to the window.
   on that route the organization's decision; the Providers row says so.
   Grok, OpenCode and Cursor load the global config either way,
   because their configs merge with no opt-out; what refuses the call is `--deny *` for Grok,
-  the `tinycast` agent's deny-all rule for OpenCode and withheld MCP approval for Cursor. Cursor's is the only one resting
+  the `redcast` agent's deny-all rule for OpenCode and withheld MCP approval for Cursor. Cursor's is the only one resting
   on an approval prompt rather than an explicit deny, which is why its Providers row says so and the
   others do not. That is also why none of the three may be handed a server: there is no way to offer
   one without offering the reader's own. None of these routes offer web search, and only Claude and
@@ -783,7 +783,7 @@ window, and every chat action either surface sends — is the nineteenth feature
   `AIChatSurfacesState`'s one-live-place rule),
   and `apple-intelligence-test` (status copy, snapshot deltas,
   transcript assembly and error mapping, plus an optional real generation enabled with
-  `TINYCAST_TEST_APPLE_INTELLIGENCE=1` when this Mac can run one), all in
+  `REDCAST_TEST_APPLE_INTELLIGENCE=1` when this Mac can run one), all in
   `run-tests.sh`.
 
 ## Installed commands
@@ -869,7 +869,7 @@ Grok uses `streaming-messages-json` and `--effort`, with `--deny *` so tools can
 user's Grok config is always-approve; it captures the session id, then calls `grok sessions delete`.
 An error result omits `result` and carries the cause in `errors`; that text is the failure, not
 Claude's missing-`result` fallback.
-OpenCode runs `--standalone` with the `tinycast` agent from its inline configuration, joins a
+OpenCode runs `--standalone` with the `redcast` agent from its inline configuration, joins a
 variant to the model as `provider/model#variant`, and passes `--thinking` so reasoning reaches the
 fold. `PWD` is the workspace, because `run` takes its directory from it ahead of the real one. Its
 JSON stream has no closing line, so its turn finishes on a clean exit once stdout has closed; it
@@ -900,7 +900,7 @@ voice routes never pick an Anthropic connection.
 | Codex | thread-scoped `web_search` config | `image` input part | never — the app-server takes no document part | Redcast's servers, added as launch overrides; the reader's own are disabled by name |
 | Claude command | never | base64 `image` block in its stream-json user message | never | Redcast's servers, through `--strict-mcp-config` and a private config file — an empty one when there are none, and neither flag under a managed MCP policy |
 | Grok command | never | never | never | the global config still loads — `--deny *` refuses the call |
-| OpenCode command | never | a private file per picture, through `--file`, only for models whose catalog lists `image` input | never | the global config still loads — the `tinycast` agent's deny-all rule drops every tool |
+| OpenCode command | never | a private file per picture, through `--file`, only for models whose catalog lists `image` input | never | the global config still loads — the `redcast` agent's deny-all rule drops every tool |
 | Cursor command | never | never | never | the global config still loads — ask mode and withheld approval refuse the call |
 | OpenRouter | Redcast's `web_search` tool ([web search](web-search.md)) | `image_url` part, only for models whose catalog lists the `image` modality | never yet — its catalog publishes a `file` modality Redcast does not read | `tools` + `role: "tool"` turns |
 | OpenAI | Redcast's `web_search` tool ([web search](web-search.md)) | `image_url` part, assumed supported | `file` part with `filename` and a `file_data` data URL | `tools` + `role: "tool"` turns |

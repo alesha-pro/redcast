@@ -14,11 +14,11 @@
   <img alt="Swift 6" src="https://img.shields.io/badge/Swift-6-F23D32?style=flat&logo=swift&logoColor=white">
 </p>
 
-<p align="center"><a href="https://redcast.io"><b>redcast.io</b></a> · <a href="#install">Install</a> · <a href="docs/README.md">Docs</a> · <a href="FORK.md">What's new in the fork</a></p>
+<p align="center"><a href="https://redcast.io"><b>redcast.io</b></a> · <a href="#install">Install</a> · <a href="docs/README.md">Docs</a> · <a href="FORK.md">What Redcast adds</a></p>
 
-> **A fork that follows upstream.** Redcast is built on Abue Ammar's native macOS launcher and
-> follows its `main` branch. Everything upstream does is here, and Redcast builds a lot on top:
-> agents, AI Chat, voice, an extension store and more ([credits and license](#credits-and-license)).
+> **Built on Abue Ammar's launcher, now on its own path.** Redcast started from Abue Ammar's native
+> macOS launcher and builds a lot on top: agents, AI Chat, voice, an extension store and more. Since
+> 2026-11-17 it no longer follows upstream ([credits and license](#credits-and-license)).
 
 **Redcast is a complete, free replacement for Raycast.** Press one hotkey anywhere and a palette opens
 for your apps, files, windows, clipboard, snippets, commands and Raycast extensions. AI runs on
@@ -167,12 +167,12 @@ Redcast is built from source on your Mac for now; to update, pull and run the in
 
 **You need** macOS 26 or later, Xcode 26, and one Apple Development signing identity in your keychain.
 Xcode makes one in Settings → Accounts → Manage Certificates, and a free Apple ID is enough; with
-several, name yours in `TINYCAST_SIGN_IDENTITY`.
+several, name yours in `REDCAST_SIGN_IDENTITY`.
 
 ```sh
 git clone https://github.com/alesha-pro/redcast.git && cd redcast
-Scripts/fork/install.sh --self-check   # what an install would do; builds nothing
-Scripts/fork/install.sh                # build, install /Applications/Redcast.app, relaunch
+Scripts/install.sh --self-check   # what an install would do; builds nothing
+Scripts/install.sh                # build, install /Applications/Redcast.app, relaunch
 ```
 
 `install.sh` builds a Release for this Mac, signs it with your identity, verifies it, quits the running
@@ -215,7 +215,7 @@ only when a dictation fails, on this Mac, for at most a week, so Dictation Histo
 
 - [docs/](docs/README.md): architecture, standards, testing, the design system and a page per feature
 - [FORK.md](FORK.md): what Redcast adds on top of upstream, and its roadmap
-- [docs/fork-tooling.md](docs/fork-tooling.md): `install.sh` and `release.sh`
+- [docs/shipping.md](docs/shipping.md): `install.sh` and `release.sh`
 - [AGENTS.md](AGENTS.md): the short version, for coding agents working on this repository
 - [CONTRIBUTING.md](CONTRIBUTING.md): issues and pull requests are welcome
 
@@ -223,7 +223,7 @@ only when a dictation fails, on this Mac, for at most a week, so Dictation Histo
 
 Redcast began as a fork of upstream and stopped following it on 2026-11-17: there is no sync, and a
 fix upstream makes is ported by hand and credited. Data from older builds still moves over on its
-own, and `.tinycast` backups and `tinycast://` links keep working.
+own, and `.redcast` backups and `redcast://` links keep working.
 
 ## Credits and license
 

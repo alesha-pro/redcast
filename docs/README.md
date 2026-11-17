@@ -14,7 +14,7 @@ contradicts the code is a defect, so fix it in the commit that made it wrong.
 | [development.md](development.md) | The local loop: setup, build, dev channel, editor, format/lint, generated data | the local toolchain changes |
 | [signing.md](signing.md) | The self-signed identity and the two CI secrets | the signing setup changes |
 | [ui.md](ui.md) | The design system: tokens, panel chrome, row grammar, glass, dialogs and HUDs | a token or a presentation rule changes |
-| [fork-tooling.md](fork-tooling.md) | This fork's scripts: installing a build, syncing upstream | a script in `Scripts/fork/` changes |
+| [shipping.md](shipping.md) | Installing a build and publishing a release | `install.sh` or `release.sh` changes |
 
 ## Features
 
@@ -69,8 +69,7 @@ open with an `## Invariants` section; read it before changing anything in that a
 [Raycast import](features/raycast-import.md) ·
 [Raycast extensions](features/extensions.md) ·
 [extension AI](features/extension-ai.md) ·
-[updates](features/updates.md) ·
-[support](features/support.md)
+[updates](features/updates.md)
 
 ## Contributing
 

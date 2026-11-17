@@ -1,6 +1,6 @@
 # Development
 
-The local loop: set up, build, run, regenerate. Installing a build is [fork-tooling.md](fork-tooling.md#scriptsforkinstallsh);
+The local loop: set up, build, run, regenerate. Installing a build is [shipping.md](shipping.md#scriptsinstallsh);
 verifying a change is [testing.md](testing.md).
 
 ## Requirements
@@ -57,7 +57,7 @@ bindings), `~/Library/Application Support/<id>/` (the onboarding marker, Notes, 
 clipboard history, calculator history, launch ranking and frequent emoji; Notes and snippets unless
 a folder is chosen),
 `~/Library/Caches/<id>/` (exchange rates, the update check, staged downloads), the opt-in
-`~/.config/tinycast-dev/settings.json` (`tinycast` on stable), the `SMAppService`
+`~/.config/redcast-dev/settings.json` (`redcast` on stable), the `SMAppService`
 login item, and the Accessibility / Input Monitoring (TCC) grants — so a local build can neither read
 nor clobber an installed app's state, and both run side by side.
 
@@ -102,8 +102,8 @@ and the flag database:
 ```sh
 brew install xcode-build-server
 xcodebuild -project Redcast.xcodeproj -scheme Redcast -configuration Debug \
-    -derivedDataPath build/DerivedData build 2>&1 | tee /tmp/tinycast-build.log
-./Scripts/sync-lsp.sh /tmp/tinycast-build.log
+    -derivedDataPath build/DerivedData build 2>&1 | tee /tmp/redcast-build.log
+./Scripts/sync-lsp.sh /tmp/redcast-build.log
 ```
 
 Both files are git-ignored because they embed absolute paths, and `sourcekit-lsp` looks for

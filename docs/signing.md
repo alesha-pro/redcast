@@ -1,16 +1,14 @@
 # Signing
 
-Redcast is signed with a **stable self-signed identity** called `Redcast Self-Signed`. Keeping the
-_same_ identity on every build is what makes macOS remember the Accessibility permission across
-rebuilds and updates — ad-hoc signing changes every build and macOS forgets the grant.
+Three identities, one per kind of build. Each stays the same from build to build, which is what makes
+macOS remember Accessibility and the other grants: ad-hoc signing changes every build, and macOS
+forgets.
 
-An Apple Developer ID certificate now exists, but nothing is signed with it yet. Why that switch is
-staged rather than immediate is [below](#the-developer-id-migration).
-
-You create this identity **once**. The same identity is used for:
-
-- **local dev builds** — so Accessibility persists while you develop (the Xcode project signs with it), and
-- **CI releases** — exported into two GitHub secrets the release workflow imports.
+| Build | Identity | Where it is named |
+| --- | --- | --- |
+| Xcode, VS Code F5, `xcodebuild` | `Redcast Self-Signed`, which each contributor creates once (§1) | `project.yml` |
+| `Scripts/install.sh` on this Mac | the keychain's `Apple Development` identity, the installed copy's when there are several | the script |
+| Releases | `Developer ID Application: Anton Orlov (3BLDMY4DX4)`, notarized and stapled | `Scripts/release.sh` |
 
 ## 1. Create the `Redcast Self-Signed` identity (once)
 
@@ -28,11 +26,11 @@ openssl req -x509 -newkey rsa:2048 -nodes -days 3650 \
 
 # Bundle it as a .p12 (the non-empty password keeps `security import` happy).
 openssl pkcs12 -export -inkey /tmp/tc-key.pem -in /tmp/tc-cert.pem \
-  -name "Redcast Self-Signed" -out /tmp/tc.p12 -passout pass:tinycast
+  -name "Redcast Self-Signed" -out /tmp/tc.p12 -passout pass:redcast
 
 # Import into the login keychain so codesign can use it without prompting.
 security import /tmp/tc.p12 -k ~/Library/Keychains/login.keychain-db \
-  -P tinycast -A -T /usr/bin/codesign
+  -P redcast -A -T /usr/bin/codesign
 
 rm -f /tmp/tc-key.pem /tmp/tc-cert.pem /tmp/tc.p12
 ```
@@ -44,37 +42,6 @@ security find-identity -p codesigning | grep "Redcast Self-Signed"
 ```
 
 Now local builds (Xcode, VS Code F5, `xcodebuild`) sign with it, and you grant Accessibility once.
-
-## 2. Generate the CI secrets
-
-The release workflow needs the same identity as two repo secrets. Export it, base64-encode it, and
-pick a password:
-
-```sh
-# Pick a random password for the exported bundle.
-P12_PASSWORD="$(openssl rand -base64 24)"; echo "password: $P12_PASSWORD"
-
-# Export the identity (approve the keychain dialog if asked) and base64-encode it.
-security export -t identities -f pkcs12 \
-  -k ~/Library/Keychains/login.keychain-db \
-  -P "$P12_PASSWORD" -o /tmp/signing.p12
-base64 -i /tmp/signing.p12 | tr -d '\n' > /tmp/signing.p12.base64
-rm -f /tmp/signing.p12
-```
-
-Then set the two secrets on the repo (via `gh`, authed as the repo owner, or paste them in the GitHub
-UI under **Settings → Secrets and variables → Actions**):
-
-```sh
-gh secret set SIGNING_P12_BASE64   --repo abue-ammar/tinycast < /tmp/signing.p12.base64
-gh secret set SIGNING_P12_PASSWORD --repo abue-ammar/tinycast --body "$P12_PASSWORD"
-rm -f /tmp/signing.p12.base64   # holds your private key — delete it
-```
-
-If you ever lose the secrets, just re-run this section — as long as the `Redcast Self-Signed`
-identity is still in your keychain, the exported identity is the same, so users are unaffected. If you
-lose the identity entirely, recreate it (step 1) and re-do this; existing users will re-grant
-Accessibility once on their next update, then it's stable again.
 
 ## Hardened runtime
 
@@ -109,38 +76,25 @@ hardened-runtime entitlement.
 
 `./Scripts/verify-signature.sh <path-to-.app>` asserts all of this — the runtime flag on the app *and*
 on `Contents/Helpers/ClipboardTextHelper`, an intact nested seal, no `get-task-allow`, and an
-entitlement for every usage string `Info.plist` declares. Both release jobs run it before packaging:
+entitlement for every usage string `Info.plist` declares. `install.sh` and `release.sh` run it before
+packaging:
 a nested binary missing the runtime flag is the most common notarization rejection, and a usage string
 missing its entitlement ships a permission that can never be granted.
 
-## The Developer ID migration
+## Developer ID and the updater
 
-Fork: `BundleSignature` pins Redcast's own team, `3BLDMY4DX4`, whose Developer ID signs the releases
-[`Scripts/fork/release.sh`](fork-tooling.md#scriptsforkreleasesh) publishes. The rest of this section
-is upstream's plan.
-
-`BundleSignature` already accepts a bundle signed by upstream's team under Apple's Developer ID
-chain, even though releases are still signed with `Redcast Self-Signed`. That is deliberate and
-staged: the updater compares signatures before it installs, so the code that trusts the new identity
-has to reach users *before* the first build carrying it. Until the switch it also accepts the running
-app's own leaf, which is the only thing a copy installed earlier knows how to check.
-
-The requirement pins the team rather than the certificate, so a Developer ID renewal strands nobody.
-It deliberately omits the `notarized` keyword — that resolves a ticket through `syspolicyd` or the
+`BundleSignature` trusts a bundle signed under Apple's Developer ID chain by team `3BLDMY4DX4`, or one
+carrying the running app's own leaf certificate. The requirement pins the team rather than the
+certificate, so a renewal strands nobody, and `release.sh` refuses an identity of another team. It
+deliberately omits the `notarized` keyword: that resolves a ticket through `syspolicyd` or the
 network, and the updater verifies in a cache directory Gatekeeper has never assessed, so an offline
-Mac would refuse a bundle the chain already proves is ours.
+Mac would refuse a bundle the chain already proves is ours. A copy `install.sh` signed with Apple
+Development is replaced by a release once, by hand, from the DMG.
 
-**The Developer ID identity stays a CI-only fact.** When the switch happens it is named on the
-release workflow's `xcodebuild` line and nowhere else: `project.yml` keeps signing with
-`Redcast Self-Signed`, so a contributor keeps building with the one they created in §1 — same name,
-their own key, never shared. Nothing about local development changes.
+The Developer ID private key exists only in this Mac's login keychain, with a `.p12` backup kept
+outside the repository. Losing both means a new certificate from the team's owner.
 
-**Keep `Redcast Self-Signed` in the login keychain after the switch.** It is the only way to ship a
-build that a copy predating the migration could still install.
+## Quarantine
 
-## Quarantine (separate from signing)
-
-macOS quarantines anything downloaded from the internet, and Gatekeeper blocks even a correctly
-self-signed app with an "unverified developer" warning. The Homebrew cask runs
-`xattr -dr com.apple.quarantine` in `postflight`, so **brew users never touch it**. People who
-download the DMG directly clear it once by hand.
+macOS quarantines anything downloaded from the internet. A release's app and DMG are notarized and
+stapled, so Gatekeeper opens them on first launch without a warning and nobody runs `xattr`.

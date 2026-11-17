@@ -184,7 +184,7 @@ entry name, so an unrelated entry builds no path; wildcard and escaped paths kee
 draws. The list uses the shared Results header, row metrics, edge dissolve, thin scrollbar and scroll
 intent; its header reads **Recent** on the blank screen and **Results** under a query. A row shows
 a fitted native file icon and the full filename — a folder prefixed by its parent's name, dimmed, since
-half the folder hits on a developer machine are some `src` or `Tinycast`. The path itself is the preview's
+half the folder hits on a developer machine are some `src` or `Redcast`. The path itself is the preview's
 `Where` row rather than a second column the narrow list has no width for. A click selects and a double
 click opens, both through `onRowClick`, which answers on the press: `.onTapGesture(count: 2)` makes the
 single tap wait out the system's double-click interval first, and that wait *is* the second a click used

@@ -516,7 +516,7 @@ struct MCPOAuthTests {
             registration: registration, code: "fixture-code", verifier: "fixture-verifier")
         expect(token.accessToken == "fixture-access", "code exchange includes resource")
         let keychain = KeychainSecretStore(
-            scope: "mcp-oauth-test-" + UUID().uuidString, bundleIdentifier: "test.tinycast")
+            scope: "mcp-oauth-test-" + UUID().uuidString, bundleIdentifier: "test.redcast")
         let secrets = MCPSecretStore(keychain: keychain)
         var configured = MCPServer(name: "Fixture", transport: .http(url: base + "/mcp", headerName: ""))
         configured.oauth = true

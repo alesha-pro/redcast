@@ -87,10 +87,10 @@ If the item is deleted from Settings during editing, Save reports that failure a
 - `/bin/zsh -lc <command>`, or `/bin/zsh -ilc <command>` when the command's **Load shell
   environment** flag is on — unless the text starts with `#!`, which picks
   [another interpreter](#another-interpreter)
-- `tinycast` as `$0`, then the collected argument values as `$1`, `$2`, …
+- `redcast` as `$0`, then the collected argument values as `$1`, `$2`, …
 - the command's own **Run In** folder, or the home directory when it names none
 - standard input reading EOF immediately
-- `TINYCAST=1` added to the inherited environment
+- `REDCAST=1` added to the inherited environment
 - up to 8 KiB of standard error retained for a failure dialog
 - standard output discarded
 
@@ -110,7 +110,7 @@ command exits **127**. That is the single most common way a custom command fails
 It is per-command and off by default, because turning it on runs whatever the user's shell startup
 does — oh-my-zsh's auto-update (`git pull`, network, seconds), powerlevel10k's `gitstatusd`,
 `compinit` rewriting `~/.zcompdump`, or an `exec` that replaces the shell so the command never runs at
-all. `TINYCAST=1` exists so an rc file can skip those sections: `[[ -n $TINYCAST ]] && return`.
+all. `REDCAST=1` exists so an rc file can skip those sections: `[[ -n $REDCAST ]] && return`.
 
 Measured cost: ~10 ms for `-lc`, ~65 ms for `-ilc` against a real-world `~/.zshrc` (~11 ms against a
 minimal one — the interactive shell itself is ~2 ms, the rest is the user's own config).
@@ -180,7 +180,7 @@ launcher, since its shortcut still has to be answered; typing anything else retu
 Values reach zsh as **positional parameters**, never as text substituted into the command:
 
 ```
-/bin/zsh -lc '<command>' tinycast <value1> <value2> …
+/bin/zsh -lc '<command>' redcast <value1> <value2> …
 ```
 
 so the script reads them as `$1`, `$2`, and a value containing `; rm -rf ~` is a string, not a second
@@ -240,7 +240,7 @@ the success pill is skipped for the same reason.
 #### Consequences worth knowing
 
 - **rc-file noise is now visible.** With **Load shell environment** on, anything `~/.zshrc` writes
-  reaches the log. The guard is the documented `[[ -n $TINYCAST ]] && return`.
+  reaches the log. The guard is the documented `[[ -n $REDCAST ]] && return`.
 - **Stop is the one exception** to "Redcast never kills a running command". Only the button does it;
   a second command superseding the window never touches the first.
 - Escape closes the window without stopping its command.
