@@ -10,6 +10,7 @@ struct VoiceCoordinatorTests {
         try await cloudRouting()
         try await cloudModes()
         try await cloudModesTranscribeFirst()
+        try await cloudTranscriptionOnly()
         try await cloudContext()
         try await cloudContextWithoutVision()
         try await cloudRetry()
@@ -124,6 +125,7 @@ struct VoiceCoordinatorTests {
         try await expectRefusal(cloud, "nor sent anything while disabled")
         world.ai.setRoute(.api(local.id), enabled: true)
         expect(cloud.route == onLocal, "Enabled again, it is the route again")
+        expect(cloud.rewriteChoices == nil, "A model that hears chat requests has no second-step row")
 
         world.voice.languages = ["Russian", "English"]
         world.voice.vocabulary = "Redcast"
@@ -285,6 +287,73 @@ struct VoiceCoordinatorTests {
                     text: "Завтра в десять.", transcript: "ну короче завтра в десять", mode: "As a message",
                     model: "voxtral"),
             "Dictation History keeps the transcript the mode rewrote")
+    }
+
+    static let openAI = AIConnection(name: "OpenAI", provider: .openAI)
+    static let onOpenAI = AIModelSelection.api(connection: openAI.id, model: "gpt-transcribe", effort: nil)
+
+    static func cloudTranscriptionOnly() async throws {
+        let world = World(connections: [openAI])
+        defer { world.tearDown() }
+        world.core.answer = true
+        expect(world.cloud.proposal == onOpenAI, "OpenAI alone proposes gpt-transcribe")
+        world.cloud.setEnabled(true)
+        try await wait { world.voice.cloudDictation }
+        world.voice.languages = ["Russian"]
+        world.voice.vocabulary = "Redcast"
+        Network.heard = "ну короче привет Redcast"
+
+        let cleaned = Task { try await world.cloud.transcribe(speech) }
+        try await wait { Network.streams.count == 1 }
+        let heard = Network.transcriptions.first
+        expect(
+            Network.transcriptions.count == 1 && heard?.model == "gpt-transcribe"
+                && heard?.languages == ["ru"] && heard?.keywords == ["Redcast"] && heard?.audio.format == "wav",
+            "The recording goes to the transcription endpoint with its languages and words")
+        expect(world.cloud.rewriteChoices == [], "Settings shows the second step's model row")
+        let rewriter = VoiceRoutePolicy.rewriter(after: onOpenAI, model: nil, effort: nil)!
+        expect(Network.routes == [onOpenAI, rewriter], "and Clean up speech to a chat model on the same connection")
+        expect(
+            Network.requests.first?.instructions == VoicePrompt.cleanupInstructions
+                && Network.requests.first?.messages.map(\.text) == ["Text:\nну короче привет Redcast"]
+                && Network.requests.first?.temperature == nil,
+            "as the transcript to clean up, with no temperature on OpenAI's own API")
+        Network.streams[0].yield(.text("<transcript>Привет, Redcast</transcript>"))
+        Network.streams[0].finish()
+        let typed = try await cleaned.value
+        expect(typed == "Привет, Redcast", "The cleaned text is typed")
+        expect(
+            world.cloud.lastTranscription
+                == .init(
+                    text: "Привет, Redcast", transcript: "ну короче привет Redcast", mode: nil,
+                    model: "gpt-transcribe"),
+            "Dictation History keeps what the transcriber heard")
+
+        world.voice.cleanup = false
+        let verbatim = try await world.cloud.transcribe(speech)
+        expect(
+            verbatim == "ну короче привет Redcast" && Network.requests.count == 1,
+            "Without Clean up speech the transcript is typed as heard, with no second request")
+
+        world.voice.cleanup = true
+        world.voice.dictationRewriteModel = "gpt-5.4-mini"
+        world.voice.dictationRewriteEffort = "low"
+        let chosen = Task { try await world.cloud.transcribe(speech) }
+        try await wait { Network.streams.count == 2 }
+        expect(
+            Network.routes.last == .api(connection: openAI.id, model: "gpt-5.4-mini", effort: "low"),
+            "The second step goes to the chat model and level chosen in Settings")
+        Network.streams[1].yield(.text("<transcript>Привет</transcript>"))
+        Network.streams[1].finish()
+        _ = try await chosen.value
+
+        Network.heard = nil
+        do {
+            _ = try await world.cloud.transcribe(speech)
+            expect(false, "Nothing heard is refused")
+        } catch {
+            expect(error as? VoiceAIFailure == .noSpeech, "Nothing heard is no speech")
+        }
     }
 
     static func cloudContext() async throws {
@@ -1178,6 +1247,8 @@ enum Network {
     static var streams: [AIProviderStream.Continuation] = []
     static var cancelled = 0
     static var failure: AIProviderError?
+    static var transcriptions: [VoiceTranscriptionRequest] = []
+    static var heard: String?
     /// A stream an earlier test left behind may still end; its hop must not count in this one.
     static var generation = 0
 
@@ -1188,6 +1259,8 @@ enum Network {
         streams = []
         cancelled = 0
         failure = nil
+        transcriptions = []
+        heard = nil
     }
 }
 
@@ -1197,6 +1270,22 @@ enum VoiceAIRoute {
         Network.routes.append(selection)
         if let failure = Network.failure { throw failure }
         return RecordedProvider(generation: Network.generation)
+    }
+
+    static func transcriber(
+        for selection: AIModelSelection, settings: AISettingsStore
+    ) throws -> VoiceTranscriptionClient {
+        Network.routes.append(selection)
+        if let failure = Network.failure { throw failure }
+        return VoiceTranscriptionClient()
+    }
+}
+
+struct VoiceTranscriptionClient {
+    @MainActor
+    func transcribe(_ request: VoiceTranscriptionRequest) async throws -> String? {
+        Network.transcriptions.append(request)
+        return Network.heard
     }
 }
 

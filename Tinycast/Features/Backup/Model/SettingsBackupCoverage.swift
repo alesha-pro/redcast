@@ -224,6 +224,10 @@ enum SettingsBackupCoverage {
             + "capability is never carried by a backup.",
         AppSettingsKey.voiceDictationModel.rawValue:
             "Names an external AI destination for recorded speech; an import must not choose one.",
+        AppSettingsKey.voiceDictationRewriteModel.rawValue:
+            "Only means something beside the Voice AI switches, which never travel in a backup.",
+        AppSettingsKey.voiceDictationRewriteEffort.rawValue:
+            "Only means something beside the Voice AI switches, which never travel in a backup.",
         AppSettingsKey.voiceDictationCleanup.rawValue:
             "Only means something beside the Voice AI switches, which never travel in a backup.",
         AppSettingsKey.voiceVocabulary.rawValue:

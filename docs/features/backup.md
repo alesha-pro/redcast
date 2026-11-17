@@ -362,6 +362,8 @@ Every store the app persists and its decision, as `FullBackupCoverage` states it
 | `screenAwarenessShortcutOffered` | UserDefaults (`AppSettingsKey.screenAwarenessShortcutOffered`) | Excluded: Records that this Mac was offered the gesture. |
 | `voiceCloudDictation` | UserDefaults (`AppSettingsKey.voiceCloudDictation`) | Voice & Dictation: recorded, never applied |
 | `voiceDictationModel` | UserDefaults (`AppSettingsKey.voiceDictationModel`) | Voice & Dictation |
+| `voiceDictationRewriteModel` | UserDefaults (`AppSettingsKey.voiceDictationRewriteModel`) | Voice & Dictation |
+| `voiceDictationRewriteEffort` | UserDefaults (`AppSettingsKey.voiceDictationRewriteEffort`) | Voice & Dictation |
 | `voiceDictationCleanup` | UserDefaults (`AppSettingsKey.voiceDictationCleanup`) | Voice & Dictation |
 | `voiceVocabulary` | UserDefaults (`AppSettingsKey.voiceVocabulary`) | Voice & Dictation |
 | `voiceDictationModes` | UserDefaults (`AppSettingsKey.voiceDictationModes`) | Voice & Dictation |

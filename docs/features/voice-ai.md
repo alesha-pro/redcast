@@ -37,12 +37,12 @@ tables and `AppCore`.
   connection exists, is enabled and hears audio, and nil otherwise; nothing else is ever sent to. A
   connection added later never takes over, and a removed, disabled or changed one is refused with
   "Choose a model…" rather than replaced. Choosing another connection in the row asks again, naming it;
-  another model on the same connection does not. The OpenRouter, Gemini and OpenAI-compatible fallbacks
-  in `VoiceRoutePolicy.proposal` only fill a dialog. Dictation History's **Retry with** follows the
+  another model on the same connection does not. The OpenRouter, Gemini, OpenAI (Dictation only) and
+  OpenAI-compatible fallbacks in `VoiceRoutePolicy.proposal` only fill a dialog. Dictation History's **Retry with** follows the
   same rule for one kept recording: any model on the consented connection goes at once, any other
   connection only after `confirmRetry`'s dialog names it and the model, and the pick saves nothing.
 - **Network only after a recording ends.** One POST per finished recording (two for a mode on a model
-  that only transcribes), plus an agent's own turn when one answers, and the same again only when a
+  that only transcribes, or for `gpt-transcribe` with a mode or Clean up speech), plus an agent's own turn when one answers, and the same again only when a
   failed dictation's Retry is pressed in Dictation History; the model list is fetched only when
   **Choose…** is clicked. While idle there is no timer, observer, tap, session or process:
   `VoiceCloudTranscriber` holds only references, and `VoiceAskCoordinator` builds its recorder,
@@ -87,8 +87,9 @@ tables and `AppCore`.
   cannot be read refuses the press and stops the recording at once, so nothing is sent.
 - **The capture is material, not instructions.** The Ask instructions say so, the screen Markdown
   opens by saying so, and the spoken request travels last, after the text and the picture.
-- **Only a body Redcast writes with `input_audio` hears audio.** `VoiceRoutePolicy.accepts` takes
-  every OpenAI-compatible connection and never Anthropic. A disabled route is skipped.
+- **Only a body Redcast writes hears audio:** `input_audio` in a chat request, or OpenAI's own
+  `/audio/transcriptions` for `gpt-transcribe`. `VoiceRoutePolicy.accepts` takes every
+  OpenAI-compatible connection and never Anthropic. A disabled route is skipped.
 - **Dictation thinks as little as the model offers, and Gemini is never sent a temperature.** Gemini
   3 cannot turn reasoning off and loops below its default temperature; `fastestEffort` prefers any
   real level to `none`. A Gemini Flash on OpenRouter saved with no effort (a typed model) dictates at
@@ -165,7 +166,9 @@ tables and `AppCore`.
 | `Model/VoiceMode.swift` | `VoiceMode`, and `VoiceModeCatalog`: the three built-ins with fixed ids and their symbols |
 | `Model/VoiceModeSettings.swift` | Custom modes, rewritten built-in instructions, hidden modes, the default and each app's mode |
 | `Model/VoiceAIFailure.swift` | The feature's own errors |
-| `Service/VoiceAIRoute.swift` | A selection to an `HTTPAIProvider`: Keychain key and headers, endpoint policy |
+| `Model/VoiceTranscriptionRequest.swift` | `gpt-transcribe`'s multipart body (prompt, keywords, languages) and its JSON reply |
+| `Service/VoiceAIRoute.swift` | A selection to an `HTTPAIProvider` or a `VoiceTranscriptionClient`: Keychain key and headers, endpoint policy |
+| `Service/VoiceTranscriptionClient.swift` | One POST to `/audio/transcriptions` on a private ephemeral session, its token usage logged |
 | `Service/VoiceMediaEncoder.swift` | Off the main actor: samples to WAV, the window's PNG to a bounded JPEG |
 | `Service/VoiceSelectionAccess.swift` | Whether the focused element's selected text can be written in place |
 | `Service/VoiceAppContextReader.swift` | The app in front: its name, its focused window's title and, when allowed, its picture |
@@ -174,7 +177,7 @@ tables and `AppCore`.
 | `UI/VoiceModeCaption.swift` | The chip above the dictation capsule naming the active mode |
 | `Settings/VoiceAISettings.swift` | The fork's own `@Observable` store over `AppSettingsKey` keys |
 | `Settings/VoiceModelRow.swift` | Connection and model, the catalog loaded on a click; a new connection goes through `choose` |
-| `Settings/VoiceCloudDictationSection.swift` | The Dictation pane's Cloud transcription section, with Languages I speak and Use the app in front |
+| `Settings/VoiceCloudDictationSection.swift` | The Dictation pane's Cloud transcription section, with Cleanup and modes model, Languages I speak and Use the app in front |
 | `Settings/VoiceModesSection.swift` | Dictation modes and Modes by app, shown while Cloud transcription is on |
 | `Settings/VoiceModeEditorPanel.swift` | A mode's name and instructions; a built-in's can be reset |
 | `Settings/VoiceAskSettingsSection.swift` | The AI pane's Ask by Voice section, after Screen Awareness; Answer with |
@@ -204,6 +207,33 @@ replaces the section's single Language row,
 which stays the on-device Qwen model's setting. **Use the app in front** is Off, Name and title or
 Name, title and screenshot; choosing the screenshot asks for Screen Recording once, and while it is
 refused the row says no screenshot is sent.
+
+### OpenAI's transcription model
+
+`gpt-transcribe` takes no chat request, so on an OpenAI API connection
+(`VoiceRoutePolicy.transcribesOnly`: OpenAI's own provider and a model named from it, never a gateway)
+`VoiceCloudTranscriber` posts the WAV to `/audio/transcriptions` as multipart form data instead:
+Words to spell exactly as `keywords[]` with angle brackets stripped (the endpoint refuses the whole
+request over one), Languages I speak as ISO 639-1 `languages[]` (Cantonese and Filipino have no
+two-letter code and are left out; none sends no field, which the endpoint would refuse), and the app's
+name and window title as a plain `prompt`. A screenshot is never sent. The `json` reply's text is the
+transcript, blank is no speech, and token usage goes to the usage ledger; usage reported in seconds
+has no rate and is not logged.
+
+The transcript is literal, so a mode or Clean up speech is a second, text-only request on the same
+connection, so no new consent is asked. **Cleanup and modes model**, shown under the model row only
+while the route only transcribes, names that chat model (`VoiceAISettings.dictationRewriteModel`):
+typed, or picked from the connection's own model list. Empty is `VoiceRoutePolicy.transcriptRewrite`
+(`gpt-6-luna`, the cheapest current chat model in OpenAI's catalog on 2026-11-17). **Reasoning
+effort** under it picks None, Low, Medium, High or Default (`dictationRewriteEffort`). Unchosen it
+shows what is sent: None for the preset, since thinking dominates a short rewrite's latency, and
+Default for any other model, which sends no level because not every OpenAI chat model takes
+`reasoning_effort`. OpenAI's own API is sent `reasoning_effort: "none"` as a level
+(`AIHTTPConfiguration.takesNoEffortLevel`); a gateway is still asked to turn thinking off instead.
+Like the transcription model, a settings backup leaves both out and a full backup carries them. The second request is the mode's rewrite, or `VoicePrompt.cleanupRequest` with the
+cleanup rules and smart formatting applied to the transcript as `Text:` material. With Clean up speech
+off and no mode the transcript is typed as heard, so spoken punctuation commands are not applied.
+Dictation History keeps what was heard beside what was typed whenever a second request ran.
 
 ## Dictation modes
 
@@ -341,8 +371,9 @@ saved.
 `VoiceRoutePolicy.route` is the saved choice while its connection exists, hears audio and is enabled,
 and nil otherwise; it is the only thing a recording is sent to. `VoiceRoutePolicy.proposal` is what a
 switch's dialog names: that saved choice, else the first enabled OpenRouter connection, then Gemini,
-with the preset, and last an OpenAI-compatible server with the first model it lists. The OpenAI API
-itself is never proposed, because its usual chat models take no audio; it can be chosen in the row.
+with the preset, then (for Dictation only) the OpenAI API with `gpt-transcribe`, and last an
+OpenAI-compatible server with the first model it lists. Ask by Voice never proposes the OpenAI API,
+because none of its chat models in the usual list takes audio; it can be chosen in the row.
 With no proposal, each switch is disabled and says to add a connection. While a switch is on and its
 route is gone, the row shows None and says nothing is sent until a connection is chosen.
 
@@ -350,6 +381,10 @@ route is gone, the row shows None and says nothing is sent until a connection is
 | --- | --- | --- | --- |
 | Dictation | `google/gemini-3.1-flash-lite` | `gemini-3.1-flash-lite` | `minimal` |
 | Ask by Voice | `google/gemini-3.8-flash` | `gemini-3.8-flash` | `low` |
+
+Dictation on the OpenAI API defaults to `gpt-transcribe`, which takes no effort (see
+[OpenAI's transcription model](#openais-transcription-model)); the gpt-4o transcription models and
+`whisper-1` shut down on 2027-02-26 and are not supported.
 
 The presets come from OpenRouter's live catalog on 2026-10-22; `~google/gemini-flash-latest` is never a
 default because it changes model silently. **Choose…** lists the connection's models that take audio
@@ -477,8 +512,15 @@ ends.
 ## Manual sweep
 
 - **Cloud transcription setup.** With the switch off, the Dictation pane shows only the toggle under
-  Cloud transcription. With no OpenRouter, Gemini or OpenAI-compatible connection it is disabled with
-  a caption. Add one, turn it on: the dialog names the connection and the model.
+  Cloud transcription. With no OpenRouter, Gemini, OpenAI or OpenAI-compatible connection it is
+  disabled with a caption. Add one, turn it on: the dialog names the connection and the model.
+- **gpt-transcribe.** With only an OpenAI API connection, turn Cloud transcription on: the dialog names
+  `gpt-transcribe`. Dictate in Russian with Clean up speech on: a proxy shows a multipart POST to
+  `/audio/transcriptions` with `languages[]` and `keywords[]`, then a chat request to `gpt-6-luna`
+  with `reasoning_effort: "none"` and the transcript as `Text:`; the typed text has no fillers. Turn Clean up speech off: only the
+  first request is sent. Choose a mode: the second request rewrites by the mode. Pick another model in Cleanup
+  and modes model: the second request names it; clear the field and it is `gpt-6-luna` again. Choose
+  Low in Reasoning effort: the second request carries `reasoning_effort: "low"`; Default sends none.
 - **The route stays where consent was given.** With cloud transcription on a local OpenAI-compatible
   server, add an OpenRouter connection: dictation still goes to the server (a proxy shows it). Disable
   the server in AI settings: the row shows None with its caption, Dictation says "Choose a model for
@@ -649,7 +691,8 @@ ends.
   quotes, a quoted reply unquoted), the language sections, the app context with a title posing as
   the tag, Languages I speak with English added, the route and the proposal, a request fitted to Gemini
   or another route, the dictation effort from the catalog, temperature by route and which routes see
-  a screenshot, the insert policy, mode settings);
+  a screenshot, the insert policy, mode settings, which routes go to `/audio/transcriptions`, its
+  multipart body and JSON reply, and the cleanup step's request);
   `voice-coordinator-test` (the shipped `VoiceCloudTranscriber` and `VoiceAskCoordinator` against
   recorded effects: consent saving exactly what it named and asking again for another connection, no
   rerouting, the session token through capture, delivery, supersede and dismissal, and the recorder's
@@ -663,7 +706,9 @@ ends.
   server's one without its screenshot, left behind when still running 0.5 s after the recording, a
   typed Gemini Flash sent at low, the consent dialog naming the window title, and the tag's text
   typed; a kept recording's retry on the chosen route with the live prompt, the app by name alone and
-  the mode, Retry with's models, and consent only for another connection); `dictation-field-test`
+  the mode, Retry with's models, and consent only for another connection; `gpt-transcribe` getting the
+  recording with its languages and words, Clean up speech as a second request on the same
+  connection to the preset or the model and level chosen in Settings, none without it, and blank text as no speech); `dictation-field-test`
   (the cloud seam in `DictationCoordinator`, a failure handed to Dictation History); `hotkey-dispatch-test` (a command's release, Secure Input's included, and
   a voice command held on a single modifier); `hotkey-test` (Shift joining and leaving a held key
   while another modifier still cancels it).

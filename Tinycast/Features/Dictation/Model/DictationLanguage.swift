@@ -15,7 +15,8 @@ enum DictationLanguage: String, CaseIterable, Identifiable, Sendable {
     /// The raw value is what the model is prompted with; the picker shows the reader's own name.
     func displayName(locale: Locale) -> String { locale.localizedString(forLanguageCode: code) ?? rawValue }
 
-    private var code: String {
+    /// ISO 639, as the picker and a transcription endpoint read it; two codes have three letters.
+    var code: String {
         switch self {
         case .arabic: "ar"
         case .cantonese: "yue"

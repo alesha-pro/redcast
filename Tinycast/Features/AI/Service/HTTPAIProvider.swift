@@ -163,7 +163,7 @@ struct HTTPAIProvider: AIProvider {
         .dnsLookupFailed
     ]
 
-    private static func networkMessage(_ code: URLError.Code) -> String {
+    static func networkMessage(_ code: URLError.Code) -> String {
         switch code {
         case .networkConnectionLost: return String(localized: "The network connection was lost.")
         case .notConnectedToInternet: return String(localized: "No internet connection.")

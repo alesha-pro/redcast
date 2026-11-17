@@ -17,6 +17,14 @@ final class VoiceAISettings {
     var dictationModel: AIModelSelection? {
         didSet { persist(dictationModel, forKey: .voiceDictationModel) }
     }
+    /// The chat model after one that only transcribes; nil is `VoiceRoutePolicy.transcriptRewrite`.
+    var dictationRewriteModel: String? {
+        didSet { defaults.set(dictationRewriteModel, forKey: Key.voiceDictationRewriteModel.rawValue) }
+    }
+    /// nil follows `VoiceRoutePolicy.rewriteEffort`: the preset's level, else the model's own.
+    var dictationRewriteEffort: String? {
+        didSet { defaults.set(dictationRewriteEffort, forKey: Key.voiceDictationRewriteEffort.rawValue) }
+    }
     var cleanup: Bool {
         didSet { defaults.set(cleanup, forKey: Key.voiceDictationCleanup.rawValue) }
     }
@@ -57,6 +65,8 @@ final class VoiceAISettings {
         self.defaults = defaults
         cloudDictation = defaults.bool(forKey: Key.voiceCloudDictation.rawValue)
         dictationModel = Self.selection(defaults.data(forKey: Key.voiceDictationModel.rawValue))
+        dictationRewriteModel = defaults.string(forKey: Key.voiceDictationRewriteModel.rawValue)
+        dictationRewriteEffort = defaults.string(forKey: Key.voiceDictationRewriteEffort.rawValue)
         cleanup = defaults.object(forKey: Key.voiceDictationCleanup.rawValue) as? Bool ?? true
         vocabulary = defaults.string(forKey: Key.voiceVocabulary.rawValue) ?? ""
         languages = VoiceLanguagePolicy.normalized(

@@ -75,6 +75,8 @@ enum FullBackupCoverage {
         .screenAwarenessShortcutOffered: .excluded("Records that this Mac was offered the gesture."),
         .voiceCloudDictation: .consent(.voice),
         .voiceDictationModel: .section(.voice),
+        .voiceDictationRewriteModel: .section(.voice),
+        .voiceDictationRewriteEffort: .section(.voice),
         .voiceDictationCleanup: .section(.voice),
         .voiceVocabulary: .section(.voice),
         .voiceDictationModes: .section(.voice),

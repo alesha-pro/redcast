@@ -21,13 +21,17 @@ struct VoiceCloudDictationSection: View {
             }
             .disabled(!available && !voice.cloudDictation)
             if !available {
-                Text("Add an OpenRouter or OpenAI-compatible connection in AI settings first.")
+                Text("Add an OpenRouter, Gemini, OpenAI or OpenAI-compatible connection in AI settings first.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
             if voice.cloudDictation {
                 VoiceModelRow(
                     use: .dictation, selection: voice.dictationModel, choose: core.voiceCloud.choose)
+                if let choices = core.voiceCloud.rewriteChoices {
+                    rewriteRow(choices)
+                    rewriteEffortRow
+                }
                 Toggle(isOn: $voice.cleanup) {
                     SettingsRowTitle(.dictationCloudTranscription, "Clean up speech")
                     Text("Leave out fillers and false starts. Off keeps every word.")
@@ -65,6 +69,64 @@ struct VoiceCloudDictationSection: View {
                 while recording stays off.
                 """)
         }
+    }
+
+    /// Typed, or picked from the connection's own list; empty falls back to the preset.
+    private func rewriteRow(_ choices: [String]) -> some View {
+        LabeledContent {
+            HStack(spacing: Theme.Spacing.sm) {
+                TextField(
+                    "Model", text: rewriteBinding,
+                    prompt: Text(verbatim: VoiceRoutePolicy.transcriptRewrite.model)
+                )
+                .labelsHidden()
+                .frame(minWidth: 200)
+                if !choices.isEmpty {
+                    Menu("Choose…") {
+                        ForEach(choices, id: \.self) { model in
+                            Button { core.voiceSettings.dictationRewriteModel = model } label: {
+                                Text(verbatim: model)
+                            }
+                        }
+                    }
+                    .fixedSize()
+                }
+            }
+        } label: {
+            SettingsRowTitle(.dictationCloudTranscription, "Cleanup and modes model")
+            Text("This model only transcribes, so Clean up speech and modes go to a chat model on the same connection.")
+        }
+    }
+
+    /// Shows what is sent: unchosen, the preset's level for its model and the model's own otherwise.
+    private var rewriteEffortRow: some View {
+        Picker(selection: rewriteEffortBinding) {
+            ForEach(VoiceRoutePolicy.rewriteEfforts, id: \.self) { effort in
+                Text(verbatim: ChatGPTSubscription.Effort(id: effort, detail: nil).title).tag(effort)
+            }
+        } label: {
+            SettingsRowTitle(.dictationCloudTranscription, "Reasoning effort")
+            Text("None answers fastest. Default sends no level, for a model that takes none.")
+        }
+    }
+
+    private var rewriteEffortBinding: Binding<String> {
+        Binding(
+            get: {
+                let voice = core.voiceSettings
+                return VoiceRoutePolicy.rewriteEffort(
+                    voice.dictationRewriteEffort, model: VoiceRoutePolicy.rewriteModel(voice.dictationRewriteModel))
+            },
+            set: { core.voiceSettings.dictationRewriteEffort = $0 })
+    }
+
+    private var rewriteBinding: Binding<String> {
+        Binding(
+            get: { core.voiceSettings.dictationRewriteModel ?? "" },
+            set: {
+                let model = $0.trimmingCharacters(in: .whitespacesAndNewlines)
+                core.voiceSettings.dictationRewriteModel = model.isEmpty ? nil : model
+            })
     }
 
     /// A menu of checkmarks; past the limit, the rest wait until one is unchecked.

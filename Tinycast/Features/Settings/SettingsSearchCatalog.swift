@@ -427,7 +427,7 @@ enum SettingsSearchCatalog {
         .init(.dictationOutput, "Insert while recording", keywords: ["live", "streaming", "chunk", "pause"]),
         .init(
             .dictationCloudTranscription, "Transcribe in the cloud",
-            keywords: ["gemini", "openrouter", "wispr", "online", "ai"]),
+            keywords: ["gemini", "openrouter", "openai", "gpt-transcribe", "wispr", "online", "ai"]),
         .init(.dictationCloudTranscription, "Clean up speech", keywords: ["filler", "verbatim"]),
         .init(
             .dictationCloudTranscription, "Words to spell exactly",
@@ -439,6 +439,13 @@ enum SettingsSearchCatalog {
         .init(
             .dictationCloudTranscription, "Use the app in front",
             keywords: ["context", "window title", "screenshot", "screen", "app name"]),
+        // Fork: shown only on a model that only transcribes, so a result lands on the switch.
+        .init(
+            group: .dictationCloudTranscription, "Cleanup and modes model",
+            keywords: [
+                "openai", "gpt-transcribe", "rewrite", "chat model", "second request", "reasoning effort",
+                "fast", "speed"
+            ]),
         // Fork: the modes show only with cloud transcription on, so a result lands on its switch.
         .init(
             group: .dictationCloudTranscription, "Dictation modes",

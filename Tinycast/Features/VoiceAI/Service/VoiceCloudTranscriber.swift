@@ -64,6 +64,14 @@ final class VoiceCloudTranscriber {
             isEnabled: isRouteEnabled)
     }
 
+    /// The connection's own chat models while the route only transcribes; nil hides the row.
+    var rewriteChoices: [String]? {
+        guard let route, VoiceRoutePolicy.transcribesOnly(route, connections: aiSettings.connections),
+            case .api(let id, _, _) = route, let connection = aiSettings.connection(id: id)
+        else { return nil }
+        return connection.models.filter { !$0.hasPrefix(VoiceRoutePolicy.transcriptionModel) }
+    }
+
     /// Turning it on is consent: the dialog names the destination, and approval saves that one.
     func setEnabled(_ enabled: Bool) {
         guard enabled != voice.cloudDictation else { return }
@@ -194,6 +202,9 @@ final class VoiceCloudTranscriber {
         context: () async -> VoiceAppContext?
     ) async throws -> Transcription {
         let selection = VoiceRoutePolicy.dictation(route, connections: aiSettings.connections)
+        if VoiceRoutePolicy.transcribesOnly(selection, connections: aiSettings.connections) {
+            return try await transcribeOnly(samples, on: selection, mode: mode, context: context)
+        }
         let provider = try VoiceAIRoute.provider(for: selection, settings: aiSettings)
         guard let wav = await VoiceMediaEncoder.wav(samples) else { throw VoiceAIFailure.noSpeech }
         var context = await context()
@@ -220,6 +231,36 @@ final class VoiceCloudTranscriber {
         let rewritten = try await collect(
             VoicePrompt.modeRequest(audio: audio, mode: mode, options: options), as: selection, on: provider)
         return Transcription(text: rewritten, transcript: nil, mode: mode.name, model: model)
+    }
+
+    /// A model that only writes down what it hears; a mode or Clean up speech is a second request.
+    private func transcribeOnly(
+        _ samples: [Float], on selection: AIModelSelection, mode: VoiceMode?,
+        context: () async -> VoiceAppContext?
+    ) async throws -> Transcription {
+        let transcriber = try VoiceAIRoute.transcriber(for: selection, settings: aiSettings)
+        guard let wav = await VoiceMediaEncoder.wav(samples) else { throw VoiceAIFailure.noSpeech }
+        let options = VoicePrompt.DictationOptions(
+            cleanup: voice.cleanup, languages: voice.languages, vocabulary: voice.vocabulary,
+            context: await context())
+        try Task.checkCancellation()
+        let request = VoiceTranscriptionRequest.make(
+            model: selection.model, audio: AIAudio(data: wav, format: "wav"), options: options)
+        guard let transcript = try await transcriber.transcribe(request) else { throw VoiceAIFailure.noSpeech }
+        try Task.checkCancellation()
+        let model = selection.model
+        let rewrite =
+            mode.map { VoicePrompt.rewriteRequest(transcript: transcript, mode: $0) }
+            ?? (voice.cleanup ? VoicePrompt.cleanupRequest(transcript: transcript) : nil)
+        guard let rewrite,
+            let rewriter = VoiceRoutePolicy.rewriter(
+                after: selection, model: voice.dictationRewriteModel, effort: voice.dictationRewriteEffort)
+        else {
+            return Transcription(text: transcript, transcript: nil, mode: nil, model: model)
+        }
+        let provider = try VoiceAIRoute.provider(for: rewriter, settings: aiSettings)
+        let text = try await collect(rewrite, as: rewriter, on: provider)
+        return Transcription(text: text, transcript: transcript, mode: mode?.name, model: model)
     }
 
     // MARK: - Retry

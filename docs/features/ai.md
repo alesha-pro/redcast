@@ -434,7 +434,10 @@ catalog already names each model's levels. A chat and a Quick Action keep their 
 `AIProviderFactory` sends only one the model still offers (`offeredEffort`): an unticked level, or one
 left behind by a changed provider, is dropped rather than sent. With nothing declared the only field
 ever written is the `None` one, so every other body is the one it always was, and the choice rides in
-`AIModelSelection.effort` like every other route's.
+`AIModelSelection.effort` like every other route's. Chats never send OpenAI's own API an effort; only
+Dictation's second step after `gpt-transcribe` does, and there `none` goes out as
+`reasoning_effort: "none"`, a level OpenAI defines (`takesNoEffortLevel`,
+[Voice AI](voice-ai.md#openais-transcription-model)).
 
 ## Provider interface
 

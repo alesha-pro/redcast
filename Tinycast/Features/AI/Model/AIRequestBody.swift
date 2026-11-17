@@ -57,7 +57,7 @@ enum AIRequestBody {
             "stream": true
         ]
         // Only OpenAI's own API must be asked for usage, and a gateway on its preset may refuse it.
-        if configuration.baseURL.host() == URL(string: AIProviderKind.openAI.defaultBaseURL)?.host() {
+        if configuration.isOpenAIsOwnAPI {
             body["stream_options"] = ["include_usage": true]
         }
         // OpenRouter's own search layer, so it works for every model it routes.
@@ -68,7 +68,7 @@ enum AIRequestBody {
             if configuration.provider == .openRouter {
                 body["reasoning"] = ["effort": effort]
             } else if effort != AIConnection.ReasoningOptions.providerDefault,
-                effort != AIConnection.ReasoningOptions.noEffort
+                effort != AIConnection.ReasoningOptions.noEffort || configuration.takesNoEffortLevel
             {
                 body["reasoning_effort"] = effort
             }

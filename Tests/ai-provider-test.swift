@@ -1296,6 +1296,14 @@ struct AIProviderTests {
             configuration: AIHTTPConfiguration(
                 provider: .openAI, baseURL: url, model: "m", effort: "default"))
         expect(unset["reasoning_effort"] == nil, "Default still sends no field")
+        let own = URL(string: AIProviderKind.openAI.defaultBaseURL)!
+        let direct = AIRequestBody.make(
+            turn, configuration: AIHTTPConfiguration(provider: .openAI, baseURL: own, model: "m", effort: "none"))
+        expect(direct["reasoning_effort"] as? String == "none", "OpenAI's own API takes none as a level")
+        let compatible = AIRequestBody.make(
+            turn,
+            configuration: AIHTTPConfiguration(provider: .openAICompatible, baseURL: own, model: "m", effort: "none"))
+        expect(compatible["reasoning_effort"] == nil, "another provider pointed there does not")
     }
 
     static func declaredLevelsNeverReachAVendorOrOutliveTheirDeclaration() {

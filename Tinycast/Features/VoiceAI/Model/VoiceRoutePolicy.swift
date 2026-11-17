@@ -12,8 +12,13 @@ enum VoiceRoutePolicy {
         let effort: String?
     }
 
-    /// OpenAI's listed chat models take no input_audio, so it is chosen by hand, never proposed.
-    private static let proposedProviders: [AIProviderKind] = [.openRouter, .gemini, .openAICompatible]
+    /// OpenAI hears Dictation through gpt-transcribe, but none of its chat models hears a question.
+    private static func proposedProviders(for use: VoiceUse) -> [AIProviderKind] {
+        switch use {
+        case .dictation: [.openRouter, .gemini, .openAI, .openAICompatible]
+        case .ask: [.openRouter, .gemini, .openAICompatible]
+        }
+    }
     /// Gemini 3 cannot switch reasoning off, so `none` only ranks above the costlier levels.
     private static let effortsFastestFirst = ["minimal", "low", "none", "medium"]
 
@@ -28,8 +33,47 @@ enum VoiceRoutePolicy {
         switch provider {
         case .openRouter: return Default(model: "google/" + model, effort: effort)
         case .gemini: return Default(model: model, effort: effort)
-        case .openAI, .anthropic, .openAICompatible, .codexPlan: return nil
+        case .openAI: return use == .dictation ? Default(model: transcriptionModel, effort: nil) : nil
+        case .anthropic, .openAICompatible, .codexPlan: return nil
         }
+    }
+
+    /// OpenAI's transcription model since 2026-07; the gpt-4o ones shut down on 2027-02-26.
+    static let transcriptionModel = "gpt-transcribe"
+    /// OpenAI's cheapest current chat model on 2026-11-17, for the text-only second step.
+    static let transcriptRewrite = Default(model: "gpt-6-luna", effort: AIConnection.ReasoningOptions.noEffort)
+    /// What the second step's picker offers, fastest first; `default` sends no level at all.
+    static let rewriteEfforts = [
+        AIConnection.ReasoningOptions.noEffort, "low", "medium", "high",
+        AIConnection.ReasoningOptions.providerDefault
+    ]
+
+    /// Only OpenAI's own API is sent to `/audio/transcriptions`; elsewhere every model takes chat.
+    static func transcribesOnly(_ selection: AIModelSelection, connections: [AIConnection]) -> Bool {
+        routeConnection(selection, in: connections)?.provider == .openAI
+            && selection.model.hasPrefix(transcriptionModel)
+    }
+
+    /// The chat model on the same connection that cleans up or rewrites what a transcriber heard.
+    static func rewriter(
+        after selection: AIModelSelection, model chosen: String?, effort: String?
+    ) -> AIModelSelection? {
+        guard case .api(let id, _, _) = selection else { return nil }
+        let model = rewriteModel(chosen)
+        return .api(connection: id, model: model, effort: rewriteEffort(effort, model: model))
+    }
+
+    static func rewriteModel(_ chosen: String?) -> String {
+        let typed = chosen?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        return typed.isEmpty ? transcriptRewrite.model : typed
+    }
+
+    /// Unchosen, another model keeps its own: not every OpenAI chat model takes reasoning_effort.
+    static func rewriteEffort(_ chosen: String?, model: String) -> String {
+        if let chosen, rewriteEfforts.contains(chosen) { return chosen }
+        return model == transcriptRewrite.model
+            ? transcriptRewrite.effort ?? AIConnection.ReasoningOptions.providerDefault
+            : AIConnection.ReasoningOptions.providerDefault
     }
 
     /// Only a body Tinycast writes with input_audio: any OpenAI-compatible shape, never Anthropic.
@@ -58,7 +102,7 @@ enum VoiceRoutePolicy {
             return stored
         }
         let offered = choices(connections, use: use, isEnabled: isEnabled)
-        for provider in proposedProviders {
+        for provider in proposedProviders(for: use) {
             if let connection = offered.first(where: { $0.provider == provider }) {
                 return initial(on: connection, use: use)
             }

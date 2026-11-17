@@ -120,6 +120,8 @@ enum AppSettingsKey: String, CaseIterable {
     case screenAwarenessShortcutOffered = "screenAwarenessShortcutOffered"
     case voiceCloudDictation = "voiceCloudDictation"
     case voiceDictationModel = "voiceDictationModel"
+    case voiceDictationRewriteModel = "voiceDictationRewriteModel"
+    case voiceDictationRewriteEffort = "voiceDictationRewriteEffort"
     case voiceDictationCleanup = "voiceDictationCleanup"
     case voiceVocabulary = "voiceVocabulary"
     case voiceDictationModes = "voiceDictationModes"

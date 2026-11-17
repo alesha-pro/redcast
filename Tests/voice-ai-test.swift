@@ -31,6 +31,8 @@ struct VoiceAITests {
         replySessionIgnoresChunking()
         routeResolution()
         routeFitting()
+        transcriptionRoutes()
+        transcriptionRequest()
         insertPolicy()
         modeSettings()
         modeSettingsDecoding()
@@ -811,6 +813,14 @@ struct VoiceAITests {
             "an OpenAI-compatible server proposes its first model")
         expect(proposal(nil, .ask, [openAI]) == nil, "OpenAI's own chat models are never proposed")
         expect(
+            proposal(nil, .dictation, [claude, openAI, local])
+                == .api(connection: openAI.id, model: "gpt-transcribe", effort: nil),
+            "Dictation proposes gpt-transcribe on OpenAI before an OpenAI-compatible server")
+        expect(
+            proposal(nil, .dictation, [openAI, gemini])
+                == .api(connection: gemini.id, model: "gemini-3.1-flash-lite", effort: "minimal"),
+            "and Gemini before OpenAI")
+        expect(
             proposal(.codex(model: "gpt", effort: nil), .ask, all)
                 == .api(connection: router.id, model: "google/gemini-3.8-flash", effort: "low"),
             "a CLI choice is replaced by a proposal")
@@ -844,6 +854,93 @@ struct VoiceAITests {
         expect(VoiceRoutePolicy.takesImages(vision, model: "unlisted"), "an unlisted model is not second-guessed")
         vision.provider = .gemini
         expect(VoiceRoutePolicy.takesImages(vision, model: "blind"), "a vendor API takes images")
+    }
+
+    static func transcriptionRoutes() {
+        let openAI = AIConnection(name: "OpenAI", provider: .openAI)
+        let gateway = AIConnection(name: "Gateway", provider: .openAICompatible)
+        let connections = [openAI, gateway]
+        func only(_ connection: AIConnection, _ model: String) -> Bool {
+            VoiceRoutePolicy.transcribesOnly(
+                .api(connection: connection.id, model: model, effort: nil), connections: connections)
+        }
+        expect(only(openAI, "gpt-transcribe"), "gpt-transcribe on OpenAI goes to the transcription endpoint")
+        expect(!only(openAI, "gpt-audio"), "a chat model that hears audio stays on chat")
+        expect(!only(gateway, "gpt-transcribe"), "a gateway never gets the transcription endpoint")
+        let heard = AIModelSelection.api(connection: openAI.id, model: "gpt-transcribe", effort: nil)
+        expect(
+            VoiceRoutePolicy.rewriter(after: heard, model: nil, effort: nil)
+                == .api(connection: openAI.id, model: "gpt-6-luna", effort: "none"),
+            "the second step runs on the same connection, the preset with no reasoning")
+        expect(
+            VoiceRoutePolicy.rewriter(after: heard, model: " gpt-5.4-mini ", effort: nil)
+                == .api(connection: openAI.id, model: "gpt-5.4-mini", effort: "default"),
+            "a chosen model, its level unchosen, keeps the API's default")
+        expect(
+            VoiceRoutePolicy.rewriter(after: heard, model: "  ", effort: "medium")
+                == .api(connection: openAI.id, model: "gpt-6-luna", effort: "medium"),
+            "a blank model is the preset, and a chosen level is sent as chosen")
+        expect(
+            VoiceRoutePolicy.rewriteEffort("bogus", model: "gpt-6-luna") == "none",
+            "a level the picker never offers falls back")
+        expect(
+            VoiceRoutePolicy.rewriter(after: .codex(model: "x", effort: nil), model: nil, effort: nil) == nil,
+            "never off an API route")
+        expect(
+            VoiceRoutePolicy.retryChoices([openAI], saved: [], isEnabled: { _ in true })
+                == [heard],
+            "Retry with… offers the preset, not every chat model OpenAI lists")
+    }
+
+    static func transcriptionRequest() {
+        let audio = AIAudio(data: Data([1, 2, 3]), format: "wav")
+        let request = VoiceTranscriptionRequest.make(
+            model: "gpt-transcribe", audio: audio,
+            options: .init(
+                cleanup: true, languages: ["Russian", "English", "Cantonese"],
+                vocabulary: "Redcast, <Kubernetes>,\nOpenRouter",
+                context: VoiceAppContext(appName: "Slack", windowTitle: "general")))
+        expect(request.languages == ["ru", "en"], "two-letter codes only: Cantonese has no ISO 639-1 code")
+        expect(request.keywords == ["Redcast", "Kubernetes", "OpenRouter"], "angle brackets are stripped")
+        expect(request.prompt == "Dictated into Slack, window \"general\".", "the app and window as context")
+        let body = String(bytes: request.body(), encoding: .utf8) ?? ""
+        for field in [
+            "name=\"model\"\r\n\r\ngpt-transcribe\r\n", "name=\"response_format\"\r\n\r\njson\r\n",
+            "name=\"keywords[]\"\r\n\r\nKubernetes\r\n", "name=\"languages[]\"\r\n\r\nru\r\n",
+            "filename=\"recording.wav\"\r\nContent-Type: audio/wav\r\n\r\n\u{1}\u{2}\u{3}\r\n"
+        ] {
+            expect(body.contains(field), "the body carries \(field.debugDescription)")
+        }
+        expect(body.hasSuffix("--\r\n") && request.contentType.hasPrefix("multipart/form-data; boundary="), "closed")
+        let bare = VoiceTranscriptionRequest.make(model: "gpt-transcribe", audio: audio, options: .init(cleanup: false))
+        let bareBody = String(bytes: bare.body(), encoding: .utf8) ?? ""
+        expect(
+            bare.prompt == nil && !bareBody.contains("languages[]") && !bareBody.contains("keywords[]"),
+            "nothing set sends no empty field, which the endpoint refuses")
+        let untitled = VoiceAppContext(appName: "Notes", windowTitle: nil)!
+        expect(VoiceTranscriptionRequest.prompt(for: untitled) == "Dictated into Notes.", "no title, no window")
+
+        func response(_ json: String) -> VoiceTranscriptionRequest.Response? {
+            try? VoiceTranscriptionRequest.response(Data(json.utf8))
+        }
+        expect(
+            response(#"{"text":" Привет ","usage":{"type":"tokens","input_tokens":40,"output_tokens":3}}"#)
+                == .init(text: "Привет", usage: AIUsage(inputTokens: 40, outputTokens: 3)),
+            "the text trimmed, with token usage")
+        expect(
+            response(#"{"text":"Hi","usage":{"type":"duration","seconds":4.2}}"#) == .init(text: "Hi", usage: nil),
+            "per-second usage is not recorded")
+        expect(response(#"{"text":"  "}"#) == .init(text: nil, usage: nil), "blank text is no speech")
+        expect(response(#"{"error":"x"}"#) == nil, "no text is malformed")
+
+        expect(VoicePrompt.vocabularyWords("a, b,\n, c") == ["a", "b", "c"], "the words a line joins")
+        let cleanup = VoicePrompt.cleanupRequest(transcript: "ну короче привет")
+        expect(
+            cleanup.messages.map(\.text) == ["Text:\nну короче привет"]
+                && cleanup.instructions == VoicePrompt.cleanupInstructions
+                && VoicePrompt.cleanupInstructions.contains("Remove filler words")
+                && VoicePrompt.cleanupInstructions.contains(VoicePrompt.transcriptOpen),
+            "Clean up speech's second step sends the transcript as material, tagged reply")
     }
 
     static func routeFitting() {

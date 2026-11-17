@@ -439,6 +439,13 @@ struct AIHTTPConfiguration: Equatable, Sendable {
 
     var shape: APIShape { provider.apiShape }
 
+    var isOpenAIsOwnAPI: Bool {
+        baseURL.host() == URL(string: AIProviderKind.openAI.defaultBaseURL)?.host()
+    }
+
+    /// OpenAI's own API takes `none` as a level; a gateway is asked to turn thinking off instead.
+    var takesNoEffortLevel: Bool { provider == .openAI && isOpenAIsOwnAPI }
+
     /// Fork: what stamps a reply's reasoning, beside its model.
     var route: String { baseURL.host()?.lowercased() ?? "" }
 
