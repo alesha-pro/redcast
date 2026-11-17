@@ -169,8 +169,11 @@ keychain's one `Developer ID Application` identity and a secure timestamp, check
 `verify-signature.sh`, notarized and stapled, then a zip (what the updater expands) and a signed,
 notarized, stapled DMG. It tags `HEAD` `v<version>` as `Redcast <version>`, pushes the tag and
 creates a **draft** release on the repository `ReleaseFeed.repository` names, with notes listing the
-first-parent commits since the previous `Redcast …` tag; `--publish` skips the draft. Everything lands
-in `build/release/<version>/`, a rejected notarization's log included.
+first-parent commits since the previous `Redcast …` tag; `--publish` skips the draft and then points
+the Homebrew cask in [`alesha-pro/homebrew-redcast`](https://github.com/alesha-pro/homebrew-redcast)
+(`REDCAST_TAP`) at the new DMG, committing `redcast <version>` there. After publishing a draft by
+hand, `--bump-cask` does that step alone. Everything lands in `build/release/<version>/`, a rejected
+notarization's log included.
 
 - **The source decides where and whom to trust.** The repository comes from `ReleaseFeed.swift` and
   the team from `BundleSignature.developerID`; the script refuses an identity of another team, since

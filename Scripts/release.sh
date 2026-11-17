@@ -11,6 +11,7 @@ PROFILE="${REDCAST_NOTARY_PROFILE:-redcast-notary}"
 WORK="$ROOT/build/release"
 FEED="Redcast/Features/Updates/Model/ReleaseFeed.swift"
 TRUST="Redcast/Features/Updates/Service/BundleSignature.swift"
+TAP="${REDCAST_TAP:-alesha-pro/homebrew-redcast}"
 FRAMEWORKS=/System/Library/Frameworks/CoreServices.framework/Frameworks
 LSREGISTER="$FRAMEWORKS/LaunchServices.framework/Support/lsregister"
 
@@ -19,6 +20,7 @@ usage() {
 Usage: Scripts/release.sh <version> [--universal] [--publish] [--notes FILE]
        Scripts/release.sh <version> --dry-run [--universal]
        Scripts/release.sh <version> --self-check
+       Scripts/release.sh <version> --bump-cask
 
 Builds Redcast <version> (MAJOR.MINOR.PATCH) in Release for Apple silicon, signs it with the
 keychain's one Developer ID Application identity, notarizes and staples the app and its DMG, then
@@ -29,8 +31,9 @@ tags HEAD v<version>, pushes the tag and creates a draft GitHub Release with the
   --notes FILE   release notes to use instead of the generated list of commits
   --dry-run      build, sign and package with any identity; no notarization, tag or release
   --self-check   check identity, team, notary profile, tag and tree, and build nothing
+  --bump-cask    point the Homebrew cask at <version>'s published DMG (--publish does it itself)
 
-Environment: REDCAST_RELEASE_IDENTITY (full identity name), REDCAST_NOTARY_PROFILE
+Environment: REDCAST_TAP ($TAP), REDCAST_RELEASE_IDENTITY (full identity name), REDCAST_NOTARY_PROFILE
 ($PROFILE, stored once with 'xcrun notarytool store-credentials $PROFILE').
 Output: build/release/<version>/.
 EOF
@@ -63,6 +66,7 @@ while [ $# -gt 0 ]; do
         ;;
     --dry-run) MODE=dry-run ;;
     --self-check) MODE=self-check ;;
+    --bump-cask) MODE=bump-cask ;;
     -h | --help)
         usage
         exit 0
@@ -292,12 +296,43 @@ publish() {
         die 1 "gh release create failed; the tag $TAG is pushed and the files are in $DIST."
     if [ "$PUBLISH" -eq 0 ]; then
         ok "Draft release: $url"
-        note "Check it, then publish: gh release edit $TAG --repo $REPO --draft=false --latest"
+        note "Check it, publish it, then bump the cask:"
+        note "gh release edit $TAG --repo $REPO --draft=false --latest"
+        note "Scripts/release.sh $VERSION --bump-cask"
     else
         ok "Published: $url"
+        bump_cask
     fi
 }
 
+# A draft's DMG is not downloadable, so the cask follows only a published release.
+bump_cask() {
+    local dmg="$DIST/$APP_NAME-$VERSION.dmg" tap="$WORK/tap" sha
+    if [ ! -f "$dmg" ]; then
+        mkdir -p "$DIST"
+        gh release download "$TAG" --repo "$REPO" --pattern "$APP_NAME-$VERSION.dmg" --dir "$DIST" ||
+            die 1 "no published $APP_NAME-$VERSION.dmg on $REPO."
+    fi
+    sha="$(shasum -a 256 "$dmg" | awk '{ print $1 }')"
+    say "Pointing the cask in $TAP at $VERSION…"
+    rm -rf "$tap"
+    gh repo clone "$TAP" "$tap" -- -q || die 1 "could not clone $TAP."
+    sed -i '' -E "s/^  version \".*\"$/  version \"$VERSION\"/; s/^  sha256 \".*\"$/  sha256 \"$sha\"/" \
+        "$tap/Casks/redcast.rb"
+    if git -C "$tap" diff --quiet; then
+        ok "The cask already points at $VERSION."
+    else
+        git -C "$tap" commit -q -am "redcast $VERSION" && git -C "$tap" push -q ||
+            die 1 "could not push the cask; the change is in $tap."
+        ok "brew install --cask alesha-pro/redcast/redcast now installs $VERSION"
+    fi
+    rm -rf "$tap"
+}
+
+if [ "$MODE" = bump-cask ]; then
+    bump_cask
+    exit 0
+fi
 say "Checking the release of $APP_NAME $VERSION…"
 preflight
 [ "$MODE" != self-check ] || exit 0

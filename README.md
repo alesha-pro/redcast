@@ -13,6 +13,8 @@
   <a href="https://github.com/alesha-pro/redcast/releases/latest"><img alt="Download Redcast for macOS" src="https://img.shields.io/badge/Download_for_macOS-F23D32?style=for-the-badge&logo=apple&logoColor=white" height="44"></a>
 </p>
 
+<p align="center"><code>brew install --cask alesha-pro/redcast/redcast</code></p>
+
 <p align="center">
   <a href="https://github.com/alesha-pro/redcast/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/alesha-pro/redcast?style=flat-square&color=F23D32&label=release"></a>
   <img alt="macOS 26 or later" src="https://img.shields.io/badge/macOS-26%2B-1c1c1e?style=flat-square&logo=apple&logoColor=white">
@@ -71,9 +73,16 @@ and AppKit, stays under 100 MB and does nothing while you're not using it.
   </tr>
 </table>
 
+Or with [Homebrew](https://brew.sh):
+
+```sh
+brew install --cask alesha-pro/redcast/redcast
+```
+
 - **Notarized by Apple**, so it opens without a warning — no `xattr`, no right-click dance.
 - **Updates itself.** Redcast checks the releases once a day, shows what changed and installs in place.
-  Turn it off in Settings › General, or run *Check for Updates* from the palette.
+  Turn it off in Settings › General, or run *Check for Updates* from the palette. Homebrew knows, and
+  `brew upgrade` leaves it alone.
 - **Needs** macOS 26 or later on Apple silicon.
 - **Permissions are asked one at a time**, the first time a feature needs them ([which and why](#privacy-and-permissions)).
 
