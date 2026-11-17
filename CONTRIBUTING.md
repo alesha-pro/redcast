@@ -32,8 +32,7 @@ What follows is the bar every change meets, yours included, whether written by h
 - The whole bar in [`docs/testing.md`](docs/testing.md#definition-of-done) passes:
   `./Scripts/run-tests.sh`, `./Scripts/lint.sh`, the purity check and a clean build with no new
   warnings.
-- Every user-facing string is in all eight languages, and `node Scripts/fork/rebrand.mjs --check`
-  passes.
+- Every user-facing string is in all eight languages.
 - The feature's doc in [`docs/features/`](docs/features/) and [`FORK.md`](FORK.md) change in the same
   commit.
 - Commits are small and say why.

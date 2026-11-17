@@ -171,8 +171,6 @@ several, name yours in `TINYCAST_SIGN_IDENTITY`.
 
 ```sh
 git clone https://github.com/alesha-pro/redcast.git && cd redcast
-git remote add upstream https://github.com/abue-ammar/tinycast.git
-git fetch upstream --tags              # About's version counts from upstream's tags
 Scripts/fork/install.sh --self-check   # what an install would do; builds nothing
 Scripts/fork/install.sh                # build, install /Applications/Redcast.app, relaunch
 ```
@@ -216,18 +214,16 @@ only when a dictation fails, on this Mac, for at most a week, so Dictation Histo
 ## Documentation
 
 - [docs/](docs/README.md): architecture, standards, testing, the design system and a page per feature
-- [FORK.md](FORK.md): what Redcast adds on top of upstream, its roadmap, and how it follows it
-- [docs/fork-tooling.md](docs/fork-tooling.md): `install.sh`, `sync-upstream.sh` and the rebrand script
+- [FORK.md](FORK.md): what Redcast adds on top of upstream, and its roadmap
+- [docs/fork-tooling.md](docs/fork-tooling.md): `install.sh` and `release.sh`
 - [AGENTS.md](AGENTS.md): the short version, for coding agents working on this repository
 - [CONTRIBUTING.md](CONTRIBUTING.md): issues and pull requests are welcome
 
-## Staying in sync with upstream
+## Its own path
 
-Redcast follows upstream's `main`, which lands almost daily. Fork features live in folders of their own
-and touch shared files in as few lines as possible, so a sync stays mechanical. `sync-upstream.sh`
-merges upstream into a branch of its own, regenerates the Xcode project, merges the string catalogs
-key by key, keeps this README as it is, and runs the build, harness and lint gates before anything
-lands. How it works is in [docs/fork-tooling.md](docs/fork-tooling.md#scriptsforksync-upstreamsh).
+Redcast began as a fork of upstream and stopped following it on 2026-11-17: there is no sync, and a
+fix upstream makes is ported by hand and credited. Data from older builds still moves over on its
+own, and `.tinycast` backups and `tinycast://` links keep working.
 
 ## Credits and license
 

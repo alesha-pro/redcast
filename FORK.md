@@ -68,63 +68,28 @@ apart from an installed upstream app, which can sit next to Redcast in `/Applica
 the old id moves its settings, Application Support, settings.json and Keychain keys over on its first
 launch ([bundle-migration](docs/features/bundle-migration.md)).
 
-## Living with upstream
+## Working on Redcast
 
-- `origin` is this fork, `upstream` is `abue-ammar/tinycast`. Upstream lands almost daily.
-- Fork features live in their own `Features/<Name>/` folders and touch shared files in as few lines as
-  possible, so `git fetch upstream && git merge upstream/main` stays a mechanical merge.
-- Agent chats run the fork's `AgentLoopProvider`; `agent-loop-test` runs it and upstream's
-  `AIToolLoopProvider` on the same script, so a merge that changes upstream's loop fails a harness
-  until the fork follows.
-- `LauncherScreen.init`'s claim hunk (`@agent` rows answering alone) is the fork's likeliest merge
-  conflict: it is one contiguous block, so resolve it there and keep upstream's comments above their
-  lines.
-- AI Chat's memory work touches upstream files in marked lines: `ChatTranscriptView` (the tile's
-  decode), `ChatMarkdownText` (a text view drops its text off the window and keeps no second copy
-  of its rendered string), `AIChatDetailView` (⌘↵
-  reads the window's chat), `AIChatSurfacesState` (the released chat's id) and `AIChatCoordinator`
-  (its reload as the window shows).
-  Keep the transcript eager and drawn by AppKit when merging a change there: a lazy stack and
-  per-slice drawing were tried and reverted, since they broke scrolling on real chats.
-- `Tinycast.xcodeproj` is generated: after a merge, resolve `project.yml` and run `xcodegen generate`
-  rather than hand-merging `project.pbxproj`. `Localizable.xcstrings` entries are inserted by hand in
-  catalog order (a local `sync-strings.sh` reorders hundreds of unrelated entries). A short key whose
-  meaning depends on where it appears, such as `at`, gets a catalog `comment` for translators.
-- New UI text is written with `Tinycast` in its key, as upstream would, and translated the same
-  way; `node Scripts/fork/rebrand.mjs` then gives it an English value and translations that say
-  Redcast, and `--check` fails while any key still needs that. It renames Markdown prose too, and
-  fails on a Swift literal outside the catalogs or an `Info.plist` value that says upstream's name; prompts
-  in upstream files end `.forkBranded`. Text about upstream itself (About's AGPL notice, its old
-  Discord row, and Support, whose checkout funds upstream's author) is listed in the script and keeps
-  the name.
-- `Scripts/fork/sync-upstream.sh` does the merge: into `sync/upstream-<sha>`, upstream's
-  `project.pbxproj` and runtime bundle regenerated, both string catalogs merged key by key and
-  rebranded, the fork's own `README.md`, `FUNDING.yml` and issue contact links kept whatever upstream
-  did to its copies, an `Upstream-Sync:` trailer, then the build, harness, lint and purity gates and
-  a summary of what upstream changed. Other conflicts stop it for `--continue`. Upstream force-pushes
-  `main` now and then; the script re-anchors on commits it can prove are already merged and otherwise
-  stops with a `git range-diff` to read.
-  Details: [fork tooling](docs/fork-tooling.md#scriptsforksync-upstreamsh).
-- **A sync branch lands by fast-forward or a merge commit, never squash or rebase**: either drops
-  upstream's ancestry, and the next sync replays everything.
-- Upstream's five workflows must be disabled before Actions is ever enabled on the fork (one `gh`
-  loop, in [fork tooling](docs/fork-tooling.md#upstream-workflows-on-the-fork)). A nightly sync Action
-  with one rolling PR is proposed there, not active; it needs a `FORK_SYNC_TOKEN` fine-grained token
-  (Contents, Pull requests and Workflows read-write) with a one-year expiry, to be noted here. Only
-  its publish job, which runs no repository code, ever holds that token.
-- Every fork change keeps upstream's bar: harnesses, `./Scripts/lint.sh`, eight languages, docs in the
-  same commit. Its panels and rows fit in all eight: a choice in an editor is a menu, radio buttons or
-  a `SteadySegmentedPicker`, never a plain segmented `Picker`, whose equal segments once clipped the
-  schedule editor in French and Russian. Two harnesses fail on a clean upstream checkout too and are
-  not fork regressions: `form-input-test` (display-bound) and, occasionally under load,
-  `icon-cache-test`.
+- Redcast stopped following upstream on 2026-11-17: no `upstream` remote, no sync. A fix upstream
+  makes is ported by hand and credited below.
+- `Tinycast.xcodeproj` is generated: edit `project.yml` and run `xcodegen generate`, never
+  `project.pbxproj`. `Localizable.xcstrings` entries are inserted by hand in catalog order (a local
+  `sync-strings.sh` reorders hundreds of unrelated entries). A short key whose meaning depends on
+  where it appears, such as `at`, gets a catalog `comment` for translators.
+- Keep AI Chat's transcript eager and drawn by AppKit: a lazy stack and per-slice drawing were tried
+  and reverted, since they broke scrolling on real chats.
+- Every change keeps the bar: harnesses, `./Scripts/lint.sh`, eight languages, docs in the same
+  commit. Panels and rows fit in all eight: a choice in an editor is a menu, radio buttons or a
+  `SteadySegmentedPicker`, never a plain segmented `Picker`, whose equal segments once clipped the
+  schedule editor in French and Russian. `form-input-test` (display-bound) and, occasionally under
+  load, `icon-cache-test` fail on a clean checkout too.
 
 ## Installing the fork
 
 `Scripts/fork/install.sh` builds the fork in Release for this Mac as `/Applications/Redcast.app`, signs
 it with the `Apple Development` identity the installed copy has, quits the installed app gracefully, swaps the
-new bundle in by rename and relaunches it. About shows the `git describe` version and the commit count
-(a fresh clone needs `git fetch upstream --tags` first). Details and the manual sweep are in
+new bundle in by rename and relaunches it. About shows the `git describe` version and the commit count.
+Details and the manual sweep are in
 [fork tooling](docs/fork-tooling.md#scriptsforkinstallsh).
 
 - **From `Tinycast.app` to `Redcast.app`.** When `/Applications/Tinycast.app` is this fork (its bundle id,
@@ -172,9 +137,7 @@ Declined items stay listed so the numbers other docs cite keep their meaning.
 
 - **Release script — shipped** as `Scripts/fork/install.sh` (see [Installing the fork](#installing-the-fork)),
   and public releases as `Scripts/fork/release.sh` (see [Releasing](#releasing)).
-- **Upstream sync — shipped** as `Scripts/fork/sync-upstream.sh`. The scheduled Action that keeps one
-  rolling PR stays a [proposal](docs/fork-tooling.md#proposed-a-nightly-sync-action-not-active) until
-  the script has done three to five syncs by hand.
+- **Upstream sync — retired** on 2026-11-17, when Redcast stopped following upstream.
 - **Ports from other forks — shipped** (all AGPL, credited): alias + Space from
   `sermelipharo/tinycast-space`, Change Alias / Change Shortcut from ⌘K from `jhasubhash/tinycast`,
   and the same `sermelipharo/tinycast-space` extension-runtime fixes for Google sign-in and undici
