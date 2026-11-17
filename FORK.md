@@ -82,7 +82,7 @@ launch ([bundle-migration](docs/features/bundle-migration.md)).
 ## Installing the fork
 
 `Scripts/install.sh` builds the fork in Release for this Mac as `/Applications/Redcast.app`, signs
-it with the `Apple Development` identity the installed copy has, quits the installed app gracefully, swaps the
+it with the identity the installed copy has (Developer ID on this Mac), quits the installed app gracefully, swaps the
 new bundle in by rename and relaunches it. About shows the `git describe` version and the commit count.
 Details and the manual sweep are in
 [fork tooling](docs/shipping.md#scriptsinstallsh).

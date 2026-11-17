@@ -50,7 +50,7 @@ mark). The menu-bar item draws `RedcastMenuBarIcon`, the same mark as a template
 
 | Environment | Default | Meaning |
 | --- | --- | --- |
-| `REDCAST_SIGN_IDENTITY` | the installed copy's `Apple Development: …` identity, else the only one | full name to sign with |
+| `REDCAST_SIGN_IDENTITY` | the installed copy's identity, else the one `Developer ID Application`, else the one `Apple Development` | full name to sign with |
 | `REDCAST_INSTALL_BUNDLE_ID` | `io.redcast.app` | `REDCAST_BUNDLE_IDENTIFIER` for the build |
 | `REDCAST_LEGACY_BUNDLE_ID` | `com.tinycast.app.fork` | the fork's earlier id: an install under it is this fork, replaced, and migrated on first launch |
 | `REDCAST_INSTALL_PATH` | `/Applications/Redcast.app` | where the app is installed; a fork `Tinycast.app` in the same folder is migrated |
@@ -85,7 +85,7 @@ The order of the steps is the design:
 
 | Step | What happens |
 | --- | --- |
-| Identity | Exactly one valid `Apple Development` identity, by name and by SHA-1; with several, the one the installed copy's requirement names, when exactly one certificate carries that name. Two certificates with one name make `codesign` fail as ambiguous, so the script lists them instead. A foreign installed bundle is refused here too, and so is a second fork copy under the old name; upstream's `Tinycast.app` beside it is named. |
+| Identity | The installed copy's signer (its first `Authority`) when exactly one valid certificate carries that name; else the one valid `Developer ID Application`, else the one `Apple Development`, by name and by SHA-1. Signing with the installed copy's identity is what keeps every grant. Two certificates with one name make `codesign` fail as ambiguous, so the script lists them instead. A foreign installed bundle is refused here too, and so is a second fork copy under the old name; upstream's `Tinycast.app` beside it is named. |
 | Detach | When an ancestor process runs from inside the installed bundle (an agent, `run_command`, a custom command), everything below runs in a new session and logs to `build/install/install.log`. The caller gets exit 0 at once and reads the outcome in the log. Before a migration the installed bundle is the old `Tinycast.app`. |
 | Version | `MARKETING_VERSION` is `git describe` without the `v` (`0.12.2-beta.125-11-g7575cbad`, `-dirty` on a dirty tree), `CURRENT_PROJECT_VERSION` the commit count. Tags come from upstream: a fresh clone needs `git fetch upstream --tags`. |
 | Build | Release as `Redcast.app` with its `Redcast Dictation` helper, this Mac's architecture only, signed with `--timestamp=none` so it needs no network. |
@@ -179,9 +179,10 @@ in `build/release/<version>/`, a rejected notarization's log included.
   (`REDCAST_NOTARY_PROFILE`), which you store once with
   `xcrun notarytool store-credentials redcast-notary` and an App Store Connect API key or an
   app-specific password. The script never takes a secret as an argument.
-- **Builds from `install.sh` and from releases differ in signer.** The updater accepts a release only
-  through the Developer ID requirement, so a copy `install.sh` signed with Apple Development is
-  replaced by hand once, from the DMG; a copy at a dirty or untagged version never checks at all.
+- **`install.sh` signs like a release where it can.** With the Developer ID identity in the keychain
+  a local install shares the release's requirement, so grants carry over both ways and the installed
+  copy takes the next release; a copy signed with Apple Development is replaced by hand once. A copy
+  at a dirty or untagged version never checks for updates at all.
 - `--self-check` prints the version, identity, team, repository and output and builds nothing;
   `--dry-run` builds and packages with any identity (`REDCAST_RELEASE_IDENTITY`), turning the
   identity and team checks into warnings, and notarizes, tags and publishes nothing.

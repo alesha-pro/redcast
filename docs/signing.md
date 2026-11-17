@@ -7,7 +7,7 @@ forgets.
 | Build | Identity | Where it is named |
 | --- | --- | --- |
 | Xcode, VS Code F5, `xcodebuild` | `Redcast Self-Signed`, which each contributor creates once (§1) | `project.yml` |
-| `Scripts/install.sh` on this Mac | the keychain's `Apple Development` identity, the installed copy's when there are several | the script |
+| `Scripts/install.sh` on this Mac | the installed copy's identity, else Developer ID, else Apple Development | the script |
 | Releases | `Developer ID Application: Anton Orlov (3BLDMY4DX4)`, notarized and stapled | `Scripts/release.sh` |
 
 ## 1. Create the `Redcast Self-Signed` identity (once)
@@ -88,8 +88,8 @@ carrying the running app's own leaf certificate. The requirement pins the team r
 certificate, so a renewal strands nobody, and `release.sh` refuses an identity of another team. It
 deliberately omits the `notarized` keyword: that resolves a ticket through `syspolicyd` or the
 network, and the updater verifies in a cache directory Gatekeeper has never assessed, so an offline
-Mac would refuse a bundle the chain already proves is ours. A copy `install.sh` signed with Apple
-Development is replaced by a release once, by hand, from the DMG.
+Mac would refuse a bundle the chain already proves is ours. `install.sh` signs with the same
+Developer ID when it can, so a local install and a release keep one requirement and one set of grants.
 
 The Developer ID private key exists only in this Mac's login keychain, with a `.p12` backup kept
 outside the repository. Losing both means a new certificate from the team's owner.

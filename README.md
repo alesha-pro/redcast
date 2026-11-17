@@ -165,9 +165,10 @@ no Electron, no account, no subscription and no telemetry, and it stays quiet wh
 
 Redcast is built from source on your Mac for now; to update, pull and run the installer again.
 
-**You need** macOS 26 or later, Xcode 26, and one Apple Development signing identity in your keychain.
-Xcode makes one in Settings → Accounts → Manage Certificates, and a free Apple ID is enough; with
-several, name yours in `REDCAST_SIGN_IDENTITY`.
+**You need** macOS 26 or later, Xcode 26, and one signing identity in your keychain: a Developer ID
+Application one is used first, else Apple Development, which Xcode makes in Settings → Accounts →
+Manage Certificates with a free Apple ID. With several of a kind, name yours in
+`REDCAST_SIGN_IDENTITY`.
 
 ```sh
 git clone https://github.com/alesha-pro/redcast.git && cd redcast

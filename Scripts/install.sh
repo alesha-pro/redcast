@@ -31,8 +31,8 @@ Usage: Scripts/install.sh [--no-launch] [--force-quit] [--accept-new-identity]
        Scripts/install.sh --self-check
        Scripts/install.sh --self-test     # stubbed installs into \$TMPDIR, one from a fake app
 
-Builds the fork in Release for this Mac as $APP_NAME.app, signs it with the Apple Development
-identity the installed copy has (the only one, on a first install), verifies it, quits the
+Builds Redcast in Release for this Mac as $APP_NAME.app, signs it with the identity the installed
+copy has (else the one Developer ID, else the one Apple Development), verifies it, quits the
 installed copy gracefully and swaps the new one into place by rename. A fork copy still named
 Tinycast.app beside it is migrated: it goes to the rollback slot.
 
@@ -168,7 +168,15 @@ stale_registrations() {
 
 installed_signer() {
     [ -n "$INSTALLED" ] || return 0
-    designated "$INSTALLED" | sed -nE 's/.*leaf\[subject\.CN\] = "([^"]*)".*/\1/p'
+    codesign -dvv "$INSTALLED" 2>&1 | sed -n 's/^Authority=//p' | head -1
+}
+
+# One valid identity of a kind, by name and SHA-1, or nothing.
+only_identity() {
+    local lines
+    lines="$(grep -F "\"$1" <<<"$2" || true)"
+    [ -n "$lines" ] && [ "$(wc -l <<<"$lines")" -eq 1 ] || return 0
+    sed -E 's/^[^"]*"(.*)"$/\1/' <<<"$lines"
 }
 
 resolve_identity() {
@@ -176,26 +184,24 @@ resolve_identity() {
         IDENTITY="$REDCAST_SIGN_IDENTITY"
         return
     fi
-    local lines names shas
+    local lines pinned
     lines="$(security find-identity -v -p codesigning 2>/dev/null |
-        grep -E '^ *[0-9]+\) [0-9A-F]{40} "Apple Development: ' || true)"
-    [ -n "$lines" ] ||
-        die 2 "no valid 'Apple Development' signing identity. Set REDCAST_SIGN_IDENTITY."
-    names="$(sed -E 's/^[^"]*"(.*)"$/\1/' <<<"$lines" | sort -u)"
-    shas="$(awk '{ print $2 }' <<<"$lines" | sort -u)"
-    if [ "$(wc -l <<<"$names")" -ne 1 ] || [ "$(wc -l <<<"$shas")" -ne 1 ]; then
-        local pinned
-        # Several: the one the installed copy is signed with keeps its grants, if it is unique.
-        pinned="$(installed_signer)"
-        if [ -n "$pinned" ] && [ "$(grep -cF "\"$pinned\"" <<<"$lines")" -eq 1 ]; then
-            IDENTITY="$pinned"
-            return
-        fi
+        grep -E '^ *[0-9]+\) [0-9A-F]{40} "(Developer ID Application|Apple Development): ' || true)"
+    [ -n "$lines" ] || die 2 "no valid 'Developer ID Application' or 'Apple Development' identity." \
+        "Set REDCAST_SIGN_IDENTITY."
+    # The installed copy's signer keeps every grant; a release's Developer ID comes next.
+    pinned="$(installed_signer)"
+    if [ -n "$pinned" ] && [ "$(grep -cF "\"$pinned\"" <<<"$lines")" -eq 1 ]; then
+        IDENTITY="$pinned"
+        return
+    fi
+    IDENTITY="$(only_identity "Developer ID Application: " "$lines")"
+    [ -n "$IDENTITY" ] || IDENTITY="$(only_identity "Apple Development: " "$lines")"
+    if [ -z "$IDENTITY" ]; then
         printf '%s\n' "$lines" >&2
         die 2 "ambiguous signing identity: delete the expired or duplicate certificate in" \
             "Keychain Access, or set REDCAST_SIGN_IDENTITY to the full name."
     fi
-    IDENTITY="$names"
 }
 
 resolve_version() {
