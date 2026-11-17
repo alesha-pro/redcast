@@ -171,8 +171,10 @@ notarized, stapled DMG. It tags `HEAD` `v<version>` as `Redcast <version>`, push
 creates a **draft** release on the repository `ReleaseFeed.repository` names, with notes listing the
 first-parent commits since the previous `Redcast …` tag; `--publish` skips the draft and then points
 the Homebrew cask in [`alesha-pro/homebrew-redcast`](https://github.com/alesha-pro/homebrew-redcast)
-(`REDCAST_TAP`) at the new DMG, committing `redcast <version>` there. After publishing a draft by
-hand, `--bump-cask` does that step alone. Everything lands in `build/release/<version>/`, a rejected
+(`REDCAST_TAP`) at the new DMG, committing `redcast <version>` there, and sends a `redcast-release`
+`repository_dispatch` (payload `tag`) to the website's repository (`REDCAST_SITE_REPO`,
+`alesha-pro/redcast-site`), whose workflow rebuilds the changelog from the releases. After publishing
+a draft by hand, `--announce` does both steps alone. Everything lands in `build/release/<version>/`, a rejected
 notarization's log included.
 
 - **The source decides where and whom to trust.** The repository comes from `ReleaseFeed.swift` and

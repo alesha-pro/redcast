@@ -12,6 +12,7 @@ WORK="$ROOT/build/release"
 FEED="Redcast/Features/Updates/Model/ReleaseFeed.swift"
 TRUST="Redcast/Features/Updates/Service/BundleSignature.swift"
 TAP="${REDCAST_TAP:-alesha-pro/homebrew-redcast}"
+SITE="${REDCAST_SITE_REPO:-alesha-pro/redcast-site}"
 FRAMEWORKS=/System/Library/Frameworks/CoreServices.framework/Frameworks
 LSREGISTER="$FRAMEWORKS/LaunchServices.framework/Support/lsregister"
 
@@ -20,7 +21,7 @@ usage() {
 Usage: Scripts/release.sh <version> [--universal] [--publish] [--notes FILE]
        Scripts/release.sh <version> --dry-run [--universal]
        Scripts/release.sh <version> --self-check
-       Scripts/release.sh <version> --bump-cask
+       Scripts/release.sh <version> --announce
 
 Builds Redcast <version> (MAJOR.MINOR.PATCH) in Release for Apple silicon, signs it with the
 keychain's one Developer ID Application identity, notarizes and staples the app and its DMG, then
@@ -31,9 +32,10 @@ tags HEAD v<version>, pushes the tag and creates a draft GitHub Release with the
   --notes FILE   release notes to use instead of the generated list of commits
   --dry-run      build, sign and package with any identity; no notarization, tag or release
   --self-check   check identity, team, notary profile, tag and tree, and build nothing
-  --bump-cask    point the Homebrew cask at <version>'s published DMG (--publish does it itself)
+  --announce     after a release is published: bump the Homebrew cask and rebuild the website
+                 (--publish does both itself)
 
-Environment: REDCAST_TAP ($TAP), REDCAST_RELEASE_IDENTITY (full identity name), REDCAST_NOTARY_PROFILE
+Environment: REDCAST_TAP ($TAP), REDCAST_SITE_REPO ($SITE), REDCAST_RELEASE_IDENTITY (full identity name), REDCAST_NOTARY_PROFILE
 ($PROFILE, stored once with 'xcrun notarytool store-credentials $PROFILE').
 Output: build/release/<version>/.
 EOF
@@ -66,7 +68,7 @@ while [ $# -gt 0 ]; do
         ;;
     --dry-run) MODE=dry-run ;;
     --self-check) MODE=self-check ;;
-    --bump-cask) MODE=bump-cask ;;
+    --announce) MODE=announce ;;
     -h | --help)
         usage
         exit 0
@@ -296,16 +298,31 @@ publish() {
         die 1 "gh release create failed; the tag $TAG is pushed and the files are in $DIST."
     if [ "$PUBLISH" -eq 0 ]; then
         ok "Draft release: $url"
-        note "Check it, publish it, then bump the cask:"
+        note "Check it, publish it, then announce it:"
         note "gh release edit $TAG --repo $REPO --draft=false --latest"
-        note "Scripts/release.sh $VERSION --bump-cask"
+        note "Scripts/release.sh $VERSION --announce"
     else
         ok "Published: $url"
-        bump_cask
+        announce
     fi
 }
 
-# A draft's DMG is not downloadable, so the cask follows only a published release.
+# A draft's DMG is not downloadable, so the cask and the site follow only a published release.
+announce() {
+    bump_cask
+    notify_site
+}
+
+# The site's workflow reads the releases itself; the event only says when to rebuild.
+notify_site() {
+    if gh api "repos/$SITE/dispatches" -f event_type=redcast-release \
+        -f "client_payload[tag]=$TAG" >/dev/null 2>&1; then
+        ok "Asked $SITE to rebuild its changelog for $TAG"
+    else
+        warn "could not reach $SITE; rebuild the site by hand or rerun with --announce."
+    fi
+}
+
 bump_cask() {
     local dmg="$DIST/$APP_NAME-$VERSION.dmg" tap="$WORK/tap" sha
     if [ ! -f "$dmg" ]; then
@@ -329,8 +346,8 @@ bump_cask() {
     rm -rf "$tap"
 }
 
-if [ "$MODE" = bump-cask ]; then
-    bump_cask
+if [ "$MODE" = announce ]; then
+    announce
     exit 0
 fi
 say "Checking the release of $APP_NAME $VERSION…"
