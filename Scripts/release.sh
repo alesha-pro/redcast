@@ -173,6 +173,7 @@ build() {
         [ -e "$product" ] && "$LSREGISTER" -u "$product" >/dev/null 2>&1 || true
     done
     APP="$products/$APP_NAME.app"
+    DERIVED="$derived"
     verify_build "$archs"
 }
 
@@ -240,6 +241,9 @@ package() {
             die 1 "Gatekeeper refuses the DMG."
     fi
     ASSETS+=("$DIST/$base.zip" "$DIST/$base.dmg")
+    # A built copy left behind is one LaunchServices may open for `open -b` instead of /Applications.
+    "$LSREGISTER" -u "$APP" >/dev/null 2>&1 || true
+    rm -rf "$DERIVED"
     ok "Packaged $base.zip and $base.dmg"
 }
 
