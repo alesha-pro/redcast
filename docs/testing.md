@@ -11,7 +11,7 @@ The mechanical bar, in one place so it cannot drift. All five pass before a chan
 | --- | --- |
 | The harnesses | `./Scripts/run-tests.sh` |
 | Lint, settings search and translations | `./Scripts/lint.sh` |
-| Pure-layer purity | `grep -rln 'import AppKit\|import SwiftUI\|import Cocoa' Tinycast/Features/*/Model/` |
+| Pure-layer purity | `grep -rln 'import AppKit\|import SwiftUI\|import Cocoa' Redcast/Features/*/Model/` |
 | A clean build | `xcodebuild … -configuration Debug CODE_SIGNING_ALLOWED=NO`, zero **new** warnings |
 | Docs still true | any doc your change made wrong, fixed in the same commit |
 
@@ -235,7 +235,7 @@ same commit with the reason in the message.
 The layering rule reduces to one grep, and it must return nothing:
 
 ```sh
-grep -rln 'import AppKit\|import SwiftUI\|import Cocoa' Tinycast/Features/*/Model/
+grep -rln 'import AppKit\|import SwiftUI\|import Cocoa' Redcast/Features/*/Model/
 ```
 
 Beyond the imports, the injected-environment half is not mechanically checkable, so it is worth an eye
@@ -256,9 +256,9 @@ A clean build is part of the bar; nothing builds the app for you, so this is on 
 
 ```sh
 xcodegen generate                 # only after editing project.yml
-xcodebuild build -project Tinycast.xcodeproj -scheme Tinycast -configuration Debug \
+xcodebuild build -project Redcast.xcodeproj -scheme Redcast -configuration Debug \
   CODE_SIGNING_ALLOWED=NO
-xcodebuild build -project Tinycast.xcodeproj -scheme Tinycast -configuration Release \
+xcodebuild build -project Redcast.xcodeproj -scheme Redcast -configuration Release \
   CODE_SIGNING_ALLOWED=NO
 find ~/Library/Developer/Xcode/DerivedData -name "Tinycast*.app" -maxdepth 6 -print -quit
 ```
@@ -301,10 +301,10 @@ Run the file-index benchmark separately from the deterministic harnesses. With n
 them:
 
 ```sh
-swiftc -O -wmo -swift-version 6 Tinycast/Features/FileSearch/Model/*.swift \
-    Tinycast/Features/FileSearch/Service/FileIndex.swift \
-    Tinycast/Features/FileSearch/Service/FileIndexSnapshot.swift \
-    Tinycast/Features/FileSearch/Service/FileIndexCrawler.swift \
+swiftc -O -wmo -swift-version 6 Redcast/Features/FileSearch/Model/*.swift \
+    Redcast/Features/FileSearch/Service/FileIndex.swift \
+    Redcast/Features/FileSearch/Service/FileIndexSnapshot.swift \
+    Redcast/Features/FileSearch/Service/FileIndexCrawler.swift \
     Tests/file-search-performance.swift -o /tmp/file-search-performance
 /tmp/file-search-performance
 ```
@@ -315,7 +315,7 @@ The calculator benchmark is deterministic — an injected clock, calendar and ra
 timing harness rather than an assertion one, and stays out of `run-tests.sh` for that reason:
 
 ```sh
-swiftc -O -swift-version 6 Tinycast/Features/Calculator/Model/*.swift \
+swiftc -O -swift-version 6 Redcast/Features/Calculator/Model/*.swift \
     Tests/calc-performance.swift -o /tmp/calc-performance
 /tmp/calc-performance          # µs per query, by grammar
 /tmp/calc-performance --probe  # every answer as JSON, to diff two builds
@@ -333,9 +333,9 @@ the attachment path against the bounded reader it now delegates to. Compare thre
 per build with identical `-O` settings:
 
 ```sh
-swiftc -O -swift-version 6 Tinycast/Platform/PasteboardFiles.swift \
-    Tinycast/Features/Clipboard/Model/{ClipboardStore,ClipboardFilter,ClipboardFileKind,ColorValue,ColorFormat,ColorSpaces}.swift \
-    Tinycast/Features/Clipboard/Service/ClipboardManager.swift \
+swiftc -O -swift-version 6 Redcast/Platform/PasteboardFiles.swift \
+    Redcast/Features/Clipboard/Model/{ClipboardStore,ClipboardFilter,ClipboardFileKind,ColorValue,ColorFormat,ColorSpaces}.swift \
+    Redcast/Features/Clipboard/Service/ClipboardManager.swift \
     Tests/clipboard-file-performance.swift -o /tmp/clipboard-file-performance
 /tmp/clipboard-file-performance
 ```
@@ -350,10 +350,10 @@ helper must sit at `Contents/Helpers` beside the benchmark:
 ```sh
 D=/tmp/clipboard-thumbnail-performance; mkdir -p $D/Contents/Helpers
 swiftc -O -swift-version 6 -parse-as-library \
-    Tinycast/Features/Clipboard/Service/{ClipboardTextExtractor,ClipboardTextHelper}.swift \
+    Redcast/Features/Clipboard/Service/{ClipboardTextExtractor,ClipboardTextHelper}.swift \
     -o $D/Contents/Helpers/ClipboardTextHelper
-swiftc -O -swift-version 6 Tinycast/Platform/ProcessExit.swift \
-    Tinycast/Platform/Images/{ImageThumbnail,ImageDerivative,ThumbnailCache}.swift \
+swiftc -O -swift-version 6 Redcast/Platform/ProcessExit.swift \
+    Redcast/Platform/Images/{ImageThumbnail,ImageDerivative,ThumbnailCache}.swift \
     Tests/clipboard-thumbnail-performance.swift -o $D/clipboard-thumbnail-performance
 $D/clipboard-thumbnail-performance /tmp/ctp --fixtures
 $D/clipboard-thumbnail-performance /tmp/ctp --original
@@ -405,8 +405,8 @@ the GPU work a visible one does, so compare only runs made the same way.
 decodes the head and tail of 500 synthetic 96 KB transcripts, printing milliseconds as JSON:
 
 ```sh
-swiftc -O -swift-version 6 Tinycast/Features/Launcher/Model/SearchRelevance.swift \
-    Tinycast/Features/AgentSessions/Model/*.swift Tests/agent-sessions-performance.swift \
+swiftc -O -swift-version 6 Redcast/Features/Launcher/Model/SearchRelevance.swift \
+    Redcast/Features/AgentSessions/Model/*.swift Tests/agent-sessions-performance.swift \
     -o /tmp/agent-sessions-performance
 /tmp/agent-sessions-performance
 ```
@@ -417,9 +417,9 @@ missing from its own top five results, and `--languages fr,ja` loads those keywo
 from the repo root):
 
 ```sh
-swiftc -O -swift-version 6 Tinycast/Features/Emoji/Model/{EmojiCatalog,EmojiData.generated}.swift \
-    Tinycast/Features/Emoji/Service/{EmojiIndex,FrequentEmojiStore}.swift \
-    Tinycast/Features/Launcher/Model/SearchRelevance.swift Tinycast/Platform/{AppPaths,Memo}.swift \
+swiftc -O -swift-version 6 Redcast/Features/Emoji/Model/{EmojiCatalog,EmojiData.generated}.swift \
+    Redcast/Features/Emoji/Service/{EmojiIndex,FrequentEmojiStore}.swift \
+    Redcast/Features/Launcher/Model/SearchRelevance.swift Redcast/Platform/{AppPaths,Memo}.swift \
     Tests/emoji-search-performance.swift -o /tmp/emoji-search-performance
 /tmp/emoji-search-performance --names
 /tmp/emoji-search-performance --languages fr,ja
@@ -435,10 +435,10 @@ keystroke. Inside `didChange`, near the top of the note, the read does that layo
 2 ms:
 
 ```sh
-N=Tinycast/Features/Notes
-swiftc -O -swift-version 6 Tinycast/Platform/{Signposts,Appearance,NotificationToken}.swift \
-    Tinycast/DesignSystem/{Theme,InterfaceMetrics}.swift \
-    Tinycast/Features/TextInjection/Service/InjectableTextView.swift \
+N=Redcast/Features/Notes
+swiftc -O -swift-version 6 Redcast/Platform/{Signposts,Appearance,NotificationToken}.swift \
+    Redcast/DesignSystem/{Theme,InterfaceMetrics}.swift \
+    Redcast/Features/TextInjection/Service/InjectableTextView.swift \
     $N/Model/{NoteDocument,NoteMarkdown,NoteMarkdownParser,NoteInlineScanner}.swift \
     $N/Model/{NoteEditPlan,NoteEditAction,NoteFormatting,NoteMarkdownEditing,NoteRevealPolicy}.swift \
     $N/UI/{NoteMarkdownTypography,NoteBlockDecoration,NoteMarkdownStyler,NoteMarkdownRenderer}.swift \
@@ -489,7 +489,7 @@ There is no UI test suite, so this is it. Run the core sweep for any change that
 run the scoped section for whatever feature you touched. Budget about five minutes plus three per
 section.
 
-Run against the **Debug channel** (`Tinycast Dev.app`, `com.tinycast.app.dev`). It has its own prefs,
+Run against the **Debug channel** (`Redcast Dev.app`, `io.redcast.app.dev`). It has its own prefs,
 caches, TCC grants and login item, so this cannot disturb an installed copy.
 
 ### Core
@@ -945,7 +945,7 @@ caches, TCC grants and login item, so this cannot disturb an installed copy.
 - Untick a category on **import** and confirm it did not arrive, while the ticked ones did
 - An image clip round-trips and still renders; the archive can then be deleted without breaking it
 - A file whose `manifest.json` `format` was hand-edited is refused **with a message naming it**
-- Cancelling the save panel leaves nothing in `~/Library/Caches/com.tinycast.app.dev/backup-staging/`
+- Cancelling the save panel leaves nothing in `~/Library/Caches/io.redcast.app.dev/backup-staging/`
 - **`snippetsEnabled` is not in the exported file**, and importing does not enable snippets
 - Nothing in the extracted tree names a Keychain item, an extension, or an AI conversation
 
@@ -1005,11 +1005,11 @@ The realistic storage failure is a store that crashes on an absent file rather t
 Wipe the Dev channel and check that path directly:
 
 ```sh
-rm -rf ~/Library/Caches/com.tinycast.app.dev
-rm -rf "$HOME/Library/Application Support/com.tinycast.app.dev"
+rm -rf ~/Library/Caches/io.redcast.app.dev
+rm -rf "$HOME/Library/Application Support/io.redcast.app.dev"
 rm -rf ~/.config/tinycast-dev
-defaults delete com.tinycast.app.dev 2>/dev/null || true
-tccutil reset Accessibility com.tinycast.app.dev 2>/dev/null || true
+defaults delete io.redcast.app.dev 2>/dev/null || true
+tccutil reset Accessibility io.redcast.app.dev 2>/dev/null || true
 ```
 
 - Launches with every store directory absent — no crash, no hang; onboarding runs
@@ -1023,5 +1023,5 @@ tccutil reset Accessibility com.tinycast.app.dev 2>/dev/null || true
 - **Every setting shows its intended default.** Walk the panes: this is what catches a broken
   absence-versus-`false` read
 - Quit and relaunch: everything created above persisted
-- Nothing was written outside `com.tinycast.app.dev/`. Channel isolation is not negotiable — a Dev build
+- Nothing was written outside `io.redcast.app.dev/`. Channel isolation is not negotiable — a Dev build
   writing into the stable app's directory is a defect even though the data is disposable

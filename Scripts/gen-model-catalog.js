@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Generate Tinycast/Features/AI/Model/AIModelCatalogData.generated.swift.
+// Generate Redcast/Features/AI/Model/AIModelCatalogData.generated.swift.
 //
 // Usage: node Scripts/gen-model-catalog.js [api.json]
 // Downloads models.dev's catalog when no path is given. Run occasionally, commit the output.
@@ -17,7 +17,7 @@ const path = require("path");
 
 const SOURCE = "https://models.dev/api.json";
 const OUTPUT = path.join(
-  __dirname, "..", "Tinycast", "Features", "AI", "Model", "AIModelCatalogData.generated.swift");
+  __dirname, "..", "Redcast", "Features", "AI", "Model", "AIModelCatalogData.generated.swift");
 
 // models.dev leaves these to the vendor's SDK, so it names no address for them.
 const VENDOR_DEFAULTS = {

@@ -1,13 +1,13 @@
 included:
-  - Tinycast
+  - Redcast
   - Tests
 
 excluded:
-  - Tinycast/DesignSystem/Scrolling/EdgeDissolve.swift
-  - Tinycast/DesignSystem/Scrolling/ThinScrollbar.swift
-  - Tinycast/Features/Emoji/Model/EmojiData.generated.swift
-  - Tinycast/Features/Calculator/Model/CurrencyData.generated.swift
-  - Tinycast/Features/AI/Model/AIModelCatalogData.generated.swift
+  - Redcast/DesignSystem/Scrolling/EdgeDissolve.swift
+  - Redcast/DesignSystem/Scrolling/ThinScrollbar.swift
+  - Redcast/Features/Emoji/Model/EmojiData.generated.swift
+  - Redcast/Features/Calculator/Model/CurrencyData.generated.swift
+  - Redcast/Features/AI/Model/AIModelCatalogData.generated.swift
 
 disabled_rules:
   - todo                                      # tracked in issues, not by the linter

@@ -30,7 +30,7 @@ in the background or adds a setting: each one runs when you start it and leaves 
 - **The two names travel together.** A Release build of the fork finds its Dictation helper as
   "*executable* Dictation" (`DictationWorker`), so a build that passes `PRODUCT_NAME` must pass the
   matching `DICTATION_EXECUTABLE_NAME`. Upstream's `release.yml` does not (its Beta keeps
-  `Tinycast Dictation`), which is one more reason it stays disabled here. `verify-signature.sh` looks
+  `Redcast Dictation`), which is one more reason it stays disabled here. `verify-signature.sh` looks
   for the helper under the same name, so such a build fails verification instead of shipping with
   dictation broken.
 - **The rename never breaks a lookup.** Redcast writes `.redcast` and answers `redcast://`, and
@@ -50,14 +50,14 @@ Scripts/fork/install.sh --self-check    # resolve and list; build, quit, move an
 Scripts/fork/install.sh --self-test     # stubbed installs into $TMPDIR, one started from a fake app
 ```
 
-The build uses the fork's own app icon, `Tinycast/redcast.icon` (an Icon Composer file: a solid
+The build uses the fork's own app icon, `Redcast/redcast.icon` (an Icon Composer file: a solid
 `#F23D32` fill under the white mark), through `ASSETCATALOG_COMPILER_APPICON_NAME=redcast`; Debug
 builds keep upstream's icon. The menu-bar item draws `RedcastMenuBarIcon`, the same mark as a template.
 
 | Environment | Default | Meaning |
 | --- | --- | --- |
 | `TINYCAST_SIGN_IDENTITY` | the installed copy's `Apple Development: …` identity, else the only one | full name to sign with |
-| `TINYCAST_FORK_BUNDLE_ID` | `io.redcast.app` | `TINYCAST_BUNDLE_IDENTIFIER` for the build |
+| `TINYCAST_FORK_BUNDLE_ID` | `io.redcast.app` | `REDCAST_BUNDLE_IDENTIFIER` for the build |
 | `TINYCAST_FORK_LEGACY_ID` | `com.tinycast.app.fork` | the fork's earlier id: an install under it is this fork, replaced, and migrated on first launch |
 | `TINYCAST_INSTALL_PATH` | `/Applications/Redcast.app` | where the app is installed; a fork `Tinycast.app` in the same folder is migrated |
 | `DEVELOPER_DIR` | `/Applications/Xcode.app/Contents/Developer` | as `build-dmg.sh` |

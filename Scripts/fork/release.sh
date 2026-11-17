@@ -7,10 +7,10 @@ ROOT="$PWD"
 export DEVELOPER_DIR="${DEVELOPER_DIR:-/Applications/Xcode.app/Contents/Developer}"
 APP_NAME=Redcast
 BUNDLE_ID=io.redcast.app
-PROFILE="${TINYCAST_NOTARY_PROFILE:-redcast-notary}"
+PROFILE="${REDCAST_NOTARY_PROFILE:-redcast-notary}"
 WORK="$ROOT/build/fork/release"
-FEED="Tinycast/Features/Updates/Model/ReleaseFeed.swift"
-TRUST="Tinycast/Features/Updates/Service/BundleSignature.swift"
+FEED="Redcast/Features/Updates/Model/ReleaseFeed.swift"
+TRUST="Redcast/Features/Updates/Service/BundleSignature.swift"
 FRAMEWORKS=/System/Library/Frameworks/CoreServices.framework/Frameworks
 LSREGISTER="$FRAMEWORKS/LaunchServices.framework/Support/lsregister"
 
@@ -30,7 +30,7 @@ tags HEAD v<version>, pushes the tag and creates a draft GitHub Release with the
   --dry-run      build, sign and package with any identity; no notarization, tag or release
   --self-check   check identity, team, notary profile, tag and tree, and build nothing
 
-Environment: TINYCAST_RELEASE_IDENTITY (full identity name), TINYCAST_NOTARY_PROFILE
+Environment: REDCAST_RELEASE_IDENTITY (full identity name), REDCAST_NOTARY_PROFILE
 ($PROFILE, stored once with 'xcrun notarytool store-credentials $PROFILE').
 Output: build/fork/release/<version>/.
 EOF
@@ -97,8 +97,8 @@ strict() { [ "$MODE" != dry-run ]; }
 fail() { if strict; then die 2 "$@"; else warn "$*"; fi; }
 
 resolve_identity() {
-    if [ -n "${TINYCAST_RELEASE_IDENTITY:-}" ]; then
-        IDENTITY="$TINYCAST_RELEASE_IDENTITY"
+    if [ -n "${REDCAST_RELEASE_IDENTITY:-}" ]; then
+        IDENTITY="$REDCAST_RELEASE_IDENTITY"
     else
         local lines
         lines="$(security find-identity -v -p codesigning 2>/dev/null |
@@ -107,7 +107,7 @@ resolve_identity() {
             "Create one in Xcode › Settings › Apple Accounts › Manage Certificates."
         [ "$(wc -l <<<"$lines")" -eq 1 ] || {
             printf '%s\n' "$lines" >&2
-            die 2 "several Developer ID identities: set TINYCAST_RELEASE_IDENTITY to the full name."
+            die 2 "several Developer ID identities: set REDCAST_RELEASE_IDENTITY to the full name."
         }
         IDENTITY="$(sed -E 's/^[^"]*"(.*)"$/\1/' <<<"$lines")"
     fi
@@ -158,10 +158,10 @@ build() {
     mkdir -p "$WORK"
     local log="$WORK/build-${label:-thin}.log"
     # Secure timestamps are what notarization requires; install.sh skips them to stay offline.
-    if ! xcodebuild -project Tinycast.xcodeproj -scheme Tinycast -configuration Release \
+    if ! xcodebuild -project Redcast.xcodeproj -scheme Redcast -configuration Release \
         -derivedDataPath "$derived" ARCHS="$archs" ONLY_ACTIVE_ARCH=NO \
         PRODUCT_NAME="$APP_NAME" DICTATION_EXECUTABLE_NAME="$APP_NAME Dictation" \
-        ASSETCATALOG_COMPILER_APPICON_NAME=redcast TINYCAST_BUNDLE_IDENTIFIER="$BUNDLE_ID" \
+        ASSETCATALOG_COMPILER_APPICON_NAME=redcast REDCAST_BUNDLE_IDENTIFIER="$BUNDLE_ID" \
         CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY="$IDENTITY" DEVELOPMENT_TEAM= \
         OTHER_CODE_SIGN_FLAGS=--timestamp \
         MARKETING_VERSION="$VERSION" CURRENT_PROJECT_VERSION="$BUILD" \

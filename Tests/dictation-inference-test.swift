@@ -36,7 +36,7 @@ struct DictationInferenceTest {
             vocabulary[String(scalar)] = byte
         }
         vocabulary["ab"] = 256
-        let prompts = ["ab", "Tinycast", "é 新 🍋", "two\nlines", "1, 2, 300"]
+        let prompts = ["ab", "Redcast", "é 新 🍋", "two\nlines", "1, 2, 300"]
         let tokenizer = try DictationTokenizer(
             vocabulary: JSONEncoder().encode(vocabulary),
             merges: "#version: 0.2\na b\n", prompts: prompts + ["ab"])

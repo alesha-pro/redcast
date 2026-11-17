@@ -12,10 +12,10 @@ struct OnboardingTests {
             let core = AppCore()
             let onboarding = OnboardingCoordinator(core: core)
             onboarding.showOnboarding()
-            for _ in 0..<100 where NSApp.keyWindow?.title != "Welcome to Tinycast" {
+            for _ in 0..<100 where NSApp.keyWindow?.title != "Welcome to Redcast" {
                 try? await Task.sleep(for: .milliseconds(20))
             }
-            guard NSApp.keyWindow?.title == "Welcome to Tinycast" else {
+            guard NSApp.keyWindow?.title == "Welcome to Redcast" else {
                 print("FAIL: introduction becomes key")
                 exit(1)
             }

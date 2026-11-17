@@ -23,7 +23,7 @@ struct BundleMigrationTests {
     static func onlyRedcastMigrates() {
         expect(LegacyBundleMigration.applies(to: "io.redcast.app"), "Redcast's id migrates")
         expect(!LegacyBundleMigration.applies(to: "com.tinycast.app"), "upstream never migrates")
-        expect(!LegacyBundleMigration.applies(to: "com.tinycast.app.dev"), "a Debug build never migrates")
+        expect(!LegacyBundleMigration.applies(to: "io.redcast.app.dev"), "a Debug build never migrates")
         expect(!LegacyBundleMigration.applies(to: LegacyBundleMigration.legacyID), "the old id never migrates")
         expect(!LegacyBundleMigration.applies(to: nil), "no id, no migration")
     }

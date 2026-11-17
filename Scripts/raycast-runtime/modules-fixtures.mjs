@@ -5,7 +5,7 @@ import { pathToFileURL } from "node:url";
 import { bootConfig, createHarness } from "./test.mjs";
 
 export async function runModuleFixtures(check) {
-  const root = mkdtempSync(join(tmpdir(), "tinycast-modules-"));
+  const root = mkdtempSync(join(tmpdir(), "redcast-modules-"));
   const extension = join(root, "extension");
   const write = (path, content) => {
     const file = join(extension, path);

@@ -74,7 +74,7 @@ enum ExtensionFetchTests {
 
     static func runChecks() async {
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent(
-            "tinycast-fetch-\(UUID())")
+            "redcast-fetch-\(UUID())")
         let stateFile = directory.appendingPathComponent("state.json")
         let server = Process()
         defer {
@@ -108,7 +108,7 @@ enum ExtensionFetchTests {
     }
 
     private static func socketChecks(in directory: URL) async throws {
-        let socketPath = "/tmp/tinycast-\(UUID().uuidString).sock"
+        let socketPath = "/tmp/redcast-\(UUID().uuidString).sock"
         let stateFile = directory.appendingPathComponent("unix-state.json")
         let fixture = URL(fileURLWithPath: #filePath).deletingLastPathComponent()
             .appendingPathComponent("ext-fixtures/unix-server.js")

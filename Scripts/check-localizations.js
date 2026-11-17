@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Every string Tinycast ships is translated into every language it ships.
+// Every string Redcast ships is translated into every language it ships.
 //
 // A missing translation still builds and runs: the string just appears in English, in the middle
 // of an otherwise translated window. A translation whose format specifiers differ from the source
@@ -12,7 +12,7 @@ const fs = require("fs");
 const path = require("path");
 
 const ROOT = path.join(__dirname, "..");
-const CATALOGS = ["Tinycast/Resources/Localizable.xcstrings", "Tinycast/Resources/InfoPlist.xcstrings"];
+const CATALOGS = ["Redcast/Resources/Localizable.xcstrings", "Redcast/Resources/InfoPlist.xcstrings"];
 
 // CLDR cardinal categories each language must spell out.
 const LANGUAGES = {

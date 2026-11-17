@@ -24,7 +24,7 @@ struct HotKeyDispatchTest {
     }
 
     static func dispatch(includesShift: Bool) {
-        let domain = "tinycast.hotkey-dispatch-test.\(UUID())"
+        let domain = "redcast.hotkey-dispatch-test.\(UUID())"
         let defaults = UserDefaults(suiteName: domain)!
         defer { defaults.removePersistentDomain(forName: domain) }
         let manager = HotKeyManager(defaults: defaults)
@@ -71,7 +71,7 @@ struct HotKeyDispatchTest {
         shared.onKeyDown(CGEventFlags.maskControl.rawValue | 1)
         shared.onKeyUp?()
         check(
-            "Left Control retains its ordinary Tinycast binding",
+            "Left Control retains its ordinary Redcast binding",
             palette == 1 && presses == 3 && releases == 3)
         shared.onKeyDown(CGEventFlags.maskControl.rawValue | 0x2000)
         shared.onKeyUp?()
@@ -127,7 +127,7 @@ struct HotKeyDispatchTest {
     }
 
     static func commandRelease(includesShift: Bool) {
-        let domain = "tinycast.hotkey-dispatch-test.\(UUID())"
+        let domain = "redcast.hotkey-dispatch-test.\(UUID())"
         let defaults = UserDefaults(suiteName: domain)!
         defer { defaults.removePersistentDomain(forName: domain) }
         let manager = HotKeyManager(defaults: defaults)
@@ -173,7 +173,7 @@ struct HotKeyDispatchTest {
     }
 
     static func commandHold() {
-        let domain = "tinycast.hotkey-dispatch-test.\(UUID())"
+        let domain = "redcast.hotkey-dispatch-test.\(UUID())"
         let defaults = UserDefaults(suiteName: domain)!
         defer { defaults.removePersistentDomain(forName: domain) }
         let manager = HotKeyManager(defaults: defaults)
@@ -248,7 +248,7 @@ struct HotKeyDispatchTest {
 extension HotKeyDispatchTest {
     /// An agent registers a chord only once bound, keeps its index, and summons that agent.
     static func agentChords() {
-        let domain = "tinycast.hotkey-dispatch-test.\(UUID())"
+        let domain = "redcast.hotkey-dispatch-test.\(UUID())"
         let defaults = UserDefaults(suiteName: domain)!
         defer { defaults.removePersistentDomain(forName: domain) }
         let manager = HotKeyManager(defaults: defaults)

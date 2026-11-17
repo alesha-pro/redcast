@@ -7,7 +7,7 @@ set -uo pipefail
 SELF="$(cd "$(dirname "$0")" && pwd)/$(basename "$0")"
 cd "$(dirname "$0")/.." || exit 1
 
-BIN="${TMPDIR:-/tmp}/tinycast-harness"
+BIN="${TMPDIR:-/tmp}/redcast-harness"
 mkdir -p "$BIN"
 
 # `--exec` is the worker half: xargs re-enters here once per queued harness.
@@ -31,10 +31,10 @@ if [ "${1:-}" = "--exec" ]; then
     # macOS ships no `timeout`, so the worker polls; a wedged harness must fail, not stall.
     ticks=0
     while kill -0 "$pid" 2>/dev/null; do
-        if [ "$ticks" -ge $((TINYCAST_TEST_TIMEOUT * 5)) ]; then
+        if [ "$ticks" -ge $((REDCAST_TEST_TIMEOUT * 5)) ]; then
             { pkill -KILL -P "$pid"; kill -KILL "$pid"; wait "$pid"; } 2>/dev/null
-            printf '\n[run-tests] killed after %ss without finishing\n' "$TINYCAST_TEST_TIMEOUT" >> "$BIN/$name.log"
-            fail "timed out after ${TINYCAST_TEST_TIMEOUT}s"
+            printf '\n[run-tests] killed after %ss without finishing\n' "$REDCAST_TEST_TIMEOUT" >> "$BIN/$name.log"
+            fail "timed out after ${REDCAST_TEST_TIMEOUT}s"
         fi
         ticks=$((ticks + 1))
         sleep 0.2
@@ -60,7 +60,7 @@ only="${1:-}"
 
 # `--index` feeds harness compile commands to .compile, as xcodebuild never compiles Tests/.
 emit_db=0
-DB="${TMPDIR:-/tmp}/tinycast-compile-db.json"
+DB="${TMPDIR:-/tmp}/redcast-compile-db.json"
 if [ "$only" = "--index" ]; then
     emit_db=1
     only=""
@@ -106,643 +106,642 @@ run() {
     printf '%s %s %s %s\n' "$pri" "$name" "$opt" "$*" >> "$queue"
 }
 
-L=Tinycast/Features/Launcher/Model
+L=Redcast/Features/Launcher/Model
 run slow -O fuzz-test      $L/SearchRelevance.swift $L/ScriptRomanization.swift \
                            $L/LauncherMatch.swift $L/EntryNaming.swift $L/LauncherOrder.swift \
                            $L/LauncherRankingStore.swift $L/LauncherSuggestions.swift
-FS=Tinycast/Features/FileSearch
+FS=Redcast/Features/FileSearch
 FILE_INDEX="$FS/Service/FileIndex.swift $FS/Service/FileIndexSnapshot.swift $FS/Service/FileIndexCrawler.swift"
 run file-search-test       $FS/Model/*.swift
 run file-index-test        $FS/Model/*.swift $FILE_INDEX
 run file-search-session-test $FS/Model/*.swift $FS/Service/FileSearchSession.swift $FILE_INDEX
 run menu-search-test       $L/SearchRelevance.swift \
-                           Tinycast/Features/MenuSearch/Model/*.swift \
-                           Tinycast/Features/MenuSearch/Service/*.swift
+                           Redcast/Features/MenuSearch/Model/*.swift \
+                           Redcast/Features/MenuSearch/Service/*.swift
 run window-switch-test     $L/SearchRelevance.swift \
-                           Tinycast/Features/WindowSwitcher/Model/*.swift
+                           Redcast/Features/WindowSwitcher/Model/*.swift
 run index file-search-performance $FS/Model/*.swift $FILE_INDEX
 run ranking-test           $L/SearchRelevance.swift $L/ScriptRomanization.swift \
                            $L/LauncherMatch.swift $L/LauncherRankingStore.swift
 run scopes-test            $L/SearchScopes.swift
-run app-name-test          Tinycast/Platform/AppDisplayName.swift \
-                           Tinycast/Platform/BundleLocalization.swift \
+run app-name-test          Redcast/Platform/AppDisplayName.swift \
+                           Redcast/Platform/BundleLocalization.swift \
                            $L/SearchRelevance.swift
 run favorites-test         $L/FavoriteSlots.swift
 run app-installation-test  $L/SearchRelevance.swift $L/ScriptRomanization.swift \
                            $L/LauncherMatch.swift $L/EntryNaming.swift $L/LauncherOrder.swift \
                            $L/LauncherRankingStore.swift $L/LauncherSuggestions.swift $L/SearchScopes.swift \
-                           Tinycast/Features/Launcher/Service/AppIndex.swift \
-                           Tinycast/Features/Launcher/Service/AppLauncher.swift \
-                           Tinycast/Features/Launcher/Service/RunningAppsMonitor.swift \
-                           Tinycast/Features/Launcher/Service/FavoritesStore.swift \
-                           Tinycast/Features/Launcher/Service/AliasStore.swift \
-                           Tinycast/Features/Launcher/Service/VisibilityStore.swift \
-                           Tinycast/Features/Launcher/Service/BundleNameCache.swift \
-                           Tinycast/Platform/AppDisplayName.swift Tinycast/Platform/BundleLocalization.swift \
-                           Tinycast/Platform/SystemLanguages.swift \
-                           Tinycast/Platform/Images/FileIconStamp.swift Tinycast/Platform/Memo.swift \
-                           Tinycast/Platform/Signposts.swift Tinycast/Platform/NotificationToken.swift \
-                           Tinycast/Platform/LocalizedResource.swift
+                           Redcast/Features/Launcher/Service/AppIndex.swift \
+                           Redcast/Features/Launcher/Service/AppLauncher.swift \
+                           Redcast/Features/Launcher/Service/RunningAppsMonitor.swift \
+                           Redcast/Features/Launcher/Service/FavoritesStore.swift \
+                           Redcast/Features/Launcher/Service/AliasStore.swift \
+                           Redcast/Features/Launcher/Service/VisibilityStore.swift \
+                           Redcast/Features/Launcher/Service/BundleNameCache.swift \
+                           Redcast/Platform/AppDisplayName.swift Redcast/Platform/BundleLocalization.swift \
+                           Redcast/Platform/SystemLanguages.swift \
+                           Redcast/Platform/Images/FileIconStamp.swift Redcast/Platform/Memo.swift \
+                           Redcast/Platform/Signposts.swift Redcast/Platform/NotificationToken.swift \
+                           Redcast/Platform/LocalizedResource.swift
 run launcher-file-test     $L/LauncherFileFormat.swift \
-                           Tinycast/Features/Settings/Model/SettingsFileJSON.swift
+                           Redcast/Features/Settings/Model/SettingsFileJSON.swift
 run launcher-settings-file-test \
                            $L/LauncherFileFormat.swift $L/CommandID.swift $L/CommandCatalog.swift \
-                           Tinycast/Features/Launcher/Service/LauncherSettingsFile.swift \
-                           Tinycast/Features/Launcher/Service/AliasStore.swift \
-                           Tinycast/Features/Launcher/Service/VisibilityStore.swift \
-                           Tinycast/Features/Settings/SettingsTab.swift \
-                           Tinycast/Features/Settings/Model/*.swift \
-                           Tinycast/Features/HotKeys/Service/HotKeySettingsFile.swift \
-                           Tinycast/Features/HotKeys/Service/KeyShortcut.swift \
-                           Tinycast/Features/HotKeys/Model/HotKeyAction.swift \
-                           Tinycast/Features/HotKeys/Model/HotKeyBinding.swift \
-                           Tinycast/Features/HotKeys/Model/HotKeySpelling.swift \
-                           Tinycast/Features/HotKeys/Model/DoubleTapModifier.swift \
-                           Tinycast/Features/HotKeys/Model/ModifierKey.swift \
-                           Tinycast/Features/HotKeys/Model/HyperKey.swift \
-                           Tinycast/Features/HotKeys/Model/HIDKeyMapping.swift \
-                           Tinycast/Platform/ASCIIKeyboardLayout.swift \
-                           Tinycast/Features/QuickActions/Model/BuiltInQuickAction.swift \
-                           Tinycast/Features/Quicklinks/Model/Quicklink.swift \
-                           Tinycast/Features/Quicklinks/Model/QuicklinkDestination.swift \
-                           Tinycast/Features/SystemActions/Model/SystemAction.swift \
-                           Tinycast/Features/WindowManagement/Model/WindowCommand.swift \
-                           Tinycast/Features/Snippets/Model/Snippet.swift \
-                           Tinycast/Platform/LocalizedResource.swift
-run apple-shortcut-test    Tinycast/Features/AppleShortcuts/Model/*.swift
-run calc-test              Tinycast/Features/Calculator/Model/*.swift
-run index calc-performance Tinycast/Features/Calculator/Model/*.swift
-run calendar-test          Tinycast/Features/Calendar/Model/*.swift \
-                           Tinycast/Features/Calendar/UI/EventEditorSession.swift
-run clipboard-test         Tinycast/Features/Clipboard/Model/ClipboardStore.swift \
-                           Tinycast/Platform/Images/ImageDerivative.swift \
-                           Tinycast/Features/Clipboard/Model/ClipboardFilter.swift \
-                           Tinycast/Features/Clipboard/Model/ClipboardFileKind.swift \
-                           Tinycast/Features/Clipboard/Model/ColorValue.swift \
-                           Tinycast/Features/Clipboard/Model/ColorFormat.swift \
-                           Tinycast/Features/Clipboard/Model/ColorSpaces.swift
-run clipboard-coordinator-test Tinycast/Features/Clipboard/UI/ClipboardCoordinator.swift \
-                           Tinycast/Features/Clipboard/Model/*.swift \
-                           Tinycast/Platform/Images/ImageDerivative.swift \
-                           Tinycast/Palette/PaletteState.swift Tinycast/Palette/PaletteMode.swift \
-                           Tinycast/Palette/HoverArming.swift \
-                           Tinycast/Features/Emoji/Model/EmojiCatalog.swift \
-                           Tinycast/Features/FileSearch/Model/FileSearchFilter.swift \
-                           Tinycast/Features/Quicklinks/Model/Quicklink.swift \
-                           Tinycast/Features/Quicklinks/Model/QuicklinkDestination.swift \
-                           Tinycast/Features/CustomCommands/Model/CustomCommand.swift
-run clipboard-thumbnail-test Tinycast/Features/Clipboard/Model/ClipboardStore.swift \
-                           Tinycast/Platform/Images/ImageDerivative.swift \
-                           Tinycast/Features/Clipboard/Model/ClipboardFilter.swift \
-                           Tinycast/Features/Clipboard/Model/ClipboardFileKind.swift \
-                           Tinycast/Features/Clipboard/Model/ColorValue.swift \
-                           Tinycast/Features/Clipboard/Model/ColorFormat.swift \
-                           Tinycast/Features/Clipboard/Model/ColorSpaces.swift \
-                           Tinycast/Platform/ProcessExit.swift \
-                           Tinycast/Platform/Images/ImageThumbnail.swift \
-                           Tinycast/Platform/Images/ThumbnailCache.swift
+                           Redcast/Features/Launcher/Service/LauncherSettingsFile.swift \
+                           Redcast/Features/Launcher/Service/AliasStore.swift \
+                           Redcast/Features/Launcher/Service/VisibilityStore.swift \
+                           Redcast/Features/Settings/SettingsTab.swift \
+                           Redcast/Features/Settings/Model/*.swift \
+                           Redcast/Features/HotKeys/Service/HotKeySettingsFile.swift \
+                           Redcast/Features/HotKeys/Service/KeyShortcut.swift \
+                           Redcast/Features/HotKeys/Model/HotKeyAction.swift \
+                           Redcast/Features/HotKeys/Model/HotKeyBinding.swift \
+                           Redcast/Features/HotKeys/Model/HotKeySpelling.swift \
+                           Redcast/Features/HotKeys/Model/DoubleTapModifier.swift \
+                           Redcast/Features/HotKeys/Model/ModifierKey.swift \
+                           Redcast/Features/HotKeys/Model/HyperKey.swift \
+                           Redcast/Features/HotKeys/Model/HIDKeyMapping.swift \
+                           Redcast/Platform/ASCIIKeyboardLayout.swift \
+                           Redcast/Features/QuickActions/Model/BuiltInQuickAction.swift \
+                           Redcast/Features/Quicklinks/Model/Quicklink.swift \
+                           Redcast/Features/Quicklinks/Model/QuicklinkDestination.swift \
+                           Redcast/Features/SystemActions/Model/SystemAction.swift \
+                           Redcast/Features/WindowManagement/Model/WindowCommand.swift \
+                           Redcast/Features/Snippets/Model/Snippet.swift \
+                           Redcast/Platform/LocalizedResource.swift
+run apple-shortcut-test    Redcast/Features/AppleShortcuts/Model/*.swift
+run calc-test              Redcast/Features/Calculator/Model/*.swift
+run index calc-performance Redcast/Features/Calculator/Model/*.swift
+run calendar-test          Redcast/Features/Calendar/Model/*.swift \
+                           Redcast/Features/Calendar/UI/EventEditorSession.swift
+run clipboard-test         Redcast/Features/Clipboard/Model/ClipboardStore.swift \
+                           Redcast/Platform/Images/ImageDerivative.swift \
+                           Redcast/Features/Clipboard/Model/ClipboardFilter.swift \
+                           Redcast/Features/Clipboard/Model/ClipboardFileKind.swift \
+                           Redcast/Features/Clipboard/Model/ColorValue.swift \
+                           Redcast/Features/Clipboard/Model/ColorFormat.swift \
+                           Redcast/Features/Clipboard/Model/ColorSpaces.swift
+run clipboard-coordinator-test Redcast/Features/Clipboard/UI/ClipboardCoordinator.swift \
+                           Redcast/Features/Clipboard/Model/*.swift \
+                           Redcast/Platform/Images/ImageDerivative.swift \
+                           Redcast/Palette/PaletteState.swift Redcast/Palette/PaletteMode.swift \
+                           Redcast/Palette/HoverArming.swift \
+                           Redcast/Features/Emoji/Model/EmojiCatalog.swift \
+                           Redcast/Features/FileSearch/Model/FileSearchFilter.swift \
+                           Redcast/Features/Quicklinks/Model/Quicklink.swift \
+                           Redcast/Features/Quicklinks/Model/QuicklinkDestination.swift \
+                           Redcast/Features/CustomCommands/Model/CustomCommand.swift
+run clipboard-thumbnail-test Redcast/Features/Clipboard/Model/ClipboardStore.swift \
+                           Redcast/Platform/Images/ImageDerivative.swift \
+                           Redcast/Features/Clipboard/Model/ClipboardFilter.swift \
+                           Redcast/Features/Clipboard/Model/ClipboardFileKind.swift \
+                           Redcast/Features/Clipboard/Model/ColorValue.swift \
+                           Redcast/Features/Clipboard/Model/ColorFormat.swift \
+                           Redcast/Features/Clipboard/Model/ColorSpaces.swift \
+                           Redcast/Platform/ProcessExit.swift \
+                           Redcast/Platform/Images/ImageThumbnail.swift \
+                           Redcast/Platform/Images/ThumbnailCache.swift
 # `Q` is the URL detector a drag payload builds its link with, rather than a second one.
-Q=Tinycast/Features/Quicklinks/Model/QuicklinkDestination.swift
-run clipboard-search-test  Tinycast/Features/Clipboard/Model/*.swift Tinycast/Platform/Images/ImageDerivative.swift $Q
-run paste-sequence-test    Tinycast/Features/Clipboard/Model/*.swift Tinycast/Platform/Images/ImageDerivative.swift $Q
-run clipboard-text-test    Tinycast/Features/Clipboard/Model/*.swift Tinycast/Platform/Images/ImageDerivative.swift $Q \
-                           Tinycast/Features/Clipboard/Service/ClipboardTextExtractor.swift \
-                           Tinycast/Features/Clipboard/Service/ClipboardTextIndexer.swift \
-                           Tinycast/Features/Clipboard/Service/ClipboardTextWorker.swift \
-                           Tinycast/Platform/ProcessExit.swift
+Q=Redcast/Features/Quicklinks/Model/QuicklinkDestination.swift
+run clipboard-search-test  Redcast/Features/Clipboard/Model/*.swift Redcast/Platform/Images/ImageDerivative.swift $Q
+run paste-sequence-test    Redcast/Features/Clipboard/Model/*.swift Redcast/Platform/Images/ImageDerivative.swift $Q
+run clipboard-text-test    Redcast/Features/Clipboard/Model/*.swift Redcast/Platform/Images/ImageDerivative.swift $Q \
+                           Redcast/Features/Clipboard/Service/ClipboardTextExtractor.swift \
+                           Redcast/Features/Clipboard/Service/ClipboardTextIndexer.swift \
+                           Redcast/Features/Clipboard/Service/ClipboardTextWorker.swift \
+                           Redcast/Platform/ProcessExit.swift
 # Fork: documents read for agents; the harness is its own helper, as the app's ClipboardTextHelper is.
-run document-text-test     Tinycast/Features/DocumentText/Model/*.swift \
-                           Tinycast/Features/DocumentText/Service/*.swift \
-                           Tinycast/Features/DocumentText/Helper/*.swift \
-                           Tinycast/Features/Clipboard/Service/ClipboardTextExtractor.swift \
-                           Tinycast/Platform/ProcessExit.swift
-run pasteboard-test        Tinycast/Platform/PasteboardFiles.swift \
-                           Tinycast/Features/Clipboard/Model/ClipboardStore.swift \
-                           Tinycast/Platform/Images/ImageDerivative.swift \
-                           Tinycast/Features/Clipboard/Model/ClipboardFilter.swift \
-                           Tinycast/Features/Clipboard/Model/ClipboardFileKind.swift \
-                           Tinycast/Features/Clipboard/Model/ColorValue.swift \
-                           Tinycast/Features/Clipboard/Model/ColorFormat.swift \
-                           Tinycast/Features/Clipboard/Model/ColorSpaces.swift \
-                           Tinycast/Features/Clipboard/Service/ClipboardManager.swift \
-                           Tinycast/Features/Clipboard/Service/Paster.swift
+run document-text-test     Redcast/Features/DocumentText/Model/*.swift \
+                           Redcast/Features/DocumentText/Service/*.swift \
+                           Redcast/Features/DocumentText/Helper/*.swift \
+                           Redcast/Features/Clipboard/Service/ClipboardTextExtractor.swift \
+                           Redcast/Platform/ProcessExit.swift
+run pasteboard-test        Redcast/Platform/PasteboardFiles.swift \
+                           Redcast/Features/Clipboard/Model/ClipboardStore.swift \
+                           Redcast/Platform/Images/ImageDerivative.swift \
+                           Redcast/Features/Clipboard/Model/ClipboardFilter.swift \
+                           Redcast/Features/Clipboard/Model/ClipboardFileKind.swift \
+                           Redcast/Features/Clipboard/Model/ColorValue.swift \
+                           Redcast/Features/Clipboard/Model/ColorFormat.swift \
+                           Redcast/Features/Clipboard/Model/ColorSpaces.swift \
+                           Redcast/Features/Clipboard/Service/ClipboardManager.swift \
+                           Redcast/Features/Clipboard/Service/Paster.swift
 run index clipboard-file-performance \
-                           Tinycast/Platform/PasteboardFiles.swift \
-                           Tinycast/Features/Clipboard/Model/ClipboardStore.swift \
-                           Tinycast/Platform/Images/ImageDerivative.swift \
-                           Tinycast/Features/Clipboard/Model/ClipboardFilter.swift \
-                           Tinycast/Features/Clipboard/Model/ClipboardFileKind.swift \
-                           Tinycast/Features/Clipboard/Model/ColorValue.swift \
-                           Tinycast/Features/Clipboard/Model/ColorFormat.swift \
-                           Tinycast/Features/Clipboard/Model/ColorSpaces.swift \
-                           Tinycast/Features/Clipboard/Service/ClipboardManager.swift
+                           Redcast/Platform/PasteboardFiles.swift \
+                           Redcast/Features/Clipboard/Model/ClipboardStore.swift \
+                           Redcast/Platform/Images/ImageDerivative.swift \
+                           Redcast/Features/Clipboard/Model/ClipboardFilter.swift \
+                           Redcast/Features/Clipboard/Model/ClipboardFileKind.swift \
+                           Redcast/Features/Clipboard/Model/ColorValue.swift \
+                           Redcast/Features/Clipboard/Model/ColorFormat.swift \
+                           Redcast/Features/Clipboard/Model/ColorSpaces.swift \
+                           Redcast/Features/Clipboard/Service/ClipboardManager.swift
 run index clipboard-thumbnail-performance \
-                           Tinycast/Platform/ProcessExit.swift \
-                           Tinycast/Platform/Images/ImageThumbnail.swift \
-                           Tinycast/Platform/Images/ImageDerivative.swift \
-                           Tinycast/Platform/Images/ThumbnailCache.swift
-run emoji-test             Tinycast/Features/Emoji/Model/EmojiCatalog.swift \
-                           Tinycast/Features/Emoji/Model/EmojiGridGeometry.swift \
-                           Tinycast/Features/Emoji/Model/EmojiData.generated.swift
-run emoji-search-test      Tinycast/Features/Emoji/Model/EmojiCatalog.swift \
-                           Tinycast/Features/Emoji/Model/EmojiData.generated.swift \
-                           Tinycast/Features/Emoji/Service/EmojiIndex.swift \
-                           Tinycast/Features/Emoji/Service/FrequentEmojiStore.swift \
-                           Tinycast/Features/Emoji/Service/PinnedEmojiStore.swift \
-                           Tinycast/Features/Launcher/Model/SearchRelevance.swift \
-                           Tinycast/Platform/AppPaths.swift Tinycast/Platform/Memo.swift
+                           Redcast/Platform/ProcessExit.swift \
+                           Redcast/Platform/Images/ImageThumbnail.swift \
+                           Redcast/Platform/Images/ImageDerivative.swift \
+                           Redcast/Platform/Images/ThumbnailCache.swift
+run emoji-test             Redcast/Features/Emoji/Model/EmojiCatalog.swift \
+                           Redcast/Features/Emoji/Model/EmojiGridGeometry.swift \
+                           Redcast/Features/Emoji/Model/EmojiData.generated.swift
+run emoji-search-test      Redcast/Features/Emoji/Model/EmojiCatalog.swift \
+                           Redcast/Features/Emoji/Model/EmojiData.generated.swift \
+                           Redcast/Features/Emoji/Service/EmojiIndex.swift \
+                           Redcast/Features/Emoji/Service/FrequentEmojiStore.swift \
+                           Redcast/Features/Emoji/Service/PinnedEmojiStore.swift \
+                           Redcast/Features/Launcher/Model/SearchRelevance.swift \
+                           Redcast/Platform/AppPaths.swift Redcast/Platform/Memo.swift
 run index emoji-search-performance \
-                           Tinycast/Features/Emoji/Model/EmojiCatalog.swift \
-                           Tinycast/Features/Emoji/Model/EmojiData.generated.swift \
-                           Tinycast/Features/Emoji/Service/EmojiIndex.swift \
-                           Tinycast/Features/Emoji/Service/FrequentEmojiStore.swift \
-                           Tinycast/Features/Launcher/Model/SearchRelevance.swift \
-                           Tinycast/Platform/AppPaths.swift Tinycast/Platform/Memo.swift
-run palette-selection-test Tinycast/Features/PaletteRowIndex.swift \
-                           Tinycast/Features/Emoji/Model/EmojiGridGeometry.swift
-run appearance-test        Tinycast/Platform/Appearance.swift \
-                           Tinycast/DesignSystem/Theme.swift \
-                           Tinycast/DesignSystem/InterfaceMetrics.swift \
-                           Tinycast/Features/Settings/AppAppearance.swift
-run language-test          Tinycast/Features/Settings/AppLanguage.swift
-run localized-resource-test Tinycast/Platform/LocalizedResource.swift
-run exclusive onboarding-test Tinycast/Features/Onboarding/OnboardingCoordinator.swift \
-                           Tinycast/Windows/AppWindowController.swift \
-                           Tinycast/DesignSystem/Interaction/Motion.swift \
-                           Tinycast/Windows/WindowChrome.swift Tinycast/Platform/ActivationPolicy.swift
-run relaunch-test          Tinycast/App/AppDelegate.swift Tinycast/Platform/RelaunchRunner.swift
-run interface-size-test    Tinycast/Platform/Appearance.swift \
-                           Tinycast/DesignSystem/Theme.swift \
-                           Tinycast/DesignSystem/InterfaceMetrics.swift \
-                           Tinycast/Features/Settings/InterfaceSize.swift \
-                           Tinycast/Features/Extensions/Model/ExtensionFormMetrics.swift \
-                           Tinycast/Windows/HUD/VolumeHUDGeometry.swift
-run palette-placement-test Tinycast/Platform/Appearance.swift \
-                           Tinycast/DesignSystem/Theme.swift \
-                           Tinycast/DesignSystem/InterfaceMetrics.swift \
-                           Tinycast/Features/Settings/InterfaceSize.swift \
-                           Tinycast/Palette/PalettePlacement.swift
-run palette-menu-click-test Tinycast/Platform/Appearance.swift \
-                           Tinycast/DesignSystem/Theme.swift \
-                           Tinycast/Platform/WindowLevel.swift \
-                           Tinycast/Platform/NotificationToken.swift \
-                           Tinycast/DesignSystem/Interaction/KeyboardFocus.swift \
-                           Tinycast/DesignSystem/Interaction/Motion.swift \
-                           Tinycast/DesignSystem/Interaction/AnimatedPanel.swift \
-                           Tinycast/Palette/PalettePanel.swift
-run form-input-test        Tinycast/Platform/Appearance.swift \
-                           Tinycast/DesignSystem/Theme.swift \
-                           Tinycast/DesignSystem/InterfaceMetrics.swift \
-                           Tinycast/DesignSystem/FormTextInput.swift \
-                           Tinycast/DesignSystem/FormTextArea.swift
-run scroll-reveal-test     Tinycast/DesignSystem/Scrolling/SelectionReveal.swift
-run redaction-test         Tinycast/DesignSystem/RedactedPlaceholder.swift
-run keyboard-focus-test    Tinycast/DesignSystem/Interaction/KeyboardFocus.swift
-run command-escape-tap-test Tinycast/Palette/CommandEscapeTap.swift
-run palette-escape-test    Tinycast/Palette/PaletteMode.swift \
-                           Tinycast/Palette/PaletteEscapeAction.swift \
-                           Tinycast/Palette/CommandEscapeTap.swift \
-                           Tinycast/Features/Settings/EscapeKeyBehavior.swift \
-                           Tinycast/Features/Quicklinks/Model/Quicklink.swift \
-                           Tinycast/Features/Quicklinks/Model/QuicklinkDestination.swift \
-                           Tinycast/Features/CustomCommands/Model/CustomCommand.swift
-run palette-navigation-test Tinycast/Palette/PaletteState.swift \
-                           Tinycast/Palette/PaletteMode.swift \
-                           Tinycast/Palette/HoverArming.swift \
-                           Tinycast/Features/Emoji/Model/EmojiCatalog.swift \
-                           Tinycast/Features/Clipboard/Model/ClipboardStore.swift \
-                           Tinycast/Platform/Images/ImageDerivative.swift \
-                           Tinycast/Features/Clipboard/Model/ClipboardFilter.swift \
-                           Tinycast/Features/Clipboard/Model/ClipboardFileKind.swift \
-                           Tinycast/Features/FileSearch/Model/FileSearchFilter.swift \
-                           Tinycast/Features/Clipboard/Model/ColorValue.swift \
-                           Tinycast/Features/Clipboard/Model/ColorFormat.swift \
-                           Tinycast/Features/Clipboard/Model/ColorSpaces.swift \
-                           Tinycast/Features/Quicklinks/Model/Quicklink.swift \
-                           Tinycast/Features/Quicklinks/Model/QuicklinkDestination.swift \
-                           Tinycast/Features/CustomCommands/Model/CustomCommand.swift
-run palette-filter-test    Tinycast/Palette/PaletteMode.swift \
-                           Tinycast/Palette/PaletteFilterAction.swift \
-                           Tinycast/Features/Quicklinks/Model/Quicklink.swift \
-                           Tinycast/Features/Quicklinks/Model/QuicklinkDestination.swift \
-                           Tinycast/Features/CustomCommands/Model/CustomCommand.swift
-run action-menu-search-test Tinycast/Palette/ActionMenuSearchQuery.swift \
-                            Tinycast/Features/Launcher/Model/SearchRelevance.swift
-run palette-shortcut-test  Tinycast/Palette/PaletteShortcut.swift
-run ascii-layout-test      Tinycast/Platform/ASCIIKeyboardLayout.swift
-run palette-tab-test       Tinycast/Palette/PaletteMode.swift \
-                           Tinycast/Palette/PaletteTabAction.swift \
-                           Tinycast/Features/Quicklinks/Model/Quicklink.swift \
-                           Tinycast/Features/Quicklinks/Model/QuicklinkDestination.swift \
-                           Tinycast/Features/CustomCommands/Model/CustomCommand.swift
-run fallback-test          Tinycast/Features/Launcher/Model/Fallback.swift \
-                           Tinycast/Features/Launcher/Model/CommandID.swift \
-                           Tinycast/Features/HotKeys/Model/HotKeyAction.swift \
-                           Tinycast/Features/QuickActions/Model/QuickAction.swift \
-                           Tinycast/Features/QuickActions/Model/BuiltInQuickAction.swift \
-                           Tinycast/Features/QuickActions/Model/CustomQuickAction.swift \
-                           Tinycast/Features/Quicklinks/Model/Quicklink.swift \
-                           Tinycast/Features/Quicklinks/Model/QuicklinkDestination.swift \
-                           Tinycast/Features/SystemActions/Model/SystemAction.swift \
-                           Tinycast/Features/WindowManagement/Model/WindowCommand.swift \
-                           Tinycast/Features/Snippets/Model/Snippet.swift \
-                           Tinycast/Platform/LocalizedResource.swift
+                           Redcast/Features/Emoji/Model/EmojiCatalog.swift \
+                           Redcast/Features/Emoji/Model/EmojiData.generated.swift \
+                           Redcast/Features/Emoji/Service/EmojiIndex.swift \
+                           Redcast/Features/Emoji/Service/FrequentEmojiStore.swift \
+                           Redcast/Features/Launcher/Model/SearchRelevance.swift \
+                           Redcast/Platform/AppPaths.swift Redcast/Platform/Memo.swift
+run palette-selection-test Redcast/Features/PaletteRowIndex.swift \
+                           Redcast/Features/Emoji/Model/EmojiGridGeometry.swift
+run appearance-test        Redcast/Platform/Appearance.swift \
+                           Redcast/DesignSystem/Theme.swift \
+                           Redcast/DesignSystem/InterfaceMetrics.swift \
+                           Redcast/Features/Settings/AppAppearance.swift
+run language-test          Redcast/Features/Settings/AppLanguage.swift
+run localized-resource-test Redcast/Platform/LocalizedResource.swift
+run exclusive onboarding-test Redcast/Features/Onboarding/OnboardingCoordinator.swift \
+                           Redcast/Windows/AppWindowController.swift \
+                           Redcast/DesignSystem/Interaction/Motion.swift \
+                           Redcast/Windows/WindowChrome.swift Redcast/Platform/ActivationPolicy.swift
+run relaunch-test          Redcast/App/AppDelegate.swift Redcast/Platform/RelaunchRunner.swift
+run interface-size-test    Redcast/Platform/Appearance.swift \
+                           Redcast/DesignSystem/Theme.swift \
+                           Redcast/DesignSystem/InterfaceMetrics.swift \
+                           Redcast/Features/Settings/InterfaceSize.swift \
+                           Redcast/Features/Extensions/Model/ExtensionFormMetrics.swift \
+                           Redcast/Windows/HUD/VolumeHUDGeometry.swift
+run palette-placement-test Redcast/Platform/Appearance.swift \
+                           Redcast/DesignSystem/Theme.swift \
+                           Redcast/DesignSystem/InterfaceMetrics.swift \
+                           Redcast/Features/Settings/InterfaceSize.swift \
+                           Redcast/Palette/PalettePlacement.swift
+run palette-menu-click-test Redcast/Platform/Appearance.swift \
+                           Redcast/DesignSystem/Theme.swift \
+                           Redcast/Platform/WindowLevel.swift \
+                           Redcast/Platform/NotificationToken.swift \
+                           Redcast/DesignSystem/Interaction/KeyboardFocus.swift \
+                           Redcast/DesignSystem/Interaction/Motion.swift \
+                           Redcast/DesignSystem/Interaction/AnimatedPanel.swift \
+                           Redcast/Palette/PalettePanel.swift
+run form-input-test        Redcast/Platform/Appearance.swift \
+                           Redcast/DesignSystem/Theme.swift \
+                           Redcast/DesignSystem/InterfaceMetrics.swift \
+                           Redcast/DesignSystem/FormTextInput.swift \
+                           Redcast/DesignSystem/FormTextArea.swift
+run scroll-reveal-test     Redcast/DesignSystem/Scrolling/SelectionReveal.swift
+run redaction-test         Redcast/DesignSystem/RedactedPlaceholder.swift
+run keyboard-focus-test    Redcast/DesignSystem/Interaction/KeyboardFocus.swift
+run command-escape-tap-test Redcast/Palette/CommandEscapeTap.swift
+run palette-escape-test    Redcast/Palette/PaletteMode.swift \
+                           Redcast/Palette/PaletteEscapeAction.swift \
+                           Redcast/Palette/CommandEscapeTap.swift \
+                           Redcast/Features/Settings/EscapeKeyBehavior.swift \
+                           Redcast/Features/Quicklinks/Model/Quicklink.swift \
+                           Redcast/Features/Quicklinks/Model/QuicklinkDestination.swift \
+                           Redcast/Features/CustomCommands/Model/CustomCommand.swift
+run palette-navigation-test Redcast/Palette/PaletteState.swift \
+                           Redcast/Palette/PaletteMode.swift \
+                           Redcast/Palette/HoverArming.swift \
+                           Redcast/Features/Emoji/Model/EmojiCatalog.swift \
+                           Redcast/Features/Clipboard/Model/ClipboardStore.swift \
+                           Redcast/Platform/Images/ImageDerivative.swift \
+                           Redcast/Features/Clipboard/Model/ClipboardFilter.swift \
+                           Redcast/Features/Clipboard/Model/ClipboardFileKind.swift \
+                           Redcast/Features/FileSearch/Model/FileSearchFilter.swift \
+                           Redcast/Features/Clipboard/Model/ColorValue.swift \
+                           Redcast/Features/Clipboard/Model/ColorFormat.swift \
+                           Redcast/Features/Clipboard/Model/ColorSpaces.swift \
+                           Redcast/Features/Quicklinks/Model/Quicklink.swift \
+                           Redcast/Features/Quicklinks/Model/QuicklinkDestination.swift \
+                           Redcast/Features/CustomCommands/Model/CustomCommand.swift
+run palette-filter-test    Redcast/Palette/PaletteMode.swift \
+                           Redcast/Palette/PaletteFilterAction.swift \
+                           Redcast/Features/Quicklinks/Model/Quicklink.swift \
+                           Redcast/Features/Quicklinks/Model/QuicklinkDestination.swift \
+                           Redcast/Features/CustomCommands/Model/CustomCommand.swift
+run action-menu-search-test Redcast/Palette/ActionMenuSearchQuery.swift \
+                            Redcast/Features/Launcher/Model/SearchRelevance.swift
+run palette-shortcut-test  Redcast/Palette/PaletteShortcut.swift
+run ascii-layout-test      Redcast/Platform/ASCIIKeyboardLayout.swift
+run palette-tab-test       Redcast/Palette/PaletteMode.swift \
+                           Redcast/Palette/PaletteTabAction.swift \
+                           Redcast/Features/Quicklinks/Model/Quicklink.swift \
+                           Redcast/Features/Quicklinks/Model/QuicklinkDestination.swift \
+                           Redcast/Features/CustomCommands/Model/CustomCommand.swift
+run fallback-test          Redcast/Features/Launcher/Model/Fallback.swift \
+                           Redcast/Features/Launcher/Model/CommandID.swift \
+                           Redcast/Features/HotKeys/Model/HotKeyAction.swift \
+                           Redcast/Features/QuickActions/Model/QuickAction.swift \
+                           Redcast/Features/QuickActions/Model/BuiltInQuickAction.swift \
+                           Redcast/Features/QuickActions/Model/CustomQuickAction.swift \
+                           Redcast/Features/Quicklinks/Model/Quicklink.swift \
+                           Redcast/Features/Quicklinks/Model/QuicklinkDestination.swift \
+                           Redcast/Features/SystemActions/Model/SystemAction.swift \
+                           Redcast/Features/WindowManagement/Model/WindowCommand.swift \
+                           Redcast/Features/Snippets/Model/Snippet.swift \
+                           Redcast/Platform/LocalizedResource.swift
 # Fork: the tag rules snippets, quicklinks and their editors read; the colour is apart, on the palette.
-TAG_RULES="Tinycast/Features/Tags/Model/TagList.swift Tinycast/Features/Tags/Model/TagFrontmatter.swift \
-Tinycast/Features/Tags/Model/TagDraft.swift"
+TAG_RULES="Redcast/Features/Tags/Model/TagList.swift Redcast/Features/Tags/Model/TagFrontmatter.swift \
+Redcast/Features/Tags/Model/TagDraft.swift"
 # Fork: the Raycast palette, the agent colour rule and the glyph families; ExtensionImage reads it.
-FORK_PALETTE="Tinycast/DesignSystem/RaycastPalette.swift Tinycast/Features/ColorfulIcons/Model/RaycastHue.swift"
-run colorful-icons-test    Tinycast/Features/ColorfulIcons/Model/*.swift \
-                           Tinycast/Features/Launcher/Model/CommandID.swift \
-                           Tinycast/Features/HotKeys/Model/HotKeyAction.swift \
-                           Tinycast/Features/QuickActions/Model/QuickAction.swift \
-                           Tinycast/Features/QuickActions/Model/BuiltInQuickAction.swift \
-                           Tinycast/Features/QuickActions/Model/CustomQuickAction.swift \
-                           Tinycast/Features/Quicklinks/Model/Quicklink.swift \
-                           Tinycast/Features/Quicklinks/Model/QuicklinkDestination.swift \
-                           Tinycast/Features/SystemActions/Model/SystemAction.swift \
-                           Tinycast/Features/WindowManagement/Model/WindowCommand.swift \
-                           Tinycast/Features/Snippets/Model/Snippet.swift \
-                           Tinycast/Platform/LocalizedResource.swift
-run dictionary-test        Tinycast/Features/Dictionary/Model/DictionaryEntry.swift \
-                           Tinycast/Features/Dictionary/Model/DictionaryMarkup.swift
-run dictation-test         Tinycast/Features/Dictation/Model/DictationModel.swift Tinycast/Features/Dictation/Model/DictationIdleRelease.swift Tinycast/Features/Dictation/Model/DictationLanguage.swift Tinycast/Features/Dictation/Model/DictationTextFormatter.swift
-run dictation-cue-test     Tinycast/Features/Dictation/Service/DictationCueRunner.swift
-run dictation-field-test   Tinycast/Features/Dictation/Model/DictationModel.swift \
-                           Tinycast/Features/Dictation/Model/DictationAudioChunks.swift \
-                           Tinycast/Features/Dictation/Model/DictationMode.swift \
-                           Tinycast/Features/Dictation/Model/DictationDestination.swift \
-                           Tinycast/Features/Dictation/Model/DictationTextFormatter.swift \
-                           Tinycast/Features/Dictation/Service/DictationCoordinator.swift \
-                           Tinycast/Features/Dictation/Service/DictationInsertionContext.swift \
-                           Tinycast/Features/AI/UI/ChatComposerTextView.swift \
-                           Tinycast/Features/AI/Model/ChatDraftFacts.swift \
-                           Tinycast/Features/ChatWorkspace/UI/ChatComposerInk.swift \
-                           Tinycast/Features/TextInjection/Service/*.swift \
-                           Tinycast/Features/Snippets/Model/*.swift $TAG_RULES \
-                           Tinycast/Platform/AccessibilityText.swift \
-                           Tinycast/Platform/PasteboardFiles.swift \
-                           Tinycast/Platform/Appearance.swift Tinycast/DesignSystem/Theme.swift
-run dictation-volume-test  Tinycast/Features/Dictation/Model/DictationVolumeSnapshot.swift \
-                           Tinycast/Features/Dictation/Service/DictationAudioDucker.swift \
-                           Tinycast/Platform/AppPaths.swift
-run index -O dictation-performance Tinycast/Platform/ProcessExit.swift \
-                           Tinycast/Features/Dictation/Model/DictationModel.swift \
-                           Tinycast/Features/Dictation/Service/DictationWire.swift
-run dictation-inference-test Tinycast/Features/Dictation/Model/DictationAudioChunks.swift \
-    Tinycast/Features/Dictation/Service/DictationSpectrum.swift \
-    Tinycast/Features/Dictation/Helper/DictationTensor.swift Tinycast/Features/Dictation/Helper/DictationTokenizer.swift \
-    Tinycast/Features/Dictation/Helper/DictationMel.swift
-run dictation-worker-test  Tinycast/Features/Dictation/Model/DictationModel.swift \
-                           Tinycast/Features/Dictation/Model/DictationIdleRelease.swift \
-                           Tinycast/Features/Dictation/Service/DictationWire.swift \
-                           Tinycast/Features/Dictation/Service/DictationWorker.swift \
-                           Tinycast/Features/Dictation/Service/DictationModelStore.swift \
-                           Tinycast/Features/Dictation/Service/DictationModelDownloader.swift \
-                           Tinycast/Platform/ProcessExit.swift Tinycast/Platform/AppPaths.swift
-run hotkey-test            Tinycast/Features/HotKeys/Model/DoubleTapModifier.swift \
-                           Tinycast/Features/HotKeys/Model/ModifierKey.swift \
-                           Tinycast/Features/HotKeys/Model/ModifierKeyDetector.swift \
-                           Tinycast/Features/HotKeys/Model/DoubleTapDetector.swift \
-                           Tinycast/Features/HotKeys/Model/HotKeyBinding.swift \
-                           Tinycast/Features/HotKeys/Model/HotKeySpelling.swift \
-                           Tinycast/Features/HotKeys/Model/HyperKey.swift \
-                           Tinycast/Features/HotKeys/Model/HIDKeyMapping.swift \
-                           Tinycast/Platform/ASCIIKeyboardLayout.swift \
-                           Tinycast/Features/HotKeys/Service/KeyShortcut.swift \
-                           Tinycast/Features/HotKeys/Model/HotKeyAction.swift \
-                           Tinycast/Features/QuickActions/Model/QuickAction.swift \
-                           Tinycast/Features/QuickActions/Model/BuiltInQuickAction.swift \
-                           Tinycast/Features/QuickActions/Model/CustomQuickAction.swift \
-                           Tinycast/Features/Launcher/Model/CommandID.swift \
-                           Tinycast/Features/Quicklinks/Model/Quicklink.swift \
-                           Tinycast/Features/Quicklinks/Model/QuicklinkDestination.swift \
-                           Tinycast/Features/SystemActions/Model/SystemAction.swift \
-                           Tinycast/Features/WindowManagement/Model/WindowCommand.swift \
-                           Tinycast/Features/Snippets/Model/Snippet.swift \
-                           Tinycast/Platform/LocalizedResource.swift
-run callout-test          Tinycast/Platform/Appearance.swift \
-                           Tinycast/DesignSystem/Theme.swift \
-                           Tinycast/DesignSystem/InterfaceMetrics.swift \
-                           Tinycast/Features/HotKeys/UI/CalloutPlacement.swift
-run icon-cache-test        Tinycast/Platform/Appearance.swift \
-                           Tinycast/Platform/Images/IconCache.swift \
-                           Tinycast/Platform/Images/TileArtwork.swift
-run entry-icon-test        Tinycast/Platform/Appearance.swift \
-                           Tinycast/Platform/Images/IconCache.swift \
-                           Tinycast/Platform/Images/TileArtwork.swift \
-                           Tinycast/Platform/Images/FileIconStamp.swift
-run ext-icon-test          Tinycast/Platform/Appearance.swift \
-                           Tinycast/Platform/AppDisplayName.swift \
-                           Tinycast/Platform/Images/IconCache.swift \
-                           Tinycast/Platform/Images/TileArtwork.swift \
-                           Tinycast/Platform/Compression/Zlib.swift \
-                           Tinycast/DesignSystem/Theme.swift \
+FORK_PALETTE="Redcast/DesignSystem/RaycastPalette.swift Redcast/Features/ColorfulIcons/Model/RaycastHue.swift"
+run colorful-icons-test    Redcast/Features/ColorfulIcons/Model/*.swift \
+                           Redcast/Features/Launcher/Model/CommandID.swift \
+                           Redcast/Features/HotKeys/Model/HotKeyAction.swift \
+                           Redcast/Features/QuickActions/Model/QuickAction.swift \
+                           Redcast/Features/QuickActions/Model/BuiltInQuickAction.swift \
+                           Redcast/Features/QuickActions/Model/CustomQuickAction.swift \
+                           Redcast/Features/Quicklinks/Model/Quicklink.swift \
+                           Redcast/Features/Quicklinks/Model/QuicklinkDestination.swift \
+                           Redcast/Features/SystemActions/Model/SystemAction.swift \
+                           Redcast/Features/WindowManagement/Model/WindowCommand.swift \
+                           Redcast/Features/Snippets/Model/Snippet.swift \
+                           Redcast/Platform/LocalizedResource.swift
+run dictionary-test        Redcast/Features/Dictionary/Model/DictionaryEntry.swift \
+                           Redcast/Features/Dictionary/Model/DictionaryMarkup.swift
+run dictation-test         Redcast/Features/Dictation/Model/DictationModel.swift Redcast/Features/Dictation/Model/DictationIdleRelease.swift Redcast/Features/Dictation/Model/DictationLanguage.swift Redcast/Features/Dictation/Model/DictationTextFormatter.swift
+run dictation-cue-test     Redcast/Features/Dictation/Service/DictationCueRunner.swift
+run dictation-field-test   Redcast/Features/Dictation/Model/DictationModel.swift \
+                           Redcast/Features/Dictation/Model/DictationAudioChunks.swift \
+                           Redcast/Features/Dictation/Model/DictationMode.swift \
+                           Redcast/Features/Dictation/Model/DictationDestination.swift \
+                           Redcast/Features/Dictation/Model/DictationTextFormatter.swift \
+                           Redcast/Features/Dictation/Service/DictationCoordinator.swift \
+                           Redcast/Features/Dictation/Service/DictationInsertionContext.swift \
+                           Redcast/Features/AI/UI/ChatComposerTextView.swift \
+                           Redcast/Features/AI/Model/ChatDraftFacts.swift \
+                           Redcast/Features/ChatWorkspace/UI/ChatComposerInk.swift \
+                           Redcast/Features/TextInjection/Service/*.swift \
+                           Redcast/Features/Snippets/Model/*.swift $TAG_RULES \
+                           Redcast/Platform/AccessibilityText.swift \
+                           Redcast/Platform/PasteboardFiles.swift \
+                           Redcast/Platform/Appearance.swift Redcast/DesignSystem/Theme.swift
+run dictation-volume-test  Redcast/Features/Dictation/Model/DictationVolumeSnapshot.swift \
+                           Redcast/Features/Dictation/Service/DictationAudioDucker.swift \
+                           Redcast/Platform/AppPaths.swift
+run index -O dictation-performance Redcast/Platform/ProcessExit.swift \
+                           Redcast/Features/Dictation/Model/DictationModel.swift \
+                           Redcast/Features/Dictation/Service/DictationWire.swift
+run dictation-inference-test Redcast/Features/Dictation/Model/DictationAudioChunks.swift \
+    Redcast/Features/Dictation/Service/DictationSpectrum.swift \
+    Redcast/Features/Dictation/Helper/DictationTensor.swift Redcast/Features/Dictation/Helper/DictationTokenizer.swift \
+    Redcast/Features/Dictation/Helper/DictationMel.swift
+run dictation-worker-test  Redcast/Features/Dictation/Model/DictationModel.swift \
+                           Redcast/Features/Dictation/Model/DictationIdleRelease.swift \
+                           Redcast/Features/Dictation/Service/DictationWire.swift \
+                           Redcast/Features/Dictation/Service/DictationWorker.swift \
+                           Redcast/Features/Dictation/Service/DictationModelStore.swift \
+                           Redcast/Features/Dictation/Service/DictationModelDownloader.swift \
+                           Redcast/Platform/ProcessExit.swift Redcast/Platform/AppPaths.swift
+run hotkey-test            Redcast/Features/HotKeys/Model/DoubleTapModifier.swift \
+                           Redcast/Features/HotKeys/Model/ModifierKey.swift \
+                           Redcast/Features/HotKeys/Model/ModifierKeyDetector.swift \
+                           Redcast/Features/HotKeys/Model/DoubleTapDetector.swift \
+                           Redcast/Features/HotKeys/Model/HotKeyBinding.swift \
+                           Redcast/Features/HotKeys/Model/HotKeySpelling.swift \
+                           Redcast/Features/HotKeys/Model/HyperKey.swift \
+                           Redcast/Features/HotKeys/Model/HIDKeyMapping.swift \
+                           Redcast/Platform/ASCIIKeyboardLayout.swift \
+                           Redcast/Features/HotKeys/Service/KeyShortcut.swift \
+                           Redcast/Features/HotKeys/Model/HotKeyAction.swift \
+                           Redcast/Features/QuickActions/Model/QuickAction.swift \
+                           Redcast/Features/QuickActions/Model/BuiltInQuickAction.swift \
+                           Redcast/Features/QuickActions/Model/CustomQuickAction.swift \
+                           Redcast/Features/Launcher/Model/CommandID.swift \
+                           Redcast/Features/Quicklinks/Model/Quicklink.swift \
+                           Redcast/Features/Quicklinks/Model/QuicklinkDestination.swift \
+                           Redcast/Features/SystemActions/Model/SystemAction.swift \
+                           Redcast/Features/WindowManagement/Model/WindowCommand.swift \
+                           Redcast/Features/Snippets/Model/Snippet.swift \
+                           Redcast/Platform/LocalizedResource.swift
+run callout-test          Redcast/Platform/Appearance.swift \
+                           Redcast/DesignSystem/Theme.swift \
+                           Redcast/DesignSystem/InterfaceMetrics.swift \
+                           Redcast/Features/HotKeys/UI/CalloutPlacement.swift
+run icon-cache-test        Redcast/Platform/Appearance.swift \
+                           Redcast/Platform/Images/IconCache.swift \
+                           Redcast/Platform/Images/TileArtwork.swift
+run entry-icon-test        Redcast/Platform/Appearance.swift \
+                           Redcast/Platform/Images/IconCache.swift \
+                           Redcast/Platform/Images/TileArtwork.swift \
+                           Redcast/Platform/Images/FileIconStamp.swift
+run ext-icon-test          Redcast/Platform/Appearance.swift \
+                           Redcast/Platform/AppDisplayName.swift \
+                           Redcast/Platform/Images/IconCache.swift \
+                           Redcast/Platform/Images/TileArtwork.swift \
+                           Redcast/Platform/Compression/Zlib.swift \
+                           Redcast/DesignSystem/Theme.swift \
                            $FORK_PALETTE \
-                           Tinycast/DesignSystem/InterfaceMetrics.swift \
-                           Tinycast/Features/Extensions/Model/ExtensionBootConfig.swift \
-                           Tinycast/Features/Extensions/Model/ExtensionLaunchType.swift \
-                           Tinycast/Features/Extensions/Model/ExtensionManifest.swift \
-                           Tinycast/Features/Extensions/Model/ExtensionRefreshPolicy.swift \
-                           Tinycast/Features/Extensions/Model/ExtensionRefreshState.swift \
-                           Tinycast/Features/Extensions/Model/RenderNode.swift \
-                           Tinycast/Features/Extensions/Service/ExtensionCatalog.swift \
-                           Tinycast/Features/Extensions/Service/ExtensionFetcher.swift \
-                           Tinycast/Platform/ProcessExit.swift \
-                           Tinycast/Features/Extensions/Service/ExtensionNodeShims.swift \
-                           Tinycast/Features/Extensions/Service/ExtensionRuntime.swift \
-                           Tinycast/Features/Extensions/Service/ExtensionIconCache.swift \
-                           Tinycast/Features/Extensions/UI/ExtensionAnimatedImage.swift \
-                           Tinycast/Features/Extensions/UI/ExtensionImage.swift \
-                           Tinycast/Features/Clipboard/Model/ColorValue.swift \
-                           Tinycast/Features/Clipboard/Model/ColorSpaces.swift
-run system-action-test     Tinycast/Features/SystemActions/Model/SystemAction.swift \
-                           Tinycast/Platform/LocalizedResource.swift
-run microphone-mute-test   Tinycast/Features/SystemActions/Service/SystemActionFailure.swift \
-                           Tinycast/Features/SystemActions/Service/SystemActionRunner+Microphone.swift
-run volume-test            Tinycast/Features/SystemActions/Model/VolumeLevel.swift
-run window-command-test    Tinycast/Features/WindowManagement/Model/WindowCommand.swift \
-                           Tinycast/Features/WindowManagement/Model/WindowCycle.swift \
-                           Tinycast/Features/WindowManagement/Model/WindowPlacementEngine.swift \
-                           Tinycast/Features/WindowManagement/Model/WindowActionMemory.swift \
-                           Tinycast/Platform/LocalizedResource.swift
-run window-preset-test     Tinycast/Features/WindowManagement/Model/WindowCommand.swift \
-                           Tinycast/Features/WindowManagement/Model/WindowShortcutPreset.swift \
-                           Tinycast/Features/HotKeys/Model/DoubleTapModifier.swift \
-                           Tinycast/Features/HotKeys/Model/ModifierKey.swift \
-                           Tinycast/Features/HotKeys/Model/HotKeyBinding.swift \
-                           Tinycast/Features/HotKeys/Model/HyperKey.swift \
-                           Tinycast/Features/HotKeys/Model/HIDKeyMapping.swift \
-                           Tinycast/Platform/ASCIIKeyboardLayout.swift \
-                           Tinycast/Features/HotKeys/Service/KeyShortcut.swift \
-                           Tinycast/Platform/LocalizedResource.swift
-run space-gesture-test     Tinycast/Features/WindowManagement/Model/WindowCommand.swift \
-                           Tinycast/Features/WindowManagement/Model/SpaceGesture.swift \
-                           Tinycast/Platform/LocalizedResource.swift
-run window-layout-test     Tinycast/Features/WindowManagement/Model/WindowCommand.swift \
-                           Tinycast/Features/WindowManagement/Model/WindowCycle.swift \
-                           Tinycast/Features/WindowManagement/Model/WindowPlacementEngine.swift \
-                           Tinycast/Features/WindowManagement/Model/WindowLayoutAnchor.swift \
-                           Tinycast/Features/WindowManagement/Model/WindowLayoutDisplay.swift \
-                           Tinycast/Features/WindowManagement/Model/WindowLayout.swift \
-                           Tinycast/Features/WindowManagement/Model/WindowLayoutGeometry.swift \
-                           Tinycast/Features/WindowManagement/Model/WindowLayoutPlan.swift \
-                           Tinycast/Features/WindowManagement/Model/WindowLayoutStore.swift \
-                           Tinycast/Features/WindowManagement/Model/CustomWindowSize.swift \
-                           Tinycast/Features/WindowManagement/Model/CustomWindowSizeStore.swift \
-                           Tinycast/Platform/LocalizedResource.swift
-run window-room-test       Tinycast/Features/WindowManagement/Model/WindowCommand.swift \
-                           Tinycast/Features/WindowManagement/Model/WindowCycle.swift \
-                           Tinycast/Features/WindowManagement/Model/WindowPlacementEngine.swift \
-                           Tinycast/Features/WindowManagement/Model/WindowLayoutAnchor.swift \
-                           Tinycast/Features/WindowManagement/Model/WindowLayoutDisplay.swift \
-                           Tinycast/Features/WindowManagement/Model/WindowLayout.swift \
-                           Tinycast/Features/WindowManagement/Model/WindowLayoutGeometry.swift \
-                           Tinycast/Features/WindowManagement/Model/WindowLayoutPlan.swift \
-                           Tinycast/Features/WindowManagement/Model/RoomLayoutKind.swift \
-                           Tinycast/Features/WindowManagement/Model/RoomLayoutEngine.swift \
-                           Tinycast/Features/WindowManagement/Model/RoomGrid.swift \
-                           Tinycast/Features/WindowManagement/Model/RoomWindow.swift \
-                           Tinycast/Features/WindowManagement/Model/Room.swift \
-                           Tinycast/Features/WindowManagement/Model/RoomWindowMatcher.swift \
-                           Tinycast/Features/WindowManagement/Model/RoomParking.swift \
-                           Tinycast/Features/WindowManagement/Model/RoomPlan.swift \
-                           Tinycast/Features/WindowManagement/Model/RoomArrangement.swift \
-                           Tinycast/Features/WindowManagement/Model/RoomStore.swift \
-                           Tinycast/Features/WindowManagement/Model/RoomMinimumSizeStore.swift \
-                           Tinycast/Features/WindowManagement/Model/RoomParkingLedger.swift \
-                           Tinycast/Platform/LocalizedResource.swift
-run window-file-test       Tinycast/Features/WindowManagement/Model/WindowCommand.swift \
-                           Tinycast/Features/WindowManagement/Model/WindowCycle.swift \
-                           Tinycast/Features/WindowManagement/Model/WindowPlacementEngine.swift \
-                           Tinycast/Features/WindowManagement/Model/WindowLayoutAnchor.swift \
-                           Tinycast/Features/WindowManagement/Model/WindowLayoutDisplay.swift \
-                           Tinycast/Features/WindowManagement/Model/WindowLayout.swift \
-                           Tinycast/Features/WindowManagement/Model/WindowLayoutGeometry.swift \
-                           Tinycast/Features/WindowManagement/Model/CustomWindowSize.swift \
-                           Tinycast/Features/WindowManagement/Model/Room.swift \
-                           Tinycast/Features/WindowManagement/Model/RoomWindow.swift \
-                           Tinycast/Features/WindowManagement/Model/RoomLayoutKind.swift \
-                           Tinycast/Features/WindowManagement/Model/RoomGrid.swift \
-                           Tinycast/Features/WindowManagement/Model/RoomLayoutEngine.swift \
-                           Tinycast/Features/WindowManagement/Model/WindowManagementFileFormat.swift \
-                           Tinycast/Features/Settings/Model/SettingsFileJSON.swift \
-                           Tinycast/Features/Settings/Model/SettingsFileIdentity.swift \
-                           Tinycast/Platform/LocalizedResource.swift
-run custom-command-test    Tinycast/Platform/PseudoTerminal.swift \
-                           Tinycast/Platform/ProcessExit.swift \
-                           Tinycast/Features/CustomCommands/Model/CustomCommand.swift \
-                           Tinycast/Features/CustomCommands/Model/RaycastScriptImport.swift \
-                           Tinycast/Features/CustomCommands/UI/CustomCommandEditorSession.swift \
-                           Tinycast/Features/CustomCommands/Service/ShellCommandRunner.swift
-run custom-command-list-test Tinycast/Features/CustomCommands/Model/CustomCommand.swift \
-                             Tinycast/Features/CustomCommands/UI/CustomCommandListScreen.swift
-run uninstall-coordinator-test Tinycast/Features/Uninstall/Model/*.swift \
-                           Tinycast/Features/Uninstall/UI/UninstallCoordinator.swift
-run uninstall-test         Tinycast/Features/Uninstall/Model/UninstallTarget.swift \
-                           Tinycast/Features/Uninstall/Model/UninstallSearchRoot.swift \
-                           Tinycast/Features/Uninstall/Model/UninstallRules.swift \
-                           Tinycast/Features/Uninstall/Model/UninstallProtection.swift \
-                           Tinycast/Features/Uninstall/Model/UninstallPlan.swift
-run quicklink-test         Tinycast/Features/Quicklinks/Model/Quicklink.swift \
-                           Tinycast/Features/Quicklinks/Model/QuicklinkDestination.swift \
-                           Tinycast/Features/Quicklinks/Model/QuicklinkStore.swift \
-                           Tinycast/Features/Quicklinks/Model/QuicklinkArchive.swift \
-                           Tinycast/Features/Quicklinks/Model/RaycastQuicklinkImport.swift \
-                           Tinycast/Features/Quicklinks/UI/QuicklinkEditorSession.swift $TAG_RULES
-run quicklink-coordinator-test Tinycast/Features/Quicklinks/Model/Quicklink.swift \
-                           Tinycast/Features/Quicklinks/Model/QuicklinkDestination.swift \
-                           Tinycast/Features/Quicklinks/Model/QuicklinkStore.swift \
-                           Tinycast/Features/Quicklinks/Model/QuicklinkArchive.swift \
-                           Tinycast/Features/Quicklinks/UI/QuicklinkCoordinator.swift \
-                           Tinycast/Features/Quicklinks/UI/QuicklinkEditorSession.swift \
-                           Tinycast/Features/Quicklinks/UI/QuicklinkArgumentsAccessory.swift \
-                           Tinycast/Features/Snippets/Model/Snippet.swift \
-                           Tinycast/Features/Snippets/Model/SnippetTemplateEngine.swift $TAG_RULES
-run slow snippets-test     Tinycast/Platform/NotificationToken.swift \
-                           Tinycast/Platform/HealthTicker.swift \
-                           Tinycast/Platform/AccessibilityText.swift \
-                           Tinycast/Features/Snippets/Model/*.swift \
-                           Tinycast/Features/Snippets/Service/*.swift \
-                           Tinycast/Features/Snippets/UI/SnippetEditorSession.swift $TAG_RULES \
-                           Tinycast/Features/TextInjection/Service/*.swift
+                           Redcast/DesignSystem/InterfaceMetrics.swift \
+                           Redcast/Features/Extensions/Model/ExtensionBootConfig.swift \
+                           Redcast/Features/Extensions/Model/ExtensionLaunchType.swift \
+                           Redcast/Features/Extensions/Model/ExtensionManifest.swift \
+                           Redcast/Features/Extensions/Model/ExtensionRefreshPolicy.swift \
+                           Redcast/Features/Extensions/Model/ExtensionRefreshState.swift \
+                           Redcast/Features/Extensions/Model/RenderNode.swift \
+                           Redcast/Features/Extensions/Service/ExtensionCatalog.swift \
+                           Redcast/Features/Extensions/Service/ExtensionFetcher.swift \
+                           Redcast/Platform/ProcessExit.swift \
+                           Redcast/Features/Extensions/Service/ExtensionNodeShims.swift \
+                           Redcast/Features/Extensions/Service/ExtensionRuntime.swift \
+                           Redcast/Features/Extensions/Service/ExtensionIconCache.swift \
+                           Redcast/Features/Extensions/UI/ExtensionAnimatedImage.swift \
+                           Redcast/Features/Extensions/UI/ExtensionImage.swift \
+                           Redcast/Features/Clipboard/Model/ColorValue.swift \
+                           Redcast/Features/Clipboard/Model/ColorSpaces.swift
+run system-action-test     Redcast/Features/SystemActions/Model/SystemAction.swift \
+                           Redcast/Platform/LocalizedResource.swift
+run microphone-mute-test   Redcast/Features/SystemActions/Service/SystemActionFailure.swift \
+                           Redcast/Features/SystemActions/Service/SystemActionRunner+Microphone.swift
+run volume-test            Redcast/Features/SystemActions/Model/VolumeLevel.swift
+run window-command-test    Redcast/Features/WindowManagement/Model/WindowCommand.swift \
+                           Redcast/Features/WindowManagement/Model/WindowCycle.swift \
+                           Redcast/Features/WindowManagement/Model/WindowPlacementEngine.swift \
+                           Redcast/Features/WindowManagement/Model/WindowActionMemory.swift \
+                           Redcast/Platform/LocalizedResource.swift
+run window-preset-test     Redcast/Features/WindowManagement/Model/WindowCommand.swift \
+                           Redcast/Features/WindowManagement/Model/WindowShortcutPreset.swift \
+                           Redcast/Features/HotKeys/Model/DoubleTapModifier.swift \
+                           Redcast/Features/HotKeys/Model/ModifierKey.swift \
+                           Redcast/Features/HotKeys/Model/HotKeyBinding.swift \
+                           Redcast/Features/HotKeys/Model/HyperKey.swift \
+                           Redcast/Features/HotKeys/Model/HIDKeyMapping.swift \
+                           Redcast/Platform/ASCIIKeyboardLayout.swift \
+                           Redcast/Features/HotKeys/Service/KeyShortcut.swift \
+                           Redcast/Platform/LocalizedResource.swift
+run space-gesture-test     Redcast/Features/WindowManagement/Model/WindowCommand.swift \
+                           Redcast/Features/WindowManagement/Model/SpaceGesture.swift \
+                           Redcast/Platform/LocalizedResource.swift
+run window-layout-test     Redcast/Features/WindowManagement/Model/WindowCommand.swift \
+                           Redcast/Features/WindowManagement/Model/WindowCycle.swift \
+                           Redcast/Features/WindowManagement/Model/WindowPlacementEngine.swift \
+                           Redcast/Features/WindowManagement/Model/WindowLayoutAnchor.swift \
+                           Redcast/Features/WindowManagement/Model/WindowLayoutDisplay.swift \
+                           Redcast/Features/WindowManagement/Model/WindowLayout.swift \
+                           Redcast/Features/WindowManagement/Model/WindowLayoutGeometry.swift \
+                           Redcast/Features/WindowManagement/Model/WindowLayoutPlan.swift \
+                           Redcast/Features/WindowManagement/Model/WindowLayoutStore.swift \
+                           Redcast/Features/WindowManagement/Model/CustomWindowSize.swift \
+                           Redcast/Features/WindowManagement/Model/CustomWindowSizeStore.swift \
+                           Redcast/Platform/LocalizedResource.swift
+run window-room-test       Redcast/Features/WindowManagement/Model/WindowCommand.swift \
+                           Redcast/Features/WindowManagement/Model/WindowCycle.swift \
+                           Redcast/Features/WindowManagement/Model/WindowPlacementEngine.swift \
+                           Redcast/Features/WindowManagement/Model/WindowLayoutAnchor.swift \
+                           Redcast/Features/WindowManagement/Model/WindowLayoutDisplay.swift \
+                           Redcast/Features/WindowManagement/Model/WindowLayout.swift \
+                           Redcast/Features/WindowManagement/Model/WindowLayoutGeometry.swift \
+                           Redcast/Features/WindowManagement/Model/WindowLayoutPlan.swift \
+                           Redcast/Features/WindowManagement/Model/RoomLayoutKind.swift \
+                           Redcast/Features/WindowManagement/Model/RoomLayoutEngine.swift \
+                           Redcast/Features/WindowManagement/Model/RoomGrid.swift \
+                           Redcast/Features/WindowManagement/Model/RoomWindow.swift \
+                           Redcast/Features/WindowManagement/Model/Room.swift \
+                           Redcast/Features/WindowManagement/Model/RoomWindowMatcher.swift \
+                           Redcast/Features/WindowManagement/Model/RoomParking.swift \
+                           Redcast/Features/WindowManagement/Model/RoomPlan.swift \
+                           Redcast/Features/WindowManagement/Model/RoomArrangement.swift \
+                           Redcast/Features/WindowManagement/Model/RoomStore.swift \
+                           Redcast/Features/WindowManagement/Model/RoomMinimumSizeStore.swift \
+                           Redcast/Features/WindowManagement/Model/RoomParkingLedger.swift \
+                           Redcast/Platform/LocalizedResource.swift
+run window-file-test       Redcast/Features/WindowManagement/Model/WindowCommand.swift \
+                           Redcast/Features/WindowManagement/Model/WindowCycle.swift \
+                           Redcast/Features/WindowManagement/Model/WindowPlacementEngine.swift \
+                           Redcast/Features/WindowManagement/Model/WindowLayoutAnchor.swift \
+                           Redcast/Features/WindowManagement/Model/WindowLayoutDisplay.swift \
+                           Redcast/Features/WindowManagement/Model/WindowLayout.swift \
+                           Redcast/Features/WindowManagement/Model/WindowLayoutGeometry.swift \
+                           Redcast/Features/WindowManagement/Model/CustomWindowSize.swift \
+                           Redcast/Features/WindowManagement/Model/Room.swift \
+                           Redcast/Features/WindowManagement/Model/RoomWindow.swift \
+                           Redcast/Features/WindowManagement/Model/RoomLayoutKind.swift \
+                           Redcast/Features/WindowManagement/Model/RoomGrid.swift \
+                           Redcast/Features/WindowManagement/Model/RoomLayoutEngine.swift \
+                           Redcast/Features/WindowManagement/Model/WindowManagementFileFormat.swift \
+                           Redcast/Features/Settings/Model/SettingsFileJSON.swift \
+                           Redcast/Features/Settings/Model/SettingsFileIdentity.swift \
+                           Redcast/Platform/LocalizedResource.swift
+run custom-command-test    Redcast/Platform/PseudoTerminal.swift \
+                           Redcast/Platform/ProcessExit.swift \
+                           Redcast/Features/CustomCommands/Model/CustomCommand.swift \
+                           Redcast/Features/CustomCommands/Model/RaycastScriptImport.swift \
+                           Redcast/Features/CustomCommands/UI/CustomCommandEditorSession.swift \
+                           Redcast/Features/CustomCommands/Service/ShellCommandRunner.swift
+run custom-command-list-test Redcast/Features/CustomCommands/Model/CustomCommand.swift \
+                             Redcast/Features/CustomCommands/UI/CustomCommandListScreen.swift
+run uninstall-coordinator-test Redcast/Features/Uninstall/Model/*.swift \
+                           Redcast/Features/Uninstall/UI/UninstallCoordinator.swift
+run uninstall-test         Redcast/Features/Uninstall/Model/UninstallTarget.swift \
+                           Redcast/Features/Uninstall/Model/UninstallSearchRoot.swift \
+                           Redcast/Features/Uninstall/Model/UninstallRules.swift \
+                           Redcast/Features/Uninstall/Model/UninstallProtection.swift \
+                           Redcast/Features/Uninstall/Model/UninstallPlan.swift
+run quicklink-test         Redcast/Features/Quicklinks/Model/Quicklink.swift \
+                           Redcast/Features/Quicklinks/Model/QuicklinkDestination.swift \
+                           Redcast/Features/Quicklinks/Model/QuicklinkStore.swift \
+                           Redcast/Features/Quicklinks/Model/QuicklinkArchive.swift \
+                           Redcast/Features/Quicklinks/Model/RaycastQuicklinkImport.swift \
+                           Redcast/Features/Quicklinks/UI/QuicklinkEditorSession.swift $TAG_RULES
+run quicklink-coordinator-test Redcast/Features/Quicklinks/Model/Quicklink.swift \
+                           Redcast/Features/Quicklinks/Model/QuicklinkDestination.swift \
+                           Redcast/Features/Quicklinks/Model/QuicklinkStore.swift \
+                           Redcast/Features/Quicklinks/Model/QuicklinkArchive.swift \
+                           Redcast/Features/Quicklinks/UI/QuicklinkCoordinator.swift \
+                           Redcast/Features/Quicklinks/UI/QuicklinkEditorSession.swift \
+                           Redcast/Features/Quicklinks/UI/QuicklinkArgumentsAccessory.swift \
+                           Redcast/Features/Snippets/Model/Snippet.swift \
+                           Redcast/Features/Snippets/Model/SnippetTemplateEngine.swift $TAG_RULES
+run slow snippets-test     Redcast/Platform/NotificationToken.swift \
+                           Redcast/Platform/HealthTicker.swift \
+                           Redcast/Platform/AccessibilityText.swift \
+                           Redcast/Features/Snippets/Model/*.swift \
+                           Redcast/Features/Snippets/Service/*.swift \
+                           Redcast/Features/Snippets/UI/SnippetEditorSession.swift $TAG_RULES \
+                           Redcast/Features/TextInjection/Service/*.swift
 # Fork: tags on snippets and quicklinks: frontmatter, the store's column, imports, filter and colour.
-run bundle-migration-test  Tinycast/Features/BundleMigration/Model/*.swift
+run bundle-migration-test  Redcast/Features/BundleMigration/Model/*.swift
 # Fork: Redcast's name outside the catalogs, both URL schemes and both backup extensions.
-run rebrand-test           Tinycast/Features/AI/Model/ForkBrand.swift
-run tags-test              Tinycast/Features/Tags/Model/*.swift \
-                           Tinycast/Features/ColorfulIcons/Model/RaycastHue.swift \
-                           Tinycast/Features/Snippets/Model/Snippet.swift \
-                           Tinycast/Features/Snippets/Model/SnippetMarkdownSerializer.swift \
-                           Tinycast/Features/Snippets/Model/RaycastSnippetImport.swift \
-                           Tinycast/Features/Quicklinks/Model/Quicklink.swift \
-                           Tinycast/Features/Quicklinks/Model/QuicklinkDestination.swift \
-                           Tinycast/Features/Quicklinks/Model/QuicklinkStore.swift \
-                           Tinycast/Features/Quicklinks/Model/QuicklinkArchive.swift \
-                           Tinycast/Features/Quicklinks/Model/RaycastQuicklinkImport.swift
-run notes-test             Tinycast/Platform/Signposts.swift \
+run tags-test              Redcast/Features/Tags/Model/*.swift \
+                           Redcast/Features/ColorfulIcons/Model/RaycastHue.swift \
+                           Redcast/Features/Snippets/Model/Snippet.swift \
+                           Redcast/Features/Snippets/Model/SnippetMarkdownSerializer.swift \
+                           Redcast/Features/Snippets/Model/RaycastSnippetImport.swift \
+                           Redcast/Features/Quicklinks/Model/Quicklink.swift \
+                           Redcast/Features/Quicklinks/Model/QuicklinkDestination.swift \
+                           Redcast/Features/Quicklinks/Model/QuicklinkStore.swift \
+                           Redcast/Features/Quicklinks/Model/QuicklinkArchive.swift \
+                           Redcast/Features/Quicklinks/Model/RaycastQuicklinkImport.swift
+run notes-test             Redcast/Platform/Signposts.swift \
                            $L/SearchRelevance.swift \
-                           Tinycast/Features/Notes/Model/*.swift \
-                           Tinycast/Features/Notes/Service/*.swift
-run notes-ai-test          Tinycast/Platform/Signposts.swift \
+                           Redcast/Features/Notes/Model/*.swift \
+                           Redcast/Features/Notes/Service/*.swift
+run notes-ai-test          Redcast/Platform/Signposts.swift \
                            $L/SearchRelevance.swift \
-                           Tinycast/Features/Notes/Model/*.swift \
-                           Tinycast/Features/Notes/Service/*.swift \
-                           Tinycast/Features/Agents/Model/*.swift \
-                           Tinycast/Features/WebSearch/Model/*.swift \
-                           Tinycast/Features/AI/Model/AIRequest.swift \
-                           Tinycast/Features/AI/Model/AIAttachmentPolicy.swift \
-                           Tinycast/Features/Settings/AppSettingsKey.swift \
-                           Tinycast/Features/AI/Model/AITool.swift \
-                           Tinycast/Features/AI/Model/JSONValue.swift \
-                           Tinycast/Features/AI/Model/AIConnection.swift \
-                           Tinycast/Features/AI/Model/AppleIntelligence.swift \
-                           Tinycast/Features/AI/Model/ChatGPTSubscription.swift \
-                           Tinycast/Features/AI/Model/InstalledAI.swift \
-                           Tinycast/Features/NotesAI/Model/*.swift \
-                           Tinycast/Features/NotesAI/Service/*.swift
-run notes-editor-test      Tinycast/Platform/Signposts.swift \
-                           Tinycast/Platform/Appearance.swift \
-                           Tinycast/DesignSystem/Theme.swift \
-                           Tinycast/DesignSystem/InterfaceMetrics.swift \
-                           Tinycast/Platform/NotificationToken.swift \
-                           Tinycast/Features/TextInjection/Service/InjectableTextView.swift \
-                           Tinycast/Features/Notes/Model/NoteDocument.swift \
-                           Tinycast/Features/Notes/Model/NoteTitle.swift \
-                           Tinycast/Features/Notes/Model/NoteMarkdown.swift \
-                           Tinycast/Features/Notes/Model/NoteMarkdownParser.swift \
-                           Tinycast/Features/Notes/Model/NoteInlineScanner.swift \
-                           Tinycast/Features/Notes/Model/NoteEditPlan.swift \
-                           Tinycast/Features/Notes/Model/NoteEditAction.swift \
-                           Tinycast/Features/Notes/Model/NoteFormatting.swift \
-                           Tinycast/Features/Notes/Model/NoteMarkdownEditing.swift \
-                           Tinycast/Features/Notes/Model/NoteRevealPolicy.swift \
-                           Tinycast/Features/Notes/UI/NoteMarkdownTypography.swift \
-                           Tinycast/Features/Notes/UI/NoteBlockDecoration.swift \
-                           Tinycast/Features/Notes/UI/NoteMarkdownStyler.swift \
-                           Tinycast/Features/Notes/UI/NoteMarkdownRenderer.swift \
-                           Tinycast/Features/Notes/UI/NoteCheckboxGeometry.swift \
-                           Tinycast/Features/Notes/UI/NoteBlockLayoutFragment.swift \
-                           Tinycast/Features/Notes/UI/NoteLayoutFragmentProvider.swift \
-                           Tinycast/Features/Notes/UI/NoteTextViewEditing.swift \
-                           Tinycast/Features/Notes/UI/NoteTextView.swift \
-                           Tinycast/Features/Notes/UI/NoteEditorView.swift
+                           Redcast/Features/Notes/Model/*.swift \
+                           Redcast/Features/Notes/Service/*.swift \
+                           Redcast/Features/Agents/Model/*.swift \
+                           Redcast/Features/WebSearch/Model/*.swift \
+                           Redcast/Features/AI/Model/AIRequest.swift \
+                           Redcast/Features/AI/Model/AIAttachmentPolicy.swift \
+                           Redcast/Features/Settings/AppSettingsKey.swift \
+                           Redcast/Features/AI/Model/AITool.swift \
+                           Redcast/Features/AI/Model/JSONValue.swift \
+                           Redcast/Features/AI/Model/AIConnection.swift \
+                           Redcast/Features/AI/Model/AppleIntelligence.swift \
+                           Redcast/Features/AI/Model/ChatGPTSubscription.swift \
+                           Redcast/Features/AI/Model/InstalledAI.swift \
+                           Redcast/Features/NotesAI/Model/*.swift \
+                           Redcast/Features/NotesAI/Service/*.swift
+run notes-editor-test      Redcast/Platform/Signposts.swift \
+                           Redcast/Platform/Appearance.swift \
+                           Redcast/DesignSystem/Theme.swift \
+                           Redcast/DesignSystem/InterfaceMetrics.swift \
+                           Redcast/Platform/NotificationToken.swift \
+                           Redcast/Features/TextInjection/Service/InjectableTextView.swift \
+                           Redcast/Features/Notes/Model/NoteDocument.swift \
+                           Redcast/Features/Notes/Model/NoteTitle.swift \
+                           Redcast/Features/Notes/Model/NoteMarkdown.swift \
+                           Redcast/Features/Notes/Model/NoteMarkdownParser.swift \
+                           Redcast/Features/Notes/Model/NoteInlineScanner.swift \
+                           Redcast/Features/Notes/Model/NoteEditPlan.swift \
+                           Redcast/Features/Notes/Model/NoteEditAction.swift \
+                           Redcast/Features/Notes/Model/NoteFormatting.swift \
+                           Redcast/Features/Notes/Model/NoteMarkdownEditing.swift \
+                           Redcast/Features/Notes/Model/NoteRevealPolicy.swift \
+                           Redcast/Features/Notes/UI/NoteMarkdownTypography.swift \
+                           Redcast/Features/Notes/UI/NoteBlockDecoration.swift \
+                           Redcast/Features/Notes/UI/NoteMarkdownStyler.swift \
+                           Redcast/Features/Notes/UI/NoteMarkdownRenderer.swift \
+                           Redcast/Features/Notes/UI/NoteCheckboxGeometry.swift \
+                           Redcast/Features/Notes/UI/NoteBlockLayoutFragment.swift \
+                           Redcast/Features/Notes/UI/NoteLayoutFragmentProvider.swift \
+                           Redcast/Features/Notes/UI/NoteTextViewEditing.swift \
+                           Redcast/Features/Notes/UI/NoteTextView.swift \
+                           Redcast/Features/Notes/UI/NoteEditorView.swift
 run -O index notes-editor-performance \
-                           Tinycast/Platform/Signposts.swift \
-                           Tinycast/Platform/Appearance.swift \
-                           Tinycast/DesignSystem/Theme.swift \
-                           Tinycast/DesignSystem/InterfaceMetrics.swift \
-                           Tinycast/Platform/NotificationToken.swift \
-                           Tinycast/Features/TextInjection/Service/InjectableTextView.swift \
-                           Tinycast/Features/Notes/Model/NoteDocument.swift \
-                           Tinycast/Features/Notes/Model/NoteTitle.swift \
-                           Tinycast/Features/Notes/Model/NoteMarkdown.swift \
-                           Tinycast/Features/Notes/Model/NoteMarkdownParser.swift \
-                           Tinycast/Features/Notes/Model/NoteInlineScanner.swift \
-                           Tinycast/Features/Notes/Model/NoteEditPlan.swift \
-                           Tinycast/Features/Notes/Model/NoteEditAction.swift \
-                           Tinycast/Features/Notes/Model/NoteFormatting.swift \
-                           Tinycast/Features/Notes/Model/NoteMarkdownEditing.swift \
-                           Tinycast/Features/Notes/Model/NoteRevealPolicy.swift \
-                           Tinycast/Features/Notes/UI/NoteMarkdownTypography.swift \
-                           Tinycast/Features/Notes/UI/NoteBlockDecoration.swift \
-                           Tinycast/Features/Notes/UI/NoteMarkdownStyler.swift \
-                           Tinycast/Features/Notes/UI/NoteMarkdownRenderer.swift \
-                           Tinycast/Features/Notes/UI/NoteCheckboxGeometry.swift \
-                           Tinycast/Features/Notes/UI/NoteBlockLayoutFragment.swift \
-                           Tinycast/Features/Notes/UI/NoteLayoutFragmentProvider.swift \
-                           Tinycast/Features/Notes/UI/NoteTextViewEditing.swift \
-                           Tinycast/Features/Notes/UI/NoteTextView.swift \
-                           Tinycast/Features/Notes/UI/NoteEditorView.swift
-run slow -O raycast-test   Tinycast/Features/Backup/Model/RaycastImportError.swift \
-                           Tinycast/Features/Backup/Service/RaycastDecoder.swift \
-                           Tinycast/Features/Backup/Service/Scrypt.swift \
-                           Tinycast/Platform/Compression/Zlib.swift \
-                           Tinycast/Features/Clipboard/Model/RaycastClipboardImport.swift \
-                           Tinycast/Features/Clipboard/Model/ClipboardStore.swift \
-                           Tinycast/Platform/Images/ImageDerivative.swift \
-                           Tinycast/Features/Clipboard/Model/ClipboardFilter.swift \
-                           Tinycast/Features/Clipboard/Model/ClipboardFileKind.swift \
-                           Tinycast/Features/Clipboard/Model/ColorValue.swift \
-                           Tinycast/Features/Clipboard/Model/ColorFormat.swift \
-                           Tinycast/Features/Clipboard/Model/ColorSpaces.swift
-run settings-backup-test   Tinycast/Features/Settings/AppSettingsKey.swift \
-                           Tinycast/Features/Backup/Model/SettingsBackupCoverage.swift
-run hyper-key-test         Tinycast/Features/HotKeys/Model/HIDKeyMapping.swift \
-                           Tinycast/Features/HotKeys/Model/HyperKeyConflictPolicy.swift \
-                           Tinycast/Features/HotKeys/Service/KeyboardRemapper.swift \
+                           Redcast/Platform/Signposts.swift \
+                           Redcast/Platform/Appearance.swift \
+                           Redcast/DesignSystem/Theme.swift \
+                           Redcast/DesignSystem/InterfaceMetrics.swift \
+                           Redcast/Platform/NotificationToken.swift \
+                           Redcast/Features/TextInjection/Service/InjectableTextView.swift \
+                           Redcast/Features/Notes/Model/NoteDocument.swift \
+                           Redcast/Features/Notes/Model/NoteTitle.swift \
+                           Redcast/Features/Notes/Model/NoteMarkdown.swift \
+                           Redcast/Features/Notes/Model/NoteMarkdownParser.swift \
+                           Redcast/Features/Notes/Model/NoteInlineScanner.swift \
+                           Redcast/Features/Notes/Model/NoteEditPlan.swift \
+                           Redcast/Features/Notes/Model/NoteEditAction.swift \
+                           Redcast/Features/Notes/Model/NoteFormatting.swift \
+                           Redcast/Features/Notes/Model/NoteMarkdownEditing.swift \
+                           Redcast/Features/Notes/Model/NoteRevealPolicy.swift \
+                           Redcast/Features/Notes/UI/NoteMarkdownTypography.swift \
+                           Redcast/Features/Notes/UI/NoteBlockDecoration.swift \
+                           Redcast/Features/Notes/UI/NoteMarkdownStyler.swift \
+                           Redcast/Features/Notes/UI/NoteMarkdownRenderer.swift \
+                           Redcast/Features/Notes/UI/NoteCheckboxGeometry.swift \
+                           Redcast/Features/Notes/UI/NoteBlockLayoutFragment.swift \
+                           Redcast/Features/Notes/UI/NoteLayoutFragmentProvider.swift \
+                           Redcast/Features/Notes/UI/NoteTextViewEditing.swift \
+                           Redcast/Features/Notes/UI/NoteTextView.swift \
+                           Redcast/Features/Notes/UI/NoteEditorView.swift
+run slow -O raycast-test   Redcast/Features/Backup/Model/RaycastImportError.swift \
+                           Redcast/Features/Backup/Service/RaycastDecoder.swift \
+                           Redcast/Features/Backup/Service/Scrypt.swift \
+                           Redcast/Platform/Compression/Zlib.swift \
+                           Redcast/Features/Clipboard/Model/RaycastClipboardImport.swift \
+                           Redcast/Features/Clipboard/Model/ClipboardStore.swift \
+                           Redcast/Platform/Images/ImageDerivative.swift \
+                           Redcast/Features/Clipboard/Model/ClipboardFilter.swift \
+                           Redcast/Features/Clipboard/Model/ClipboardFileKind.swift \
+                           Redcast/Features/Clipboard/Model/ColorValue.swift \
+                           Redcast/Features/Clipboard/Model/ColorFormat.swift \
+                           Redcast/Features/Clipboard/Model/ColorSpaces.swift
+run settings-backup-test   Redcast/Features/Settings/AppSettingsKey.swift \
+                           Redcast/Features/Backup/Model/SettingsBackupCoverage.swift
+run hyper-key-test         Redcast/Features/HotKeys/Model/HIDKeyMapping.swift \
+                           Redcast/Features/HotKeys/Model/HyperKeyConflictPolicy.swift \
+                           Redcast/Features/HotKeys/Service/KeyboardRemapper.swift \
                            Tests/hyper-key-fixtures.swift
-run hotkey-dispatch-test   Tinycast/Features/HotKeys/Model/DoubleTapModifier.swift \
-                           Tinycast/Features/HotKeys/Model/ModifierKey.swift \
-                           Tinycast/Features/HotKeys/Model/HotKeyBinding.swift \
-                           Tinycast/Features/HotKeys/Model/HyperKey.swift \
-                           Tinycast/Features/HotKeys/Model/HIDKeyMapping.swift \
-                           Tinycast/Features/HotKeys/Model/HotKeyAction.swift \
-                           Tinycast/Features/HotKeys/Service/KeyShortcut.swift \
-                           Tinycast/Features/HotKeys/Service/HotKeyManager.swift \
-                           Tinycast/Platform/ASCIIKeyboardLayout.swift \
+run hotkey-dispatch-test   Redcast/Features/HotKeys/Model/DoubleTapModifier.swift \
+                           Redcast/Features/HotKeys/Model/ModifierKey.swift \
+                           Redcast/Features/HotKeys/Model/HotKeyBinding.swift \
+                           Redcast/Features/HotKeys/Model/HyperKey.swift \
+                           Redcast/Features/HotKeys/Model/HIDKeyMapping.swift \
+                           Redcast/Features/HotKeys/Model/HotKeyAction.swift \
+                           Redcast/Features/HotKeys/Service/KeyShortcut.swift \
+                           Redcast/Features/HotKeys/Service/HotKeyManager.swift \
+                           Redcast/Platform/ASCIIKeyboardLayout.swift \
                            Tests/hotkey-dispatch-fixtures.swift
-run settings-file-test     Tinycast/Features/Settings/Model/*.swift \
-                           Tinycast/Features/Settings/Service/SettingsFileMonitor.swift \
-                           Tinycast/Features/Settings/Service/SettingsFileRepository.swift \
-                           Tinycast/Platform/AppPaths.swift
-run backup-archive-test    Tinycast/Platform/AppPaths.swift \
-                           Tinycast/Features/Backup/Model/BackupArchive.swift \
-                           Tinycast/Features/Backup/Model/BackupBundle.swift \
-                           Tinycast/Features/Backup/Model/BackupCategory.swift \
-                           Tinycast/Features/Backup/Model/BackupClipboardItem.swift \
-                           Tinycast/Features/Backup/Model/BackupManifest.swift \
-                           Tinycast/Features/Backup/Service/BackupStaging.swift
+run settings-file-test     Redcast/Features/Settings/Model/*.swift \
+                           Redcast/Features/Settings/Service/SettingsFileMonitor.swift \
+                           Redcast/Features/Settings/Service/SettingsFileRepository.swift \
+                           Redcast/Platform/AppPaths.swift
+run backup-archive-test    Redcast/Platform/AppPaths.swift \
+                           Redcast/Features/Backup/Model/BackupArchive.swift \
+                           Redcast/Features/Backup/Model/BackupBundle.swift \
+                           Redcast/Features/Backup/Model/BackupCategory.swift \
+                           Redcast/Features/Backup/Model/BackupClipboardItem.swift \
+                           Redcast/Features/Backup/Model/BackupManifest.swift \
+                           Redcast/Features/Backup/Service/BackupStaging.swift
 # Fork: the full backup's sections, version tolerance, import rules, sealed secrets and auto export.
-FB=Tinycast/Features/FullBackup
+FB=Redcast/Features/FullBackup
 run full-backup-test       $FB/Model/*.swift $FB/Service/FullBackupCipher.swift \
                            $FB/Service/FullBackupChatArchive.swift \
-                           Tinycast/Features/Agents/Model/*.swift Tinycast/Features/WebSearch/Model/*.swift \
-                           Tinycast/Features/AI/Model/*.swift Tinycast/Features/ReasoningReplay/Model/*.swift \
-                           Tinycast/Features/AI/Service/AIProvider.swift \
-                           Tinycast/Features/Settings/AppSettingsKey.swift Tinycast/Features/MCP/Model/*.swift \
-                           Tinycast/Features/VoiceAI/Model/*.swift \
-                           Tinycast/Features/Dictation/Model/DictationLanguage.swift \
-                           Tinycast/Features/Dictation/Model/DictationMode.swift \
-                           Tinycast/Features/QuickActions/Model/CustomQuickAction.swift \
-                           Tinycast/Features/Extensions/Model/ExtensionAppearance.swift \
-                           Tinycast/Features/HotKeys/Model/HotKeyBinding.swift \
-                           Tinycast/Features/HotKeys/Model/ModifierKey.swift \
-                           Tinycast/Features/HotKeys/Model/DoubleTapModifier.swift \
-                           Tinycast/Features/HotKeys/Model/HyperKey.swift \
-                           Tinycast/Features/HotKeys/Model/HIDKeyMapping.swift \
-                           Tinycast/Features/HotKeys/Service/KeyShortcut.swift \
-                           Tinycast/Platform/ASCIIKeyboardLayout.swift Tinycast/Platform/AppPaths.swift \
-                           Tinycast/Features/Backup/Model/BackupArchive.swift \
-                           Tinycast/Features/Backup/Model/BackupBundle.swift \
-                           Tinycast/Features/Backup/Model/BackupCategory.swift \
-                           Tinycast/Features/Backup/Model/BackupClipboardItem.swift \
-                           Tinycast/Features/Backup/Model/BackupManifest.swift
+                           Redcast/Features/Agents/Model/*.swift Redcast/Features/WebSearch/Model/*.swift \
+                           Redcast/Features/AI/Model/*.swift Redcast/Features/ReasoningReplay/Model/*.swift \
+                           Redcast/Features/AI/Service/AIProvider.swift \
+                           Redcast/Features/Settings/AppSettingsKey.swift Redcast/Features/MCP/Model/*.swift \
+                           Redcast/Features/VoiceAI/Model/*.swift \
+                           Redcast/Features/Dictation/Model/DictationLanguage.swift \
+                           Redcast/Features/Dictation/Model/DictationMode.swift \
+                           Redcast/Features/QuickActions/Model/CustomQuickAction.swift \
+                           Redcast/Features/Extensions/Model/ExtensionAppearance.swift \
+                           Redcast/Features/HotKeys/Model/HotKeyBinding.swift \
+                           Redcast/Features/HotKeys/Model/ModifierKey.swift \
+                           Redcast/Features/HotKeys/Model/DoubleTapModifier.swift \
+                           Redcast/Features/HotKeys/Model/HyperKey.swift \
+                           Redcast/Features/HotKeys/Model/HIDKeyMapping.swift \
+                           Redcast/Features/HotKeys/Service/KeyShortcut.swift \
+                           Redcast/Platform/ASCIIKeyboardLayout.swift Redcast/Platform/AppPaths.swift \
+                           Redcast/Features/Backup/Model/BackupArchive.swift \
+                           Redcast/Features/Backup/Model/BackupBundle.swift \
+                           Redcast/Features/Backup/Model/BackupCategory.swift \
+                           Redcast/Features/Backup/Model/BackupClipboardItem.swift \
+                           Redcast/Features/Backup/Model/BackupManifest.swift
 # Fork: every store the app persists has a full backup decision; it scans the sources.
-run full-backup-coverage-test Tinycast/Features/Settings/AppSettingsKey.swift \
-                           Tinycast/Features/Backup/Model/SettingsBackupCoverage.swift \
+run full-backup-coverage-test Redcast/Features/Settings/AppSettingsKey.swift \
+                           Redcast/Features/Backup/Model/SettingsBackupCoverage.swift \
                            $FB/Model/FullBackupSection.swift $FB/Model/FullBackupConsent.swift \
                            $FB/Model/FullBackupCoverage.swift
 # Fork: the Shortcuts overview's conflict audit, filters and system shortcuts.
-run shortcuts-overview-test Tinycast/Features/ShortcutsOverview/Model/*.swift \
-                           Tinycast/Features/HotKeys/Model/HotKeyBinding.swift \
-                           Tinycast/Features/HotKeys/Model/ModifierKey.swift \
-                           Tinycast/Features/HotKeys/Model/DoubleTapModifier.swift \
-                           Tinycast/Features/HotKeys/Model/HyperKey.swift \
-                           Tinycast/Features/HotKeys/Model/HIDKeyMapping.swift \
-                           Tinycast/Features/HotKeys/Service/KeyShortcut.swift \
-                           Tinycast/Platform/ASCIIKeyboardLayout.swift
-E=Tinycast/Features/Extensions
+run shortcuts-overview-test Redcast/Features/ShortcutsOverview/Model/*.swift \
+                           Redcast/Features/HotKeys/Model/HotKeyBinding.swift \
+                           Redcast/Features/HotKeys/Model/ModifierKey.swift \
+                           Redcast/Features/HotKeys/Model/DoubleTapModifier.swift \
+                           Redcast/Features/HotKeys/Model/HyperKey.swift \
+                           Redcast/Features/HotKeys/Model/HIDKeyMapping.swift \
+                           Redcast/Features/HotKeys/Service/KeyShortcut.swift \
+                           Redcast/Platform/ASCIIKeyboardLayout.swift
+E=Redcast/Features/Extensions
 run symbols-test           $E/Service/SymbolCatalog.swift
 run ext-cleanup-test       $E/Service/ExtensionCleanup.swift \
                            $E/Service/ExtensionCatalog.swift \
-                           Tinycast/Platform/AppDisplayName.swift \
+                           Redcast/Platform/AppDisplayName.swift \
                            $E/Model/ExtensionManifest.swift \
                            $E/Model/ExtensionLaunchType.swift \
                            $E/Model/ExtensionRefreshPolicy.swift \
                            $E/Model/ExtensionRefreshState.swift
 run ext-refresh-test       $E/Model/ExtensionManifest.swift \
-                           Tinycast/Platform/AppDisplayName.swift \
+                           Redcast/Platform/AppDisplayName.swift \
                            $E/Model/ExtensionLaunchType.swift \
                            $E/Model/ExtensionRefreshPolicy.swift \
                            $E/Model/ExtensionRefreshState.swift
@@ -772,17 +771,17 @@ run slow ext-test          -parse-as-library \
                            Tests/ext-ai-bridge-test.swift \
                            $E/Service/ExtensionHostBridge.swift \
                            $E/Service/ExtensionSignInSession.swift \
-                           Tinycast/Features/ExtensionAI/Service/ExtensionAIHost.swift \
-                           Tinycast/Features/Launcher/Service/AppLauncher.swift \
-                           Tinycast/Platform/AccessibilityText.swift \
-                           Tinycast/Platform/PasteboardFiles.swift \
-                           Tinycast/Platform/Images/ImageDerivative.swift \
-                           Tinycast/Features/Clipboard/Model/ClipboardStore.swift \
-                           Tinycast/Features/Clipboard/Model/ClipboardFilter.swift \
-                           Tinycast/Features/Clipboard/Model/ClipboardFileKind.swift \
-                           Tinycast/Features/Clipboard/Model/ColorFormat.swift \
-                           Tinycast/Features/Clipboard/Service/ClipboardManager.swift \
-                           Tinycast/Features/Clipboard/Service/Paster.swift \
+                           Redcast/Features/ExtensionAI/Service/ExtensionAIHost.swift \
+                           Redcast/Features/Launcher/Service/AppLauncher.swift \
+                           Redcast/Platform/AccessibilityText.swift \
+                           Redcast/Platform/PasteboardFiles.swift \
+                           Redcast/Platform/Images/ImageDerivative.swift \
+                           Redcast/Features/Clipboard/Model/ClipboardStore.swift \
+                           Redcast/Features/Clipboard/Model/ClipboardFilter.swift \
+                           Redcast/Features/Clipboard/Model/ClipboardFileKind.swift \
+                           Redcast/Features/Clipboard/Model/ColorFormat.swift \
+                           Redcast/Features/Clipboard/Service/ClipboardManager.swift \
+                           Redcast/Features/Clipboard/Service/Paster.swift \
                            $E/Model/ExtensionLaunchError.swift \
                            $E/Model/ExtensionMenuBarSnapshot.swift \
                            $E/Service/ExtensionStorage.swift \
@@ -791,13 +790,13 @@ run slow ext-test          -parse-as-library \
                            $E/Service/ExtensionCommandMetadataStore.swift \
                            $E/UI/ExtensionMenuBarController.swift \
                            $E/UI/ExtensionMenuBarImage.swift \
-                           Tinycast/Platform/Appearance.swift \
-                           Tinycast/Platform/AppDisplayName.swift \
-                           Tinycast/Platform/Images/IconCache.swift \
-                           Tinycast/Platform/Images/TileArtwork.swift \
-                           Tinycast/DesignSystem/Theme.swift \
+                           Redcast/Platform/Appearance.swift \
+                           Redcast/Platform/AppDisplayName.swift \
+                           Redcast/Platform/Images/IconCache.swift \
+                           Redcast/Platform/Images/TileArtwork.swift \
+                           Redcast/DesignSystem/Theme.swift \
                            $FORK_PALETTE \
-                           Tinycast/DesignSystem/InterfaceMetrics.swift \
+                           Redcast/DesignSystem/InterfaceMetrics.swift \
                            $E/Model/ExtensionBootConfig.swift \
                            $E/Model/ExtensionDeepLink.swift \
                            $E/Model/ExtensionLaunchType.swift \
@@ -812,7 +811,7 @@ run slow ext-test          -parse-as-library \
                            $E/Model/ExtensionSearchAccessory.swift \
                            $E/Service/ExtensionCatalog.swift \
                            $E/Service/ExtensionFetcher.swift \
-                           Tinycast/Platform/ProcessExit.swift \
+                           Redcast/Platform/ProcessExit.swift \
                            $E/Service/ExtensionIconCache.swift \
                            $E/Service/ExtensionNodeShims.swift \
                            $E/Service/ExtensionRuntime.swift \
@@ -822,469 +821,468 @@ run slow ext-test          -parse-as-library \
                            $E/UI/ExtensionImage.swift \
                            $E/UI/ExtensionScreen.swift \
                            $L/SearchRelevance.swift \
-                           Tinycast/Platform/Compression/Zlib.swift \
-                           Tinycast/Features/Clipboard/Model/ColorValue.swift \
-                           Tinycast/Features/Clipboard/Model/ColorSpaces.swift
-run settings-history-test  Tinycast/Features/Settings/SettingsTab.swift \
-                           Tinycast/Features/Settings/SettingsHistory.swift \
-                           Tinycast/Features/Settings/SettingsAnchor.swift \
-                           Tinycast/Features/Settings/SettingsNavigationState.swift \
-                           Tinycast/Features/Settings/SettingsSearchCatalog.swift \
+                           Redcast/Platform/Compression/Zlib.swift \
+                           Redcast/Features/Clipboard/Model/ColorValue.swift \
+                           Redcast/Features/Clipboard/Model/ColorSpaces.swift
+run settings-history-test  Redcast/Features/Settings/SettingsTab.swift \
+                           Redcast/Features/Settings/SettingsHistory.swift \
+                           Redcast/Features/Settings/SettingsAnchor.swift \
+                           Redcast/Features/Settings/SettingsNavigationState.swift \
+                           Redcast/Features/Settings/SettingsSearchCatalog.swift \
                            $L/SearchRelevance.swift \
-                           Tinycast/Platform/LocalizedResource.swift
-run updates-test           Tinycast/Features/Updates/Model/*.swift \
-                           Tinycast/Features/Updates/Service/BundleSignature.swift
-run update-check-test      Tinycast/Features/Updates/Model/*.swift \
-                           Tinycast/Features/Updates/Service/UpdateCheckStore.swift \
-                           Tinycast/Platform/AppPaths.swift
-run support-test           Tinycast/Features/Support/Model/*.swift
-run ai-provider-test       Tinycast/Features/Settings/AppSettingsKey.swift \
-                           Tinycast/Features/AI/Model/*.swift \
-                           Tinycast/Features/ReasoningReplay/Model/*.swift \
-                           Tinycast/Features/Agents/Model/ChatToolContent.swift \
-                           Tinycast/Features/AI/Settings/AISettingsStore.swift
-run ai-model-catalog-test  Tinycast/Features/Settings/AppSettingsKey.swift \
-                           Tinycast/Features/AI/Model/*.swift \
-                           Tinycast/Features/ReasoningReplay/Model/*.swift \
-                           Tinycast/Features/Agents/Model/ChatToolContent.swift
-run ai-chat-test           Tinycast/Features/AI/Model/AIRequest.swift \
-                           Tinycast/Features/Agents/Model/ChatToolContent.swift \
-                           Tinycast/Features/AI/Model/AIConnection.swift \
-                           Tinycast/Features/AI/Model/AIConversationOpenPolicy.swift \
-                           Tinycast/Features/AI/Model/AppleIntelligence.swift \
-                           Tinycast/Features/AI/Model/AIAttachmentPolicy.swift \
-                           Tinycast/Features/AI/Model/AIRetention.swift \
-                           Tinycast/Features/AI/Model/AITool.swift \
-                           Tinycast/Features/AI/Model/JSONValue.swift \
-                           Tinycast/Features/AI/Model/ChatMessage.swift \
-                           Tinycast/Features/AI/Model/ChatSession.swift \
-                           Tinycast/Features/AI/Model/ChatChoices.swift \
-                           Tinycast/Features/AI/Model/ChatReferences.swift \
-                           Tinycast/Features/AI/Model/ChatTitle.swift \
-                           Tinycast/Features/AI/Model/ChatFind.swift \
-                           Tinycast/Features/AI/Model/ChatCitations.swift \
-                           Tinycast/Features/AI/Model/ChatToolScope.swift \
-                           Tinycast/Features/AI/Model/MarkdownBlock.swift \
-                           Tinycast/Features/AI/Model/MarkdownMath.swift \
-                           Tinycast/Features/AI/Model/MathFormula.swift \
-                           Tinycast/Features/AI/Model/MathNode.swift \
-                           Tinycast/Features/AI/Model/MathSymbolCatalog.swift \
-                           Tinycast/Features/AI/Service/AIProvider.swift \
-                           Tinycast/Features/AI/Service/ChatHistoryStore.swift \
-                           Tinycast/Features/AI/Service/AIToolLoopProvider.swift \
-                           Tinycast/Features/WebSearch/Model/*.swift \
-                           Tinycast/Features/AI/Model/ChatDraftFacts.swift \
-                           Tinycast/Features/AI/UI/AIChatState.swift \
-                           Tinycast/Features/AI/UI/AIChatSurfacesState.swift \
-                           Tinycast/Features/AI/UI/ChatFindState.swift
-run chat-markdown-test     Tinycast/Platform/Appearance.swift \
-                           Tinycast/DesignSystem/Theme.swift \
-                           Tinycast/DesignSystem/InterfaceMetrics.swift \
-                           Tinycast/Features/Settings/InterfaceSize.swift \
-                           Tinycast/Features/AI/Model/AIRequest.swift \
-                           Tinycast/Features/Agents/Model/ChatToolContent.swift \
-                           Tinycast/Features/AI/Model/AITool.swift \
-                           Tinycast/Features/AI/Model/JSONValue.swift \
-                           Tinycast/Features/AI/Model/ChatMessage.swift \
-                           Tinycast/Features/AI/Model/ChatChoices.swift \
-                           Tinycast/Features/AI/Model/ChatReferences.swift \
-                           Tinycast/Features/AI/Model/ChatCitations.swift \
-                           Tinycast/Features/AI/Model/ChatFind.swift \
-                           Tinycast/Features/AI/Model/MarkdownBlock.swift \
-                           Tinycast/Features/AI/Model/MarkdownMath.swift \
-                           Tinycast/Features/AI/Model/MathFormula.swift \
-                           Tinycast/Features/AI/Model/MathNode.swift \
-                           Tinycast/Features/AI/Model/MathSymbolCatalog.swift \
-                           Tinycast/Features/AI/Model/SyntaxGrammar.swift \
-                           Tinycast/Features/AI/Model/SyntaxHighlighter.swift \
-                           Tinycast/Features/AI/Model/SyntaxStructuredLexers.swift \
-                           Tinycast/Features/AI/UI/ChatTextHighlight.swift \
-                           Tinycast/Features/AI/UI/ChatMarkdownRenderer.swift \
-                           Tinycast/Features/ChatFiles/Model/*.swift \
-                           Tinycast/Features/ChatFiles/UI/ChatFileLinker.swift \
-                           Tinycast/Features/AI/UI/MathAttachmentCell.swift \
-                           Tinycast/Features/AI/UI/MathBox.swift \
-                           Tinycast/Features/AI/UI/MathFont.swift \
-                           Tinycast/Features/AI/UI/MathLayoutEngine.swift
-run chat-files-test        Tinycast/Features/ChatFiles/Model/*.swift \
-                           Tinycast/Features/ChatFiles/Service/ChatAttachmentFiles.swift
-CW=Tinycast/Features/ChatWorkspace
+                           Redcast/Platform/LocalizedResource.swift
+run updates-test           Redcast/Features/Updates/Model/*.swift \
+                           Redcast/Features/Updates/Service/BundleSignature.swift
+run update-check-test      Redcast/Features/Updates/Model/*.swift \
+                           Redcast/Features/Updates/Service/UpdateCheckStore.swift \
+                           Redcast/Platform/AppPaths.swift
+run ai-provider-test       Redcast/Features/Settings/AppSettingsKey.swift \
+                           Redcast/Features/AI/Model/*.swift \
+                           Redcast/Features/ReasoningReplay/Model/*.swift \
+                           Redcast/Features/Agents/Model/ChatToolContent.swift \
+                           Redcast/Features/AI/Settings/AISettingsStore.swift
+run ai-model-catalog-test  Redcast/Features/Settings/AppSettingsKey.swift \
+                           Redcast/Features/AI/Model/*.swift \
+                           Redcast/Features/ReasoningReplay/Model/*.swift \
+                           Redcast/Features/Agents/Model/ChatToolContent.swift
+run ai-chat-test           Redcast/Features/AI/Model/AIRequest.swift \
+                           Redcast/Features/Agents/Model/ChatToolContent.swift \
+                           Redcast/Features/AI/Model/AIConnection.swift \
+                           Redcast/Features/AI/Model/AIConversationOpenPolicy.swift \
+                           Redcast/Features/AI/Model/AppleIntelligence.swift \
+                           Redcast/Features/AI/Model/AIAttachmentPolicy.swift \
+                           Redcast/Features/AI/Model/AIRetention.swift \
+                           Redcast/Features/AI/Model/AITool.swift \
+                           Redcast/Features/AI/Model/JSONValue.swift \
+                           Redcast/Features/AI/Model/ChatMessage.swift \
+                           Redcast/Features/AI/Model/ChatSession.swift \
+                           Redcast/Features/AI/Model/ChatChoices.swift \
+                           Redcast/Features/AI/Model/ChatReferences.swift \
+                           Redcast/Features/AI/Model/ChatTitle.swift \
+                           Redcast/Features/AI/Model/ChatFind.swift \
+                           Redcast/Features/AI/Model/ChatCitations.swift \
+                           Redcast/Features/AI/Model/ChatToolScope.swift \
+                           Redcast/Features/AI/Model/MarkdownBlock.swift \
+                           Redcast/Features/AI/Model/MarkdownMath.swift \
+                           Redcast/Features/AI/Model/MathFormula.swift \
+                           Redcast/Features/AI/Model/MathNode.swift \
+                           Redcast/Features/AI/Model/MathSymbolCatalog.swift \
+                           Redcast/Features/AI/Service/AIProvider.swift \
+                           Redcast/Features/AI/Service/ChatHistoryStore.swift \
+                           Redcast/Features/AI/Service/AIToolLoopProvider.swift \
+                           Redcast/Features/WebSearch/Model/*.swift \
+                           Redcast/Features/AI/Model/ChatDraftFacts.swift \
+                           Redcast/Features/AI/UI/AIChatState.swift \
+                           Redcast/Features/AI/UI/AIChatSurfacesState.swift \
+                           Redcast/Features/AI/UI/ChatFindState.swift
+run chat-markdown-test     Redcast/Platform/Appearance.swift \
+                           Redcast/DesignSystem/Theme.swift \
+                           Redcast/DesignSystem/InterfaceMetrics.swift \
+                           Redcast/Features/Settings/InterfaceSize.swift \
+                           Redcast/Features/AI/Model/AIRequest.swift \
+                           Redcast/Features/Agents/Model/ChatToolContent.swift \
+                           Redcast/Features/AI/Model/AITool.swift \
+                           Redcast/Features/AI/Model/JSONValue.swift \
+                           Redcast/Features/AI/Model/ChatMessage.swift \
+                           Redcast/Features/AI/Model/ChatChoices.swift \
+                           Redcast/Features/AI/Model/ChatReferences.swift \
+                           Redcast/Features/AI/Model/ChatCitations.swift \
+                           Redcast/Features/AI/Model/ChatFind.swift \
+                           Redcast/Features/AI/Model/MarkdownBlock.swift \
+                           Redcast/Features/AI/Model/MarkdownMath.swift \
+                           Redcast/Features/AI/Model/MathFormula.swift \
+                           Redcast/Features/AI/Model/MathNode.swift \
+                           Redcast/Features/AI/Model/MathSymbolCatalog.swift \
+                           Redcast/Features/AI/Model/SyntaxGrammar.swift \
+                           Redcast/Features/AI/Model/SyntaxHighlighter.swift \
+                           Redcast/Features/AI/Model/SyntaxStructuredLexers.swift \
+                           Redcast/Features/AI/UI/ChatTextHighlight.swift \
+                           Redcast/Features/AI/UI/ChatMarkdownRenderer.swift \
+                           Redcast/Features/ChatFiles/Model/*.swift \
+                           Redcast/Features/ChatFiles/UI/ChatFileLinker.swift \
+                           Redcast/Features/AI/UI/MathAttachmentCell.swift \
+                           Redcast/Features/AI/UI/MathBox.swift \
+                           Redcast/Features/AI/UI/MathFont.swift \
+                           Redcast/Features/AI/UI/MathLayoutEngine.swift
+run chat-files-test        Redcast/Features/ChatFiles/Model/*.swift \
+                           Redcast/Features/ChatFiles/Service/ChatAttachmentFiles.swift
+CW=Redcast/Features/ChatWorkspace
 run chat-workspace-test    $CW/Model/*.swift $CW/Service/*.swift $CW/Settings/ChatWorkspaceSettings.swift \
                            $CW/UI/ChatWorkspaceHost.swift $CW/UI/ChatWorkspaceCoordinator.swift $CW/UI/ChatSettingsState.swift \
                            $CW/UI/ChatWorkspaceCoordinator+Selection.swift $CW/UI/ChatWindowRelease.swift \
-                           Tinycast/Features/ColorfulIcons/Model/RaycastHue.swift \
-                           Tinycast/Features/Settings/AppSettingsKey.swift \
-                           Tinycast/Features/AI/Model/AIRequest.swift \
-                           Tinycast/Features/Agents/Model/ChatToolContent.swift \
-                           Tinycast/Features/Agents/Model/ChatAccess.swift \
-                           Tinycast/Features/AI/Model/AIConnection.swift \
-                           Tinycast/Features/AI/Model/AIModelCatalog.swift \
-                           Tinycast/Features/AI/Model/AIModelCatalogData.generated.swift \
-                           Tinycast/Features/AI/Model/AIConversationOpenPolicy.swift \
-                           Tinycast/Features/AI/Model/AppleIntelligence.swift \
-                           Tinycast/Features/AI/Model/AIAttachmentPolicy.swift \
-                           Tinycast/Features/AI/Model/AIRetention.swift \
-                           Tinycast/Features/AI/Model/AITool.swift \
-                           Tinycast/Features/AI/Model/JSONValue.swift \
-                           Tinycast/Features/AI/Model/ChatMessage.swift \
-                           Tinycast/Features/AI/Model/ChatSession.swift \
-                           Tinycast/Features/AI/Model/ChatChoices.swift \
-                           Tinycast/Features/AI/Model/ChatToolScope.swift \
-                           Tinycast/Features/AI/Service/AIProvider.swift \
-                           Tinycast/Features/AI/Service/ChatHistoryStore.swift \
-                           Tinycast/Features/AI/Model/ChatDraftFacts.swift \
-                           Tinycast/Features/AI/UI/AIChatState.swift \
-                           Tinycast/Features/AI/UI/AIChatSurfacesState.swift
-run syntax-highlight-test  Tinycast/Features/AI/Model/SyntaxGrammar.swift \
-                           Tinycast/Features/AI/Model/SyntaxHighlighter.swift \
-                           Tinycast/Features/AI/Model/SyntaxStructuredLexers.swift
-run mcp-test               Tinycast/Features/Settings/AppSettingsKey.swift \
-                           Tinycast/Features/AI/Model/AIConnection.swift \
-                           Tinycast/Features/AI/Model/AppleIntelligence.swift \
-                           Tinycast/Features/AI/Model/AITool.swift \
-                           Tinycast/Features/AI/Model/AIToolServer.swift \
-                           Tinycast/Features/AI/Model/JSONValue.swift \
-                           Tinycast/Features/MCP/Model/*.swift Tinycast/Features/Agents/Model/ChatAccess.swift \
-                           Tinycast/Features/MCP/Settings/MCPSettingsStore.swift
-run -O text-diff-test      Tinycast/Features/QuickActions/Model/TextDiffEngine.swift
-run index text-diff-performance Tinycast/Features/QuickActions/Model/TextDiffEngine.swift
-run screen-awareness-test  Tinycast/Features/ScreenAwareness/Model/*.swift \
-                           Tinycast/Features/ScreenAwareness/Service/ScreenAgentTools.swift \
-                           Tinycast/Features/ScreenAwareness/Service/ScreenContextReader.swift \
-                           Tinycast/Platform/AccessibilityText.swift \
-                           Tinycast/Features/Agents/Model/*.swift \
-                           Tinycast/Features/WebSearch/Model/*.swift \
-                           Tinycast/Features/AI/Model/AIAttachmentPolicy.swift \
-                           Tinycast/Features/AI/Model/AIRequest.swift \
-                           Tinycast/Features/Settings/AppSettingsKey.swift \
-                           Tinycast/Features/AI/Model/AITool.swift \
-                           Tinycast/Features/AI/Model/JSONValue.swift \
-                           Tinycast/Features/AI/Model/AIConnection.swift \
-                           Tinycast/Features/AI/Model/AppleIntelligence.swift \
-                           Tinycast/Features/AI/Model/ChatGPTSubscription.swift \
-                           Tinycast/Features/AI/Model/InstalledAI.swift
-run voice-ai-test          Tinycast/Features/VoiceAI/Model/*.swift \
-                           Tinycast/Features/Dictation/Model/DictationLanguage.swift \
-                           Tinycast/Features/Agents/Model/ChatToolContent.swift \
-                           Tinycast/Features/Settings/AppSettingsKey.swift \
-                           Tinycast/Features/AI/Model/*.swift \
-                           Tinycast/Features/ReasoningReplay/Model/*.swift \
-                           Tinycast/Features/AI/Settings/AISettingsStore.swift
-run voice-coordinator-test Tinycast/Features/VoiceAI/Model/*.swift \
-                           Tinycast/Features/Agents/Model/ChatToolContent.swift \
-                           Tinycast/Features/VoiceAI/Service/VoiceCloudTranscriber.swift \
-                           Tinycast/Features/VoiceAI/Service/VoiceMediaEncoder.swift \
-                           Tinycast/Features/VoiceAI/Settings/VoiceAISettings.swift \
-                           Tinycast/Features/VoiceAI/UI/VoiceAskCoordinator.swift \
-                           Tinycast/Features/Settings/AppSettingsKey.swift \
-                           Tinycast/Features/AI/Model/*.swift \
-                           Tinycast/Features/ReasoningReplay/Model/*.swift \
-                           Tinycast/Features/AI/Service/AIProvider.swift \
-                           Tinycast/Features/AI/Settings/AISettingsStore.swift \
-                           Tinycast/Features/Dictation/Model/DictationMode.swift \
-                           Tinycast/Features/Dictation/Model/DictationLanguage.swift \
-                           Tinycast/Platform/SystemLanguages.swift \
-                           Tinycast/Features/ScreenAwareness/Model/*.swift \
-                           Tinycast/Features/QuickActions/Model/CustomQuickAction.swift \
-                           Tinycast/Features/QuickActions/Model/QuickActionFailure.swift \
-                           Tinycast/Features/DictationHistory/Model/DictationHistoryEntry.swift \
-                           Tinycast/Features/DictationHistory/Model/DictationRetry.swift
+                           Redcast/Features/ColorfulIcons/Model/RaycastHue.swift \
+                           Redcast/Features/Settings/AppSettingsKey.swift \
+                           Redcast/Features/AI/Model/AIRequest.swift \
+                           Redcast/Features/Agents/Model/ChatToolContent.swift \
+                           Redcast/Features/Agents/Model/ChatAccess.swift \
+                           Redcast/Features/AI/Model/AIConnection.swift \
+                           Redcast/Features/AI/Model/AIModelCatalog.swift \
+                           Redcast/Features/AI/Model/AIModelCatalogData.generated.swift \
+                           Redcast/Features/AI/Model/AIConversationOpenPolicy.swift \
+                           Redcast/Features/AI/Model/AppleIntelligence.swift \
+                           Redcast/Features/AI/Model/AIAttachmentPolicy.swift \
+                           Redcast/Features/AI/Model/AIRetention.swift \
+                           Redcast/Features/AI/Model/AITool.swift \
+                           Redcast/Features/AI/Model/JSONValue.swift \
+                           Redcast/Features/AI/Model/ChatMessage.swift \
+                           Redcast/Features/AI/Model/ChatSession.swift \
+                           Redcast/Features/AI/Model/ChatChoices.swift \
+                           Redcast/Features/AI/Model/ChatToolScope.swift \
+                           Redcast/Features/AI/Service/AIProvider.swift \
+                           Redcast/Features/AI/Service/ChatHistoryStore.swift \
+                           Redcast/Features/AI/Model/ChatDraftFacts.swift \
+                           Redcast/Features/AI/UI/AIChatState.swift \
+                           Redcast/Features/AI/UI/AIChatSurfacesState.swift
+run syntax-highlight-test  Redcast/Features/AI/Model/SyntaxGrammar.swift \
+                           Redcast/Features/AI/Model/SyntaxHighlighter.swift \
+                           Redcast/Features/AI/Model/SyntaxStructuredLexers.swift
+run mcp-test               Redcast/Features/Settings/AppSettingsKey.swift \
+                           Redcast/Features/AI/Model/AIConnection.swift \
+                           Redcast/Features/AI/Model/AppleIntelligence.swift \
+                           Redcast/Features/AI/Model/AITool.swift \
+                           Redcast/Features/AI/Model/AIToolServer.swift \
+                           Redcast/Features/AI/Model/JSONValue.swift \
+                           Redcast/Features/MCP/Model/*.swift Redcast/Features/Agents/Model/ChatAccess.swift \
+                           Redcast/Features/MCP/Settings/MCPSettingsStore.swift
+run -O text-diff-test      Redcast/Features/QuickActions/Model/TextDiffEngine.swift
+run index text-diff-performance Redcast/Features/QuickActions/Model/TextDiffEngine.swift
+run screen-awareness-test  Redcast/Features/ScreenAwareness/Model/*.swift \
+                           Redcast/Features/ScreenAwareness/Service/ScreenAgentTools.swift \
+                           Redcast/Features/ScreenAwareness/Service/ScreenContextReader.swift \
+                           Redcast/Platform/AccessibilityText.swift \
+                           Redcast/Features/Agents/Model/*.swift \
+                           Redcast/Features/WebSearch/Model/*.swift \
+                           Redcast/Features/AI/Model/AIAttachmentPolicy.swift \
+                           Redcast/Features/AI/Model/AIRequest.swift \
+                           Redcast/Features/Settings/AppSettingsKey.swift \
+                           Redcast/Features/AI/Model/AITool.swift \
+                           Redcast/Features/AI/Model/JSONValue.swift \
+                           Redcast/Features/AI/Model/AIConnection.swift \
+                           Redcast/Features/AI/Model/AppleIntelligence.swift \
+                           Redcast/Features/AI/Model/ChatGPTSubscription.swift \
+                           Redcast/Features/AI/Model/InstalledAI.swift
+run voice-ai-test          Redcast/Features/VoiceAI/Model/*.swift \
+                           Redcast/Features/Dictation/Model/DictationLanguage.swift \
+                           Redcast/Features/Agents/Model/ChatToolContent.swift \
+                           Redcast/Features/Settings/AppSettingsKey.swift \
+                           Redcast/Features/AI/Model/*.swift \
+                           Redcast/Features/ReasoningReplay/Model/*.swift \
+                           Redcast/Features/AI/Settings/AISettingsStore.swift
+run voice-coordinator-test Redcast/Features/VoiceAI/Model/*.swift \
+                           Redcast/Features/Agents/Model/ChatToolContent.swift \
+                           Redcast/Features/VoiceAI/Service/VoiceCloudTranscriber.swift \
+                           Redcast/Features/VoiceAI/Service/VoiceMediaEncoder.swift \
+                           Redcast/Features/VoiceAI/Settings/VoiceAISettings.swift \
+                           Redcast/Features/VoiceAI/UI/VoiceAskCoordinator.swift \
+                           Redcast/Features/Settings/AppSettingsKey.swift \
+                           Redcast/Features/AI/Model/*.swift \
+                           Redcast/Features/ReasoningReplay/Model/*.swift \
+                           Redcast/Features/AI/Service/AIProvider.swift \
+                           Redcast/Features/AI/Settings/AISettingsStore.swift \
+                           Redcast/Features/Dictation/Model/DictationMode.swift \
+                           Redcast/Features/Dictation/Model/DictationLanguage.swift \
+                           Redcast/Platform/SystemLanguages.swift \
+                           Redcast/Features/ScreenAwareness/Model/*.swift \
+                           Redcast/Features/QuickActions/Model/CustomQuickAction.swift \
+                           Redcast/Features/QuickActions/Model/QuickActionFailure.swift \
+                           Redcast/Features/DictationHistory/Model/DictationHistoryEntry.swift \
+                           Redcast/Features/DictationHistory/Model/DictationRetry.swift
 # Fork: Dictation History's line format, file, search, kept recordings and retries.
-run dictation-history-test Tinycast/Features/DictationHistory/Model/*.swift \
-                           Tinycast/Features/DictationHistory/Service/DictationHistoryFile.swift \
-                           Tinycast/Features/DictationHistory/Service/DictationRecordingFolder.swift \
-                           Tinycast/Features/VoiceAI/Model/VoiceAudio.swift \
-                           Tinycast/Platform/AppPaths.swift
+run dictation-history-test Redcast/Features/DictationHistory/Model/*.swift \
+                           Redcast/Features/DictationHistory/Service/DictationHistoryFile.swift \
+                           Redcast/Features/DictationHistory/Service/DictationRecordingFolder.swift \
+                           Redcast/Features/VoiceAI/Model/VoiceAudio.swift \
+                           Redcast/Platform/AppPaths.swift
 # Fork: what Send to AI hands Quick AI or a new chat for each kind of row.
-run send-to-ai-test        Tinycast/Features/SendToAI/Model/*.swift \
-                           Tinycast/Features/Clipboard/Model/ColorValue.swift \
-                           Tinycast/Features/Clipboard/Model/ColorFormat.swift \
-                           Tinycast/Features/Clipboard/Model/ColorSpaces.swift
+run send-to-ai-test        Redcast/Features/SendToAI/Model/*.swift \
+                           Redcast/Features/Clipboard/Model/ColorValue.swift \
+                           Redcast/Features/Clipboard/Model/ColorFormat.swift \
+                           Redcast/Features/Clipboard/Model/ColorSpaces.swift
 # Fork: the Extension Store's three endpoints, cache, shelves, categories, search and install state.
-run extension-store-test   Tinycast/Features/ExtensionStore/Model/*.swift \
-                           Tinycast/Features/ExtensionStore/Service/ExtensionStoreCache.swift \
+run extension-store-test   Redcast/Features/ExtensionStore/Model/*.swift \
+                           Redcast/Features/ExtensionStore/Service/ExtensionStoreCache.swift \
                            $L/SearchRelevance.swift \
-                           Tinycast/Features/Extensions/Model/ExtensionListing.swift \
-                           Tinycast/Features/Extensions/Model/ExtensionStoreResponse.swift \
-                           Tinycast/Platform/AppPaths.swift
-run alias-actions-test     Tinycast/Features/AliasActions/Model/*.swift
-run acp-test               Tinycast/Features/Agents/Model/*.swift \
-                           Tinycast/Features/WebSearch/Model/*.swift \
-                           Tinycast/Features/WebSearch/Service/WebPageReader.swift \
-                           Tinycast/Features/DocumentText/Model/*.swift \
-                           Tinycast/Features/DocumentText/Service/*.swift \
-                           Tinycast/Features/AI/Model/AIAttachmentPolicy.swift \
-                           Tinycast/Features/Agents/Service/*.swift \
-                           Tinycast/Platform/NotificationToken.swift \
-                           Tinycast/Features/Settings/AppSettingsKey.swift \
-                           Tinycast/Features/AI/Model/AITool.swift \
-                           Tinycast/Features/AI/Model/AIRequest.swift \
-                           Tinycast/Features/AI/Model/AIToolServer.swift \
-                           Tinycast/Features/AI/Model/JSONValue.swift \
-                           Tinycast/Features/AI/Model/AIConnection.swift \
-                           Tinycast/Features/AI/Model/AppleIntelligence.swift \
-                           Tinycast/Features/AI/Model/ChatGPTSubscription.swift \
-                           Tinycast/Features/AI/Model/InstalledAI.swift \
-                           Tinycast/Features/AI/Service/AIProvider.swift \
-                           Tinycast/Platform/ExecutableLocator.swift \
-                           Tinycast/Platform/PseudoTerminal.swift \
-                           Tinycast/Platform/ProcessExit.swift \
-                           Tinycast/Features/CustomCommands/Service/ShellCommandRunner.swift
-run agent-tools-test       Tinycast/Features/Agents/Model/*.swift \
-                           Tinycast/Features/WebSearch/Model/*.swift \
-                           Tinycast/Features/WebSearch/Service/WebPageReader.swift \
-                           Tinycast/Features/DocumentText/Model/*.swift \
-                           Tinycast/Features/DocumentText/Service/*.swift \
-                           Tinycast/Features/DocumentText/Helper/*.swift \
-                           Tinycast/Features/Clipboard/Service/ClipboardTextExtractor.swift \
-                           Tinycast/Features/AI/Model/AIAttachmentPolicy.swift \
-                           Tinycast/Features/AI/Model/AIRequest.swift \
-                           Tinycast/Features/AI/Model/AIToolServer.swift \
-                           Tinycast/Features/AI/Service/AIProvider.swift \
-                           Tinycast/Platform/ExecutableLocator.swift \
-                           Tinycast/Features/Agents/Service/*.swift \
-                           Tinycast/Platform/NotificationToken.swift \
-                           Tinycast/Features/Settings/AppSettingsKey.swift \
-                           Tinycast/Features/AI/Model/AITool.swift \
-                           Tinycast/Features/AI/Model/JSONValue.swift \
-                           Tinycast/Features/AI/Model/AIConnection.swift \
-                           Tinycast/Features/AI/Model/AppleIntelligence.swift \
-                           Tinycast/Features/AI/Model/ChatGPTSubscription.swift \
-                           Tinycast/Features/AI/Model/InstalledAI.swift \
-                           Tinycast/Platform/PseudoTerminal.swift \
-                           Tinycast/Platform/ProcessExit.swift \
-                           Tinycast/Features/CustomCommands/Service/ShellCommandRunner.swift
-run agent-test             Tinycast/Features/Agents/Model/*.swift \
-                           Tinycast/Features/WebSearch/Model/*.swift \
-                           Tinycast/Features/AI/Model/AIAttachmentPolicy.swift \
-                           Tinycast/Features/AI/Model/AIRequest.swift \
-                           Tinycast/Features/Settings/AppSettingsKey.swift \
-                           Tinycast/Features/AI/Model/AITool.swift \
-                           Tinycast/Features/AI/Model/JSONValue.swift \
-                           Tinycast/Features/AI/Model/AIConnection.swift \
-                           Tinycast/Features/AI/Model/AppleIntelligence.swift \
-                           Tinycast/Features/AI/Model/ChatGPTSubscription.swift \
-                           Tinycast/Features/AI/Model/InstalledAI.swift
+                           Redcast/Features/Extensions/Model/ExtensionListing.swift \
+                           Redcast/Features/Extensions/Model/ExtensionStoreResponse.swift \
+                           Redcast/Platform/AppPaths.swift
+run alias-actions-test     Redcast/Features/AliasActions/Model/*.swift
+run acp-test               Redcast/Features/Agents/Model/*.swift \
+                           Redcast/Features/WebSearch/Model/*.swift \
+                           Redcast/Features/WebSearch/Service/WebPageReader.swift \
+                           Redcast/Features/DocumentText/Model/*.swift \
+                           Redcast/Features/DocumentText/Service/*.swift \
+                           Redcast/Features/AI/Model/AIAttachmentPolicy.swift \
+                           Redcast/Features/Agents/Service/*.swift \
+                           Redcast/Platform/NotificationToken.swift \
+                           Redcast/Features/Settings/AppSettingsKey.swift \
+                           Redcast/Features/AI/Model/AITool.swift \
+                           Redcast/Features/AI/Model/AIRequest.swift \
+                           Redcast/Features/AI/Model/AIToolServer.swift \
+                           Redcast/Features/AI/Model/JSONValue.swift \
+                           Redcast/Features/AI/Model/AIConnection.swift \
+                           Redcast/Features/AI/Model/AppleIntelligence.swift \
+                           Redcast/Features/AI/Model/ChatGPTSubscription.swift \
+                           Redcast/Features/AI/Model/InstalledAI.swift \
+                           Redcast/Features/AI/Service/AIProvider.swift \
+                           Redcast/Platform/ExecutableLocator.swift \
+                           Redcast/Platform/PseudoTerminal.swift \
+                           Redcast/Platform/ProcessExit.swift \
+                           Redcast/Features/CustomCommands/Service/ShellCommandRunner.swift
+run agent-tools-test       Redcast/Features/Agents/Model/*.swift \
+                           Redcast/Features/WebSearch/Model/*.swift \
+                           Redcast/Features/WebSearch/Service/WebPageReader.swift \
+                           Redcast/Features/DocumentText/Model/*.swift \
+                           Redcast/Features/DocumentText/Service/*.swift \
+                           Redcast/Features/DocumentText/Helper/*.swift \
+                           Redcast/Features/Clipboard/Service/ClipboardTextExtractor.swift \
+                           Redcast/Features/AI/Model/AIAttachmentPolicy.swift \
+                           Redcast/Features/AI/Model/AIRequest.swift \
+                           Redcast/Features/AI/Model/AIToolServer.swift \
+                           Redcast/Features/AI/Service/AIProvider.swift \
+                           Redcast/Platform/ExecutableLocator.swift \
+                           Redcast/Features/Agents/Service/*.swift \
+                           Redcast/Platform/NotificationToken.swift \
+                           Redcast/Features/Settings/AppSettingsKey.swift \
+                           Redcast/Features/AI/Model/AITool.swift \
+                           Redcast/Features/AI/Model/JSONValue.swift \
+                           Redcast/Features/AI/Model/AIConnection.swift \
+                           Redcast/Features/AI/Model/AppleIntelligence.swift \
+                           Redcast/Features/AI/Model/ChatGPTSubscription.swift \
+                           Redcast/Features/AI/Model/InstalledAI.swift \
+                           Redcast/Platform/PseudoTerminal.swift \
+                           Redcast/Platform/ProcessExit.swift \
+                           Redcast/Features/CustomCommands/Service/ShellCommandRunner.swift
+run agent-test             Redcast/Features/Agents/Model/*.swift \
+                           Redcast/Features/WebSearch/Model/*.swift \
+                           Redcast/Features/AI/Model/AIAttachmentPolicy.swift \
+                           Redcast/Features/AI/Model/AIRequest.swift \
+                           Redcast/Features/Settings/AppSettingsKey.swift \
+                           Redcast/Features/AI/Model/AITool.swift \
+                           Redcast/Features/AI/Model/JSONValue.swift \
+                           Redcast/Features/AI/Model/AIConnection.swift \
+                           Redcast/Features/AI/Model/AppleIntelligence.swift \
+                           Redcast/Features/AI/Model/ChatGPTSubscription.swift \
+                           Redcast/Features/AI/Model/InstalledAI.swift
 # Fork: skills read from four folders by precedence, the per-agent selection and the prompt.
-run agent-skills-test      Tinycast/Features/Agents/Model/*.swift \
-                           Tinycast/Features/Agents/Service/AgentContextLoader.swift \
-                           Tinycast/Features/WebSearch/Model/*.swift \
-                           Tinycast/Features/AI/Model/AIAttachmentPolicy.swift \
-                           Tinycast/Features/AI/Model/AIRequest.swift \
-                           Tinycast/Features/Settings/AppSettingsKey.swift \
-                           Tinycast/Features/AI/Model/AITool.swift \
-                           Tinycast/Features/AI/Model/JSONValue.swift \
-                           Tinycast/Features/AI/Model/AIConnection.swift \
-                           Tinycast/Features/AI/Model/AppleIntelligence.swift \
-                           Tinycast/Features/AI/Model/ChatGPTSubscription.swift \
-                           Tinycast/Features/AI/Model/InstalledAI.swift
-run agent-schedule-test    Tinycast/Features/Agents/Model/*.swift \
-                           Tinycast/Features/WebSearch/Model/*.swift \
-                           Tinycast/Features/AI/Model/AIAttachmentPolicy.swift \
-                           Tinycast/Features/Agents/Service/AgentScheduler.swift \
-                           Tinycast/Features/Agents/UI/AgentConsentGate.swift \
-                           Tinycast/Features/Agents/UI/AgentNoteWriter.swift \
-                           Tinycast/Platform/Signposts.swift \
+run agent-skills-test      Redcast/Features/Agents/Model/*.swift \
+                           Redcast/Features/Agents/Service/AgentContextLoader.swift \
+                           Redcast/Features/WebSearch/Model/*.swift \
+                           Redcast/Features/AI/Model/AIAttachmentPolicy.swift \
+                           Redcast/Features/AI/Model/AIRequest.swift \
+                           Redcast/Features/Settings/AppSettingsKey.swift \
+                           Redcast/Features/AI/Model/AITool.swift \
+                           Redcast/Features/AI/Model/JSONValue.swift \
+                           Redcast/Features/AI/Model/AIConnection.swift \
+                           Redcast/Features/AI/Model/AppleIntelligence.swift \
+                           Redcast/Features/AI/Model/ChatGPTSubscription.swift \
+                           Redcast/Features/AI/Model/InstalledAI.swift
+run agent-schedule-test    Redcast/Features/Agents/Model/*.swift \
+                           Redcast/Features/WebSearch/Model/*.swift \
+                           Redcast/Features/AI/Model/AIAttachmentPolicy.swift \
+                           Redcast/Features/Agents/Service/AgentScheduler.swift \
+                           Redcast/Features/Agents/UI/AgentConsentGate.swift \
+                           Redcast/Features/Agents/UI/AgentNoteWriter.swift \
+                           Redcast/Platform/Signposts.swift \
                            $L/SearchRelevance.swift \
-                           Tinycast/Features/Notes/Model/*.swift \
-                           Tinycast/Features/Notes/Service/*.swift \
-                           Tinycast/Platform/NotificationToken.swift \
-                           Tinycast/Features/AI/Model/AIRequest.swift \
-                           Tinycast/Features/Settings/AppSettingsKey.swift \
-                           Tinycast/Features/AI/Model/AITool.swift \
-                           Tinycast/Features/AI/Model/JSONValue.swift \
-                           Tinycast/Features/AI/Model/AIConnection.swift \
-                           Tinycast/Features/AI/Model/AppleIntelligence.swift \
-                           Tinycast/Features/AI/Model/ChatGPTSubscription.swift \
-                           Tinycast/Features/AI/Model/InstalledAI.swift
-run agent-loop-test        Tinycast/Features/Agents/Model/*.swift \
-                           Tinycast/Features/Agents/Service/AgentLoopProvider.swift \
-                           Tinycast/Features/Agents/Service/AgentDelegateTools.swift \
-                           Tinycast/Features/Agents/Service/AgentSpendMeter.swift \
-                           Tinycast/Features/AI/Model/AIRequest.swift \
-                           Tinycast/Features/Settings/AppSettingsKey.swift \
-                           Tinycast/Features/AI/Model/AITool.swift \
-                           Tinycast/Features/AI/Model/JSONValue.swift \
-                           Tinycast/Features/AI/Model/AIConnection.swift \
-                           Tinycast/Features/AI/Model/AppleIntelligence.swift \
-                           Tinycast/Features/AI/Model/ChatGPTSubscription.swift \
-                           Tinycast/Features/AI/Model/InstalledAI.swift \
-                           Tinycast/Features/AI/Service/AIProvider.swift \
-                           Tinycast/Features/AI/Service/AIToolLoopProvider.swift \
-                           Tinycast/Features/WebSearch/Model/*.swift \
-                           Tinycast/Features/AI/Model/AIAttachmentPolicy.swift
+                           Redcast/Features/Notes/Model/*.swift \
+                           Redcast/Features/Notes/Service/*.swift \
+                           Redcast/Platform/NotificationToken.swift \
+                           Redcast/Features/AI/Model/AIRequest.swift \
+                           Redcast/Features/Settings/AppSettingsKey.swift \
+                           Redcast/Features/AI/Model/AITool.swift \
+                           Redcast/Features/AI/Model/JSONValue.swift \
+                           Redcast/Features/AI/Model/AIConnection.swift \
+                           Redcast/Features/AI/Model/AppleIntelligence.swift \
+                           Redcast/Features/AI/Model/ChatGPTSubscription.swift \
+                           Redcast/Features/AI/Model/InstalledAI.swift
+run agent-loop-test        Redcast/Features/Agents/Model/*.swift \
+                           Redcast/Features/Agents/Service/AgentLoopProvider.swift \
+                           Redcast/Features/Agents/Service/AgentDelegateTools.swift \
+                           Redcast/Features/Agents/Service/AgentSpendMeter.swift \
+                           Redcast/Features/AI/Model/AIRequest.swift \
+                           Redcast/Features/Settings/AppSettingsKey.swift \
+                           Redcast/Features/AI/Model/AITool.swift \
+                           Redcast/Features/AI/Model/JSONValue.swift \
+                           Redcast/Features/AI/Model/AIConnection.swift \
+                           Redcast/Features/AI/Model/AppleIntelligence.swift \
+                           Redcast/Features/AI/Model/ChatGPTSubscription.swift \
+                           Redcast/Features/AI/Model/InstalledAI.swift \
+                           Redcast/Features/AI/Service/AIProvider.swift \
+                           Redcast/Features/AI/Service/AIToolLoopProvider.swift \
+                           Redcast/Features/WebSearch/Model/*.swift \
+                           Redcast/Features/AI/Model/AIAttachmentPolicy.swift
 # Fork: the native agent end to end, real loop and tools on each provider's wire; it is its own helper.
-run agent-scenario-test    Tinycast/Features/Agents/Model/*.swift \
-                           Tinycast/Features/Agents/Service/*.swift \
-                           Tinycast/Features/AI/Model/*.swift \
-                           Tinycast/Features/ReasoningReplay/Model/*.swift \
-                           Tinycast/Features/AI/Service/AIProvider.swift \
-                           Tinycast/Features/WebSearch/Model/*.swift \
-                           Tinycast/Features/WebSearch/Service/*.swift \
-                           Tinycast/Features/DocumentText/Model/*.swift \
-                           Tinycast/Features/DocumentText/Service/*.swift \
-                           Tinycast/Features/DocumentText/Helper/*.swift \
-                           Tinycast/Features/Clipboard/Service/ClipboardTextExtractor.swift \
-                           Tinycast/Features/Settings/AppSettingsKey.swift \
-                           Tinycast/Platform/NotificationToken.swift \
-                           Tinycast/Platform/ExecutableLocator.swift \
-                           Tinycast/Platform/PseudoTerminal.swift \
-                           Tinycast/Platform/ProcessExit.swift \
-                           Tinycast/Features/CustomCommands/Service/ShellCommandRunner.swift
-run web-search-test        Tinycast/Features/WebSearch/Model/*.swift \
-                           Tinycast/Features/AI/Model/AIAttachmentPolicy.swift \
-                           Tinycast/Features/WebSearch/Service/*.swift \
-                           Tinycast/Features/DocumentText/Model/*.swift \
-                           Tinycast/Features/DocumentText/Service/*.swift \
-                           Tinycast/Features/DocumentText/Helper/*.swift \
-                           Tinycast/Features/Clipboard/Service/ClipboardTextExtractor.swift \
-                           Tinycast/Platform/ProcessExit.swift \
-                           Tinycast/Features/Agents/Service/AgentWebRounds.swift \
-                           Tinycast/Features/Agents/Model/*.swift \
-                           Tinycast/Features/Agents/Service/AgentLoopProvider.swift \
-                           Tinycast/Features/AI/Model/AIRequest.swift \
-                           Tinycast/Features/Settings/AppSettingsKey.swift \
-                           Tinycast/Features/AI/Model/AITool.swift \
-                           Tinycast/Features/AI/Model/JSONValue.swift \
-                           Tinycast/Features/AI/Model/AIConnection.swift \
-                           Tinycast/Features/AI/Model/AppleIntelligence.swift \
-                           Tinycast/Features/AI/Model/ChatGPTSubscription.swift \
-                           Tinycast/Features/AI/Model/InstalledAI.swift \
-                           Tinycast/Features/AI/Service/AIProvider.swift \
-                           Tinycast/Features/AI/Service/AIToolLoopProvider.swift
-run quick-ai-tools-test    Tinycast/Features/QuickAITools/Model/*.swift \
-                           Tinycast/Features/Agents/Settings/AgentDefaultStore.swift \
-                           Tinycast/Features/Settings/AppSettingsKey.swift \
-                           Tinycast/Features/WebSearch/Model/*.swift \
-                           Tinycast/Features/AI/Model/AIRequest.swift \
-                           Tinycast/Features/Agents/Model/ChatToolContent.swift \
-                           Tinycast/Features/AI/Model/AITool.swift \
-                           Tinycast/Features/AI/Model/JSONValue.swift \
-                           Tinycast/Features/AI/Model/AIAttachmentPolicy.swift \
-                           Tinycast/Features/AI/Model/AIConnection.swift \
-                           Tinycast/Features/AI/Model/AppleIntelligence.swift \
-                           Tinycast/Features/AI/Model/ChatGPTSubscription.swift \
-                           Tinycast/Features/AI/Model/InstalledAI.swift
-run ext-ai-test            Tinycast/Features/ExtensionAI/Model/*.swift \
-                           Tinycast/Features/Agents/Model/ChatToolContent.swift \
-                           Tinycast/Features/ExtensionAI/Service/*.swift \
-                           Tinycast/Features/ExtensionAI/Settings/ExtensionAISettingsStore.swift \
-                           Tinycast/Features/Settings/AppSettingsKey.swift \
-                           Tinycast/Features/Extensions/Model/RenderNode.swift \
-                           Tinycast/Features/AI/Model/*.swift \
-                           Tinycast/Features/ReasoningReplay/Model/*.swift \
-                           Tinycast/Features/AI/Settings/AISettingsStore.swift \
-                           Tinycast/Features/AI/Service/AIProvider.swift
-run usage-dashboard-test   Tinycast/Features/AI/Model/AIRequest.swift \
-                           Tinycast/Features/Agents/Model/ChatToolContent.swift \
-                           Tinycast/Features/AI/Model/AIRequestBody.swift \
-                           Tinycast/Features/ReasoningReplay/Model/*.swift \
-                           Tinycast/Features/AI/Model/AIConnection.swift \
-                           Tinycast/Features/AI/Model/AppleIntelligence.swift \
-                           Tinycast/Features/AI/Model/ChatGPTSubscription.swift \
-                           Tinycast/Features/AI/Model/InstalledAI.swift \
-                           Tinycast/Features/AI/Model/AIAttachmentPolicy.swift \
-                           Tinycast/Features/AI/Model/AITool.swift \
-                           Tinycast/Features/AI/Model/JSONValue.swift \
-                           Tinycast/Features/AI/Model/ChatMessage.swift \
-                           Tinycast/Features/AI/Model/ChatSession.swift \
-                           Tinycast/Features/AI/Model/ChatChoices.swift \
-                           Tinycast/Features/AI/Service/AIProvider.swift \
-                           Tinycast/Features/AI/Service/ChatHistoryStore.swift \
-                           Tinycast/Features/AI/Service/AIToolLoopProvider.swift \
-                           Tinycast/Features/WebSearch/Model/*.swift \
-                           Tinycast/Features/UsageDashboard/Model/*.swift \
-                           Tinycast/Features/UsageDashboard/Service/UsageQuery.swift \
-                           Tinycast/Features/UsageDashboard/Service/UsageLedger.swift \
-                           Tinycast/Features/UsageDashboard/Service/UsageRecordingProvider.swift \
-                           Tinycast/Platform/AppPaths.swift
-run codex-plan-test        Tinycast/Features/CodexProvider/Model/*.swift \
-                           Tinycast/Features/AI/Model/*.swift \
-                           Tinycast/Features/ReasoningReplay/Model/*.swift \
-                           Tinycast/Features/Agents/Model/ChatToolContent.swift \
-                           Tinycast/Features/Settings/AppSettingsKey.swift
-AS=Tinycast/Features/AgentSessions
+run agent-scenario-test    Redcast/Features/Agents/Model/*.swift \
+                           Redcast/Features/Agents/Service/*.swift \
+                           Redcast/Features/AI/Model/*.swift \
+                           Redcast/Features/ReasoningReplay/Model/*.swift \
+                           Redcast/Features/AI/Service/AIProvider.swift \
+                           Redcast/Features/WebSearch/Model/*.swift \
+                           Redcast/Features/WebSearch/Service/*.swift \
+                           Redcast/Features/DocumentText/Model/*.swift \
+                           Redcast/Features/DocumentText/Service/*.swift \
+                           Redcast/Features/DocumentText/Helper/*.swift \
+                           Redcast/Features/Clipboard/Service/ClipboardTextExtractor.swift \
+                           Redcast/Features/Settings/AppSettingsKey.swift \
+                           Redcast/Platform/NotificationToken.swift \
+                           Redcast/Platform/ExecutableLocator.swift \
+                           Redcast/Platform/PseudoTerminal.swift \
+                           Redcast/Platform/ProcessExit.swift \
+                           Redcast/Features/CustomCommands/Service/ShellCommandRunner.swift
+run web-search-test        Redcast/Features/WebSearch/Model/*.swift \
+                           Redcast/Features/AI/Model/AIAttachmentPolicy.swift \
+                           Redcast/Features/WebSearch/Service/*.swift \
+                           Redcast/Features/DocumentText/Model/*.swift \
+                           Redcast/Features/DocumentText/Service/*.swift \
+                           Redcast/Features/DocumentText/Helper/*.swift \
+                           Redcast/Features/Clipboard/Service/ClipboardTextExtractor.swift \
+                           Redcast/Platform/ProcessExit.swift \
+                           Redcast/Features/Agents/Service/AgentWebRounds.swift \
+                           Redcast/Features/Agents/Model/*.swift \
+                           Redcast/Features/Agents/Service/AgentLoopProvider.swift \
+                           Redcast/Features/AI/Model/AIRequest.swift \
+                           Redcast/Features/Settings/AppSettingsKey.swift \
+                           Redcast/Features/AI/Model/AITool.swift \
+                           Redcast/Features/AI/Model/JSONValue.swift \
+                           Redcast/Features/AI/Model/AIConnection.swift \
+                           Redcast/Features/AI/Model/AppleIntelligence.swift \
+                           Redcast/Features/AI/Model/ChatGPTSubscription.swift \
+                           Redcast/Features/AI/Model/InstalledAI.swift \
+                           Redcast/Features/AI/Service/AIProvider.swift \
+                           Redcast/Features/AI/Service/AIToolLoopProvider.swift
+run quick-ai-tools-test    Redcast/Features/QuickAITools/Model/*.swift \
+                           Redcast/Features/Agents/Settings/AgentDefaultStore.swift \
+                           Redcast/Features/Settings/AppSettingsKey.swift \
+                           Redcast/Features/WebSearch/Model/*.swift \
+                           Redcast/Features/AI/Model/AIRequest.swift \
+                           Redcast/Features/Agents/Model/ChatToolContent.swift \
+                           Redcast/Features/AI/Model/AITool.swift \
+                           Redcast/Features/AI/Model/JSONValue.swift \
+                           Redcast/Features/AI/Model/AIAttachmentPolicy.swift \
+                           Redcast/Features/AI/Model/AIConnection.swift \
+                           Redcast/Features/AI/Model/AppleIntelligence.swift \
+                           Redcast/Features/AI/Model/ChatGPTSubscription.swift \
+                           Redcast/Features/AI/Model/InstalledAI.swift
+run ext-ai-test            Redcast/Features/ExtensionAI/Model/*.swift \
+                           Redcast/Features/Agents/Model/ChatToolContent.swift \
+                           Redcast/Features/ExtensionAI/Service/*.swift \
+                           Redcast/Features/ExtensionAI/Settings/ExtensionAISettingsStore.swift \
+                           Redcast/Features/Settings/AppSettingsKey.swift \
+                           Redcast/Features/Extensions/Model/RenderNode.swift \
+                           Redcast/Features/AI/Model/*.swift \
+                           Redcast/Features/ReasoningReplay/Model/*.swift \
+                           Redcast/Features/AI/Settings/AISettingsStore.swift \
+                           Redcast/Features/AI/Service/AIProvider.swift
+run usage-dashboard-test   Redcast/Features/AI/Model/AIRequest.swift \
+                           Redcast/Features/Agents/Model/ChatToolContent.swift \
+                           Redcast/Features/AI/Model/AIRequestBody.swift \
+                           Redcast/Features/ReasoningReplay/Model/*.swift \
+                           Redcast/Features/AI/Model/AIConnection.swift \
+                           Redcast/Features/AI/Model/AppleIntelligence.swift \
+                           Redcast/Features/AI/Model/ChatGPTSubscription.swift \
+                           Redcast/Features/AI/Model/InstalledAI.swift \
+                           Redcast/Features/AI/Model/AIAttachmentPolicy.swift \
+                           Redcast/Features/AI/Model/AITool.swift \
+                           Redcast/Features/AI/Model/JSONValue.swift \
+                           Redcast/Features/AI/Model/ChatMessage.swift \
+                           Redcast/Features/AI/Model/ChatSession.swift \
+                           Redcast/Features/AI/Model/ChatChoices.swift \
+                           Redcast/Features/AI/Service/AIProvider.swift \
+                           Redcast/Features/AI/Service/ChatHistoryStore.swift \
+                           Redcast/Features/AI/Service/AIToolLoopProvider.swift \
+                           Redcast/Features/WebSearch/Model/*.swift \
+                           Redcast/Features/UsageDashboard/Model/*.swift \
+                           Redcast/Features/UsageDashboard/Service/UsageQuery.swift \
+                           Redcast/Features/UsageDashboard/Service/UsageLedger.swift \
+                           Redcast/Features/UsageDashboard/Service/UsageRecordingProvider.swift \
+                           Redcast/Platform/AppPaths.swift
+run codex-plan-test        Redcast/Features/CodexProvider/Model/*.swift \
+                           Redcast/Features/AI/Model/*.swift \
+                           Redcast/Features/ReasoningReplay/Model/*.swift \
+                           Redcast/Features/Agents/Model/ChatToolContent.swift \
+                           Redcast/Features/Settings/AppSettingsKey.swift
+AS=Redcast/Features/AgentSessions
 run slow agent-sessions-test $L/SearchRelevance.swift $AS/Model/*.swift \
                            $AS/Service/AgentSessionsScanner.swift $AS/Service/AgentTranscriptSearch.swift \
                            $AS/Service/AgentHookRepository.swift $AS/Service/ClaudeLiveSessionsProbe.swift \
-                           Tinycast/Features/Agents/Service/ProcessTree.swift \
-                           Tinycast/Platform/ExecutableLocator.swift Tinycast/Platform/ProcessExit.swift
+                           Redcast/Features/Agents/Service/ProcessTree.swift \
+                           Redcast/Platform/ExecutableLocator.swift Redcast/Platform/ProcessExit.swift
 run index agent-sessions-performance $L/SearchRelevance.swift $AS/Model/*.swift
-run quick-action-test      Tinycast/Features/Settings/AppSettingsKey.swift \
-                           Tinycast/Features/AI/Model/AIConnection.swift \
-                           Tinycast/Features/AI/Model/AppleIntelligence.swift \
-                           Tinycast/Features/AI/Model/ChatGPTSubscription.swift \
-                           Tinycast/Features/AI/Model/InstalledAI.swift \
-                           Tinycast/Features/QuickActions/Model/BuiltInQuickAction.swift \
-                           Tinycast/Features/QuickActions/Model/CustomQuickAction.swift \
-                           Tinycast/Features/QuickActions/Model/CustomQuickActionStore.swift \
-                           Tinycast/Features/QuickActions/Model/QuickAction.swift \
-                           Tinycast/Features/QuickActions/Model/QuickActionFailure.swift \
-                           Tinycast/Features/QuickActions/Model/QuickActionPrompt.swift \
-                           Tinycast/Features/QuickActions/Model/QuickActionSettings.swift \
-                           Tinycast/Features/QuickActions/Model/QuickActionTemplate.swift \
-                           Tinycast/Features/Snippets/Model/Snippet.swift \
-                           Tinycast/Features/Snippets/Model/SnippetTemplateEngine.swift \
-                           Tinycast/Features/QuickActions/Settings/QuickActionSettingsStore.swift \
-                           Tinycast/Features/QuickActionModels/Model/QuickActionRoutes.swift \
-                           Tinycast/Platform/LocalizedResource.swift
+run quick-action-test      Redcast/Features/Settings/AppSettingsKey.swift \
+                           Redcast/Features/AI/Model/AIConnection.swift \
+                           Redcast/Features/AI/Model/AppleIntelligence.swift \
+                           Redcast/Features/AI/Model/ChatGPTSubscription.swift \
+                           Redcast/Features/AI/Model/InstalledAI.swift \
+                           Redcast/Features/QuickActions/Model/BuiltInQuickAction.swift \
+                           Redcast/Features/QuickActions/Model/CustomQuickAction.swift \
+                           Redcast/Features/QuickActions/Model/CustomQuickActionStore.swift \
+                           Redcast/Features/QuickActions/Model/QuickAction.swift \
+                           Redcast/Features/QuickActions/Model/QuickActionFailure.swift \
+                           Redcast/Features/QuickActions/Model/QuickActionPrompt.swift \
+                           Redcast/Features/QuickActions/Model/QuickActionSettings.swift \
+                           Redcast/Features/QuickActions/Model/QuickActionTemplate.swift \
+                           Redcast/Features/Snippets/Model/Snippet.swift \
+                           Redcast/Features/Snippets/Model/SnippetTemplateEngine.swift \
+                           Redcast/Features/QuickActions/Settings/QuickActionSettingsStore.swift \
+                           Redcast/Features/QuickActionModels/Model/QuickActionRoutes.swift \
+                           Redcast/Platform/LocalizedResource.swift
 # Fork: a custom action's own model: persisted per entry, and the default when its connection goes.
-run quick-action-model-test Tinycast/Features/Settings/AppSettingsKey.swift \
-                           Tinycast/Features/AI/Model/AIConnection.swift \
-                           Tinycast/Features/AI/Model/AppleIntelligence.swift \
-                           Tinycast/Features/AI/Model/ChatGPTSubscription.swift \
-                           Tinycast/Features/AI/Model/InstalledAI.swift \
-                           Tinycast/Features/QuickActions/Model/BuiltInQuickAction.swift \
-                           Tinycast/Features/QuickActions/Model/CustomQuickAction.swift \
-                           Tinycast/Features/QuickActions/Model/QuickAction.swift \
-                           Tinycast/Features/QuickActions/Model/QuickActionSettings.swift \
-                           Tinycast/Features/QuickActions/Settings/QuickActionSettingsStore.swift \
-                           Tinycast/Features/QuickActionModels/Model/QuickActionRoutes.swift \
-                           Tinycast/Platform/LocalizedResource.swift
-run apple-intelligence-test Tinycast/Features/Settings/AppSettingsKey.swift \
-                           Tinycast/Features/AI/Model/*.swift \
-                           Tinycast/Features/ReasoningReplay/Model/*.swift \
-                           Tinycast/Features/Agents/Model/ChatToolContent.swift \
-                           Tinycast/Features/AI/Service/AIProvider.swift \
-                           Tinycast/Features/AI/Service/AppleIntelligenceProvider.swift
-run mcp-oauth-test         Tinycast/Platform/ExecutableLocator.swift \
-                           Tinycast/Platform/ProcessExit.swift \
-                           Tinycast/Platform/KeychainSecretStore.swift \
-                           Tinycast/Features/BundleMigration/Model/LegacyBundleMigration.swift \
-                           Tinycast/Features/Settings/AppSettingsKey.swift \
-                           Tinycast/Features/AI/Model/AIConnection.swift \
-                           Tinycast/Features/AI/Model/AppleIntelligence.swift \
-                           Tinycast/Features/AI/Model/AITool.swift \
-                           Tinycast/Features/AI/Model/AIToolServer.swift \
-                           Tinycast/Features/AI/Model/AIStreamDecoder.swift \
-                           Tinycast/Features/ReasoningReplay/Model/*.swift \
-                           Tinycast/Features/AI/Model/AIProviderFailure.swift \
-                           Tinycast/Features/AI/Model/AIThinkTagDecoder.swift \
-                           Tinycast/Features/AI/Model/AIRequest.swift \
-                           Tinycast/Features/Agents/Model/ChatToolContent.swift \
-                           Tinycast/Features/Agents/Model/ChatAccess.swift \
-                           Tinycast/Features/AI/Model/JSONValue.swift \
-                           Tinycast/Features/MCP/Model/*.swift \
-                           Tinycast/Features/MCP/Service/*.swift
-run slow mcp-stdio-test    Tinycast/Platform/ExecutableLocator.swift \
-                           Tinycast/Platform/ProcessExit.swift \
-                           Tinycast/Platform/KeychainSecretStore.swift \
-                           Tinycast/Features/BundleMigration/Model/LegacyBundleMigration.swift \
-                           Tinycast/Features/Settings/AppSettingsKey.swift \
-                           Tinycast/Features/AI/Model/AIConnection.swift \
-                           Tinycast/Features/AI/Model/AppleIntelligence.swift \
-                           Tinycast/Features/AI/Model/AITool.swift \
-                           Tinycast/Features/AI/Model/AIToolServer.swift \
-                           Tinycast/Features/AI/Model/AIStreamDecoder.swift \
-                           Tinycast/Features/ReasoningReplay/Model/*.swift \
-                           Tinycast/Features/AI/Model/AIProviderFailure.swift \
-                           Tinycast/Features/AI/Model/AIThinkTagDecoder.swift \
-                           Tinycast/Features/AI/Model/AIRequest.swift \
-                           Tinycast/Features/Agents/Model/ChatToolContent.swift \
-                           Tinycast/Features/Agents/Model/ChatAccess.swift \
-                           Tinycast/Features/AI/Model/JSONValue.swift \
-                           Tinycast/Features/MCP/Model/*.swift \
-                           Tinycast/Features/MCP/Service/*.swift
+run quick-action-model-test Redcast/Features/Settings/AppSettingsKey.swift \
+                           Redcast/Features/AI/Model/AIConnection.swift \
+                           Redcast/Features/AI/Model/AppleIntelligence.swift \
+                           Redcast/Features/AI/Model/ChatGPTSubscription.swift \
+                           Redcast/Features/AI/Model/InstalledAI.swift \
+                           Redcast/Features/QuickActions/Model/BuiltInQuickAction.swift \
+                           Redcast/Features/QuickActions/Model/CustomQuickAction.swift \
+                           Redcast/Features/QuickActions/Model/QuickAction.swift \
+                           Redcast/Features/QuickActions/Model/QuickActionSettings.swift \
+                           Redcast/Features/QuickActions/Settings/QuickActionSettingsStore.swift \
+                           Redcast/Features/QuickActionModels/Model/QuickActionRoutes.swift \
+                           Redcast/Platform/LocalizedResource.swift
+run apple-intelligence-test Redcast/Features/Settings/AppSettingsKey.swift \
+                           Redcast/Features/AI/Model/*.swift \
+                           Redcast/Features/ReasoningReplay/Model/*.swift \
+                           Redcast/Features/Agents/Model/ChatToolContent.swift \
+                           Redcast/Features/AI/Service/AIProvider.swift \
+                           Redcast/Features/AI/Service/AppleIntelligenceProvider.swift
+run mcp-oauth-test         Redcast/Platform/ExecutableLocator.swift \
+                           Redcast/Platform/ProcessExit.swift \
+                           Redcast/Platform/KeychainSecretStore.swift \
+                           Redcast/Features/BundleMigration/Model/LegacyBundleMigration.swift \
+                           Redcast/Features/Settings/AppSettingsKey.swift \
+                           Redcast/Features/AI/Model/AIConnection.swift \
+                           Redcast/Features/AI/Model/AppleIntelligence.swift \
+                           Redcast/Features/AI/Model/AITool.swift \
+                           Redcast/Features/AI/Model/AIToolServer.swift \
+                           Redcast/Features/AI/Model/AIStreamDecoder.swift \
+                           Redcast/Features/ReasoningReplay/Model/*.swift \
+                           Redcast/Features/AI/Model/AIProviderFailure.swift \
+                           Redcast/Features/AI/Model/AIThinkTagDecoder.swift \
+                           Redcast/Features/AI/Model/AIRequest.swift \
+                           Redcast/Features/Agents/Model/ChatToolContent.swift \
+                           Redcast/Features/Agents/Model/ChatAccess.swift \
+                           Redcast/Features/AI/Model/JSONValue.swift \
+                           Redcast/Features/MCP/Model/*.swift \
+                           Redcast/Features/MCP/Service/*.swift
+run slow mcp-stdio-test    Redcast/Platform/ExecutableLocator.swift \
+                           Redcast/Platform/ProcessExit.swift \
+                           Redcast/Platform/KeychainSecretStore.swift \
+                           Redcast/Features/BundleMigration/Model/LegacyBundleMigration.swift \
+                           Redcast/Features/Settings/AppSettingsKey.swift \
+                           Redcast/Features/AI/Model/AIConnection.swift \
+                           Redcast/Features/AI/Model/AppleIntelligence.swift \
+                           Redcast/Features/AI/Model/AITool.swift \
+                           Redcast/Features/AI/Model/AIToolServer.swift \
+                           Redcast/Features/AI/Model/AIStreamDecoder.swift \
+                           Redcast/Features/ReasoningReplay/Model/*.swift \
+                           Redcast/Features/AI/Model/AIProviderFailure.swift \
+                           Redcast/Features/AI/Model/AIThinkTagDecoder.swift \
+                           Redcast/Features/AI/Model/AIRequest.swift \
+                           Redcast/Features/Agents/Model/ChatToolContent.swift \
+                           Redcast/Features/Agents/Model/ChatAccess.swift \
+                           Redcast/Features/AI/Model/JSONValue.swift \
+                           Redcast/Features/MCP/Model/*.swift \
+                           Redcast/Features/MCP/Service/*.swift
 
 if [ "$emit_db" -eq 1 ]; then
     printf ']\n' >> "$DB"
@@ -1307,8 +1305,8 @@ if [ "$ran" -eq 0 ]; then
 fi
 
 # `sort -s` is stable, so the slow harnesses lead and everything else keeps its declaration order.
-JOBS="${TINYCAST_TEST_JOBS:-4}"
-export TINYCAST_TEST_TIMEOUT="${TINYCAST_TEST_TIMEOUT:-300}"
+JOBS="${REDCAST_TEST_JOBS:-4}"
+export REDCAST_TEST_TIMEOUT="${REDCAST_TEST_TIMEOUT:-300}"
 started=$SECONDS
 
 # Numbers each result, and names what is still running whenever the output goes quiet.

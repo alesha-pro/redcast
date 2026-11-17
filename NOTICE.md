@@ -223,7 +223,7 @@ Qwen's tokenizer resources come from Qwen/Qwen3-ASR-0.6B. The Apache 2.0 licence
    limitations under the License.
 ```
 
-## Brand marks — `Tinycast/Assets.xcassets/AIBrand*.imageset`
+## Brand marks — `Redcast/Assets.xcassets/AIBrand*.imageset`
 
 Sixteen monochrome template SVGs, ~300 B–2 KB each, drawn beside a model's name in the model
 picker and the chat header, and beside a provider in Settings, so a route is recognisable at a
@@ -312,13 +312,13 @@ licence. The room model, the layout and grid engines, arrangement reading, windo
 parking and its ledger, the pass that walks into a room, and the animated layout preview all
 follow that project. Every adapted file says so on its first line, with a link to the licence:
 
-- `Tinycast/Features/WindowManagement/Model/`: `Room.swift`, `RoomWindow.swift`,
+- `Redcast/Features/WindowManagement/Model/`: `Room.swift`, `RoomWindow.swift`,
   `RoomLayoutKind.swift`, `RoomLayoutEngine.swift`, `RoomGrid.swift`, `RoomArrangement.swift`,
   `RoomWindowMatcher.swift`, `RoomParking.swift`, `RoomParkingLedger.swift`, `RoomPlan.swift` and
   `RoomMinimumSizeStore.swift`
-- `Tinycast/Features/WindowManagement/Service/`: `RoomRunner.swift`, `RoomWindowSweep.swift`, and
+- `Redcast/Features/WindowManagement/Service/`: `RoomRunner.swift`, `RoomWindowSweep.swift`, and
   the window-number lookup in `AXWindowAccess.swift`
-- `Tinycast/Features/WindowManagement/UI/`: `RoomCoordinator.swift`, `RoomsScreen.swift`,
+- `Redcast/Features/WindowManagement/UI/`: `RoomCoordinator.swift`, `RoomsScreen.swift`,
   `RoomPickerScreen.swift`, `RoomPreviewController.swift` and `RoomPreviewView.swift`
 - `Tests/window-room-test.swift`, whose cases follow Rooms' own tests
 
@@ -357,9 +357,9 @@ block-ordered index with interned names, folder-only fields and parents taken fr
 live updates from FSEvents as a dead-entry bitset plus an overlay, and building the index out of
 process so its memory is returned. The files that follow it:
 
-- `Tinycast/Features/FileSearch/Service/`: `FileIndexCrawler.swift`, `FileIndexSnapshot.swift`,
+- `Redcast/Features/FileSearch/Service/`: `FileIndexCrawler.swift`, `FileIndexSnapshot.swift`,
   `FileIndex.swift`, `FileSystemWatcher.swift` and `FileIndexer.swift`
-- `Tinycast/Features/FileSearch/Helper/FileIndexHelper.swift`
+- `Redcast/Features/FileSearch/Helper/FileIndexHelper.swift`
 
 Its licence notice:
 

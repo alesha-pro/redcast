@@ -1,4 +1,4 @@
-// Entry point. Installs the polyfills and the module registry, then exposes `__tinycast` — the only
+// Entry point. Installs the polyfills and the module registry, then exposes `__redcast` — the only
 // thing Swift calls into.
 
 import "./polyfills.js";
@@ -36,7 +36,7 @@ defineModule("@raycast/api", raycastApi);
 // react-dom only appears in bundles defensively; make the import resolve and the calls explain.
 defineModule("react-dom", {
   render: () => {
-    throw new Error("react-dom is not available — Tinycast renders extensions natively.");
+    throw new Error("react-dom is not available — Redcast renders extensions natively.");
   },
   createPortal: (children) => children,
   flushSync: (fn) => fn?.(),
@@ -86,11 +86,11 @@ class Session {
 
 
 const hostCalls = {
-  render: (sessionId, json) => globalThis.__tinycastHost.render(sessionId, json),
-  failed: (sessionId, message) => globalThis.__tinycastHost.failed(sessionId, message),
+  render: (sessionId, json) => globalThis.__redcastHost.render(sessionId, json),
+  failed: (sessionId, message) => globalThis.__redcastHost.failed(sessionId, message),
   navigationDepthChanged: (sessionId, depth) =>
-    globalThis.__tinycastHost.navigationDepthChanged(sessionId, String(depth)),
-  finished: (sessionId) => globalThis.__tinycastHost.finished(sessionId),
+    globalThis.__redcastHost.navigationDepthChanged(sessionId, String(depth)),
+  finished: (sessionId) => globalThis.__redcastHost.finished(sessionId),
 };
 
 setUncaughtHandler((error) => {
@@ -105,10 +105,10 @@ setUncaughtHandler((error) => {
 });
 
 setFieldCommandHandler((command, fieldId) => {
-  globalThis.__tinycastHost.fieldCommand(String(command), String(fieldId ?? ""));
+  globalThis.__redcastHost.fieldCommand(String(command), String(fieldId ?? ""));
 });
 
-globalThis.__tinycast = {
+globalThis.__redcast = {
   /// Called once, before any command runs.
   boot(configJson) {
     const config = JSON.parse(configJson);

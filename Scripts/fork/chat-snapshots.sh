@@ -1,14 +1,14 @@
 #!/bin/bash
 # Renders AI Chat's window offscreen from fixtures, in light and dark, without launching the app.
-# Usage: Scripts/fork/chat-snapshots.sh <output-dir> [built Tinycast Dev.app] [language…]
+# Usage: Scripts/fork/chat-snapshots.sh <output-dir> [built Redcast Dev.app] [language…]
 set -euo pipefail
 cd "$(dirname "$0")/../.." || exit 1
 
 OUT=${1:?output directory}
-APP=${2:-build/DerivedData/Build/Products/Debug/Tinycast Dev.app}
+APP=${2:-build/DerivedData/Build/Products/Debug/Redcast Dev.app}
 shift $(( $# >= 2 ? 2 : 1 ))
 LANGS=("${@:-en}")
-WORK="${TMPDIR:-/tmp}/tinycast-chat-snapshots"
+WORK="${TMPDIR:-/tmp}/redcast-chat-snapshots"
 BUNDLE="$WORK/ChatSnapshots.app"
 rm -rf "$BUNDLE"
 mkdir -p "$BUNDLE/Contents/MacOS" "$BUNDLE/Contents/Resources"
@@ -20,7 +20,7 @@ cat > "$BUNDLE/Contents/Info.plist" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0"><dict>
-<key>CFBundleIdentifier</key><string>com.tinycast.chat-snapshots</string>
+<key>CFBundleIdentifier</key><string>io.redcast.chat-snapshots</string>
 <key>CFBundleExecutable</key><string>chat-snapshots</string>
 <key>CFBundleDevelopmentRegion</key><string>en</string>
 <key>CFBundlePackageType</key><string>APPL</string>
@@ -28,24 +28,24 @@ cat > "$BUNDLE/Contents/Info.plist" <<PLIST
 </dict></plist>
 PLIST
 
-CW=Tinycast/Features/ChatWorkspace
-AI=Tinycast/Features/AI
+CW=Redcast/Features/ChatWorkspace
+AI=Redcast/Features/AI
 # The transcript and the fork's views; app plumbing they reach (files, tiles, the pasteboard) is
 # stood in for at the harness's end.
 SOURCES=(
-    $AI/Model/*.swift Tinycast/Features/ReasoningReplay/Model/*.swift Tinycast/Features/Agents/Model/*.swift
-    Tinycast/Features/WebSearch/Model/*.swift Tinycast/Features/ChatFiles/Model/*.swift
+    $AI/Model/*.swift Redcast/Features/ReasoningReplay/Model/*.swift Redcast/Features/Agents/Model/*.swift
+    Redcast/Features/WebSearch/Model/*.swift Redcast/Features/ChatFiles/Model/*.swift
     $AI/UI/ChatTranscriptView.swift $AI/UI/ChatCopyButton.swift $AI/UI/ChatSuggestionChips.swift
     $AI/UI/ChatMarkdownText.swift $AI/UI/ChatMarkdownRenderer.swift $AI/UI/ChatTextHighlight.swift
-    $AI/UI/Math*.swift Tinycast/Features/ChatFiles/UI/ChatFileLinker.swift
-    Tinycast/Features/Agents/UI/AgentChatHeader.swift Tinycast/Features/Agents/UI/ChatToolContentView.swift
+    $AI/UI/Math*.swift Redcast/Features/ChatFiles/UI/ChatFileLinker.swift
+    Redcast/Features/Agents/UI/AgentChatHeader.swift Redcast/Features/Agents/UI/ChatToolContentView.swift
     $AI/Service/AIProvider.swift $AI/Service/ChatHistoryStore.swift
     $AI/UI/AIChatState.swift $AI/UI/AIChatSurfacesState.swift
-    Tinycast/DesignSystem/Theme.swift Tinycast/DesignSystem/InterfaceMetrics.swift
-    Tinycast/DesignSystem/RaycastPalette.swift Tinycast/DesignSystem/Scrolling/*.swift
-    Tinycast/Features/Settings/InterfaceSize.swift Tinycast/Features/Settings/AppSettingsKey.swift
-    Tinycast/Platform/Appearance.swift Tinycast/Platform/NotificationToken.swift
-    Tinycast/Features/ColorfulIcons/Model/RaycastHue.swift
+    Redcast/DesignSystem/Theme.swift Redcast/DesignSystem/InterfaceMetrics.swift
+    Redcast/DesignSystem/RaycastPalette.swift Redcast/DesignSystem/Scrolling/*.swift
+    Redcast/Features/Settings/InterfaceSize.swift Redcast/Features/Settings/AppSettingsKey.swift
+    Redcast/Platform/Appearance.swift Redcast/Platform/NotificationToken.swift
+    Redcast/Features/ColorfulIcons/Model/RaycastHue.swift
     $CW/Model/*.swift $CW/Service/*.swift $CW/Settings/ChatWorkspaceSettings.swift
     $CW/UI/ChatWorkspaceHost.swift $CW/UI/ChatWorkspaceCoordinator.swift $CW/UI/ChatSettingsState.swift
     $CW/UI/ChatWorkspaceCoordinator+Selection.swift

@@ -109,7 +109,7 @@ struct ColorfulIconsTests {
         expect(GlyphCategory.of(.switchWindows)?.hue == .purple, "windows are purple")
         expect(GlyphCategory.of(.searchQuicklinks)?.hue == .purple, "and quicklinks, as Raycast's tiles are")
         expect(GlyphCategory.of(.showNotes)?.hue == .yellow, "notes are yellow")
-        expect(GlyphCategory.of(.settings)?.hue == .gray, "Tinycast's own housekeeping stays grey")
+        expect(GlyphCategory.of(.settings)?.hue == .gray, "Redcast's own housekeeping stays grey")
         let ai: [CommandID] = [.runAgentTask, .searchAgentSessions, .jumpToAgent, .aiUsage, .summarize]
         expect(ai.allSatisfy { GlyphCategory.of($0) == .ai }, "agent and AI commands share AI's red")
     }
@@ -129,7 +129,7 @@ struct ColorfulIconsTests {
 
     /// A colour set's universal and dark entries, as `xcassets` writes them.
     static func colorSet(_ name: String) -> (light: Swatch, dark: Swatch)? {
-        let url = URL(fileURLWithPath: "Tinycast/Assets.xcassets/\(name).colorset/Contents.json")
+        let url = URL(fileURLWithPath: "Redcast/Assets.xcassets/\(name).colorset/Contents.json")
         guard let data = try? Data(contentsOf: url),
             let root = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any],
             let colors = root["colors"] as? [[String: Any]]

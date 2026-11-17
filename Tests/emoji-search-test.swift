@@ -65,7 +65,7 @@ struct EmojiSearchTests {
         }
 
         // Packs for the Mac's languages join English, which keeps its ranking for every user.
-        let resources = Bundle(path: "Tinycast/Resources")!
+        let resources = Bundle(path: "Redcast/Resources")!
         let multilingual = EmojiIndex()
         await multilingual.load(languages: ["fr-FR", "ja-JP", "en-US"], bundle: resources)
         for (query, glyph) in [

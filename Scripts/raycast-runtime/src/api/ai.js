@@ -5,7 +5,7 @@ import { hostCall } from "../host.js";
 import { registerAccess } from "./system.js";
 
 // Any capitalised name reads back as itself; Swift reads its vendor, so no table ships here.
-const Model = new Proxy(Object.freeze({ Tinycast: "tinycast" }), {
+const Model = new Proxy(Object.freeze({ Redcast: "redcast" }), {
   get: (target, key) =>
     typeof key === "string" && /^[A-Z]/.test(key) ? (target[key] ?? key) : Reflect.get(target, key),
 });

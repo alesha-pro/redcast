@@ -1374,11 +1374,11 @@ enum ChatMemoryFixture {
         text += "Files touched:\n\n" + paths.dropLast().map { "- `\($0)`" }.joined(separator: "\n")
         let commands = [
             "run_command: rg -n --hidden --glob '!**/node_modules/**' --glob '!**/.build/**' "
-                + "'ChatTranscriptView|ChatMarkdownText|ChatSelectableTextView' Tinycast Tests Scripts | head -200",
+                + "'ChatTranscriptView|ChatMarkdownText|ChatSelectableTextView' Redcast Tests Scripts | head -200",
             "read_file: \(paths[turn % paths.count]) offset=0 limit=4000 encoding=utf-8 follow_symlinks=false",
-            "run_command: xcodebuild -project Tinycast.xcodeproj -scheme Tinycast -configuration Debug "
+            "run_command: xcodebuild -project Redcast.xcodeproj -scheme Redcast -configuration Debug "
                 + "CODE_SIGNING_ALLOWED=NO -derivedDataPath /tmp/dd build | xcbeautify --quiet",
-            "apply_patch: *** Begin Patch *** Update File: Tinycast/Features/AI/UI/ChatTranscriptView.swift @@",
+            "apply_patch: *** Begin Patch *** Update File: Redcast/Features/AI/UI/ChatTranscriptView.swift @@",
             "search_issues: repo:alesha-pro/redcast is:open label:memory sort:updated-desc chat window"
         ]
         var uses: [ChatToolUse] = []

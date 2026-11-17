@@ -197,7 +197,7 @@ struct WebSearchTests {
         let every = [exa, parallel, duck, searxng, brave, tavily]
         expect(
             every.allSatisfy { $0?.value(forHTTPHeaderField: "User-Agent") == WebSearchEndpoint.userAgent },
-            "every request names Tinycast honestly")
+            "every request names Redcast honestly")
         expect(every.allSatisfy { $0?.httpShouldHandleCookies == false }, "and carries no cookie")
     }
 
@@ -570,11 +570,11 @@ struct WebSearchTests {
 
     static func searchingFollowsTheRoute() {
         let vendor = AIModelCapabilities(images: true, documents: true, webSearch: false, tools: true)
-        let chat = vendor.searchingWithTinycast(agentDecides: false)
-        expect(chat.webSearch && chat.images && chat.documents && chat.tools, "a plain chat searches through Tinycast")
-        expect(!vendor.searchingWithTinycast(agentDecides: true).webSearch, "an agent's family decides for it")
+        let chat = vendor.searchingWithRedcast(agentDecides: false)
+        expect(chat.webSearch && chat.images && chat.documents && chat.tools, "a plain chat searches through Redcast")
+        expect(!vendor.searchingWithRedcast(agentDecides: true).webSearch, "an agent's family decides for it")
         let toolless = AIModelCapabilities(images: false, documents: false, webSearch: true, tools: false)
-        expect(!toolless.searchingWithTinycast(agentDecides: false).webSearch, "no tools, no search tool")
+        expect(!toolless.searchingWithRedcast(agentDecides: false).webSearch, "no tools, no search tool")
     }
 
     // MARK: - Agents
@@ -1454,7 +1454,7 @@ extension WebSearchTests {
         let wide = await read("https://site.test/wide")
         expect((try? wide.get().text) == "Wide text", "while UTF-16 text, whose bytes hold NULs, still reads")
         let leftovers = (try? FileManager.default.contentsOfDirectory(atPath: NSTemporaryDirectory())) ?? []
-        expect(!leftovers.contains { $0.hasPrefix("tinycast-web-") }, "no spool file outlives its read")
+        expect(!leftovers.contains { $0.hasPrefix("redcast-web-") }, "no spool file outlives its read")
     }
 
     static func anotherPartIsNotAnotherRead() async {

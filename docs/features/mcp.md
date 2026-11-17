@@ -312,7 +312,7 @@ asks no per-call question at all, so it could not express Ask Each Chat. `tool_u
 While Codex or Claude is the model of every live chat — Quick AI's, the window's and any window chat
 still answering after the reader left it — Redcast keeps no connection of its own to a local server:
 the CLI starts its own copy, and a second would only run it twice.
-`MCPServer.runsInTinycast(whileCLIRouteSelected:)` is the rule,
+`MCPServer.runsInRedcast(whileCLIRouteSelected:)` is the rule,
 `AIChatCoordinator.everyChatRunsItsOwnTools` the verdict, and `AppCore` re-applies it whenever that
 verdict flips, so choosing an API model in either chat starts the server again. A remote server
 stays connected — a session, not a process — so its row keeps a live status; a local one reads

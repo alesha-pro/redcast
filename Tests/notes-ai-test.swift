@@ -37,7 +37,7 @@ struct NotesAITests {
 
     static func folder(_ name: String) -> URL {
         let url = FileManager.default.temporaryDirectory
-            .appendingPathComponent("tinycast-notes-ai-\(name)-\(UUID().uuidString)", isDirectory: true)
+            .appendingPathComponent("redcast-notes-ai-\(name)-\(UUID().uuidString)", isDirectory: true)
         try? FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
         return url
     }

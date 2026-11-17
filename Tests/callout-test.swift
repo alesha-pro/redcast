@@ -172,7 +172,7 @@ struct CalloutPlacementTests {
 
     static func localizedInstructions() {
         _ = NSApplication.shared
-        let url = URL(fileURLWithPath: "Tinycast/Resources/Localizable.xcstrings")
+        let url = URL(fileURLWithPath: "Redcast/Resources/Localizable.xcstrings")
         guard let data = try? Data(contentsOf: url),
             let catalog = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
             let strings = catalog["strings"] as? [String: [String: Any]]

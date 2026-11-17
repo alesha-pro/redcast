@@ -100,23 +100,19 @@ struct UpdatesTests {
     // MARK: - ReleaseChannel
 
     static func derivesChannels() {
-        let stable = ReleaseChannel(bundleID: "com.tinycast.app")
-        let beta = ReleaseChannel(bundleID: "com.tinycast.app.beta")
-        let dev = ReleaseChannel(bundleID: "com.tinycast.app.dev")
+        let stable = ReleaseChannel(bundleID: "io.redcast.app")
+        let dev = ReleaseChannel(bundleID: "io.redcast.app.dev")
 
-        expect(stable == .stable, "the stable bundle id is the stable channel")
-        expect(beta == .beta, "the beta bundle id is the beta channel")
+        expect(stable == .stable, "the installed app is the stable channel")
         expect(dev == .development, "the dev bundle id is a local build")
+        expect(ReleaseChannel(bundleID: "com.tinycast.app") == .development, "upstream's id never updates here")
         expect(ReleaseChannel(bundleID: nil) == .development, "a missing bundle id never updates")
-        expect(ReleaseChannel(bundleID: "io.redcast.app") == .stable, "Redcast's releases are stable")
 
-        expect(stable.updatesItself && beta.updatesItself, "both shipped channels update")
+        expect(stable.updatesItself, "the shipped channel updates")
         expect(!dev.updatesItself, "a local build does not update itself")
 
         expect(stable.accepts(prerelease: false), "stable takes releases")
         expect(!stable.accepts(prerelease: true), "stable never crosses to a prerelease")
-        expect(beta.accepts(prerelease: true), "beta takes prereleases")
-        expect(!beta.accepts(prerelease: false), "beta never crosses to a stable release")
         expect(
             !dev.accepts(prerelease: true) && !dev.accepts(prerelease: false),
             "a local build accepts nothing at all")
@@ -130,7 +126,7 @@ struct UpdatesTests {
     }
 
     static func entry(
-        tag: String, prerelease: Bool, draft: Bool = false, assets: [String] = ["Tinycast-x.zip"],
+        tag: String, prerelease: Bool, draft: Bool = false, assets: [String] = ["Redcast-x.zip"],
         body: String = "Notes."
     ) -> String {
         let list = assets.map {
@@ -163,9 +159,6 @@ struct UpdatesTests {
             "and selects the zip asset")
         expect(stable?.publishedAt != nil, "and parses the ISO-8601 timestamp")
 
-        let beta = ReleaseFeed.newest(from: body, channel: .beta, architecture: .appleSilicon)
-        expect(beta?.version == AppVersion("0.4.0-beta.2"), "beta takes the newest prerelease")
-
         expect(
             ReleaseFeed.newest(from: body, channel: .development, architecture: .appleSilicon) == nil,
             "a local build is offered nothing, however new the feed is")
@@ -195,7 +188,7 @@ struct UpdatesTests {
             "a release with no assets is skipped")
         expect(
             ReleaseFeed.newest(
-                from: feed(entry(tag: "v0.3.0", prerelease: false, assets: ["Tinycast-x.dmg"])),
+                from: feed(entry(tag: "v0.3.0", prerelease: false, assets: ["Redcast-x.dmg"])),
                 channel: .stable, architecture: .appleSilicon) == nil,
             "a DMG-only release is not installable, so it is not offered")
         expect(
@@ -222,7 +215,7 @@ struct UpdatesTests {
         let both = feed(
             entry(
                 tag: "v0.3.0", prerelease: false,
-                assets: ["Tinycast-0.3.0.zip", "Tinycast-Universal-0.3.0.zip"]))
+                assets: ["Redcast-0.3.0.zip", "Redcast-Universal-0.3.0.zip"]))
         expect(
             ReleaseFeed.newest(from: both, channel: .stable, architecture: .intel)?
                 .assetURL.absoluteString.contains("-Universal-") == true,
@@ -232,13 +225,13 @@ struct UpdatesTests {
                 .assetURL.absoluteString.contains("-Universal-") == false,
             "Apple silicon prefers the thin zip, and never pays for the Intel slice")
 
-        let thinOnly = feed(entry(tag: "v0.3.0", prerelease: false, assets: ["Tinycast-0.3.0.zip"]))
+        let thinOnly = feed(entry(tag: "v0.3.0", prerelease: false, assets: ["Redcast-0.3.0.zip"]))
         expect(
             ReleaseFeed.newest(from: thinOnly, channel: .stable, architecture: .intel) == nil,
             "Intel is offered nothing rather than an arm64 build it cannot launch")
 
         let universalOnly = feed(
-            entry(tag: "v0.3.0", prerelease: false, assets: ["Tinycast-Universal-0.3.0.zip"]))
+            entry(tag: "v0.3.0", prerelease: false, assets: ["Redcast-Universal-0.3.0.zip"]))
         expect(
             ReleaseFeed.newest(from: universalOnly, channel: .stable, architecture: .appleSilicon)?
                 .version == AppVersion("0.3.0"),
@@ -329,7 +322,7 @@ struct UpdatesTests {
         let feedNotes = ReleaseFeed.newest(
             from: feed(
                 entry(
-                    tag: "v0.3.0", prerelease: false, body: "Changes.\\n\\n<!-- tinycast:install -->\\nBrew.")
+                    tag: "v0.3.0", prerelease: false, body: "Changes.\\n\\n<!-- redcast:install -->\\nBrew.")
             ),
             channel: .stable, architecture: .appleSilicon)?.notes
         expect(feedNotes == "Changes.", "the feed stores the cut summary, so the cache holds it too")

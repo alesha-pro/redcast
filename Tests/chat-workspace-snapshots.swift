@@ -212,7 +212,7 @@ final class SnapshotFixture {
         text = russian ? .ru : .en
         try? FileManager.default.removeItem(at: root)
         let history = ChatHistoryStore(directory: root)
-        let defaults = UserDefaults(suiteName: "tinycast-snapshots-\(UUID().uuidString)")!
+        let defaults = UserDefaults(suiteName: "redcast-snapshots-\(UUID().uuidString)")!
         workspace = ChatWorkspaceCoordinator(
             store: ChatWorkspaceStore(directory: root),
             settings: ChatWorkspaceSettings(defaults: defaults), history: history,
@@ -278,7 +278,7 @@ final class SnapshotFixture {
         text = russian ? .ru : .en
         try? FileManager.default.removeItem(at: root)
         let history = ChatHistoryStore(directory: root)
-        let defaults = UserDefaults(suiteName: "tinycast-snapshots-\(UUID().uuidString)")!
+        let defaults = UserDefaults(suiteName: "redcast-snapshots-\(UUID().uuidString)")!
         workspace = ChatWorkspaceCoordinator(
             store: ChatWorkspaceStore(directory: root),
             settings: ChatWorkspaceSettings(defaults: defaults), history: history,

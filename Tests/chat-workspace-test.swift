@@ -58,7 +58,7 @@ struct ChatWorkspaceTests {
 
     static func directory(_ name: String) -> URL {
         FileManager.default.temporaryDirectory
-            .appendingPathComponent("tinycast-workspace-\(name)-\(UUID().uuidString)", isDirectory: true)
+            .appendingPathComponent("redcast-workspace-\(name)-\(UUID().uuidString)", isDirectory: true)
     }
 
     static func conversation(
@@ -80,7 +80,7 @@ struct ChatWorkspaceTests {
 
     static func coordinator(_ root: URL) -> (ChatWorkspaceCoordinator, FakeHost) {
         let history = ChatHistoryStore(directory: root)
-        let defaults = UserDefaults(suiteName: "tinycast-workspace-\(UUID().uuidString)")!
+        let defaults = UserDefaults(suiteName: "redcast-workspace-\(UUID().uuidString)")!
         let workspace = ChatWorkspaceCoordinator(
             store: ChatWorkspaceStore(directory: root),
             settings: ChatWorkspaceSettings(defaults: defaults), history: history,
@@ -850,7 +850,7 @@ struct ChatWorkspaceTests {
         expect(!notifies(true, front: true), "nor while the window is in front")
         expect(!notifies(true, quick: true), "nor for Quick AI, which is on screen")
         expect(!notifies(true, run: true), "nor for a background run, which has its own banner")
-        let defaults = UserDefaults(suiteName: "tinycast-workspace-\(UUID().uuidString)")!
+        let defaults = UserDefaults(suiteName: "redcast-workspace-\(UUID().uuidString)")!
         let settings = ChatWorkspaceSettings(defaults: defaults)
         expect(!settings.notifiesInBackground && settings.autoArchive == .never, "both start off")
         expect(settings.showsInspector && !settings.floatsOnTop, "settings open, window not floating")

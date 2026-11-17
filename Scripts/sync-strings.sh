@@ -5,16 +5,16 @@ set -euo pipefail
 cd "$(dirname "$0")/.." || exit 1
 
 DERIVED=build/strings
-xcodebuild build -project Tinycast.xcodeproj -scheme Tinycast -configuration Debug \
+xcodebuild build -project Redcast.xcodeproj -scheme Redcast -configuration Debug \
     CODE_SIGNING_ALLOWED=NO -derivedDataPath "$DERIVED" -quiet
 
 # A read loop rather than `mapfile`, which is bash 4 — macOS ships bash 3.2.
 args=()
 while IFS= read -r f; do args+=(--stringsdata "$f"); done < <(
-    find "$DERIVED/Build/Intermediates.noindex/Tinycast.build/Debug/Tinycast.build" \
+    find "$DERIVED/Build/Intermediates.noindex/Redcast.build/Debug/Redcast.build" \
         -name '*.stringsdata'
 )
 # The catalog's file name is its table, so only `Localizable` strings land in it.
-xcrun xcstringstool sync Tinycast/Resources/Localizable.xcstrings "${args[@]}"
+xcrun xcstringstool sync Redcast/Resources/Localizable.xcstrings "${args[@]}"
 
 node Scripts/check-localizations.js

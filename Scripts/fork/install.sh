@@ -6,23 +6,23 @@ cd "$(dirname "$0")/../.." || exit 1
 ROOT="$PWD"
 SELF="$ROOT/Scripts/fork/install.sh"
 export DEVELOPER_DIR="${DEVELOPER_DIR:-/Applications/Xcode.app/Contents/Developer}"
-BUNDLE_ID="${TINYCAST_FORK_BUNDLE_ID:-io.redcast.app}"
+BUNDLE_ID="${REDCAST_FORK_BUNDLE_ID:-io.redcast.app}"
 # The fork's id before Redcast had its own: a copy under it is this fork, replaced and migrated.
-LEGACY_ID="${TINYCAST_FORK_LEGACY_ID:-com.tinycast.app.fork}"
+LEGACY_ID="${REDCAST_FORK_LEGACY_ID:-com.tinycast.app.fork}"
 APP_NAME=Redcast
-DEST="${TINYCAST_INSTALL_PATH:-/Applications/$APP_NAME.app}"
+DEST="${REDCAST_INSTALL_PATH:-/Applications/$APP_NAME.app}"
 PARENT="$(dirname "$DEST")"
 NAME="$(basename "$DEST" .app)"
 # Where the fork lived before it was Redcast: a fork copy there is migrated, any other left alone.
 LEGACY="$PARENT/Tinycast.app"
 WORK="$ROOT/build/fork"
 # No `.app` suffix, so LaunchServices never registers the kept copy.
-PREVIOUS="$WORK/Tinycast.previous"
+PREVIOUS="$WORK/Redcast.previous"
 # The path the kept copy was installed at, so --rollback after a migration restores the old name.
-PREVIOUS_ORIGIN="$WORK/Tinycast.previous.origin"
+PREVIOUS_ORIGIN="$WORK/Redcast.previous.origin"
 INSTALLED=""
 FRAMEWORKS=/System/Library/Frameworks/CoreServices.framework/Frameworks
-LSREGISTER="${TINYCAST_LSREGISTER:-$FRAMEWORKS/LaunchServices.framework/Support/lsregister}"
+LSREGISTER="${REDCAST_LSREGISTER:-$FRAMEWORKS/LaunchServices.framework/Support/lsregister}"
 
 usage() {
     cat <<EOF
@@ -39,12 +39,12 @@ Tinycast.app beside it is migrated: it goes to the rollback slot.
   --no-launch            do not reopen the app after the swap
   --force-quit           SIGTERM, then SIGKILL, when the app does not quit within 20 s
   --accept-new-identity  install although the code requirement changes (TCC grants need re-granting)
-  --rollback             put back the copy the last install replaced (build/fork/Tinycast.previous)
+  --rollback             put back the copy the last install replaced (build/fork/Redcast.previous)
   --self-check           resolve identity, version and paths, and list what an install would do;
                          builds, quits, moves and registers nothing
 
-Environment: TINYCAST_SIGN_IDENTITY, TINYCAST_FORK_BUNDLE_ID ($BUNDLE_ID),
-TINYCAST_INSTALL_PATH ($DEST), DEVELOPER_DIR.
+Environment: REDCAST_SIGN_IDENTITY, REDCAST_FORK_BUNDLE_ID ($BUNDLE_ID),
+REDCAST_INSTALL_PATH ($DEST), DEVELOPER_DIR.
 
 Exit codes: 0 installed · 1 build or verification failed · 2 refused · 3 quit timed out ·
 4 swap failed and was rolled back · 64 usage.
@@ -113,14 +113,14 @@ owner() {
     case "$1" in
     com.tinycast.app) echo "upstream's Tinycast, not this fork" ;;
     com.tinycast.app.beta) echo "upstream's Tinycast Beta, not this fork" ;;
-    com.tinycast.app.dev) echo "a Debug build, not a fork install" ;;
+    io.redcast.app.dev) echo "a Debug build, not a fork install" ;;
     *) echo "not this fork" ;;
     esac
 }
 
 # A bundle that is not the fork's is never replaced: upstream's has its own grants and settings.
 refuse_foreign() {
-    die 2 "$1 is ${2:-unreadable}, $(owner "$2"). Point TINYCAST_INSTALL_PATH elsewhere."
+    die 2 "$1 is ${2:-unreadable}, $(owner "$2"). Point REDCAST_INSTALL_PATH elsewhere."
 }
 
 check_installed() {
@@ -172,15 +172,15 @@ installed_signer() {
 }
 
 resolve_identity() {
-    if [ -n "${TINYCAST_SIGN_IDENTITY:-}" ]; then
-        IDENTITY="$TINYCAST_SIGN_IDENTITY"
+    if [ -n "${REDCAST_SIGN_IDENTITY:-}" ]; then
+        IDENTITY="$REDCAST_SIGN_IDENTITY"
         return
     fi
     local lines names shas
     lines="$(security find-identity -v -p codesigning 2>/dev/null |
         grep -E '^ *[0-9]+\) [0-9A-F]{40} "Apple Development: ' || true)"
     [ -n "$lines" ] ||
-        die 2 "no valid 'Apple Development' signing identity. Set TINYCAST_SIGN_IDENTITY."
+        die 2 "no valid 'Apple Development' signing identity. Set REDCAST_SIGN_IDENTITY."
     names="$(sed -E 's/^[^"]*"(.*)"$/\1/' <<<"$lines" | sort -u)"
     shas="$(awk '{ print $2 }' <<<"$lines" | sort -u)"
     if [ "$(wc -l <<<"$names")" -ne 1 ] || [ "$(wc -l <<<"$shas")" -ne 1 ]; then
@@ -193,7 +193,7 @@ resolve_identity() {
         fi
         printf '%s\n' "$lines" >&2
         die 2 "ambiguous signing identity: delete the expired or duplicate certificate in" \
-            "Keychain Access, or set TINYCAST_SIGN_IDENTITY to the full name."
+            "Keychain Access, or set REDCAST_SIGN_IDENTITY to the full name."
     fi
     IDENTITY="$names"
 }
@@ -207,7 +207,7 @@ resolve_version() {
 }
 
 # Walks the parent chain: quitting the app reaps whatever one of its agents or commands started.
-started_by_tinycast() {
+started_by_redcast() {
     local pid=$$ comm app="${INSTALLED:-$DEST}"
     while [ "${pid:-1}" -gt 1 ]; do
         pid="$(ps -o ppid= -p "$pid" 2>/dev/null | tr -d ' ')"
@@ -247,7 +247,7 @@ app_management_hint() {
 
 preflight() {
     command -v xcodebuild >/dev/null || die 1 "xcodebuild not found (DEVELOPER_DIR=$DEVELOPER_DIR)."
-    if [ project.yml -nt Tinycast.xcodeproj/project.pbxproj ]; then
+    if [ project.yml -nt Redcast.xcodeproj/project.pbxproj ]; then
         note "! project.yml is newer than the project: run \`xcodegen generate\` if it changed."
     fi
     local leftover
@@ -302,11 +302,11 @@ build() {
     # Spotlight skips a .noindex folder, so the build output never shows as a second Redcast.app.
     rm -rf "$WORK/DerivedData"
     # PRODUCT_NAME as release.yml passes it; project.yml pins the helpers' names against it.
-    if ! xcodebuild -project Tinycast.xcodeproj -scheme Tinycast -configuration Release \
+    if ! xcodebuild -project Redcast.xcodeproj -scheme Redcast -configuration Release \
         -derivedDataPath "$WORK/DerivedData.noindex" ARCHS="$(uname -m)" ONLY_ACTIVE_ARCH=YES \
         PRODUCT_NAME="$APP_NAME" DICTATION_EXECUTABLE_NAME="$APP_NAME Dictation" \
         ASSETCATALOG_COMPILER_APPICON_NAME=redcast \
-        TINYCAST_BUNDLE_IDENTIFIER="$BUNDLE_ID" \
+        REDCAST_BUNDLE_IDENTIFIER="$BUNDLE_ID" \
         CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY="$IDENTITY" DEVELOPMENT_TEAM= \
         OTHER_CODE_SIGN_FLAGS=--timestamp=none \
         MARKETING_VERSION="$VERSION" CURRENT_PROJECT_VERSION="$BUILD" \
@@ -316,7 +316,7 @@ build() {
     fi
     local products="$WORK/DerivedData.noindex/Build/Products/Release" product
     BUILT="$products/$APP_NAME.app"
-    # Xcode's RegisterWithLaunchServices step would leave tinycast:// pointing in here.
+    # Xcode's RegisterWithLaunchServices step would leave redcast:// pointing in here.
     for product in "$products"/*.app; do
         [ -e "$product" ] && "$LSREGISTER" -u "$product" >/dev/null 2>&1 || true
     done
@@ -331,9 +331,9 @@ stage() {
     codesign --verify --deep --strict "$STAGE" || die 1 "the staged copy does not verify."
 }
 
-# Before the build: a command's watchdog and Tinycast's quit both signal the group it started.
+# Before the build: a command's watchdog and Redcast's quit both signal the group it started.
 detach() {
-    if [ "$DETACHED" -eq 1 ] || ! started_by_tinycast; then return 0; fi
+    if [ "$DETACHED" -eq 1 ] || ! started_by_redcast; then return 0; fi
     mkdir -p "$WORK"
     xcrun python3 -c 'import os,sys
 if os.fork(): os._exit(0)
@@ -457,7 +457,7 @@ rollback_target() {
     case "$TARGET" in
     "") TARGET="${INSTALLED:-$DEST}" ;;
     "$DEST" | "$LEGACY") ;;
-    *) die 2 "the rollback copy was installed at $TARGET, not $DEST; set TINYCAST_INSTALL_PATH." ;;
+    *) die 2 "the rollback copy was installed at $TARGET, not $DEST; set REDCAST_INSTALL_PATH." ;;
     esac
     if [ -e "$TARGET" ] && [ "$TARGET" != "$INSTALLED" ]; then
         die 2 "$TARGET is in the way of the rollback ($(bundle_id "$TARGET" || echo unreadable))."
@@ -501,7 +501,7 @@ self_check() {
     else
         note "rollback to: none"
     fi
-    if started_by_tinycast; then note "started by:  the installed app (an install would detach)"; fi
+    if started_by_redcast; then note "started by:  the installed app (an install would detach)"; fi
     local path count=0
     while IFS= read -r path; do
         [ -n "$path" ] || continue
@@ -531,11 +531,11 @@ EOF
     {
         printf '#!/bin/bash\nset -eu\nLAUNCHER=%q PGID=%q\n' "$bin/launcher" "$TEST_ROOT/build.pgid"
         cat <<'EOF'
-data="" id="" version="" name=Tinycast dictation="Tinycast Dictation"
+data="" id="" version="" name=Redcast dictation="Redcast Dictation"
 while [ $# -gt 0 ]; do
     case "$1" in
     -derivedDataPath) data="$2" && shift ;;
-    TINYCAST_BUNDLE_IDENTIFIER=*) id="${1#*=}" ;;
+    REDCAST_BUNDLE_IDENTIFIER=*) id="${1#*=}" ;;
     MARKETING_VERSION=*) version="${1#*=}" ;;
     PRODUCT_NAME=*) name="${1#*=}" ;;
     DICTATION_EXECUTABLE_NAME=*) dictation="${1#*=}" ;;
@@ -593,7 +593,7 @@ fake_app() {
     local name
     name="$(basename "$1" .app)"
     "$TEST_ROOT/bin/xcodebuild" -derivedDataPath "$TEST_ROOT/seed" PRODUCT_NAME="$name" \
-        DICTATION_EXECUTABLE_NAME="$name Dictation" TINYCAST_BUNDLE_IDENTIFIER="$2" \
+        DICTATION_EXECUTABLE_NAME="$name Dictation" REDCAST_BUNDLE_IDENTIFIER="$2" \
         MARKETING_VERSION="$3" build
     mkdir -p "$(dirname "$1")"
     ditto "$TEST_ROOT/seed/Build/Products/Release/$name.app" "$1"
@@ -632,12 +632,12 @@ finished() {
 
 self_test() {
     TEST_ROOT="${TMPDIR:-/tmp}"
-    TEST_ROOT="${TEST_ROOT%/}/tinycast-install-selftest-$(uuidgen)"
+    TEST_ROOT="${TEST_ROOT%/}/redcast-install-selftest-$(uuidgen)"
     local repo="$TEST_ROOT/repo" app="$TEST_ROOT/Applications/$APP_NAME.app" status own
     local log="$TEST_ROOT/repo/build/fork/install.log" id=com.tinycast.app.fork.selftest
-    local slot="$TEST_ROOT/repo/build/fork/Tinycast.previous" old new upstream
+    local slot="$TEST_ROOT/repo/build/fork/Redcast.previous" old new upstream
     mkdir -p "$repo/Scripts/fork" "$TEST_ROOT/bin"
-    [ -n "${TINYCAST_INSTALL_KEEP:-}" ] || trap 'rm -rf "$TEST_ROOT"' EXIT
+    [ -n "${REDCAST_INSTALL_KEEP:-}" ] || trap 'rm -rf "$TEST_ROOT"' EXIT
     cp "$SELF" "$repo/Scripts/fork/install.sh"
     cp "$ROOT/Scripts/verify-signature.sh" "$repo/Scripts/"
     export GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1
@@ -645,8 +645,8 @@ self_test() {
     git -C "$repo" -c user.name=Test -c user.email=test@example.invalid commit -q -m Base
     git -C "$repo" tag v2.0.0
     stub_tools "$TEST_ROOT/bin"
-    export PATH="$TEST_ROOT/bin:$PATH" TINYCAST_LSREGISTER="$TEST_ROOT/bin/lsregister" \
-        TINYCAST_SIGN_IDENTITY=- TINYCAST_FORK_BUNDLE_ID="$id" TINYCAST_INSTALL_PATH="$app"
+    export PATH="$TEST_ROOT/bin:$PATH" REDCAST_LSREGISTER="$TEST_ROOT/bin/lsregister" \
+        REDCAST_SIGN_IDENTITY=- REDCAST_FORK_BUNDLE_ID="$id" REDCAST_INSTALL_PATH="$app"
     PASSES=0 FAILURES=0
     own="$(ps -o pgid= -p $$ | tr -d ' ')"
 
@@ -675,7 +675,7 @@ self_test() {
     check "and puts the old build back" [ "$(version "$app")" = 1.0 ]
 
     old="$TEST_ROOT/Migrate/Tinycast.app" new="$TEST_ROOT/Migrate/$APP_NAME.app"
-    export TINYCAST_INSTALL_PATH="$new"
+    export REDCAST_INSTALL_PATH="$new"
     rm -rf "$slot" "$log"
     fake_app "$old" "$id" 1.5
     status="$(install_status --self-check)"
@@ -704,11 +704,11 @@ self_test() {
         [ "$status" = 0 -a "$(version "$new")" = 2.0.0 -a ! -e "$old" ]
 
     upstream="$TEST_ROOT/Shared/Tinycast.app"
-    export TINYCAST_INSTALL_PATH="$TEST_ROOT/Shared/$APP_NAME.app"
+    export REDCAST_INSTALL_PATH="$TEST_ROOT/Shared/$APP_NAME.app"
     fake_app "$upstream" com.tinycast.app 9.0
     status="$(install_status --no-launch)"
     check "next to upstream's Tinycast.app the fork installs (exit $status)" \
-        [ "$status" = 0 -a "$(version "$TINYCAST_INSTALL_PATH")" = 2.0.0 ]
+        [ "$status" = 0 -a "$(version "$REDCAST_INSTALL_PATH")" = 2.0.0 ]
     check "saying both stay" grep -q "upstream's Tinycast, not this fork: both stay" \
         "$TEST_ROOT/out.log"
     check "and leaves upstream's in place" [ "$(version "$upstream")" = 9.0 ]
@@ -717,7 +717,7 @@ self_test() {
     check "a fresh install keeps the last rollback copy" [ "$(version "$slot")" = 1.5 ]
 
     old="$TEST_ROOT/Twice/Tinycast.app" new="$TEST_ROOT/Twice/$APP_NAME.app"
-    export TINYCAST_INSTALL_PATH="$new"
+    export REDCAST_INSTALL_PATH="$new"
     fake_app "$new" "$id" 2.0.0
     fake_app "$old" "$id" 1.9
     status="$(install_status --self-check)"
@@ -735,8 +735,8 @@ self_test() {
 
     rm -f "$log"
     fake_app "$TEST_ROOT/Other/$APP_NAME.app" com.example.other 9.0
-    export TINYCAST_INSTALL_PATH="$TEST_ROOT/Other/$APP_NAME.app"
-    status="$(from_app "$TINYCAST_INSTALL_PATH" --no-launch)"
+    export REDCAST_INSTALL_PATH="$TEST_ROOT/Other/$APP_NAME.app"
+    status="$(from_app "$REDCAST_INSTALL_PATH" --no-launch)"
     check "a foreign app is refused to the caller (exit $status)" [ "$status" = 2 ]
     check "before anything detaches or builds" test ! -e "$log" -a ! -e "$TEST_ROOT/build.pgid"
 

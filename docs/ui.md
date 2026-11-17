@@ -2,7 +2,7 @@
 
 The design system for Redcast's UI, written so an agent restyling or extending it stays consistent
 with what's already there. This documents **Redcast as built** — every rule here maps to code in
-`Tinycast/`. `DesignSystem/Theme.swift` is the single design-token source.
+`Redcast/`. `DesignSystem/Theme.swift` is the single design-token source.
 
 Read this before touching any view body, `Theme` value, or the panel chrome.
 
@@ -77,7 +77,7 @@ These are the things that quietly break the look if changed. Preserve them unles
 
 ## Tokens
 
-Source: `Tinycast/DesignSystem/Theme.swift`.
+Source: `Redcast/DesignSystem/Theme.swift`.
 
 `Theme` is the single source of truth. **Never hardcode a spacing/radius/size/color that has a token.**
 Add a token rather than a magic number when introducing a new value.

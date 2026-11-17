@@ -2,7 +2,7 @@ import AppleArchive
 import Foundation
 import System
 
-/// Compiles the shipped bundle and archive layer, so a `.tinycast` can't quietly change shape.
+/// Compiles the shipped bundle and archive layer, so a `.redcast` can't quietly change shape.
 @main
 @MainActor
 struct BackupArchiveTest {

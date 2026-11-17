@@ -206,7 +206,7 @@ struct ClipboardThumbnailTests {
     static func scratchDirectory() -> URL {
         let dir = FileManager.default.temporaryDirectory
             .appendingPathComponent(
-                "tinycast-clipboard-thumbnail-test-\(UUID().uuidString)", isDirectory: true)
+                "redcast-clipboard-thumbnail-test-\(UUID().uuidString)", isDirectory: true)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         return dir
     }

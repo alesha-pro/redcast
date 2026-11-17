@@ -169,7 +169,7 @@ History**. One opt-in, **Include API keys and tokens**, seals the app's secrets 
 - **Every persisted store has a decision, and a harness finds new ones.** `FullBackupCoverage` names
   every `UserDefaults` key, every Application Support name and every Keychain scope the app writes,
   with the section that carries it, or why it stays (with a reason). `full-backup-coverage-test`
-  scans `Tinycast/` for files that persist anything (`UserDefaults`, `defaults.set(`,
+  scans `Redcast/` for files that persist anything (`UserDefaults`, `defaults.set(`,
   `applicationSupport`, `KeychainSecretStore(scope:`, `sqlite3_open`, `.write(to:`), pulls their literal keys
   (`forKey: "…"`, `…Key = "…"`) and path names (`appendingPathComponent("…")`,
   `appending(path: "…")`), and fails on any it has no decision for, on any `AppSettingsKey` neither

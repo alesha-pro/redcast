@@ -172,7 +172,7 @@ sentence. SearXNG documents no week for its JSON API, so a week widens to a mont
 | `Model/WebSearchConfiguration.swift` | Order, switches and the SearXNG address; decoding that survives other builds' engines |
 | `Model/WebSearchEndpoint.swift` | One `URLRequest` per engine, byte-stable bodies, the SearXNG address and ATS policy |
 | `Model/WebSearchDecoder.swift` | Status and body to results: the MCP envelope, Exa's text, DuckDuckGo's HTML, three JSON shapes |
-| `Model/WebSearchTool.swift` | The `AITool`, argument parsing, the bounded answer, `searchingWithTinycast` |
+| `Model/WebSearchTool.swift` | The `AITool`, argument parsing, the bounded answer, `searchingWithRedcast` |
 | `Model/WebPageTool.swift` | `read_page` as the model sees it: the `AITool`, its address, the answer and refusals |
 | `Model/WebPageScope.swift` | Which addresses a turn was given, what tells two apart, and the one to fetch |
 | `Model/WebPageMarkdown.swift` | A page as compact Markdown in one pass: blocks, link markers, chrome and hidden text left out |

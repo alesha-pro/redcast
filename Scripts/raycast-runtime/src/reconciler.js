@@ -148,7 +148,7 @@ export class Surface {
       null,
       false,
       null,
-      "tinycast",
+      "redcast",
       (error) => this.onError(error),
       (error) => this.onError(error),
       (error) => this.onError(error),

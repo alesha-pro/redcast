@@ -14,7 +14,7 @@ verifying a change is [testing.md](testing.md).
 
 ## First-time setup
 
-Create the `Tinycast Self-Signed` code-signing identity once — builds sign with it, which is what keeps
+Create the `Redcast Self-Signed` code-signing identity once — builds sign with it, which is what keeps
 macOS from forgetting the Accessibility grant on every rebuild. Follow **[signing.md](signing.md) §1**,
 a few `openssl`/`security` commands.
 
@@ -24,20 +24,20 @@ the section below is a note for anyone who wants it, not a step.
 ## Build & run
 
 ```sh
-open Tinycast.xcodeproj    # then ⌘R
+open Redcast.xcodeproj    # then ⌘R
 ```
 
 Or from the command line:
 
 ```sh
-xcodebuild -project Tinycast.xcodeproj -scheme Tinycast -configuration Debug build
+xcodebuild -project Redcast.xcodeproj -scheme Redcast -configuration Debug build
 ```
 
 `xcodebuild` uses whatever `xcode-select` points at; if that's the Command Line Tools rather than
 Xcode, prefix with `DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer` (the SwiftUI
 `@State`/`@FocusState` macros need Xcode's macOS platform).
 
-`Tinycast.xcodeproj` is committed and generated from `project.yml` via XcodeGen — after changing
+`Redcast.xcodeproj` is committed and generated from `project.yml` via XcodeGen — after changing
 project settings in `project.yml`, run `xcodegen generate` and commit the result. There is no
 `Package.swift`, and `Bundle.module` must never be used.
 
@@ -45,13 +45,13 @@ The app target builds and embeds `ClipboardTextHelper` under `Contents/Helpers`,
 Build the app scheme to include it; copying only the main executable omits OCR support. The helper's
 executable name stays fixed even when release builds override the app's product name for a channel.
 
-Dictation similarly embeds its Swift/Core ML helper, named `Tinycast Dev Dictation` in Debug and
-`Tinycast Dictation` in Release, in an accessory `.app` bundle without a bundled icon. Model weights
+Dictation similarly embeds its Swift/Core ML helper, named `Redcast Dev Dictation` in Debug and
+`Redcast Dictation` in Release, in an accessory `.app` bundle without a bundled icon. Model weights
 download on demand; none are app resources.
 
 ### The dev channel
 
-Debug builds are a separate channel: **`Tinycast Dev.app`**, bundle id `com.tinycast.app.dev`. Every
+Debug builds are a separate channel: **`Redcast Dev.app`**, bundle id `io.redcast.app.dev`. Every
 persisted thing is keyed by bundle id — `~/Library/Preferences/<id>.plist` (settings and hotkey
 bindings), `~/Library/Application Support/<id>/` (the onboarding marker, Notes, snippets, quicklinks,
 clipboard history, calculator history, launch ranking and frequent emoji; Notes and snippets unless
@@ -69,7 +69,7 @@ Consequences worth knowing:
 
 - The dev build asks for Accessibility on its own the first time, and starts with **no** hotkeys bound
   and onboarding unseen. Grant and bind once; it persists across rebuilds, because the fixed build path
-  and the `Tinycast Self-Signed` identity keep the TCC grant alive.
+  and the `Redcast Self-Signed` identity keep the TCC grant alive.
 - Don't bind the same global hotkey in both — whichever registered first wins.
 - The Hyper Key's Caps Lock remap lives on the keyboards, which are **shared, not per-bundle**:
   enable Hyper in one build at a time so their keyboard owners do not compete. An identical mapping
@@ -81,8 +81,8 @@ The palette ships one glass look, `GlassBackdrop.balanced`. A **Debug** build ca
 others to compare on screen; a Release build compiles the switch out.
 
 ```sh
-defaults write com.tinycast.app.dev paletteGlassPreset -string classic   # or balanced, clear
-defaults delete com.tinycast.app.dev paletteGlassPreset                  # back to the default
+defaults write io.redcast.app.dev paletteGlassPreset -string classic   # or balanced, clear
+defaults delete io.redcast.app.dev paletteGlassPreset                  # back to the default
 ```
 
 `classic` is the untinted glass under `panelScrim` the palette had before, `balanced` the tinted
@@ -101,7 +101,7 @@ and the flag database:
 
 ```sh
 brew install xcode-build-server
-xcodebuild -project Tinycast.xcodeproj -scheme Tinycast -configuration Debug \
+xcodebuild -project Redcast.xcodeproj -scheme Redcast -configuration Debug \
     -derivedDataPath build/DerivedData build 2>&1 | tee /tmp/tinycast-build.log
 ./Scripts/sync-lsp.sh /tmp/tinycast-build.log
 ```
@@ -175,7 +175,7 @@ To see a language without changing the setting, launch the Debug build with
 ## Formatting
 
 ```sh
-./Scripts/format.sh            # format Tinycast/ and Tests/ in place
+./Scripts/format.sh            # format Redcast/ and Tests/ in place
 ./Scripts/format.sh --check    # report what would change, write nothing (exit 1 if any)
 ```
 
@@ -211,11 +211,11 @@ Three Swift files are emitted by scripts and must never be hand-edited. Each dow
 run them online, then commit the result:
 
 ```sh
-node Scripts/gen-emoji.js            # -> Tinycast/Features/Emoji/Model/EmojiData.generated.swift
-                                     #    + Tinycast/Resources/EmojiKeywords/<language>.txt
-node Scripts/gen-currencies.js       # -> Tinycast/Features/Calculator/Model/CurrencyData.generated.swift
-node Scripts/gen-model-catalog.js    # -> Tinycast/Features/AI/Model/AIModelCatalogData.generated.swift
-node Scripts/gen-countries.js        # -> Tinycast/Features/Calculator/Model/CountryZoneData.generated.swift
+node Scripts/gen-emoji.js            # -> Redcast/Features/Emoji/Model/EmojiData.generated.swift
+                                     #    + Redcast/Resources/EmojiKeywords/<language>.txt
+node Scripts/gen-currencies.js       # -> Redcast/Features/Calculator/Model/CurrencyData.generated.swift
+node Scripts/gen-model-catalog.js    # -> Redcast/Features/AI/Model/AIModelCatalogData.generated.swift
+node Scripts/gen-countries.js        # -> Redcast/Features/Calculator/Model/CountryZoneData.generated.swift
 ```
 
 `gen-emoji.js` also writes one CLDR keyword pack per language in its `KEYWORD_LOCALES`; adding a

@@ -21,10 +21,10 @@ struct AppleIntelligenceTests {
         deltasFollowCumulativeSnapshots()
         turnsSplitThePromptFromItsHistory()
         generationErrorsBecomeReadableFailures()
-        if ProcessInfo.processInfo.environment["TINYCAST_TEST_APPLE_INTELLIGENCE"] == "1" {
+        if ProcessInfo.processInfo.environment["REDCAST_TEST_APPLE_INTELLIGENCE"] == "1" {
             await onDeviceModelAnswers()
         } else {
-            print("skip  on-device stream — set TINYCAST_TEST_APPLE_INTELLIGENCE=1 to run")
+            print("skip  on-device stream — set REDCAST_TEST_APPLE_INTELLIGENCE=1 to run")
         }
 
         print("\(passes) passed, \(failures) failed")

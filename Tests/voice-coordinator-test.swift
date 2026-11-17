@@ -587,7 +587,7 @@ struct VoiceCoordinatorTests {
         try await settle()
         expect(
             !world.voice.askEnabled && world.voice.askModel == nil
-                && world.core.messages == ["Allow Tinycast to use the microphone in System Settings"],
+                && world.core.messages == ["Allow Redcast to use the microphone in System Settings"],
             "Without the microphone nothing is enabled or stored")
 
         world.microphone = true
@@ -922,7 +922,7 @@ struct VoiceCoordinatorTests {
         let coder = AgentProfile(id: UUID(), name: "Coder")
         world.core.agentCoordinator.agents = [coder]
         world.voice.askAgent = coder.id
-        world.voice.vocabulary = "Tinycast"
+        world.voice.vocabulary = "Redcast"
         world.settings.screenAwarenessScreenshot = true
         expect(world.ask.agent?.id == coder.id, "An agent can answer Ask by Voice")
 
@@ -932,7 +932,7 @@ struct VoiceCoordinatorTests {
         try await wait { Network.streams.count == 1 }
         expect(world.screen.screenshots == [true], "The window is read with its picture, for the agent's model")
         let request = Network.requests[0]
-        let fixture = VoicePrompt.agentRequest(audio: AIAudio(data: Data(), format: "wav"), vocabulary: "Tinycast")
+        let fixture = VoicePrompt.agentRequest(audio: AIAudio(data: Data(), format: "wav"), vocabulary: "Redcast")
         expect(
             Network.routes == [routerAsk] && request.instructions == fixture.instructions,
             "The request is only written down, as dictation on Ask by Voice's route")
@@ -1031,11 +1031,11 @@ struct VoiceCoordinatorTests {
         expect(QuickActionRunner.reads == 2 && world.panel == nil, "after reading it again, with no panel")
         expect(world.ducker.begins == world.ducker.ends, "and the volume is back")
 
-        world.voice.vocabulary = "Tinycast"
+        world.voice.vocabulary = "Redcast"
         try await world.editAndReply("Shorter.", stream: 1)
         let spelled = Network.requests[1].messages.first?.text ?? ""
         expect(
-            spelled.hasPrefix("Spell these as written when you hear them: Tinycast.\n\nText:\n"),
+            spelled.hasPrefix("Spell these as written when you hear them: Redcast.\n\nText:\n"),
             "The vocabulary comes before the selection")
         try await wait { world.injector.queued == 1 }
         world.injector.drain()
@@ -1133,7 +1133,7 @@ struct VoiceCoordinatorTests {
 
 @MainActor
 final class World {
-    let suite = "tinycast.voice-coordinator-test.\(UUID())"
+    let suite = "redcast.voice-coordinator-test.\(UUID())"
     let defaults: UserDefaults
     let settings = AppSettings()
     let ai: AISettingsStore

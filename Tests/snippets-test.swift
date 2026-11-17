@@ -132,7 +132,7 @@ struct SnippetsTests {
             "Raycast import trims keywords and normalizes blanks",
             imported[0].keyword == "!email" && imported[2].keyword == nil)
         check(
-            "Raycast import uses safe Tinycast defaults",
+            "Raycast import uses safe Redcast defaults",
             imported.allSatisfy { $0.isEnabled && !$0.showsConfirmation })
     }
 
@@ -250,20 +250,20 @@ struct SnippetsTests {
     private static func testRepositoryStorage() throws {
         let fm = FileManager.default
         let root = fm.temporaryDirectory.appendingPathComponent(
-            "tinycast-snippets-tests-\(UUID().uuidString)",
+            "redcast-snippets-tests-\(UUID().uuidString)",
             isDirectory: true)
         try fm.createDirectory(at: root, withIntermediateDirectories: true)
         defer { try? fm.removeItem(at: root) }
 
         let channelRoot = root.appendingPathComponent("channels", isDirectory: true)
         let stable = SnippetRepository(
-            bundleIdentifier: "com.tinycast.app",
+            bundleIdentifier: "io.redcast.app",
             applicationSupportRoot: channelRoot)
         let beta = SnippetRepository(
-            bundleIdentifier: "com.tinycast.app.beta",
+            bundleIdentifier: "io.redcast.app.beta",
             applicationSupportRoot: channelRoot)
         let dev = SnippetRepository(
-            bundleIdentifier: "com.tinycast.app.dev",
+            bundleIdentifier: "io.redcast.app.dev",
             applicationSupportRoot: channelRoot)
 
         check(
@@ -284,7 +284,7 @@ struct SnippetsTests {
 
         let chosenFolder = root.appendingPathComponent("dotfiles/snippets", isDirectory: true)
         let chosen = SnippetRepository(
-            bundleIdentifier: "com.tinycast.app", applicationSupportRoot: channelRoot,
+            bundleIdentifier: "io.redcast.app", applicationSupportRoot: channelRoot,
             snippetsDirectory: chosenFolder)
         let signOff = try chosen.create(Snippet(name: "Sign-off", text: "Thanks"))
         let stableAfter = try stable.load()
@@ -452,7 +452,7 @@ struct SnippetsTests {
     private static func testRepositoryConcurrency() async throws {
         let fm = FileManager.default
         let root = fm.temporaryDirectory.appendingPathComponent(
-            "tinycast-snippets-concurrency-\(UUID().uuidString)",
+            "redcast-snippets-concurrency-\(UUID().uuidString)",
             isDirectory: true)
         try fm.createDirectory(at: root, withIntermediateDirectories: true)
         defer { try? fm.removeItem(at: root) }
@@ -602,7 +602,7 @@ struct SnippetsTests {
                 try? Data(text.utf8).write(to: fileURL, options: .atomic)
             }))
         var boundaryEdit = boundaryRecord.snippet
-        boundaryEdit.text = "Tinycast edit"
+        boundaryEdit.text = "Redcast edit"
         do {
             _ = try racingRepository.save(
                 boundaryEdit,
@@ -638,7 +638,7 @@ struct SnippetsTests {
     /// The dangerous case is a copy that never lands, returning what the reader last copied.
     private static func testCopySelectionFallback() async {
         let injector = TextInjector(clipboardManager: ClipboardManager(), settings: AppSettings())
-        let backing = NSPasteboard(name: .init("tinycast-copy-tests-\(UUID().uuidString)"))
+        let backing = NSPasteboard(name: .init("redcast-copy-tests-\(UUID().uuidString)"))
         defer { backing.releaseGlobally() }
         let pasteboard = StubPasteboard(backing: backing)
 
@@ -905,7 +905,7 @@ struct SnippetsTests {
                 readStateAfterPaste: true))
 
         let backingPasteboard = NSPasteboard(
-            name: .init("tinycast-snippets-tests-\(UUID().uuidString)"))
+            name: .init("redcast-snippets-tests-\(UUID().uuidString)"))
         let pasteboard = StubPasteboard(backing: backingPasteboard)
         defer { backingPasteboard.releaseGlobally() }
         let customType = NSPasteboard.PasteboardType("com.example.custom")
@@ -940,7 +940,7 @@ struct SnippetsTests {
                 && restoredItems?[0].data(forType: customType) == Data([0, 1, 2, 3])
                 && restoredItems?[1].data(forType: secondType) == Data([4, 5, 6]))
         check(
-            "pasteboard restoration leaves no Tinycast marker on the restored clipboard",
+            "pasteboard restoration leaves no Redcast marker on the restored clipboard",
             restoredItems?.allSatisfy {
                 !$0.types.contains(ClipboardManager.internalType)
             } == true)
@@ -1003,7 +1003,7 @@ struct SnippetsTests {
     private static func testStoreWatcher() async throws {
         let fm = FileManager.default
         let root = fm.temporaryDirectory.appendingPathComponent(
-            "tinycast-snippets-watcher-\(UUID().uuidString)",
+            "redcast-snippets-watcher-\(UUID().uuidString)",
             isDirectory: true)
         defer { try? fm.removeItem(at: root) }
         let repository = SnippetRepository(
@@ -1467,7 +1467,7 @@ struct SnippetsTests {
             "a template that reads only the clipboard declares no arguments",
             SnippetTemplateEngine.declaredArguments(in: "https://x.dev/?q={clipboard}").isEmpty)
 
-        // Raycast's snippet spelling resolves like Tinycast's.
+        // Raycast's snippet spelling resolves like Redcast's.
         let child = record("/tmp/ph-child.md", Snippet(name: "Child", text: "nested"))
         let byName = record("/tmp/ph-name.md", Snippet(name: "ByName", text: "{snippet name=\"Child\"}"))
         let byColon = record("/tmp/ph-colon.md", Snippet(name: "ByColon", text: "{snippet:Child}"))
@@ -1672,7 +1672,7 @@ struct SnippetsTests {
             hasCommandOrControl: false,
             isResetKey: false,
             isDeleteBackward: false)
-        check("synthetic Tinycast events are classified as ignored", syntheticInput == .ignored)
+        check("synthetic Redcast events are classified as ignored", syntheticInput == .ignored)
         _ = policy.process(.text("!du"), at: base.addingTimeInterval(2))
         _ = policy.process(syntheticInput, at: base.addingTimeInterval(2.5))
         let afterSynthetic = policy.process(.text("p"), at: base.addingTimeInterval(3))
@@ -1884,7 +1884,7 @@ struct SnippetsTests {
             eventUserData: 123,
             secureEventInputEnabled: false)
         check(
-            "real user input invalidates pending automatic delivery while Tinycast events do not",
+            "real user input invalidates pending automatic delivery while Redcast events do not",
             activityCount == 1)
 
         listener.isPromptingForArguments = true
@@ -2057,11 +2057,11 @@ private final class StubPasteboard: PasteboardAccess {
 
 @MainActor
 final class ClipboardManager {
-    static let internalType = NSPasteboard.PasteboardType("com.tinycast.internal")
-    func prepareForTinycastPasteboardMutation() {}
+    static let internalType = NSPasteboard.PasteboardType("io.redcast.internal")
+    func prepareForRedcastPasteboardMutation() {}
     private(set) var pauses = 0
     private(set) var syncedWhilePaused = false
-    func synchronizeAfterTinycastPasteboardMutation(changeCount: Int) {
+    func synchronizeAfterRedcastPasteboardMutation(changeCount: Int) {
         syncedWhilePaused = pauses > 0
     }
     func pauseCapture() { pauses += 1 }
@@ -2079,7 +2079,7 @@ enum Permissions {
 }
 
 enum Paster {
-    static let tinycastEventTag: Int64 = 0x54494E59
+    static let redcastEventTag: Int64 = 0x54494E59
     @MainActor static func postCommandV(toPid pid: pid_t? = nil) {}
     @MainActor static func postCommandC(toPid pid: pid_t? = nil) {}
 }

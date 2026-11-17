@@ -320,7 +320,7 @@ struct PalettePlacementTests {
 
     // MARK: - The same rules at every Interface Size
 
-    /// The largest palette still has to land on the smallest display Tinycast supports.
+    /// The largest palette still has to land on the smallest display Redcast supports.
     static let smallest = CGRect(x: 0, y: 0, width: 1440, height: 875)
 
     static func everyInterfaceSize() {

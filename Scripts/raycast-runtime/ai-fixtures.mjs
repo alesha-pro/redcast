@@ -148,7 +148,7 @@ export async function runAIFixtures(check) {
 
     const model = await run(`
       return JSON.stringify([AI.Model["OpenAI_GPT-4o"], Object.entries(AI.Model), typeof AI.Model.toString]);`);
-    check("AI.Model reads any name back and lists one entry", model === '["OpenAI_GPT-4o",[["Tinycast","tinycast"]],"function"]', model);
+    check("AI.Model reads any name back and lists one entry", model === '["OpenAI_GPT-4o",[["Redcast","redcast"]],"function"]', model);
 
     script({ start: () => 14, read: chunks(14, "ok") });
     await run(`

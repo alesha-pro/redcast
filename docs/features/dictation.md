@@ -72,7 +72,7 @@ compilation of its 2-bit weights; Ultra's encoder and both variants' decoder/joi
   media at full volume can mask the start cue. Through speakers a cue can reach the recording; it is
   not removed.
 - The microphone, waveform, permissions and insertion stay in Redcast. Model loading, audio
-  features and decoding run in `Tinycast Dictation` (`Tinycast Dev Dictation` in Debug), started
+  features and decoding run in `Redcast Dictation` (`Redcast Dev Dictation` in Debug), started
   only for transcription. Main-app state never retains Core ML models or imports the adapters.
   The helper is an embedded accessory app with no bundled icon, Dock item or windows.
 - Core ML models live under this build's bundle-ID cache. After one minute idle by default, the

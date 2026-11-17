@@ -85,7 +85,7 @@ extension ExtensionTests {
     @MainActor
     static func hostBridgeAIChecks() async {
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent(
-            "tinycast-ai-bridge-\(UUID())")
+            "redcast-ai-bridge-\(UUID())")
         defer { try? FileManager.default.removeItem(at: directory) }
         let storage = ExtensionStorage(directory: directory.appendingPathComponent("storage"))
         let palette = OriginContext(storage: storage, isOpenedByUser: true)
@@ -162,7 +162,7 @@ extension ExtensionTests {
         let menuResult = await run(on: menuBridge, session: "menu")
         check(
             "a scoped bridge carries no AI host of its own",
-            menuResult == "AI is not supported in Tinycast extensions." && ai.starts.count == starts,
+            menuResult == "AI is not supported in Redcast extensions." && ai.starts.count == starts,
             menuResult ?? "nil")
         check(
             "a menu-bar refresh's launch of an AI command reaches it as not the user's",
@@ -178,7 +178,7 @@ extension ExtensionTests {
         _ = NSApplication.shared
         NSApp.setActivationPolicy(.accessory)
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent(
-            "tinycast-menu-ai-\(UUID())")
+            "redcast-menu-ai-\(UUID())")
         defer { try? FileManager.default.removeItem(at: directory) }
         let storage = ExtensionStorage(directory: directory.appendingPathComponent("storage"))
         let path = directory.appendingPathComponent("fixture")

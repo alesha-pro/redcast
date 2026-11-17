@@ -32,7 +32,7 @@ struct DocumentTextTests {
             exit(block.load(as: UInt8.self) == 1 ? 0 : 1)
         }
         let folder = FileManager.default.temporaryDirectory
-            .appendingPathComponent("tinycast-document-test-\(UUID().uuidString)")
+            .appendingPathComponent("redcast-document-test-\(UUID().uuidString)")
         try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: folder) }
 

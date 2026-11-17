@@ -182,7 +182,7 @@ struct ClipboardCoordinatorTests {
     @MainActor
     final class Fixture {
         let directory = FileManager.default.temporaryDirectory
-            .appendingPathComponent("tinycast-clipboard-coordinator-\(UUID().uuidString)")
+            .appendingPathComponent("redcast-clipboard-coordinator-\(UUID().uuidString)")
         let store: ClipboardStore
         let palette = PaletteState()
         let core = AppCore()
@@ -246,7 +246,7 @@ final class AppIndex {
 final class ClipboardManager {
     func start() {}
     func stop() {}
-    func prepareForTinycastPasteboardMutation() {}
+    func prepareForRedcastPasteboardMutation() {}
 }
 
 @MainActor

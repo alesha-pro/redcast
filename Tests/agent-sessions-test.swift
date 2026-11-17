@@ -461,7 +461,7 @@ struct AgentSessionsTests {
             state,
             "CREATE TABLE threads (\(columns));"
                 + row(1) + row(2, archived: 1) + row(3, source: guardian) + row(4, source: spawn)
-                + row(5, source: "exec") + row(6, source: "vscode", originator: "tinycast") + row(7, preview: "")
+                + row(5, source: "exec") + row(6, source: "vscode", originator: "redcast") + row(7, preview: "")
                 + row(8, source: "vscode", originator: "Codex Desktop", name: "Release checklist")
                 + row(9, source: "vscode", title: "Refactor parser", first: "please refactor the parser",
                       preview: "please refactor the parser", originator: "")
@@ -488,7 +488,10 @@ struct AgentSessionsTests {
         func byID(_ number: Int) -> AgentSessionHost? {
             (try? CodexStateReader.thread(database: state, id: codexID(number)))?.host
         }
-        expect(byID(6) == .tinycast, "by id, Tinycast's own thread is found as Tinycast's")
+        expect(byID(6) == .redcast, "by id, Redcast's own thread is found as Redcast's")
+        expect(
+            CodexStateReader.host(source: "vscode", threadSource: "", originator: "tinycast") == .redcast,
+            "a thread started before the rename is still Redcast's")
         expect(
             byID(3) == .automated && byID(4) == .automated && byID(10) == .automated,
             "by id, a subagent or a guardian review reads as automated")
@@ -566,8 +569,8 @@ struct AgentSessionsTests {
             .codex, "b", title: "Rate limiter", folder: "/Users/me/dev/api",
             first: "please fix the login page styling", updated: 20)
         let both = session(.claude, "c", title: "Fix redirect", folder: "/Users/me/dev/api", updated: 5)
-        let russian = session(.tinycast, "d", title: "Проверка кэша", updated: 1)
-        let cafe = session(.tinycast, "e", title: "Café menu", updated: 2)
+        let russian = session(.redcast, "d", title: "Проверка кэша", updated: 1)
+        let cafe = session(.redcast, "e", title: "Café menu", updated: 2)
         let automated = session(.claude, "f", title: "Nightly job", updated: 30, host: .automated)
         let archived = session(.codex, "g", title: "Old thread", updated: 40, archived: true)
         let all = [login, limiter, both, russian, cafe, automated, archived]
@@ -592,7 +595,7 @@ struct AgentSessionsTests {
         let live = [
             "claude:c": AgentLiveEntry(
                 sessionID: "c", status: .working, pid: 1, backgroundID: nil, directory: nil),
-            "tinycast:d": AgentLiveEntry(
+            "redcast:d": AgentLiveEntry(
                 sessionID: "d", status: .waiting(reason: nil), pid: 2, backgroundID: nil, directory: nil)
         ]
         expect(Array(rank("", live: live).prefix(2)) == ["d", "c"], "live first, waiting before working")
@@ -627,7 +630,7 @@ struct AgentSessionsTests {
             "codex fork")
         expect(AgentResumeCommand.command(for: app, action: .attach(shortID: "bg7")) == "claude attach bg7", "attach")
         expect(AgentResumeCommand.command(for: session(.claude, "x;rm", title: "t"), action: .resume) == nil, "no command")
-        expect(AgentResumeCommand.command(for: session(.tinycast, s1, title: "t"), action: .resume) == nil, "no CLI")
+        expect(AgentResumeCommand.command(for: session(.redcast, s1, title: "t"), action: .resume) == nil, "no CLI")
 
         let hostile = [
             "it's", "a\"b", "back\\slash", "$(touch /tmp/agent-sessions-pwned)", "`id`", "new\nline",
@@ -715,7 +718,7 @@ struct AgentSessionsTests {
 
     static let token = "0123456789abcdef0123456789abcdef"
     static let fork = "com.tinycast.app.fork"
-    static let dev = "com.tinycast.app.dev"
+    static let dev = "io.redcast.app.dev"
 
     static func install(_ text: String?, _ target: AgentHookTarget = .claude, bundle: String = fork, token: String = token)
         -> AgentHookFileFormat.Change?
@@ -880,12 +883,12 @@ struct AgentSessionsTests {
             #"{"session_id":"\#(s1)","transcript_path":"/x","cwd":"/Users/me/dev/app","hook_event_name":"Notification","#
             + #""notification_type":"permission_prompt","message":"Claude needs your permission"}"#
         let quiet = run(compact)
-        expect(quiet.status == 0 && quiet.opened.isEmpty, "with Tinycast not running nothing opens")
+        expect(quiet.status == 0 && quiet.opened.isEmpty, "with Redcast not running nothing opens")
 
         FileManager.default.createFile(atPath: running.path, contents: Data())
         let pid = ProcessInfo.processInfo.processIdentifier
         let url =
-            "tinycast://agent-sessions/event?v=1&k=\(token)&agent=claude&event=waiting&session=\(s1)"
+            "redcast://agent-sessions/event?v=1&k=\(token)&agent=claude&event=waiting&session=\(s1)"
             + "&kind=permission_prompt&pid=\(pid)"
         let loud = run(compact)
         expect(loud.status == 0 && loud.opened == ["-g", "-b", fork, url], "the event URL, got \(loud.opened)")
@@ -905,19 +908,19 @@ struct AgentSessionsTests {
         let bare = try? NSRegularExpression(pattern: #"(?<![/\w-])(head|cat|sed|lsappinfo|open)\b"#)
         let range = NSRange(system.startIndex..., in: system)
         expect(bare?.numberOfMatches(in: system, range: range) == 0, "every tool is called by absolute path")
-        expect(system.contains("/usr/bin/open -g -b \(fork) \"tinycast://"), "the open call is absolute")
+        expect(system.contains("/usr/bin/open -g -b \(fork) \"redcast://"), "the open call is absolute")
     }
 
     // MARK: - 11. Deep links
 
     static func deepLinks() {
         func url(_ text: String) -> URL { URL(string: text)! }
-        expect(AgentDeepLink.claims(url("tinycast://agent-sessions/x")), "agent-sessions is claimed")
-        expect(!AgentDeepLink.claims(url("tinycast://extensions/a/b")), "extensions are not")
+        expect(AgentDeepLink.claims(url("redcast://agent-sessions/x")), "agent-sessions is claimed")
+        expect(!AgentDeepLink.claims(url("redcast://extensions/a/b")), "extensions are not")
         expect(AgentDeepLink.claims(url("redcast://agent-sessions/x")), "Redcast's own scheme is claimed too")
         expect(AgentDeepLink.parse(url("redcast://agent-sessions/jump"), token: nil) == .jump, "and parsed alike")
         expect(!AgentDeepLink.claims(url("redcast://extensions/a/b")), "its extensions are not")
-        let base = "tinycast://agent-sessions/event?v=1&k=\(token)&agent=codex&event=finished&session=\(s1)"
+        let base = "redcast://agent-sessions/event?v=1&k=\(token)&agent=codex&event=finished&session=\(s1)"
         let full = base + "&kind=permission_prompt&pid=4242"
         expect(
             AgentDeepLink.parse(url(full), token: token)
@@ -945,14 +948,14 @@ struct AgentSessionsTests {
             AgentDeepLink.parse(url(full.replacingOccurrences(of: "finished", with: "exploded")), token: token) == nil,
             "an unknown event")
         expect(
-            AgentDeepLink.parse(url(full.replacingOccurrences(of: "agent=codex", with: "agent=tinycast")), token: token)
+            AgentDeepLink.parse(url(full.replacingOccurrences(of: "agent=codex", with: "agent=redcast")), token: token)
                 == nil, "an unknown agent")
         let long = String(repeating: "q", count: 300)
         expect(
-            AgentDeepLink.parse(url("tinycast://agent-sessions/open?q=\(long)"), token: nil)
+            AgentDeepLink.parse(url("redcast://agent-sessions/open?q=\(long)"), token: nil)
                 == .open(query: String(repeating: "q", count: 200)), "open?q= caps at 200")
-        expect(AgentDeepLink.parse(url("tinycast://agent-sessions/jump"), token: nil) == .jump, "jump")
-        expect(AgentDeepLink.parse(url("tinycast://agent-sessions/other"), token: nil) == nil, "unknown path")
+        expect(AgentDeepLink.parse(url("redcast://agent-sessions/jump"), token: nil) == .jump, "jump")
+        expect(AgentDeepLink.parse(url("redcast://agent-sessions/other"), token: nil) == nil, "unknown path")
         expect(AgentDeepLink.constantTimeEqual("abc", "abc") && !AgentDeepLink.constantTimeEqual("abc", "abd"), "compare")
     }
 
@@ -1000,9 +1003,9 @@ struct AgentSessionsTests {
             now: start.addingTimeInterval(1))
         expect(early.count == 1 && run.isEmpty, "an automated run is never kept, nor its entry from before it was known")
         let own = AgentActivityPolicy.apply(
-            event(.waiting, "t"), resolved: resolved("t", at: 2, host: .tinycast), to: items,
+            event(.waiting, "t"), resolved: resolved("t", at: 2, host: .redcast), to: items,
             now: start.addingTimeInterval(2))
-        expect(own == items, "Tinycast's own session is never kept")
+        expect(own == items, "Redcast's own session is never kept")
         let noisy = (0..<40).reduce(items) { kept, index in
             AgentActivityPolicy.apply(
                 event(.finished, "p\(index)"), resolved: resolved("p\(index)", at: 10 + Double(index), host: .automated),
@@ -1014,12 +1017,12 @@ struct AgentSessionsTests {
             "so Jump to Agent and the menu-bar item never see them")
 
         func owned(_ id: String, host: String?, app: String?) -> Bool {
-            AgentActivityPolicy.isTinycastOwned(sessionID: id, hostBundleID: host, acpSessions: [s2], appBundleID: app)
+            AgentActivityPolicy.isRedcastOwned(sessionID: id, hostBundleID: host, acpSessions: [s2], appBundleID: app)
         }
-        expect(owned(s2, host: "com.apple.Terminal", app: fork), "an ACP chat's session is Tinycast's")
-        expect(owned(s1, host: fork, app: fork), "so is an agent running under Tinycast")
+        expect(owned(s2, host: "com.apple.Terminal", app: fork), "an ACP chat's session is Redcast's")
+        expect(owned(s1, host: fork, app: fork), "so is an agent running under Redcast")
         expect(!owned(s1, host: "com.apple.Terminal", app: fork), "one in a terminal is not")
-        expect(!owned(s1, host: nil, app: nil), "an unknown host is never Tinycast's")
+        expect(!owned(s1, host: nil, app: nil), "an unknown host is never Redcast's")
 
         let waitingOld = AgentActivity(
             agent: .claude, sessionID: "w1", status: .waiting(reason: nil), updatedAt: start)
@@ -1045,9 +1048,9 @@ struct AgentSessionsTests {
         var automated = done
         automated.host = .automated
         expect(announce(automated) == nil, "not for an automated run")
-        var tinycast = done
-        tinycast.host = .tinycast
-        expect(announce(tinycast) == nil, "not for Tinycast's own session")
+        var redcast = done
+        redcast.host = .redcast
+        expect(announce(redcast) == nil, "not for Redcast's own session")
         var desktop = done
         desktop.hostBundleID = "com.anthropic.claudefordesktop.helper"
         expect(announce(desktop) == nil, "not for a desktop app's own session")
@@ -1081,7 +1084,7 @@ struct AgentSessionsTests {
         let subagent = await resolve(.codex, codexID(4))
         expect(subagent.host == .automated, "nor a Codex subagent")
         let own = await resolve(.codex, codexID(6))
-        expect(own.host == .tinycast && !own.isTracked, "nor a Codex thread Tinycast started")
+        expect(own.host == .redcast && !own.isTracked, "nor a Codex thread Redcast started")
         let unknown = await resolve(.codex, codexID(99))
         expect(unknown.isTracked && unknown.title == nil, "a thread not written yet is tracked, untitled")
     }
@@ -1343,7 +1346,7 @@ extension AgentSessionsTests {
         expect(moved.codexHistory.path == "/srv/codex/thread_history_1.sqlite", "and Codex's history")
         expect(moved.environment(for: .claude) == ["CLAUDE_CONFIG_DIR": "/Users/me/cfg/claude"], "CLAUDE_CONFIG_DIR")
         expect(moved.environment(for: .codex) == ["CODEX_HOME": "/srv/codex"], "CODEX_HOME")
-        expect(moved.environment(for: .tinycast).isEmpty, "a Tinycast chat has none")
+        expect(moved.environment(for: .redcast).isEmpty, "a Redcast chat has none")
         let relative = AgentSessionsLocations(home: home, claudeFolder: "cfg", codexFolder: "~/.codex/")
         expect(relative.claude == plain.claude, "relative text reads the default")
         expect(relative.environment(for: .codex).isEmpty, "the default spelled out adds no variable")

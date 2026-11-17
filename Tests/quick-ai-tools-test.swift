@@ -49,7 +49,7 @@ struct QuickAIToolsTests {
         searches: Bool = true, agent: Bool = false, on: Bool, servers: Bool = false
     ) -> ChatToolPolicy.Facts {
         ChatToolPolicy.Facts(
-            surface: surface, runsTinycastLoop: loop, callsTools: tools, searches: searches,
+            surface: surface, runsRedcastLoop: loop, callsTools: tools, searches: searches,
             hasAgent: agent, webSearchOn: on, hasToolServers: servers)
     }
 
@@ -143,7 +143,7 @@ struct QuickAIToolsTests {
         expect(
             mcpOn.contains("web_search, read_page, \(ChatBriefing.mcpTools).")
                 && mcpOn.contains(ChatBriefing.liveFacts),
-            "with search on, Tinycast's tools are named beside the MCP ones")
+            "with search on, Redcast's tools are named beside the MCP ones")
         expect(
             !briefing(facts(on: true, servers: true), at: now).contains("__"),
             "no MCP tool is named: a turn's @server decides which ones the request carries")
@@ -210,7 +210,7 @@ struct QuickAIToolsTests {
 
         let codexOff = facts(loop: false, on: false)
         expect(ChatToolPolicy.offersSearchSwitch(codexOff), "Codex's own search follows the same switch")
-        expect(!ChatToolPolicy.offersWebTools(codexOff), "but never gets Tinycast's web tools")
+        expect(!ChatToolPolicy.offersWebTools(codexOff), "but never gets Redcast's web tools")
         expect(
             !ChatToolPolicy.offersWebTools(facts(loop: false, on: true)),
             "not even with the switch on, since it searches itself")
@@ -328,7 +328,7 @@ struct QuickAIToolsTests {
     // MARK: - The setting
 
     static func theSettingPersists() {
-        let suite = "tinycast-quick-ai-tools-\(UUID().uuidString)"
+        let suite = "redcast-quick-ai-tools-\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: suite)!
         defer { defaults.removePersistentDomain(forName: suite) }
         for key in [AppSettingsKey.aiQuickAIAgent, .aiChatAgent] {

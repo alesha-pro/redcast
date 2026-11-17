@@ -119,7 +119,7 @@ struct FullBackupTest {
             extensions: FullBackupList([
                 .init(
                     name: "github", title: "GitHub", author: "raycast", owner: "raycast", commitSHA: "abc123",
-                    preferences: ["defaultRepo": .string("tinycast"), "showDrafts": .bool(true), "limit": .number(20),
+                    preferences: ["defaultRepo": .string("redcast"), "showDrafts": .bool(true), "limit": .number(20),
                         "editor": .application("/Applications/Zed.app")],
                     appearance: ExtensionAppearance(symbol: "star", tint: .teal), backgroundCommands: ["Unread"],
                     menuBarCommands: ["Unread", "Reviews"])
@@ -152,7 +152,7 @@ struct FullBackupTest {
 
     // MARK: - Round trip
 
-    /// Each section through the real layout, a sealed `.tinycast` and a fresh extract.
+    /// Each section through the real layout, a sealed `.redcast` and a fresh extract.
     static func everySectionRoundTrips(in root: URL) {
         let source = root.appendingPathComponent("source")
         let bundle = BackupBundle(root: source)
@@ -515,7 +515,7 @@ struct FullBackupTest {
 
     // MARK: - On quit
 
-    /// Redcast writes `.redcast`; a `.tinycast` from upstream or an older build opens the same.
+    /// Redcast writes `.redcast`; a `.redcast` from upstream or an older build opens the same.
     static func backupOpensUnderEitherExtension(sealed file: URL, in root: URL) {
         let manifest = { (name: String) -> BackupManifest? in
             let copy = root.appendingPathComponent("either.\(name)")

@@ -293,7 +293,7 @@ struct ExtensionAITests {
         expect(route("DeepSeek_R1") == pick(local, "deepseek-r1:8b"), "a gateway's model answers for its vendor")
         expect(route("Perplexity_Sonar") == nil, "a vendor nobody offers leaves the extension model")
         expect(
-            route("Vercel_Inkling") == nil && route("tinycast") == nil && route("") == nil,
+            route("Vercel_Inkling") == nil && route("redcast") == nil && route("") == nil,
             "and so does a name with no vendor")
         let resold = AIConnection(
             provider: .openRouter,

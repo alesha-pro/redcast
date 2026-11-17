@@ -393,7 +393,7 @@ struct MCPOAuthTests {
         let lent = try await manager.lentToken(for: server)
         expect(
             used == "five-minutes" && lent == "fixture-access",
-            "five minutes serve Tinycast's own request; a CLI's whole turn gets a fresh token")
+            "five minutes serve Redcast's own request; a CLI's whole turn gets a fresh token")
         try store(refresh: nil)
         let unrefreshable = try await manager.lentToken(for: server)
         expect(

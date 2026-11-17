@@ -34,7 +34,7 @@ no appcast: the release feed the website already reads is the feed the app reads
   is deliberately not in the requirement — it resolves the ticket through `syspolicyd` or the
   network, so an offline Mac would refuse a bundle the chain already proves is ours.
 - **A build only ever updates within its own channel.** The channels are separate bundle ids installed
-  side by side; crossing would mean installing a different app. `com.tinycast.app.dev` never updates
+  side by side; crossing would mean installing a different app. `io.redcast.app.dev` never updates
   at all, and does not advertise the command.
 - **Nothing is installed unless every check passes.** Bundle id, version and signature are all checked
   on the expanded copy before `replaceItemAt` runs, and the running app survives any failure untouched.

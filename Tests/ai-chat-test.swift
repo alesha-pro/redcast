@@ -169,7 +169,7 @@ struct AIChatTests {
 
     static func arrivalOrderSurvivesTheReplyAndReload() async {
         let directory = FileManager.default.temporaryDirectory
-            .appendingPathComponent("tinycast-ai-order-\(UUID().uuidString)", isDirectory: true)
+            .appendingPathComponent("redcast-ai-order-\(UUID().uuidString)", isDirectory: true)
         defer { try? FileManager.default.removeItem(at: directory) }
 
         let chat = AIChatState(history: ChatHistoryStore(directory: directory))
@@ -631,7 +631,7 @@ struct AIChatTests {
 
     static func historyRoundTripsAndRepairsInterruptedReplies() {
         let directory = FileManager.default.temporaryDirectory
-            .appendingPathComponent("tinycast-ai-chat-\(UUID().uuidString)", isDirectory: true)
+            .appendingPathComponent("redcast-ai-chat-\(UUID().uuidString)", isDirectory: true)
         defer { try? FileManager.default.removeItem(at: directory) }
 
         let id = UUID()
@@ -681,7 +681,7 @@ struct AIChatTests {
 
     static func savesRewriteOnlyTheStoredTail() {
         let directory = FileManager.default.temporaryDirectory
-            .appendingPathComponent("tinycast-ai-tail-\(UUID().uuidString)", isDirectory: true)
+            .appendingPathComponent("redcast-ai-tail-\(UUID().uuidString)", isDirectory: true)
         defer { try? FileManager.default.removeItem(at: directory) }
 
         let id = UUID()
@@ -745,7 +745,7 @@ struct AIChatTests {
 
     static func crashRepairSurvivesTailSaves() {
         let directory = FileManager.default.temporaryDirectory
-            .appendingPathComponent("tinycast-ai-repair-\(UUID().uuidString)", isDirectory: true)
+            .appendingPathComponent("redcast-ai-repair-\(UUID().uuidString)", isDirectory: true)
         defer { try? FileManager.default.removeItem(at: directory) }
 
         let id = UUID()
@@ -779,7 +779,7 @@ struct AIChatTests {
 
     static func retentionPrunesByAgeAndCascades() {
         let directory = FileManager.default.temporaryDirectory
-            .appendingPathComponent("tinycast-ai-prune-\(UUID().uuidString)", isDirectory: true)
+            .appendingPathComponent("redcast-ai-prune-\(UUID().uuidString)", isDirectory: true)
         defer { try? FileManager.default.removeItem(at: directory) }
         let store = ChatHistoryStore(directory: directory)
 
@@ -1158,7 +1158,7 @@ struct AIChatTests {
 
     static func leavingAConversationDropsItsStagedImages() {
         let directory = FileManager.default.temporaryDirectory
-            .appendingPathComponent("tinycast-ai-staging-\(UUID().uuidString)", isDirectory: true)
+            .appendingPathComponent("redcast-ai-staging-\(UUID().uuidString)", isDirectory: true)
         defer { try? FileManager.default.removeItem(at: directory) }
 
         let store = ChatHistoryStore(directory: directory)
@@ -1235,7 +1235,7 @@ struct AIChatTests {
 extension AIChatTests {
     static func temporaryStore(_ name: String) -> (ChatHistoryStore, URL) {
         let directory = FileManager.default.temporaryDirectory
-            .appendingPathComponent("tinycast-ai-\(name)-\(UUID().uuidString)", isDirectory: true)
+            .appendingPathComponent("redcast-ai-\(name)-\(UUID().uuidString)", isDirectory: true)
         return (ChatHistoryStore(directory: directory), directory)
     }
 
@@ -2025,7 +2025,7 @@ extension AIChatTests {
     /// Fork: an ACP call's diff or output reaches its row, persists beside it, and goes with it.
     static func acpToolContentRidesBesideItsRow() async {
         let directory = FileManager.default.temporaryDirectory
-            .appendingPathComponent("tinycast-ai-content-\(UUID().uuidString)", isDirectory: true)
+            .appendingPathComponent("redcast-ai-content-\(UUID().uuidString)", isDirectory: true)
         defer { try? FileManager.default.removeItem(at: directory) }
         let diff = ChatToolContent(diffs: [ChatToolContent.Diff(path: "/a.swift", lines: "-old\n+new")])
         let output = ChatToolContent(output: "line 1\nline 2")
@@ -2094,7 +2094,7 @@ extension AIChatTests {
     /// Fork: a reply's reasoning text is kept, stamped, so a later turn can send it back to its model.
     static func reasoningIsKeptForItsOwnModelsLaterTurns() async {
         let directory = FileManager.default.temporaryDirectory
-            .appendingPathComponent("tinycast-ai-replay-\(UUID().uuidString)", isDirectory: true)
+            .appendingPathComponent("redcast-ai-replay-\(UUID().uuidString)", isDirectory: true)
         defer { try? FileManager.default.removeItem(at: directory) }
         let thought = AIReasoningReplay(
             route: "api.deepseek.com", model: "deepseek-flash", form: .reasoningContent, text: "Think.",

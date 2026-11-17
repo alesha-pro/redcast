@@ -1,0 +1,540 @@
+import Foundation
+
+/// Owns every binding: persistence, registration with both engines, conflicts and dispatch.
+@MainActor
+@Observable
+final class HotKeyManager {
+    var onTogglePalette: (() -> Void)?
+    var onDictationPressed: (() -> Void)?
+    var onDictationReleased: (() -> Void)?
+    var onDictationCancelled: (() -> Void)?
+    var dictationEnabled = false {
+        didSet {
+            guard dictationEnabled != oldValue else { return }
+            if !dictationEnabled { onDictationCancelled?() }
+            syncModifierTaps()
+        }
+    }
+    var dictationHoldToTalk = false {
+        didSet {
+            guard dictationHoldToTalk != oldValue else { return }
+            onDictationCancelled?()
+            syncModifierTaps()
+        }
+    }
+    /// The launcher's own command funnel, so a shortcut and a palette row run the same thing.
+    var onRunCommand: ((CommandID) -> Void)?
+    /// Commands that hear their chord's release, for hold-to-talk; set before `start`.
+    var releasedCommands: Set<CommandID> = []
+    var onCommandReleased: ((CommandID) -> Void)?
+    /// Fork: commands held to talk on a single modifier too, as Dictation is in its hold mode.
+    var heldCommands: Set<CommandID> = [] {
+        didSet {
+            guard heldCommands != oldValue else { return }
+            syncModifierTaps()
+        }
+    }
+    var onCommandCancelled: ((CommandID) -> Void)?
+    var onRunCustomCommand: ((UUID) -> Void)?
+    var onRunSystemAction: ((SystemAction.ID) -> Void)?
+    var onRunWindowCommand: ((WindowCommand.ID) -> Void)?
+    var onRunWindowLayout: ((UUID) -> Void)?
+    var onEnterRoom: ((UUID) -> Void)?
+    var onRunCustomWindowSize: ((UUID) -> Void)?
+    var onOpenQuicklink: ((UUID) -> Void)?
+    var onRunQuickAction: ((UUID) -> Void)?
+    var onRunAppleShortcut: ((UUID) -> Void)?
+    var onExpandSnippet: ((StoredSnippet.ID) -> Void)?
+    var onRunExtensionCommand: ((String) -> Void)?
+    /// Fork: an agent's chord, which summons root search with its handle typed.
+    var onSummonAgent: ((UUID) -> Void)?
+    /// Names what only the stores know; the fixed catalogs resolve here. Set in `AppCore.start()`.
+    var displayName: ((HotKeyAction) -> String?)?
+    /// Whether the action's launcher category is switched on. Set in `AppCore.start()`.
+    var allowsAction: ((HotKeyAction) -> Bool)?
+
+    /// The recorder currently capturing, which also pauses both engines.
+    var recordingAction: HotKeyAction? {
+        didSet {
+            guard recordingAction != oldValue else { return }
+            let recording = recordingAction != nil
+            if recording, dictationEnabled, dictationHoldToTalk { onDictationCancelled?() }
+            if recording { secureInputPressedActions.removeAll(keepingCapacity: true) }
+            center.isPaused = recording
+            modifierTapMonitor.isPaused = recording
+            if secureInputEquivalentsIncludeShift != nil { syncSecureInputEquivalents() }
+            if let recordingAction {
+                capture.start(action: recordingAction, hotKeys: self)
+            } else {
+                capture.stop()
+            }
+        }
+    }
+
+    let modifierTapMonitor = ModifierTapMonitor()
+    let capture = ShortcutCaptureSession()
+
+    private let defaults: UserDefaults
+    private let center = HotKeyCenter()
+    private var modifierTaps: [HotKeyBinding: HotKeyAction] = [:]
+    /// Fork: the action each held key talks for, since voice commands hold keys as Dictation does.
+    private var heldKeys: [ModifierKey: HotKeyAction] = [:]
+    /// Include Shift for the chord whose combos also answer to ⌃+key; nil when none should.
+    private var secureInputEquivalentsIncludeShift: Bool?
+    private var secureInputEquivalentIDs: [String] = []
+    private var secureInputReplacedActions: [HotKeyAction] = []
+    private var secureInputPressedActions: [String: HotKeyAction] = [:]
+    private var secureInputHint: KeyShortcut?
+    private static let secureInputHintID = "secureInputHint"
+    private var bindings: [HotKeyAction: HotKeyBinding] = [:]
+    /// Part of `AppIndex`'s cache key: a bound entry leaves the launcher's Suggestions.
+    private(set) var revision = 0
+    var bindsDictationKey: Bool { bindings.values.contains { $0.shortcut?.isDictationKey == true } }
+    @ObservationIgnored private var candidateActionsCache: [HotKeyAction]?
+    // Reused: the startup load decodes once per candidate action.
+    private let decoder = JSONDecoder()
+    private let encoder = JSONEncoder()
+    private let boundKey = "boundAppBundleIDs"
+    private let boundPaneKey = "boundPaneBundleIDs"
+    private let boundCustomCommandKey = "boundCustomCommandIDs"
+    private let boundQuicklinkKey = "boundQuicklinkIDs"
+    private let boundQuickActionKey = "boundQuickActionIDs"
+    private let boundWindowLayoutKey = "boundWindowLayoutIDs"
+    private let boundWindowRoomKey = "boundWindowRoomIDs"
+    private let boundCustomWindowSizeKey = "boundCustomWindowSizeIDs"
+    private let boundAppleShortcutKey = "boundAppleShortcutIDs"
+    private let boundSnippetKey = "boundSnippetIDs"
+    private let boundExtensionCommandKey = "boundExtensionCommandEntryIDs"
+    // Fork: agents' ids, pruned by AgentCoordinator once `agents.json` has read.
+    private let boundAgentKey = "boundAgentIDs"
+
+    init(defaults: UserDefaults = .standard) {
+        self.defaults = defaults
+    }
+
+    func start(
+        customCommandIDs: Set<UUID>, quicklinkIDs: Set<UUID>, windowLayoutIDs: Set<UUID>,
+        windowRoomIDs: Set<UUID>, customWindowSizeIDs: Set<UUID>, quickActionIDs: Set<UUID>
+    ) {
+        prune(key: boundCustomCommandKey, live: customCommandIDs) { .customCommand(id: $0) }
+        prune(key: boundQuicklinkKey, live: quicklinkIDs) { .quicklink(id: $0) }
+        prune(key: boundWindowLayoutKey, live: windowLayoutIDs) { .windowLayout(id: $0) }
+        prune(key: boundWindowRoomKey, live: windowRoomIDs) { .windowRoom(id: $0) }
+        prune(key: boundCustomWindowSizeKey, live: customWindowSizeIDs) {
+            .customWindowSize(id: $0)
+        }
+        prune(key: boundQuickActionKey, live: quickActionIDs) { .quickAction(id: $0) }
+        // After the prunes, so a dropped record can't survive in memory this session.
+        for action in candidateActions { bindings[action] = storedBinding(for: action) }
+        revision &+= 1
+
+        // `register` no-ops on an unbound item, so the fixed catalogs need no index of their own.
+        for action in candidateActions { register(action) }
+
+        modifierTapMonitor.onTrigger = { [weak self] binding in
+            guard let self, let action = modifierTaps[binding] else { return }
+            perform(action)
+        }
+        // Fork: a held key reaches whichever action holds it, Dictation or a voice command.
+        modifierTapMonitor.onHoldPressed = { [weak self] key in
+            guard let self, let action = heldKeys[key] else { return }
+            perform(action)
+        }
+        modifierTapMonitor.onHoldReleased = { [weak self] key in
+            guard let self, let action = heldKeys[key] else { return }
+            releaseHandler(for: action)?()
+        }
+        modifierTapMonitor.onHoldCancelled = { [weak self] key in
+            switch self?.heldKeys[key] {
+            case .dictation?: self?.onDictationCancelled?()
+            case .command(let id)?: self?.onCommandCancelled?(id)
+            default: break
+            }
+        }
+        modifierTapMonitor.start()
+        syncModifierTaps()
+    }
+
+    /// Never pruned at launch: not-installed-yet and gone are indistinguishable there.
+    var boundExtensionCommandEntryIDs: [String] {
+        defaults.stringArray(forKey: boundExtensionCommandKey) ?? []
+    }
+
+    /// Bundle IDs holding a per-app hotkey, so `start()` knows which records to load.
+    var boundBundleIDs: [String] {
+        defaults.stringArray(forKey: boundKey) ?? []
+    }
+
+    var boundPaneBundleIDs: [String] {
+        defaults.stringArray(forKey: boundPaneKey) ?? []
+    }
+
+    /// Custom-command UUIDs with a binding, indexed separately so startup can re-register them.
+    var boundCustomCommandIDs: [UUID] { boundIDs(key: boundCustomCommandKey) }
+
+    var boundQuicklinkIDs: [UUID] { boundIDs(key: boundQuicklinkKey) }
+
+    /// Window-layout UUIDs with a binding; authored records, so they need an index of their own.
+    var boundWindowLayoutIDs: [UUID] { boundIDs(key: boundWindowLayoutKey) }
+
+    var boundWindowRoomIDs: [UUID] { boundIDs(key: boundWindowRoomKey) }
+
+    var boundCustomWindowSizeIDs: [UUID] { boundIDs(key: boundCustomWindowSizeKey) }
+
+    var boundQuickActionIDs: [UUID] { boundIDs(key: boundQuickActionKey) }
+
+    /// Pruned by `AppleShortcutCoordinator` after a successful read, never here at launch.
+    var boundAppleShortcutIDs: [UUID] { boundIDs(key: boundAppleShortcutKey) }
+
+    /// Swept by `removeSnippetBindings` on each load, never at launch: the store may be off.
+    var boundSnippetIDs: [StoredSnippet.ID] {
+        defaults.stringArray(forKey: boundSnippetKey) ?? []
+    }
+
+    /// Fork: an agent's binding is cleared with the agent, or at launch once it is known gone.
+    var boundAgentIDs: [UUID] { boundIDs(key: boundAgentKey) }
+
+    /// A deleted app takes its Settings row with it, so nothing else could ever clear its binding.
+    func removeAppBindings(where isUninstalled: (String) -> Bool) {
+        for bundleID in boundBundleIDs where isUninstalled(bundleID) {
+            let action = HotKeyAction.app(bundleID: bundleID)
+            if recordingAction == action { recordingAction = nil }
+            setBinding(nil, for: action)
+        }
+    }
+
+    /// Covers a file deleted or renamed outside Redcast, which no Settings row is left to clear.
+    func removeSnippetBindings(keeping liveIDs: Set<StoredSnippet.ID>) {
+        for id in boundSnippetIDs where !liveIDs.contains(id) {
+            let action = HotKeyAction.snippet(id: id)
+            if recordingAction == action { recordingAction = nil }
+            setBinding(nil, for: action)
+        }
+    }
+
+    func binding(for action: HotKeyAction) -> HotKeyBinding? { bindings[action] }
+
+    private func storedBinding(for action: HotKeyAction) -> HotKeyBinding? {
+        guard
+            let json = defaults.string(forKey: action.defaultsKey),
+            let data = json.data(using: .utf8)
+        else { return nil }
+        return try? decoder.decode(HotKeyBinding.self, from: data)
+    }
+
+    func setBinding(_ binding: HotKeyBinding?, for action: HotKeyAction) {
+        if action == .dictation, binding != self.binding(for: action) { onDictationCancelled?() }
+        let previous = bindings[action]
+        clearSecureInputEquivalents()
+        if let binding,
+            let data = try? encoder.encode(binding),
+            let json = String(data: data, encoding: .utf8)
+        {
+            bindings[action] = binding
+            defaults.set(json, forKey: action.defaultsKey)
+        } else {
+            bindings[action] = nil
+            defaults.removeObject(forKey: action.defaultsKey)
+        }
+        revision &+= 1
+        // Unregister unconditionally: the previous binding may have been a combo.
+        center.unregister(id: action.defaultsKey)
+        register(action)
+
+        switch action {
+        case .app(let bundleID):
+            index(bundleID, bound: binding != nil, key: boundKey)
+        case .settingsPane(let bundleID):
+            index(bundleID, bound: binding != nil, key: boundPaneKey)
+        case .customCommand(let id):
+            index(id, bound: binding != nil, key: boundCustomCommandKey)
+        case .quicklink(let id):
+            index(id, bound: binding != nil, key: boundQuicklinkKey)
+        case .quickAction(let id):
+            index(id, bound: binding != nil, key: boundQuickActionKey)
+        case .windowLayout(let id):
+            index(id, bound: binding != nil, key: boundWindowLayoutKey)
+        case .windowRoom(let id):
+            index(id, bound: binding != nil, key: boundWindowRoomKey)
+        case .customWindowSize(let id):
+            index(id, bound: binding != nil, key: boundCustomWindowSizeKey)
+        case .appleShortcut(let id):
+            index(id, bound: binding != nil, key: boundAppleShortcutKey)
+        case .snippet(let id):
+            index(id, bound: binding != nil, key: boundSnippetKey)
+        case .extensionCommand(let entryID):
+            index(entryID, bound: binding != nil, key: boundExtensionCommandKey)
+        // Fork: indexed like the other per-item kinds, so launch re-registers it.
+        case .agent(let id):
+            index(id, bound: binding != nil, key: boundAgentKey)
+        case .togglePalette, .dictation, .command, .systemAction, .windowCommand:
+            break
+        }
+        candidateActionsCache = nil
+        // A rebuild walks every candidate; only a modifier-only binding changes this map.
+        if previous?.usesModifierTapMonitor == true || binding?.usesModifierTapMonitor == true {
+            syncModifierTaps()
+        }
+        if secureInputEquivalentsIncludeShift != nil { syncSecureInputEquivalents() }
+    }
+
+    // MARK: - Secure Input
+
+    /// Secure Input hides the Hyper chord from every tap, so its combos also register with ⌃.
+    func setSecureInputEquivalents(includesShift: Bool?) {
+        guard includesShift != secureInputEquivalentsIncludeShift else { return }
+        secureInputEquivalentsIncludeShift = includesShift
+        syncSecureInputEquivalents()
+    }
+
+    func setSecureInputHint(_ shortcut: KeyShortcut?, onPress: @escaping () -> Void) {
+        guard shortcut != secureInputHint else { return }
+        secureInputHint = shortcut
+        center.unregister(id: Self.secureInputHintID)
+        guard let shortcut else { return }
+        center.register(id: Self.secureInputHintID, shortcut: shortcut, onKeyDown: { _ in onPress() })
+    }
+
+    /// Rebuilt wholesale, like the modifier-tap map, so an equivalent cannot outlive its binding.
+    private func syncSecureInputEquivalents() {
+        clearSecureInputEquivalents()
+        guard let includesShift = secureInputEquivalentsIncludeShift else { return }
+        let chord = KeyShortcut.hyperChord(includesShift: includesShift)
+        let actions = candidateActions
+        let originalActions = actions.reduce(into: [KeyShortcut: HotKeyAction]()) { result, action in
+            if let shortcut = binding(for: action)?.shortcut { result[shortcut] = action }
+        }
+        for action in actions {
+            guard let equivalent = binding(for: action)?.shortcut?.secureInputEquivalent(of: chord)
+            else { continue }
+            let original = originalActions[equivalent]
+            if let original {
+                center.unregister(id: original.defaultsKey)
+                secureInputReplacedActions.append(original)
+            }
+            let id = "secureInputEquivalent." + action.defaultsKey
+            var isPressed = false
+            center.register(
+                id: id, shortcut: equivalent,
+                onKeyDown: { [weak self] flags in
+                    guard let self else { return }
+                    if !isPressed {
+                        isPressed = true
+                        secureInputPressedActions[id] =
+                            ModifierKey.rightControl.isHeld(in: flags) ? action : original
+                    }
+                    if let selected = secureInputPressedActions[id] { perform(selected) }
+                },
+                onKeyUp: { [weak self] in
+                    isPressed = false
+                    guard let released = self?.secureInputPressedActions.removeValue(forKey: id)
+                    else { return }
+                    self?.releaseHandler(for: released)?()
+                })
+            secureInputEquivalentIDs.append(id)
+        }
+    }
+
+    private func clearSecureInputEquivalents() {
+        if secureInputPressedActions.values.contains(.dictation) { onDictationCancelled?() }
+        secureInputPressedActions.removeAll(keepingCapacity: true)
+        secureInputEquivalentIDs.forEach { center.unregister(id: $0) }
+        secureInputEquivalentIDs.removeAll(keepingCapacity: true)
+        secureInputReplacedActions.forEach(register)
+        secureInputReplacedActions.removeAll(keepingCapacity: true)
+    }
+
+    /// Include Shift redefines the chord, and a stored combo has the old one baked in.
+    func retargetHyperBindings(includesShift: Bool) {
+        for action in candidateActions {
+            guard let shortcut = bindings[action]?.shortcut else { continue }
+            let retargeted = shortcut.retargetingHyper(includesShift: includesShift)
+            guard retargeted != shortcut else { continue }
+            let binding = HotKeyBinding.combo(retargeted)
+            // Skip a collision rather than clobber it: the second registration would fail silently.
+            guard conflictOwner(of: binding, excluding: action) == nil else { continue }
+            setBinding(binding, for: action)
+        }
+    }
+
+    /// A hold reserves its physical modifier across both tap gestures.
+    func conflictOwner(of binding: HotKeyBinding, excluding action: HotKeyAction) -> String? {
+        for candidate in candidateActions where candidate != action {
+            guard let other = self.binding(for: candidate) else { continue }
+            // Fork: a held voice command reserves its modifier, as Dictation's hold does.
+            let holdsModifier = holds(action, binding) || holds(candidate, other)
+            if binding.conflicts(with: other, holdsModifier: holdsModifier) {
+                return displayName(of: candidate)
+            }
+        }
+        return nil
+    }
+
+    /// Fork: whether this binding is held to talk, Dictation's or a held command's.
+    private func holds(_ action: HotKeyAction, _ binding: HotKeyBinding) -> Bool {
+        guard binding.holdKey != nil else { return false }
+        switch action {
+        case .dictation: return dictationHoldToTalk
+        case .command(let id): return heldCommands.contains(id)
+        default: return false
+        }
+    }
+
+    /// Every action that could hold a binding: the search space for conflicts and the map.
+    private var candidateActions: [HotKeyAction] {
+        if let candidateActionsCache { return candidateActionsCache }
+        var actions = HotKeyAction.builtInActions
+        actions += boundBundleIDs.map { .app(bundleID: $0) }
+        actions += boundPaneBundleIDs.map { .settingsPane(bundleID: $0) }
+        actions += boundCustomCommandIDs.map { .customCommand(id: $0) }
+        actions += boundQuicklinkIDs.map { .quicklink(id: $0) }
+        actions += boundQuickActionIDs.map { .quickAction(id: $0) }
+        actions += boundWindowLayoutIDs.map { .windowLayout(id: $0) }
+        actions += boundWindowRoomIDs.map { .windowRoom(id: $0) }
+        actions += boundCustomWindowSizeIDs.map { .customWindowSize(id: $0) }
+        actions += boundAppleShortcutIDs.map { .appleShortcut(id: $0) }
+        actions += boundSnippetIDs.map { .snippet(id: $0) }
+        actions += boundExtensionCommandEntryIDs.map { .extensionCommand(entryID: $0) }
+        // Fork: only bound agents, so an agent without a chord registers nothing.
+        actions += boundAgentIDs.map { .agent(id: $0) }
+        actions += SystemAction.ID.allCases.map { .systemAction(id: $0) }
+        actions += WindowCommand.ID.allCases.map { .windowCommand(id: $0) }
+        candidateActionsCache = actions
+        return actions
+    }
+
+    private func displayName(of action: HotKeyAction) -> String {
+        switch action {
+        case .togglePalette:
+            return String(localized: "App Launcher")
+        case .dictation:
+            return String(localized: "Dictation")
+        case .command(let id):
+            return id.name
+        case .app(let bundleID), .settingsPane(let bundleID):
+            return displayName?(action) ?? bundleID
+        case .customCommand:
+            return displayName?(action) ?? String(localized: "Custom Command")
+        case .systemAction(let id):
+            return SystemActionCatalog.action(id: id).name
+        case .windowCommand(let id):
+            return WindowCommandCatalog.command(id: id)?.name ?? String(localized: "Window Command")
+        case .windowLayout:
+            return displayName?(action) ?? String(localized: "Window Layout")
+        case .windowRoom:
+            return displayName?(action) ?? String(localized: "Room")
+        case .customWindowSize:
+            return displayName?(action) ?? String(localized: "Custom Size")
+        case .quicklink:
+            return displayName?(action) ?? String(localized: "Quicklink")
+        case .quickAction:
+            return displayName?(action) ?? String(localized: "Quick Action")
+        case .appleShortcut:
+            return displayName?(action) ?? String(localized: "Apple Shortcut")
+        case .snippet:
+            return displayName?(action) ?? String(localized: "Snippet")
+        case .extensionCommand:
+            return displayName?(action) ?? String(localized: "Extension Command")
+        // Fork: the agent's own name, from AppCore's lookup.
+        case .agent:
+            return displayName?(action) ?? String(localized: "Agent")
+        }
+    }
+
+    /// Hands a combo to Carbon; a modifier-only binding has no per-action registration.
+    private func register(_ action: HotKeyAction) {
+        guard let shortcut = binding(for: action)?.shortcut else { return }
+        center.register(
+            id: action.defaultsKey, shortcut: shortcut,
+            onKeyDown: { [weak self] _ in self?.perform(action) },
+            onKeyUp: releaseHandler(for: action))
+    }
+
+    /// Only a hold-to-talk action hears its chord's release; every other key-up passes through.
+    private func releaseHandler(for action: HotKeyAction) -> (() -> Void)? {
+        switch action {
+        case .dictation: return { [weak self] in self?.onDictationReleased?() }
+        case .command(let id) where releasedCommands.contains(id):
+            return { [weak self] in self?.onCommandReleased?(id) }
+        default: return nil
+        }
+    }
+
+    /// Rebuilt wholesale, so the map can't drift from what is on disk.
+    private func syncModifierTaps() {
+        modifierTaps = [:]
+        // Fork: every action held to talk gets its key, not only Dictation.
+        var held: [ModifierKey: HotKeyAction] = [:]
+        for action in candidateActions {
+            guard let binding = binding(for: action), binding.usesModifierTapMonitor else { continue }
+            if action == .dictation, !dictationEnabled { continue }
+            if action == .dictation, dictationHoldToTalk, binding.holdKey == nil { continue }
+            if holds(action, binding) {
+                guard let key = binding.holdKey, conflictOwner(of: binding, excluding: action) == nil
+                else { continue }
+                held[key] = action
+            }
+            modifierTaps[binding] = action
+        }
+        held = held.filter { modifierTaps[$0.key.singleBinding] == $0.value }
+        // Fork: after the update, so a hold it cancels still reaches the action that held it.
+        modifierTapMonitor.update(bound: Set(modifierTaps.keys), holdKeys: Set(held.keys))
+        heldKeys = held
+    }
+
+    private func perform(_ action: HotKeyAction) {
+        // The category switch, the way each feature switch already guards its own funnel.
+        guard allowsAction?(action) ?? true else { return }
+        switch action {
+        case .togglePalette: onTogglePalette?()
+        case .dictation: onDictationPressed?()
+        case .command(let id): onRunCommand?(id)
+        case .app(let bundleID): AppLauncher.toggle(bundleID: bundleID)
+        case .settingsPane(let bundleID): AppLauncher.openSettingsPane(bundleID: bundleID)
+        case .customCommand(let id): onRunCustomCommand?(id)
+        case .systemAction(let id): onRunSystemAction?(id)
+        case .windowCommand(let id): onRunWindowCommand?(id)
+        case .windowLayout(let id): onRunWindowLayout?(id)
+        case .windowRoom(let id): onEnterRoom?(id)
+        case .customWindowSize(let id): onRunCustomWindowSize?(id)
+        case .quicklink(let id): onOpenQuicklink?(id)
+        case .quickAction(let id): onRunQuickAction?(id)
+        case .appleShortcut(let id): onRunAppleShortcut?(id)
+        case .snippet(let id): onExpandSnippet?(id)
+        case .extensionCommand(let entryID): onRunExtensionCommand?(entryID)
+        // Fork: the agent's handle typed into root search.
+        case .agent(let id): onSummonAgent?(id)
+        }
+    }
+
+    // MARK: - UUID-keyed indexes
+
+    private func boundIDs(key: String) -> [UUID] {
+        (defaults.stringArray(forKey: key) ?? []).compactMap(UUID.init(uuidString:))
+    }
+
+    private func index(_ id: UUID, bound: Bool, key: String) {
+        var set = Set(boundIDs(key: key))
+        if bound { set.insert(id) } else { set.remove(id) }
+        persist(set, key: key)
+    }
+
+    private func index(_ id: String, bound: Bool, key: String) {
+        var set = Set(defaults.stringArray(forKey: key) ?? [])
+        if bound { set.insert(id) } else { set.remove(id) }
+        defaults.set(Array(set), forKey: key)
+    }
+
+    /// Drops bindings whose item is gone, deleted while Redcast wasn't running.
+    private func prune(key: String, live: Set<UUID>, action: (UUID) -> HotKeyAction) {
+        let stored = Set(boundIDs(key: key))
+        for id in stored.subtracting(live) {
+            defaults.removeObject(forKey: action(id).defaultsKey)
+        }
+        persist(stored.intersection(live), key: key)
+    }
+
+    private func persist(_ ids: Set<UUID>, key: String) {
+        defaults.set(ids.map { $0.uuidString.lowercased() }.sorted(), forKey: key)
+    }
+}

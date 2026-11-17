@@ -125,7 +125,7 @@ struct HyperKeyTest {
         let recoveryKey = "hyperKeyKeyboardMappings"
         func fixture(_ body: (KeyboardRemapper, UserDefaults) -> Void) {
             HIDEventSystem.reset()
-            let domain = "tinycast.hyper-key-test.\(UUID())"
+            let domain = "redcast.hyper-key-test.\(UUID())"
             let defaults = UserDefaults(suiteName: domain)!
             defer { defaults.removePersistentDomain(forName: domain) }
             body(KeyboardRemapper(defaults: defaults), defaults)

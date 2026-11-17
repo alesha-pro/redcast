@@ -40,7 +40,7 @@ cross an asynchronous actor boundary.
 
 Full detail in [architecture.md](architecture.md); the rules a new feature has to satisfy:
 
-- **One folder per feature** under `Tinycast/Features/<Name>/`, holding everything that feature owns —
+- **One folder per feature** under `Redcast/Features/<Name>/`, holding everything that feature owns —
   its model, its services, its views and its own Settings panes.
 - A larger feature splits into `Model/` (pure), `Service/` (effects), `UI/` (views and the feature's
   coordinator) and `Settings/` (its panes). A small one stays flat. Split when the flat folder stops being
@@ -239,7 +239,7 @@ need saying explicitly. Adding it as the view is written costs a line; retrofitt
 ## Localization
 
 Redcast ships English plus German, Spanish, French, Japanese, Korean, Portuguese, Russian and
-Simplified Chinese. Every string lives in `Tinycast/Resources/Localizable.xcstrings`, keyed by its
+Simplified Chinese. Every string lives in `Redcast/Resources/Localizable.xcstrings`, keyed by its
 English source text; the compiler extracts the keys, and `./Scripts/sync-strings.sh` writes them into
 the catalog (Xcode's own build does the same in the IDE). The six privacy prompts live in
 `InfoPlist.xcstrings`, keyed by their `Info.plist` key.

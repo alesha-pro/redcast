@@ -275,7 +275,7 @@ struct TagsTests {
         expect(pinned == expectedHues, "the hash gives the same colours on every launch and Mac")
         let spread = Set((0..<64).map { RaycastHue.tag("tag \($0)") })
         expect(spread.isSubset(of: Set(RaycastHue.agentChoices)), "tags only wear the curated palette")
-        expect(!spread.contains(.gray), "grey stays Tinycast's own")
+        expect(!spread.contains(.gray), "grey stays Redcast's own")
         expect(spread.count == RaycastHue.agentChoices.count, "the hash reaches every colour")
     }
 
@@ -294,7 +294,7 @@ struct TagsTests {
 
     static func withDirectory(_ body: (URL) -> Void) {
         let directory = FileManager.default.temporaryDirectory
-            .appendingPathComponent("tinycast-tags-\(UUID().uuidString)", isDirectory: true)
+            .appendingPathComponent("redcast-tags-\(UUID().uuidString)", isDirectory: true)
         try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: directory) }
         body(directory)

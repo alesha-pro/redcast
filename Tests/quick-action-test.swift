@@ -344,7 +344,7 @@ struct QuickActionTests {
             CustomQuickAction.id(fromEntryID: "quicklink:nope") == nil,
             "another feature's entry id is not a Quick Action")
 
-        // Preview is the default, because Tinycast cannot know what an arbitrary prompt returns.
+        // Preview is the default, because Redcast cannot know what an arbitrary prompt returns.
         expect(
             QuickActionSettings().previewsResult(.custom(record)),
             "a custom action previews until the reader says otherwise")

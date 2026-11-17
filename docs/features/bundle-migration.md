@@ -7,7 +7,7 @@ installed under the old id moves all of that over on its first launch under the 
 
 ## What moves, and when
 
-`LegacyBundleMigration.runIfNeeded()` is the first line of `TinycastLaunch.main()`, before anything
+`LegacyBundleMigration.runIfNeeded()` is the first line of `RedcastLaunch.main()`, before anything
 reads a setting. It runs once, only for `io.redcast.app`, and records the run in
 `legacyBundleMigrationDone`.
 

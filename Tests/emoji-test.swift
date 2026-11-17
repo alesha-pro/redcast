@@ -64,7 +64,7 @@ struct EmojiTests {
             "A|alpha|ob|0|red\nB|beta|ob|0|", localized: ["A|rouge,vif\nbad line\nB|bleu", "A|rot"])
         expect(merged.map(\.keywords) == ["red,rouge,vif,rot", "bleu"], "packs append keywords")
 
-        let packDirectory = URL(fileURLWithPath: "Tinycast/Resources/EmojiKeywords")
+        let packDirectory = URL(fileURLWithPath: "Redcast/Resources/EmojiKeywords")
         let packs =
             (try? FileManager.default.contentsOfDirectory(
                 at: packDirectory, includingPropertiesForKeys: nil)) ?? []

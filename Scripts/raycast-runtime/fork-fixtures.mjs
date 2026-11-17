@@ -1,7 +1,7 @@
 import { pathToFileURL } from "node:url";
 import { bootConfig, createHarness } from "./test.mjs";
 
-// The extension-runtime fixes this fork ports from sermelipharo/tinycast-space.
+// The extension-runtime fixes this fork ports from sermelipharo/redcast-space.
 export async function runForkFixtures(check) {
   const requests = [];
   const harness = createHarness({

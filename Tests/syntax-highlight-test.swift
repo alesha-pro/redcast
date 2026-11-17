@@ -170,7 +170,7 @@ struct SyntaxHighlightTests {
                 ("null", .constant), ("\"a\"", .string)
             ])
         let yaml = """
-            name: tinycast  # the app
+            name: redcast  # the app
             list:
               - a: 1
               - "quoted": yes

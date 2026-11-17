@@ -34,10 +34,10 @@ struct RelaunchTests {
 
     private static func testTermination(relaunch: Bool) async throws {
         let files = FileManager.default
-        let root = files.temporaryDirectory.appendingPathComponent("tinycast-relaunch-\(UUID())")
+        let root = files.temporaryDirectory.appendingPathComponent("redcast-relaunch-\(UUID())")
         let app = root.appendingPathComponent("Fixture's App.app", isDirectory: true)
         let macOS = app.appendingPathComponent("Contents/MacOS", isDirectory: true)
-        let bundleID = "com.tinycast.relaunch-test.\(UUID().uuidString.lowercased())"
+        let bundleID = "io.redcast.relaunch-test.\(UUID().uuidString.lowercased())"
         let process = Process()
         try files.createDirectory(at: macOS, withIntermediateDirectories: true)
         defer {

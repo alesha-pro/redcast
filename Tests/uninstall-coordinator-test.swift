@@ -58,7 +58,7 @@ struct AppEntry {
     let id = "fixture"
     let name = "Fixture"
     let url = URL(fileURLWithPath: "/Applications/Fixture.app")
-    let bundleID: String? = "com.tinycast.uninstall-fixture"
+    let bundleID: String? = "io.redcast.uninstall-fixture"
     let kind = Kind.application
     var preferenceKey: String { id }
     var hotKeyAction: String? { nil }

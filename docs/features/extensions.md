@@ -85,7 +85,7 @@ timers, `fetch`, `URL`, `URLSearchParams`, `Blob`/`File`/`FormData`, `DOMExcepti
 
 ## The JS runtime
 
-`Tinycast/Resources/RaycastRuntime.generated.js` (~263 KB minified) is **generated and committed**, the
+`Redcast/Resources/RaycastRuntime.generated.js` (~263 KB minified) is **generated and committed**, the
 same arrangement as `EmojiData.generated.swift`: building Redcast never needs Node. Sources live in
 [`Scripts/raycast-runtime/`](../../Scripts/raycast-runtime):
 
@@ -114,7 +114,7 @@ Two host-call flavours:
 
 ## The Swift host
 
-`Tinycast/Features/Extensions/`, split the same way as every other feature:
+`Redcast/Features/Extensions/`, split the same way as every other feature:
 
 | File                                          | Role                                                                                                       |
 | --------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
@@ -299,7 +299,7 @@ screens hold (see [palette.md](palette.md)).
   its `.task` on `ExtensionImage.LoadKey`, since the URL alone no longer says what will be drawn.
   The feature's own fills live in `ExtensionColors` — never in `Theme`.
 - **Form** — label-left/control-right rows. Field values live in the extension (React owns them); every
-  edit dispatches `onTinycastChange` and the resulting re-render is what updates the control, so
+  edit dispatches `onRedcastChange` and the resulting re-render is what updates the control, so
   `defaultValue`, a controlled `value`, and `ref.reset()` all behave. **A form takes the whole
   keyboard**: its fields _are_ the palette's rows, so the search field is hidden and the header left
   empty. `ExtensionFormField` says what each `Form.*` node is —
@@ -851,7 +851,7 @@ extensions / 114 of 147 view commands** boot and render. `Scripts/raycast-runtim
 cd Scripts/raycast-runtime
 pnpm install
 node gen-enums.mjs        # only after bumping the @raycast/api devDependency
-node build.mjs            # → Tinycast/Resources/RaycastRuntime.generated.js (commit it)
+node build.mjs            # → Redcast/Resources/RaycastRuntime.generated.js (commit it)
 node build.mjs --dev       # unminified, React in development mode (better error messages)
 ```
 
@@ -866,7 +866,7 @@ node test.mjs ~/.config/raycast/extensions/<uuid> [command]
 
 # 3. the real Swift engine, against JavaScriptCore
 Scripts/run-tests.sh ext-test
-"${TMPDIR:-/tmp}"/tinycast-harness/ext-test ~/Library/Application\ Support/com.tinycast.app.dev/extensions/<name> [command]
+"${TMPDIR:-/tmp}"/tinycast-harness/ext-test ~/Library/Application\ Support/io.redcast.app.dev/extensions/<name> [command]
 ```
 
 `ext-test` compiles the real engine sources — there is no copy to keep in sync. `EXT_TEST_VERBOSE=1`
@@ -881,7 +881,7 @@ status items stay hidden so a test run cannot interfere with the running app's m
 
 ```sh
 EXT_TEST_MENU_BAR=1 "${TMPDIR:-/tmp}/tinycast-harness/ext-test" \
-  "$HOME/Library/Application Support/com.tinycast.app.dev/extensions/opencodex-usage" usage-menu-bar
+  "$HOME/Library/Application Support/io.redcast.app.dev/extensions/opencodex-usage" usage-menu-bar
 ```
 
 ### Debugging a failing extension

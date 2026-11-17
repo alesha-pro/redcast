@@ -15,7 +15,7 @@ What follows is the bar every change meets, yours included, whether written by h
 - **No leaks.** No retain cycles; every spawned process is fully torn down.
 - **Design.** New UI uses the existing tokens in [`docs/ui.md`](docs/ui.md) and looks like it shipped
   with the app.
-- **Upstream stays mergeable.** Fork code lives in its own `Tinycast/Features/<Name>/` folders and
+- **Upstream stays mergeable.** Fork code lives in its own `Redcast/Features/<Name>/` folders and
   touches upstream files in as few, commented (`Fork:`) lines as possible. See
   [`FORK.md`](FORK.md#living-with-upstream).
 - **The rules in [`AGENTS.md`](AGENTS.md)** hold for every change.

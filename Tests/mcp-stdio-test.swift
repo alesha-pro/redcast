@@ -98,7 +98,7 @@ struct MCPStdioTests {
         await connection.start()
         expect(
             connection.status.isReady,
-            "a server asking Tinycast for something is declined without derailing the handshake")
+            "a server asking Redcast for something is declined without derailing the handshake")
         connection.stop()
     }
 
@@ -126,7 +126,7 @@ final class StubMCPServer {
     init?(mode: String = "normal") {
         let root = URL(fileURLWithPath: NSTemporaryDirectory())
             .appending(path: "mcp-stdio-\(UUID().uuidString)", directoryHint: .isDirectory)
-        let executable = root.appending(path: "bin/tinycast-mcp-stub")
+        let executable = root.appending(path: "bin/redcast-mcp-stub")
         do {
             try FileManager.default.createDirectory(
                 at: executable.deletingLastPathComponent(), withIntermediateDirectories: true)
@@ -147,7 +147,7 @@ final class StubMCPServer {
         server = MCPServer(
             name: "Stub", slug: "stub",
             transport: .stdio(
-                command: "tinycast-mcp-stub", arguments: [], environmentKeys: []))
+                command: "redcast-mcp-stub", arguments: [], environmentKeys: []))
     }
 
     func connection() -> MCPServerConnection {

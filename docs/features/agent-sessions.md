@@ -231,7 +231,7 @@ row or Search Agent Sessions at all.
 
 ## Manual sweep
 
-Run in `Tinycast Dev.app` with AI on.
+Run in `Redcast Dev.app` with AI on.
 
 1. **Search Agent Sessions** lists Claude, Codex and Redcast rows; a first open shows progress, a
    re-open and a relaunch are instant (the cache works).

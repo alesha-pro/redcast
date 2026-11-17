@@ -77,14 +77,14 @@ struct LanguageTests {
 
     private static func checkCatalogs() throws {
         let root = FileManager.default.temporaryDirectory
-            .appendingPathComponent("tinycast-languages-\(UUID().uuidString)")
+            .appendingPathComponent("redcast-languages-\(UUID().uuidString)")
         try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: root) }
         for catalog in ["Localizable", "InfoPlist"] {
             let process = Process()
             process.executableURL = URL(fileURLWithPath: "/usr/bin/xcrun")
             process.arguments = [
-                "xcstringstool", "compile", "Tinycast/Resources/\(catalog).xcstrings",
+                "xcstringstool", "compile", "Redcast/Resources/\(catalog).xcstrings",
                 "--output-directory", root.path
             ]
             try process.run()

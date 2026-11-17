@@ -852,16 +852,16 @@ extension AgentLoopTests {
         expect(base.requests.count == 4, "the first round is asked three times, the second once")
         let rows = outcome.events.filter {
             switch $0 {
-            case .toolCall(let id, _, _), .toolResult(let id, _): id.hasPrefix("tinycast-retry-")
+            case .toolCall(let id, _, _), .toolResult(let id, _): id.hasPrefix("redcast-retry-")
             default: false
             }
         }
         expect(
             rows == [
-                .toolCall(id: "tinycast-retry-1-1", origin: "Loop", title: AgentRetryPolicy.title(1, of: 4, reason: AgentRetryPolicy.reason(busy))),
-                .toolResult(id: "tinycast-retry-1-1", isError: false),
-                .toolCall(id: "tinycast-retry-1-2", origin: "Loop", title: AgentRetryPolicy.title(2, of: 4, reason: AgentRetryPolicy.reason(busy))),
-                .toolResult(id: "tinycast-retry-1-2", isError: false)
+                .toolCall(id: "redcast-retry-1-1", origin: "Loop", title: AgentRetryPolicy.title(1, of: 4, reason: AgentRetryPolicy.reason(busy))),
+                .toolResult(id: "redcast-retry-1-1", isError: false),
+                .toolCall(id: "redcast-retry-1-2", origin: "Loop", title: AgentRetryPolicy.title(2, of: 4, reason: AgentRetryPolicy.reason(busy))),
+                .toolResult(id: "redcast-retry-1-2", isError: false)
             ],
             "each wait shows as a row that closes when the round is asked again, got \(rows)")
         expect(
@@ -1495,7 +1495,7 @@ extension AgentLoopTests {
             "a message sent during a call is the user's turn in the very next request")
         expect(
             outcome.events.contains(
-                .toolCall(id: "tinycast-steer-1-0", origin: "Loop", title: AgentSteering.title("also check B"))),
+                .toolCall(id: "redcast-steer-1-0", origin: "Loop", title: AgentSteering.title("also check B"))),
             "and shows as a row of its own in the reply")
         let third = ScriptedProvider(rounds: [[.text("Done."), .finished], [.text("And that."), .finished]])
         let late = AgentSteering()

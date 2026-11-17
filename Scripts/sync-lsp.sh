@@ -12,7 +12,7 @@ fi
 command -v xcode-build-server >/dev/null || { echo "xcode-build-server not installed; skipping." >&2; exit 0; }
 
 # A build that compiled no Swift would replace .compile with an empty database, so keep the old one.
-backup="${TMPDIR:-/tmp}/tinycast-compile.bak"
+backup="${TMPDIR:-/tmp}/redcast-compile.bak"
 [ -f .compile ] && cp .compile "$backup"
 
 # No `-o` on purpose: only this spelling also writes buildServer.json, as `kind: manual`.

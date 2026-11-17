@@ -5,7 +5,7 @@ import Foundation
 struct LocalizedResourceTests {
     static var failures = 0
     static var passes = 0
-    static let languageVariable = "TINYCAST_RESOLVED_LANGUAGE"
+    static let languageVariable = "REDCAST_RESOLVED_LANGUAGE"
 
     static func check(_ label: String, _ ok: Bool, _ detail: String = "") {
         if ok {
@@ -33,13 +33,13 @@ struct LocalizedResourceTests {
     /// `resolved()` reads `Bundle.main`, so each language runs a copy that sits beside the tables.
     private static func checkEachLanguage() throws {
         let root = FileManager.default.temporaryDirectory
-            .appendingPathComponent("tinycast-resolved-\(UUID().uuidString)")
+            .appendingPathComponent("redcast-resolved-\(UUID().uuidString)")
         try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: root) }
         let compile = Process()
         compile.executableURL = URL(fileURLWithPath: "/usr/bin/xcrun")
         compile.arguments = [
-            "xcstringstool", "compile", "Tinycast/Resources/Localizable.xcstrings",
+            "xcstringstool", "compile", "Redcast/Resources/Localizable.xcstrings",
             "--output-directory", root.path
         ]
         try compile.run()
@@ -71,14 +71,14 @@ struct LocalizedResourceTests {
         let name = "Notes"
         var resources: [(label: String, resource: LocalizedStringResource)] = [
             ("a translated key", "Cancel"),
-            ("a key the catalog lacks", "Tinycast harness key"),
+            ("a key the catalog lacks", "Redcast harness key"),
             (
                 "a contextual key",
                 LocalizedStringResource("apple-shortcuts-section", defaultValue: "Shortcuts")
             ),
             (
                 "a contextual key the catalog lacks",
-                LocalizedStringResource("tinycast-harness-key", defaultValue: "Cancel")
+                LocalizedStringResource("redcast-harness-key", defaultValue: "Cancel")
             ),
             ("an interpolated key", "Customize \(name)"),
             ("a literal percent sign", "Set Volume to 25%")

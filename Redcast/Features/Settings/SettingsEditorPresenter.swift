@@ -1,0 +1,436 @@
+import AppKit
+import SwiftUI
+
+/// One stack per Settings window: bindings own presentation state, this owns only AppKit edges.
+@MainActor
+final class SettingsEditorPresenter: NSObject {
+    struct DismissAction {
+        private let action: () -> Void
+
+        init(_ action: @escaping () -> Void = {}) {
+            self.action = action
+        }
+
+        func callAsFunction() {
+            action()
+        }
+    }
+
+    fileprivate struct BooleanPanelModifier<PanelContent: View>: ViewModifier {
+        @Environment(\.settingsEditorPresenter) private var presenter
+        @Binding var isPresented: Bool
+        var isPicker = false
+        let panelContent: () -> PanelContent
+        @State private var presentationID = UUID()
+
+        func body(content: Content) -> some View {
+            content
+                .onChange(of: isPresented, initial: true) { _, presented in
+                    guard let presenter else { return }
+                    if presented {
+                        let binding = $isPresented
+                        presenter.present(
+                            id: presentationID, isPicker: isPicker,
+                            onDismiss: {
+                                binding.wrappedValue = false
+                            }
+                        ) {
+                            panelContent()
+                        }
+                    } else {
+                        presenter.dismiss(id: presentationID, notifying: false)
+                    }
+                }
+                .onDisappear {
+                    presenter?.dismiss(id: presentationID)
+                }
+        }
+    }
+
+    fileprivate struct ItemPanelModifier<Item: Identifiable, PanelContent: View>: ViewModifier {
+        @Environment(\.settingsEditorPresenter) private var presenter
+        @Binding var item: Item?
+        let panelContent: (Item) -> PanelContent
+        @State private var presentationID = UUID()
+
+        func body(content: Content) -> some View {
+            content
+                .onChange(of: item?.id, initial: true) { _, _ in
+                    guard let presenter else { return }
+                    presenter.dismiss(id: presentationID, notifying: false)
+                    guard let presentedItem = item else { return }
+                    let binding = $item
+                    let itemID = presentedItem.id
+                    presenter.present(
+                        id: presentationID,
+                        onDismiss: {
+                            guard binding.wrappedValue?.id == itemID else { return }
+                            binding.wrappedValue = nil
+                        }
+                    ) {
+                        panelContent(presentedItem)
+                    }
+                }
+                .onDisappear {
+                    presenter?.dismiss(id: presentationID)
+                }
+        }
+    }
+
+    private struct Pending {
+        let id: UUID
+        /// A picker goes on a click outside it or Escape, as a menu would; an editor stays.
+        let isPicker: Bool
+        let content: AnyView
+        let onDismiss: () -> Void
+    }
+
+    private final class Presentation {
+        let id: UUID
+        let isPicker: Bool
+        weak var parent: NSWindow?
+        let panel: Panel
+        let blocker: BlockingPanel
+        let onDismiss: () -> Void
+
+        init(
+            id: UUID, isPicker: Bool, parent: NSWindow, panel: Panel,
+            blocker: BlockingPanel, onDismiss: @escaping () -> Void
+        ) {
+            self.id = id
+            self.isPicker = isPicker
+            self.parent = parent
+            self.panel = panel
+            self.blocker = blocker
+            self.onDismiss = onDismiss
+        }
+    }
+
+    private final class Panel: NSPanel, AnimatedPanel {
+        var cancelHandler: (() -> Void)?
+
+        init(content: NSView, cornerRadius: CGFloat) {
+            super.init(
+                contentRect: NSRect(origin: .zero, size: content.frame.size),
+                styleMask: [.borderless, .fullSizeContentView], backing: .buffered, defer: false)
+            isFloatingPanel = true
+            becomesKeyOnlyIfNeeded = false
+            hidesOnDeactivate = false
+            titleVisibility = .hidden
+            titlebarAppearsTransparent = true
+            isOpaque = false
+            backgroundColor = .clear
+            hasShadow = true
+            followMotion()
+            isMovableByWindowBackground = false
+            isReleasedWhenClosed = false
+            content.wantsLayer = true
+            content.layer?.cornerCurve = .continuous
+            content.layer?.cornerRadius = cornerRadius
+            content.layer?.masksToBounds = true
+            contentView = content
+        }
+
+        override var canBecomeKey: Bool { true }
+        override var canBecomeMain: Bool { false }
+
+        /// A child window drags alone, so the drag goes to the window it sits on, as a sheet's does.
+        override func performDrag(with event: NSEvent) {
+            parent?.performDrag(with: event)
+        }
+
+        /// The fallback: a panel whose content declares `.cancelAction` handles Escape itself.
+        override func cancelOperation(_ sender: Any?) {
+            cancelHandler?()
+        }
+
+        func focusFirstControl() {
+            makeKey()
+            selectNextKeyView(nil)
+        }
+    }
+
+    private final class BlockingPanel: NSPanel {
+        private weak var target: NSWindow?
+        /// True when the press was spent closing a picker, so it neither raises nor drags.
+        private let onPress: () -> Bool
+
+        init(target: NSWindow, cornerRadius: CGFloat, onPress: @escaping () -> Bool) {
+            self.target = target
+            self.onPress = onPress
+            super.init(
+                contentRect: .zero, styleMask: [.borderless], backing: .buffered, defer: false)
+            isOpaque = false
+            backgroundColor = .clear
+            hasShadow = false
+            animationBehavior = .none
+            isReleasedWhenClosed = false
+            alphaValue = 0
+            contentView = NSHostingView(
+                rootView: Theme.Colors.dialogDimming
+                    .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+                    .ignoresSafeArea()
+                    .motionScope())
+        }
+
+        override var canBecomeKey: Bool { false }
+        override var canBecomeMain: Bool { false }
+
+        override func sendEvent(_ event: NSEvent) {
+            guard event.type == .leftMouseDown || event.type == .rightMouseDown else {
+                super.sendEvent(event)
+                return
+            }
+            guard !onPress() else { return }
+            target?.makeKeyAndOrderFront(nil)
+            // The dim covers the parent's titlebar, so it has to carry the parent's drag.
+            if event.type == .leftMouseDown { parent?.performDrag(with: event) }
+        }
+    }
+
+    private unowned let core: AppCore
+    private let navigation: SettingsNavigationState
+    private weak var parentWindow: NSWindow?
+    private var pending: [Pending] = []
+    private var presentations: [Presentation] = []
+
+    init(core: AppCore, navigation: SettingsNavigationState) {
+        self.core = core
+        self.navigation = navigation
+        super.init()
+    }
+
+    func attach(to window: NSWindow?) {
+        guard let window, parentWindow !== window else { return }
+        if let parentWindow {
+            NotificationCenter.default.removeObserver(self, name: nil, object: parentWindow)
+        }
+        parentWindow = window
+        NotificationCenter.default.addObserver(
+            self, selector: #selector(parentWillClose(_:)),
+            name: NSWindow.willCloseNotification, object: window)
+        observeResize(of: window)
+        flushPending()
+    }
+
+    @objc private func parentWillClose(_ notification: Notification) {
+        guard notification.object as? NSWindow === parentWindow else { return }
+        dismissAll()
+        NotificationCenter.default.removeObserver(self, name: nil, object: parentWindow)
+        parentWindow = nil
+    }
+
+    func present<Content: View>(
+        id: UUID, isPicker: Bool = false, onDismiss: @escaping () -> Void,
+        @ViewBuilder content: () -> Content
+    ) {
+        guard !contains(id) else { return }
+        pending.append(
+            Pending(id: id, isPicker: isPicker, content: AnyView(content()), onDismiss: onDismiss))
+        flushPending()
+    }
+
+    func dismiss(id: UUID, notifying: Bool = true) {
+        if let pendingIndex = pending.firstIndex(where: { $0.id == id }) {
+            let request = pending.remove(at: pendingIndex)
+            if notifying { request.onDismiss() }
+            return
+        }
+        guard let index = presentations.firstIndex(where: { $0.id == id }) else { return }
+        while presentations.indices.contains(index) {
+            let shouldNotify = presentations.last?.id == id ? notifying : true
+            dismissLast(notifying: shouldNotify)
+        }
+    }
+
+    func dismissAll() {
+        let pendingRequests = pending
+        pending.removeAll()
+        pendingRequests.forEach { $0.onDismiss() }
+        while !presentations.isEmpty { dismissLast(notifying: true) }
+    }
+
+    private func contains(_ id: UUID) -> Bool {
+        pending.contains { $0.id == id } || presentations.contains { $0.id == id }
+    }
+
+    private func flushPending() {
+        guard parentWindow != nil else { return }
+        while !pending.isEmpty { show(pending.removeFirst()) }
+    }
+
+    private func show(_ request: Pending) {
+        guard let parent = presentations.last?.panel ?? parentWindow else { return }
+        let dismiss = DismissAction { [weak self] in
+            self?.dismiss(id: request.id)
+        }
+        let radius = request.isPicker ? Theme.Radius.menuPanel : Theme.Radius.panel
+        let root = request.content
+            // A focused field keeps Escape from the panel, so a picker takes it here as well.
+            .onExitCommand(perform: request.isPicker ? { dismiss() } : nil)
+            .settingsEnvironment(core: core, navigation: navigation, editorPresenter: self)
+            .environment(\.settingsEditorDismiss, dismiss)
+            .environment(\.settingsPanelRadius, radius)
+        let hosting = NSHostingView(rootView: AnyView(root))
+        hosting.setFrameSize(NSSize(width: 1, height: 1))
+        hosting.layoutSubtreeIfNeeded()
+        let fitting = hosting.fittingSize
+        hosting.setFrameSize(
+            NSSize(width: max(1, fitting.width), height: max(1, fitting.height)))
+
+        let panel = Panel(content: hosting, cornerRadius: radius)
+        panel.cancelHandler = { [weak self] in self?.dismiss(id: request.id) }
+        let blocker = BlockingPanel(
+            target: panel, cornerRadius: blockerCornerRadius(for: parent),
+            onPress: { [weak self] in self?.dismissTopPicker() ?? false })
+        let presentation = Presentation(
+            id: request.id, isPicker: request.isPicker, parent: parent, panel: panel,
+            blocker: blocker, onDismiss: request.onDismiss)
+        presentations.append(presentation)
+        // Its own resize too: the content sizes the panel, so a growing form must re-centre it.
+        observeResize(of: panel)
+        layout(presentation)
+        parent.addChildWindow(blocker, ordered: .above)
+        parent.addChildWindow(panel, ordered: .above)
+        blocker.fadeIn(duration: Theme.Duration.dialogEnter) { blocker.orderFront(nil) }
+        panel.makeKeyAndOrderFront(nil)
+        focusAfterLayout(panel: panel)
+    }
+
+    /// Whichever dim took the press: a picker over a nested editor is covered by more than one.
+    private func dismissTopPicker() -> Bool {
+        guard let top = presentations.last, top.isPicker else { return false }
+        dismiss(id: top.id)
+        return true
+    }
+
+    private func focusAfterLayout(panel: Panel) {
+        Task { @MainActor [weak self, weak panel] in
+            await Task.yield()
+            guard let self, let panel,
+                self.presentations.contains(where: { $0.panel === panel })
+            else { return }
+            panel.focusFirstControl()
+        }
+    }
+
+    private func observeResize(of window: NSWindow) {
+        NotificationCenter.default.addObserver(
+            self, selector: #selector(hostDidResize(_:)),
+            name: NSWindow.didResizeNotification, object: window)
+    }
+
+    /// Outermost first, so a nested panel centres on a parent that has already settled.
+    @objc private func hostDidResize(_ notification: Notification) {
+        presentations.forEach(layout)
+    }
+
+    private func layout(_ presentation: Presentation) {
+        guard let parent = presentation.parent else { return }
+        let parentContent = parent.convertToScreen(parent.contentLayoutRect)
+        presentation.blocker.setFrame(parent.frame, display: false)
+        let panelSize = presentation.panel.frame.size
+        presentation.panel.setFrameOrigin(
+            NSPoint(
+                x: parentContent.midX - panelSize.width / 2,
+                y: parentContent.midY - panelSize.height / 2))
+    }
+
+    private func blockerCornerRadius(for parent: NSWindow) -> CGFloat {
+        let radius = parent.contentView?.layer?.cornerRadius ?? 0
+        return radius > 0 ? radius : Theme.Radius.row
+    }
+
+    private func dismissLast(notifying: Bool) {
+        let presentation = presentations.removeLast()
+        NotificationCenter.default.removeObserver(
+            self, name: NSWindow.didResizeNotification, object: presentation.panel)
+        if let parent = presentation.parent {
+            parent.removeChildWindow(presentation.panel)
+            presentation.blocker.fadeOut(duration: Theme.Duration.dialogExit) {
+                parent.removeChildWindow(presentation.blocker)
+            }
+        }
+        presentation.panel.orderOut(nil)
+        presentation.panel.contentView = nil
+        if notifying { presentation.onDismiss() }
+        if let panel = presentations.last?.panel {
+            panel.makeKeyAndOrderFront(nil)
+            // A picker hands its editor back as it was; moving focus would select a field's text.
+            if !presentation.isPicker { panel.focusFirstControl() }
+        } else {
+            parentWindow?.makeKeyAndOrderFront(nil)
+        }
+    }
+}
+
+extension EnvironmentValues {
+    @Entry var settingsEditorDismiss = SettingsEditorPresenter.DismissAction()
+    @Entry var settingsEditorPresenter: SettingsEditorPresenter?
+}
+
+extension View {
+    /// Presents editor content in Redcast's activating child panel, not an opaque macOS sheet.
+    func settingsEditorPanel<PanelContent: View>(
+        isPresented: Binding<Bool>, @ViewBuilder content: @escaping () -> PanelContent
+    ) -> some View {
+        modifier(
+            SettingsEditorPresenter.BooleanPanelModifier(
+                isPresented: isPresented, panelContent: content))
+    }
+
+    /// A choice hung off a control, in place of a system popover: the same panel, lightly held.
+    func settingsPickerPanel<PanelContent: View>(
+        isPresented: Binding<Bool>, @ViewBuilder content: @escaping () -> PanelContent
+    ) -> some View {
+        modifier(
+            SettingsEditorPresenter.BooleanPanelModifier(
+                isPresented: isPresented, isPicker: true, panelContent: content))
+    }
+
+    /// The item-driven form used by editors whose initial state is captured when the panel opens.
+    func settingsEditorPanel<Item: Identifiable, PanelContent: View>(
+        item: Binding<Item?>, @ViewBuilder content: @escaping (Item) -> PanelContent
+    ) -> some View {
+        modifier(SettingsEditorPresenter.ItemPanelModifier(item: item, panelContent: content))
+    }
+
+    func settingsEnvironment(
+        core: AppCore, navigation: SettingsNavigationState,
+        editorPresenter: SettingsEditorPresenter
+    ) -> some View {
+        environment(\.settingsEditorPresenter, editorPresenter)
+            .tint(Theme.Colors.accent)  // Fork: red controls and links whatever the system accent
+            .environment(navigation)
+            .environment(core)
+            .environment(core.settings)
+            .environment(core.dictationCoordinator)
+            .environment(core.appIndex)
+            .environment(core.hotKeys)
+            .environment(core.visibility)
+            .environment(core.aliases)
+            .environment(core.fallbacks)
+            .environment(core.customCommands)
+            .environment(core.customCommandCoordinator)
+            .environment(core.snippetsStore)
+            .environment(core.snippetCoordinator)
+            .environment(core.quicklinks)
+            .environment(core.quicklinkCoordinator)
+            .environment(core.windowLayouts)
+            .environment(core.rooms)
+            .environment(core.roomCoordinator)
+            .environment(core.customWindowSizes)
+            .environment(core.customWindowSizeCoordinator)
+            .environment(core.calendarStore)
+            .environment(core.aiSettings)
+            .environment(core.mcpSettings)
+            .environment(core.mcpCoordinator)
+            .environment(core.quickActionSettings)
+            .environment(core.customQuickActions)
+            .environment(core.chatGPTSubscription)
+            .environment(core.installedAI)
+            .environment(core.codexPlan)  // Fork: Codex (ChatGPT) sign-ins and limits
+            .scrollContentBackground(.hidden)
+            .motionScope()
+    }
+}

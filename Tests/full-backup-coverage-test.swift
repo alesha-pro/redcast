@@ -25,7 +25,7 @@ struct FullBackupCoverageTest {
     ]
 
     static func main() {
-        let sources = swiftSources(under: URL(fileURLWithPath: "Tinycast", isDirectory: true))
+        let sources = swiftSources(under: URL(fileURLWithPath: "Redcast", isDirectory: true))
         check("the scan finds the app's sources", sources.count > 100)
         settingsKeys()
         consents()

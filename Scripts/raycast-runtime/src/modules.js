@@ -16,7 +16,7 @@ const fileModules = new Map();
 
 function notFound(key) {
   throw new Error(
-    `Cannot find module '${key}'. Tinycast provides React, @raycast/api and a subset of Node builtins — see docs/extensions.md.`,
+    `Cannot find module '${key}'. Redcast provides React, @raycast/api and a subset of Node builtins — see docs/extensions.md.`,
   );
 }
 
@@ -136,7 +136,7 @@ function loadFile(file, root) {
       module.exports = JSON.parse(localFs.readFileSync(file, "utf8"));
     } else {
       const code = localFs.readFileSync(file, "utf8");
-      const factory = globalThis.__tinycastCompile(code, file);
+      const factory = globalThis.__redcastCompile(code, file);
       factory(module.exports, (request) => requireFrom(request, dirname, root), module, file, dirname);
     }
     module.loaded = true;
@@ -179,7 +179,7 @@ nodeModules["module"].createRequire = () => nodeRequire;
 /// to `__dirname`, and `environment.assetsPath` points at the same directory.
 export function evaluateCommonJS(code, filename, dirname) {
   const module = { exports: {}, id: filename, filename, loaded: false, children: [], paths: [] };
-  const factory = globalThis.__tinycastCompile(code, filename);
+  const factory = globalThis.__redcastCompile(code, filename);
   // The command's folder is the extension root; packages above it belong to the user, not to it.
   factory(module.exports, (request) => requireFrom(request, dirname, dirname), module, filename, dirname);
   module.loaded = true;

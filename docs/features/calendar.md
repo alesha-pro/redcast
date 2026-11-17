@@ -249,7 +249,7 @@ glyph or that placeholder — whenever `menuBarEvent` is nil — so it follows `
 `Only show events with meetings` and `Hide Current Event` rather than adding a rule of its own: on
 *Today* it leaves after the day's last event, on a minutes lead it also leaves between meetings. The
 scene has to read that fact, so `CalendarCoordinator.hasMenuBarEvent` is **stored and written only
-when it flips** — a derived read would re-run `TinycastApp.body`, and the main menu with it, on every
+when it flips** — a derived read would re-run `RedcastApp.body`, and the main menu with it, on every
 minute tick. SwiftUI writes
 `false` back through `isInserted` when it removes the item itself, so the insertion setter ignores a
 removal while the item is hidden for being empty: only a drag-out turns the display to `.disabled`.

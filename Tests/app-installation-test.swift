@@ -24,7 +24,7 @@ struct AppInstallationTest {
 
     private static func runTests() async throws {
         let root = FileManager.default.temporaryDirectory
-            .appendingPathComponent("tinycast-installations-\(UUID())").resolvingSymlinksInPath()
+            .appendingPathComponent("redcast-installations-\(UUID())").resolvingSymlinksInPath()
         try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: root) }
         if let argument = CommandLine.arguments.firstIndex(of: "--localized-index") {
@@ -32,7 +32,7 @@ struct AppInstallationTest {
         } else {
             try await testIndex(root)
             try await testLanguageOverride(root)
-            if ProcessInfo.processInfo.environment["TINYCAST_TEST_APP_LAUNCH"] == "1"
+            if ProcessInfo.processInfo.environment["REDCAST_TEST_APP_LAUNCH"] == "1"
                 || CommandLine.arguments.contains("--launch")
             {
                 try await testLaunch(root)
@@ -71,7 +71,7 @@ struct AppInstallationTest {
         try makeApp(utility, id: "com.example.utility", version: "1.0")
         let alias = root.appendingPathComponent("Linked.app")
         try FileManager.default.createSymbolicLink(at: alias, withDestinationURL: stable)
-        let domain = "tinycast.installation-test.\(UUID())"
+        let domain = "redcast.installation-test.\(UUID())"
         let defaults = UserDefaults(suiteName: domain)!
         defer { defaults.removePersistentDomain(forName: domain) }
         let aliases = AliasStore(defaults: defaults)
@@ -170,7 +170,7 @@ struct AppInstallationTest {
             let executable = Bundle.main.executableURL
         else { throw CocoaError(.fileReadCorruptFile) }
         let app = root.appendingPathComponent("LanguageProbe.app", isDirectory: true)
-        try makeApp(app, id: "com.tinycast.language-probe.\(UUID())", version: "1.0")
+        try makeApp(app, id: "io.redcast.language-probe.\(UUID())", version: "1.0")
         let infoURL = app.appendingPathComponent("Contents/Info.plist")
         guard
             var info = try PropertyListSerialization.propertyList(
@@ -194,7 +194,7 @@ struct AppInstallationTest {
         check(
             "the probe runs in its requested language", Bundle.main.preferredLocalizations.first == language)
         let app = root.appendingPathComponent("Localized.app", isDirectory: true)
-        let id = "com.tinycast.localized-fixture.\(UUID())"
+        let id = "io.redcast.localized-fixture.\(UUID())"
         try makeApp(app, id: id, version: "1.0")
         let infoURL = app.appendingPathComponent("Contents/Info.plist")
         guard
@@ -216,7 +216,7 @@ struct AppInstallationTest {
         check(
             "the fixture exposes an interface-localized declaration",
             Bundle(url: app)?.installedAppName == "InterfaceOnlyFixture")
-        let domain = "tinycast.language-index-test.\(UUID())"
+        let domain = "redcast.language-index-test.\(UUID())"
         let defaults = UserDefaults(suiteName: domain)!
         defer { defaults.removePersistentDomain(forName: domain) }
         let aliases = AliasStore(defaults: defaults)
@@ -250,7 +250,7 @@ struct AppInstallationTest {
     }
 
     private static func testLaunch(_ root: URL) async throws {
-        let id = "com.tinycast.installation-fixture.\(UUID().uuidString.lowercased())"
+        let id = "io.redcast.installation-fixture.\(UUID().uuidString.lowercased())"
         let first = root.appendingPathComponent("First.app", isDirectory: true)
         let second = root.appendingPathComponent("Second.app", isDirectory: true)
         let source = root.appendingPathComponent("Fixture.swift")

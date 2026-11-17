@@ -4,7 +4,7 @@ Raw output of the audit + research workflow. Not yet an agreed plan: the critiqu
 
 # Redcast design direction
 
-Grounded in `AGENTS.md`, `docs/ui.md`, `Tinycast/DesignSystem/Theme.swift`, `GlassEffectView.swift`, `RaycastPalette.swift` and the root surface in `Tinycast/Palette/RootPaletteView.swift:357-370`. Nothing was built or rendered. Every number below is a starting value to tune from screenshots over a light wallpaper, side by side with Raycast v2, because no published Raycast spec exists.
+Grounded in `AGENTS.md`, `docs/ui.md`, `Redcast/DesignSystem/Theme.swift`, `GlassEffectView.swift`, `RaycastPalette.swift` and the root surface in `Redcast/Palette/RootPaletteView.swift:357-370`. Nothing was built or rendered. Every number below is a starting value to tune from screenshots over a light wallpaper, side by side with Raycast v2, because no published Raycast spec exists.
 
 ## 1. Verdict
 
@@ -218,7 +218,7 @@ Checked against the code and `docs/ui.md`; nothing was built or rendered. The SD
 - Dialog-site fixes (Phase 3) sit in `AI/`, `Agents/` and `Extensions/` settings files and depend on `DialogView` (Phase 4).
 - `ChatTranscriptView` (Phase 5) also renders in the palette.
 - Absorbing `MenuMotion` edits Calendar, Quicklinks, CustomCommands, Agents and Notes.
-- Shared hotspots beyond `Localizable.xcstrings`: the generated `Tinycast.xcodeproj`, the per-harness source lists in `Scripts/run-tests.sh`, `docs/ui.md` and `InterfaceMetrics.swift`.
+- Shared hotspots beyond `Localizable.xcstrings`: the generated `Redcast.xcodeproj`, the per-harness source lists in `Scripts/run-tests.sh`, `docs/ui.md` and `InterfaceMetrics.swift`.
 
 ## Missed
 
@@ -237,7 +237,7 @@ Checked against the code and `docs/ui.md`; nothing was built or rendered. The SD
 
 # Design-system audit (read-only)
 
-Root: `/Users/superalesha/dev/opensource/launchers/tinycast/Tinycast/` — all paths below are relative to it. Nothing was edited, built or run; every visual claim comes from reading code, not from screenshots.
+Root: `/Users/superalesha/dev/opensource/launchers/tinycast/Redcast/` — all paths below are relative to it. Nothing was edited, built or run; every visual claim comes from reading code, not from screenshots.
 
 ## 1. How it is built today
 
@@ -351,15 +351,15 @@ Nothing was built or rendered, so every visual judgement below is inferred from 
 
 ## 1. How it is built today
 
-- **Window**: borderless non-activating `NSPanel`, clear background, system shadow, AppKit `.documentWindow` open/close animation (`Tinycast/Palette/PalettePanel.swift:259-274`). Size is 750×475, or a 64pt compact bar. The compact/expanded swap is an instant `setFrame` (`Tinycast/Palette/PaletteWindowController.swift:492-498`).
-- **Surface**: a default `NSGlassEffectView()` with no `cornerRadius`, `tintColor` or style (`Tinycast/DesignSystem/GlassEffectView.swift:5`). Above it sits a SwiftUI `panelScrim` (black 0.40 dark, white 0.55 light), then one `clipShape` at radius 26 (`Tinycast/Palette/RootPaletteView.swift:357-370`). There is no border, rim stroke or inner highlight.
-- **Header**: transparent `safeAreaInset`, 44pt plus 10pt top padding. It holds an 18pt medium `.secondary` glyph or a bare back chevron, then a plain 20pt `TextField` with a self-drawn placeholder (`RootPaletteView.swift:693-790, 884-903`). Header pop-ups are `BarButton(.rounded)` with a rotating chevron (`Tinycast/DesignSystem/BarButton.swift:101-131`).
-- **Bottom bar**: 52pt, transparent. A 36pt glass circle with a hand-drawn two-line glyph sits left; a glass capsule with the primary action plus `Actions ⌘K` sits right, both through `frosted(in:)` (`RootPaletteView.swift:931-995, 1637-1656`; `Tinycast/DesignSystem/Theme.swift:514-517`).
-- **Rows**: `HStack(lg)`, 26pt icon, `.body` title, `.callout` secondary subtitle, alias chip, outline keycaps and a trailing kind label. Padding is md/sm (about 38pt tall), radius 10. Fill precedence is selection, then hover, then clear, with movement-armed hover (`Tinycast/Features/Launcher/UI/LauncherList.swift:255-352`; `Tinycast/Palette/ArmedHover.swift`).
+- **Window**: borderless non-activating `NSPanel`, clear background, system shadow, AppKit `.documentWindow` open/close animation (`Redcast/Palette/PalettePanel.swift:259-274`). Size is 750×475, or a 64pt compact bar. The compact/expanded swap is an instant `setFrame` (`Redcast/Palette/PaletteWindowController.swift:492-498`).
+- **Surface**: a default `NSGlassEffectView()` with no `cornerRadius`, `tintColor` or style (`Redcast/DesignSystem/GlassEffectView.swift:5`). Above it sits a SwiftUI `panelScrim` (black 0.40 dark, white 0.55 light), then one `clipShape` at radius 26 (`Redcast/Palette/RootPaletteView.swift:357-370`). There is no border, rim stroke or inner highlight.
+- **Header**: transparent `safeAreaInset`, 44pt plus 10pt top padding. It holds an 18pt medium `.secondary` glyph or a bare back chevron, then a plain 20pt `TextField` with a self-drawn placeholder (`RootPaletteView.swift:693-790, 884-903`). Header pop-ups are `BarButton(.rounded)` with a rotating chevron (`Redcast/DesignSystem/BarButton.swift:101-131`).
+- **Bottom bar**: 52pt, transparent. A 36pt glass circle with a hand-drawn two-line glyph sits left; a glass capsule with the primary action plus `Actions ⌘K` sits right, both through `frosted(in:)` (`RootPaletteView.swift:931-995, 1637-1656`; `Redcast/DesignSystem/Theme.swift:514-517`).
+- **Rows**: `HStack(lg)`, 26pt icon, `.body` title, `.callout` secondary subtitle, alias chip, outline keycaps and a trailing kind label. Padding is md/sm (about 38pt tall), radius 10. Fill precedence is selection, then hover, then clear, with movement-armed hover (`Redcast/Features/Launcher/UI/LauncherList.swift:255-352`; `Redcast/Palette/ArmedHover.swift`).
 - **Selection colour**: `AccentSelection`, a Raycast-red wash at 16% light and 24% dark; hover is white 0.05.
-- **Section headers**: `.subheadline` semibold in `textSecondary` (`Tinycast/Features/Launcher/UI/SectionHeader.swift:26-30`).
-- **Lead cards**: `cardFill` plus the selection/hover fill, radius 10 (`Tinycast/Features/Launcher/UI/LeadCard.swift:9-24`).
-- **Menus**: a separate child `MenuPanel` window, so the glass samples the desktop. `PopoverMenu` uses `.glassEffect(.regular)` at radius 16 with rows at radius 10; the attached corner is raised to 18 to meet the button (`Tinycast/Palette/MenuPanel.swift`; `Tinycast/DesignSystem/PopoverMenu.swift:129-136, 346-432`).
+- **Section headers**: `.subheadline` semibold in `textSecondary` (`Redcast/Features/Launcher/UI/SectionHeader.swift:26-30`).
+- **Lead cards**: `cardFill` plus the selection/hover fill, radius 10 (`Redcast/Features/Launcher/UI/LeadCard.swift:9-24`).
+- **Menus**: a separate child `MenuPanel` window, so the glass samples the desktop. `PopoverMenu` uses `.glassEffect(.regular)` at radius 16 with rows at radius 10; the attached corner is raised to 18 to meet the button (`Redcast/Palette/MenuPanel.swift`; `Redcast/DesignSystem/PopoverMenu.swift:129-136, 346-432`).
 - **Motion**: only the AppKit window pop, the dialog-dimming fade, the chevron rotation, the back-chevron hover and the tooltip fade. Everything else is instant. `motionScope()` and `Motion.isEnabled` gate all of it.
 - **Tokens**: nearly everything goes through `@Environment(\.metrics)`, so token discipline is strong.
 
@@ -371,8 +371,8 @@ Nothing was built or rendered, so every visual judgement below is inferred from 
 4. **Flat text hierarchy in rows.** Subtitle, alias and trailing kind label all use `.secondary` (`LauncherList.swift:303-343`); `ui.md` assigns trailing kind labels to `textTertiary`.
 5. **Almost no micro-motion.** There is no transition on selection, hover, the pill label change, the action group appearing, mode push/pop, the header glyph swap or the compact/expanded resize.
 6. **`.help()` is used in the palette against the project's own rule** that palette hover labels must be `tooltip`, because AppKit tooltips do not show while the app is inactive. Sites: `RootPaletteView.swift:824, 1678`; `BarButton.swift:131`; `SectionHeader.swift:22`; `CompactFavoritesRow.swift:58`. These labels probably never appear.
-7. **The tooltip tile is opaque** `windowBackgroundColor` (`Tinycast/DesignSystem/Tooltip.swift:47`), the one non-translucent chip on a glass app.
-8. **`EmptyResults` is unstyled and unscaled**: literal `8`, `.largeTitle`, `.callout`, `360`, with no `metrics` (`Tinycast/Palette/EmptyResults.swift:9-18`). It has about 40 call sites and offers no hint or action.
+7. **The tooltip tile is opaque** `windowBackgroundColor` (`Redcast/DesignSystem/Tooltip.swift:47`), the one non-translucent chip on a glass app.
+8. **`EmptyResults` is unstyled and unscaled**: literal `8`, `.largeTitle`, `.callout`, `360`, with no `metrics` (`Redcast/Palette/EmptyResults.swift:9-18`). It has about 40 call sites and offers no hint or action.
 9. **Hard-coded leftovers**:
    - `HStack(spacing: 2)` at `RootPaletteView.swift:962`
    - menu glyph `3 / 14 / 1.5 / 8` at `RootPaletteView.swift:1644-1646`
@@ -382,7 +382,7 @@ Nothing was built or rendered, so every visual judgement below is inferred from 
    - `.title3` at `ColorCard.swift:20`
 10. **The back control is a bare chevron** with no chip or hit-area chrome (`RootPaletteView.swift:1660-1680`); Raycast uses a small rounded tile there.
 11. **The surface recipe is copy-pasted in seven places**: the palette, Notes, Camera (two), Quick Action and both HUDs. Any glass upgrade has to be repeated by hand or the siblings drift.
-12. **No explicit handling of Reduce Transparency or Increase Contrast** anywhere in `Tinycast/`. The system glass may cope, but the hand-made scrim will not adapt. Not verified.
+12. **No explicit handling of Reduce Transparency or Increase Contrast** anywhere in `Redcast/`. The system glass may cope, but the hand-made scrim will not adapt. Not verified.
 
 ## 3. Opportunities
 
@@ -421,7 +421,7 @@ Suggested order: A (as a toggleable prototype for screenshot approval), then B, 
 
 # Settings surface audit (read-only; nothing built or run, so visual claims are inferred from code)
 
-Paths relative to `/Users/superalesha/dev/opensource/launchers/tinycast/Tinycast/`.
+Paths relative to `/Users/superalesha/dev/opensource/launchers/tinycast/Redcast/`.
 
 ## 1. How it is built today
 - **Window**: titled, resizable `NSWindow` with `.fullSizeContentView`, 900×700 (`Windows/AppWindowController.swift:106-140`, `DesignSystem/Theme.swift:189`). `Features/Settings/SettingsWindowChrome.swift:6-16` restores the system titlebar band (unified toolbar, no separator, not background-draggable). No material or background colour is set, so the window is the stock opaque one.
@@ -501,7 +501,7 @@ Suggested order: D, E, F, C, G, B, then A as a prototype, then H. I and J only o
 
 # windows-overlays surface audit (read-only)
 
-Paths are relative to `/Users/superalesha/dev/opensource/launchers/tinycast/Tinycast/`. Nothing was built or run, so every visual claim is from code and still needs sign-off over a light wallpaper.
+Paths are relative to `/Users/superalesha/dev/opensource/launchers/tinycast/Redcast/`. Nothing was built or run, so every visual claim is from code and still needs sign-off over a light wallpaper.
 
 ## 1. How it is built today
 
@@ -591,7 +591,7 @@ Suggested order: C, F, G first (cheap and correct), then A, B, D, E for the visi
 
 # ai-chat surface audit (read-only, from code; nothing was built or run, so visual claims are inferred)
 
-Root: `/Users/superalesha/dev/opensource/launchers/tinycast/Tinycast/Features/` (paths below are relative to it). `ReasoningReplay` is model-only and `QuickAITools` has no visuals of its own.
+Root: `/Users/superalesha/dev/opensource/launchers/tinycast/Redcast/Features/` (paths below are relative to it). `ReasoningReplay` is model-only and `QuickAITools` has no visuals of its own.
 
 ## 1. How it is built today
 
@@ -667,7 +667,7 @@ Root: `/Users/superalesha/dev/opensource/launchers/tinycast/Tinycast/Features/` 
 
 # Feature screens: cross-screen consistency audit (read-only)
 
-Paths are relative to `/Users/superalesha/dev/opensource/launchers/tinycast/Tinycast/`. Nothing was built or run, so every visual claim comes from reading code.
+Paths are relative to `/Users/superalesha/dev/opensource/launchers/tinycast/Redcast/`. Nothing was built or run, so every visual claim comes from reading code.
 
 ## 1. How it is built today
 

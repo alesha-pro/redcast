@@ -234,7 +234,7 @@ struct AgentScenarioTests {
         let waits = (1...2).map { number in
             outcome.events.contains { event in
                 guard case .toolCall(let id, "Scout", let title) = event else { return false }
-                return id == "tinycast-retry-1-\(number)"
+                return id == "redcast-retry-1-\(number)"
                     && title.hasPrefix("Retrying after a provider error (\(number) of 4): ")
             }
         }

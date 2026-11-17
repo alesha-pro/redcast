@@ -90,7 +90,7 @@ between, and the restore's baseline keeps the copy from being recorded once it r
 `TextInjector` refuses a second borrow while one is in flight, so the pause is never nested.
 
 `stop()` is the off switch: it drops the timer and the fast-user-switching observers, and clears the
-`isCapturing` flag that `prepareForTinycastPasteboardMutation` reads — so a paste Redcast performs
+`isCapturing` flag that `prepareForRedcastPasteboardMutation` reads — so a paste Redcast performs
 itself no longer drains the pasteboard into history either.
 
 Existing clips survive being switched off, since a history is captured rather than authored and
@@ -521,7 +521,7 @@ entry — text, image or file — into `PaletteCoordinator.targetApp` through `P
 ⌘V goes to that app's pid, and nothing is activated or promoted. An image or file gone from disk
 writes nothing, so the same press moves on to the next entry.
 
-**A press drains the poller before it writes**, through `prepareForTinycastPasteboardMutation`. A
+**A press drains the poller before it writes**, through `prepareForRedcastPasteboardMutation`. A
 copy made inside the 0.5s poll interval would otherwise be overwritten unrecorded, and the walk
 would start one entry too old.
 
