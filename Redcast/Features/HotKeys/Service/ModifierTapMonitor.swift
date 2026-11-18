@@ -291,7 +291,7 @@ final class ModifierTapMonitor: HealthCheckable {
         runLoopSource = source
         CFRunLoopAddSource(CFRunLoopGetMain(), source, .commonModes)
         CGEvent.tapEnable(tap: port, enable: true)
-        needsAccessibility = false
+        needsAccessibility = !CGEvent.tapIsEnabled(tap: port)
     }
 
     private func tearDownTap() {
@@ -324,6 +324,11 @@ final class ModifierTapMonitor: HealthCheckable {
         } else if let tapPort, !CGEvent.tapIsEnabled(tap: tapPort) {
             resetDetectors()
             CGEvent.tapEnable(tap: tapPort, enable: true)
+            // A tap macOS keeps off has lost its grant to a stale entry, though AX still says yes.
+            let refused = !CGEvent.tapIsEnabled(tap: tapPort)
+            if needsAccessibility != refused { needsAccessibility = refused }
+        } else if needsAccessibility {
+            needsAccessibility = false
         }
     }
 }

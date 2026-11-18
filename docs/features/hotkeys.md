@@ -188,7 +188,10 @@ details are load-bearing:
   chord and correctly reads as "not a lone modifier" — the left-side twin still double-taps.
 - Like every keyboard tap it needs the **Accessibility** grant, and it never prompts for it. The
   binding records regardless; the recorder shows an inline warning that opens System Settings, and the
-  one-second health timer installs the tap the moment the grant lands.
+  one-second health timer installs the tap the moment the grant lands. The warning also shows while
+  macOS keeps the installed tap disabled: a grant left from an earlier signature still passes
+  `AXIsProcessTrusted()`, yet the system refuses to enable the tap and strips its key-down events until
+  Redcast is removed from Accessibility and Input Monitoring and granted again.
 
 ⇧ is bindable this way even though `KeyShortcut` rejects a bare ⇧ combo: a double-_tap_ is unambiguous
 where a bare ⇧ combo would shadow typing.
