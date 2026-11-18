@@ -1,5 +1,14 @@
 import SwiftUI
 
+/// `AppCore` projects `AppSettings.interfaceMaterial` here; observed, so every surface swaps live.
+@MainActor @Observable
+final class SurfaceMaterial {
+    static let shared = SurfaceMaterial()
+    var isSolid = false
+
+    private init() {}
+}
+
 /// Fork: what a surface is. The role owns its glass, tint, scrim and Reduce Transparency fallback.
 enum GlassRole {
     /// The launcher's root: tinted glass with its own corner under a thin scrim.
@@ -80,12 +89,13 @@ private struct GlassSurface<S: Shape>: ViewModifier {
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
 
     func body(content: Content) -> some View {
+        let opaque = reduceTransparency || SurfaceMaterial.shared.isSolid
         switch role.recipe {
         case .backdrop(let backdrop):
             content
                 .background(scrim ?? backdrop.scrim)
                 .background {
-                    if reduceTransparency {
+                    if opaque {
                         Theme.Colors.opaqueSurface
                     } else if backdrop.ownsCorner, shape is Capsule {
                         // A capsule's corner is half its short side, known only once laid out.
@@ -96,7 +106,7 @@ private struct GlassSurface<S: Shape>: ViewModifier {
                         glass(backdrop, cornerRadius: backdrop.ownsCorner ? cornerRadius : 0)
                     }
                 }
-                .overlay { if reduceTransparency { rim } }
+                .overlay { if opaque { rim } }
                 .clipShape(shape)
         case .system(let base, let roleScrim):
             let glass = tint.map(base.tint) ?? base
@@ -104,17 +114,28 @@ private struct GlassSurface<S: Shape>: ViewModifier {
                 // One chain: branching around `content` would rebuild it, and drop a field's focus.
                 content
                     .background(veil, in: shape)
-                    .background { if reduceTransparency { shape.fill(Theme.Colors.opaqueSurface) } }
-                    .glassEffect(reduceTransparency ? .identity : glass, in: shape)
-                    .overlay { if reduceTransparency { rim } }
+                    .background { if opaque { shape.fill(Theme.Colors.opaqueSurface) } }
+                    .glassEffect(opaque ? .identity : glass, in: shape)
+                    .overlay { if opaque { rim } }
             } else {
-                content.glassEffect(glass, in: shape)
+                // Not `opaque`: Reduce Transparency alone leaves system glass its own look.
+                let solid = SurfaceMaterial.shared.isSolid
+                content
+                    .background { if solid { lifted(tint: tint) } }
+                    .glassEffect(solid ? .identity : glass, in: shape)
+                    .overlay { if solid { rim } }
             }
         }
     }
 
     private func glass(_ backdrop: GlassBackdrop, cornerRadius: CGFloat) -> GlassEffectView {
         GlassEffectView(cornerRadius: cornerRadius, tint: tint ?? backdrop.tint, style: backdrop.style)
+    }
+
+    /// A floating layer's solid stand-in, lifted off the solid backdrop it hangs over.
+    private func lifted(tint: Color?) -> some View {
+        shape.fill(Theme.Colors.elevatedSurface)
+            .overlay { if let tint { shape.fill(tint) } }
     }
 
     /// AppKit's glass only rounds evenly, so any other shape leaves the corner to the clip.

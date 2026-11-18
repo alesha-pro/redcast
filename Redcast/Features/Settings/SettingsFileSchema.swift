@@ -38,6 +38,7 @@ enum SettingsFileSchema {
         case .autoSwitchInputSource: return bind(settings, \.autoSwitchInputSourceID)
         case .language: return bind(settings, \.language)
         case .appearance: return bind(settings, \.appearance)
+        case .interfaceMaterial: return bind(settings, \.interfaceMaterial)
         case .animationsEnabled: return bind(settings, \.animationsEnabled)
         case .interfaceSize: return bind(settings, \.interfaceSize)
         case .compactMode: return bind(settings, \.compactMode)
@@ -170,6 +171,7 @@ enum SettingsFileSchema {
 extension PopToRootTimeout: SettingsFileRawValue {}
 extension EscapeKeyBehavior: SettingsFileRawValue {}
 extension AppAppearance: SettingsFileRawValue {}
+extension InterfaceMaterial: SettingsFileRawValue {}
 extension AppLanguage: SettingsFileRawValue {}
 extension InterfaceSize: SettingsFileRawValue {}
 extension HyperKeyPhysicalKey: SettingsFileRawValue {}

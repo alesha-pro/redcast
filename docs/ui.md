@@ -15,7 +15,8 @@ Glass under a thin black scrim — there is no gray chrome. Everything on that s
 white at a fixed alpha ramp. The header and bottom bar **float over the list as fully transparent
 overlays**; there are no hard-edged bars, strips, or dividers. Rows don't clip under the bars, they
 **dissolve**: a scroll-driven gradient mask ghosts them as they pass beneath. Floating controls (the
-action pill, the menu circle, popover menus) are **Liquid Glass**.
+action pill, the menu circle, popover menus) are **Liquid Glass**. General › Appearance › Material
+› **Solid** trades every glass surface for an opaque one; see [Liquid Glass](#liquid-glass).
 
 That paragraph describes **Dark**, which is the design. Light is the same design with the ink
 inverted: a white tint and scrim on the same glass, and a black-alpha ramp at matched stops. Nothing about
@@ -39,7 +40,7 @@ These are the things that quietly break the look if changed. Preserve them unles
 
 - **Dark is the baseline and its values are frozen.** Every `Theme.Colors` token resolves per appearance, and its **dark branch is the literal the forced-dark build shipped** — restated, never recomputed. Retune a light branch freely; touch a dark one only when the task is to change Dark. `AppCore.applyAppearance()` is the only place an appearance is assigned, from `AppSettings.appearance`; `.system` assigns `nil` so AppKit follows macOS.
 - **New colors go through `Theme.Colors.ramp(dark:light:)`** (an alpha that inverts) or `adaptive(dark:light:)` (two explicit `NSColor`s, for anything that isn't a plain inversion — `panelScrim`, `layoutPreviewGround`). Never a bare `Color.white.opacity(…)` in a view: it disappears in Light.
-- **No grays, no opaque fills on the surface.** Reach for `Theme.Colors.*` instead of `.gray`, `NSColor.windowBackground`, etc. There are three opaque fills. `opaqueSurface` is what `glassSurface` swaps in for the glass under Reduce Transparency, `tooltipSurface` is the `Tooltip` tile, since a hover label has to hide the row it overlaps, and `elevatedSurface` is AI Chat's card over its opaque page (see "AI Chat window").
+- **No grays, no opaque fills on the surface.** Reach for `Theme.Colors.*` instead of `.gray`, `NSColor.windowBackground`, etc. There are three opaque fills. `opaqueSurface` is what `glassSurface` swaps in for a backdrop's or a modal's glass under Reduce Transparency or Solid, `tooltipSurface` is the `Tooltip` tile, since a hover label has to hide the row it overlaps, and `elevatedSurface` is AI Chat's card over its opaque page (see "AI Chat window") and a floating role's fill under Solid.
 - **Three things stay fixed in both appearances, on purpose.** The `EdgeDissolve`/`OverflowFade` gradients are **mask luminance, not color** — inverting them breaks the dissolve everywhere. `ExtensionTintColors` and a tinted `IconCache` tile keep white ink, because a saturated tile carries its own contrast. And `IconCache` cannot use a dynamic `NSColor` at all: it rasterizes off-main, so the surface is carried explicitly and is part of the cache key.
 - **An icon is drawn for a surface *and* a system icon style, and both move under you.** macOS restyles the icons `NSWorkspace` hands out when System Settings → Appearance → **Icon & widget style** changes, so `IconStyleMonitor` and Redcast's own appearance both call `IconCache.invalidateStyled()`. **The monitor may not invalidate on the notification itself.** AppKit posts `NSWorkspaceIconAppearanceConfigurationDidChange` before IconServices has swapped what `NSWorkspace` vends — measured at 25–120ms behind, jittering run to run — and the images it hands back are live objects macOS restyles in place, so flattening one on the signal freezes the *outgoing* style into a bitmap nothing ever invalidates again. `IconStyleMonitor` therefore polls `IconCache.styleFingerprint()` until the pixels actually move, and only then invalidates. Waiting also sidesteps the cost: re-flattening every icon the instant a restyle begins forces a cold IconServices regeneration, measured at 160× the settled draw cost. That drops the cached bitmaps, bumps every cache key so an in-flight decode cannot repopulate a stale one, and moves `IconCache.style.generation`. **Any view that draws an icon must key its fetch on that generation** — wrap the view's own key in `IconRequest`, or call `IconCache.observeStyle()` where the icon is resolved synchronously in a `body`. It is reached through `IconCache` rather than injected precisely because icons are drawn in menus, popovers and every list, where a missed injection would be a silent staleness bug.
 - **No hard dividers between the list and the bars.** The header and bottom bar are `safeAreaInset` overlays with no background; separation comes from `edgeDissolve()`, nothing else. (One deliberate exception: the vertical hairline between a list and its preview pane, which `PaletteSplitView` draws.)
@@ -70,7 +71,7 @@ These are the things that quietly break the look if changed. Preserve them unles
   have been typing somewhere else. See [background-agents.md](features/background-agents.md).
 - **A transient readout is a HUD, not a dialog.** `VolumeHUDController`'s box is volume and mute only, since that one needs an actual level and number; every other success or info confirmation goes through `MessageHUDController`'s pill, whose leading glyph *is* its `DialogTone`. A pill has no subject to name, so the icon rule above does not apply to it — and that mapping stays file-scoped so nothing can reach for it when building a `DialogRequest`. A new HUD means a new presenter, not a second shape bolted onto an existing controller.
 - **Every glass surface states a `GlassRole`, and nothing else is glass.** `glassSurface(_:in:)` owns each role's recipe (see "Liquid Glass"); no view outside `Features/Extensions/` calls `glassEffect` or builds a `GlassEffectView` itself. Content on a surface — rows, cards, fields, dialog buttons — stays a matte ramp fill, so no row is glass and glass is not stacked on glass beyond the floating controls the palette already had.
-- **System glass draws its own edge.** No hand rim, sheen or shadow goes on top of real glass. The message pill's tone rim is the one inherited exception, and the Reduce Transparency fallback is the only place `glassSurface` draws a rim. The two never stack: under Reduce Transparency the pill drops its own rim and the fallback's is the only one.
+- **System glass draws its own edge.** No hand rim, sheen or shadow goes on top of real glass. The message pill's tone rim is the one inherited exception, and the opaque fallback (Reduce Transparency or Solid) is the only place `glassSurface` draws a rim. The two never stack: under either the pill drops its own rim and the fallback's is the only one.
 - **`panelScrim` is shared; retune a role, not the token.** Dialogs, the Settings editors and an extension's settings editor sit under it. A surface that wants a different veil gets its own token and role, as the palette has `paletteScrim`, a read panel `readingScrim` and a HUD `hudScrim`.
 
 ---
@@ -795,10 +796,18 @@ Retune a role there, never at a call site.
   its glass for the opaque `opaqueSurface` and draws a hairline `border` rim inside the shape, the
   only rim `glassSurface` ever draws. The scrim stays on top, so each surface keeps its own
   density. `menu`, `chip` and `control` are bare system glass and keep the system's own treatment.
-- **Not migrated.** `Features/Extensions/` owns its looks and calls `glassEffect` directly: its toast
-  takes interactive glass, its ⌘K panel and pickers the regular glass `menu` would, and its Settings
-  editor restates the `modal` recipe with its own Reduce Transparency fallback. Nothing outside the
-  feature calls these copies.
+- **Material: Solid.** General › Appearance › **Material** (`AppSettings.interfaceMaterial`, Glass
+  by default, in backups and `settings.json` as `appearance.material`) is for anyone who wants no
+  glass at all. `AppCore.applyInterfaceMaterial()` projects it into `SurfaceMaterial.shared`, an
+  observed global for the reason `Motion.isEnabled` is one, so every surface swaps live. Under Solid a
+  backdrop or modal role takes its Reduce Transparency look, and `menu`, `chip` and `control` take
+  `elevatedSurface` with the same hairline rim, lifted off the solid backdrop they float over; a
+  role's `tint` is laid over that fill. Only Redcast's own surfaces change: system controls, window
+  chrome and the room preview's desk blur follow macOS.
+- **Not migrated.** `Features/Extensions/` owns its looks: its toast takes interactive glass, its ⌘K
+  panel and pickers the regular glass `menu` would, all through its own `extensionFloatingSurface`,
+  and its Settings editor restates the `modal` recipe with its own opaque fallback. Both read
+  `SurfaceMaterial` and draw their own Solid look. Nothing outside the feature calls these copies.
 - **Over an opaque page, no glass.** AI Chat's composer, find counter, Jump to Latest and its
   overlay cards were glass over a solid page with nothing to lens, so they are now
   `elevatedSurface(in:shadow:)` cards (see "AI Chat window"), not a role: a role is glass.

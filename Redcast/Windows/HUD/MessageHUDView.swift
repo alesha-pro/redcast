@@ -67,7 +67,7 @@ struct MessageHUDView: View {
         .background { glow }
         // Not SwiftUI glass: with nothing to lens it falls back to an opaque backing and shows.
         .glassSurface(.hud, in: Capsule(), scrim: lit ? Theme.Colors.controlHover : nil)
-        .overlay { if !reduceTransparency { rim } }
+        .overlay { if !reduceTransparency, !SurfaceMaterial.shared.isSolid { rim } }
     }
 
     private var glow: some View {

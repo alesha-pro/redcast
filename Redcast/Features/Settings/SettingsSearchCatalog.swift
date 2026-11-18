@@ -140,6 +140,9 @@ enum SettingsSearchCatalog {
         .init(
             .generalAppearance, "Appearance",
             keywords: ["dark", "light", "mode", "theme"]),
+        .init(
+            .generalAppearance, "Material",
+            keywords: ["glass", "liquid glass", "solid", "opaque", "transparency", "blur", "matte"]),
         // Fork: Colourful Icons.
         .init(
             .generalAppearance, "Colorful icons",
