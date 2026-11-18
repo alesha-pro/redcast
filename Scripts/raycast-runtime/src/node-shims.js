@@ -1974,7 +1974,7 @@ if (typeof globalThis.SharedArrayBuffer === "undefined") {
     const milliseconds = +timeout;
     if (load(array, offset) !== expected) return "not-equal";
     if (Number.isNaN(milliseconds) || milliseconds === Infinity) {
-      throw new TypeError("Atomics.wait with an infinite timeout is not supported in Tinycast extensions");
+      throw new TypeError("Atomics.wait with an infinite timeout is not supported in Redcast extensions");
     }
     if (milliseconds > 0) hostCallSync("atomics", "wait", [milliseconds]);
     return "timed-out";

@@ -1656,7 +1656,7 @@ struct ExtensionTests {
 
         for (id, value) in [("format", "{word}-{number:4}" as Any), ("scratch", "typed"), ("remember", true)]
         {
-            guard let handler = field(id, in: recorder.trees.last)?.handler("onTinycastChange") else {
+            guard let handler = field(id, in: recorder.trees.last)?.handler("onRedcastChange") else {
                 check("form field \(id) exposes a change handler", false)
                 return
             }
@@ -2147,7 +2147,7 @@ struct ExtensionTests {
     @MainActor
     static func stdioDescriptorChecks() async {
         let file = FileManager.default.temporaryDirectory
-            .appendingPathComponent("tinycast-stdio-\(UUID().uuidString)")
+            .appendingPathComponent("redcast-stdio-\(UUID().uuidString)")
         defer { try? FileManager.default.removeItem(at: file) }
 
         let (runtime, _, recorder) = makeRuntime()

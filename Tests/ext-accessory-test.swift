@@ -204,7 +204,7 @@ struct ExtensionSearchAccessoryTests {
 
     static func formValueStorage() {
         let directory = FileManager.default.temporaryDirectory
-            .appendingPathComponent("tinycast-ext-form-\(UUID().uuidString)")
+            .appendingPathComponent("redcast-ext-form-\(UUID().uuidString)")
         defer { try? FileManager.default.removeItem(at: directory) }
         let storage = ExtensionStorage(directory: directory)
         storage.setFormValues(extension: "sample", command: "generate", values: ["a": "1", "b": "2"])

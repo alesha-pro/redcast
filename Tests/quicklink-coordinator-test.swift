@@ -473,6 +473,7 @@ enum PaletteMode { case launcher, quicklinks, quicklinkEditor }
 final class PaletteState {
     var mode = PaletteMode.launcher
     var query = ""
+    var tagFilter: String?
     var selection = 0
     var commandArguments: [String: String] = [:]
     var pendingArgumentEntryID: String?

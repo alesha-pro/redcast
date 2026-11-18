@@ -66,7 +66,8 @@ launch ([bundle-migration](docs/features/bundle-migration.md)).
 ## Working on Redcast
 
 - Redcast stopped following upstream on 2026-11-17: no `upstream` remote, no sync. A fix upstream
-  makes is ported by hand and credited below.
+  makes is picked by hand (`git fetch https://github.com/abue-ammar/tinycast.git main`, then
+  `git cherry-pick -x`) and credited below. Last upstream commit reviewed: `79089bf9` (2026-11-18).
 - `Redcast.xcodeproj` is generated: edit `project.yml` and run `xcodegen generate`, never
   `project.pbxproj`. `Localizable.xcstrings` entries are inserted by hand in catalog order (a local
   `sync-strings.sh` reorders hundreds of unrelated entries). A short key whose meaning depends on
@@ -264,6 +265,15 @@ Declined items stay listed so the numbers other docs cite keep their meaning.
 
 Upstream: Abue Ammar's launcher, linked at the top, AGPL-3.0. Ideas surveyed from the forks named
 above; anything ported from them is credited in its commit.
+
+- Upstream fixes picked on 2026-11-18, each commit keeping its author and its `cherry picked from`
+  line: in the extension runtime, sign-in finishing on cancel, `SharedArrayBuffer`, AES-GCM,
+  `os.networkInterfaces`, process uid and gid, spawn's stdio, `storeValue` form fields and the AppSSO
+  opt-out; elsewhere, IME composing keeping the arrows, a quicklink shortcut hiding its own prompt,
+  HTML-only, RTF-only and sandboxed image copies in clipboard history, a command's unended prompt line
+  and exit-127 hint, the appearance toast, Toggle Hidden Files on macOS 27, menus in a fullscreen
+  Space, the floating note's title bar and closing with a selection, the text-area crash and the
+  calendar's per-minute access check.
 
 - [sermelipharo/tinycast-space](https://github.com/sermelipharo/tinycast-space): alias + Space
   ([691c43ef](https://github.com/sermelipharo/tinycast-space/commit/691c43efe07e12ca87f4601ee4257a6631505bf1))

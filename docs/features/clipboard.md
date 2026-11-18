@@ -81,7 +81,7 @@ returns nil rather than an empty array, so the text branch runs; caps a batch at
 **rejects a file under a volatile root** (`/tmp`, `/var/folders`, `~/Library/Caches`), because an
 app that stages a temp export beside better inline content must keep the inline content. When the
 pasteboard also carries `.png` or `.tiff`, `volatileRoots(on:copiedFrom:)` adds the copying app's own
-`~/Library/Containers/<bundle ID>/`: macOS keeps another app's container closed to Tinycast, so a
+`~/Library/Containers/<bundle ID>/`: macOS keeps another app's container closed to Redcast, so a
 file staged there previews as an icon and goes stale, while its pixels record as an image. A
 container file without pixels, or one copied by another app such as Finder, stays a file. Paths come
 back reversed so the *first* file copied ends up leading the history. Durability checks stop after

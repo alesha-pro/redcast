@@ -146,6 +146,7 @@ enum FullBackupCoverage {
         "com.apple.swipescrolldirection": .notState("Read from the system."),
         "WarnOnEmptyTrash": .notState("Read from Finder's preferences."),
         "AppleSymbolicHotKeys": .notState("Read from macOS: the shortcuts the system keeps."),
+        "_preventsAppSSO": .notState("A URLSessionConfiguration KVC key, not a preference."),
         "hyperKeyPhysicalKey": .upstream
     ]
 
