@@ -19,15 +19,16 @@ extension View {
 private struct ExtensionSettingsEditorPanelSurface: ViewModifier {
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
 
-    /// Reduce Transparency trades the glass for an opaque fill, whose edge it then draws itself.
+    /// Reduce Transparency or Solid trades the glass for an opaque fill, and draws its edge.
     func body(content: Content) -> some View {
         let shape = RoundedRectangle(cornerRadius: Theme.Radius.panel, style: .continuous)
+        let opaque = reduceTransparency || SurfaceMaterial.shared.isSolid
         content
             .background(Theme.Colors.panelScrim, in: shape)
-            .background { if reduceTransparency { shape.fill(Theme.Colors.opaqueSurface) } }
-            .glassEffect(reduceTransparency ? .identity : .regular, in: shape)
+            .background { if opaque { shape.fill(Theme.Colors.opaqueSurface) } }
+            .glassEffect(opaque ? .identity : .regular, in: shape)
             .overlay {
-                if reduceTransparency {
+                if opaque {
                     shape.strokeBorder(Theme.Colors.border, lineWidth: Theme.Size.hairline)
                         .allowsHitTesting(false)
                 }

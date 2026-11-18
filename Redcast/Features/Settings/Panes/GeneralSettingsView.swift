@@ -78,6 +78,14 @@ struct GeneralSettingsView: View {
                 } label: {
                     SettingsRowTitle(.generalAppearance, "Appearance")
                 }
+                Picker(selection: $settings.interfaceMaterial) {
+                    ForEach(InterfaceMaterial.allCases) { material in
+                        Text(material.title).tag(material)
+                    }
+                } label: {
+                    SettingsRowTitle(.generalAppearance, "Material")
+                    Text("Solid draws panels, menus and controls without transparency.")
+                }
                 // Fork: Raycast's coloured tiles and glyphs; off is upstream's monochrome.
                 Toggle(isOn: $settings.colorfulIcons) {
                     SettingsRowTitle(.generalAppearance, "Colorful icons")

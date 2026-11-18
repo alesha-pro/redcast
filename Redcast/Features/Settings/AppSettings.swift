@@ -277,6 +277,11 @@ final class AppSettings {
         didSet { defaults.set(paletteDraggable, forKey: Key.paletteDraggable.rawValue) }
     }
 
+    /// Glass or solid surfaces. Applied by `AppCore.applyInterfaceMaterial()`.
+    var interfaceMaterial: InterfaceMaterial {
+        didSet { defaults.set(interfaceMaterial.rawValue, forKey: Key.interfaceMaterial.rawValue) }
+    }
+
     /// Fork: coloured tiles and glyphs, the Raycast look; off is upstream's monochrome.
     var colorfulIcons: Bool {
         didSet { defaults.set(colorfulIcons, forKey: Key.colorfulIcons.rawValue) }
@@ -776,6 +781,9 @@ final class AppSettings {
             ?? .navigateBackOrClose
         appearance =
             defaults.string(forKey: Key.appearance.rawValue).flatMap(AppAppearance.init) ?? .system
+        interfaceMaterial =
+            defaults.string(forKey: Key.interfaceMaterial.rawValue).flatMap(InterfaceMaterial.init)
+            ?? .glass
         language = Self.storedLanguage
         calcNumberStyle =
             defaults.string(forKey: Key.calcNumberStyle.rawValue).flatMap(CalcNumberStyle.init)

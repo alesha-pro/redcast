@@ -438,6 +438,7 @@
 		5C8BBD3356E424F2525F4F8B /* RunningAppsMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9323AF3E4FF7B0603B69A25C /* RunningAppsMonitor.swift */; };
 		5CBF69E065F55B589193CEC7 /* QuickAIAgents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8615EA0DE943D96E2765B881 /* QuickAIAgents.swift */; };
 		5CE256684B1B58064AB6B172 /* FullBackupAutoExportPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1C83A633F88BFAA02CF0555E /* FullBackupAutoExportPolicy.swift */; };
+		5D0464AD5215443DCBDFA162 /* InterfaceMaterial.swift in Sources */ = {isa = PBXBuildFile; fileRef = A831302B1AD4D51657AB75B8 /* InterfaceMaterial.swift */; };
 		5D4B994D44E2C70AACC0FC96 /* HyperKeyManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5098E07B60FB75C968225F5 /* HyperKeyManager.swift */; };
 		5D73189300AEB45248BBFE77 /* AIProviderAdvancedSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 160D6739EC4145FCF1EBB919 /* AIProviderAdvancedSection.swift */; };
 		5D9681C14141B0B1D16F51D4 /* ChatAccess.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9B19CF9BE04394265B3D761 /* ChatAccess.swift */; };
@@ -673,6 +674,7 @@
 		8F41D171928A37D28EF4E8DF /* AppLanguage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CB03739DF1A5593A607BEB2 /* AppLanguage.swift */; };
 		8FCBEB96D31FF01FA546473E /* VoiceAISettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 38BCB867F6742C2527CCEAE3 /* VoiceAISettings.swift */; };
 		900D8F6ACA628E228CD12864 /* VoiceTranscriptionRequest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 258DED387BB24CD05BADEE38 /* VoiceTranscriptionRequest.swift */; };
+		9079E762D2F94CBFFFCDF414 /* ExtensionFloatingSurface.swift in Sources */ = {isa = PBXBuildFile; fileRef = 88DB2B4CFF824A2576207155 /* ExtensionFloatingSurface.swift */; };
 		908732D9436EBA8AC2370C91 /* FileSearchScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1A38F2A1E3FD9D94654097B /* FileSearchScreen.swift */; };
 		90BD741BB5CFC57923B7D03C /* SettingsScrollTarget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0382354A8FBBAAAA549E7492 /* SettingsScrollTarget.swift */; };
 		90BD9751BD39E1C2CF78378F /* ExtensionCommandMetadataStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 093C49C93F70D7EFE716E632 /* ExtensionCommandMetadataStore.swift */; };
@@ -1851,6 +1853,7 @@
 		8893D1BCFBE59D43CFB20ACD /* AgentBudgetPolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentBudgetPolicy.swift; sourceTree = "<group>"; };
 		88ADF3086F9F65109E4B6EBE /* CommandCatalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandCatalog.swift; sourceTree = "<group>"; };
 		88BC69FEA5EE59CD6CBCF6D6 /* WebPageMarkdown.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebPageMarkdown.swift; sourceTree = "<group>"; };
+		88DB2B4CFF824A2576207155 /* ExtensionFloatingSurface.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExtensionFloatingSurface.swift; sourceTree = "<group>"; };
 		88FF1DE6629FDE0DAD66D0D2 /* AliasStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AliasStore.swift; sourceTree = "<group>"; };
 		8917D4ADF8B8CE3838804E74 /* ChatWindowRelease.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatWindowRelease.swift; sourceTree = "<group>"; };
 		89909E72988E75290A45A59B /* KeyShortcut.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyShortcut.swift; sourceTree = "<group>"; };
@@ -1976,6 +1979,7 @@
 		A763D56D7A3714045EA05F5F /* VoiceAIRoute.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceAIRoute.swift; sourceTree = "<group>"; };
 		A78CAD1307A6FB34D080525A /* $(DICTATION_EXECUTABLE_NAME).app */ = {isa = PBXFileReference; lastKnownFileType = wrapper.application; name = "$(DICTATION_EXECUTABLE_NAME).app"; path = "$(BUILT_PRODUCTS_DIR)/$(DICTATION_EXECUTABLE_NAME).app"; sourceTree = "<group>"; };
 		A7CC95D56091F52F6B89B3F2 /* PaletteTabAction.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaletteTabAction.swift; sourceTree = "<group>"; };
+		A831302B1AD4D51657AB75B8 /* InterfaceMaterial.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InterfaceMaterial.swift; sourceTree = "<group>"; };
 		A837E52D7621900116FE7E90 /* NotePickerCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotePickerCard.swift; sourceTree = "<group>"; };
 		A86887831685FBB953191D6A /* ExtensionFetcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExtensionFetcher.swift; sourceTree = "<group>"; };
 		A8C2B4534971F8DCF71634E1 /* CurrencyRateStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CurrencyRateStore.swift; sourceTree = "<group>"; };
@@ -2618,6 +2622,7 @@
 				652B7BFD1DC27985368A31DF /* AppSettings.swift */,
 				C1BFFB3569AAF73FA89E85FD /* AppSettingsKey.swift */,
 				8EDFC062DF015D80B1D09B70 /* EscapeKeyBehavior.swift */,
+				A831302B1AD4D51657AB75B8 /* InterfaceMaterial.swift */,
 				C7BE0E183BB001A604FD0C98 /* InterfaceSize.swift */,
 				EF80F1A3FB983EC7255F9E5F /* SettingsAnchor.swift */,
 				626001E06DD4C6539C9E4901 /* SettingsCoordinator.swift */,
@@ -4671,6 +4676,7 @@
 				3BA745B5841322428C1CE180 /* ExtensionEmptyState.swift */,
 				DA4AAA577D9E6B1768F15732 /* ExtensionFieldChrome.swift */,
 				91A7D7BDBEABB07D5441A003 /* ExtensionFieldHint.swift */,
+				88DB2B4CFF824A2576207155 /* ExtensionFloatingSurface.swift */,
 				49861083D9A6D8112A5225B2 /* ExtensionFormKey.swift */,
 				8D8C958B891883B41102D359 /* ExtensionFormView.swift */,
 				4F9E954B8A86DEC995555EF0 /* ExtensionImage.swift */,
@@ -6146,6 +6152,7 @@
 				3F2315AAAED0AFAB67246260 /* ExtensionFetcher.swift in Sources */,
 				01DEEBB201F5191291AF8477 /* ExtensionFieldChrome.swift in Sources */,
 				83FC2F4021F58E1493CB60B4 /* ExtensionFieldHint.swift in Sources */,
+				9079E762D2F94CBFFFCDF414 /* ExtensionFloatingSurface.swift in Sources */,
 				F85BD3D229336E67891C35F2 /* ExtensionFormField.swift in Sources */,
 				D40A5182A91B28B3F6CBE420 /* ExtensionFormKey.swift in Sources */,
 				C26F464C49E795EE1D13F29B /* ExtensionFormMetrics.swift in Sources */,
@@ -6316,6 +6323,7 @@
 				D8774D5F47F68D42327AAFF7 /* InstalledAIProbe.swift in Sources */,
 				3140DDBDE600DD3C7CA4EDEE /* InstalledAIStream.swift in Sources */,
 				1E113089F88DEB1EA1FCF9BB /* InstalledCLIProvider.swift in Sources */,
+				5D0464AD5215443DCBDFA162 /* InterfaceMaterial.swift in Sources */,
 				EF6AF492E3963544A875A7C8 /* InterfaceMetrics.swift in Sources */,
 				DB4CE9427E1865B831DA59EF /* InterfaceSize.swift in Sources */,
 				A748057F85F8F4F8B1990543 /* JSONLineSplitter.swift in Sources */,

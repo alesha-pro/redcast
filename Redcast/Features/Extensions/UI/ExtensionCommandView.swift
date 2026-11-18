@@ -161,7 +161,7 @@ struct ExtensionToastPill: View {
                     startPoint: .leading, endPoint: .trailing),
                 lineWidth: Theme.Size.hairline)
         }
-        .glassEffect(.regular.interactive(), in: Capsule())
+        .extensionFloatingSurface(.regular.interactive(), in: Capsule())
         .contentShape(Capsule())
         .onTapGesture(perform: onDismiss)
         .onHover { isHovered in

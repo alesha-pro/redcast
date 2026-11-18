@@ -183,7 +183,9 @@ a transient `NSStatusItem` owned by `Features/Agents/` in the same way.
 assigns `NSApp.appearance` from `AppSettings.appearance`, and `.system` assigns `nil` so AppKit follows
 macOS by itself. Nothing else in the app sets an appearance. Animations take the same shape:
 `AppCore.applyMotion()` projects `AppSettings.animationsEnabled` into `Motion.isEnabled` and re-points
-every live `AnimatedPanel` (see [ui.md](ui.md#non-negotiable-invariants)).
+every live `AnimatedPanel` (see [ui.md](ui.md#non-negotiable-invariants)), and
+`AppCore.applyInterfaceMaterial()` projects `AppSettings.interfaceMaterial` into `SurfaceMaterial`
+(see [ui.md](ui.md#liquid-glass)).
 
 ## Observation
 

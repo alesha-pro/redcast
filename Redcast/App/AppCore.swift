@@ -348,6 +348,7 @@ final class AppCore {
             NSApp.setActivationPolicy(.accessory)
             dictationAudioDucker.recover()
             applyAppearance()
+            applyInterfaceMaterial()
             ColorfulIcons.setEnabled(settings.colorfulIcons)  // Fork: before any row draws a glyph
             applyMotion()
             observeEffectiveAppearance()
@@ -870,6 +871,7 @@ final class AppCore {
             { _ = $0.snippetsShowInLauncher },
             reproject: { $0.snippetCoordinator.applySnippetsLauncherPresence() })
         track({ _ = $0.appearance }, reproject: { $0.applyAppearance() })
+        track({ _ = $0.interfaceMaterial }, reproject: { $0.applyInterfaceMaterial() })
         track({ _ = $0.colorfulIcons }, reproject: { $0.applyColorfulIcons() })  // Fork: icons
         track({ _ = $0.animationsEnabled }, reproject: { $0.applyMotion() })
         track({ _ = $0.language }, reproject: { $0.offerLanguageRelaunch() })
@@ -893,6 +895,10 @@ final class AppCore {
     /// `.system` resolves to `nil`, so AppKit follows macOS with nothing polling.
     private func applyAppearance() {
         NSApp.appearance = settings.appearance.nsAppearance
+    }
+
+    private func applyInterfaceMaterial() {
+        SurfaceMaterial.shared.isSolid = settings.interfaceMaterial == .solid
     }
 
     /// A built panel keeps the behaviour it was made with, so the live ones are re-pointed.

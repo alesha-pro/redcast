@@ -301,7 +301,7 @@ Every store the app persists and its decision, as `FullBackupCoverage` states it
 
 | Store | Where | Full backup |
 | --- | --- | --- |
-| The 65 keys `SettingsBackupCoverage.mirrored` names (theme, Colorful Icons, interface size, hyper key, launcher, clipboard, file search, notes, window management, quicklinks with their tags, calendar display and more) | UserDefaults | Upstream category: Settings & Shortcuts |
+| The 66 keys `SettingsBackupCoverage.mirrored` names (theme, material, Colorful Icons, interface size, hyper key, launcher, clipboard, file search, notes, window management, quicklinks with their tags, calendar display and more) | UserDefaults | Upstream category: Settings & Shortcuts |
 | `launchAtLogin` | `SMAppService` | Upstream category: Settings & Shortcuts |
 | `Notes/*.md` (or the chosen folder) | Application Support | Upstream category: Notes |
 | `dictationEnabled` | UserDefaults (`AppSettingsKey.dictationEnabled`) | Voice & Dictation: recorded, never applied |

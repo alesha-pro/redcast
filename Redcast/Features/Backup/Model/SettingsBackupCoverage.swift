@@ -18,6 +18,7 @@ enum SettingsBackupCoverage {
         "popToRootSeconds": .popToRootTimeout,
         "escapeKeyBehavior": .escapeKeyBehavior,
         "appearance": .appearance,
+        "interfaceMaterial": .interfaceMaterial,
         "language": .language,
         "calcNumberStyle": .calcNumberStyle,
         "interfaceSize": .interfaceSize,
