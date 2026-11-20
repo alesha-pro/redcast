@@ -3,6 +3,7 @@ import Foundation
 enum AgentSource: String, Codable, Sendable, CaseIterable {
     case claude, codex, gemini
     case openCode = "opencode"
+    case pi
     case redcast
 
     /// Product names, never translated.
@@ -12,6 +13,7 @@ enum AgentSource: String, Codable, Sendable, CaseIterable {
         case .codex: "Codex"
         case .gemini: "Gemini CLI"
         case .openCode: "OpenCode"
+        case .pi: "Pi"
         case .redcast: "Redcast"
         }
     }

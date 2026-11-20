@@ -21,7 +21,7 @@ struct AgentSessionsSettingsSection: View {
                 SettingsRowTitle(.aiAgentSessions, "Search agent sessions")
                 Text(
                     """
-                    Find Claude Code, Codex, Gemini CLI, OpenCode and Redcast chats from the launcher and \
+                    Find Claude Code, Codex, Gemini CLI, OpenCode, Pi and Redcast chats from the launcher and \
                     resume them in their folder. Nothing is read until you open Search Agent Sessions, and \
                     nothing leaves this Mac.
                     """)

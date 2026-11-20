@@ -9,7 +9,8 @@ enum AgentSessionsScanner {
 
     private static let listingKeys: [URLResourceKey] = [.fileSizeKey, .contentModificationDateKey, .isRegularFileKey]
 
-    @concurrent static func listClaude(root: URL) async -> [TranscriptListingItem] {
+    /// Claude Code's and Pi's layout: one folder per project, each session a `.jsonl` in it.
+    @concurrent static func listSessionFiles(root: URL) async -> [TranscriptListingItem] {
         var items: [TranscriptListingItem] = []
         for project in folders(in: root) {
             guard !Task.isCancelled else { return [] }
@@ -55,11 +56,18 @@ enum AgentSessionsScanner {
             case (.tail, .gemini):
                 guard let entry = cached[item.path] else { continue }
                 entries.append(entry.updating(gemini: geminiTail(at: url), item: item))
+            case (.tail, .pi):
+                guard let entry = cached[item.path] else { continue }
+                entries.append(entry.updating(pi: piTail(at: url), item: item))
             case (.tail, _):
                 guard let entry = cached[item.path] else { continue }
                 entries.append(entry.updating(tail: tailFacts(at: url, size: item.size), item: item))
             case (.full, .gemini):
                 if let entry = geminiEntry(at: url, item: item) { entries.append(entry) }
+            case (.full, .pi):
+                var reader = PiSessionDecoder.HeadReader()
+                readHead(at: url, cap: ClaudeTranscriptDecoder.headCap) { reader.consume($0) }
+                entries.append(TranscriptIndexEntry(item: item, pi: reader.finish(), tail: piTail(at: url)))
             case (.full, _):
                 let head = headFacts(at: url, cap: ClaudeTranscriptDecoder.headCap)
                 entries.append(TranscriptIndexEntry(item: item, head: head, tail: tailFacts(at: url, size: item.size)))
@@ -97,6 +105,11 @@ enum AgentSessionsScanner {
         case .openCode:
             return try? OpenCodeStateReader.turns(
                 database: locations.openCodeDatabase, sessionID: session.sessionID, limit: previewLimit)
+        case .pi:
+            guard let path = session.transcriptPath,
+                let (window, offset) = window(at: URL(filePath: path), length: wide)
+            else { return nil }
+            return PiSessionDecoder.previewTurns(window, startsMidLine: offset > 0, limit: previewLimit)
         case .redcast:
             return nil
         }
@@ -127,7 +140,7 @@ enum AgentSessionsScanner {
                 return .success(
                     try OpenCodeStateReader.sessions(
                         database: locations.openCodeDatabase, includeArchived: includeArchived))
-            case .claude, .gemini, .redcast:
+            case .claude, .gemini, .pi, .redcast:
                 return .success([])
             }
         } catch {
@@ -156,7 +169,7 @@ enum AgentSessionsScanner {
             activity.title = thread.titleOrigin == .untitled ? nil : thread.title
             activity.directory = thread.directory
             activity.host = thread.host
-        case .gemini, .openCode, .redcast:
+        case .gemini, .openCode, .pi, .redcast:
             break
         }
         return activity
@@ -200,6 +213,16 @@ enum AgentSessionsScanner {
             let (wide, wideOffset) = self.window(at: url, length: ClaudeTranscriptDecoder.tailWindowWide)
         else { return facts }
         return GeminiChatDecoder.tail(wide, startsMidLine: wideOffset > 0)
+    }
+
+    /// Tool results sit between prompts, so the last prompt may sit past the narrow tail.
+    private static func piTail(at url: URL) -> PiSessionDecoder.TailFacts {
+        guard let (window, offset) = window(at: url, length: ClaudeTranscriptDecoder.tailWindow) else { return .init() }
+        let facts = PiSessionDecoder.tail(window, startsMidLine: offset > 0)
+        guard facts.lastPrompt == nil, offset > 0,
+            let (wide, wideOffset) = self.window(at: url, length: ClaudeTranscriptDecoder.tailWindowWide)
+        else { return facts }
+        return PiSessionDecoder.tail(wide, startsMidLine: wideOffset > 0)
     }
 
     private static func legacyGemini(at url: URL) -> Data? {

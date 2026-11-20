@@ -111,7 +111,7 @@ final class AgentSessionsCoordinator {
     func setEnabled(_ enabled: Bool) {
         settings.agentSessionsEnabled = enabled
         guard !enabled else { return }
-        let caches = [AgentSource.claude, .gemini].map { AgentSessionIndex.cacheFile($0, in: Self.cacheFolder) }
+        let caches = AgentSessionIndex.transcriptSources.map { AgentSessionIndex.cacheFile($0, in: Self.cacheFolder) }
         Task.detached(priority: .utility) {
             for cache in caches { try? FileManager.default.removeItem(at: cache) }
         }
@@ -168,7 +168,7 @@ final class AgentSessionsCoordinator {
         case .redcast: true
         case .claude: session.host == .claudeApp
         case .codex: NSWorkspace.shared.urlForApplication(withBundleIdentifier: AgentActivityPolicy.codexApp) != nil
-        case .gemini, .openCode: false
+        case .gemini, .openCode, .pi: false
         }
     }
 
@@ -237,7 +237,7 @@ final class AgentSessionsCoordinator {
             else { return }
             paletteCoordinator.hidePalette(restoreFocus: false)
             NSWorkspace.shared.open(url)
-        case .gemini, .openCode:
+        case .gemini, .openCode, .pi:
             break
         }
     }

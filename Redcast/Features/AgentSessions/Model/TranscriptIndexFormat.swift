@@ -1,6 +1,6 @@
 import Foundation
 
-/// A Claude Code or Gemini CLI transcript as cached, so an open reads only what changed.
+/// A Claude Code, Gemini CLI or Pi transcript as cached, so an open reads only what changed.
 struct TranscriptIndexEntry: Codable, Equatable, Sendable {
     /// Relative to the cache's `projectsRoot`.
     var path: String
@@ -58,6 +58,32 @@ struct TranscriptIndexEntry: Codable, Equatable, Sendable {
         if let summary = tail.summary {
             updated.title = AgentSessionText.oneLine(summary, limit: AgentSessionText.titleLimit)
             updated.titleOrigin = .generated
+        }
+        return updated
+    }
+
+    init(item: TranscriptListingItem, pi head: PiSessionDecoder.HeadFacts, tail: PiSessionDecoder.TailFacts) {
+        path = item.path
+        size = item.size
+        modified = item.modified
+        headDone = head.isComplete
+        session = head.sessionID
+        cwd = head.cwd
+        created = head.createdAt?.timeIntervalSince1970
+        first = head.firstPrompt
+        (title, titleOrigin) = PiSessionDecoder.title(head: head, tail: tail)
+        last = tail.lastPrompt
+    }
+
+    /// A grown Pi session: `/name` retitles it, clearing the name gives the first prompt back.
+    func updating(pi tail: PiSessionDecoder.TailFacts, item: TranscriptListingItem) -> TranscriptIndexEntry {
+        var updated = self
+        updated.size = item.size
+        updated.modified = item.modified
+        if let last = tail.lastPrompt { updated.last = last }
+        if tail.name != nil {
+            let head = PiSessionDecoder.HeadFacts(firstPrompt: first)
+            (updated.title, updated.titleOrigin) = PiSessionDecoder.title(head: head, tail: tail)
         }
         return updated
     }
@@ -164,6 +190,18 @@ enum TranscriptRescanPolicy {
             createdAt: entry.created.map(Date.init(timeIntervalSince1970:)) ?? updated,
             updatedAt: updated, host: ClaudeTranscriptDecoder.host(entrypoint: entry.entry),
             transcriptPath: (root as NSString).appendingPathComponent(entry.path))
+    }
+
+    /// Pi resumes by the id in the file's first line, in the folder that line names.
+    static func piSession(from entry: TranscriptIndexEntry, root: String) -> AgentSession? {
+        let first = entry.first ?? ""
+        guard let id = entry.session, !id.isEmpty, entry.titleOrigin != .untitled || !first.isEmpty else { return nil }
+        let updated = Date(timeIntervalSince1970: entry.modified)
+        return AgentSession(
+            source: .pi, sessionID: id, title: entry.title, titleOrigin: entry.titleOrigin, firstPrompt: first,
+            lastPrompt: entry.last ?? "", directory: entry.cwd,
+            createdAt: entry.created.map(Date.init(timeIntervalSince1970:)) ?? updated, updatedAt: updated,
+            host: .terminal, transcriptPath: (root as NSString).appendingPathComponent(entry.path))
     }
 
     /// Gemini names its files by date, so the id is the one the file's first line holds.

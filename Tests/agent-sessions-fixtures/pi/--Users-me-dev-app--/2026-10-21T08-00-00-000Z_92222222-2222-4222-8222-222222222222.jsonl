@@ -1,0 +1,2 @@
+{"type":"session","version":3,"id":"92222222-2222-4222-8222-222222222222","timestamp":"2026-10-21T08:00:00.000Z","cwd":"/Users/me/dev/app"}
+{"type":"message","id":"b0000001","parentId":null,"timestamp":"2026-10-22T09:00:00.000Z","message":{"role":"system","content":"","sections":{"preamble":"You are an expert coding assistant."},"timestamp":1792569600000}}

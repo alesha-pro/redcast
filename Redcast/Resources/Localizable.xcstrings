@@ -70765,60 +70765,60 @@
         }
       }
     },
-    "Find Claude Code, Codex, Gemini CLI, OpenCode and Redcast chats from the launcher and resume them in their folder. Nothing is read until you open Search Agent Sessions, and nothing leaves this Mac." : {
+    "Find Claude Code, Codex, Gemini CLI, OpenCode, Pi and Redcast chats from the launcher and resume them in their folder. Nothing is read until you open Search Agent Sessions, and nothing leaves this Mac." : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Finde Chats aus Claude Code, Codex, Gemini CLI, OpenCode und Redcast im Launcher und setze sie in ihrem Ordner fort. Nichts wird gelesen, bevor du „Agentensitzungen durchsuchen“ öffnest, und nichts verlässt diesen Mac."
+            "value" : "Finde Chats aus Claude Code, Codex, Gemini CLI, OpenCode, Pi und Redcast im Launcher und setze sie in ihrem Ordner fort. Nichts wird gelesen, bevor du „Agentensitzungen durchsuchen“ öffnest, und nichts verlässt diesen Mac."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Find Claude Code, Codex, Gemini CLI, OpenCode and Redcast chats from the launcher and resume them in their folder. Nothing is read until you open Search Agent Sessions, and nothing leaves this Mac."
+            "value" : "Find Claude Code, Codex, Gemini CLI, OpenCode, Pi and Redcast chats from the launcher and resume them in their folder. Nothing is read until you open Search Agent Sessions, and nothing leaves this Mac."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Encuentra chats de Claude Code, Codex, Gemini CLI, OpenCode y Redcast desde el lanzador y reanúdalos en su carpeta. No se lee nada hasta que abres Buscar sesiones de agentes, y nada sale de este Mac."
+            "value" : "Encuentra chats de Claude Code, Codex, Gemini CLI, OpenCode, Pi y Redcast desde el lanzador y reanúdalos en su carpeta. No se lee nada hasta que abres Buscar sesiones de agentes, y nada sale de este Mac."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Retrouvez les conversations Claude Code, Codex, Gemini CLI, OpenCode et Redcast depuis le lanceur et reprenez-les dans leur dossier. Rien n’est lu avant que vous ouvriez Rechercher des sessions d’agents, et rien ne quitte ce Mac."
+            "value" : "Retrouvez les conversations Claude Code, Codex, Gemini CLI, OpenCode, Pi et Redcast depuis le lanceur et reprenez-les dans leur dossier. Rien n’est lu avant que vous ouvriez Rechercher des sessions d’agents, et rien ne quitte ce Mac."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Claude Code、Codex、Gemini CLI、OpenCode、Redcastのチャットをランチャーから見つけ、そのフォルダで再開します。「エージェントセッションを検索」を開くまで何も読み込まれず、このMacの外には何も送信されません。"
+            "value" : "Claude Code、Codex、Gemini CLI、OpenCode、Pi、Redcastのチャットをランチャーから見つけ、そのフォルダで再開します。「エージェントセッションを検索」を開くまで何も読み込まれず、このMacの外には何も送信されません。"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "런처에서 Claude Code, Codex, Gemini CLI, OpenCode, Redcast 채팅을 찾아 해당 폴더에서 재개합니다. 에이전트 세션 검색을 열기 전에는 아무것도 읽지 않으며, 이 Mac 밖으로 아무것도 나가지 않습니다."
+            "value" : "런처에서 Claude Code, Codex, Gemini CLI, OpenCode, Pi, Redcast 채팅을 찾아 해당 폴더에서 재개합니다. 에이전트 세션 검색을 열기 전에는 아무것도 읽지 않으며, 이 Mac 밖으로 아무것도 나가지 않습니다."
           }
         },
         "pt" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Encontre chats do Claude Code, Codex, Gemini CLI, OpenCode e Redcast no iniciador e retome-os na pasta deles. Nada é lido até você abrir Buscar sessões de agentes, e nada sai deste Mac."
+            "value" : "Encontre chats do Claude Code, Codex, Gemini CLI, OpenCode, Pi e Redcast no iniciador e retome-os na pasta deles. Nada é lido até você abrir Buscar sessões de agentes, e nada sai deste Mac."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Находите чаты Claude Code, Codex, Gemini CLI, OpenCode и Redcast в лаунчере и продолжайте их в их папке. Ничего не читается, пока вы не откроете «Поиск сеансов агентов», и ничего не покидает этот Mac."
+            "value" : "Находите чаты Claude Code, Codex, Gemini CLI, OpenCode, Pi и Redcast в лаунчере и продолжайте их в их папке. Ничего не читается, пока вы не откроете «Поиск сеансов агентов», и ничего не покидает этот Mac."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "从启动器中找到 Claude Code、Codex、Gemini CLI、OpenCode 和 Redcast 的聊天，并在其文件夹中继续。在你打开“搜索智能体会话”之前不会读取任何内容，也不会有任何内容离开这台 Mac。"
+            "value" : "从启动器中找到 Claude Code、Codex、Gemini CLI、OpenCode、Pi 和 Redcast 的聊天，并在其文件夹中继续。在你打开“搜索智能体会话”之前不会读取任何内容，也不会有任何内容离开这台 Mac。"
           }
         }
       }

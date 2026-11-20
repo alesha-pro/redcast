@@ -82,7 +82,9 @@ final class AgentSessionIndex {
         bySource[source]?.isEmpty == false
     }
 
-    /// Claude Code's and Gemini CLI's caches; switching the hub off deletes both.
+    /// The sources read from files, each with a cache that switching the hub off deletes.
+    static let transcriptSources: [AgentSource] = [.claude, .gemini, .pi]
+
     static func cacheFile(_ source: AgentSource, in folder: URL) -> URL {
         folder.appending(path: source.rawValue + "-index.json", directoryHint: .notDirectory)
     }
@@ -180,7 +182,7 @@ final class AgentSessionIndex {
             for source in Self.databaseSources {
                 await self?.loadDatabase(source, generation, includeArchived: includeArchived, acp: acp)
             }
-            for source in [AgentSource.claude, .gemini] {
+            for source in Self.transcriptSources {
                 await self?.loadTranscripts(source, generation, acp: acp)
             }
             await self?.loadLive(generation)
@@ -228,9 +230,14 @@ final class AgentSessionIndex {
         }
     }
 
-    /// Claude Code's or Gemini CLI's files: cached entries at once, then the rest newest first.
+    /// A file-backed source: cached entries at once, then the rest newest first.
     private func loadTranscripts(_ source: AgentSource, _ generation: Int, acp: Set<String>) async {
-        let root = source == .gemini ? locations.geminiProjects : locations.claudeProjects
+        let root =
+            switch source {
+            case .gemini: locations.geminiProjects
+            case .pi: locations.piSessions
+            default: locations.claudeProjects
+            }
         let rootPath = root.path
         let cacheURL = Self.cacheFile(source, in: cacheFolder)
         let cache = await AgentSessionsScanner.loadCache(cacheURL, root: rootPath)
@@ -238,7 +245,7 @@ final class AgentSessionIndex {
             if source == .gemini {
                 await AgentSessionsScanner.listGemini(root: root)
             } else {
-                TranscriptListing(items: await AgentSessionsScanner.listClaude(root: root))
+                TranscriptListing(items: await AgentSessionsScanner.listSessionFiles(root: root))
             }
         guard isCurrent(generation) else { return }
         let cached = Dictionary(
@@ -296,10 +303,13 @@ final class AgentSessionIndex {
         acp: Set<String>
     ) {
         let sessions = found.values.compactMap { entry in
-            source == .gemini
-                ? TranscriptRescanPolicy.geminiSession(
+            switch source {
+            case .gemini:
+                TranscriptRescanPolicy.geminiSession(
                     from: entry, root: root, directory: listing.directory(of: entry.path))
-                : TranscriptRescanPolicy.claudeSession(from: entry, root: root)
+            case .pi: TranscriptRescanPolicy.piSession(from: entry, root: root)
+            default: TranscriptRescanPolicy.claudeSession(from: entry, root: root)
+            }
         }
         publish(source, sessions.filter { !acp.contains($0.sessionID) })
     }

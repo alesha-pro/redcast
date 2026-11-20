@@ -20,7 +20,7 @@ enum AgentTranscriptSearch {
         progress: @escaping @Sendable (Int, Int) -> Void
     ) -> AsyncStream<Hit> {
         let newest = sessions.sorted { $0.updatedAt > $1.updatedAt }
-        let files = newest.filter { [.claude, .gemini].contains($0.source) && $0.transcriptPath != nil }
+        let files = newest.filter { [.claude, .gemini, .pi].contains($0.source) && $0.transcriptPath != nil }
         let databases = newest.filter { [.codex, .openCode].contains($0.source) }
         let needles = needles(for: query)
         return AsyncStream { continuation in
@@ -73,7 +73,7 @@ enum AgentTranscriptSearch {
         case .openCode:
             try? OpenCodeStateReader.match(
                 database: locations.openCodeDatabase, sessionID: session.sessionID, needle: query)
-        case .claude, .gemini, .redcast:
+        case .claude, .gemini, .pi, .redcast:
             nil
         }
     }
@@ -108,6 +108,14 @@ enum AgentTranscriptSearch {
                     let record = ClaudeTranscriptDecoder.object(line)
                 else { return [] }
                 return [GeminiChatDecoder.promptText(in: record) ?? GeminiChatDecoder.replyText(in: record)]
+                    .compactMap { $0 }
+            }
+        case .pi:
+            snippet = search(path, needles: needles, query: query) { line in
+                guard case .message = PiSessionDecoder.lineKind(of: line),
+                    let record = ClaudeTranscriptDecoder.object(line)
+                else { return [] }
+                return [PiSessionDecoder.promptText(in: record) ?? PiSessionDecoder.replyText(in: record)]
                     .compactMap { $0 }
             }
         case .codex, .openCode, .redcast:

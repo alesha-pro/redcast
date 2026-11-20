@@ -55,6 +55,8 @@ struct AgentSessionsTests {
         geminiDecoder()
         await geminiScanner()
         openCodeReader()
+        piDecoder()
+        await piScanner()
         newSourceCommands()
         await newSourceSearch()
         await claudeAppRoute()
@@ -349,7 +351,7 @@ struct AgentSessionsTests {
     static func scannerOverFixtures() async {
         let root = scratch.appending(path: "claude", directoryHint: .isDirectory)
         try? FileManager.default.copyItem(at: fixtures.appending(path: "claude"), to: root)
-        let listing = await AgentSessionsScanner.listClaude(root: root)
+        let listing = await AgentSessionsScanner.listSessionFiles(root: root)
         expect(listing.count == 5, "five top-level transcripts, got \(listing.count)")
         expect(!listing.contains { $0.path.contains("subagents") }, "a subagent transcript is never listed")
         let plan = TranscriptRescanPolicy.plan(cached: [:], listing: listing)
@@ -372,7 +374,7 @@ struct AgentSessionsTests {
         let loaded = await AgentSessionsScanner.loadCache(cacheURL, root: root.path)
         let cached = Dictionary(uniqueKeysWithValues: (loaded?.entries ?? []).map { ($0.path, $0) })
         expect(cached.count == 5, "the cache reloads")
-        let again = TranscriptRescanPolicy.plan(cached: cached, listing: await AgentSessionsScanner.listClaude(root: root))
+        let again = TranscriptRescanPolicy.plan(cached: cached, listing: await AgentSessionsScanner.listSessionFiles(root: root))
         expect(again.steps.allSatisfy { $0.1 == .reuse }, "an unchanged tree is all reuse")
 
         let grown = root.appending(path: "-Users-me-dev-app/\(s1).jsonl")
@@ -381,7 +383,7 @@ struct AgentSessionsTests {
         try? handle?.write(
             contentsOf: Data((#"{"type":"last-prompt","lastPrompt":"and ship it","sessionId":"\#(s1)"}"# + "\n").utf8))
         try? handle?.close()
-        let later = TranscriptRescanPolicy.plan(cached: cached, listing: await AgentSessionsScanner.listClaude(root: root))
+        let later = TranscriptRescanPolicy.plan(cached: cached, listing: await AgentSessionsScanner.listSessionFiles(root: root))
         let step = later.steps.first { $0.0.path.hasSuffix(s1 + ".jsonl") }
         expect(step?.1 == .tail, "a grown file reads only its tail")
         let updated = await AgentSessionsScanner.scan(step.map { [$0] } ?? [], cached: cached, root: root)
@@ -1299,7 +1301,7 @@ struct AgentSessionsTests {
 
     static func transcriptSearch() async {
         let root = scratch.appending(path: "claude", directoryHint: .isDirectory)
-        let listing = await AgentSessionsScanner.listClaude(root: root)
+        let listing = await AgentSessionsScanner.listSessionFiles(root: root)
         let entries = await AgentSessionsScanner.scan(
             listing.map { ($0, TranscriptRescanPolicy.Step.full) }, cached: [:], root: root)
         let sessions = entries.compactMap { TranscriptRescanPolicy.claudeSession(from: $0, root: root.path) }
@@ -1739,6 +1741,24 @@ extension AgentSessionsTests {
         expect(locations.openCodeDatabase.path == "/Users/me/.local/share/opencode/opencode.db", "OpenCode's database")
         expect(locations.environment(for: .gemini).isEmpty && locations.environment(for: .openCode).isEmpty, "none")
         expect(AgentSource.openCode.rawValue == "opencode" && AgentSource.gemini.productName == "Gemini CLI", "names")
+        let pi = session(.pi, p1, title: "t", folder: "/Users/me/dev/app")
+        expect(
+            AgentResumeCommand.command(for: pi, action: .resume) == "cd '/Users/me/dev/app' && pi --session \(p1)",
+            "pi resumes by id in its folder")
+        expect(
+            AgentResumeCommand.command(for: pi, action: .fork) == "cd '/Users/me/dev/app' && pi --fork \(p1)",
+            "and forks")
+        expect(
+            AgentResumeCommand.command(for: session(.pi, p3, title: "t"), action: .resume) == "pi --session \(p3)",
+            "an id Pi was given may hold a dot and an underscore")
+        expect(
+            AgentResumeCommand.command(for: session(.pi, "x;rm", title: "t"), action: .resume) == nil,
+            "an unsafe Pi id gets no command")
+        expect(
+            AgentResumeCommand.command(for: session(.openCode, "ses.x", title: "t"), action: .resume) == nil,
+            "only a Pi id takes a dot")
+        expect(locations.piSessions.path == "/Users/me/.pi/agent/sessions", "Pi's sessions")
+        expect(locations.environment(for: .pi).isEmpty && AgentSource.pi.productName == "Pi", "Pi's name")
     }
 
     static func newSourceSearch() async {
@@ -1753,10 +1773,15 @@ extension AgentSessionsTests {
             at: locations.openCodeDatabase.deletingLastPathComponent(), withIntermediateDirectories: true)
         openCodeDatabase(locations.openCodeDatabase)
         let openCode = (try? OpenCodeStateReader.sessions(database: locations.openCodeDatabase, includeArchived: false)) ?? []
+        let piRoot = fixtures.appending(path: "pi", directoryHint: .isDirectory)
+        let piEntries = await AgentSessionsScanner.scan(
+            await AgentSessionsScanner.listSessionFiles(root: piRoot).map { ($0, TranscriptRescanPolicy.Step.full) },
+            cached: [:], root: piRoot, source: .pi)
+        let pi = piEntries.compactMap { TranscriptRescanPolicy.piSession(from: $0, root: piRoot.path) }
         func hits(_ query: String) async -> [String] {
             var found: [String] = []
             for await hit in AgentTranscriptSearch.run(
-                query: query, sessions: gemini + openCode, locations: locations, progress: { _, _ in })
+                query: query, sessions: gemini + openCode + pi, locations: locations, progress: { _, _ in })
             {
                 found.append(hit.source.rawValue + ":" + hit.sessionID)
             }
@@ -1770,6 +1795,145 @@ extension AgentSessionsTests {
         expect(quokka == ["gemini:" + g2], "a legacy chat is searched too")
         let flamingo = await hits("flamingo")
         expect(flamingo == ["opencode:" + openCodeID("a")], "OpenCode is searched through its database")
+        let ocelot = await hits("ocelot")
+        expect(ocelot == ["pi:" + p1], "a word said mid-session is found in Pi, got \(ocelot)")
+        let narwhal = await hits("narwhal")
+        let okapi = await hits("okapi")
+        expect(narwhal.isEmpty && okapi.isEmpty, "Pi tool output and thinking are never a hit")
+    }
+
+    static let p1 = "91111111-1111-4111-8111-111111111111"
+    static let p3 = "nightly_run.3"
+    static let piSession = "--Users-me-dev-app--/2026-10-22T09-15-03-662Z_91111111-1111-4111-8111-111111111111.jsonl"
+    static let ledgerPrompt = "why is the ledger slow on large accounts"
+
+    static func piDecoder() {
+        let file = fixture("pi/" + piSession)
+        var reader = PiSessionDecoder.HeadReader()
+        expect(reader.consume(file), "the Pi head is complete within the file")
+        let head = reader.finish()
+        expect(head.sessionID == p1 && head.cwd == "/Users/me/dev/app", "the id and folder come from the first line")
+        expect(head.createdAt == ClaudeTranscriptDecoder.date("2026-10-22T09:15:03.662Z"), "and the start time")
+        expect(head.firstPrompt == ledgerPrompt, "the first prompt on one line, got \(head.firstPrompt ?? "nil")")
+        let tail = PiSessionDecoder.tail(file, startsMidLine: false)
+        expect(tail.name == "Ledger speedup" && tail.lastPrompt == "now add a benchmark", "the Pi tail")
+        expect(PiSessionDecoder.title(head: head, tail: tail) == ("Ledger speedup", .named), "/name is the title")
+        expect(PiSessionDecoder.title(head: head, tail: .init()) == (ledgerPrompt, .prompt), "else the first prompt")
+        expect(
+            PiSessionDecoder.title(head: head, tail: .init(name: "")) == (ledgerPrompt, .prompt),
+            "a cleared name gives the prompt back")
+        let cut = Data(file.dropFirst(10))
+        expect(PiSessionDecoder.tail(cut, startsMidLine: true).name != nil, "a Pi window starting mid-line")
+
+        let turns = PiSessionDecoder.previewTurns(file, startsMidLine: false, limit: 8)
+        expect(
+            turns.map(\.text) == [
+                "why is the ledger   slow\non large accounts",
+                "The ledger rebuilds its ocelot index on every read.\n\nCaching it fixes that.", "now add a benchmark",
+                "Added a benchmark."
+            ], "turns skip thinking, tool calls and results, and the abandoned branch, got \(turns.map(\.text))")
+        expect(turns.map(\.role) == [.user, .assistant, .user, .assistant], "and alternate")
+        expect(turns.first?.date == ClaudeTranscriptDecoder.date("2026-10-22T09:16:00.000Z"), "with the entry's time")
+        expect(PiSessionDecoder.previewTurns(file, startsMidLine: false, limit: 1).map(\.text) == ["Added a benchmark."], "N")
+        let loop = #"{"type":"message","id":"x","parentId":"y","message":{"role":"user","content":"round"}}"# + "\n"
+            + #"{"type":"message","id":"y","parentId":"x","message":{"role":"user","content":"and round"}}"#
+        expect(
+            PiSessionDecoder.previewTurns(Data(loop.utf8), startsMidLine: false, limit: 8).map(\.text)
+                == ["round", "and round"], "a parent loop ends the walk")
+
+        func kind(_ line: String) -> PiSessionDecoder.LineKind { PiSessionDecoder.lineKind(of: Data(line.utf8)) }
+        expect(kind(#"{"type":"session","version":3,"id":"x"}"#) == .header, "the header")
+        expect(kind(#"{"type":"session_info","id":"a","name":"n"}"#) == .info, "a name")
+        expect(kind(#"{"type":"message","id":"a","message":{"role":"user","content":"hi"}}"#) == .message(.user), "user")
+        expect(
+            kind(#"{"type":"message","id":"a","message":{"role":"assistant","content":[]}}"#) == .message(.assistant),
+            "a reply")
+        expect(
+            kind(#"{"type":"message","id":"a","message":{"role":"toolResult","content":[]}}"#) == .message(.other),
+            "a tool result")
+        expect(kind(#"{"type":"compaction","id":"a","summary":"\"role\":\"user\""}"#) == .other, "anything else")
+        let quoting = #"{"type":"message","id":"a","message":{"role":"assistant","content":"#
+            + #"[{"type":"toolCall","arguments":{"role":"user"}},{"type":"text","text":"x"}]}}"#
+        expect(kind(quoting) == .message(.user), "the opening bytes only guess a role")
+        let quoted = ClaudeTranscriptDecoder.object(Data(quoting.utf8)) ?? [:]
+        expect(
+            PiSessionDecoder.promptText(in: quoted) == nil && PiSessionDecoder.replyText(in: quoted) == "x",
+            "and the decoded one decides")
+        let image = ["type": "message", "message": ["role": "user", "content": [["type": "image", "data": "aGk="]]]]
+            as [String: Any]
+        expect(PiSessionDecoder.prompt(in: image) == nil, "an image alone is not a prompt")
+    }
+
+    static func piScanner() async {
+        let root = scratch.appending(path: "pi", directoryHint: .isDirectory)
+        try? FileManager.default.copyItem(at: fixtures.appending(path: "pi"), to: root)
+        let listing = await AgentSessionsScanner.listSessionFiles(root: root)
+        expect(listing.count == 4, "four files in two folders, got \(listing.map(\.path).sorted())")
+        let plan = TranscriptRescanPolicy.plan(cached: [:], listing: listing)
+        let entries = await AgentSessionsScanner.scan(plan.steps, cached: [:], root: root, source: .pi)
+        let sessions = entries.compactMap { TranscriptRescanPolicy.piSession(from: $0, root: root.path) }
+        let byID = Dictionary(uniqueKeysWithValues: sessions.map { ($0.sessionID, $0) })
+        expect(Set(byID.keys) == [p1, p3], "an empty session and a stray file are dropped, got \(byID.keys.sorted())")
+        expect(byID[p1]?.title == "Ledger speedup" && byID[p1]?.titleOrigin == .named, "p1's name")
+        expect(byID[p1]?.directory == "/Users/me/dev/app" && byID[p1]?.source == .pi, "p1's folder")
+        expect(byID[p1]?.firstPrompt == ledgerPrompt && byID[p1]?.lastPrompt == "now add a benchmark", "p1's prompts")
+        expect(byID[p1]?.host == .terminal, "Pi runs in a terminal")
+        expect(byID[p1]?.createdAt == ClaudeTranscriptDecoder.date("2026-10-22T09:15:03.662Z"), "p1's start")
+        expect(byID[p1]?.transcriptPath == root.appending(path: piSession).path, "the file is the transcript")
+        expect(
+            byID[p3]?.title == "tidy the changelog" && byID[p3]?.titleOrigin == .prompt,
+            "a name cleared later leaves the first prompt, got \(byID[p3]?.title ?? "nil")")
+        expect(byID[p3]?.directory == "/Users/me/dev/other", "a forked session keeps its own folder")
+
+        let cached = Dictionary(uniqueKeysWithValues: entries.map { ($0.path, $0) })
+        let handle = try? FileHandle(forWritingTo: root.appending(path: piSession))
+        _ = try? handle?.seekToEnd()
+        let more = #"{"type":"message","id":"a000000d","parentId":"a000000c","timestamp":"2026-10-22T09:27:00.000Z","#
+            + #""message":{"role":"user","content":"and ship it"}}"# + "\n"
+            + #"{"type":"session_info","id":"a000000e","parentId":"a000000d","name":"Ledger, shipped"}"# + "\n"
+        try? handle?.write(contentsOf: Data(more.utf8))
+        try? handle?.close()
+        let later = TranscriptRescanPolicy.plan(
+            cached: cached, listing: await AgentSessionsScanner.listSessionFiles(root: root))
+        let steps = Dictionary(uniqueKeysWithValues: later.steps.map { ($0.0.path, $0.1) })
+        expect(steps[piSession] == .tail, "a grown Pi session reads only its tail")
+        expect(steps.values.filter { $0 == .reuse }.count == 3, "and the rest are reused")
+        let updated = await AgentSessionsScanner.scan(
+            later.steps.filter { $0.0.path == piSession }, cached: cached, root: root, source: .pi)
+        expect(
+            updated.first?.title == "Ledger, shipped" && updated.first?.last == "and ship it",
+            "the tail brings the new name and prompt")
+        let item = TranscriptListingItem(path: piSession, size: 1, modified: 1)
+        let cleared = updated.first?.updating(pi: .init(name: ""), item: item)
+        expect(
+            cleared?.title == ledgerPrompt && cleared?.titleOrigin == .prompt && cleared?.last == "and ship it",
+            "a name cleared in the tail gives the first prompt back")
+        let unnamed = updated.first?.updating(pi: .init(), item: item)
+        expect(unnamed?.title == "Ledger, shipped", "a tail without a name keeps the one it had")
+
+        let preview = await AgentSessionsScanner.previewTurns(
+            for: byID[p1]!, locations: AgentSessionsLocations(home: scratch))
+        expect(preview?.suffix(2).map(\.text) == ["Added a benchmark.", "and ship it"], "a Pi preview")
+
+        let busyRoot = scratch.appending(path: "pi-busy", directoryHint: .isDirectory)
+        let busy = "--busy--/2026-10-23T10-00-00-000Z_9fffffff-ffff-4fff-8fff-ffffffffffff.jsonl"
+        let output = String(repeating: "o", count: 30_000)
+        let result = #"{"type":"message","id":"r","parentId":"u","message":{"role":"toolResult","content":"#
+            + #"[{"type":"text","text":"\#(output)"}]}}"#
+        let busyText = [
+            #"{"type":"session","version":3,"id":"9fffffff-ffff-4fff-8fff-ffffffffffff","cwd":"/Users/me"}"#,
+            #"{"type":"message","id":"u","parentId":null,"message":{"role":"user","content":"run the long migration"}}"#,
+            result, result, result
+        ].joined(separator: "\n") + "\n"
+        let busyURL = busyRoot.appending(path: busy)
+        try? FileManager.default.createDirectory(
+            at: busyURL.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try? Data(busyText.utf8).write(to: busyURL)
+        let busyItem = TranscriptListingItem(path: busy, size: Int64(busyText.utf8.count), modified: 1)
+        let busyEntry = await AgentSessionsScanner.scan([(busyItem, .full)], cached: [:], root: busyRoot, source: .pi)
+        expect(
+            busyEntry.first?.last == "run the long migration",
+            "a Pi prompt behind 64 KB of tool results is found in the wide tail")
     }
 
     static func claudeAppRoute() async {

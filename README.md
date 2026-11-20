@@ -171,7 +171,7 @@ More in [docs/shipping.md](docs/shipping.md).
 - **Native agents** that live in a folder and read its `AGENTS.md`, skills and notes, with tools for files, the terminal, the web and memory — and permission asked before each change unless you allow more.
 - **ACP agents**: Claude Code, Codex, Gemini CLI, OpenCode, Goose, Hermes or any Agent Client Protocol agent, on your own logins, with diffs and plans in AI Chat.
 - **Background runs**: type `@agent do this` in the palette and it works without a window. **Schedules** run agents daily or every few hours, with a spend cap.
-- **Agent Sessions**: every past Claude Code, Codex, Gemini CLI, OpenCode and Redcast session, searchable and resumed in its folder with one key.
+- **Agent Sessions**: every past Claude Code, Codex, Gemini CLI, OpenCode, Pi and Redcast session, searchable and resumed in its folder with one key.
 
 </details>
 

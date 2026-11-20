@@ -1,0 +1,5 @@
+{"type":"session","version":3,"id":"nightly_run.3","timestamp":"2026-10-20T07:00:00.000Z","cwd":"/Users/me/dev/other","parentSession":"/Users/me/.pi/agent/sessions/--Users-me-dev-app--/older.jsonl"}
+{"type":"session_info","id":"c0000001","parentId":null,"timestamp":"2026-10-20T07:00:01.000Z","name":"Scratch"}
+{"type":"message","id":"c0000002","parentId":"c0000001","timestamp":"2026-10-22T09:01:00.000Z","message":{"role":"user","content":[{"type":"text","text":"tidy the changelog"}],"timestamp":1792479660000}}
+{"type":"message","id":"c0000003","parentId":"c0000002","timestamp":"2026-10-22T09:02:00.000Z","message":{"role":"assistant","content":[{"type":"text","text":"Tidied."}],"stopReason":"stop","timestamp":1792479720000}}
+{"type":"session_info","id":"c0000004","parentId":"c0000003","timestamp":"2026-10-20T07:03:00.000Z","name":""}

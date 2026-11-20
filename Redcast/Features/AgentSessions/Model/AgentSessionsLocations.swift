@@ -45,6 +45,8 @@ struct AgentSessionsLocations: Equatable, Sendable {
     var openCodeDatabase: URL {
         home.appending(path: ".local/share/opencode/opencode.db", directoryHint: .notDirectory)
     }
+    /// One folder per working directory; Redcast sees no `PI_CODING_AGENT_DIR`.
+    var piSessions: URL { home.appending(path: ".pi/agent/sessions", directoryHint: .isDirectory) }
     /// `<account>/<organization>/local_<id>.json`, one record per session the Claude app runs.
     var claudeAppSessions: URL {
         home.appending(path: "Library/Application Support/Claude/claude-code-sessions", directoryHint: .isDirectory)

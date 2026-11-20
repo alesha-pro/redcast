@@ -1,10 +1,10 @@
 # Agent Sessions
 
-**Search Agent Sessions** lists every past Claude Code, Codex, Gemini CLI, OpenCode and Redcast AI
+**Search Agent Sessions** lists every past Claude Code, Codex, Gemini CLI, OpenCode, Pi and Redcast AI
 session in one palette screen: titles, first and last prompts, folder and branch, and a preview of the
 last turns. ↵ resumes a session where it lived — `cd` into its folder and `claude --resume <id>`,
-`codex resume <id>`, `gemini --resume <id>` or `opencode --session <id>` in the terminal it ran in — or
-reopens a Redcast chat in AI Chat; ⌘O opens a Claude app session in Claude itself. **Jump to Agent**
+`codex resume <id>`, `gemini --resume <id>`, `opencode --session <id>` or `pi --session <id>` in the
+terminal it ran in — or reopens a Redcast chat in AI Chat; ⌘O opens a Claude app session in Claude itself. **Jump to Agent**
 brings forward the terminal tab of an agent that is waiting for you. An opt-in **live status** adds
 small hooks to Claude Code and Codex so Redcast can say, with a HUD, when an agent finishes or needs
 you. The feature lives in `Features/AgentSessions/`, plus the few lines that wire it in.
@@ -58,13 +58,13 @@ you. The feature lives in `Features/AgentSessions/`, plus the few lines that wir
   folder's file holds this channel's hooks, and from a live-status button until its panel closes and
   the status is read again. The note under each field then says to turn live status off first; an
   unsaved edit in a field reverts when it locks.
-- **Redcast's own ACP sessions show once.** A session of any of the four agents whose id is in
+- **Redcast's own ACP sessions show once.** A session of any of the five agents whose id is in
   `AgentStore.acpSessions` is a Redcast chat and is listed only as that chat; Codex threads with the
   `redcast` originator are dropped for the same reason.
-- **Gemini CLI and OpenCode are history only.** They are read when the screen opens like the others,
-  and resumed; nothing probes, hooks or watches them, and they never touch live status. On a Mac
-  without them an open costs a missing cache file and folder for Gemini and one `stat` for OpenCode,
-  and no cache file is written.
+- **Gemini CLI, OpenCode and Pi are history only.** They are read when the screen opens like the
+  others, and resumed; nothing probes, hooks or watches them, and they never touch live status. On a
+  Mac without them an open costs a missing cache file and folder for Gemini and for Pi and one `stat`
+  for OpenCode, and no cache file is written.
 - **The Claude app is opened only through its own route, and only on ⌘O.** The app's session records
   are read on that gesture alone, off-main: the first 1 KB of each `local_*.json`, stopping at the
   first whose `cliSessionId` is the row's transcript. The URL is built only from an id the app's own
@@ -85,8 +85,9 @@ you. The feature lives in `Features/AgentSessions/`, plus the few lines that wir
 | `Model/ClaudeTranscriptDecoder.swift` | JSONL head and tail facts, the line filter, human prompts, titles, preview turns |
 | `Model/ClaudeAppRoute.swift` | The Claude app's session records and `claude://code/continue` |
 | `Model/GeminiChatDecoder.swift` | Gemini CLI chat files: head and tail facts, prompts, summaries, preview turns, legacy `.json` |
+| `Model/PiSessionDecoder.swift` | Pi session files: the header, prompts, `/name`, preview turns along the active branch |
 | `Model/JSONLineSplitter.swift` | Bounded line splitting for both head readers; a line past the cap is skipped, never held |
-| `Model/TranscriptIndexFormat.swift` | The Claude and Gemini caches, `TranscriptRescanPolicy` (reuse, tail or full read per file) |
+| `Model/TranscriptIndexFormat.swift` | The Claude, Gemini and Pi caches, `TranscriptRescanPolicy` (reuse, tail or full read per file) |
 | `Model/HistoryDatabase.swift` | Read-only SQLite: open, probe columns, query; shared by Codex and OpenCode |
 | `Model/CodexStateReader.swift` | `state_5.sqlite` threads, `thread_history_1.sqlite` turns, rollout turns, hosts, titles |
 | `Model/OpenCodeStateReader.swift` | `opencode.db` sessions with first and last prompts, turns, search, placeholder titles |
@@ -145,6 +146,19 @@ Formats were measured on Claude Code 2.1.285–2.1.303 and codex-cli 0.162; no p
   `part` text parts that are not `synthetic` (attached files) or `ignored`. A `New session - <date>`
   title is a placeholder and the first prompt stands in; a session with neither is left out. Columns are
   probed, and a schema without `message`/`part` still lists titles.
+- **Pi** (from its docs and `session-manager.ts`; not measured on a Mac). Sessions are
+  `~/.pi/agent/sessions/--<path>--/<timestamp>_<id>.jsonl`, one folder per working directory. Line 1
+  is the header, `{"type":"session","version":3,"id":…,"timestamp":…,"cwd":…}`: the id is what Pi
+  resumes by and the cwd is the folder, so the folder's lossy name is never decoded; a file whose
+  first line is anything else is not a session. Every other line begins `{"type":"<kind>","id":…,
+  "parentId":…`, and a `message` carries `{"role":"user"|"assistant"|"toolResult"|"system",…}` whose
+  content is a string or blocks, so a line is classified by its first 512 bytes and the decoded role
+  decides. A prompt is a `user` message's text blocks; thinking, tool calls, tool results and images
+  never count. The title is the last `session_info` name (`/name`, `--name`), else the first prompt;
+  an empty name clears it, as in Pi's own picker. Entries form a tree, and `/tree` leaves an
+  abandoned branch in the file: the preview walks `parentId` up from the last entry, so it shows only
+  the branch Pi would resume. A name given mid-session and since pushed out of the 256 KB tail is
+  lost only when the cache is rebuilt.
 - **Redcast.** `ChatHistoryStore.conversations`, already resident while AI is on; a chat bound to an
   agent takes that agent's folder.
 - **Claude app records** (read on ⌘O only; Claude.app 2.42304). The app keeps one record per Code
@@ -158,21 +172,25 @@ Formats were measured on Claude Code 2.1.285–2.1.303 and codex-cli 0.162; no p
   Claude only comes forward.
 
 Claude Code's folder is `~/.claude` and Codex's `~/.codex` unless Settings names another (see
-Invariants); everything above is then read under that folder. Gemini CLI's and OpenCode's are their
-defaults: `GEMINI_CLI_HOME`, `XDG_DATA_HOME` and `OPENCODE_DB` are not followed.
+Invariants); everything above is then read under that folder. Gemini CLI's, OpenCode's and Pi's are
+their defaults: `GEMINI_CLI_HOME`, `XDG_DATA_HOME`, `OPENCODE_DB`, `PI_CODING_AGENT_DIR`,
+`PI_CODING_AGENT_SESSION_DIR` and Pi's `sessionDir` setting are not followed.
 
-Claude Code's and Gemini CLI's files are indexed in `Caches/<bundle id>/agent-sessions/`
-`claude-index.json` and `gemini-index.json` (mode 0600, the same shape): per transcript its size,
-mtime, cwd or id, branch, entry point, first and last prompt (≤ 300 characters) and title. An
-unchanged file is reused, a grown one reads only its tail, anything else is read again. Switching the
-hub off deletes both.
+Claude Code's, Gemini CLI's and Pi's files are indexed in `Caches/<bundle id>/agent-sessions/`
+`claude-index.json`, `gemini-index.json` and `pi-index.json` (mode 0600, the same shape): per
+transcript its size, mtime, cwd or id, branch, entry point, first and last prompt (≤ 300 characters)
+and title. An unchanged file is reused, a grown one reads only its tail, anything else is read again.
+Switching the hub off deletes all three.
 
 ## Resume
 
 `AgentResumeCommand` builds `cd '<folder>' && claude --resume <id>` (`--fork-session` to fork),
 `codex resume <id>` / `codex fork <id>`, `gemini --resume <id>` (no fork, and no command without a
-folder), `opencode --session <id>` (`--fork` to fork) and `claude attach <short id>`; an id outside
-`[0-9A-Za-z-]{1,64}` (plus `_` for Gemini's ids and OpenCode's `ses_…`) gets no command at all. A
+folder), `opencode --session <id>` (`--fork` to fork), `pi --session <id>` / `pi --fork <id>` and
+`claude attach <short id>`; an id outside `[0-9A-Za-z-]{1,64}` (plus `_` for Gemini's ids, OpenCode's
+`ses_…` and Pi's, and `.` for an id Pi was given with `--session-id`) gets no command at all. Pi looks
+an id up among the current folder's sessions first and only offers a fork for one stored elsewhere, so
+the `cd` is what makes `--session` resume. A
 moved folder rides along as `env CLAUDE_CONFIG_DIR='<folder>' claude …` (or `CODEX_HOME`): `env`,
 because the `.command` body `exec`s the line and `exec NAME=…` is not a command. That body is built
 from the folder, so a folder whose name holds ` && ` still runs the agent. Folders are single-quoted for the shell and
@@ -282,3 +300,7 @@ Run in `Redcast Dev.app` with AI on.
 20. With OpenCode installed, a session lists with its title, prompts and preview; ↵ resumes it with
     `opencode --session <id>`, ⌃⌘↵ forks with `--fork`; an archived one shows only with Include
     Archived Sessions; a subagent's child session never shows.
+21. With Pi installed, a session lists with its `/name` or first prompt and its folder; ↵ resumes it
+    with `pi --session <id>` in that folder, ⌃⌘↵ forks with `pi --fork <id>`. ⌘K → Show → Pi narrows
+    to them, a word said mid-session is found by Search inside transcripts, and after `/tree` back to
+    an earlier message the preview shows the new branch only.

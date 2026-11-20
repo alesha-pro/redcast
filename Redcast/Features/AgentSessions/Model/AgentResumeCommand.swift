@@ -53,12 +53,13 @@ enum AgentResumeAction: Equatable, Sendable { case resume, fork, openFolder, att
 
 /// Every command and script the hub hands a terminal; no unvalidated text ever reaches one.
 enum AgentResumeCommand {
-    /// Letters, digits and `-`; OpenCode's `ses_…` ids and Gemini's own ones may also hold `_`.
-    static func isSafeID(_ id: String, underscore: Bool = false) -> Bool {
+    /// Letters, digits and `-`; OpenCode's `ses_…`, Gemini's and Pi's ids may hold `_`, Pi's a `.`.
+    static func isSafeID(_ id: String, underscore: Bool = false, dot: Bool = false) -> Bool {
         (1...64).contains(id.utf8.count)
             && id.utf8.allSatisfy { byte in
                 (0x30...0x39).contains(byte) || (0x41...0x5A).contains(byte) || (0x61...0x7A).contains(byte)
                     || byte == UInt8(ascii: "-") || (underscore && byte == UInt8(ascii: "_"))
+                    || (dot && byte == UInt8(ascii: "."))
             }
     }
 
@@ -83,8 +84,8 @@ enum AgentResumeCommand {
             guard session.source == .claude, isSafeID(shortID) else { return nil }
             return env + "claude attach " + shortID
         case .resume, .fork:
-            let underscore = session.source == .gemini || session.source == .openCode
-            guard isSafeID(session.sessionID, underscore: underscore) else { return nil }
+            let underscore = [.gemini, .openCode, .pi].contains(session.source)
+            guard isSafeID(session.sessionID, underscore: underscore, dot: session.source == .pi) else { return nil }
             let id = session.sessionID
             switch (session.source, action == .fork) {
             case (.claude, false): return inFolder("claude --resume " + id)
@@ -96,6 +97,9 @@ enum AgentResumeCommand {
             case (.gemini, true): return nil
             case (.openCode, false): return inFolder("opencode --session " + id)
             case (.openCode, true): return inFolder("opencode --session " + id + " --fork")
+            // Pi finds an id among its folder's sessions first; elsewhere it would offer a fork.
+            case (.pi, false): return inFolder("pi --session " + id)
+            case (.pi, true): return inFolder("pi --fork " + id)
             case (.redcast, _): return nil
             }
         }

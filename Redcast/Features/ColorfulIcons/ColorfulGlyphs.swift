@@ -35,6 +35,7 @@ extension AgentSource {
         case .codex: AIBrand.openAI.assetName
         case .gemini: AIBrand.gemini.assetName
         case .openCode: AIBrand.openCode.assetName
+        case .pi: "apple.terminal"
         case .redcast: "bubble.left"
         }
     }
@@ -46,6 +47,7 @@ extension AgentSource {
         case .codex: .green
         case .gemini: .blue
         case .openCode: .purple
+        case .pi: .yellow
         case .redcast: .red
         }
     }
