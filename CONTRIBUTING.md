@@ -19,7 +19,7 @@ What follows is the bar every change meets, yours included, whether written by h
 
 ## Setup
 
-- macOS 26+, Xcode 26, an Apple Development signing identity in the keychain.
+- macOS 26+, Xcode 27, an Apple Development signing identity in the keychain.
 - After editing `project.yml`: `xcodegen generate`, and commit the result. No SwiftPM.
 - Install a build with [`Scripts/install.sh`](docs/shipping.md#scriptsinstallsh).
 - Details: [`docs/development.md`](docs/development.md). Start at [`docs/`](docs/README.md).

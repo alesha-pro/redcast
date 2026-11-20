@@ -90,7 +90,7 @@ brew install --cask alesha-pro/redcast/redcast
 <summary><b>Build from source</b></summary>
 <br>
 
-You need Xcode 26 and a signing identity in your keychain: a Developer ID Application one is used
+You need Xcode 27 and a signing identity in your keychain: a Developer ID Application one is used
 first, else an Apple Development one, which Xcode makes in Settings › Accounts › Manage Certificates
 with a free Apple ID.
 
