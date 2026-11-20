@@ -618,7 +618,6 @@
 		84567595342D7B26577AEA3F /* AIModelDiscovery.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C03149C404CC1CFB06D17D3 /* AIModelDiscovery.swift */; };
 		84650DDD8E5E1668D26C6BFF /* FocusRelease.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC4B259091A5E109240D81E8 /* FocusRelease.swift */; };
 		84925649DA18B0DF21435D72 /* FileIndex.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1AFFF6EA5C3ACDBCFD9D2DB7 /* FileIndex.swift */; };
-		8516BEC96C393FECF80170EA /* ReleaseArchitecture.swift in Sources */ = {isa = PBXBuildFile; fileRef = C6E9ED4AAB9687FCFD41A962 /* ReleaseArchitecture.swift */; };
 		8556A3D1B0EAC4AC1C24FD5E /* GlassEffectView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D03B031CAE06435AB803D10C /* GlassEffectView.swift */; };
 		857442AA984DCAC5B5265602 /* AnimatedPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = D9185E3401C1468300FA47AD /* AnimatedPanel.swift */; };
 		858DC8272D928E0BBC11D7A9 /* MeetingLauncher.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4FE73C9F787B40798DBC6D9 /* MeetingLauncher.swift */; };
@@ -2122,7 +2121,6 @@
 		C65925BFE3CD1FA6E58DADF6 /* AgentSessionIndex.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentSessionIndex.swift; sourceTree = "<group>"; };
 		C672786343D05D5070C8BEE0 /* BackupComposer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackupComposer.swift; sourceTree = "<group>"; };
 		C6CD911BE1928F196D8BDF69 /* QuickAIToolsMenu.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuickAIToolsMenu.swift; sourceTree = "<group>"; };
-		C6E9ED4AAB9687FCFD41A962 /* ReleaseArchitecture.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReleaseArchitecture.swift; sourceTree = "<group>"; };
 		C70689138E6BC871D660FDF8 /* ExtensionCommandMetadata.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExtensionCommandMetadata.swift; sourceTree = "<group>"; };
 		C7081B33A09E4CFF3438B176 /* WindowLayoutDisplay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowLayoutDisplay.swift; sourceTree = "<group>"; };
 		C7409B01ED4681A6BADE570D /* RaycastSnippetImport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RaycastSnippetImport.swift; sourceTree = "<group>"; };
@@ -2753,7 +2751,6 @@
 			isa = PBXGroup;
 			children = (
 				FE47AD2795F7A4C2255E98C0 /* AppVersion.swift */,
-				C6E9ED4AAB9687FCFD41A962 /* ReleaseArchitecture.swift */,
 				D2AA815BE3E847FB3BD2D40F /* ReleaseChannel.swift */,
 				68972050CD99A818F475769A /* ReleaseFeed.swift */,
 				70C05837A74DB322A3A49116 /* ReleaseNotes.swift */,
@@ -6558,7 +6555,6 @@
 				112B426F1250A9C41F72CF19 /* RegionCurrency.swift in Sources */,
 				DB6800C7E3A69F11CA42FEBA /* RegionNumberFormatMonitor.swift in Sources */,
 				47F56D9D1C74AA7F20F78F82 /* RelaunchRunner.swift in Sources */,
-				8516BEC96C393FECF80170EA /* ReleaseArchitecture.swift in Sources */,
 				5C7F57A65BF1475E3554D812 /* ReleaseChannel.swift in Sources */,
 				F717676F27F1926FE9138488 /* ReleaseFeed.swift in Sources */,
 				CC4C89FFB94873638FFF276B /* ReleaseNotes.swift in Sources */,

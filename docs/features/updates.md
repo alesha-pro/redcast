@@ -13,10 +13,6 @@ no appcast: the release feed the website already reads is the feed the app reads
 - **The archive is a zip, never the DMG.** A zip expands with `ditto`; a DMG would have to be mounted,
   which means a volume, a Spotlight handle and a detach that can fail. A release published without a
   zip is not installable and is not offered.
-- **The zip is chosen by architecture.** A stable release carries a thin arm64 zip and a
-  `-Universal-` one. Intel takes the universal zip and is offered *nothing* if it is missing, since a
-  thin build would install and then refuse to launch; Apple silicon prefers the thin zip and falls
-  back to universal.
 - **Nobody ever runs `xattr`.** An archive Redcast fetched itself is not quarantined — macOS sets
   that flag for sandboxed downloaders and for apps that opt in with `LSFileQuarantineEnabled`, and
   Redcast is neither. `Quarantine` checks anyway through `getxattr`/`removexattr` rather than the
@@ -82,10 +78,6 @@ prerelease sorts below the release it leads to, and `beta.10` above `beta.9`. Ev
 to nil, so an off-shape tag can never be offered as an update. A release whose tag disagrees with
 its `prerelease` flag is treated as mis-published and skipped.
 
-The Intel build is *not* a channel. It shares the stable tag, version, bundle id and signature, so it
-resolves to `.stable` like any other; `ReleaseArchitecture` picks its asset, and nothing about
-identity changes.
-
 ## Checking
 
 `UpdateCheckStore` copies `CurrencyRateStore`: a private `.ephemeral`, `urlCache = nil` session, a
@@ -135,8 +127,7 @@ setting, clipboard entry, note or snippet is affected by an update, by `brew upg
 ## Releasing into it
 
 `Scripts/release.sh` publishes the DMG people download by hand and `Redcast-<version>.zip` for the
-updater; `--universal` adds a `Redcast-Universal-<version>` pair, uploaded second so the thin zip
-stays first in the asset list. The zip is made with
+updater, both built for arm64 only. The zip is made with
 
 ```sh
 ditto -c -k --keepParent --sequesterRsrc "$APP" "$DIST/$base.zip"
