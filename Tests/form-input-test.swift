@@ -15,6 +15,8 @@ struct FormInputTests {
 
     static func main() {
         _ = NSApplication.shared
+        // `inkBounds` looks for light text, so a system in Light mode must not decide the result.
+        NSApp.appearance = NSAppearance(named: .darkAqua)
         testSingleLine()
         testCapAlignment()
         testTextArea()
