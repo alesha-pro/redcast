@@ -159,14 +159,13 @@ captured before you touch the grant. The script's last line says the same.
 ## `Scripts/release.sh`
 
 ```sh
-Scripts/release.sh <version> [--universal] [--publish] [--notes FILE]
+Scripts/release.sh <version> [--publish] [--notes FILE]
 Scripts/release.sh <version> --dry-run | --self-check
 ```
 
-Ships `MAJOR.MINOR.PATCH` from a clean `HEAD` already on `origin/main`: a Release build for Apple
-silicon (`--universal` adds the `-Universal-` one an Intel Mac's updater needs), signed with the
-keychain's one `Developer ID Application` identity and a secure timestamp, checked by
-`verify-signature.sh`, notarized and stapled, then a zip (what the updater expands) and a signed,
+Ships `MAJOR.MINOR.PATCH` from a clean `HEAD` already on `origin/main`: an arm64 Release build,
+signed with the keychain's one `Developer ID Application` identity and a secure timestamp, checked
+by `verify-signature.sh`, notarized and stapled, then a zip (what the updater expands) and a signed,
 notarized, stapled DMG. It tags `HEAD` `v<version>` as `Redcast <version>`, pushes the tag and
 creates a **draft** release on the repository `ReleaseFeed.repository` names, with notes listing the
 first-parent commits since the previous `Redcast …` tag; `--publish` skips the draft and then points

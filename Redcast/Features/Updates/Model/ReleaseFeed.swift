@@ -14,17 +14,12 @@ enum ReleaseFeed {
     /// Where releases come from, and what every `@handle` and `#304` in their notes points at.
     static let repository = "alesha-pro/redcast"  // Fork: its own releases, never upstream's
 
-    /// The only artifact with an x86_64 slice, so the only one an Intel Mac can install.
-    private static let universalMarker = "-Universal-"
-
     /// The newest release this channel accepts, ignoring drafts and anything without a usable zip.
-    static func newest(
-        from data: Data, channel: ReleaseChannel, architecture: ReleaseArchitecture
-    ) -> AvailableRelease? {
+    static func newest(from data: Data, channel: ReleaseChannel) -> AvailableRelease? {
         guard let entries = try? JSONDecoder().decode([Entry].self, from: data) else { return nil }
         return
             entries
-            .compactMap { release(from: $0, channel: channel, architecture: architecture) }
+            .compactMap { release(from: $0, channel: channel) }
             .max { $0.version < $1.version }
     }
 
@@ -37,14 +32,13 @@ enum ReleaseFeed {
         return release
     }
 
-    private static func release(
-        from entry: Entry, channel: ReleaseChannel, architecture: ReleaseArchitecture
-    ) -> AvailableRelease? {
+    private static func release(from entry: Entry, channel: ReleaseChannel) -> AvailableRelease? {
         guard !entry.draft, channel.accepts(prerelease: entry.prerelease),
             let version = AppVersion(entry.tagName),
             // A tag disagreeing with the prerelease flag is a mis-published release, not an update.
             version.isPrerelease == entry.prerelease,
-            let asset = asset(from: entry.assets, for: architecture)
+            // Never the DMG: the updater expands an archive rather than mounting a volume.
+            let asset = entry.assets.first(where: { $0.name.hasSuffix(".zip") })
         else { return nil }
         return AvailableRelease(
             version: version,
@@ -53,18 +47,6 @@ enum ReleaseFeed {
             assetURL: asset.browserDownloadURL,
             assetSize: asset.size,
             publishedAt: entry.publishedAt.flatMap { try? Date($0, strategy: .iso8601) })
-    }
-
-    /// Never the DMG: the updater expands an archive rather than mounting a volume.
-    private static func asset(
-        from assets: [Entry.Asset], for architecture: ReleaseArchitecture
-    ) -> Entry.Asset? {
-        let zips = assets.filter { $0.name.hasSuffix(".zip") }
-        let universal = zips.first { $0.name.contains(universalMarker) }
-        switch architecture {
-        case .intel: return universal
-        case .appleSilicon: return zips.first { !$0.name.contains(universalMarker) } ?? universal
-        }
     }
 
     private struct Entry: Decodable {

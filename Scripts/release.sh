@@ -18,8 +18,8 @@ LSREGISTER="$FRAMEWORKS/LaunchServices.framework/Support/lsregister"
 
 usage() {
     cat <<EOF
-Usage: Scripts/release.sh <version> [--universal] [--publish] [--notes FILE]
-       Scripts/release.sh <version> --dry-run [--universal]
+Usage: Scripts/release.sh <version> [--publish] [--notes FILE]
+       Scripts/release.sh <version> --dry-run
        Scripts/release.sh <version> --self-check
        Scripts/release.sh <version> --announce
 
@@ -27,7 +27,6 @@ Builds Redcast <version> (MAJOR.MINOR.PATCH) in Release for Apple silicon, signs
 keychain's one Developer ID Application identity, notarizes and staples the app and its DMG, then
 tags HEAD v<version>, pushes the tag and creates a draft GitHub Release with the zip and the DMG.
 
-  --universal    also ship a -Universal- build, the only one an Intel Mac's updater installs
   --publish      publish the release at once instead of leaving it a draft
   --notes FILE   release notes to use instead of the generated list of commits
   --dry-run      build, sign and package with any identity; no notarization, tag or release
@@ -54,12 +53,10 @@ warn() { printf '! %s\n' "$*" >&2; }
 
 VERSION=""
 MODE=release
-UNIVERSAL=0
 PUBLISH=0
 NOTES_FILE=""
 while [ $# -gt 0 ]; do
     case "$1" in
-    --universal) UNIVERSAL=1 ;;
     --publish) PUBLISH=1 ;;
     --notes)
         [ $# -ge 2 ] || die 64 "--notes needs a file."
@@ -152,20 +149,19 @@ preflight() {
     note "team:        $TEAM (trusted by the source: $SOURCE_TEAM)"
     note "repository:  $REPO"
     note "notary:      $([ "$MODE" = dry-run ] && echo skipped || echo "profile $PROFILE")"
-    note "builds:      arm64$([ "$UNIVERSAL" -eq 1 ] && echo ", universal")"
+    note "builds:      arm64"
     note "output:      $DIST"
 }
 
-# Two arguments: the asset label ("" or "Universal-") and the architectures to build.
 build() {
-    local label=$1 archs=$2 derived="$WORK/DerivedData-${label:-thin}.noindex"
-    say "Building $APP_NAME $VERSION for $archs…"
+    local derived="$WORK/DerivedData.noindex"
+    say "Building $APP_NAME $VERSION for arm64…"
     rm -rf "$derived"
     mkdir -p "$WORK"
-    local log="$WORK/build-${label:-thin}.log"
+    local log="$WORK/build.log"
     # Secure timestamps are what notarization requires; install.sh skips them to stay offline.
     if ! xcodebuild -project Redcast.xcodeproj -scheme Redcast -configuration Release \
-        -derivedDataPath "$derived" ARCHS="$archs" ONLY_ACTIVE_ARCH=NO \
+        -derivedDataPath "$derived" ARCHS=arm64 ONLY_ACTIVE_ARCH=NO \
         REDCAST_BUNDLE_IDENTIFIER="$BUNDLE_ID" \
         CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY="$IDENTITY" DEVELOPMENT_TEAM= \
         OTHER_CODE_SIGN_FLAGS=--timestamp \
@@ -180,18 +176,15 @@ build() {
     done
     APP="$products/$APP_NAME.app"
     DERIVED="$derived"
-    verify_build "$archs"
+    verify_build
 }
 
 verify_build() {
     ./Scripts/verify-signature.sh "$APP" || die 1 "$APP does not pass verify-signature.sh."
-    local bin arch slices
+    local bin
     for bin in "$APP/Contents/MacOS/$APP_NAME" "$APP/Contents/Helpers/ClipboardTextHelper" \
         "$APP/Contents/Helpers/$APP_NAME Dictation.app/Contents/MacOS/$APP_NAME Dictation"; do
-        slices=" $(lipo -archs "$bin") "
-        for arch in $1; do
-            [[ "$slices" == *" $arch "* ]] || die 1 "${bin##*/} has no $arch slice."
-        done
+        [[ " $(lipo -archs "$bin") " == *" arm64 "* ]] || die 1 "${bin##*/} has no arm64 slice."
     done
     local info
     info="$(codesign -dvv "$APP" 2>&1)"
@@ -220,9 +213,9 @@ notarize() {
 }
 
 package() {
-    local label=$1 base="$APP_NAME-${1}$VERSION"
+    local base="$APP_NAME-$VERSION"
     if strict; then
-        local upload="$WORK/upload-${label:-thin}.zip"
+        local upload="$WORK/upload.zip"
         ditto -c -k --keepParent --sequesterRsrc "$APP" "$upload"
         notarize "$upload"
         rm -f "$upload"
@@ -356,13 +349,8 @@ preflight
 rm -rf "$DIST"
 mkdir -p "$DIST"
 ASSETS=()
-# The thin build first: clients pick the first non-universal zip on Apple silicon.
-build "" arm64
-package ""
-if [ "$UNIVERSAL" -eq 1 ]; then
-    build "Universal-" "arm64 x86_64"
-    package "Universal-"
-fi
+build
+package
 write_notes
 if [ "$MODE" = dry-run ]; then
     ok "Dry run done, nothing notarized or published: $DIST"
