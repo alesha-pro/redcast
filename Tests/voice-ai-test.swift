@@ -117,6 +117,38 @@ struct VoiceAITests {
         let burst = silence(seconds: 1) + tone(seconds: 0.1) + silence(seconds: 1)
         expect(VoiceAudio.speechRange(in: burst) == nil, "a 100 ms click is not speech")
 
+        let quietWithClick =
+            silence(seconds: 1) + tone(seconds: 5, amplitude: 0.02) + tone(seconds: 0.04, amplitude: 1.0)
+            + silence(seconds: 1)
+        let quietClickRange = VoiceAudio.speechRange(in: quietWithClick)
+        expect(
+            quietClickRange == (16_000 - padding)..<(96_640 + padding),
+            "a loud click never gates out quieter speech, got \(String(describing: quietClickRange))")
+
+        let quietWithCough =
+            silence(seconds: 1) + tone(seconds: 4, amplitude: 0.02) + tone(seconds: 0.4, amplitude: 1.0)
+            + tone(seconds: 4, amplitude: 0.02) + silence(seconds: 1)
+        let quietCoughRange = VoiceAudio.speechRange(in: quietWithCough)
+        expect(
+            quietCoughRange == (16_000 - padding)..<(150_400 + padding),
+            "a louder passage in the middle never trims quieter speech around it, got \(String(describing: quietCoughRange))")
+
+        let softSpeech = silence(seconds: 1) + tone(seconds: 2, amplitude: 0.0085) + silence(seconds: 1)
+        let softRange = VoiceAudio.speechRange(in: softSpeech)
+        expect(
+            softRange == (16_000 - padding)..<(48_000 + padding),
+            "soft speech on a low-gain mic still passes the gate, got \(String(describing: softRange))")
+
+        let roomNoise = tone(seconds: 1, amplitude: 0.005)
+        let noisyEnds = roomNoise + tone(seconds: 2, amplitude: 0.2) + roomNoise
+        let noisyEndsRange = VoiceAudio.speechRange(in: noisyEnds)
+        expect(
+            noisyEndsRange == (16_000 - padding)..<(48_000 + padding),
+            "steady low room noise around loud speech still trims, got \(String(describing: noisyEndsRange))")
+
+        let clickInNoise = roomNoise + tone(seconds: 0.06, amplitude: 1.0) + roomNoise
+        expect(VoiceAudio.speechRange(in: clickInNoise) == nil, "a short click in quiet room noise is not speech")
+
         expect(VoiceAudio.prepared(silence(seconds: 2)) == nil, "a silent recording never becomes a request")
         let prepared = VoiceAudio.prepared(recording)
         expect(

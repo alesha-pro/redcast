@@ -5,8 +5,8 @@ enum VoiceAudio {
     static let sampleRate = 16_000
     /// 20 ms windows: a word's onset survives, a click does not.
     static let windowSamples = 320
-    /// Below this RMS (about −40 dBFS) a recording holds no speech at all.
-    static let speechPeakRMS: Float = 0.01
+    /// Below this RMS (about −46 dBFS) a recording holds no speech at all.
+    static let speechPeakRMS: Float = 0.005
     static let silenceFloorRMS: Float = 0.003
     static let relativeThreshold: Float = 0.08
     static let minimumSpeechWindows = 10
@@ -20,8 +20,11 @@ enum VoiceAudio {
         let levels = samples.withUnsafeBufferPointer { buffer in
             (0..<windowCount).map { rms(buffer[($0 * windowSamples)..<(($0 + 1) * windowSamples)]) }
         }
-        guard let peak = levels.max(), peak >= speechPeakRMS else { return nil }
-        let threshold = max(silenceFloorRMS, peak * relativeThreshold)
+        // Median above the speech floor stops a single click or keypress from gating out quieter speech.
+        let speech = levels.filter { $0 >= speechPeakRMS }.sorted()
+        guard !speech.isEmpty else { return nil }
+        let reference = speech[speech.count / 2]
+        let threshold = min(speechPeakRMS, max(silenceFloorRMS, reference * relativeThreshold))
         guard levels.count(where: { $0 >= threshold }) >= minimumSpeechWindows,
             let first = levels.firstIndex(where: { $0 >= threshold }),
             let last = levels.lastIndex(where: { $0 >= threshold })

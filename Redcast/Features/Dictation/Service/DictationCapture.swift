@@ -144,13 +144,16 @@ private final class AudioCollector: NSObject, AVCaptureAudioDataOutputSampleBuff
             bufferListSize: MemoryLayout<AudioBufferList>.size,
             blockBufferAllocator: kCFAllocatorDefault,
             blockBufferMemoryAllocator: kCFAllocatorDefault,
-            flags: 0, blockBufferOut: &blockBuffer)
+            flags: kCMSampleBufferFlag_AudioBufferList_Assure16ByteAlignment,
+            blockBufferOut: &blockBuffer)
         guard status == noErr, let data = bufferList.mBuffers.mData else { return }
         let count = Int(bufferList.mBuffers.mDataByteSize) / MemoryLayout<Float>.size
         guard count > 0, samples.count < DictationWire.maximumSamples else { return }
-        let floats = data.assumingMemoryBound(to: Float.self)
         let accepted = min(count, DictationWire.maximumSamples - samples.count)
-        samples.append(contentsOf: UnsafeBufferPointer(start: floats, count: accepted))
+        withExtendedLifetime(blockBuffer) {
+            let floats = data.assumingMemoryBound(to: Float.self)
+            samples.append(contentsOf: UnsafeBufferPointer(start: floats, count: accepted))
+        }
         if samples.count == DictationWire.maximumSamples, !reachedLimit {
             reachedLimit = true
             onLimit()
