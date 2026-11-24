@@ -121,7 +121,7 @@ anything a day old on the next run, since a run killed mid-flight leaves its tre
 claims a key twice, that every exclusion names a real key and carries a non-empty reason, and that each
 capability-granting key — `snippetsEnabled`, `extensionsEnabled`, `extensionsAIEnabled`,
 `extensionsAIGrants`, `extensionsAIHonorsModels`, `calendarEnabled`, `autoJoinMeetings`, `cameraPreview`,
-`quickActionsEnabled` — is named individually as excluded. The
+`quickActionsEnabled`, `liveVoiceEnabled` — is named individually as excluded. The
 duplication between `AppSettings` and this file is the point: it forces a decision about every new
 setting rather than defaulting it into a backup.
 
@@ -177,7 +177,7 @@ History**. One opt-in, **Include API keys and tokens**, seals the app's secrets 
   built at run time (`hotkey.<action>`) is decided as its family. A store that names its key in a
   variable the scan can't read escapes it, so spell keys as `…Key = "…"` or `forKey: "…"`.
 - **A switch that grants a capability is recorded, never applied.** AI, MCP, Quick Actions, cloud
-  dictation, Ask by Voice, Dictation, Screen Awareness and its screenshots, extensions and AI for
+  dictation, Ask by Voice, Live Voice, Dictation, Screen Awareness and its screenshots, extensions and AI for
   them, calendar access, auto-join, camera preview, snippets' keystroke listening, OCR of clipboard
   images, installed AI tools and AI Chat's finish notifications (which ask macOS for permission)
   travel as `FullBackupConsent` names. The import leaves each as this
@@ -373,6 +373,15 @@ Every store the app persists and its decision, as `FullBackupCoverage` states it
 | `voiceAskMode` | UserDefaults (`AppSettingsKey.voiceAskMode`) | Voice & Dictation |
 | `voiceAskModel` | UserDefaults (`AppSettingsKey.voiceAskModel`) | Voice & Dictation |
 | `voiceAskAgent` | UserDefaults (`AppSettingsKey.voiceAskAgent`) | Voice & Dictation |
+| `liveVoiceEnabled` | UserDefaults (`AppSettingsKey.liveVoiceEnabled`) | Voice & Dictation: recorded, never applied |
+| `liveVoiceModel` | UserDefaults (`AppSettingsKey.liveVoiceModel`) | Voice & Dictation |
+| `liveVoiceVoice` | UserDefaults (`AppSettingsKey.liveVoiceVoice`) | Voice & Dictation |
+| `liveVoiceAgent` | UserDefaults (`AppSettingsKey.liveVoiceAgent`) | Voice & Dictation |
+| `liveVoiceScreenMode` | UserDefaults (`AppSettingsKey.liveVoiceScreenMode`) | Voice & Dictation |
+| `liveVoiceLocatorModel` | UserDefaults (`AppSettingsKey.liveVoiceLocatorModel`) | Voice & Dictation |
+| `liveVoiceAudioMode` | UserDefaults (`AppSettingsKey.liveVoiceAudioMode`) | Voice & Dictation |
+| `liveVoiceEffort` | UserDefaults (`AppSettingsKey.liveVoiceEffort`) | Voice & Dictation |
+| `liveVoiceLanguage` | UserDefaults (`AppSettingsKey.liveVoiceLanguage`) | Voice & Dictation |
 | `agentSessionsEnabled` | UserDefaults (`AppSettingsKey.agentSessionsEnabled`) | More Shortcuts & Settings |
 | `agentSessionsTerminal` | UserDefaults (`AppSettingsKey.agentSessionsTerminal`) | More Shortcuts & Settings |
 | `agentStatusMenuBar` | UserDefaults (`AppSettingsKey.agentStatusMenuBar`) | More Shortcuts & Settings |

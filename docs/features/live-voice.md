@@ -1,76 +1,110 @@
-# Live Voice (prototype)
+# Live Voice
 
 A spoken, two-way conversation with a realtime model that can see the screen, point at things on it,
-put exact text in front of the reader and hand longer work to a background agent. It is the fork's
-take on HeyClicky's voice mode.
+put exact text in front of the reader, call connected MCP tools and hand longer work to a background
+agent.
 
-**It is not wired into the app.** Nothing in `AppCore`, the launcher, Settings or the hotkeys reaches
-it, so the shipped app never opens a microphone or a socket for it. The sources build with the app so
-they keep compiling, and a hand-run stand drives them from a terminal:
+Enable **Live Voice** in **Settings → AI → Live Voice** (off by default; requires an OpenAI or
+Google Gemini connection). Once enabled, start or stop a session from the launcher (**Live Voice**)
+or by binding a global shortcut under **Settings → AI → Commands**. While active, a floating
+non-activating capsule shows the session state (connecting, listening, thinking, speaking, muted,
+reconnecting) with controls to interrupt a reply, mute the microphone or end the session.
 
-```sh
-OPENAI_API_KEY=… ./Scripts/live-voice.sh                     # speak; Ctrl-C ends
-OPENAI_API_KEY=… ./Scripts/live-voice.sh --screen tool       # the model asks for each screenshot
-OPENAI_API_KEY=… ./Scripts/live-voice.sh --text "What is on my screen?" --linger 5   # no microphone
-OPENAI_API_KEY=… ./Scripts/live-voice.sh --speech question.aiff --linger 3          # a recorded voice
-GEMINI_API_KEY=… ./Scripts/live-voice.sh --provider gemini
-```
+## Invariants
 
-With `OPENROUTER_API_KEY` set as well, `point_at` is offered (see [Pointing](#pointing)). `--model`,
-`--voice`, `--effort` (OpenAI's reasoning effort, `minimal` by default), `--silence`, `--edge`,
-`--locator`, `--language` and `--headphones` are the other switches; the stand prints what was heard
-and said, each tool call, the seconds to the reply's first sound, and the tokens each reply reported.
-`--show-prompt` prints the instructions, `--instructions FILE` replaces them to try a wording, and
-`--record FILE` writes every reply's sound as raw PCM16 mono at 24 kHz.
-
-The terminal the stand runs in needs Screen Recording permission. Without it no screenshot reaches
-the model and `point_at` has nothing to point in; the stand says so at launch, and the session tells
-the model once so it stops guessing what is on screen.
-
-OpenRouter has no realtime endpoint (its compatibility table lists `/v1/realtime` as not supported),
-so a live session needs OpenAI's own key or a Google AI Studio key; OpenRouter serves only the
-pointer's locator here.
-
-## Rules it already keeps
-
+- **`AppCore` owns it; idle costs nothing.** `AppCore` holds `liveVoiceSettings` and
+  `liveVoiceCoordinator`; `LiveVoiceSettingsSection` reaches them through `@Environment`. When no
+  session is running, no `AVAudioEngine`, WebSocket, pointer window or capsule panel exists.
+- **Explicit consent everywhere.** Turning on Live Voice asks once, naming the live connection and
+  model (and the screen pointer connection and model when available), before requesting microphone
+  access. Switching to another connection re-asks consent. `liveVoiceEnabled` stays out of
+  `settings.json` and out of `.redcast` settings backups; Full Backup records it as a consent and
+  never turns it on during import.
+- **Session-wide screen consent.** When screen sharing is set to *Every turn* or *When asked*, each
+  session asks once at launch (*Share Screen*, *Voice Only*, or *Cancel*), naming every connection
+  that will receive screenshots. If Screen Recording permission is off or revoked, Live Voice informs
+  the user honestly and starts voice-only without screen tools.
+- **Mutual exclusion on the microphone.** Live Voice, Dictation and Ask / Edit by Voice refuse to
+  start while another voice session is active.
 - **One interface, any provider.** `LiveVoiceWire` is a provider's whole dialect as pure functions:
-  what to send for the opening, audio, a picture, typed text, a note, a tool's result and a cut
-  reply, and how to read a message back into `LiveVoiceEvent`s. `LiveVoiceSession` knows only that
-  vocabulary. A new provider is one wire file and one case in `LiveVoiceProvider`; a provider that is
-  not JSON over a WebSocket does not fit, and none is planned, since WebRTC would need a library.
+  what to send for the opening, audio, a picture, typed text, a note, a tool's result, manual reply
+  cancellation and a cut reply, and how to read a message back into `LiveVoiceEvent`s.
+  `LiveVoiceSession` knows only that vocabulary.
 - **A tool family is a source.** `LiveVoiceToolSource` lists `AITool`s and runs an `AIToolCall`, the
   types MCP and agents already use, so `LiveVoiceToolList(tools: mcp.tools(scopedTo: nil)) { await
-  mcp.invoke($0, in: chat) }` is all an MCP server needs to join. `LiveVoiceToolbox` routes a call to
-  the first source offering its name and refuses any other name.
+  mcp.invoke($0, in: chatID) }` connects every enabled MCP server under its existing trust policy.
 - **The live model has no hands of its own.** Its built-in tools look (`look_at_screen`), point
   (`point_at`), show text (`show_text`) and start a task (`start_task`). Files, commands and the
-  network belong to the agent a task goes to, under that agent's own consent rules.
+  network belong to the selected agent under `AgentBackgroundCoordinator` and that agent's consent
+  rules.
 - **The screen is material, not instructions.** The prompt and every screenshot's caption say so.
 - **The prompt states only the tools the session offers**, as an agent's prompt does.
-- **The socket is a private `.ephemeral` session with `urlCache = nil`.** Audio and screenshots stay
-  in memory and are never written to disk.
+- **Credentials stay in Keychain; media stays in memory.** `LiveVoiceRoute` reads keys and custom
+  headers from `KeychainSecretStore.aiAPIKeys` and `KeychainSecretStore.aiRequestHeaders` for the
+  consented connections only. Every socket and locator request uses a private `.ephemeral`
+  `URLSession` with `urlCache = nil`. Raw audio and screenshots are never written to disk.
+- **Clean audio teardown.** Stopping a session or quitting Redcast cancels in-flight tools and
+  waiters, closes the socket, disables voice processing (`setVoiceProcessingEnabled(false)`), resets
+  and releases `AVAudioEngine`, and dismisses the capsule and pointer.
 
 ## Layout
 
 | File | Holds |
 | --- | --- |
 | `Model/LiveVoiceWire.swift` | The provider interface |
-| `Model/OpenAIRealtimeWire.swift` | OpenAI Realtime (`gpt-realtime-2.1`): server VAD, the client asks for a reply after a tool or a note, a cut reply is truncated |
-| `Model/GeminiLiveWire.swift` | Gemini Live (`gemini-3.8-live`): blocking function calls, a screenshot as one video frame, the server starts and cuts replies |
-| `Model/LiveVoiceProvider.swift` | The providers and their default models |
-| `Model/LiveVoiceEvent.swift` | Events, usage, the setup, a picture |
-| `Model/LiveVoiceToolSource.swift` | The tool source protocol, `LiveVoiceToolList`, `LiveVoiceToolbox` |
-| `Model/LiveVoiceBuiltInTools.swift` | `show_text` and `start_task`, each over an injected closure |
-| `Model/LiveVoicePrompt.swift` | The instructions, and the built-in tools' names |
-| `Model/LiveVoiceFrame.swift` | A place in a screenshot to a global display point |
-| `Model/LiveVoicePointRequest.swift` | The locator's question and the point in its reply |
-| `Service/LiveVoiceSession.swift` | One conversation: socket, audio, screen, tools, when a reply is owed |
-| `Service/LiveVoiceConnection.swift` | The WebSocket, with one ordered sender |
-| `Service/LiveVoiceAudio.swift` | Microphone and speaker on one `AVAudioEngine`, echo handling, what a cut reply had played |
-| `Service/LiveVoiceScreenshotter.swift` | The display under the cursor as a 1,280 px JPEG, Redcast's own windows left out |
-| `Service/LiveVoiceScreenTools.swift` | `look_at_screen` and `point_at`, against the screenshot the model last saw |
-| `Service/LiveVoicePointLocator.swift` | One request to an OpenAI-compatible endpoint that finds a described target |
-| `UI/LiveVoicePointerController.swift` | The pointer: one click-through panel that exists only while it shows |
+| `Model/OpenAIRealtimeWire.swift` | OpenAI Realtime (`gpt-realtime-2.1`): server VAD, reasoning effort, manual `response.cancel`, cut-reply truncation |
+| `Model/GeminiLiveWire.swift` | Gemini Live (`gemini-3.8-live`): `x-goog-api-key` header, `sessionResumption`, `goAway`, `toolCallCancellation`, video frames |
+| `Model/LiveVoiceProvider.swift` | Providers, voices, connection lifetime limits, and pure settings enums |
+| `Model/LiveVoiceEvent.swift` | Events, usage, setup (including resumption handle), image |
+| `Model/LiveVoiceToolSource.swift` | `LiveVoiceToolSource`, `LiveVoiceToolList`, `LiveVoiceToolbox`, `LiveVoiceToolContext` |
+| `Model/LiveVoiceBuiltInTools.swift` | `show_text` and `start_task` (with synchronous refusal when busy/full) |
+| `Model/LiveVoicePrompt.swift` | Instructions and built-in tool names |
+| `Model/LiveVoiceFrame.swift` | Screenshot fraction to global display point |
+| `Model/LiveVoicePointRequest.swift` | Pointer locator request payload and coordinate parser |
+| `Model/LiveVoiceTranscript.swift` | Ordered turn/tool transcript builder and reconnect recap formatter |
+| `Model/LiveVoiceRoutePolicy.swift` | Pure consent, endpoint mapping, locator eligibility and language resolution |
+| `Service/LiveVoiceRoute.swift` | Resolves consented selections and Keychain credentials into wires and locators |
+| `Service/LiveVoiceSession.swift` | One conversation: socket, reconnect/resumption, audio, screen, tools, barge-in |
+| `Service/LiveVoiceConnection.swift` | Private `.ephemeral` WebSocket with one ordered sender |
+| `Service/LiveVoiceAudio.swift` | Lazy `AVAudioEngine` capture/playback, echo modes, 21-bar spectrum meter, clean teardown |
+| `Service/LiveVoiceScreenshotter.swift` | Display under cursor as 1,280 px JPEG, excluding Redcast's own windows |
+| `Service/LiveVoiceScreenTools.swift` | `look_at_screen` and `point_at` against the latest screenshot |
+| `Service/LiveVoicePointLocator.swift` | Private `.ephemeral` request to the user's consented OpenAI-compatible vision endpoint |
+| `Settings/LiveVoiceSettings.swift` | `@Observable` store backed by `UserDefaults` (`AppSettingsKey.liveVoice*`) |
+| `Settings/LiveVoiceSettingsSection.swift` | Settings → AI → Live Voice UI |
+| `UI/LiveVoiceCoordinator.swift` | App integration: consent, screen permission, agent/MCP/chat/usage wiring, session lifecycle |
+| `UI/LiveVoiceCapsuleController.swift` | Floating non-activating status/waveform capsule with interrupt, mute and close controls |
+| `UI/LiveVoicePointerController.swift` | Theme-styled click-through pointer overlay across displays and Spaces |
+
+## Agents, tools, chat history and usage
+
+- **Agent persona and memory.** When an agent is selected, `AgentContextLoader.load` runs off the
+  main actor at session start and feeds bounded instructions (`persona`) and `memory.md` (`memory`)
+  into `LiveVoicePrompt`.
+- **Background tasks.** `start_task` calls `AgentBackgroundCoordinator.start`, returning a refusal
+  immediately if the agent is busy or three background agents are already running, and otherwise
+  awaiting `AgentBackgroundCoordinator.awaitCompletion(of:)` to announce the finished summary back
+  into the conversation. Stopping Live Voice cancels the waiter without killing the background run.
+- **MCP servers.** When MCP is enabled, `MCPCoordinator.warmUpAndWait` gives cold-starting servers a
+  brief window so their tools join the opening setup; every call runs through `MCPCoordinator.invoke`
+  under its chat trust policy.
+- **Show text.** `show_text` opens a Markdown card (`QuickActionPanelController`) supporting Copy,
+  Paste into the active app and Continue in AI Chat.
+- **Chat history and usage.** Transcripts save incrementally after each reply and on session close
+  into `ChatHistoryStore`, bound to the chosen agent via `AgentStore.setAgent` when an agent is
+  selected. The saved chat stores `model: nil` so continuing in AI Chat uses a standard chat model,
+  while realtime token usage is logged to `UsageLedger` (`origin: .voice`) under the realtime model.
+
+## Reconnects and session limits
+
+- **Gemini Live** requests `sessionResumption`, stores every `sessionResumptionUpdate` handle and
+  reconnects cleanly on `goAway` (before its ~10-minute session limit) as well as on unexpected
+  drops, keeping `AVAudioEngine` open across the handoff. If a stale handle fails setup, one retry
+  starts fresh. Because Gemini does not reliably emit speech-start events, *Every turn* mode sends an
+  initial screenshot on ready and also exposes `look_at_screen`.
+- **OpenAI Realtime** schedules a proactive reconnect at 55 minutes (ahead of its 60-minute limit)
+  between turns, sending a compact system recap from `LiveVoiceTranscript.recap()` so context carries
+  over. Interrupting from the capsule sends `response.cancel` and truncates the played item.
 
 ## Speed
 
@@ -85,100 +119,69 @@ and about 0.2 s for the time since the last word.
 | About the screen, through `look_at_screen` | 3.0 s | not measured |
 | A request to point: the voice / the pointer landing | 2.3 s / 1.5–2.2 s after the call | 2.1 s / 2.5–3.0 s |
 
-- A screenshot with every turn (`--screen turn`, the default) is sent when the user starts speaking,
-  so an answer about the screen needs no tool round trip; `look_at_screen` is then not offered, since
-  the model called it anyway and paid the round trip. A 1,280 px screenshot is about 380 input tokens.
-- The mini model answers a plain question sooner but calls tools it was not asked for.
-- The microphone is read through an `AVAudioSinkNode` in 20 ms chunks sent from the audio thread; a
-  tap would deliver 100 ms at best.
-- OpenAI: `reasoning.effort` is `minimal` and the server ends a turn after 350 ms of silence
-  (OpenAI's default is 500). Gemini: 500 ms, the bottom of Google's suggested range;
-  `gemini-3.8-live` has no thinking level to lower.
-- A capture takes 0.10 to 0.16 s on the development Mac (2560×1440, about 115 KB).
-- Gemini reports no start of speech in the documented flow, so there a screenshot rides a typed
-  question only.
+- On OpenAI, *Every turn* sends a screenshot when speech starts so screen questions need no tool
+  round trip (`look_at_screen` is omitted to avoid redundant calls). A 1,280 px JPEG is ~380 input
+  tokens and captures in 0.10–0.16 s.
+- The microphone is read through an `AVAudioSinkNode` in 20 ms chunks sent from the audio thread.
 
 ## Pointing
 
-The live model does not place the pointer. Asked for pixel coordinates in its own screenshot,
-`gpt-realtime-2.1` missed eight labelled buttons by 280 to 365 points on average, at `minimal`, `low`
-and `medium` effort and at 1,280 and 1,920 px. So `point_at` takes the target in words ("the Deploy
-button"), answers at once, and `LiveVoicePointLocator` asks a vision model that grounds well where
-that is in the same screenshot: `google/gemini-3.1-flash-lite` on OpenRouter, which answers `[y, x]`
-out of a thousand. The same buttons then landed 8 to 10 points off on average and 26 at worst, 1.5 to
-3 s after the call, while the voice was already answering. A target that is not found is announced
-to the model as a note. With no locator `point_at` is not offered.
-
-- The target is the thing's exact visible text and kind. A description with a position in it sent
-  the pointer astray (260 points on average), because the live model misreads a layout at this size.
-- `gemini-3.8-flash` and `gemini-3.5-flash-lite` were as accurate and slower (2.0 to 4.8 s).
-- A newer `point_at` cancels one still looking.
+The live model does not output pixel coordinates. `point_at` accepts a plain description of the
+target, replies immediately, and `LiveVoicePointLocator` queries the user's consented vision model
+(defaulting to `google/gemini-3.1-flash-lite` on OpenRouter or `gemini-3.1-flash-lite` on Gemini)
+for `[y, x]` out of 1,000. On measured buttons this landed 8–10 points off on average (vs 280–365
+points from the live model directly). Setting **Screen pointer** to *Off* omits `point_at`.
 
 ## Pronunciation
 
-The first instructions said only "answer in the language the user speaks", and the owner heard a
-heavy accent in Russian. They now name a default language (the stand takes the Mac's own, or
-`--language`) and ask for native pronunciation in it, as OpenAI's prompting guide does for accents;
-the same code is the transcript's language hint.
-
-Measured on 2026-11-20 by recording replies to one spoken Russian question (`--record`) and asking
-`google/gemini-3.8-flash` on OpenRouter to score how native each sounds, 1 to 10. The judge gives a
-native recording 10 and scores the same reply several points apart on a second pass, so only the
-averages mean anything: four replies each, judged three times.
-
-| Voice | First instructions | With the language and pronunciation sections |
-| --- | ---: | ---: |
-| `marin` | 6.4 | 6.8 |
-| `cedar` | 5.0 | 7.2 |
-
-- The other eight built-in voices scored 3 to 6 on one reply each with the new sections.
-- Calling the assistant a native Muscovite, or writing the pronunciation section in Russian, scored
-  no better than the plain wording (6.8 to 8.3 on four replies judged once).
-- The accent changes from one session to the next under the same instructions: about half of the
-  replies are still heard as accented. Instructions soften it and do not remove it.
-- `gpt-realtime-1.5` refuses this wire's opening ("Unsupported option for this model"); two replies
-  each from `gpt-realtime-2` and the mini model were too few to tell them apart.
+`LiveVoicePrompt` names the chosen default language (system language by default, or *Automatic*, or
+a specific language) and asks for native pronunciation while passing the ISO code as OpenAI's
+transcription language hint. On measured Russian runs (2026-11-20), `marin` and `cedar` scored best
+and appear first in OpenAI's voice list.
 
 ## Echo
 
-`LiveVoiceAudio.Echo` is what keeps the model from hearing itself and taking that for the user cutting
-in. `.cancelled` asks macOS for voice processing; if that unit will not start, the session falls back
-to `.muted`, where the microphone is deaf while a reply plays and 250 ms after, so the user cannot cut
-in by voice. `.open` does nothing and is for headphones.
+`LiveVoiceAudio.Echo` offers three modes (mapped from Settings → Echo handling):
 
-On the development Mac (USB microphone, Scarlett Solo output, macOS 27) voice processing failed to
-initialize with every device pair tried, built-in ones included (`kAudioUnitErr_FailedInitialization`
-from the output node), from a command-line process. Whether it starts inside the app bundle is not
-known yet.
+- **Automatic** (`.cancelled`): enables macOS voice processing on `AVAudioEngine` so speakers are
+  cancelled out of the mic and barge-in works; falls back to `.muted` if voice processing cannot
+  initialize on the current audio device pair.
+- **Headphones** (`.open`): full duplex with no voice processing.
+- **Mute while speaking** (`.muted`): gates the mic during playback plus a 250 ms tail.
 
-## Not verified
+## Stand and testing
 
-Run for real on 2026-11-20 against OpenAI: typed and recorded questions, the screen in both modes,
-pointing, `show_text`, a `start_task` result announced after its reply, and the owner talking to it
-on headphones (0.6 to 1.0 s to the first sound). Open:
+A standalone terminal stand still drives the core layers directly without launching Redcast:
 
-- everything Gemini Live: no Google key was available, and OpenRouter cannot carry it. That
-  includes its `x-goog-api-key` header on the WebSocket (the official SDK sends it; the guide shows
-  the key in the URL) and its roughly ten-minute connection, which needs session resumption;
-- cutting in by voice and the truncation it sends, and whether the 350 ms pause cuts into slow
-  speech;
-- a pronunciation the owner accepts: the scores above are a model's, not an ear's, and Gemini Live's
-  voice in Russian has not been heard at all;
-- voice processing inside the app bundle;
-- a `start_task` result arriving while a reply is still being spoken;
-- a 60-minute OpenAI session ending, and reconnecting after a dropped socket.
+```sh
+OPENAI_API_KEY=… ./Scripts/live-voice.sh                     # speak; Ctrl-C ends
+OPENAI_API_KEY=… ./Scripts/live-voice.sh --screen tool       # the model asks for each screenshot
+OPENAI_API_KEY=… ./Scripts/live-voice.sh --text "What is on my screen?" --linger 5
+GEMINI_API_KEY=… ./Scripts/live-voice.sh --provider gemini
+```
 
-## Before it ships
+Automated harnesses:
 
-A switch that is consent, off by default and in no backup; a shortcut and a launcher row; the
-dictation capsule as the indicator; the chosen agent's instructions and `memory.md` as `persona` and
-`memory`; `start_task` over `AgentBackgroundCoordinator.start`; MCP through `LiveVoiceToolList`; the
-conversation saved as that agent's chat; session-wide consent for the screen in place of
-`screen_context`'s dialog per read; `Theme` colours for the pointer; the keys from the chosen
-connections' Keychain items; and the locator through the reader's own connection and its consent.
+- `live-voice-test`: OpenAI and Gemini wires (opening, audio, image, tool results, cancellation,
+  resumption, `goAway`, `error`), frame geometry, prompt generation, toolbox routing, synchronous
+  task refusal and delayed completion announcements, `LiveVoiceScreenTools`, `LiveVoicePointRequest`,
+  `LiveVoiceTranscript`, `LiveVoiceRoutePolicy` and `LiveVoiceSettings` persistence.
+- `live-voice-session-test`: full `LiveVoiceSession` + `LiveVoiceConnection` against a local
+  scripted WebSocket server — typed turns, `look_at_screen`, Gemini `sessionResumption` + `goAway`
+  reconnect, OpenAI lifetime reconnect with transcript recap, manual interrupt (`response.cancel`),
+  unexpected socket drop reconnect and Gemini `toolCallCancellation`.
+- `Tests/live-voice-live.swift`: listed in `run-tests.sh` as `index` only so editors resolve it
+  without calling paid APIs during `./Scripts/run-tests.sh`.
 
-## Testing
+## Live-environment checks still needed manually
 
-`live-voice-test` covers the wires, the geometry, the prompt and the tools; `live-voice-session-test`
-runs a whole session against a scripted WebSocket server on this Mac. `Tests/live-voice-live.swift`
-is the stand; `run-tests.sh` lists it as `index` only, so editors resolve it and nothing runs it.
+Unit and scripted-server harnesses cover protocol framing, reconnect paths, settings and backup
+invariants, but real-world hardware and hosted API checks should be verified in a signed app build:
+
+- Gemini Live end-to-end with a real Google AI Studio key (including `x-goog-api-key` auth,
+  `sessionResumption` across the ~10-minute boundary and Russian voice quality).
+- macOS Voice Processing (`AVAudioInputNode.setVoiceProcessingEnabled(true)`) inside the signed
+  `.app` bundle on external USB audio interfaces as well as built-in speakers/mic, plus barge-in
+  timing.
+- Multi-display and full-screen Space behavior of `LiveVoicePointerController` and the floating
+  capsule.
