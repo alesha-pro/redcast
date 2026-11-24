@@ -430,6 +430,8 @@ extension View {
             .environment(core.chatGPTSubscription)
             .environment(core.installedAI)
             .environment(core.codexPlan)  // Fork: Codex (ChatGPT) sign-ins and limits
+            .environment(core.liveVoiceSettings)
+            .environment(core.liveVoiceCoordinator)
             .scrollContentBackground(.hidden)
             .motionScope()
     }

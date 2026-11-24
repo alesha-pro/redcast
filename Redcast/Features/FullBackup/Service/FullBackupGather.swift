@@ -57,6 +57,7 @@ enum FullBackupGather {
 
     static func voice(from core: AppCore) -> VoiceBackup {
         let voice = core.voiceSettings
+        let liveVoice = core.liveVoiceSettings
         let settings = core.settings
         return VoiceBackup(
             dictationModel: voice.dictationModel, cleanup: voice.cleanup, vocabulary: voice.vocabulary,
@@ -67,9 +68,14 @@ enum FullBackupGather {
             dictationLiveInsertion: settings.dictationLiveInsertion,
             dictationPlaysSounds: settings.dictationPlaysSounds,
             dictationIdleReleaseMinutes: settings.dictationIdleRelease.rawValue,
+            liveVoiceModel: liveVoice.model, liveVoiceVoice: liveVoice.voice,
+            liveVoiceAgent: liveVoice.agent, liveVoiceScreenMode: liveVoice.screenMode.rawValue,
+            liveVoiceLocatorModel: liveVoice.locatorModel,
+            liveVoiceAudioMode: liveVoice.audioMode.rawValue,
+            liveVoiceEffort: liveVoice.effort.rawValue, liveVoiceLanguage: liveVoice.language,
             consents: .recording([
                 .cloudDictation: voice.cloudDictation, .askByVoice: voice.askEnabled,
-                .dictationEnabled: settings.dictationEnabled,
+                .liveVoice: liveVoice.enabled, .dictationEnabled: settings.dictationEnabled,
                 .dictationAppScreenshot: voice.appContext == .screenshot
             ]))
     }

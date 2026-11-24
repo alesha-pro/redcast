@@ -106,6 +106,7 @@ struct ColorfulIconsTests {
         expect(GlyphCategory.of(.quickAI)?.hue == .red, "AI is Raycast's red")
         expect(GlyphCategory.of(.clipboardHistory)?.hue == .orange, "clipboard is orange")
         expect(GlyphCategory.of(.askByVoice)?.hue == .blue, "voice is dictation's blue")
+        expect(GlyphCategory.of(.liveVoice)?.hue == .blue, "live voice shares voice's blue")
         expect(GlyphCategory.of(.switchWindows)?.hue == .purple, "windows are purple")
         expect(GlyphCategory.of(.searchQuicklinks)?.hue == .purple, "and quicklinks, as Raycast's tiles are")
         expect(GlyphCategory.of(.showNotes)?.hue == .yellow, "notes are yellow")

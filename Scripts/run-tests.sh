@@ -970,7 +970,9 @@ run voice-ai-test          Redcast/Features/VoiceAI/Model/*.swift \
                            Redcast/Features/ReasoningReplay/Model/*.swift \
                            Redcast/Features/AI/Settings/AISettingsStore.swift
 run live-voice-test        Redcast/Features/LiveVoice/Model/*.swift \
+                           Redcast/Features/LiveVoice/Settings/LiveVoiceSettings.swift \
                            Redcast/Features/LiveVoice/Service/LiveVoiceScreenTools.swift \
+                           Redcast/Features/Settings/AppSettingsKey.swift \
                            Redcast/Features/AI/Model/AITool.swift \
                            Redcast/Features/AI/Model/JSONValue.swift \
                            Redcast/Features/AI/Model/AIConnection.swift \

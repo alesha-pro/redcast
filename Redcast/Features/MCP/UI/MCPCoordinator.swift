@@ -48,6 +48,17 @@ final class MCPCoordinator {
         manager.reconcile(ownServers)
     }
 
+    /// Starts enabled servers for Live Voice and waits briefly so their tools can join setup.
+    func warmUpAndWait(timeout: Duration = .milliseconds(1_500)) async {
+        guard isActive else { return }
+        manager.reconcile(ownServers)
+        guard manager.isConnecting else { return }
+        let deadline = ContinuousClock.now + timeout
+        while manager.isConnecting, ContinuousClock.now < deadline, !Task.isCancelled {
+            try? await Task.sleep(for: .milliseconds(50))
+        }
+    }
+
     /// What Redcast runs itself; Codex and Claude start their own copy of every local server.
     private var ownServers: [MCPServer] {
         let cliRoute = core.aiChatCoordinator.everyChatRunsItsOwnTools

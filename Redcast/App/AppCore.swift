@@ -32,6 +32,7 @@ final class AppCore {
         settings: settings, hotKeys: hotKeys)
     @ObservationIgnored private lazy var dictationKey = DictationKeyManager(hotKeys: hotKeys)
     @ObservationIgnored private(set) lazy var voiceSettings = VoiceAISettings()
+    @ObservationIgnored private(set) lazy var liveVoiceSettings = LiveVoiceSettings()
     @ObservationIgnored private(set) lazy var voiceCloud: VoiceCloudTranscriber = VoiceCloudTranscriber(
         settings: settings, voice: voiceSettings, aiSettings: aiSettings,
         confirm: { [unowned self] in
@@ -132,7 +133,8 @@ final class AppCore {
         },
         failed: { [unowned self] in  // Fork: Dictation History keeps it to retry
             self.dictationHistoryCoordinator.recordFailure(samples: $0, error: $1, target: $2)
-        })
+        },
+        isMicrophoneBusy: { [unowned self] in self.liveVoiceCoordinator.isBusy })
     @ObservationIgnored private(set) lazy var quicklinkCoordinator = QuicklinkCoordinator(
         store: quicklinks, settings: settings,
         appIndex: appIndex, injector: textInjector, hotKeys: hotKeys, favorites: favorites,
@@ -259,7 +261,11 @@ final class AppCore {
     @ObservationIgnored private(set) lazy var voiceAskCoordinator = VoiceAskCoordinator(
         settings: settings, voice: voiceSettings, aiSettings: aiSettings, appIndex: appIndex,
         hotKeys: hotKeys, injector: textInjector, audioDucker: dictationAudioDucker, core: self,
+        liveVoiceIsBusy: { [unowned self] in self.liveVoiceCoordinator.isBusy },
         history: { [unowned self] in self.dictationHistoryCoordinator.record($0) })
+    @ObservationIgnored private(set) lazy var liveVoiceCoordinator = LiveVoiceCoordinator(
+        settings: settings, liveVoice: liveVoiceSettings, aiSettings: aiSettings,
+        appIndex: appIndex, injector: textInjector, core: self)
     // Fork: past transcripts; nothing is read until its screen opens.
     @ObservationIgnored private(set) lazy var dictationHistoryCoordinator = DictationHistoryCoordinator(
         appSettings: settings, voice: voiceSettings, voiceCloud: voiceCloud, appIndex: appIndex,
@@ -374,6 +380,7 @@ final class AppCore {
             agentCoordinator.apply()
             screenAwarenessCoordinator.applyEnabled()
             voiceAskCoordinator.applyEnabled()
+            liveVoiceCoordinator.applyEnabled()
             dictationHistoryCoordinator.applyEnabled()  // Fork: the command's visibility only
             agentSessionsCoordinator.applyEnabled()
             mcpCoordinator.applyEnabled()
@@ -619,6 +626,7 @@ final class AppCore {
     func stopDictationForTermination() async {
         if settings.dictationEnabled { dictationCoordinator.prepareForTermination() }
         voiceAskCoordinator.prepareForTermination()
+        liveVoiceCoordinator.prepareForTermination()
         dictationAudioDucker.restoreImmediately()
         await dictationAudioDucker.waitForTransition()
         await dictationModels.stop()
@@ -664,6 +672,7 @@ final class AppCore {
     func prepareForTermination() {
         if settings.dictationEnabled { dictationCoordinator.prepareForTermination() }
         voiceAskCoordinator.prepareForTermination()
+        liveVoiceCoordinator.prepareForTermination()
         settingsFile?.flush()
         clipboardTextIndexer?.stop()
         // HID remaps first: they outlive the process.
@@ -797,6 +806,7 @@ final class AppCore {
             reproject: {
                 $0.aiChatCoordinator.applyEnabled()
                 $0.agentCoordinator.apply()
+                $0.liveVoiceCoordinator.applyEnabled()
             })
         track(
             { _ = $0.dictationIdleRelease },
@@ -830,6 +840,7 @@ final class AppCore {
                 $0.voiceAskCoordinator.applyEnabled()
             })
         track(voiceSettings, { _ = $0.askEnabled }, reproject: { $0.voiceAskCoordinator.applyEnabled() })
+        track(liveVoiceSettings, { _ = $0.enabled }, reproject: { $0.liveVoiceCoordinator.applyEnabled() })
         // Fork: Dictation History lists while either voice feature can add to it.
         track({ _ = $0.dictationEnabled }, reproject: { $0.dictationHistoryCoordinator.applyEnabled() })
         track(

@@ -40,6 +40,7 @@ struct AISettingsView: View {
                 AgentSessionsSettingsSection()
                 ScreenAwarenessSettingsSection()
                 VoiceAskSettingsSection()
+                LiveVoiceSettingsSection()
                 conversationsSection
                 ChatWorkspaceSettingsSection()  // Fork: AI Chat's window
                 UsageSection()

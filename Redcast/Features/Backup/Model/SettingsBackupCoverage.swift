@@ -249,6 +249,26 @@ enum SettingsBackupCoverage {
             "Names an external AI destination for recorded speech; an import must not choose one.",
         AppSettingsKey.voiceAskAgent.rawValue:
             "Names an agent on this Mac that a spoken request runs as; agents never travel in a backup.",
+        // Fork: Live Voice real-time conversation settings.
+        AppSettingsKey.liveVoiceEnabled.rawValue:
+            "Streams microphone audio to an AI connection in real time; a flag that grants a "
+            + "capability is never carried by a backup.",
+        AppSettingsKey.liveVoiceModel.rawValue:
+            "Names an external AI destination for real-time speech; an import must not choose one.",
+        AppSettingsKey.liveVoiceVoice.rawValue:
+            "Only means something beside the Live Voice switch, which never travels in a backup.",
+        AppSettingsKey.liveVoiceAgent.rawValue:
+            "Names an agent on this Mac that Live Voice runs as; agents never travel in a backup.",
+        AppSettingsKey.liveVoiceScreenMode.rawValue:
+            "Controls whether Live Voice asks to share screenshots; an import must not decide that.",
+        AppSettingsKey.liveVoiceLocatorModel.rawValue:
+            "Names an external vision model for screen pointing; an import must not choose one.",
+        AppSettingsKey.liveVoiceAudioMode.rawValue:
+            "Only means something beside the Live Voice switch, which never travels in a backup.",
+        AppSettingsKey.liveVoiceEffort.rawValue:
+            "Only means something beside the Live Voice switch, which never travels in a backup.",
+        AppSettingsKey.liveVoiceLanguage.rawValue:
+            "Only means something beside the Live Voice switch, which never travels in a backup.",
         AppSettingsKey.agentSessionsEnabled.rawValue:
             "Belongs to the AI pane, none of whose settings travel; it reads this Mac's own agent histories.",
         AppSettingsKey.agentSessionsTerminal.rawValue:

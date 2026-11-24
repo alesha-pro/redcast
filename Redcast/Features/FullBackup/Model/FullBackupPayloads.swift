@@ -63,6 +63,14 @@ struct VoiceBackup: Codable, Sendable, Equatable {
     var dictationLiveInsertion: Bool?
     var dictationPlaysSounds: Bool?
     var dictationIdleReleaseMinutes: Int?
+    var liveVoiceModel: AIModelSelection?
+    var liveVoiceVoice: String?
+    var liveVoiceAgent: UUID?
+    var liveVoiceScreenMode: String?
+    var liveVoiceLocatorModel: AIModelSelection?
+    var liveVoiceAudioMode: String?
+    var liveVoiceEffort: String?
+    var liveVoiceLanguage: String?
     var consents: FullBackupConsents?
 
     var count: Int { modes?.custom.count ?? 0 }

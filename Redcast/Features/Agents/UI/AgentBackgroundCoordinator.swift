@@ -16,6 +16,11 @@ final class AgentBackgroundCoordinator {
         case capped
     }
 
+    struct Completion: Sendable {
+        let state: AgentRun.State
+        let reply: String?
+    }
+
     private(set) var ledger = AgentRunLedger()
 
     @ObservationIgnored private let store: AgentStore
@@ -23,6 +28,7 @@ final class AgentBackgroundCoordinator {
     /// Only while running; the chat itself is parked in AI Chat, which saves it as it goes.
     @ObservationIgnored private var chats: [UUID: AIChatState] = [:]
     @ObservationIgnored private var watchdogs: [UUID: Task<Void, Never>] = [:]
+    @ObservationIgnored private var completionWaiters: [UUID: [UUID: CheckedContinuation<Completion, Never>]] = [:]
     /// Runs the watchdog stopped, with the limit it stopped them at.
     @ObservationIgnored private var timedOut: [UUID: Int] = [:]
     /// Runs the spend cap stopped, with the cap they passed.
@@ -251,6 +257,42 @@ final class AgentBackgroundCoordinator {
         chats[runID]?.cancel()
     }
 
+    /// Waits for a background run to finish without cancelling the run if the caller cancels.
+    func awaitCompletion(of runID: UUID) async -> Completion {
+        guard chats[runID] != nil else {
+            let state = ledger.run(runID)?.state ?? .failed(String(localized: "Stopped."))
+            let reply = core.chatHistory.session(id: runID)?.messages.last { $0.role == .assistant }?.text
+            return Completion(state: state, reply: reply)
+        }
+        let waiterID = UUID()
+        return await withTaskCancellationHandler {
+            await withCheckedContinuation { continuation in
+                if chats[runID] == nil {
+                    let state = ledger.run(runID)?.state ?? .failed(String(localized: "Stopped."))
+                    let reply = core.chatHistory.session(id: runID)?.messages.last { $0.role == .assistant }?.text
+                    continuation.resume(returning: Completion(state: state, reply: reply))
+                    return
+                }
+                completionWaiters[runID, default: [:]][waiterID] = continuation
+            }
+        } onCancel: {
+            Task { @MainActor [weak self] in
+                self?.cancelWaiter(waiterID, for: runID)
+            }
+        }
+    }
+
+    private func cancelWaiter(_ waiterID: UUID, for runID: UUID) {
+        guard let continuation = completionWaiters[runID]?.removeValue(forKey: waiterID) else { return }
+        if completionWaiters[runID]?.isEmpty == true { completionWaiters.removeValue(forKey: runID) }
+        continuation.resume(returning: Completion(state: .failed(String(localized: "Cancelled.")), reply: nil))
+    }
+
+    private func resumeWaiters(for runID: UUID, with completion: Completion) {
+        guard let waiters = completionWaiters.removeValue(forKey: runID) else { return }
+        for continuation in waiters.values { continuation.resume(returning: completion) }
+    }
+
     // MARK: - Lifecycle
 
     /// AI on or off, agents or schedules changed: the scheduler and notifier follow.
@@ -291,6 +333,13 @@ final class AgentBackgroundCoordinator {
         timedOut = [:]
         cappedAt = [:]
         scheduleOf = [:]
+        let pendingWaiters = completionWaiters
+        completionWaiters = [:]
+        for waiters in pendingWaiters.values {
+            for continuation in waiters.values {
+                continuation.resume(returning: Completion(state: .failed(String(localized: "Stopped.")), reply: nil))
+            }
+        }
         for chat in running { chat.cancel() }
         scheduler?.stop()
         scheduler = nil
@@ -332,7 +381,10 @@ final class AgentBackgroundCoordinator {
         if chats.isEmpty { releaseActivity() }
         // Off, deleting or quitting replace a chat's session before this runs: read it by id.
         let session = chat.session.id == id ? chat.session : core.chatHistory.session(id: id)
-        guard let run = ledger.run(id) else { return settle() }
+        guard let run = ledger.run(id) else {
+            resumeWaiters(for: id, with: Completion(state: .failed(String(localized: "Stopped.")), reply: nil))
+            return settle()
+        }
         let last = session?.messages.last { $0.role == .assistant }
         if let cost = run.spend(final: last?.usage?.costUSD) {
             store.recordScheduledSpend(cost, on: Self.today())
@@ -340,11 +392,13 @@ final class AgentBackgroundCoordinator {
         // Counted first: a chat deleted mid-turn still spent what its route reported.
         guard session != nil else {
             ledger.remove(id)
+            resumeWaiters(for: id, with: Completion(state: .failed(String(localized: "Stopped.")), reply: nil))
             return settle()
         }
         let state = AgentRun.endState(
             complete: last?.state == .complete, reply: last?.text, stoppedAfter: stoppedAfter,
             capped: capped.map { AgentSpendPolicy.stopped(cap: $0, locale: .current) })
+        resumeWaiters(for: id, with: Completion(state: state, reply: last?.text))
         let ai = core.aiChatCoordinator
         let watched =
             NSApp.keyWindow?.identifier == AIChatWindowChrome.windowIdentifier

@@ -108,6 +108,11 @@ final class LiveVoiceSession {
         audio?.isMuted = muted
     }
 
+    /// Captures and sends the screen now, used on Gemini where turns do not emit speech-start.
+    func lookNow() async {
+        await sendScreen()
+    }
+
     /// A typed question gets the turn a spoken one would, screenshot included.
     func ask(_ text: String, withScreen: Bool) async {
         if withScreen { await sendScreen() }

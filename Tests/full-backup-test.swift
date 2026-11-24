@@ -99,7 +99,11 @@ struct FullBackupTest {
             askMode: "pushToTalk", askModel: nil, askAgent: agentID, dictationMode: "toggle", dictationLanguage: "ru",
             dictationAdaptsCapitalization: true, dictationLiveInsertion: false, dictationPlaysSounds: false,
             dictationIdleReleaseMinutes: 5,
-            consents: FullBackupConsents([.cloudDictation, .dictationAppScreenshot]))
+            liveVoiceModel: .api(connection: connectionID, model: "gpt-realtime-2.1", effort: nil),
+            liveVoiceVoice: "marin", liveVoiceAgent: agentID, liveVoiceScreenMode: "onRequest",
+            liveVoiceLocatorModel: .api(connection: connectionID, model: "google/gemini-3.1-flash-lite", effort: nil),
+            liveVoiceAudioMode: "headphones", liveVoiceEffort: "low", liveVoiceLanguage: "ru",
+            consents: FullBackupConsents([.cloudDictation, .liveVoice, .dictationAppScreenshot]))
     }()
 
     static let quickActions: QuickActionsBackup = {

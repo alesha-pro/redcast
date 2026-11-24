@@ -11,7 +11,13 @@ swiftc -swift-version 6 -O \
     Redcast/DesignSystem/Interaction/Motion.swift \
     Redcast/Features/AI/Model/AITool.swift Redcast/Features/AI/Model/JSONValue.swift \
     Redcast/Features/AI/Model/AIConnection.swift Redcast/Features/AI/Model/AppleIntelligence.swift \
-    Redcast/Features/LiveVoice/Model/*.swift Redcast/Features/LiveVoice/Service/*.swift \
+    Redcast/Features/LiveVoice/Model/*.swift \
+    Redcast/Features/LiveVoice/Service/LiveVoiceAudio.swift \
+    Redcast/Features/LiveVoice/Service/LiveVoiceConnection.swift \
+    Redcast/Features/LiveVoice/Service/LiveVoicePointLocator.swift \
+    Redcast/Features/LiveVoice/Service/LiveVoiceScreenTools.swift \
+    Redcast/Features/LiveVoice/Service/LiveVoiceScreenshotter.swift \
+    Redcast/Features/LiveVoice/Service/LiveVoiceSession.swift \
     Redcast/Features/LiveVoice/UI/LiveVoicePointerController.swift Tests/live-voice-live.swift \
     -o "$BIN/live-voice"
 exec "$BIN/live-voice" "$@"

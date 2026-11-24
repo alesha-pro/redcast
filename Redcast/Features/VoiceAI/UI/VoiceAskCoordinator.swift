@@ -44,6 +44,7 @@ final class VoiceAskCoordinator {
     private let injector: TextInjector
     private let audioDucker: DictationAudioDucker
     private let requestMicrophone: @MainActor () async -> Bool
+    private let liveVoiceIsBusy: @MainActor () -> Bool
     /// Dictation History: what was said and what came back, never the audio or the window.
     private let history: @MainActor (DictationHistoryEntry) -> Void
     private unowned let core: AppCore
@@ -69,6 +70,7 @@ final class VoiceAskCoordinator {
         requestMicrophone: @escaping @MainActor () async -> Bool = {
             await AVCaptureDevice.requestAccess(for: .audio)
         },
+        liveVoiceIsBusy: @escaping @MainActor () -> Bool = { false },
         history: @escaping @MainActor (DictationHistoryEntry) -> Void = { _ in }
     ) {
         self.settings = settings
@@ -79,11 +81,13 @@ final class VoiceAskCoordinator {
         self.injector = injector
         self.audioDucker = audioDucker
         self.requestMicrophone = requestMicrophone
+        self.liveVoiceIsBusy = liveVoiceIsBusy
         self.history = history
         self.core = core
     }
 
     var isActive: Bool { settings.aiEnabled && settings.screenAwarenessEnabled && voice.askEnabled }
+    var isBusy: Bool { phase != .idle }
 
     /// The only destination a question goes to: the one consented to, never a substitute.
     var route: AIModelSelection? {
@@ -251,6 +255,11 @@ final class VoiceAskCoordinator {
     private func begin(_ command: CommandID) {
         if settings.dictationEnabled, core.dictationCoordinator.isBusy {
             core.showMessage(VoiceAIFailure.dictationBusy.localizedDescription, tone: .neutral)
+            return
+        }
+        if liveVoiceIsBusy() {
+            core.showMessage(
+                String(localized: "End Live Voice before starting Ask by Voice."), tone: .neutral)
             return
         }
         let screenAwareness = core.screenAwarenessCoordinator

@@ -353,6 +353,19 @@ enum SettingsSearchCatalog {
         .init(.aiAskByVoice, "Shortcut behavior", keywords: ["hold", "toggle", "push to talk"]),
         .init(group: .aiAskByVoice, "Answer with", keywords: ["agent", "background", "voice", "model"]),
         .init(
+            .aiLiveVoice, "Enable Live Voice",
+            keywords: ["voice", "realtime", "gemini live", "openai realtime", "speak", "call", "conversation"]),
+        .init(group: .aiLiveVoice, "Voice", keywords: ["live voice", "speaker", "marin", "puck"]),
+        .init(
+            group: .aiLiveVoice, "Screen sharing",
+            keywords: ["live voice", "screenshot", "screen recording", "display"]),
+        .init(
+            group: .aiLiveVoice, "Screen pointer",
+            keywords: ["live voice", "pointer", "highlight", "point", "locator", "openrouter"]),
+        .init(
+            group: .aiLiveVoice, "Echo handling",
+            keywords: ["live voice", "headphones", "echo", "microphone", "mute"]),
+        .init(
             .aiConversations, "Opens to",
             keywords: ["new chat", "last", "summon", "resume", "window", "quick ai"]),
         .init(

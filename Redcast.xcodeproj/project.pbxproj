@@ -286,6 +286,7 @@
 		3B6124FE74D4276CCFAC2000 /* ShortcutsSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F497415AB948B8641664ECD /* ShortcutsSettingsView.swift */; };
 		3BC77C6874E30EC607B8904C /* LegacyBundleMigration.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA2095B1377D0174DFFEE3AE /* LegacyBundleMigration.swift */; };
 		3BC9737EB459A8B0820E85A6 /* WebPageMarkdown.swift in Sources */ = {isa = PBXBuildFile; fileRef = 88BC69FEA5EE59CD6CBCF6D6 /* WebPageMarkdown.swift */; };
+		3C0F9CE033927BEDDF734976 /* LiveVoiceTranscript.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9D15E93FA05B6CF1B90BA804 /* LiveVoiceTranscript.swift */; };
 		3C2179E9F76ADE7002D8CD42 /* SnippetTemplateEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 66308B9F9B08173DBC8940E1 /* SnippetTemplateEngine.swift */; };
 		3C24A35F24A7DC5A91DC2228 /* MeetingDetailsScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD6824ECCE519CCDE6F77527 /* MeetingDetailsScreen.swift */; };
 		3C57222B010C0F3B621A33BD /* WebSearchRunner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 32556034500616B7AC1C367C /* WebSearchRunner.swift */; };
@@ -396,6 +397,7 @@
 		5455097B4AC22C6E4AA0A5F9 /* CalcDateTime.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21584A8CB7030A2941620561 /* CalcDateTime.swift */; };
 		545D388A4C951EC08186B023 /* TagList.swift in Sources */ = {isa = PBXBuildFile; fileRef = 880485BA2C58F1EEF307A85A /* TagList.swift */; };
 		54AB8AE8A551F4E6E8D2AB22 /* NotesCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 57D245D71C654F5181043951 /* NotesCoordinator.swift */; };
+		54BA951397B107E7371099F8 /* LiveVoiceCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 487D4BA3AF582B88C329C740 /* LiveVoiceCoordinator.swift */; };
 		54CC0451D92B880AB3A4E389 /* ExtensionRefreshIndicator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D82576249B39D3129F87A42 /* ExtensionRefreshIndicator.swift */; };
 		551AADBC5A5D62F5A6E56CE8 /* AgentACPHost.swift in Sources */ = {isa = PBXBuildFile; fileRef = 551A9AB78AF8C2F73F91D735 /* AgentACPHost.swift */; };
 		55309DEC525B402F985E2969 /* LiveVoiceAudio.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4DB70C528199C31D2C47CDA9 /* LiveVoiceAudio.swift */; };
@@ -473,6 +475,7 @@
 		62D5B24C97A1D67F1E80EA2E /* AgentScheduleSpend.swift in Sources */ = {isa = PBXBuildFile; fileRef = C185F12DAD2C651A06F3C336 /* AgentScheduleSpend.swift */; };
 		6355B56D0C26E16232C549DC /* DialogChip.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2E7EA01A1FB34D06C6667CF4 /* DialogChip.swift */; };
 		638549332B362A18CF3BD938 /* MathBox.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8DEB2ADA7FE0E04449B4D1FE /* MathBox.swift */; };
+		63B61EBC8CCB9E03B058BD1E /* LiveVoiceSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00920A193AFBB5199B98D4AF /* LiveVoiceSettings.swift */; };
 		6408E5228DDC7CFD6E46019B /* ClipboardTextExtractor.swift in Sources */ = {isa = PBXBuildFile; fileRef = BFEC83580BD47C516A9BD251 /* ClipboardTextExtractor.swift */; };
 		64119E0A9F0BA0DDC45BECAE /* ExtensionStoreResponse.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8FE263F7462EEF8A467D6227 /* ExtensionStoreResponse.swift */; };
 		643511B079174F30769A4B92 /* PanelTransition.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2E3BE6057C7AC2DD146B9800 /* PanelTransition.swift */; };
@@ -582,6 +585,7 @@
 		7B48D4688C9693971690048C /* ChatFilesStrip.swift in Sources */ = {isa = PBXBuildFile; fileRef = F7E22879BE16B8D876D5EA51 /* ChatFilesStrip.swift */; };
 		7B4E99AC17299098C683D9B6 /* CommandCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = 88ADF3086F9F65109E4B6EBE /* CommandCatalog.swift */; };
 		7B5287AAAB93E080B2BFFD06 /* LiveVoiceFrame.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A199F2E8D4B14BEB0881663 /* LiveVoiceFrame.swift */; };
+		7B8E41DDF61D2622564A859D /* LiveVoiceSettingsSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = C6934706EBC6D30A1671BD4D /* LiveVoiceSettingsSection.swift */; };
 		7B91201658C094A71A5C21D8 /* MCPOAuthService.swift in Sources */ = {isa = PBXBuildFile; fileRef = D76D283DC05840F47EC50082 /* MCPOAuthService.swift */; };
 		7C04E1A92AE26A613204C9C4 /* ImageDerivative.swift in Sources */ = {isa = PBXBuildFile; fileRef = 712F328BF374FD4A37E5053A /* ImageDerivative.swift */; };
 		7C2CF571C1A9D50B51BF9AE9 /* ExtensionListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA472527604447D4CEE7AF9A /* ExtensionListView.swift */; };
@@ -697,6 +701,7 @@
 		929AB8450F7F374DEAC30A85 /* MenuPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4055AE3163BEF496EF9BE6E /* MenuPanel.swift */; };
 		92A47F680A33AE4FFC6AB6B2 /* FullBackupPayloads.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1F87901CF80A3030C9038324 /* FullBackupPayloads.swift */; };
 		92EFEBC5768584657272068D /* AIStreamDecoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 96D78CD99160A16831E3E3B8 /* AIStreamDecoder.swift */; };
+		939ED61735766F215D624EBD /* LiveVoiceRoutePolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 731AFB2F37822FC7374BE21D /* LiveVoiceRoutePolicy.swift */; };
 		940C9E2B9E10A6650D90C238 /* CurrencyData.generated.swift in Sources */ = {isa = PBXBuildFile; fileRef = 207E461D7FFE7826B6145211 /* CurrencyData.generated.swift */; };
 		941C541CBB3E2F4DA32833AA /* FileIndexSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0445CD9A3BD849968FEA08D /* FileIndexSnapshot.swift */; };
 		950762A515235672923C1A03 /* VolumeHUDGeometry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 34600D50A58AC8B7C73506B0 /* VolumeHUDGeometry.swift */; };
@@ -928,6 +933,7 @@
 		C103BDF987104F64AD46F4BB /* ExtensionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CAEDC1AF66FA058780EEF5B /* ExtensionManager.swift */; };
 		C12715E4BA8522DA1EAD1553 /* DictionaryEntryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1E3157D60532CB88A7D94F8 /* DictionaryEntryView.swift */; };
 		C1454A2B5E320F1BA920CFF6 /* WindowManagementFileFormat.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B1536C42F598DAB98869C00 /* WindowManagementFileFormat.swift */; };
+		C16EBA211280039D3D8915EB /* LiveVoiceRoute.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9BBFF49E6316648E22790CE1 /* LiveVoiceRoute.swift */; };
 		C1788FF9AAB4A5159A86E24E /* BackupCategorySelection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87A161E1C8CAB3F35238634E /* BackupCategorySelection.swift */; };
 		C18867962C823B9ADF98EDE3 /* RoomWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1750F62CD5B2A7D16677EE75 /* RoomWindow.swift */; };
 		C2027529089B7767B6418765 /* WindowLayoutCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D259EBB6DB89EFAB0CEE5B7 /* WindowLayoutCoordinator.swift */; };
@@ -1152,6 +1158,7 @@
 		F421D8E71F1C02E275F4BB65 /* WindowSwitchPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED371CE310E61E97EDA5F350 /* WindowSwitchPolicy.swift */; };
 		F474C7488B951897405E4700 /* RoomPreviewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2D70C0EC1FA101B5622BF23 /* RoomPreviewController.swift */; };
 		F4A274B0619D22828D0FB42C /* InstalledAIEnvironmentKeychain.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3077AD34CC2CFE7D77C248CA /* InstalledAIEnvironmentKeychain.swift */; };
+		F546928AEB760D63A400E49F /* LiveVoiceCapsuleController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0C4E4F545F4097C7A4AB1B8 /* LiveVoiceCapsuleController.swift */; };
 		F5BFAB63D5E788CCF8E78A9E /* VoiceCloudTranscriber.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3A7974216BE4C465B78ECB0 /* VoiceCloudTranscriber.swift */; };
 		F5CAFBD297E20B9462B2934C /* EmojiScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = DADD09B07C38FEE5F4E95DBF /* EmojiScreen.swift */; };
 		F5FD3DD3B4D84B1CABA08E50 /* AgentTerminalRunner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 768FE18B28D7F058AD843035 /* AgentTerminalRunner.swift */; };
@@ -1254,6 +1261,7 @@
 		00459C10F1F736ECC51D2D6B /* UsageQuery.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UsageQuery.swift; sourceTree = "<group>"; };
 		00630BD363F32B3C325065F3 /* ExtensionCommandView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExtensionCommandView.swift; sourceTree = "<group>"; };
 		006D86855F8548C6767F419C /* InterfaceMetrics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InterfaceMetrics.swift; sourceTree = "<group>"; };
+		00920A193AFBB5199B98D4AF /* LiveVoiceSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveVoiceSettings.swift; sourceTree = "<group>"; };
 		00AFAE8AA02546C0197E00BC /* DictationHistoryRetention.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DictationHistoryRetention.swift; sourceTree = "<group>"; };
 		00B35630D20FECA3702E8ACB /* AgentSessionsScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentSessionsScreen.swift; sourceTree = "<group>"; };
 		00BD016BE05CEA80CBCA8B4A /* DictationRetry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DictationRetry.swift; sourceTree = "<group>"; };
@@ -1604,6 +1612,7 @@
 		4842EAE3F475DCD9523F4DEA /* SettingsBackup.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsBackup.swift; sourceTree = "<group>"; };
 		4842FB02CEAF00126C24D3FB /* VoiceModeCaption.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceModeCaption.swift; sourceTree = "<group>"; };
 		4876DD57A31708EB46084834 /* AgentHookFileFormat.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentHookFileFormat.swift; sourceTree = "<group>"; };
+		487D4BA3AF582B88C329C740 /* LiveVoiceCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveVoiceCoordinator.swift; sourceTree = "<group>"; };
 		48C8E03DD40DE279AE9C22D1 /* HUDPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HUDPanel.swift; sourceTree = "<group>"; };
 		48F34109255330FADE8AE621 /* DictationModelDownloader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DictationModelDownloader.swift; sourceTree = "<group>"; };
 		492D7E19FD6761BF55EADADE /* ExtensionSettingsEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExtensionSettingsEditor.swift; sourceTree = "<group>"; };
@@ -1789,6 +1798,7 @@
 		726BCEBDD014F34BA719D0E4 /* RoomStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoomStore.swift; sourceTree = "<group>"; };
 		7293AD7B70A103B06E56FB80 /* DictationModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DictationModel.swift; sourceTree = "<group>"; };
 		72D323D5AB26B93586369C7D /* AgentScheduleEditorPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentScheduleEditorPanel.swift; sourceTree = "<group>"; };
+		731AFB2F37822FC7374BE21D /* LiveVoiceRoutePolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveVoiceRoutePolicy.swift; sourceTree = "<group>"; };
 		73AD0CFF3D54B1707E7602AA /* FolderPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FolderPicker.swift; sourceTree = "<group>"; };
 		73B67A5D5A1AB1512A7E4904 /* SpaceSwitcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpaceSwitcher.swift; sourceTree = "<group>"; };
 		741F665F81B9CFE6CDDAEC7C /* PopoverMenu.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PopoverMenu.swift; sourceTree = "<group>"; };
@@ -1955,11 +1965,13 @@
 		9B27BD5F43B6248AD5A1A51B /* QwenRecognizer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QwenRecognizer.swift; sourceTree = "<group>"; };
 		9B65F22F50AAD1E5F1DF1361 /* ACPConnection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ACPConnection.swift; sourceTree = "<group>"; };
 		9B6FA30E1D20F50E62CFCE21 /* ExtensionListKey.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExtensionListKey.swift; sourceTree = "<group>"; };
+		9BBFF49E6316648E22790CE1 /* LiveVoiceRoute.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveVoiceRoute.swift; sourceTree = "<group>"; };
 		9BF441811423CC7072189B5E /* CodexPlanAccounts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CodexPlanAccounts.swift; sourceTree = "<group>"; };
 		9C8F8852A6C34DD9BD45C862 /* MCPComposerAddress.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MCPComposerAddress.swift; sourceTree = "<group>"; };
 		9C95F0D8037C9872133D5C44 /* UpdateCheckStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpdateCheckStore.swift; sourceTree = "<group>"; };
 		9CA61832D1B8D02843AE8375 /* AgentsStatusItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentsStatusItem.swift; sourceTree = "<group>"; };
 		9CF29C230814D24C7A8D5E4B /* DictationHistoryFile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DictationHistoryFile.swift; sourceTree = "<group>"; };
+		9D15E93FA05B6CF1B90BA804 /* LiveVoiceTranscript.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveVoiceTranscript.swift; sourceTree = "<group>"; };
 		9D3346ECAF086C17E0F1B8BD /* MeetingEvent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeetingEvent.swift; sourceTree = "<group>"; };
 		9DCDE18206F9E40D940B15AA /* MCPOAuthChallenge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MCPOAuthChallenge.swift; sourceTree = "<group>"; };
 		9DD34895D9E5E6EE623A5A12 /* AgentTaskLauncher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentTaskLauncher.swift; sourceTree = "<group>"; };
@@ -1977,6 +1989,7 @@
 		9FEBF301696E9E02ACDE529C /* NotificationToken.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationToken.swift; sourceTree = "<group>"; };
 		A0445CD9A3BD849968FEA08D /* FileIndexSnapshot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileIndexSnapshot.swift; sourceTree = "<group>"; };
 		A0AC15AFB484F2264B6BC8D0 /* WindowLayoutsSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowLayoutsSection.swift; sourceTree = "<group>"; };
+		A0C4E4F545F4097C7A4AB1B8 /* LiveVoiceCapsuleController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveVoiceCapsuleController.swift; sourceTree = "<group>"; };
 		A0EAA47178B570B37815E3DB /* ChatToolContent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatToolContent.swift; sourceTree = "<group>"; };
 		A10E614FC48FBFDE823FA7D9 /* AppleIntelligenceProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppleIntelligenceProvider.swift; sourceTree = "<group>"; };
 		A1A38F2A1E3FD9D94654097B /* FileSearchScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileSearchScreen.swift; sourceTree = "<group>"; };
@@ -2153,6 +2166,7 @@
 		C602838900CB3E9E599D180D /* QuickActionFailure.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuickActionFailure.swift; sourceTree = "<group>"; };
 		C65925BFE3CD1FA6E58DADF6 /* AgentSessionIndex.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentSessionIndex.swift; sourceTree = "<group>"; };
 		C672786343D05D5070C8BEE0 /* BackupComposer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackupComposer.swift; sourceTree = "<group>"; };
+		C6934706EBC6D30A1671BD4D /* LiveVoiceSettingsSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveVoiceSettingsSection.swift; sourceTree = "<group>"; };
 		C6CD911BE1928F196D8BDF69 /* QuickAIToolsMenu.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuickAIToolsMenu.swift; sourceTree = "<group>"; };
 		C70689138E6BC871D660FDF8 /* ExtensionCommandMetadata.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExtensionCommandMetadata.swift; sourceTree = "<group>"; };
 		C7081B33A09E4CFF3438B176 /* WindowLayoutDisplay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowLayoutDisplay.swift; sourceTree = "<group>"; };
@@ -3111,6 +3125,15 @@
 			path = Model;
 			sourceTree = "<group>";
 		};
+		4590CC7ADCB1AF0FF17D304C /* Settings */ = {
+			isa = PBXGroup;
+			children = (
+				00920A193AFBB5199B98D4AF /* LiveVoiceSettings.swift */,
+				C6934706EBC6D30A1671BD4D /* LiveVoiceSettingsSection.swift */,
+			);
+			path = Settings;
+			sourceTree = "<group>";
+		};
 		45D48A0972CC1BD747F33A24 /* WindowSwitcher */ = {
 			isa = PBXGroup;
 			children = (
@@ -3199,6 +3222,7 @@
 			children = (
 				51FF452502435163E4ED7D30 /* Model */,
 				CBA2DD18CA9939BCEEC9DE38 /* Service */,
+				4590CC7ADCB1AF0FF17D304C /* Settings */,
 				6DD341156C4BF3DAEC6C4581 /* UI */,
 			);
 			path = LiveVoice;
@@ -3214,7 +3238,9 @@
 				9EB36854D774331750B7C4C0 /* LiveVoicePointRequest.swift */,
 				80D39BE440E9382E9086A0FE /* LiveVoicePrompt.swift */,
 				8F3D2BED642C31E43663803B /* LiveVoiceProvider.swift */,
+				731AFB2F37822FC7374BE21D /* LiveVoiceRoutePolicy.swift */,
 				0D3646547A875C6791914F1A /* LiveVoiceToolSource.swift */,
+				9D15E93FA05B6CF1B90BA804 /* LiveVoiceTranscript.swift */,
 				12D29776C12CE8F65243C8DA /* LiveVoiceWire.swift */,
 				FDDE9F98EFDE9374E7AA0DC3 /* OpenAIRealtimeWire.swift */,
 			);
@@ -3730,6 +3756,8 @@
 		6DD341156C4BF3DAEC6C4581 /* UI */ = {
 			isa = PBXGroup;
 			children = (
+				A0C4E4F545F4097C7A4AB1B8 /* LiveVoiceCapsuleController.swift */,
+				487D4BA3AF582B88C329C740 /* LiveVoiceCoordinator.swift */,
 				5CA390DCC57A83078073DB07 /* LiveVoicePointerController.swift */,
 			);
 			path = UI;
@@ -4734,6 +4762,7 @@
 				4DB70C528199C31D2C47CDA9 /* LiveVoiceAudio.swift */,
 				B5CF46AF6650D951B89E0456 /* LiveVoiceConnection.swift */,
 				FD4A5E35ADCC3768D0E5A988 /* LiveVoicePointLocator.swift */,
+				9BBFF49E6316648E22790CE1 /* LiveVoiceRoute.swift */,
 				D176D2477820BAF0909CD37E /* LiveVoiceScreenshotter.swift */,
 				B6864E9294529580D75C12FA /* LiveVoiceScreenTools.swift */,
 				2702E89DFA0961E32B879DAF /* LiveVoiceSession.swift */,
@@ -6433,7 +6462,9 @@
 				3BC77C6874E30EC607B8904C /* LegacyBundleMigration.swift in Sources */,
 				55309DEC525B402F985E2969 /* LiveVoiceAudio.swift in Sources */,
 				DBB0C8D7275B095A37EF7142 /* LiveVoiceBuiltInTools.swift in Sources */,
+				F546928AEB760D63A400E49F /* LiveVoiceCapsuleController.swift in Sources */,
 				5A3061EEACA20517097E2FA6 /* LiveVoiceConnection.swift in Sources */,
+				54BA951397B107E7371099F8 /* LiveVoiceCoordinator.swift in Sources */,
 				BE77CF426A59145E8CC85DD0 /* LiveVoiceEvent.swift in Sources */,
 				7B5287AAAB93E080B2BFFD06 /* LiveVoiceFrame.swift in Sources */,
 				D52DD0A3449DF2F906FA36C9 /* LiveVoicePointLocator.swift in Sources */,
@@ -6441,10 +6472,15 @@
 				1B0550684127369987232713 /* LiveVoicePointerController.swift in Sources */,
 				B6006241035FA524C7169735 /* LiveVoicePrompt.swift in Sources */,
 				3569A5638C68FBD32CEABF1F /* LiveVoiceProvider.swift in Sources */,
+				C16EBA211280039D3D8915EB /* LiveVoiceRoute.swift in Sources */,
+				939ED61735766F215D624EBD /* LiveVoiceRoutePolicy.swift in Sources */,
 				7DD99C0A5D830EBD9C195900 /* LiveVoiceScreenTools.swift in Sources */,
 				E8283C4B89CEED4492A9A857 /* LiveVoiceScreenshotter.swift in Sources */,
 				7E8954DFD90D537BD5288C12 /* LiveVoiceSession.swift in Sources */,
+				63B61EBC8CCB9E03B058BD1E /* LiveVoiceSettings.swift in Sources */,
+				7B8E41DDF61D2622564A859D /* LiveVoiceSettingsSection.swift in Sources */,
 				3967A2CE593B00CDF2CA1728 /* LiveVoiceToolSource.swift in Sources */,
+				3C0F9CE033927BEDDF734976 /* LiveVoiceTranscript.swift in Sources */,
 				F2E597B3DE68EBF764842373 /* LiveVoiceWire.swift in Sources */,
 				8710938220E3FA8B7850CE1E /* LocalizedResource.swift in Sources */,
 				347875D94D5F6F159A115BA6 /* MCPChatAccess.swift in Sources */,

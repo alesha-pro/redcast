@@ -72,7 +72,7 @@ struct FullBackupCoverageTest {
         check(naming("every consent decision has a FullBackupConsent case", unnamed), unnamed.isEmpty)
         for key in [
             AppSettingsKey.snippetsEnabled, .extensionsEnabled, .mcpEnabled, .aiEnabled, .quickActionsEnabled,
-            .voiceCloudDictation, .screenAwarenessEnabled, .calendarEnabled, .autoJoinMeetings
+            .voiceCloudDictation, .liveVoiceEnabled, .screenAwarenessEnabled, .calendarEnabled, .autoJoinMeetings
         ] {
             let decision = decisions[key]
             var isConsent = false

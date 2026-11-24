@@ -73,7 +73,7 @@ struct SettingsBackupTest {
         for key: AppSettingsKey in [
             .snippetsEnabled, .extensionsEnabled, .calendarEnabled, .autoJoinMeetings,
             .cameraPreview, .quickActionsEnabled, .extensionsAIEnabled, .extensionsAIGrants,
-            .extensionsAIHonorsModels
+            .extensionsAIHonorsModels, .liveVoiceEnabled
         ] {
             check(
                 "\(key.rawValue) stays out of a backup",

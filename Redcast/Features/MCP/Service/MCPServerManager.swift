@@ -27,6 +27,10 @@ final class MCPServerManager {
         connections.values.filter { $0.status.isReady }.flatMap(\.tools)
     }
 
+    var isConnecting: Bool {
+        connections.values.contains { $0.status == .connecting }
+    }
+
     /// Brings the running set in line with what Settings holds, starting only what is missing.
     func reconcile(_ servers: [MCPServer]) {
         let wanted = Dictionary(servers.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })

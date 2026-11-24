@@ -8,6 +8,7 @@ enum CommandID: String, CaseIterable, Sendable {
     case runAgentTask = "command:run-agent-task"
     case askByVoice = "command:ask-by-voice"
     case editByVoice = "command:edit-by-voice"
+    case liveVoice = "command:live-voice"
     case dictationHistory = "command:dictation-history"  // Fork: past transcripts, pasted again
     case searchAgentSessions = "command:search-agent-sessions"
     case jumpToAgent = "command:jump-to-agent"
@@ -69,6 +70,7 @@ enum CommandID: String, CaseIterable, Sendable {
         case .runAgentTask: return "Run Agent Task"
         case .askByVoice: return "Ask by Voice"
         case .editByVoice: return "Edit Selection by Voice"
+        case .liveVoice: return "Live Voice"
         case .dictationHistory: return "Dictation History"  // Fork: Dictation History's command
         case .searchAgentSessions: return "Search Agent Sessions"
         case .jumpToAgent: return "Jump to Agent"
@@ -128,6 +130,7 @@ enum CommandID: String, CaseIterable, Sendable {
         case .runAgentTask: return "person.crop.circle.badge.clock"
         case .askByVoice: return "waveform.and.mic"
         case .editByVoice: return "pencil.and.scribble"
+        case .liveVoice: return "waveform.circle"
         case .dictationHistory: return "waveform.badge.magnifyingglass"  // Fork: Dictation History
         case .searchAgentSessions: return "clock.arrow.2.circlepath"
         case .jumpToAgent: return "arrow.up.forward.app"
@@ -201,6 +204,12 @@ enum CommandID: String, CaseIterable, Sendable {
     /// Fork: found by, never ranked by; English always, and the words of the interface's language.
     var keywords: [String] {
         switch self {
+        case .liveVoice:
+            ["voice", "live", "realtime", "talk", "call", "conversation", "gemini live"]
+                + [
+                    String(localized: "live voice", comment: "Words Live Voice is found by"),
+                    String(localized: "voice conversation", comment: "Words Live Voice is found by")
+                ]
         case .dictationHistory:
             ["transcripts", "transcriptions", "voice history", "speech"]
                 + [
@@ -225,6 +234,7 @@ enum CommandID: String, CaseIterable, Sendable {
         case .askAboutScreen: ["screen"]
         case .runAgentTask: ["agent"]
         case .askByVoice: ["voice"]
+        case .liveVoice: ["live"]
         case .searchAgentSessions: ["sessions"]
         default: []
         }

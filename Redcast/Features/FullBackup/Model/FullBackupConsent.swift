@@ -7,6 +7,7 @@ enum FullBackupConsent: String, CaseIterable, Codable, Sendable {
     case quickActionsEnabled
     case cloudDictation
     case askByVoice
+    case liveVoice
     case dictationEnabled
     case dictationAppScreenshot
     case screenAwarenessEnabled
@@ -30,6 +31,7 @@ enum FullBackupConsent: String, CaseIterable, Codable, Sendable {
         case .quickActionsEnabled: return .quickActionsEnabled
         case .cloudDictation: return .voiceCloudDictation
         case .askByVoice: return .voiceAskEnabled
+        case .liveVoice: return .liveVoiceEnabled
         case .dictationEnabled: return .dictationEnabled
         case .dictationAppScreenshot: return .voiceDictationAppContext
         case .screenAwarenessEnabled: return .screenAwarenessEnabled
@@ -54,6 +56,7 @@ enum FullBackupConsent: String, CaseIterable, Codable, Sendable {
         case .quickActionsEnabled: return String(localized: "Quick Actions")
         case .cloudDictation: return String(localized: "Cloud dictation")
         case .askByVoice: return String(localized: "Ask by Voice")
+        case .liveVoice: return String(localized: "Live Voice")
         case .dictationEnabled: return String(localized: "Dictation")
         case .dictationAppScreenshot: return String(localized: "Screenshots for cloud dictation")
         case .screenAwarenessEnabled: return String(localized: "Screen Awareness")

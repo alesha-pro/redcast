@@ -18,6 +18,7 @@ final class DictationCoordinator {
     private let confirmEnable: () async -> Bool
     private let cloudIsOn: @MainActor () -> Bool
     private let cloudTranscribe: @MainActor ([Float], String?) async throws -> String
+    private let isMicrophoneBusy: @MainActor () -> Bool
     // Fork: Dictation History, before the capsule closes: text, transcript, samples, target.
     private let finished: @MainActor (String, String, Int, InjectionTarget?) -> Void
     private let failed: @MainActor ([Float], any Error, InjectionTarget?) -> Void  // Fork: Retry
@@ -50,7 +51,8 @@ final class DictationCoordinator {
         capsule: (DictationPanelController) -> Void = { _ in },
         finished: @escaping @MainActor (String, String, Int, InjectionTarget?) -> Void = { _, _, _, _ in },
         // Fork: a failed transcription's recording, error and target, for Dictation History.
-        failed: @escaping @MainActor ([Float], any Error, InjectionTarget?) -> Void = { _, _, _ in }
+        failed: @escaping @MainActor ([Float], any Error, InjectionTarget?) -> Void = { _, _, _ in },
+        isMicrophoneBusy: @escaping @MainActor () -> Bool = { false }
     ) {
         self.settings = settings
         self.hotKeys = hotKeys
@@ -61,6 +63,7 @@ final class DictationCoordinator {
         self.showMessage = showMessage
         self.cloudIsOn = cloudIsOn
         self.cloudTranscribe = cloudTranscribe
+        self.isMicrophoneBusy = isMicrophoneBusy
         self.finished = finished
         self.failed = failed  // Fork: Dictation History
         panel.onAccept = { [weak self] in self?.accept() }
@@ -137,6 +140,10 @@ final class DictationCoordinator {
             if settings.dictationMode == .toggle { finish() }
             return
         }
+        if isMicrophoneBusy() {
+            showMessage(String(localized: "End Live Voice before starting dictation."), .neutral)
+            return
+        }
         begin(target: InjectionTarget.current())
     }
 
@@ -149,6 +156,10 @@ final class DictationCoordinator {
         guard settings.dictationEnabled, phase != .stopping else { return }
         guard phase == .idle else {
             if field?.editor == ObjectIdentifier(editor) { finish() }
+            return
+        }
+        if isMicrophoneBusy() {
+            showMessage(String(localized: "End Live Voice before starting dictation."), .neutral)
             return
         }
         field = DictationField(editor: ObjectIdentifier(editor))

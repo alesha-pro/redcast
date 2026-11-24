@@ -17,11 +17,12 @@ struct OpenAIRealtimeWire: LiveVoiceWire {
     static let rate = 24_000
 
     init(
-        key: String, model: String = OpenAIRealtimeWire.defaultModel, endpoint: URL? = nil,
-        headers: [String: String] = [:]
+        key: String, model: String = OpenAIRealtimeWire.defaultModel,
+        effort: String = "minimal", endpoint: URL? = nil, headers: [String: String] = [:]
     ) {
         self.key = key
         self.model = model
+        self.effort = effort
         self.endpoint = endpoint
         self.headers = headers
     }

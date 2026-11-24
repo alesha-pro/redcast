@@ -632,4 +632,4 @@ enum Paster {
     static func postCommandC(toPid pid: pid_t? = nil) {}
 }
 
-enum DialogTone { case danger }
+enum DialogTone { case neutral, danger }

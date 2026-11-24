@@ -288,6 +288,21 @@ enum FullBackupRestore {
         if let raw = backup.dictationIdleReleaseMinutes, let value = DictationIdleRelease(rawValue: raw) {
             settings.dictationIdleRelease = value
         }
+        let liveVoice = core.liveVoiceSettings
+        if let model = backup.liveVoiceModel { liveVoice.model = model }
+        if let voiceName = backup.liveVoiceVoice { liveVoice.voice = voiceName }
+        if let id = backup.liveVoiceAgent, core.agentStore.agent(id: id) != nil { liveVoice.agent = id }
+        if let raw = backup.liveVoiceScreenMode, let mode = LiveVoiceScreenMode(rawValue: raw) {
+            liveVoice.screenMode = mode
+        }
+        if let locator = backup.liveVoiceLocatorModel { liveVoice.locatorModel = locator }
+        if let raw = backup.liveVoiceAudioMode, let mode = LiveVoiceAudioMode(rawValue: raw) {
+            liveVoice.audioMode = mode
+        }
+        if let raw = backup.liveVoiceEffort, let effort = LiveVoiceEffort(rawValue: raw) {
+            liveVoice.effort = effort
+        }
+        if let language = backup.liveVoiceLanguage { liveVoice.language = language }
         return backup.count
     }
 
@@ -521,6 +536,7 @@ enum FullBackupRestore {
         case .quickActionsEnabled: return settings.quickActionsEnabled
         case .cloudDictation: return voice.cloudDictation
         case .askByVoice: return voice.askEnabled
+        case .liveVoice: return core.liveVoiceSettings.enabled
         case .dictationEnabled: return settings.dictationEnabled
         case .dictationAppScreenshot: return voice.appContext == .screenshot
         case .screenAwarenessEnabled: return settings.screenAwarenessEnabled

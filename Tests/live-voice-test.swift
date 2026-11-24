@@ -30,6 +30,7 @@ struct LiveVoiceTests {
         geminiEvents()
         transcript()
         routePolicy()
+        settingsPersistence()
 
         print("\(passes) passed, \(failures) failed")
         if failures > 0 { exit(1) }
@@ -539,5 +540,45 @@ struct LiveVoiceTests {
         let auto = LiveVoiceRoutePolicy.resolvedLanguage(
             setting: LiveVoiceRoutePolicy.autoLanguage, preferredLanguages: ["ru-RU"])
         expect(auto.code == nil && auto.englishName.isEmpty, "auto language leaves detection to model")
+    }
+
+    static func settingsPersistence() {
+        let suite = "io.redcast.live-voice-test.\(UUID().uuidString)"
+        guard let defaults = UserDefaults(suiteName: suite) else {
+            expect(false, "isolated UserDefaults suite created")
+            return
+        }
+        defer { defaults.removePersistentDomain(forName: suite) }
+
+        let initial = LiveVoiceSettings(defaults: defaults)
+        expect(!initial.enabled, "Live Voice starts disabled by default")
+        expect(initial.screenMode == .everyTurn, "default screen mode is everyTurn")
+        expect(initial.audioMode == .automatic, "default audio mode is automatic")
+        expect(initial.effort == .minimal, "default effort is minimal")
+        expect(initial.model == nil && initial.locatorModel == nil && initial.agent == nil, "no route or agent preset")
+
+        let connectionID = UUID()
+        let locatorID = UUID()
+        let agentID = UUID()
+        initial.enabled = true
+        initial.model = .api(connection: connectionID, model: "gpt-realtime-2.1", effort: nil)
+        initial.voice = "cedar"
+        initial.agent = agentID
+        initial.screenMode = .onRequest
+        initial.locatorModel = .api(connection: locatorID, model: "google/gemini-3.1-flash-lite", effort: nil)
+        initial.audioMode = .headphones
+        initial.effort = .low
+        initial.language = "ru"
+
+        let reloaded = LiveVoiceSettings(defaults: defaults)
+        expect(reloaded.enabled, "enabled persists")
+        expect(reloaded.model == initial.model, "live model persists")
+        expect(reloaded.voice == "cedar", "voice persists")
+        expect(reloaded.agent == agentID, "agent persists")
+        expect(reloaded.screenMode == .onRequest, "screen mode persists")
+        expect(reloaded.locatorModel == initial.locatorModel, "locator model persists")
+        expect(reloaded.audioMode == .headphones, "audio mode persists")
+        expect(reloaded.effort == .low, "effort persists")
+        expect(reloaded.language == "ru", "language persists")
     }
 }
