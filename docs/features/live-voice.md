@@ -143,11 +143,19 @@ and appear first in OpenAI's voice list.
 
 `LiveVoiceAudio.Echo` offers three modes (mapped from Settings → Echo handling):
 
-- **Automatic** (`.cancelled`): enables macOS voice processing on `AVAudioEngine` so speakers are
-  cancelled out of the mic and barge-in works; falls back to `.muted` if voice processing cannot
-  initialize on the current audio device pair.
-- **Headphones** (`.open`): full duplex with no voice processing.
-- **Mute while speaking** (`.muted`): gates the mic during playback plus a 250 ms tail.
+- **Automatic** (`.cancelled`): attaches and connects playback (`player → mainMixerNode → outputNode`)
+  before enabling macOS voice processing on `inputNode` so VPIO initializes cleanly and speakers are
+  cancelled out of the mic. If voice processing still cannot initialize on an external device pair,
+  `LiveVoiceAudio` logs the exact CoreAudio domain/code to `OSLog` (`io.redcast` / `LiveVoiceAudio`),
+  tears down the failed engine, and falls back to **split engines** in `.muted` mode.
+- **Headphones** (`.open`): uses two separate `AVAudioEngine` instances (one playback-only, one
+  capture-only) so macOS never synthesizes an implicit aggregate device across mismatched hardware,
+  giving full duplex without voice processing.
+- **Mute while speaking** (`.muted`): uses the same split capture/playback engines and gates the mic
+  during playback plus a 250 ms tail.
+
+If a user-selected microphone fails to open in split mode, `LiveVoiceAudio` logs the failure and
+retries the system default input before reporting a short localized error (`LiveVoiceAudio.Failure`).
 
 ## Stand and testing
 

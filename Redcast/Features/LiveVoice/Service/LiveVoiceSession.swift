@@ -366,7 +366,10 @@ final class LiveVoiceSession {
             activeEcho = inEffect
             onUpdate(.listening(inEffect))
         } catch {
-            finish(saying: "The microphone could not be opened: \(error)")
+            let message =
+                (error as? any LocalizedError)?.errorDescription
+                ?? String(localized: "Couldn't open the microphone or audio output.")
+            finish(saying: message)
         }
     }
 
@@ -374,7 +377,10 @@ final class LiveVoiceSession {
         do {
             try audio?.play(pcm, of: item)
         } catch {
-            onUpdate(.failed("The reply could not be played: \(error)"))
+            let message =
+                (error as? any LocalizedError)?.errorDescription
+                ?? String(localized: "Couldn't play the voice reply.")
+            onUpdate(.failed(message))
         }
     }
 

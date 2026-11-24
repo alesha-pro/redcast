@@ -462,6 +462,96 @@ struct LiveVoiceSessionTests {
         server.stop()
     }
 
+    /// Simulates VP throwing CoreAudio -10875 and verifies fallback to split capture/playback (.muted).
+    static func audioVoiceProcessingFallback() async {
+        let coreAudioErr = NSError(
+            domain: "com.apple.coreaudio.avfaudio", code: -10_875,
+            userInfo: ["failed call": "err = PerformCommand(*outputNode, kAUInitialize, NULL, 0)"])
+        var vpCalls = 0
+        var splitMics: [String?] = []
+        let audio = LiveVoiceAudio(
+            requestAccess: { true },
+            openVoiceProcessed: { _, _, _, _ in
+                vpCalls += 1
+                throw coreAudioErr
+            },
+            openSplit: { _, _, uid, _ in
+                splitMics.append(uid)
+                if uid != nil { throw coreAudioErr }
+            })
+        do {
+            let mode = try await audio.start(
+                inputRate: 24_000, outputRate: 24_000, echo: .cancelled, microphoneUID: "BrokenUSB") { _ in }
+            expect(mode == .muted, "failed VP falls back to .muted: \(mode)")
+            expect(vpCalls == 1, "VP attempted once before fallback")
+            expect(splitMics == ["BrokenUSB", nil], "split retries default mic after selected mic fails: \(splitMics)")
+        } catch {
+            expect(false, "fallback should succeed, got: \(error)")
+        }
+
+        var openVPCalls = 0
+        var openSplitCalls = 0
+        let headphones = LiveVoiceAudio(
+            requestAccess: { true },
+            openVoiceProcessed: { _, _, _, _ in openVPCalls += 1 },
+            openSplit: { _, _, _, _ in openSplitCalls += 1 })
+        let openMode = try? await headphones.start(inputRate: 24_000, outputRate: 24_000, echo: .open) { _ in }
+        expect(openMode == .open && openVPCalls == 0 && openSplitCalls == 1, "headphones uses split directly")
+
+        let denied = LiveVoiceAudio(requestAccess: { false })
+        do {
+            _ = try await denied.start(inputRate: 24_000, outputRate: 24_000, echo: .cancelled) { _ in }
+            expect(false, "denied permission must throw")
+        } catch let failure as LiveVoiceAudio.Failure {
+            expect(failure == .microphoneDenied, "denied permission throws microphoneDenied")
+        } catch {
+            expect(false, "unexpected error type: \(error)")
+        }
+    }
+
+    /// When both VP and split engines fail, the session emits a short readable HUD message.
+    static func audioFailureMessageIsReadable() async {
+        guard
+            let server = try? ScriptedServer(respond: { server, message in
+                if message["type"]?.stringValue == "session.update" {
+                    server.send(["type": "session.updated"])
+                }
+            })
+        else { return expect(false, "the scripted server starts") }
+        let port = await server.start()
+        let rawError = NSError(
+            domain: "com.apple.coreaudio.avfaudio", code: -10_875,
+            userInfo: ["false condition": "IsFormatSampleRateAndChannelCountValid(outputHWFormat)"])
+        let audio = LiveVoiceAudio(
+            requestAccess: { true },
+            openVoiceProcessed: { _, _, _, _ in throw rawError },
+            openSplit: { _, _, _, _ in throw rawError })
+        var failedMessage: String?
+        let (stream, signal) = AsyncStream<String>.makeStream()
+        let session = LiveVoiceSession(
+            wire: LoopbackWire(port: port),
+            setup: LiveVoiceSetup(instructions: "Test.", tools: [], voice: nil),
+            toolbox: LiveVoiceToolbox(sources: []), screen: nil, sendsScreenEachTurn: false,
+            audio: audio, echo: .cancelled
+        ) { update in
+            if case .failed(let message) = update { failedMessage = message }
+            signal.yield(name(update))
+        }
+        let watchdog = Task {
+            try await Task.sleep(for: .seconds(10))
+            signal.finish()
+        }
+        session.start()
+        for await update in stream where update == "closed" { break }
+        watchdog.cancel()
+        let message = failedMessage ?? ""
+        expect(
+            !message.isEmpty && !message.contains("Error Domain="),
+            "audio failure message is short and readable, not raw NSError: \(message)")
+        session.stop()
+        server.stop()
+    }
+
     static var failures = 0
     static var passes = 0
 
@@ -483,6 +573,8 @@ struct LiveVoiceSessionTests {
         await socketDropReconnect()
         await manualInterrupt()
         await geminiToolCancellation()
+        await audioVoiceProcessingFallback()
+        await audioFailureMessageIsReadable()
         print("\(passes) passed, \(failures) failed")
         exit(failures > 0 ? 1 : 0)
     }

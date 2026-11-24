@@ -2,26 +2,56 @@ import Accelerate
 import AudioToolbox
 import AVFoundation
 import CoreAudio
+import OSLog
 import Synchronization
 
-/// The microphone and the speaker on one engine, so macOS can cancel the speaker out of the mic.
+/// Microphone capture and speaker playback: one engine for voice processing, split otherwise.
 @MainActor
 final class LiveVoiceAudio {
-    enum Failure: Error {
+    enum Failure: Error, LocalizedError, Equatable {
         case microphoneDenied
         case noInput
+        case engineStartFailed
+        case playbackFailed
+
+        var errorDescription: String? {
+            switch self {
+            case .microphoneDenied:
+                String(localized: "Allow Redcast to use the microphone in System Settings.")
+            case .noInput:
+                String(localized: "No microphone is available.")
+            case .engineStartFailed:
+                String(localized: "Couldn't open the microphone or audio output.")
+            case .playbackFailed:
+                String(localized: "Couldn't play the voice reply.")
+            }
+        }
     }
 
     /// What keeps the assistant from hearing itself and taking that for the user cutting in.
-    enum Echo: Sendable {
+    enum Echo: Sendable, Equatable {
         /// macOS removes the speaker from the microphone, so the user can talk over a reply.
         case cancelled
         /// The microphone is deaf while a reply plays: no voice processing on these devices.
         case muted
         /// Nothing is done, which is right for headphones.
         case open
+
+        fileprivate var logName: String {
+            switch self {
+            case .cancelled: "cancelled"
+            case .muted: "muted"
+            case .open: "open"
+            }
+        }
     }
 
+    typealias Opener = @MainActor (
+        _ inputRate: Int, _ outputRate: Int, _ microphoneUID: String?,
+        _ onInput: @escaping @Sendable (Data) -> Void
+    ) throws -> Void
+
+    private static let logger = Logger(subsystem: "io.redcast", category: "LiveVoiceAudio")
     /// A room keeps a reply audible a moment after its last sample.
     private static let muteTail: Duration = .milliseconds(250)
     static let spectrumBarCount = 21
@@ -36,7 +66,11 @@ final class LiveVoiceAudio {
 
     private(set) var isSpeaking = false
 
-    private var engine: AVAudioEngine?
+    private let requestAccess: @MainActor () async -> Bool
+    private let openVoiceProcessedHook: Opener?
+    private let openSplitHook: Opener?
+    private var playbackEngine: AVAudioEngine?
+    private var captureEngine: AVAudioEngine?
     private var player: AVAudioPlayerNode?
     private var voiceProcessingActive = false
     private var playback: AVAudioFormat?
@@ -54,16 +88,31 @@ final class LiveVoiceAudio {
         var end: AVAudioFramePosition
     }
 
+    init(
+        requestAccess: @escaping @MainActor () async -> Bool = {
+            await AVCaptureDevice.requestAccess(for: .audio)
+        },
+        openVoiceProcessed: Opener? = nil,
+        openSplit: Opener? = nil
+    ) {
+        self.requestAccess = requestAccess
+        self.openVoiceProcessedHook = openVoiceProcessed
+        self.openSplitHook = openSplit
+    }
+
     isolated deinit {
         stop()
     }
 
-    /// Answers the echo handling in effect; `onInput` gets PCM16 mono at `inputRate` on the audio thread.
+    /// Returns the active echo mode; `onInput` gets PCM16 mono at `inputRate` on the audio thread.
     func start(
         inputRate: Int, outputRate: Int, echo wanted: Echo, microphoneUID: String? = nil,
         onInput: @escaping @Sendable (Data) -> Void
     ) async throws -> Echo {
-        guard await AVCaptureDevice.requestAccess(for: .audio) else { throw Failure.microphoneDenied }
+        guard await requestAccess() else {
+            Self.logger.error("Microphone permission denied for Live Voice")
+            throw Failure.microphoneDenied
+        }
         stop()
         let gate = gate
         let inputMeter: LevelMeter?
@@ -91,66 +140,171 @@ final class LiveVoiceAudio {
         }
         if wanted == .cancelled {
             do {
-                try open(
-                    inputRate: inputRate, outputRate: outputRate, processesVoice: true,
-                    microphoneUID: microphoneUID, onInput: gated)
+                try startVoiceProcessed(
+                    inputRate: inputRate, outputRate: outputRate, microphoneUID: microphoneUID,
+                    onInput: gated)
                 echo = .cancelled
                 return echo
             } catch {
-                // A failed voice-processing unit leaves its engine unusable and may have ducked audio.
-                teardownEngine()
+                Self.logFailure(stage: "voice-processing", error: error, fallback: true)
+                // A failed voice-processing unit leaves its engine broken and may duck audio.
+                teardownEngines()
             }
         }
-        try open(
-            inputRate: inputRate, outputRate: outputRate, processesVoice: false,
-            microphoneUID: microphoneUID, onInput: gated)
+        do {
+            try startSplit(
+                inputRate: inputRate, outputRate: outputRate, microphoneUID: microphoneUID,
+                onInput: gated)
+        } catch {
+            teardownEngines()
+            if let uid = microphoneUID, !uid.isEmpty {
+                Self.logFailure(stage: "split-selected-mic(\(uid))", error: error, fallback: true)
+                do {
+                    try startSplit(
+                        inputRate: inputRate, outputRate: outputRate, microphoneUID: nil,
+                        onInput: gated)
+                } catch let fallbackError {
+                    teardownEngines()
+                    Self.logFailure(stage: "split-default-mic", error: fallbackError, fallback: false)
+                    throw Self.mappedStartError(fallbackError)
+                }
+            } else {
+                Self.logFailure(stage: "split", error: error, fallback: false)
+                throw Self.mappedStartError(error)
+            }
+        }
         echo = wanted == .open ? .open : .muted
+        Self.logger.info(
+            "Live Voice audio active (requested=\(wanted.logName, privacy: .public) echo=\(self.echo.logName, privacy: .public))"
+        )
         return echo
     }
 
-    private func open(
-        inputRate: Int, outputRate: Int, processesVoice: Bool, microphoneUID: String?,
+    private func startVoiceProcessed(
+        inputRate: Int, outputRate: Int, microphoneUID: String?,
+        onInput: @escaping @Sendable (Data) -> Void
+    ) throws {
+        if let openVoiceProcessedHook {
+            try openVoiceProcessedHook(inputRate, outputRate, microphoneUID, onInput)
+            return
+        }
+        try openVoiceProcessed(
+            inputRate: inputRate, outputRate: outputRate, microphoneUID: microphoneUID, onInput: onInput)
+    }
+
+    private func startSplit(
+        inputRate: Int, outputRate: Int, microphoneUID: String?,
+        onInput: @escaping @Sendable (Data) -> Void
+    ) throws {
+        if let openSplitHook {
+            try openSplitHook(inputRate, outputRate, microphoneUID, onInput)
+            return
+        }
+        try openSplit(
+            inputRate: inputRate, outputRate: outputRate, microphoneUID: microphoneUID, onInput: onInput)
+    }
+
+    /// Single VPIO engine: playback connects to `mainMixerNode` before enabling voice processing.
+    private func openVoiceProcessed(
+        inputRate: Int, outputRate: Int, microphoneUID: String?,
         onInput: @escaping @Sendable (Data) -> Void
     ) throws {
         let engine = AVAudioEngine()
         let player = AVAudioPlayerNode()
-        self.engine = engine
+        playbackEngine = engine
         self.player = player
-        let input = engine.inputNode
-        if let microphoneUID, !microphoneUID.isEmpty {
-            Self.selectInputDevice(uid: microphoneUID, on: input)
-        }
-        if processesVoice {
-            try input.setVoiceProcessingEnabled(true)
-            voiceProcessingActive = true
-            input.voiceProcessingOtherAudioDuckingConfiguration = .init(
-                enableAdvancedDucking: false, duckingLevel: .min)
-        }
-        let microphone = input.outputFormat(forBus: 0)
         guard
             let playback = AVAudioFormat(
                 commonFormat: .pcmFormatFloat32, sampleRate: Double(outputRate), channels: 1,
                 interleaved: false),
             let wire = AVAudioFormat(
                 commonFormat: .pcmFormatInt16, sampleRate: Double(inputRate), channels: 1,
-                interleaved: true),
-            microphone.sampleRate > 0,
-            let sink = MicrophoneSink(from: microphone, to: wire, onInput)
+                interleaved: true)
         else { throw Failure.noInput }
         self.playback = playback
-        let receiver = sink.node
+
+        // Realize mainMixerNode and outputNode before enabling voice processing on inputNode.
         engine.attach(player)
-        engine.attach(receiver)
         try connect(engine, player, to: engine.mainMixerNode, format: playback)
+        let input = engine.inputNode
+        if let microphoneUID, !microphoneUID.isEmpty {
+            Self.selectInputDevice(uid: microphoneUID, on: input)
+        }
+        try input.setVoiceProcessingEnabled(true)
+        voiceProcessingActive = true
+        input.voiceProcessingOtherAudioDuckingConfiguration = .init(
+            enableAdvancedDucking: false, duckingLevel: .min)
+        let microphone = input.outputFormat(forBus: 0)
+        guard microphone.sampleRate > 0, microphone.channelCount > 0,
+            let sink = MicrophoneSink(from: microphone, to: wire, onInput)
+        else { throw Failure.noInput }
+        let receiver = sink.node
+        engine.attach(receiver)
         try connect(engine, input, to: receiver, format: microphone)
         engine.prepare()
         try engine.start()
         try resume(player)
+        let micDesc = microphone.description
+        let outDesc = engine.outputNode.outputFormat(forBus: 0).description
+        Self.logger.info("Voice-processed audio started (mic=\(micDesc, privacy: .public) out=\(outDesc, privacy: .public))")
+    }
+
+    /// Separate capture and playback engines avoid CoreAudio's implicit aggregate device mismatch.
+    private func openSplit(
+        inputRate: Int, outputRate: Int, microphoneUID: String?,
+        onInput: @escaping @Sendable (Data) -> Void
+    ) throws {
+        guard
+            let playback = AVAudioFormat(
+                commonFormat: .pcmFormatFloat32, sampleRate: Double(outputRate), channels: 1,
+                interleaved: false),
+            let wire = AVAudioFormat(
+                commonFormat: .pcmFormatInt16, sampleRate: Double(inputRate), channels: 1,
+                interleaved: true)
+        else { throw Failure.noInput }
+        self.playback = playback
+
+        let playEngine = AVAudioEngine()
+        let player = AVAudioPlayerNode()
+        playbackEngine = playEngine
+        self.player = player
+        playEngine.attach(player)
+        try connect(playEngine, player, to: playEngine.mainMixerNode, format: playback)
+        playEngine.prepare()
+        try playEngine.start()
+        try resume(player)
+
+        let capEngine = AVAudioEngine()
+        captureEngine = capEngine
+        let input = capEngine.inputNode
+        if let microphoneUID, !microphoneUID.isEmpty {
+            Self.selectInputDevice(uid: microphoneUID, on: input)
+        }
+        let microphone = input.outputFormat(forBus: 0)
+        guard microphone.sampleRate > 0, microphone.channelCount > 0,
+            let sink = MicrophoneSink(from: microphone, to: wire, onInput)
+        else { throw Failure.noInput }
+        let receiver = sink.node
+        capEngine.attach(receiver)
+        try connect(capEngine, input, to: receiver, format: microphone)
+        capEngine.prepare()
+        try capEngine.start()
+        let outputDesc = playEngine.outputNode.outputFormat(forBus: 0).description
+        Self.logger.info(
+            "Split audio started (mic=\(microphone.description, privacy: .public) out=\(outputDesc, privacy: .public))"
+        )
     }
 
     func play(_ pcm: Data, of item: String) throws {
         guard let player, let playback, let buffer = Self.buffer(pcm, format: playback) else { return }
-        if !player.isPlaying { try resume(player) }
+        if !player.isPlaying {
+            do {
+                try resume(player)
+            } catch {
+                Self.logFailure(stage: "playback-resume", error: error, fallback: false)
+                throw Failure.playbackFailed
+            }
+        }
         let now = playerFrames
         queued.removeAll { $0.end <= now }
         let frames = AVAudioFramePosition(buffer.frameLength)
@@ -194,7 +348,7 @@ final class LiveVoiceAudio {
     func stop() {
         playbackGeneration &+= 1
         pendingBuffers = 0
-        teardownEngine()
+        teardownEngines()
         playback = nil
         outputMeter = nil
         queued = []
@@ -203,18 +357,23 @@ final class LiveVoiceAudio {
         setSpeaking(false)
     }
 
-    private func teardownEngine() {
+    private func teardownEngines() {
         player?.stop()
-        if let engine {
-            engine.stop()
+        if let captureEngine {
+            captureEngine.stop()
+            captureEngine.reset()
+        }
+        if let playbackEngine {
+            playbackEngine.stop()
             if voiceProcessingActive {
-                try? engine.inputNode.setVoiceProcessingEnabled(false)
+                try? playbackEngine.inputNode.setVoiceProcessingEnabled(false)
                 voiceProcessingActive = false
             }
-            engine.reset()
+            playbackEngine.reset()
         }
         player = nil
-        engine = nil
+        captureEngine = nil
+        playbackEngine = nil
     }
 
     private func setSpeaking(_ speaking: Bool) {
@@ -223,21 +382,51 @@ final class LiveVoiceAudio {
         onSpeakingChanged?(speaking)
     }
 
+    private static func mappedStartError(_ error: any Error) -> Failure {
+        if let failure = error as? Failure { return failure }
+        return .engineStartFailed
+    }
+
+    private static func logFailure(stage: String, error: any Error, fallback: Bool) {
+        let ns = error as NSError
+        let detail =
+            (ns.userInfo["failed call"] as? String)
+            ?? (ns.userInfo["false condition"] as? String)
+            ?? ns.localizedDescription
+        let summary = "\(ns.domain) code=\(ns.code): \(detail)"
+        if fallback {
+            logger.warning(
+                "Audio \(stage, privacy: .public) failed (\(summary, privacy: .public)); retrying fallback"
+            )
+        } else {
+            logger.error("Audio \(stage, privacy: .public) failed (\(summary, privacy: .public))")
+        }
+    }
+
     private static func selectInputDevice(uid: String, on input: AVAudioInputNode) {
-        guard let device = try? AudioHardwareSystem.shared.device(forUID: uid) else { return }
+        guard let device = try? AudioHardwareSystem.shared.device(forUID: uid) else {
+            logger.warning("Selected microphone \(uid, privacy: .public) not found; using default input")
+            return
+        }
         var deviceID = device.id
         let size = UInt32(MemoryLayout<AudioDeviceID>.size)
+        var status: OSStatus = noErr
         if #available(macOS 27, *) {
             input.withAudioUnit { unit in
                 guard let unit else { return }
-                _ = AudioUnitSetProperty(
+                status = AudioUnitSetProperty(
                     unit, kAudioOutputUnitProperty_CurrentDevice, kAudioUnitScope_Global, 0,
                     &deviceID, size)
             }
         } else if let unit = input.audioUnit {
-            _ = AudioUnitSetProperty(
+            status = AudioUnitSetProperty(
                 unit, kAudioOutputUnitProperty_CurrentDevice, kAudioUnitScope_Global, 0, &deviceID,
                 size)
+        }
+        if status != noErr {
+            logger.warning(
+                "Input device bind failed for \(uid, privacy: .public) (OSStatus=\(status, privacy: .public)); using default"
+            )
         }
     }
 
