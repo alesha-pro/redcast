@@ -969,6 +969,19 @@ run voice-ai-test          Redcast/Features/VoiceAI/Model/*.swift \
                            Redcast/Features/AI/Model/*.swift \
                            Redcast/Features/ReasoningReplay/Model/*.swift \
                            Redcast/Features/AI/Settings/AISettingsStore.swift
+run live-voice-test        Redcast/Features/LiveVoice/Model/*.swift \
+                           Redcast/Features/LiveVoice/Service/LiveVoiceScreenTools.swift \
+                           Redcast/Features/AI/Model/AITool.swift \
+                           Redcast/Features/AI/Model/JSONValue.swift
+run live-voice-session-test Redcast/Features/LiveVoice/Model/*.swift \
+                           Redcast/Features/LiveVoice/Service/*.swift \
+                           Redcast/Features/AI/Model/AITool.swift \
+                           Redcast/Features/AI/Model/JSONValue.swift
+run index live-voice-live  Redcast/Features/LiveVoice/Model/*.swift \
+                           Redcast/Features/LiveVoice/Service/*.swift \
+                           Redcast/Features/LiveVoice/UI/*.swift \
+                           Redcast/Features/AI/Model/AITool.swift \
+                           Redcast/Features/AI/Model/JSONValue.swift
 run voice-coordinator-test Redcast/Features/VoiceAI/Model/*.swift \
                            Redcast/Features/Agents/Model/ChatToolContent.swift \
                            Redcast/Features/VoiceAI/Service/VoiceCloudTranscriber.swift \
