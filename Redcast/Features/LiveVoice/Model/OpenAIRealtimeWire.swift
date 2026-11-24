@@ -4,6 +4,8 @@ import Foundation
 struct OpenAIRealtimeWire: LiveVoiceWire {
     let key: String
     let model: String
+    let endpoint: URL?
+    let headers: [String: String]
     /// `minimal` answers soonest; `low` is OpenAI's own suggestion once tools are misused.
     var effort = "minimal"
 
@@ -14,19 +16,31 @@ struct OpenAIRealtimeWire: LiveVoiceWire {
     static let transcriptionModel = "gpt-transcribe"
     static let rate = 24_000
 
-    init(key: String, model: String = OpenAIRealtimeWire.defaultModel) {
+    init(
+        key: String, model: String = OpenAIRealtimeWire.defaultModel, endpoint: URL? = nil,
+        headers: [String: String] = [:]
+    ) {
         self.key = key
         self.model = model
+        self.endpoint = endpoint
+        self.headers = headers
     }
 
     var request: URLRequest {
-        var components = URLComponents()
-        components.scheme = "wss"
-        components.host = "api.openai.com"
-        components.path = "/v1/realtime"
-        components.queryItems = [URLQueryItem(name: "model", value: model)]
-        var request = URLRequest(url: components.url ?? URL(fileURLWithPath: "/"))
-        request.setValue("Bearer \(key)", forHTTPHeaderField: "Authorization")
+        let url: URL
+        if let endpoint {
+            url = endpoint
+        } else {
+            var components = URLComponents()
+            components.scheme = "wss"
+            components.host = "api.openai.com"
+            components.path = "/v1/realtime"
+            components.queryItems = [URLQueryItem(name: "model", value: model)]
+            url = components.url ?? URL(fileURLWithPath: "/")
+        }
+        var request = URLRequest(url: url)
+        for (name, value) in headers { request.setValue(value, forHTTPHeaderField: name) }
+        if !key.isEmpty { request.setValue("Bearer \(key)", forHTTPHeaderField: "Authorization") }
         return request
     }
 
@@ -99,6 +113,10 @@ struct OpenAIRealtimeWire: LiveVoiceWire {
 
     func reply() -> [String] {
         [Self.json(["type": "response.create"])]
+    }
+
+    func cancelReply() -> [String] {
+        [Self.json(["type": "response.cancel"])]
     }
 
     func interruption(played milliseconds: Int, of item: String) -> [String] {

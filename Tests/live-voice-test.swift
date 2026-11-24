@@ -28,6 +28,8 @@ struct LiveVoiceTests {
         geminiOpening()
         geminiMessages()
         geminiEvents()
+        transcript()
+        routePolicy()
 
         print("\(passes) passed, \(failures) failed")
         if failures > 0 { exit(1) }
@@ -135,6 +137,12 @@ struct LiveVoiceTests {
         expect(notes.count == 1 && notes[0].contains("did count files"), "the result is announced when it ends")
         let refused = await tasks.run(AIToolCall(id: "2", name: "start_task", arguments: "{}"), in: context)
         expect(refused.result.isError, "start_task needs a task")
+        let busy = LiveVoiceTaskTools { _ in .refused("Agent is busy.") }
+        let busyOutcome = await busy.run(
+            AIToolCall(id: "3", name: "start_task", arguments: #"{"task":"build"}"#), in: context)
+        expect(
+            busyOutcome.result.isError && busyOutcome.result.content == "Agent is busy.",
+            "synchronous refusal returns immediately without saying started")
     }
 
     static func screenTools() async {
@@ -270,6 +278,9 @@ struct LiveVoiceTests {
             "the output comes before its picture")
         expect(parsed(answered[0])["item"]?.objectValue?["call_id"]?.stringValue == "call_1", "it names the call")
         expect(parsed(wire.reply()[0])["type"]?.stringValue == "response.create", "a reply is asked for")
+        expect(
+            parsed(wire.cancelReply()[0])["type"]?.stringValue == "response.cancel",
+            "manual interrupt cancels the active reply")
 
         expect(wire.interruption(played: 300, of: "").isEmpty, "no item, nothing to truncate")
         let cut = parsed(wire.interruption(played: 300, of: "item_7")[0])
@@ -358,6 +369,13 @@ struct LiveVoiceTests {
         expect(declared?["parametersJsonSchema"] == tool.parameters, "its JSON schema is untouched")
         expect(declared?["behavior"]?.stringValue == "BLOCKING", "the model waits for a result")
         expect(setup["inputAudioTranscription"] != nil && setup["outputAudioTranscription"] != nil, "both transcripts")
+        expect(setup["sessionResumption"]?.objectValue?.isEmpty == true, "fresh setup asks for resumption tokens")
+        let resumed = parsed(
+            wire.opening(LiveVoiceSetup(instructions: "", tools: [], voice: nil, resumptionHandle: "tok_9"))[0]
+        )["setup"]?.objectValue
+        expect(
+            resumed?["sessionResumption"]?.objectValue?["handle"]?.stringValue == "tok_9",
+            "reconnecting sends the stored resumption handle")
         let none = parsed(wire.opening(LiveVoiceSetup(instructions: "", tools: [], voice: nil))[0])["setup"]?.objectValue
         expect(none?["tools"] == nil, "no tools, no tools field")
         expect(none?["generationConfig"]?.objectValue?["speechConfig"] == nil, "no voice keeps Google's default")
@@ -430,5 +448,96 @@ struct LiveVoiceTests {
         expect(
             wire.events(from: message(["voiceActivity": ["type": "ACTIVITY_END"]])) == [.userStoppedSpeaking],
             "voice activity ends")
+        expect(
+            wire.events(
+                from: message([
+                    "sessionResumptionUpdate": ["newHandle": "h_42", "resumable": true]
+                ])) == [.resumptionHandle("h_42")], "resumption handle is captured")
+        expect(
+            wire.events(
+                from: message([
+                    "sessionResumptionUpdate": ["newHandle": "h_no", "resumable": false]
+                ])).isEmpty, "non-resumable handles are ignored")
+        expect(
+            wire.events(from: message(["goAway": ["timeLeft": "45s"]])) == [.sessionExpiring("45s")],
+            "goAway signals graceful reconnect rather than failure")
+        expect(
+            wire.events(from: message(["toolCallCancellation": ["ids": ["c1", "c2"]]]))
+                == [.toolCallsCancelled(["c1", "c2"])], "tool call cancellation is parsed")
+        expect(
+            wire.events(from: message(["error": ["message": "Invalid key"]])) == [.failed("Invalid key")],
+            "top-level Gemini error is parsed")
+    }
+
+    // MARK: - Transcript & Routing
+
+    static func transcript() {
+        var log = LiveVoiceTranscript()
+        log.noteAssistantText("Sure, ")
+        log.noteUserText("What time is it?")
+        log.noteAssistantText("it is noon.")
+        let call = AIToolCall(id: "t1", name: "look_at_screen", arguments: "{}")
+        log.noteToolCall(call, origin: "Live Voice")
+        log.noteToolResult(call, result: AIToolResult(callID: "t1", content: "ok", isError: false))
+        log.finishReply()
+        expect(log.entries.count == 2, "late user transcript is placed before its assistant reply")
+        expect(log.entries.first?.role == .user && log.entries.first?.text == "What time is it?", "user first")
+        expect(
+            log.entries.last?.role == .assistant && log.entries.last?.text == "Sure, it is noon."
+                && log.entries.last?.tools.count == 1 && log.entries.last?.tools.first?.isRunning == false,
+            "assistant text and completed tool recorded")
+
+        log.noteUserText("How ")
+        log.noteUserText("about now?")
+        log.noteAssistantText("Still noon.")
+        log.finishAll()
+        expect(log.entries.count == 4 && log.entries[2].text == "How about now?", "incremental user chunks merge")
+        let recap = log.recap() ?? ""
+        expect(recap.contains("User: What time is it?") && recap.contains("Assistant: Still noon."), "recap formats turns")
+    }
+
+    static func routePolicy() {
+        let openAI = AIConnection(name: "OpenAI", provider: .openAI, models: ["gpt-5"])
+        let gemini = AIConnection(name: "Gemini", provider: .gemini, models: ["gemini-3.8-flash"])
+        let router = AIConnection(name: "OpenRouter", provider: .openRouter, models: ["google/gemini-3.1-flash-lite"])
+        let anthropic = AIConnection(name: "Claude", provider: .anthropic, models: ["claude-sonnet"])
+        let all = [anthropic, router, gemini, openAI]
+
+        expect(
+            LiveVoiceRoutePolicy.choices(all, isEnabled: { _ in true }).map(\.id) == [gemini.id, openAI.id],
+            "only OpenAI and Gemini live")
+        expect(
+            LiveVoiceRoutePolicy.proposal(nil, connections: all, isEnabled: { _ in true })
+                == .api(connection: openAI.id, model: OpenAIRealtimeWire.defaultModel, effort: nil),
+            "proposal prefers OpenAI then Gemini")
+        let saved = AIModelSelection.api(connection: gemini.id, model: "gemini-3.8-live", effort: nil)
+        expect(
+            LiveVoiceRoutePolicy.route(saved, connections: all, isEnabled: { _ in true }) == saved,
+            "saved route is kept even when OpenAI is present")
+        expect(
+            LiveVoiceRoutePolicy.route(saved, connections: all, isEnabled: { $0 != gemini.id }) == nil,
+            "disabled connection refuses rather than rerouting")
+
+        expect(
+            LiveVoiceRoutePolicy.locatorProposal(nil, connections: all, isEnabled: { _ in true })
+                == .api(connection: router.id, model: LiveVoiceRoutePolicy.defaultLocatorModelOpenRouter, effort: nil),
+            "locator proposal prefers OpenRouter then Gemini")
+        expect(
+            !LiveVoiceRoutePolicy.acceptsLocator(anthropic),
+            "Anthropic is not an OpenAI-compatible locator")
+
+        let customOpenAI = LiveVoiceRoutePolicy.webSocketURL(
+            for: .openAI, baseURL: URL(string: "https://proxy.example/openai/v1")!, model: "gpt-realtime-2.1")
+        expect(
+            customOpenAI.absoluteString == "wss://proxy.example/openai/v1/realtime?model=gpt-realtime-2.1",
+            "OpenAI custom base URL maps cleanly to wss")
+        let localOpenAI = LiveVoiceRoutePolicy.webSocketURL(
+            for: .openAI, baseURL: URL(string: "http://127.0.0.1:8080/v1")!, model: "m")
+        expect(localOpenAI.scheme == "ws", "loopback HTTP maps to ws")
+        let ru = LiveVoiceRoutePolicy.resolvedLanguage(setting: nil, preferredLanguages: ["ru-RU", "en-US"])
+        expect(ru.code == "ru" && ru.englishName == "Russian", "system preferred language resolves")
+        let auto = LiveVoiceRoutePolicy.resolvedLanguage(
+            setting: LiveVoiceRoutePolicy.autoLanguage, preferredLanguages: ["ru-RU"])
+        expect(auto.code == nil && auto.englishName.isEmpty, "auto language leaves detection to model")
     }
 }

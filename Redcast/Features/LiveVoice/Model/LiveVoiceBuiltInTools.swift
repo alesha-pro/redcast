@@ -42,8 +42,21 @@ struct LiveVoiceCardTools: LiveVoiceToolSource {
 
 /// `start_task`: answers at once and announces the work's result whenever it ends.
 struct LiveVoiceTaskTools: LiveVoiceToolSource {
-    /// The longer work itself; in the app, an agent's background run awaited to its end.
-    let work: @MainActor (_ task: String) async -> String
+    /// Synchronous start verdict so concurrency or busy refusals return before saying "Started."
+    enum Launch {
+        case started(@MainActor () async -> String)
+        case refused(String)
+    }
+
+    let launch: @MainActor (_ task: String) -> Launch
+
+    init(launch: @escaping @MainActor (_ task: String) -> Launch) {
+        self.launch = launch
+    }
+
+    init(work: @escaping @MainActor (_ task: String) async -> String) {
+        launch = { task in .started { await work(task) } }
+    }
 
     var tools: [AITool] {
         [
@@ -71,14 +84,21 @@ struct LiveVoiceTaskTools: LiveVoiceToolSource {
         guard let task = call.liveVoiceArguments["task"]?.stringValue, !task.isEmpty else {
             return LiveVoiceToolOutcome(.failure(call.id, "start_task needs the task."))
         }
-        let work = work
-        let announce = context.announce
-        Task { @MainActor in
-            let result = await work(task)
-            announce("Background task finished.\nTask: \(task)\nResult:\n\(result)")
+        switch launch(task) {
+        case .refused(let reason):
+            return LiveVoiceToolOutcome(.failure(call.id, reason))
+        case .started(let wait):
+            let announce = context.announce
+            let waiter = Task { @MainActor in
+                let result = await wait()
+                guard !Task.isCancelled else { return }
+                announce("Background task finished.\nTask: \(task)\nResult:\n\(result)")
+            }
+            context.track(waiter)
+            return LiveVoiceToolOutcome(
+                AIToolResult(
+                    callID: call.id, content: "Started. The result will arrive later as a note.",
+                    isError: false))
         }
-        return LiveVoiceToolOutcome(
-            AIToolResult(
-                callID: call.id, content: "Started. The result will arrive later as a note.", isError: false))
     }
 }

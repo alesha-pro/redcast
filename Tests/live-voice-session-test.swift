@@ -18,6 +18,31 @@ struct LoopbackWire: LiveVoiceWire {
         inner.toolResult(result, for: call, image: image, caption: caption)
     }
     func reply() -> [String] { inner.reply() }
+    func cancelReply() -> [String] { inner.cancelReply() }
+    func interruption(played milliseconds: Int, of item: String) -> [String] {
+        inner.interruption(played: milliseconds, of: item)
+    }
+    mutating func events(from message: Data) -> [LiveVoiceEvent] { inner.events(from: message) }
+}
+
+/// Gemini's dialect pointed at a server on this Mac, to test session resumption and goAway.
+struct LoopbackGeminiWire: LiveVoiceWire {
+    var inner = GeminiLiveWire(key: "test")
+    let port: UInt16
+
+    var request: URLRequest { URLRequest(url: URL(string: "ws://127.0.0.1:\(port)")!) }
+    var inputRate: Int { inner.inputRate }
+    var outputRate: Int { inner.outputRate }
+    func opening(_ setup: LiveVoiceSetup) -> [String] { inner.opening(setup) }
+    func audio(_ pcm: Data) -> String { inner.audio(pcm) }
+    func image(_ jpeg: Data, caption: String) -> [String] { inner.image(jpeg, caption: caption) }
+    func typed(_ text: String) -> [String] { inner.typed(text) }
+    func note(_ text: String) -> [String] { inner.note(text) }
+    func toolResult(_ result: AIToolResult, for call: AIToolCall, image: Data?, caption: String) -> [String] {
+        inner.toolResult(result, for: call, image: image, caption: caption)
+    }
+    func reply() -> [String] { inner.reply() }
+    func cancelReply() -> [String] { inner.cancelReply() }
     func interruption(played milliseconds: Int, of item: String) -> [String] {
         inner.interruption(played: milliseconds, of: item)
     }
@@ -30,6 +55,8 @@ final class ScriptedServer: @unchecked Sendable {
     private let queue = DispatchQueue(label: "live-voice-session-test")
     private var connection: NWConnection?
     private(set) var received: [String] = []
+    private(set) var rawMessages: [[String: JSONValue]] = []
+    private(set) var connectionCount = 0
     private let respond: @Sendable (ScriptedServer, [String: JSONValue]) -> Void
 
     init(respond: @escaping @Sendable (ScriptedServer, [String: JSONValue]) -> Void) throws {
@@ -45,6 +72,7 @@ final class ScriptedServer: @unchecked Sendable {
         await withCheckedContinuation { continuation in
             listener.newConnectionHandler = { [self] connection in
                 self.connection = connection
+                self.connectionCount += 1
                 connection.start(queue: queue)
                 receive(on: connection)
             }
@@ -58,12 +86,21 @@ final class ScriptedServer: @unchecked Sendable {
 
     /// What arrived so far, as each message's kind: its type, or its item's type.
     var kinds: [String] { queue.sync { received } }
+    var connections: Int { queue.sync { connectionCount } }
+    var messages: [[String: JSONValue]] { queue.sync { rawMessages } }
 
     func send(_ object: [String: Any]) {
         guard let data = try? JSONSerialization.data(withJSONObject: object) else { return }
         let metadata = NWProtocolWebSocket.Metadata(opcode: .text)
         let context = NWConnection.ContentContext(identifier: "text", metadata: [metadata])
         connection?.send(content: data, contentContext: context, completion: .idempotent)
+    }
+
+    func dropClient() {
+        queue.async { [self] in
+            connection?.cancel()
+            connection = nil
+        }
     }
 
     func stop() {
@@ -74,7 +111,8 @@ final class ScriptedServer: @unchecked Sendable {
     private func receive(on connection: NWConnection) {
         connection.receiveMessage { [self] data, _, _, error in
             guard error == nil, let data, let message = JSONValue(data: data)?.objectValue else { return }
-            let type = message["type"]?.stringValue ?? "?"
+            rawMessages.append(message)
+            let type = message["type"]?.stringValue ?? message.keys.sorted().first ?? "?"
             let item = message["item"]?.objectValue
             let part = item?["content"]?.arrayValue?.last?.objectValue?["type"]?.stringValue
             received.append([type, item?["type"]?.stringValue, part].compactMap(\.self).joined(separator: ":"))
@@ -91,6 +129,10 @@ struct LiveVoiceSessionTests {
         switch update {
         case .ready: "ready"
         case .listening: "listening"
+        case .userSpeaking: "userSpeaking"
+        case .thinking: "thinking"
+        case .speaking: "speaking"
+        case .reconnecting: "reconnecting"
         case .heard(let text): "heard \(text)"
         case .said(let text): "said \(text)"
         case .replyEnded(let usage): "ended \(usage?.output ?? -1)"
@@ -115,10 +157,12 @@ struct LiveVoiceSessionTests {
         let session = LiveVoiceSession(
             wire: LoopbackWire(port: port),
             setup: LiveVoiceSetup(instructions: "Test.", tools: toolbox.tools, voice: nil), toolbox: toolbox,
-            screen: screen, sendsScreenEachTurn: false, audio: nil
+            screen: screen, sendsScreenEachTurn: false, audio: nil,
+            reconnectDelays: [.milliseconds(20), .milliseconds(20)]
         ) { update in
-            updates.append(name(update))
-            signal.yield(name(update))
+            let label = name(update)
+            updates.append(label)
+            signal.yield(label)
         }
         let watchdog = Task {
             try await Task.sleep(for: .seconds(10))
@@ -150,7 +194,7 @@ struct LiveVoiceSessionTests {
         else { return expect(false, "the scripted server starts") }
         let run = await updates(of: server, capture: { nil }, question: "What is this?", until: "ended -1")
         expect(
-            run.updates == ["ready", "failed \(LiveVoiceSession.hiddenScreen)", "ended -1"],
+            run.updates == ["ready", "failed \(LiveVoiceSession.hiddenScreen)", "thinking", "ended -1"],
             "a screen that cannot be captured is reported once: \(run.updates)")
         expect(
             server.kinds == [
@@ -176,6 +220,248 @@ struct LiveVoiceSessionTests {
         server.stop()
     }
 
+    /// Gemini goAway triggers a graceful reconnect carrying the latest resumption handle.
+    static func geminiResumptionReconnect() async {
+        guard
+            let server = try? ScriptedServer(respond: { server, message in
+                guard message["setup"] != nil else { return }
+                server.send(["setupComplete": [String: Any]()])
+                if server.connectionCount == 1 {
+                    server.send([
+                        "sessionResumptionUpdate": ["newHandle": "resume_abc", "resumable": true]
+                    ])
+                    server.send(["goAway": ["timeLeft": "30s"]])
+                }
+            })
+        else { return expect(false, "the scripted server starts") }
+        let port = await server.start()
+        var updates: [String] = []
+        let (stream, signal) = AsyncStream<String>.makeStream()
+        var readyCount = 0
+        let session = LiveVoiceSession(
+            wire: LoopbackGeminiWire(port: port),
+            setup: LiveVoiceSetup(instructions: "Test.", tools: [], voice: nil),
+            toolbox: LiveVoiceToolbox(sources: []), screen: nil, sendsScreenEachTurn: false, audio: nil,
+            reconnectDelays: [.milliseconds(20)]
+        ) { update in
+            let label = name(update)
+            updates.append(label)
+            signal.yield(label)
+        }
+        let watchdog = Task {
+            try await Task.sleep(for: .seconds(10))
+            signal.finish()
+        }
+        session.start()
+        for await update in stream where update == "ready" {
+            readyCount += 1
+            if readyCount == 2 { break }
+        }
+        watchdog.cancel()
+        expect(server.connections == 2, "goAway opened a second WebSocket connection: \(server.connections)")
+        expect(updates == ["ready", "reconnecting", "ready"], "session reported reconnect cleanly: \(updates)")
+        let secondSetup = server.messages.last?["setup"]?.objectValue
+        let sentHandle = secondSetup?["sessionResumption"]?.objectValue?["handle"]?.stringValue
+        expect(
+            sentHandle == "resume_abc",
+            "reconnected Gemini setup carries resumption handle: \(String(describing: sentHandle))")
+        session.stop()
+        server.stop()
+    }
+
+    /// OpenAI hitting its lifetime limit reconnects proactively and sends a transcript recap note.
+    static func openAILifetimeReconnect() async {
+        guard
+            let server = try? ScriptedServer(respond: { server, message in
+                switch message["type"]?.stringValue {
+                case "session.update":
+                    server.send(["type": "session.updated"])
+                case "response.create":
+                    server.send(["type": "response.created"])
+                    server.send(["type": "response.output_audio_transcript.delta", "delta": "Hello!"])
+                    server.send(["type": "response.done", "response": ["status": "completed"]])
+                default:
+                    break
+                }
+            })
+        else { return expect(false, "the scripted server starts") }
+        let port = await server.start()
+        var updates: [String] = []
+        let (stream, signal) = AsyncStream<String>.makeStream()
+        var readyCount = 0
+        let session = LiveVoiceSession(
+            wire: LoopbackWire(port: port),
+            setup: LiveVoiceSetup(instructions: "Test.", tools: [], voice: nil),
+            toolbox: LiveVoiceToolbox(sources: []), screen: nil, sendsScreenEachTurn: false, audio: nil,
+            maxConnectionLifetime: .milliseconds(150),
+            reconnectDelays: [.milliseconds(20)]
+        ) { update in
+            let label = name(update)
+            updates.append(label)
+            signal.yield(label)
+        }
+        let watchdog = Task {
+            try await Task.sleep(for: .seconds(10))
+            signal.finish()
+        }
+        session.start()
+        for await update in stream where update == "ready" {
+            readyCount += 1
+            if readyCount == 1 {
+                await session.ask("Ping", withScreen: false)
+            } else if readyCount == 2 {
+                break
+            }
+        }
+        watchdog.cancel()
+        try? await Task.sleep(for: .milliseconds(50))
+        expect(server.connections == 2, "lifetime limit triggered proactive reconnect: \(server.connections)")
+        expect(updates.contains("reconnecting"), "reconnecting update emitted")
+        let sentSystemNote = server.messages.contains { msg in
+            let item = msg["item"]?.objectValue
+            let text = item?["content"]?.arrayValue?.first?.objectValue?["text"]?.stringValue ?? ""
+            return item?["role"]?.stringValue == "system" && text.contains("User: Ping") && text.contains("Assistant: Hello!")
+        }
+        expect(sentSystemNote, "reconnected OpenAI session received prior transcript recap")
+        session.stop()
+        server.stop()
+    }
+
+    /// Manual interrupt sends response.cancel while a reply is open.
+    static func manualInterrupt() async {
+        guard
+            let server = try? ScriptedServer(respond: { server, message in
+                switch message["type"]?.stringValue {
+                case "session.update":
+                    server.send(["type": "session.updated"])
+                case "response.create":
+                    server.send(["type": "response.created"])
+                    server.send(["type": "response.output_audio_transcript.delta", "delta": "Long reply"])
+                default:
+                    break
+                }
+            })
+        else { return expect(false, "the scripted server starts") }
+        let port = await server.start()
+        let (stream, signal) = AsyncStream<String>.makeStream()
+        let session = LiveVoiceSession(
+            wire: LoopbackWire(port: port),
+            setup: LiveVoiceSetup(instructions: "Test.", tools: [], voice: nil),
+            toolbox: LiveVoiceToolbox(sources: []), screen: nil, sendsScreenEachTurn: false, audio: nil
+        ) { update in
+            signal.yield(name(update))
+        }
+        let watchdog = Task {
+            try await Task.sleep(for: .seconds(10))
+            signal.finish()
+        }
+        session.start()
+        for await update in stream {
+            if update == "ready" { await session.ask("Talk", withScreen: false) }
+            if update == "said Long reply" {
+                session.interrupt()
+                break
+            }
+        }
+        watchdog.cancel()
+        try? await Task.sleep(for: .milliseconds(50))
+        expect(server.kinds.contains("response.cancel"), "manual interrupt sent response.cancel: \(server.kinds)")
+        session.stop()
+        server.stop()
+    }
+
+    /// An unexpected socket drop after ready reconnects automatically.
+    static func socketDropReconnect() async {
+        guard
+            let server = try? ScriptedServer(respond: { server, message in
+                guard message["type"]?.stringValue == "session.update" else { return }
+                server.send(["type": "session.updated"])
+                if server.connectionCount == 1 {
+                    server.dropClient()
+                }
+            })
+        else { return expect(false, "the scripted server starts") }
+        let port = await server.start()
+        var updates: [String] = []
+        let (stream, signal) = AsyncStream<String>.makeStream()
+        var readyCount = 0
+        let session = LiveVoiceSession(
+            wire: LoopbackWire(port: port),
+            setup: LiveVoiceSetup(instructions: "Test.", tools: [], voice: nil),
+            toolbox: LiveVoiceToolbox(sources: []), screen: nil, sendsScreenEachTurn: false, audio: nil,
+            reconnectDelays: [.milliseconds(20), .milliseconds(20)]
+        ) { update in
+            let label = name(update)
+            updates.append(label)
+            signal.yield(label)
+        }
+        let watchdog = Task {
+            try await Task.sleep(for: .seconds(10))
+            signal.finish()
+        }
+        session.start()
+        for await update in stream where update == "ready" {
+            readyCount += 1
+            if readyCount == 2 { break }
+        }
+        watchdog.cancel()
+        expect(server.connections == 2, "dropped socket triggered reconnect: \(server.connections)")
+        expect(updates == ["ready", "reconnecting", "ready"], "dropped socket resumed cleanly: \(updates)")
+        session.stop()
+        server.stop()
+    }
+
+    /// Gemini toolCallCancellation cancels an in-flight tool and suppresses its toolResponse.
+    static func geminiToolCancellation() async {
+        guard
+            let server = try? ScriptedServer(respond: { server, message in
+                guard message["setup"] != nil else { return }
+                server.send(["setupComplete": [String: Any]()])
+                server.send([
+                    "toolCall": ["functionCalls": [["id": "slow_1", "name": "slow_tool", "args": [:]]]]
+                ])
+                server.send(["toolCallCancellation": ["ids": ["slow_1"]]])
+                server.send(["serverContent": ["turnComplete": true]])
+            })
+        else { return expect(false, "the scripted server starts") }
+        let port = await server.start()
+        let slowTool = AITool(
+            name: "slow_tool", description: "Slow.",
+            parameters: .object(["type": .string("object"), "properties": .object([:])]), origin: "test")
+        var cancelled = false
+        let list = LiveVoiceToolList(tools: [slowTool]) { call in
+            do {
+                try await Task.sleep(for: .seconds(5))
+            } catch {
+                cancelled = true
+            }
+            return AIToolResult(callID: call.id, content: "late", isError: false)
+        }
+        let toolbox = LiveVoiceToolbox(sources: [list])
+        let (stream, signal) = AsyncStream<String>.makeStream()
+        let session = LiveVoiceSession(
+            wire: LoopbackGeminiWire(port: port),
+            setup: LiveVoiceSetup(instructions: "Test.", tools: toolbox.tools, voice: nil),
+            toolbox: toolbox, screen: nil, sendsScreenEachTurn: false, audio: nil
+        ) { update in
+            signal.yield(name(update))
+        }
+        let watchdog = Task {
+            try await Task.sleep(for: .seconds(10))
+            signal.finish()
+        }
+        session.start()
+        for await update in stream where update == "ended -1" {
+            break
+        }
+        watchdog.cancel()
+        try? await Task.sleep(for: .milliseconds(50))
+        expect(cancelled, "in-flight tool task was cancelled by toolCallCancellation")
+        expect(!server.kinds.contains("toolResponse"), "no stale toolResponse sent after cancellation: \(server.kinds)")
+        session.stop()
+        server.stop()
+    }
+
     static var failures = 0
     static var passes = 0
 
@@ -192,6 +478,11 @@ struct LiveVoiceSessionTests {
         await toolRoundTrip()
         await hiddenScreen()
         await refusedOpening()
+        await geminiResumptionReconnect()
+        await openAILifetimeReconnect()
+        await socketDropReconnect()
+        await manualInterrupt()
+        await geminiToolCancellation()
         print("\(passes) passed, \(failures) failed")
         exit(failures > 0 ? 1 : 0)
     }
@@ -244,21 +535,9 @@ struct LiveVoiceSessionTests {
             setup: LiveVoiceSetup(instructions: "Test.", tools: toolbox.tools, voice: nil), toolbox: toolbox,
             screen: screen, sendsScreenEachTurn: false, audio: nil
         ) { update in
-            let name: String
-            switch update {
-            case .ready: name = "ready"
-            case .listening: name = "listening"
-            case .heard(let text): name = "heard \(text)"
-            case .said(let text): name = "said \(text)"
-            case .replyEnded(let usage): name = "ended \(usage?.output ?? -1)"
-            case .latency: name = "latency"
-            case .calling(let call): name = "calling \(call.name)"
-            case .tool(let call, let result): name = "tool \(call.name) \(result.isError ? "error" : "ok")"
-            case .failed(let message): name = "failed \(message)"
-            case .closed: name = "closed"
-            }
-            updates.append(name)
-            signal.yield(name)
+            let label = name(update)
+            updates.append(label)
+            signal.yield(label)
         }
         let watchdog = Task {
             try await Task.sleep(for: .seconds(10))
@@ -272,7 +551,10 @@ struct LiveVoiceSessionTests {
         watchdog.cancel()
 
         expect(
-            updates == ["ready", "calling look_at_screen", "tool look_at_screen ok", "ended -1", "said A terminal.", "ended 4"],
+            updates == [
+                "ready", "thinking", "calling look_at_screen", "thinking", "tool look_at_screen ok",
+                "ended -1", "thinking", "said A terminal.", "ended 4",
+            ],
             "the session reports the call, its result and the answer: \(updates)")
         expect(
             server.kinds == [

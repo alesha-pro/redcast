@@ -11,6 +11,16 @@ protocol LiveVoiceToolSource {
 struct LiveVoiceToolContext: Sendable {
     /// Puts a note into the conversation later, as a finished background task does.
     let announce: @MainActor @Sendable (String) -> Void
+    /// Registers an asynchronous waiter task so stopping the session cancels it cleanly.
+    let track: @MainActor @Sendable (Task<Void, Never>) -> Void
+
+    init(
+        announce: @escaping @MainActor @Sendable (String) -> Void,
+        track: @escaping @MainActor @Sendable (Task<Void, Never>) -> Void = { _ in }
+    ) {
+        self.announce = announce
+        self.track = track
+    }
 }
 
 struct LiveVoiceToolOutcome: Sendable {

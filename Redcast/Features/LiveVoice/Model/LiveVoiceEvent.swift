@@ -15,6 +15,12 @@ enum LiveVoiceEvent: Equatable, Sendable {
     case toolCall(AIToolCall)
     /// The provider cut its own reply, so whatever is still queued must not be played.
     case interrupted
+    /// The provider cancelled in-flight tool calls (e.g., user spoke over them).
+    case toolCallsCancelled([String])
+    /// Server-side token allowing a fresh WebSocket to continue this conversation.
+    case resumptionHandle(String)
+    /// The provider will close this socket soon; reconnect cleanly before it drops.
+    case sessionExpiring(String?)
     case replyEnded(LiveVoiceUsage?)
     case failed(String)
 }
@@ -34,6 +40,19 @@ struct LiveVoiceSetup: Sendable {
     var voice: String?
     /// The language the user mostly speaks, as an ISO 639-1 code: a hint for the transcript only.
     var language: String?
+    /// Server-side session token sent when reconnecting a resumable provider.
+    var resumptionHandle: String?
+
+    init(
+        instructions: String, tools: [AITool], voice: String?, language: String? = nil,
+        resumptionHandle: String? = nil
+    ) {
+        self.instructions = instructions
+        self.tools = tools
+        self.voice = voice
+        self.language = language
+        self.resumptionHandle = resumptionHandle
+    }
 }
 
 /// A picture sent into the conversation, and where its pixels sit on the Mac's screens.

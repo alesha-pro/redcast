@@ -7,7 +7,11 @@ cd "$(dirname "$0")/.."
 BIN="${TMPDIR:-/tmp}/redcast-harness"
 mkdir -p "$BIN"
 swiftc -swift-version 6 -O \
+    Redcast/Platform/Appearance.swift Redcast/DesignSystem/Theme.swift \
+    Redcast/DesignSystem/Interaction/Motion.swift \
     Redcast/Features/AI/Model/AITool.swift Redcast/Features/AI/Model/JSONValue.swift \
+    Redcast/Features/AI/Model/AIConnection.swift Redcast/Features/AI/Model/AppleIntelligence.swift \
     Redcast/Features/LiveVoice/Model/*.swift Redcast/Features/LiveVoice/Service/*.swift \
-    Redcast/Features/LiveVoice/UI/*.swift Tests/live-voice-live.swift -o "$BIN/live-voice"
+    Redcast/Features/LiveVoice/UI/LiveVoicePointerController.swift Tests/live-voice-live.swift \
+    -o "$BIN/live-voice"
 exec "$BIN/live-voice" "$@"

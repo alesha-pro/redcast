@@ -232,6 +232,10 @@ struct LiveVoiceStand {
                 line("            a reply plays. On headphones, run with --headphones to cut in by voice.")
             case .open: line("[listening] microphone always open (headphones); Ctrl-C ends")
             }
+        case .userSpeaking, .thinking, .speaking:
+            break
+        case .reconnecting:
+            line("[reconnecting]")
         case .heard(let text):
             line("you: \(text)")
         case .said(let text):

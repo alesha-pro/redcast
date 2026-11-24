@@ -972,16 +972,34 @@ run voice-ai-test          Redcast/Features/VoiceAI/Model/*.swift \
 run live-voice-test        Redcast/Features/LiveVoice/Model/*.swift \
                            Redcast/Features/LiveVoice/Service/LiveVoiceScreenTools.swift \
                            Redcast/Features/AI/Model/AITool.swift \
-                           Redcast/Features/AI/Model/JSONValue.swift
+                           Redcast/Features/AI/Model/JSONValue.swift \
+                           Redcast/Features/AI/Model/AIConnection.swift \
+                           Redcast/Features/AI/Model/AppleIntelligence.swift
 run live-voice-session-test Redcast/Features/LiveVoice/Model/*.swift \
-                           Redcast/Features/LiveVoice/Service/*.swift \
+                           Redcast/Features/LiveVoice/Service/LiveVoiceAudio.swift \
+                           Redcast/Features/LiveVoice/Service/LiveVoiceConnection.swift \
+                           Redcast/Features/LiveVoice/Service/LiveVoicePointLocator.swift \
+                           Redcast/Features/LiveVoice/Service/LiveVoiceScreenTools.swift \
+                           Redcast/Features/LiveVoice/Service/LiveVoiceScreenshotter.swift \
+                           Redcast/Features/LiveVoice/Service/LiveVoiceSession.swift \
                            Redcast/Features/AI/Model/AITool.swift \
-                           Redcast/Features/AI/Model/JSONValue.swift
-run index live-voice-live  Redcast/Features/LiveVoice/Model/*.swift \
-                           Redcast/Features/LiveVoice/Service/*.swift \
-                           Redcast/Features/LiveVoice/UI/*.swift \
+                           Redcast/Features/AI/Model/JSONValue.swift \
+                           Redcast/Features/AI/Model/AIConnection.swift \
+                           Redcast/Features/AI/Model/AppleIntelligence.swift
+run index live-voice-live  Redcast/Platform/Appearance.swift Redcast/DesignSystem/Theme.swift \
+                           Redcast/DesignSystem/Interaction/Motion.swift \
+                           Redcast/Features/LiveVoice/Model/*.swift \
+                           Redcast/Features/LiveVoice/Service/LiveVoiceAudio.swift \
+                           Redcast/Features/LiveVoice/Service/LiveVoiceConnection.swift \
+                           Redcast/Features/LiveVoice/Service/LiveVoicePointLocator.swift \
+                           Redcast/Features/LiveVoice/Service/LiveVoiceScreenTools.swift \
+                           Redcast/Features/LiveVoice/Service/LiveVoiceScreenshotter.swift \
+                           Redcast/Features/LiveVoice/Service/LiveVoiceSession.swift \
+                           Redcast/Features/LiveVoice/UI/LiveVoicePointerController.swift \
                            Redcast/Features/AI/Model/AITool.swift \
-                           Redcast/Features/AI/Model/JSONValue.swift
+                           Redcast/Features/AI/Model/JSONValue.swift \
+                           Redcast/Features/AI/Model/AIConnection.swift \
+                           Redcast/Features/AI/Model/AppleIntelligence.swift
 run voice-coordinator-test Redcast/Features/VoiceAI/Model/*.swift \
                            Redcast/Features/Agents/Model/ChatToolContent.swift \
                            Redcast/Features/VoiceAI/Service/VoiceCloudTranscriber.swift \

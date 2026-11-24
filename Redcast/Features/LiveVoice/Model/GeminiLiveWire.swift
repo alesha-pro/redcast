@@ -4,24 +4,34 @@ import Foundation
 struct GeminiLiveWire: LiveVoiceWire {
     let key: String
     let model: String
+    let endpoint: URL?
+    let headers: [String: String]
     private var usage: LiveVoiceUsage?
 
     static let defaultModel = "gemini-3.8-live"
+    static let defaultVoice = "Puck"
     /// Google suggests 500 to 800 ms; shorter ends a turn sooner and splits a slow speaker's.
     static let silenceMilliseconds = 500
 
-    private static let endpoint =
+    static let defaultEndpoint =
         "wss://generativelanguage.googleapis.com/ws/"
         + "google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent"
 
-    init(key: String, model: String = GeminiLiveWire.defaultModel) {
+    init(
+        key: String, model: String = GeminiLiveWire.defaultModel, endpoint: URL? = nil,
+        headers: [String: String] = [:]
+    ) {
         self.key = key
         self.model = model
+        self.endpoint = endpoint
+        self.headers = headers
     }
 
     var request: URLRequest {
-        var request = URLRequest(url: URL(string: Self.endpoint) ?? URL(fileURLWithPath: "/"))
-        request.setValue(key, forHTTPHeaderField: "x-goog-api-key")
+        let url = endpoint ?? URL(string: Self.defaultEndpoint) ?? URL(fileURLWithPath: "/")
+        var request = URLRequest(url: url)
+        for (name, value) in headers { request.setValue(value, forHTTPHeaderField: name) }
+        if !key.isEmpty { request.setValue(key, forHTTPHeaderField: "x-goog-api-key") }
         return request
     }
 
@@ -33,6 +43,7 @@ struct GeminiLiveWire: LiveVoiceWire {
         if let voice = setup.voice {
             generation["speechConfig"] = ["voiceConfig": ["prebuiltVoiceConfig": ["voiceName": voice]]]
         }
+        let resumption: [String: Any] = setup.resumptionHandle.map { ["handle": $0] } ?? [:]
         var body: [String: Any] = [
             "model": "models/\(model)",
             "generationConfig": generation,
@@ -44,6 +55,7 @@ struct GeminiLiveWire: LiveVoiceWire {
             "inputAudioTranscription": [String: Any](),
             "outputAudioTranscription": [String: Any](),
             "contextWindowCompression": ["slidingWindow": [String: Any]()],
+            "sessionResumption": resumption,
         ]
         if !setup.tools.isEmpty {
             body["tools"] = [["functionDeclarations": setup.tools.map(Self.declaration)]]
@@ -128,10 +140,24 @@ struct GeminiLiveWire: LiveVoiceWire {
                         id: call["id"]?.stringValue ?? name, name: name,
                         arguments: Self.json(call["args"]?.jsonObject as? [String: Any] ?? [:]))))
         }
+        if let error = message["error"]?.objectValue {
+            let detail = error["message"]?.stringValue
+            events.append(.failed(detail ?? "Gemini reported an error."))
+        }
+        if let update = message["sessionResumptionUpdate"]?.objectValue,
+            update["resumable"]?.boolValue != false,
+            let handle = update["newHandle"]?.stringValue, !handle.isEmpty
+        {
+            events.append(.resumptionHandle(handle))
+        }
+        if let cancelled = message["toolCallCancellation"]?.objectValue?["ids"]?.arrayValue?
+            .compactMap(\.stringValue), !cancelled.isEmpty
+        {
+            events.append(.toolCallsCancelled(cancelled))
+        }
         if let content = message["serverContent"]?.objectValue { events += self.events(in: content) }
         if let warning = message["goAway"]?.objectValue {
-            let left = warning["timeLeft"]?.stringValue ?? "soon"
-            events.append(.failed("Gemini is closing this connection (\(left) left)."))
+            events.append(.sessionExpiring(warning["timeLeft"]?.stringValue))
         }
         return events
     }
